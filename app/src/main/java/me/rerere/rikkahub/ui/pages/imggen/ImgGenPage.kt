@@ -143,6 +143,14 @@ fun ImageGenPage(
                 },
                 navigationIcon = {
                     BackButton()
+                },
+                actions = {
+                    IconButton(onClick = vm::startNewSession) {
+                        Icon(
+                            imageVector = HugeIcons.Add01,
+                            contentDescription = "New session"
+                        )
+                    }
                 }
             )
         },

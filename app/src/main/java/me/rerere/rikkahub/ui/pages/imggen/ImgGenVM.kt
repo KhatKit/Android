@@ -122,6 +122,15 @@ class ImgGenVM(
         _error.value = null
     }
 
+    fun startNewSession() {
+        cancelJob?.cancel()
+        clearReferenceImages()
+        _prompt.value = ""
+        _currentGeneratedImages.value = emptyList()
+        _error.value = null
+        _isGenerating.value = false
+    }
+
     fun generateImage() {
         if(prompt.value.isBlank()) return
         cancelJob?.cancel()
