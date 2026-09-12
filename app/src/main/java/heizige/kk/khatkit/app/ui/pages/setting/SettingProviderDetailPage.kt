@@ -38,7 +38,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -51,13 +50,12 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -127,7 +125,8 @@ import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.build
 import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.ui.icons.dns
+import heizige.kk.khatkit.app.ui.icons.memory
 import heizige.kk.khatkit.app.ui.icons.package2
 import heizige.kk.khatkit.app.ui.icons.share
 import heizige.kk.khatkit.app.ui.icons.sync
@@ -687,7 +686,6 @@ private fun AddModelButton(
     val dialogState = useEditState<Model> {
         onAddModel(it.copy(displayName = it.displayName.trim()))
     }
-    val scope = rememberCoroutineScope()
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -764,26 +762,21 @@ private fun AddModelButton(
 
     if (dialogState.isEditing) {
         dialogState.currentState?.let { modelState ->
-            val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-            AppModalBottomSheet(
-                onDismissRequest = {
+            PrimaryBottomSheet(
+                visible = true,
+                title = stringResource(R.string.setting_provider_page_add_model),
+                imageVector = memory,
+                confirmText = stringResource(R.string.setting_provider_page_add),
+                onConfirm = {
+                    if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
+                        dialogState.confirm()
+                    }
+                },
+                onDismiss = {
                     dialogState.dismiss()
                 },
-                sheetState = sheetState,
-                sheetGesturesEnabled = false,
-                dragHandle = {
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                sheetState.hide()
-                                dialogState.dismiss()
-                            }
-                        }
-                    ) {
-                        Icon(keyboardArrowDown, null)
-                    }
-                }
-            ) {
+                scrollable = false,
+            ) { _ ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -792,10 +785,6 @@ private fun AddModelButton(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_add_model),
-                        style = MaterialTheme.typography.titleLarge
-                    )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
@@ -810,27 +799,6 @@ private fun AddModelButton(
                         )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(
-                            onClick = {
-                                dialogState.dismiss()
-                            },
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-                        TextButton(
-                            onClick = {
-                                if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
-                                    dialogState.confirm()
-                                }
-                            },
-                        ) {
-                            Text(stringResource(R.string.setting_provider_page_add))
-                        }
-                    }
                 }
             }
         }
@@ -848,10 +816,13 @@ private fun ModelPicker(
 ) {
     var showModal by remember { mutableStateOf(false) }
     if (showModal) {
-        AppModalBottomSheet(
-            onDismissRequest = { showModal = false },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_provider_page_avaliable_models),
+            imageVector = memory,
+            onDismiss = { showModal = false },
+            scrollable = false,
+        ) { _ ->
             var filterText by remember { mutableStateOf("") }
             val filterKeywords = filterText.split(" ").filter { it.isNotBlank() }
             val filteredModels = models.fastFilter {
@@ -872,19 +843,13 @@ private fun ModelPicker(
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // 标题栏和添加所有按钮
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_avaliable_models),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
                     val unselectedCount = filteredModels.count { model ->
                         selectedModels.none { it.modelId == model.modelId }
                     }
@@ -1174,15 +1139,21 @@ private fun ModelCard(
 
     if (dialogState.isEditing) {
         dialogState.currentState?.let { editingModel ->
-            val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-            AppModalBottomSheet(
-                onDismissRequest = {
+            PrimaryBottomSheet(
+                visible = true,
+                title = stringResource(R.string.setting_provider_page_edit_model),
+                imageVector = memory,
+                confirmText = stringResource(R.string.confirm),
+                onConfirm = {
+                    if (editingModel.displayName.isNotBlank()) {
+                        dialogState.confirm()
+                    }
+                },
+                onDismiss = {
                     dialogState.dismiss()
                 },
-                sheetState = sheetState,
-                sheetGesturesEnabled = false,
-                dragHandle = null,
-            ) {
+                scrollable = false,
+            ) { _ ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1191,26 +1162,6 @@ private fun ModelCard(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    sheetState.hide()
-                                    dialogState.dismiss()
-                                }
-                            },
-                            modifier = Modifier.align(Alignment.CenterStart)
-                        ) {
-                            Icon(close, null)
-                        }
-                        Text(
-                            text = stringResource(R.string.setting_provider_page_edit_model),
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.align(Alignment.Center),
-                        )
-                    }
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
@@ -1225,27 +1176,6 @@ private fun ModelCard(
                         )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(
-                            onClick = {
-                                dialogState.dismiss()
-                            },
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-                        TextButton(
-                            onClick = {
-                                if (editingModel.displayName.isNotBlank()) {
-                                    dialogState.confirm()
-                                }
-                            },
-                        ) {
-                            Text(stringResource(R.string.confirm))
-                        }
-                    }
                 }
             }
         }
@@ -1411,7 +1341,7 @@ private fun BuiltInToolsSettings(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Switch(
+                    OptionSwitch(
                         checked = tool in tools,
                         onCheckedChange = { checked ->
                             if (checked) {
@@ -1512,15 +1442,23 @@ private fun ProviderOverrideSettings(
 
         // Provider configuration modal
         if (showProviderConfig && editingProvider != null) {
-            AppModalBottomSheet(
-                onDismissRequest = {
+            var internalProvider by remember(editingProvider) { mutableStateOf(editingProvider!!) }
+            PrimaryBottomSheet(
+                visible = true,
+                title = stringResource(R.string.setting_provider_page_configure_provider_override),
+                imageVector = dns,
+                confirmText = stringResource(R.string.setting_provider_page_save),
+                onConfirm = {
+                    onUpdateProviderOverride(internalProvider.copyProvider(name = internalProvider.name.trim()))
                     showProviderConfig = false
                     editingProvider = null
                 },
-                sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-            ) {
-                var internalProvider by remember(editingProvider) { mutableStateOf(editingProvider!!) }
-
+                onDismiss = {
+                    showProviderConfig = false
+                    editingProvider = null
+                },
+                scrollable = false,
+            ) { _ ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1528,11 +1466,6 @@ private fun ProviderOverrideSettings(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_configure_provider_override),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -1543,29 +1476,6 @@ private fun ProviderOverrideSettings(
                             provider = internalProvider,
                             onEdit = { internalProvider = it }
                         )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(
-                            onClick = {
-                                showProviderConfig = false
-                                editingProvider = null
-                            },
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-                        TextButton(
-                            onClick = {
-                                onUpdateProviderOverride(internalProvider.copyProvider(name = internalProvider.name.trim()))
-                                showProviderConfig = false
-                                editingProvider = null
-                            },
-                        ) {
-                            Text(stringResource(R.string.setting_provider_page_save))
-                        }
                     }
                 }
             }

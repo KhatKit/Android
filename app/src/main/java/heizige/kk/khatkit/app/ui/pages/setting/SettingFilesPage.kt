@@ -28,14 +28,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
-import androidx.compose.material3.RadioButton
+import heizige.kk.khromia.components.AnimatedRadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.data.db.entity.ManagedFileEntity
 import heizige.kk.khatkit.app.R
@@ -124,29 +122,28 @@ fun SettingFilesPage(
     }
 
     if (showCleanSheet) {
-        val sheetState = rememberBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-        )
-        AppModalBottomSheet(
-            onDismissRequest = { showCleanSheet = false },
-            sheetState = sheetState,
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_files_page_clean_title),
+            imageVector = cleaningServices,
+            confirmText = stringResource(R.string.setting_files_page_clean_action),
+            onConfirm = {
+                showCleanSheet = false
+                scope.launch {
+                    val ok = selectedCleanRange.days?.let { days ->
+                        filesManager.deleteOlderThan(
+                            folder = selectedFolder,
+                            cutoffMillis = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(days.toLong()),
+                        )
+                    } ?: filesManager.deleteAll(selectedFolder)
+                    Toast.show(if (ok) cleanedToast else cleanFailedToast)
+                }
+            },
+            onDismiss = { showCleanSheet = false },
+        ) { _ ->
             CleanFilesSheet(
                 selectedRange = selectedCleanRange,
                 onRangeSelected = { selectedCleanRange = it },
-                onClean = {
-                    showCleanSheet = false
-                    scope.launch {
-                        val ok = selectedCleanRange.days?.let { days ->
-                            filesManager.deleteOlderThan(
-                                folder = selectedFolder,
-                                cutoffMillis = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(days.toLong()),
-                            )
-                        } ?: filesManager.deleteAll(selectedFolder)
-                        Toast.show(if (ok) cleanedToast else cleanFailedToast)
-                    }
-                },
             )
         }
     }
@@ -236,7 +233,6 @@ private enum class CleanRange(val days: Int?) {
 private fun CleanFilesSheet(
     selectedRange: CleanRange,
     onRangeSelected: (CleanRange) -> Unit,
-    onClean: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -245,10 +241,6 @@ private fun CleanFilesSheet(
             .padding(horizontal = 24.dp)
             .padding(bottom = 16.dp),
     ) {
-        Text(
-            text = stringResource(R.string.setting_files_page_clean_title),
-            style = MaterialTheme.typography.headlineSmall,
-        )
         Text(
             text = stringResource(R.string.setting_files_page_clean_range_description),
             style = MaterialTheme.typography.bodyMedium,
@@ -264,7 +256,7 @@ private fun CleanFilesSheet(
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(
+                AnimatedRadioButton(
                     selected = selectedRange == range,
                     onClick = { onRangeSelected(range) },
                 )
@@ -276,15 +268,6 @@ private fun CleanFilesSheet(
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
-        }
-
-        TextButton(
-            onClick = onClean,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-        ) {
-            Text(stringResource(R.string.setting_files_page_clean_action))
         }
     }
 }

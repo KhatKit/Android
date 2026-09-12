@@ -30,10 +30,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -91,23 +89,19 @@ fun LanguageSelectionDialog(
         }
     }
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.translation_language_selection_title),
+        imageVector = translate,
+        onDismiss = onDismissRequest,
+        scrollable = false,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // 标题
-            Text(
-                text = stringResource(R.string.translation_language_selection_title),
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             // 语言列表
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -117,6 +111,7 @@ fun LanguageSelectionDialog(
                     Card(
                         onClick = {
                             onLanguageSelected(language)
+                            dismiss()
                         },
                         shape = MaterialTheme.shapes.medium
                     ) {
@@ -144,6 +139,7 @@ fun LanguageSelectionDialog(
                     Card(
                         onClick = {
                             onClearTranslation()
+                            dismiss()
                         },
                         shape = MaterialTheme.shapes.medium
                     ) {

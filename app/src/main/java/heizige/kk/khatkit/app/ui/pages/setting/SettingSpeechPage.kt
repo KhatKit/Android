@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -25,16 +24,13 @@ import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.RadioButton
+import heizige.kk.khromia.components.AnimatedRadioButton
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -158,18 +154,25 @@ fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
 
     // Edit TTS Provider Bottom Sheet
     editingTTSProvider?.let { provider ->
-        val bottomSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
         var currentProvider by remember(provider) { mutableStateOf(provider) }
 
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_tts_page_edit_provider),
+            imageVector = volumeUp,
+            confirmText = stringResource(R.string.chat_page_save),
+            onConfirm = {
+                val newProviders = settings.ttsProviders.map {
+                    if (it.id == provider.id) currentProvider else it
+                }
+                vm.updateSettings(settings.copy(ttsProviders = newProviders))
                 editingTTSProvider = null
             },
-            sheetState = bottomSheetState,
-            dragHandle = {
-                BottomSheetDefaults.DragHandle()
-            }
-        ) {
+            onDismiss = {
+                editingTTSProvider = null
+            },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,11 +180,6 @@ fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.setting_tts_page_edit_provider),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-
                 TTSProviderConfigure(
                     setting = currentProvider,
                     onValueChange = { newState ->
@@ -189,50 +187,30 @@ fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
                     },
                     modifier = Modifier.weight(1f)
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = {
-                            editingTTSProvider = null
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.cancel))
-                    }
-
-                    TextButton(
-                        onClick = {
-                            val newProviders = settings.ttsProviders.map {
-                                if (it.id == provider.id) currentProvider else it
-                            }
-                            vm.updateSettings(settings.copy(ttsProviders = newProviders))
-                            editingTTSProvider = null
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.chat_page_save))
-                    }
-                }
             }
         }
     }
 
     editingASRProvider?.let { provider ->
-        val bottomSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
         var currentProvider by remember(provider) { mutableStateOf(provider) }
 
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_asr_page_edit_provider),
+            imageVector = mic,
+            confirmText = stringResource(R.string.chat_page_save),
+            onConfirm = {
+                val newProviders = settings.asrProviders.map {
+                    if (it.id == provider.id) currentProvider else it
+                }
+                vm.updateSettings(settings.copy(asrProviders = newProviders))
                 editingASRProvider = null
             },
-            sheetState = bottomSheetState,
-            dragHandle = {
-                BottomSheetDefaults.DragHandle()
-            }
-        ) {
+            onDismiss = {
+                editingASRProvider = null
+            },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -240,11 +218,6 @@ fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.setting_asr_page_edit_provider),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-
                 ASRProviderConfigure(
                     setting = currentProvider,
                     onValueChange = { newState ->
@@ -252,33 +225,6 @@ fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
                     },
                     modifier = Modifier.weight(1f)
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = {
-                            editingASRProvider = null
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.cancel))
-                    }
-
-                    TextButton(
-                        onClick = {
-                            val newProviders = settings.asrProviders.map {
-                                if (it.id == provider.id) currentProvider else it
-                            }
-                            vm.updateSettings(settings.copy(asrProviders = newProviders))
-                            editingASRProvider = null
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.chat_page_save))
-                    }
-                }
             }
         }
     }
@@ -457,16 +403,20 @@ private fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
     }
 
     if (showBottomSheet) {
-        val bottomSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_tts_page_add_provider),
+            imageVector = volumeUp,
+            confirmText = stringResource(R.string.setting_tts_page_add),
+            onConfirm = {
+                onAdd(currentProvider)
                 showBottomSheet = false
             },
-            sheetState = bottomSheetState,
-            dragHandle = {
-                BottomSheetDefaults.DragHandle()
-            }
-        ) {
+            onDismiss = {
+                showBottomSheet = false
+            },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -474,11 +424,6 @@ private fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.setting_tts_page_add_provider),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-
                 TTSProviderConfigure(
                     setting = currentProvider,
                     onValueChange = { newState ->
@@ -486,30 +431,6 @@ private fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
                     },
                     modifier = Modifier.weight(1f)
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = {
-                            showBottomSheet = false
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.cancel))
-                    }
-
-                    TextButton(
-                        onClick = {
-                            onAdd(currentProvider)
-                            showBottomSheet = false
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.setting_tts_page_add))
-                    }
-                }
             }
         }
     }
@@ -575,16 +496,20 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
     }
 
     if (showBottomSheet) {
-        val bottomSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_asr_page_add_provider),
+            imageVector = mic,
+            confirmText = stringResource(R.string.setting_tts_page_add),
+            onConfirm = {
+                onAdd(currentProvider)
                 showBottomSheet = false
             },
-            sheetState = bottomSheetState,
-            dragHandle = {
-                BottomSheetDefaults.DragHandle()
-            }
-        ) {
+            onDismiss = {
+                showBottomSheet = false
+            },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -592,11 +517,6 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.setting_asr_page_add_provider),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-
                 ASRProviderConfigure(
                     setting = currentProvider,
                     onValueChange = { newState ->
@@ -604,30 +524,6 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     },
                     modifier = Modifier.weight(1f)
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = {
-                            showBottomSheet = false
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.cancel))
-                    }
-
-                    TextButton(
-                        onClick = {
-                            onAdd(currentProvider)
-                            showBottomSheet = false
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.setting_tts_page_add))
-                    }
-                }
             }
         }
     }
@@ -703,7 +599,7 @@ private fun TTSProviderItem(
                     )
                 }
 
-                RadioButton(
+                AnimatedRadioButton(
                     selected = isSelected,
                     onClick = onSelect
                 )
@@ -838,13 +734,15 @@ private fun ASRProviderItem(
                             is ASRProviderSetting.Volcengine -> "Volcengine"
                             is ASRProviderSetting.MiMo -> "MiMo"
                             is ASRProviderSetting.Step -> "Step"
+                            is ASRProviderSetting.OpenAITranscribe -> "OpenAI Transcribe"
+                            is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                RadioButton(
+                AnimatedRadioButton(
                     selected = isSelected,
                     onClick = onSelect
                 )

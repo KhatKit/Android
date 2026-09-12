@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,6 +47,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -129,6 +131,20 @@ import heizige.kk.khromia.components.OptionItem
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
+import heizige.kk.kedge.adaptive.KedgeTopAppBar
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeCheckbox
+import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.kedge.components.KedgeRadioButton
+import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.overlays.KedgeModalBottomSheet
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
@@ -259,7 +275,54 @@ private fun stepIcon(step: GreetingStep): ImageVector = when (step) {
 }
 
 @Composable
+private fun isMiuixStyle(): Boolean = LocalKedgeStyle.current == KedgeStyle.Miuix
+
+@Composable
+private fun greetingTitle(step: GreetingStep): String = when (step) {
+    GreetingStep.Agreement -> stringResource(R.string.greeting_title_agreement)
+    GreetingStep.Permissions -> stringResource(R.string.greeting_title_permissions)
+    GreetingStep.AiSetup -> stringResource(R.string.greeting_title_ai)
+    GreetingStep.Settings -> stringResource(R.string.greeting_title_settings)
+    GreetingStep.Welcome -> ""
+}
+
+@Composable
+private fun greetingSubtitle(step: GreetingStep): String? = when (step) {
+    GreetingStep.Permissions -> stringResource(R.string.greeting_permissions_subtitle)
+    GreetingStep.AiSetup -> stringResource(R.string.greeting_ai_subtitle)
+    GreetingStep.Settings -> stringResource(R.string.greeting_settings_subtitle)
+    else -> null
+}
+
+@Composable
+private fun GreetingStepBadge(step: GreetingStep) {
+    Box(
+        modifier = Modifier
+            .padding(8.dp)
+            .background(
+                KedgeColors.surfaceVariant.copy(alpha = 0.54f),
+                CircleShape,
+            )
+            .padding(8.dp),
+    ) {
+        Icon(
+            imageVector = stepIcon(step),
+            contentDescription = null,
+            tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+        )
+    }
+}
+
+@Composable
 private fun GreetingTopAppBar(step: GreetingStep) {
+    if (isMiuixStyle()) {
+        KedgeTopAppBar(
+            title = greetingTitle(step),
+            subtitle = greetingSubtitle(step),
+            navigationIcon = { GreetingStepBadge(step) },
+        )
+        return
+    }
     CenterAlignedTopAppBar(
         title = {
             AnimatedContent(
@@ -272,26 +335,15 @@ private fun GreetingTopAppBar(step: GreetingStep) {
             ) { current ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = when (current) {
-                            GreetingStep.Agreement -> stringResource(R.string.greeting_title_agreement)
-                            GreetingStep.Permissions -> stringResource(R.string.greeting_title_permissions)
-                            GreetingStep.AiSetup -> stringResource(R.string.greeting_title_ai)
-                            GreetingStep.Settings -> stringResource(R.string.greeting_title_settings)
-                            GreetingStep.Welcome -> ""
-                        },
+                        text = greetingTitle(current),
                         modifier = Modifier.alpha(0.87f),
                     )
-                    val subtitle = when (current) {
-                        GreetingStep.Permissions -> stringResource(R.string.greeting_permissions_subtitle)
-                        GreetingStep.AiSetup -> stringResource(R.string.greeting_ai_subtitle)
-                        GreetingStep.Settings -> stringResource(R.string.greeting_settings_subtitle)
-                        else -> null
-                    }
+                    val subtitle = greetingSubtitle(current)
                     if (subtitle != null) {
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = KedgeColors.onSurfaceVariant,
                             modifier = Modifier.alpha(0.87f),
                         )
                     }
@@ -319,21 +371,7 @@ private fun GreetingTopAppBar(step: GreetingStep) {
                 },
                 label = "greetingStepIcon",
             ) { current ->
-                Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f),
-                            CircleShape,
-                        )
-                        .padding(8.dp),
-                ) {
-                    Icon(
-                        imageVector = stepIcon(current),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
-                    )
-                }
+                GreetingStepBadge(current)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors()
@@ -357,56 +395,100 @@ private fun GreetingBottomBar(
         label = "progress",
     )
 
+    if (isMiuixStyle()) {
+        KedgeSurface(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GreetingBottomActions(
+                    step = step,
+                    agreementAccepted = agreementAccepted,
+                    canScrollForward = canScrollForward,
+                    animatedProgress = animatedProgress,
+                    onBack = onBack,
+                    onScrollToEnd = onScrollToEnd,
+                    onNext = onNext,
+                    onFinish = onFinish,
+                )
+            }
+        }
+    } else {
+        BottomAppBar(
+            windowInsets = WindowInsets(16.dp, 0.dp, 16.dp, 0.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GreetingBottomActions(
+                    step = step,
+                    agreementAccepted = agreementAccepted,
+                    canScrollForward = canScrollForward,
+                    animatedProgress = animatedProgress,
+                    onBack = onBack,
+                    onScrollToEnd = onScrollToEnd,
+                    onNext = onNext,
+                    onFinish = onFinish,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.GreetingBottomActions(
+    step: GreetingStep,
+    agreementAccepted: Boolean,
+    canScrollForward: Boolean,
+    animatedProgress: Float,
+    onBack: () -> Unit,
+    onScrollToEnd: () -> Unit,
+    onNext: () -> Unit,
+    onFinish: () -> Unit,
+) {
     val isReadAction = step == GreetingStep.Agreement && canScrollForward
     val nextEnabled = when (step) {
         GreetingStep.Agreement -> canScrollForward || agreementAccepted
         else -> true
     }
 
-    BottomAppBar(
-        windowInsets = WindowInsets(16.dp, 0.dp, 16.dp, 0.dp),
-        actions = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(
-                    modifier = Modifier.animateContentSize(),
-                    onClick = onBack,
-                    enabled = step != GreetingStep.Welcome,
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.greeting_action_back))
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                LinearWavyProgressIndicator(
-                    modifier = Modifier.width(64.dp),
-                    progress = { animatedProgress },
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Button(
-                    modifier = Modifier.animateContentSize(),
-                    onClick = {
-                        when {
-                            step == GreetingStep.Settings -> onFinish()
-                            isReadAction -> onScrollToEnd()
-                            else -> onNext()
-                        }
-                    },
-                    enabled = nextEnabled,
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(
-                        when {
-                            step == GreetingStep.Settings -> stringResource(R.string.greeting_action_finish)
-                            isReadAction -> stringResource(R.string.greeting_action_read)
-                            else -> stringResource(R.string.greeting_action_next)
-                        }
-                    )
-                }
+    KedgeTextButton(
+        modifier = Modifier.animateContentSize(),
+        onClick = onBack,
+        enabled = step != GreetingStep.Welcome,
+    ) {
+        Text(stringResource(R.string.greeting_action_back))
+    }
+    Spacer(modifier = Modifier.weight(1f))
+    KedgeProgressIndicator(
+        modifier = Modifier.width(64.dp),
+        progress = animatedProgress,
+        type = KedgeProgressIndicatorType.Linear,
+    )
+    Spacer(modifier = Modifier.weight(1f))
+    KedgeButton(
+        modifier = Modifier.animateContentSize(),
+        onClick = {
+            when {
+                step == GreetingStep.Settings -> onFinish()
+                isReadAction -> onScrollToEnd()
+                else -> onNext()
             }
         },
-    )
+        enabled = nextEnabled,
+    ) {
+        Text(
+            when {
+                step == GreetingStep.Settings -> stringResource(R.string.greeting_action_finish)
+                isReadAction -> stringResource(R.string.greeting_action_read)
+                else -> stringResource(R.string.greeting_action_next)
+            }
+        )
+    }
 }
 
 @Composable
@@ -414,7 +496,7 @@ private fun GreetingWelcomeScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(KedgeColors.background)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -440,14 +522,13 @@ private fun GreetingWelcomeScreen() {
             label = "glowOffset",
         )
 
-        val colorScheme = MaterialTheme.colorScheme
         val gradientColors = listOf(
-            colorScheme.primary.copy(alpha = glowAlpha),
-            colorScheme.primaryContainer.copy(alpha = glowAlpha),
-            colorScheme.secondary.copy(alpha = glowAlpha),
-            colorScheme.secondaryContainer.copy(alpha = glowAlpha),
-            colorScheme.tertiary.copy(alpha = glowAlpha),
-            colorScheme.tertiaryContainer.copy(alpha = glowAlpha),
+            KedgeColors.primary.copy(alpha = glowAlpha),
+            KedgeColors.primaryContainer.copy(alpha = glowAlpha),
+            KedgeColors.secondary.copy(alpha = glowAlpha),
+            KedgeColors.secondaryContainer.copy(alpha = glowAlpha),
+            KedgeColors.tertiary.copy(alpha = glowAlpha),
+            KedgeColors.tertiaryContainer.copy(alpha = glowAlpha),
         )
 
         Text(
@@ -475,7 +556,7 @@ private fun GreetingAgreementScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(KedgeColors.background)
             .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
             .verticalScroll(scrollState)
             .padding(16.dp),
@@ -483,7 +564,7 @@ private fun GreetingAgreementScreen(
         Text(
             text = stringResource(R.string.greeting_agreement_text),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = KedgeColors.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -494,7 +575,7 @@ private fun GreetingAgreementScreen(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(
+            KedgeCheckbox(
                 checked = accepted,
                 onCheckedChange = null,
             )
@@ -529,7 +610,7 @@ private fun GreetingSettingsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(KedgeColors.background)
             .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
@@ -580,19 +661,35 @@ private fun GreetingSettingsScreen() {
             contentColor = Color.Transparent,
         ) {
             Column {
-                OptionItem(
-                    imageVector = palette,
-                    title = stringResource(R.string.greeting_settings_dynamic_color),
-                    subtitle = stringResource(R.string.greeting_settings_dynamic_color_desc),
-                    checked = dynamicColorSupported && settings.dynamicColor,
-                    onCheckedChange = { enabled ->
+                KedgeOptionItem(
+                    onClick = {
                         if (dynamicColorSupported) {
-                            scope.launch { settingsStore.update { it.copy(dynamicColor = enabled) } }
+                            scope.launch { settingsStore.update { it.copy(dynamicColor = !settings.dynamicColor) } }
                         }
                     },
                     modifier = if (dynamicColorSupported) Modifier
                     else Modifier.alpha(0.5f),
                     shape = cards.groupItemShape(isFirst = true, isLast = false),
+                    leadingContent = {
+                        Icon(
+                            imageVector = palette,
+                            contentDescription = null,
+                            tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                        )
+                    },
+                    titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
+                    supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
+                    trailingContent = {
+                        KedgeSwitch(
+                            checked = dynamicColorSupported && settings.dynamicColor,
+                            enabled = dynamicColorSupported,
+                            onCheckedChange = { enabled ->
+                                if (dynamicColorSupported) {
+                                    scope.launch { settingsStore.update { it.copy(dynamicColor = enabled) } }
+                                }
+                            },
+                        )
+                    },
                 )
 
                 AnimatedVisibility(
@@ -643,14 +740,22 @@ private fun GreetingSettingsScreen() {
                     KhatKitUiStyle.MATERIAL to "Material 3",
                     KhatKitUiStyle.MIUIX to "Miuix",
                 ).forEach { (style, label) ->
-                    AnimatedRadioItem(
-                        text = label,
-                        isSelected = uiStyle == style,
+                    KedgeOptionItem(
                         onClick = {
                             provider.uiStyle = style
                             uiStyle = style
                         },
-                        cornerRadius = 4.dp,
+                        shape = RoundedCornerShape(4.dp),
+                        titleContent = { Text(label) },
+                        trailingContent = {
+                            KedgeRadioButton(
+                                selected = uiStyle == style,
+                                onClick = {
+                                    provider.uiStyle = style
+                                    uiStyle = style
+                                },
+                            )
+                        },
                     )
                 }
             }
@@ -744,7 +849,7 @@ private fun GreetingPermissionsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(KedgeColors.background)
             .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
@@ -925,6 +1030,23 @@ private fun PermissionRadioItem(
     enabled: Boolean = true,
     dangerous: Boolean = false,
 ) {
+    if (isMiuixStyle()) {
+        KedgeOptionItem(
+            onClick = { if (enabled) onClick() },
+            modifier = Modifier.alpha(if (enabled) 1f else 0.6f),
+            shape = shape,
+            titleContent = { Text(title) },
+            supportingContent = { Text(subtitle) },
+            trailingContent = {
+                KedgeRadioButton(
+                    selected = selected,
+                    onClick = { if (enabled) onClick() },
+                    enabled = enabled,
+                )
+            },
+        )
+        return
+    }
     val colors = MaterialTheme.colorScheme
     AnimatedRadioItem(
         text = title,
@@ -993,7 +1115,7 @@ private fun GreetingAiSetupScreen() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(KedgeColors.background)
             .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(cards.gap),
@@ -1030,14 +1152,11 @@ private fun GreetingAiSetupScreen() {
         }
 
         item(key = "custom_button") {
-            ButtonOption(
+            KedgeOptionItem(
                 shape = cards.indexedShape(
                     configuredProviders.size,
                     configuredProviders.size + 1,
                 ),
-                imageVector = add,
-                title = stringResource(R.string.greeting_ai_custom_key),
-                subtitle = stringResource(R.string.greeting_ai_custom_desc),
                 onClick = {
                     sheetProvider = null
                     customType = ProviderSetting.OpenAI::class
@@ -1046,6 +1165,15 @@ private fun GreetingAiSetupScreen() {
                     draftBaseUrl = defaultBaseUrlFor(ProviderSetting.OpenAI::class)
                     customSheetVisible = true
                 },
+                leadingContent = {
+                    Icon(
+                        imageVector = add,
+                        contentDescription = null,
+                        tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                    )
+                },
+                titleContent = { Text(stringResource(R.string.greeting_ai_custom_key)) },
+                supportingContent = { Text(stringResource(R.string.greeting_ai_custom_desc)) },
             )
         }
 
@@ -1075,13 +1203,8 @@ private fun GreetingAiSetupScreen() {
 
     if (sheetProvider != null || sheetProvider == null && customSheetVisible) {
         val provider = sheetProvider
-        PrimaryBottomSheet(
-            visible = true,
-            title = provider?.name ?: stringResource(R.string.greeting_ai_custom_key),
-            imageVector = neurology,
-            confirmText = stringResource(R.string.greeting_ai_save),
-            onConfirm = {
-                scope.launch {
+        val save: () -> Unit = {
+            scope.launch {
                     val existingId = provider?.id
                     var createdId: Uuid? = null
                     settingsStore.update { current ->
@@ -1107,12 +1230,13 @@ private fun GreetingAiSetupScreen() {
                         }
                     }
                     (existingId ?: createdId)?.let { bindDefaultModels(it) }
-                }
-                sheetProvider = null
-                customSheetVisible = false
-            },
-            onDismiss = { sheetProvider = null; customSheetVisible = false },
-        ) { _ ->
+            }
+            sheetProvider = null
+            customSheetVisible = false
+        }
+        val sheetTitle = provider?.name ?: stringResource(R.string.greeting_ai_custom_key)
+        val closeSheet = { sheetProvider = null; customSheetVisible = false }
+        val sheetBody: @Composable (showSaveButton: Boolean) -> Unit = { showSaveButton ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1160,7 +1284,32 @@ private fun GreetingAiSetupScreen() {
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (showSaveButton) {
+                    KedgeButton(
+                        onClick = save,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.greeting_ai_save))
+                    }
+                }
             }
+        }
+        if (isMiuixStyle()) {
+            KedgeModalBottomSheet(
+                show = true,
+                title = sheetTitle,
+                onDismissRequest = closeSheet,
+            ) { sheetBody(true) }
+        } else {
+            PrimaryBottomSheet(
+                visible = true,
+                title = sheetTitle,
+                imageVector = smartphone,
+                confirmText = stringResource(R.string.greeting_ai_save),
+                onConfirm = { save() },
+                onDismiss = closeSheet,
+                scrollable = false,
+            ) { _ -> sheetBody(false) }
         }
     }
 }
@@ -1174,22 +1323,33 @@ private fun AiProviderItem(
     onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
 ) {
-    OptionItem(
-        imageVector = neurology,
-        title = provider.name,
-        subtitle = stringResource(
-            if (configured) R.string.greeting_ai_configured else R.string.greeting_ai_not_configured
-        ),
+    KedgeOptionItem(
         onClick = onClick,
         shape = shape,
         modifier = modifier,
-    ) {
-        Switch(
-            checked = configured && provider.enabled,
-            enabled = configured,
-            onCheckedChange = onToggle,
-        )
-    }
+        leadingContent = {
+            Icon(
+                imageVector = neurology,
+                contentDescription = null,
+                tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+            )
+        },
+        titleContent = { Text(provider.name) },
+        supportingContent = {
+            Text(
+                stringResource(
+                    if (configured) R.string.greeting_ai_configured else R.string.greeting_ai_not_configured
+                )
+            )
+        },
+        trailingContent = {
+            KedgeSwitch(
+                checked = configured && provider.enabled,
+                enabled = configured,
+                onCheckedChange = onToggle,
+            )
+        },
+    )
 }
 
 private fun ProviderSetting.apiKeyOrEmpty(): String = when (this) {

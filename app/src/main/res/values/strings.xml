@@ -618,6 +618,10 @@
   <string name="setting_asr_configure_model_desc">Realtime transcription model</string>
   <string name="setting_asr_configure_name">Name</string>
   <string name="setting_asr_configure_name_desc">Custom name for this ASR provider</string>
+  <string name="setting_asr_configure_gemini_api_key_desc">Google AI Studio API key used by Gemini audio transcription</string>
+  <string name="setting_asr_configure_gemini_base_url_desc">Gemini API base URL (generativelanguage)</string>
+  <string name="setting_asr_configure_openai_transcribe_base_url_desc">OpenAI-compatible base URL exposing /audio/transcriptions</string>
+  <string name="setting_asr_configure_sample_rate_desc">PCM sample rate used for recording</string>
   <string name="setting_asr_configure_openai_api_key_desc">OpenAI API key used by the realtime websocket</string>
   <string name="setting_asr_configure_openai_websocket_desc">OpenAI realtime websocket endpoint</string>
   <string name="setting_asr_configure_prefix_padding">Prefix Padding</string>

@@ -14,19 +14,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.adaptive.currentWindowDpSize
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +85,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.addComment
 import heizige.kk.khatkit.app.ui.icons.close
+import heizige.kk.khatkit.app.ui.icons.extension
 import heizige.kk.khatkit.app.ui.icons.formatListBulleted
 import heizige.kk.khatkit.app.ui.icons.menu
 
@@ -559,14 +558,12 @@ private fun ChatFilesPickerSheet(
         onDismiss()
     }
 
-    val filesSheetState = rememberBottomSheetState(
-        initialValue = SheetValue.Hidden,
-        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-    )
-    AppModalBottomSheet(
-        sheetState = filesSheetState,
-        onDismissRequest = { dismissAll() },
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.more_options),
+        imageVector = extension,
+        onDismiss = { dismissAll() },
+    ) { _ ->
         FilesPicker(
             conversation = conversation,
             state = inputState,

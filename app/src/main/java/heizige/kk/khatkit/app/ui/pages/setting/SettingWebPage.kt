@@ -20,7 +20,7 @@ import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -233,7 +233,7 @@ fun SettingWebPage() {
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_localhost_only)) },
                         supportingContent = { Text(stringResource(R.string.setting_page_web_server_localhost_only_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = settings.webServerLocalhostOnly,
                                 onCheckedChange = { checked ->
                                     scope.launch {
@@ -251,7 +251,7 @@ fun SettingWebPage() {
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_jwt_enable)) },
                         supportingContent = { Text(stringResource(R.string.setting_page_web_server_jwt_enable_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = settings.webServerJwtEnabled,
                                 onCheckedChange = { checked ->
                                     scope.launch {

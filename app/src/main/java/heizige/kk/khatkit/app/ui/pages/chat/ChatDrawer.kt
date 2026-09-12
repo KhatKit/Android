@@ -24,14 +24,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,6 +86,7 @@ import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.edit
 import heizige.kk.khatkit.app.ui.icons.favorite
 import heizige.kk.khatkit.app.ui.icons.folder as folderIcon
+import heizige.kk.khatkit.app.ui.icons.groups
 import heizige.kk.khatkit.app.ui.icons.image
 import heizige.kk.khatkit.app.ui.icons.receiptLong
 import heizige.kk.khatkit.app.ui.icons.search
@@ -147,12 +146,10 @@ fun ChatDrawerContent(
     // 移动对话状态
     var showMoveToAssistantSheet by remember { mutableStateOf(false) }
     var conversationToMove by remember { mutableStateOf<Conversation?>(null) }
-    val bottomSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
 
     // 文件夹相关状态
     var showMoveToFolderSheet by remember { mutableStateOf(false) }
     var conversationToMoveFolder by remember { mutableStateOf<Conversation?>(null) }
-    val folderSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
     var showCreateFolderDialog by remember { mutableStateOf(false) }
     var folderToRename by remember { mutableStateOf<Folder?>(null) }
     var folderToDelete by remember { mutableStateOf<Folder?>(null) }
@@ -458,24 +455,25 @@ fun ChatDrawerContent(
 
     // 移动到文件夹 Bottom Sheet
     if (showMoveToFolderSheet) {
-        val doMove: (Uuid?) -> Unit = { folderId ->
-            conversationToMoveFolder?.let { conversation ->
-                drawerVm.moveConversationToFolder(conversation.id, folderId)
-                scope.launch {
-                    folderSheetState.hide()
-                    showMoveToFolderSheet = false
-                    conversationToMoveFolder = null
-                    conversations.refresh()
-                }
-            }
-        }
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.chat_page_move_to_folder),
+            imageVector = folderIcon,
+            onDismiss = {
                 showMoveToFolderSheet = false
                 conversationToMoveFolder = null
             },
-            sheetState = folderSheetState
-        ) {
+            scrollable = false,
+        ) { dismiss ->
+            val doMove: (Uuid?) -> Unit = { folderId ->
+                conversationToMoveFolder?.let { conversation ->
+                    drawerVm.moveConversationToFolder(conversation.id, folderId)
+                    dismiss()
+                    scope.launch {
+                        conversations.refresh()
+                    }
+                }
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -483,12 +481,6 @@ fun ChatDrawerContent(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.chat_page_move_to_folder),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
                 // 移出文件夹（未归类）
                 Surface(
                     onClick = { doMove(null) },
@@ -644,13 +636,16 @@ fun ChatDrawerContent(
 
     // 移动到助手 Bottom Sheet
     if (showMoveToAssistantSheet) {
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.chat_page_move_to_assistant),
+            imageVector = groups,
+            onDismiss = {
                 showMoveToAssistantSheet = false
                 conversationToMove = null
             },
-            sheetState = bottomSheetState
-        ) {
+            scrollable = false,
+        ) { dismiss ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -658,12 +653,6 @@ fun ChatDrawerContent(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.chat_page_move_to_assistant),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -674,11 +663,7 @@ fun ChatDrawerContent(
                             onClick = {
                                 conversationToMove?.let { conversation ->
                                     vm.moveConversationToAssistant(conversation, assistant.id)
-                                    scope.launch {
-                                        bottomSheetState.hide()
-                                        showMoveToAssistantSheet = false
-                                        conversationToMove = null
-                                    }
+                                    dismiss()
                                 }
                             }
                         )

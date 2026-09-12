@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.ui.pages.setting
 
+import heizige.kk.khromia.components.AnimatedRadioButton
 import android.content.Context
 import android.graphics.Typeface
 import android.net.Uri
@@ -18,8 +19,8 @@ import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.FancySlider
+import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -132,7 +133,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_user_avatar_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_user_avatar_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showUserAvatar,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showUserAvatar = it))
@@ -144,7 +145,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_assistant_bubble_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_assistant_bubble_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showAssistantBubble,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showAssistantBubble = it))
@@ -160,7 +161,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Slider(
+                                FancySlider(
                                     value = displaySetting.bubbleOpacity,
                                     onValueChange = {
                                         updateDisplaySetting(displaySetting.copy(bubbleOpacity = it))
@@ -177,7 +178,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_chat_list_model_icon_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_chat_list_model_icon_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showModelIcon,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showModelIcon = it))
@@ -189,7 +190,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_model_name_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_model_name_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showModelName,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showModelName = it))
@@ -201,7 +202,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_datetime_in_message_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_datetime_in_message_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showDateTimeInMessage,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it))
@@ -213,7 +214,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_token_usage_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_token_usage_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showTokenUsage,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showTokenUsage = it))
@@ -225,7 +226,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_thinking_content_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_thinking_content_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showThinkingContent,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showThinkingContent = it))
@@ -237,7 +238,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_auto_collapse_thinking_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_auto_collapse_thinking_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.autoCloseThinking,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(autoCloseThinking = it))
@@ -249,7 +250,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_enable_latex_rendering_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_enable_latex_rendering_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.enableLatexRendering,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(enableLatexRendering = it))
@@ -339,7 +340,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Slider(
+                                    FancySlider(
                                         value = displaySetting.fontSizeRatio,
                                         onValueChange = {
                                             updateDisplaySetting(displaySetting.copy(fontSizeRatio = it))
@@ -373,7 +374,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_wrap_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_wrap_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.codeBlockAutoWrap,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(codeBlockAutoWrap = it))
@@ -385,7 +386,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_collapse_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_collapse_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.codeBlockAutoCollapse,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(codeBlockAutoCollapse = it))
@@ -397,7 +398,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_line_numbers_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_line_numbers_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showLineNumbers,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showLineNumbers = it))
@@ -419,7 +420,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                                 Text(if (style == heizige.kk.khatkit.uikit.KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix")
                             },
                             trailingContent = {
-                                androidx.compose.material3.RadioButton(
+                                AnimatedRadioButton(
                                     selected = uiStyle == style,
                                     onClick = null,
                                 )
@@ -446,7 +447,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Slider(
+                                FancySlider(
                                     value = settings.listCardLargeCorner,
                                     onValueChange = {
                                         val large = it.roundToInt().toFloat()
@@ -474,7 +475,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Slider(
+                                FancySlider(
                                     value = settings.listCardSmallCorner,
                                     onValueChange = {
                                         vm.updateSettings(
@@ -498,7 +499,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Slider(
+                                FancySlider(
                                     value = settings.listCardGap,
                                     onValueChange = {
                                         vm.updateSettings(

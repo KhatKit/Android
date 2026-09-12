@@ -12,13 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +39,7 @@ import heizige.kk.khatkit.app.ui.components.ui.icons.ReasoningMedium
 import kotlin.math.roundToInt
 import heizige.kk.khatkit.app.ui.icons.emojiObjects
 import heizige.kk.khatkit.app.ui.icons.lightbulb
+import heizige.kk.khatkit.app.ui.icons.neurology
 
 private val levels = ReasoningLevel.entries
 private val levelCount = levels.size
@@ -102,10 +101,12 @@ fun ReasoningPicker(
         sliderState.value = currentIndex.toFloat()
     }
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.reasoning_picker_title),
+        imageVector = neurology,
+        onDismiss = onDismissRequest,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,10 +120,6 @@ fun ReasoningPicker(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = stringResource(R.string.reasoning_picker_title),
-                    style = MaterialTheme.typography.titleLarge,
-                )
                 Text(
                     text = stringResource(R.string.reasoning_picker_hint),
                     style = MaterialTheme.typography.bodySmall,

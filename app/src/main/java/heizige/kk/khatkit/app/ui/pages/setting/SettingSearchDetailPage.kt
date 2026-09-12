@@ -24,7 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -809,7 +809,7 @@ internal fun BochaOptions(
             Text(stringResource(R.string.search_detail_summary_desc))
         },
         tail = {
-            Switch(
+            OptionSwitch(
                 checked = options.summary,
                 onCheckedChange = { checked ->
                     onUpdateOptions(options.copy(summary = checked))

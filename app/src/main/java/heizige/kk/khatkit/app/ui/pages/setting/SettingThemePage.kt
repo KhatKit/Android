@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.ui.pages.setting
 
+import heizige.kk.kedge.components.KedgeOptionItem
 import android.content.ClipData
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -29,17 +30,14 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
+import heizige.kk.khromia.components.FancySlider
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -66,10 +64,11 @@ import kotlinx.serialization.json.Json
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.ui.components.ui.Select
 import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.hooks.rememberColorMode
-import heizige.kk.khatkit.app.ui.pages.setting.components.MorphThemeModeSelector
 import heizige.kk.khatkit.app.ui.pages.setting.components.PresetThemeColorDots
 import heizige.kk.khatkit.app.ui.pages.setting.components.ThemeCustomColorSheet
 import heizige.kk.khatkit.app.ui.theme.CustomColors
@@ -86,6 +85,7 @@ import heizige.kk.khatkit.app.ui.icons.check
 import heizige.kk.khatkit.app.ui.icons.contentCopy
 import heizige.kk.khatkit.app.ui.icons.deleteForever
 import heizige.kk.khatkit.app.ui.icons.editSquare
+import heizige.kk.khatkit.app.ui.icons.palette
 import heizige.kk.khatkit.app.ui.icons.uploadFile
 
 private val themeJson = Json {
@@ -130,67 +130,50 @@ fun SettingThemePage(vm: SettingVM = koinViewModel()) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item("themeMode") {
-                Column(
+                val selectedColorModeText = when (colorMode.value) {
+                    heizige.kk.khatkit.app.ui.theme.ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
+                    heizige.kk.khatkit.app.ui.theme.ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
+                    heizige.kk.khatkit.app.ui.theme.ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
+                }
+                CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    OptionsText(stringResource(R.string.greeting_settings_theme_mode))
-                    Spacer(Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surfaceBright)
-                    ) {
-                        MorphThemeModeSelector(
-                            selected = colorMode.value,
-                            onSelect = { colorMode.value = it },
-                        )
-                    }
+                    item(
+                        headlineContent = { Text(stringResource(R.string.greeting_settings_theme_mode)) },
+                        supportingContent = { Text(selectedColorModeText) },
+                        trailingContent = {
+                            Select(
+                                options = heizige.kk.khatkit.app.ui.theme.ColorMode.entries,
+                                selectedOption = colorMode.value,
+                                onOptionSelected = { colorMode.value = it },
+                                optionToString = { mode ->
+                                    stringResource(
+                                        when (mode) {
+                                            heizige.kk.khatkit.app.ui.theme.ColorMode.SYSTEM -> R.string.greeting_settings_theme_system
+                                            heizige.kk.khatkit.app.ui.theme.ColorMode.LIGHT -> R.string.greeting_settings_theme_light
+                                            heizige.kk.khatkit.app.ui.theme.ColorMode.DARK -> R.string.greeting_settings_theme_dark
+                                        }
+                                    )
+                                },
+                                modifier = Modifier.width(150.dp),
+                            )
+                        },
+                    )
                 }
             }
 
-            if (settings.dynamicColor) {
-                item("dynamicColorHint") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.setting_theme_page_dynamic_color_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+            item("themeColor") {
+                heizige.kk.khatkit.app.ui.pages.setting.components.ThemeColorSettingGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    dynamicColor = settings.dynamicColor,
+                    themeId = settings.themeId,
+                    onUpdateDynamicColor = { vm.updateSettings(settings.copy(dynamicColor = it)) },
+                    onSelectTheme = { vm.updateSettings(settings.copy(themeId = it)) },
+                    onCustomColorClick = { showCustomColor = true },
+                )
             }
 
             if (!settings.dynamicColor) {
-                item("presetThemes") {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    ) {
-                        OptionsText(stringResource(R.string.greeting_settings_theme_color))
-                        Spacer(Modifier.height(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.surfaceBright)
-                                .padding(vertical = 12.dp)
-                        ) {
-                            PresetThemeColorDots(
-                                selectedThemeId = settings.themeId,
-                                onSelectTheme = {
-                                    vm.updateSettings(settings.copy(themeId = it))
-                                },
-                                onCustomColorClick = { showCustomColor = true },
-                            )
-                        }
-                    }
-                }
-
                 item("customThemesHeader") {
                     Row(
                         modifier = Modifier
@@ -365,18 +348,17 @@ private fun CustomThemeItem(
     val darkMode = LocalDarkMode.current
     val scheme = theme.generateColorScheme(darkMode)
 
-    ListItem(
-        modifier = Modifier
-            .padding(horizontal = 8.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onSelect() },
-        headlineContent = { Text(theme.name.ifEmpty { "Unnamed" }) },
+    KedgeOptionItem(
+        modifier = Modifier.padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        backgroundColor = CustomColors.listItemColors.containerColor,
+        onClick = { onSelect() },
         leadingContent = {
             Box(contentAlignment = Alignment.Center) {
                 Canvas(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .size(40.dp)
+                        .size(24.dp)
                 ) {
                     drawRect(color = scheme.primaryContainer, size = size)
                     drawRect(
@@ -405,6 +387,7 @@ private fun CustomThemeItem(
                 }
             }
         },
+        titleContent = { Text(theme.name.ifEmpty { "Unnamed" }) },
         trailingContent = {
             Row {
                 IconButton(onClick = onExport) {
@@ -422,7 +405,6 @@ private fun CustomThemeItem(
                 }
             }
         },
-        colors = CustomColors.listItemColors,
     )
 }
 
@@ -433,27 +415,30 @@ private fun CustomThemeEditSheet(
     onDismiss: () -> Unit,
     onSave: (CustomTheme) -> Unit,
 ) {
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
     var currentTheme by remember {
         mutableStateOf(theme ?: CustomTheme())
     }
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = if (theme == null) stringResource(R.string.setting_theme_page_create_theme)
+        else stringResource(R.string.setting_theme_page_edit_theme),
+        imageVector = palette,
+        confirmText = stringResource(R.string.setting_theme_page_save),
+        onConfirm = {
+            if (currentTheme.name.isNotBlank()) {
+                onSave(currentTheme)
+            }
+        },
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
         ) {
-            Text(
-                text = if (theme == null) stringResource(R.string.setting_theme_page_create_theme)
-                else stringResource(R.string.setting_theme_page_edit_theme),
-                style = MaterialTheme.typography.titleLarge,
-            )
-
             Spacer(Modifier.height(16.dp))
 
             Column(
@@ -515,23 +500,6 @@ private fun CustomThemeEditSheet(
             }
 
             Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = { onSave(currentTheme) },
-                    enabled = currentTheme.name.isNotBlank()
-                ) {
-                    Text(stringResource(R.string.setting_theme_page_save))
-                }
-            }
         }
     }
 }
@@ -627,7 +595,7 @@ private fun ColorPickerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("H", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
-                    Slider(
+                    FancySlider(
                         value = hue,
                         onValueChange = {
                             updateColor(it, saturation, lightness)
@@ -638,7 +606,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("S", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
-                    Slider(
+                    FancySlider(
                         value = saturation,
                         onValueChange = {
                             updateColor(hue, it, lightness)
@@ -649,7 +617,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("L", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
-                    Slider(
+                    FancySlider(
                         value = lightness,
                         onValueChange = {
                             updateColor(hue, saturation, it)

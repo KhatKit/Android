@@ -19,13 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Switch
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.common.android.LogEntry
 import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.app.R
@@ -50,6 +48,7 @@ import heizige.kk.khatkit.app.utils.JsonInstantPretty
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import heizige.kk.khatkit.app.ui.icons.bugReport
 import heizige.kk.khatkit.app.ui.icons.contentCopy
 import heizige.kk.khatkit.app.ui.icons.delete
 
@@ -103,8 +102,6 @@ private fun UnifiedLogList(
     modifier: Modifier = Modifier
 ) {
     var selectedLog by remember { mutableStateOf<LogEntry.RequestLog?>(null) }
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-    val scope = rememberCoroutineScope()
     val sortedLogs = remember(logs) { logs.sortedByDescending { it.timestamp } }
 
     LazyColumn(
@@ -123,10 +120,7 @@ private fun UnifiedLogList(
             when (log) {
                 is LogEntry.RequestLog -> RequestLogCard(
                     log = log,
-                    onClick = {
-                        selectedLog = log
-                        scope.launch { sheetState.show() }
-                    }
+                    onClick = { selectedLog = log }
                 )
 
                 is LogEntry.TextLog -> TextLogCard(log = log)
@@ -135,10 +129,13 @@ private fun UnifiedLogList(
     }
 
     selectedLog?.let { log ->
-        AppModalBottomSheet(
-            onDismissRequest = { selectedLog = null },
-            sheetState = sheetState
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = "Request Details",
+            imageVector = bugReport,
+            onDismiss = { selectedLog = null },
+            scrollable = false,
+        ) { _ ->
             RequestLogDetail(log)
         }
     }
@@ -263,14 +260,6 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text(
-                    text = "Request Details",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
             item {
                 DetailSection("Time", dateFormat.format(Date(log.timestamp)))
             }

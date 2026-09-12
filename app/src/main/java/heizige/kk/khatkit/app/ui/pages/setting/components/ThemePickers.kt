@@ -55,9 +55,102 @@ import heizige.kk.khatkit.app.ui.icons.palette
 import heizige.kk.khatkit.app.ui.theme.ColorMode
 import heizige.kk.khatkit.app.ui.theme.MorphPolygonShape
 import heizige.kk.khatkit.app.ui.theme.PresetThemes
+import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.app.ui.theme.listCardStyle
+import heizige.kk.khromia.components.ExpandableOptionItem
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.core.graphics.toColorInt
+import heizige.kk.khromia.components.EditDialog
+import heizige.kk.khromia.components.EditFieldConfig
+import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.components.SquareColorPicker
 import heizige.kk.khromia.text.OptionsText
+
+/** 主题配色设置块：与引导页样式一致（动态取色行 + 配色圆点面板）。 */
+@Composable
+fun ThemeColorSettingGroup(
+    dynamicColor: Boolean,
+    themeId: String,
+    onUpdateDynamicColor: (Boolean) -> Unit,
+    onSelectTheme: (String) -> Unit,
+    onCustomColorClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    dynamicColorEnabled: Boolean = true,
+) {
+    val cards = listCardStyle()
+    Column(modifier = modifier) {
+        OptionsText(stringResource(R.string.greeting_settings_theme_color))
+        Spacer(Modifier.height(8.dp))
+        ExpandableOptionItem(
+            imageVector = palette,
+            title = stringResource(R.string.greeting_settings_theme_color),
+            contentColor = Color.Transparent,
+        ) {
+            Column {
+                KedgeOptionItem(
+                    onClick = {
+                        if (dynamicColorEnabled) onUpdateDynamicColor(!dynamicColor)
+                    },
+                    modifier = if (dynamicColorEnabled) Modifier else Modifier.alpha(0.5f),
+                    shape = cards.groupItemShape(isFirst = true, isLast = false),
+                    leadingContent = {
+                        Icon(
+                            imageVector = palette,
+                            contentDescription = null,
+                            tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                        )
+                    },
+                    titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
+                    supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
+                    trailingContent = {
+                        KedgeSwitch(
+                            checked = dynamicColorEnabled && dynamicColor,
+                            enabled = dynamicColorEnabled,
+                            onCheckedChange = { enabled ->
+                                if (dynamicColorEnabled) onUpdateDynamicColor(enabled)
+                            },
+                        )
+                    },
+                )
+
+                AnimatedVisibility(
+                    visible = !dynamicColor,
+                    enter = expandVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessLow,
+                        )
+                    ) + fadeIn(),
+                    exit = shrinkVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessLow,
+                        )
+                    ) + fadeOut(),
+                ) {
+                    PresetThemeColorDots(
+                        modifier = Modifier
+                            .padding(top = cards.gap)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f),
+                                RoundedCornerShape(4.dp),
+                            )
+                            .padding(vertical = 12.dp),
+                        selectedThemeId = themeId,
+                        onSelectTheme = onSelectTheme,
+                        onCustomColorClick = onCustomColorClick,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun MorphThemeModeSelector(
@@ -200,14 +293,14 @@ fun PresetThemeColorDots(
                     .aspectRatio(1f)
                     .weight(1f, fill = false)
                     .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f))
+                    .background(KedgeColors.surfaceVariant.copy(alpha = 0.54f))
                     .clickable { onCustomColorClick() },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = palette,
                     contentDescription = stringResource(R.string.greeting_settings_custom_color),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
+                    tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -225,13 +318,12 @@ fun ThemeCustomColorSheet(
     onConfirm: (Color) -> Unit,
 ) {
     var customColor by remember(visible) { mutableStateOf(initialColor) }
+    var showHexDialog by remember { mutableStateOf(false) }
 
     PrimaryBottomSheet(
         visible = visible,
         title = stringResource(R.string.greeting_settings_custom_color),
         imageVector = palette,
-        confirmText = stringResource(R.string.greeting_settings_custom_color_confirm),
-        onConfirm = { onConfirm(customColor) },
         onDismiss = onDismiss,
     ) { _ ->
         Column(
@@ -247,6 +339,7 @@ fun ThemeCustomColorSheet(
                     .height(64.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(customColor)
+                    .clickable { showHexDialog = true }
                     .padding(16.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -268,31 +361,133 @@ fun ThemeCustomColorSheet(
                 },
             )
 
-            if (history.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                OptionsText(stringResource(R.string.greeting_settings_history_colors))
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    history.takeLast(6).reversed().forEach { argb ->
-                        val color = Color(argb.toInt())
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .clickable {
-                                    customColor = color
-                                    onColorChanged(color)
-                                },
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 16.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                if (history.isNotEmpty()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            text = stringResource(R.string.greeting_settings_history_colors),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min)
+                                .padding(start = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fadingEdge(left = 20.dp, right = 20.dp, strength = 1f)
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                history.reversed().forEach { argb ->
+                                    val color = Color(argb.toInt())
+                                    val isSelected = customColor.toArgb() == argb.toInt()
+                                    val morph = remember {
+                                        Morph(MaterialShapes.Circle, MaterialShapes.Sunny)
+                                    }
+                                    val progress by animateFloatAsState(
+                                        targetValue = if (isSelected) 1f else 0f,
+                                        animationSpec = spring(
+                                            Spring.DampingRatioMediumBouncy,
+                                            Spring.StiffnessLow,
+                                        ),
+                                        label = "historyColorMorph",
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(MorphPolygonShape(morph, progress))
+                                            .background(color)
+                                            .clickable {
+                                                customColor = color
+                                                onColorChanged(color)
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = check,
+                                                contentDescription = null,
+                                                tint = if (color.luminance() > 0.5f) {
+                                                    Color.Black.copy(alpha = 0.87f)
+                                                } else {
+                                                    Color.White.copy(alpha = 0.87f)
+                                                },
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
+                }
+
+                KedgeButton(
+                    onClick = { onConfirm(customColor) },
+                ) {
+                    Text(stringResource(R.string.greeting_settings_custom_color_confirm))
                 }
             }
         }
+    }
+
+    if (showHexDialog) {
+        EditDialog(
+            visible = true,
+            title = stringResource(R.string.greeting_settings_custom_color),
+            fields = listOf(
+                EditFieldConfig(
+                    label = "Hex Code",
+                    initialValue = String.format("%08X", customColor.toArgb()),
+                    placeholder = "#AARRGGBB, #RRGGBB, AARRGGBB, RRGGBB",
+                    maxLength = 10,
+                    onValidate = { input -> if (parseHexColor(input) == null) "Invalid hex" else null },
+                )
+            ),
+            onDismiss = { showHexDialog = false },
+            onConfirm = { results ->
+                parseHexColor(results.first())?.let {
+                    customColor = it
+                    onColorChanged(it)
+                }
+                showHexDialog = false
+            },
+        )
+    }
+}
+
+private fun parseHexColor(input: String): Color? {
+    return try {
+        val normalized = input.trim()
+            .replace(" ", "")
+            .replace("0x", "")
+            .replace("0X", "")
+            .let { if (!it.startsWith("#") && it.isNotEmpty()) "#$it" else it }
+        val finalHex = when (normalized.length) {
+            7 -> "#FF${normalized.substring(1)}"
+            9 -> normalized
+            6 -> "#FF$normalized"
+            8 -> "#$normalized"
+            else -> return null
+        }
+        Color(finalHex.toColorInt())
+    } catch (_: Exception) {
+        null
     }
 }

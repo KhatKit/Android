@@ -14,10 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +38,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.longOrNull
 import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.ui.icons.arrowForward
+import heizige.kk.khatkit.app.ui.icons.code
 import heizige.kk.khatkit.app.ui.icons.keyboardArrowDown
 
 @Composable
@@ -61,10 +60,13 @@ fun JsonTree(
     }
 
     selectedString?.let { content ->
-        AppModalBottomSheet(
-            onDismissRequest = { selectedString = null },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = "JSON",
+            imageVector = code,
+            onDismiss = { selectedString = null },
+            scrollable = false,
+        ) { _ ->
             Text(
                 text = content,
                 fontFamily = JetbrainsMono,

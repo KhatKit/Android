@@ -25,15 +25,13 @@ import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +78,7 @@ import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.contentCopy
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.moreVert
+import heizige.kk.khatkit.app.ui.icons.neurology
 import heizige.kk.khatkit.app.ui.icons.search
 
 @Composable
@@ -321,14 +320,18 @@ private fun AssistantCreationSheet(
     state: EditState<Assistant>,
 ) {
     state.EditStateContent { assistant, update ->
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.assistant_page_add),
+            imageVector = neurology,
+            confirmText = stringResource(R.string.assistant_page_save),
+            onConfirm = {
+                state.confirm()
+            },
+            onDismiss = {
                 state.dismiss()
             },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-            dragHandle = {},
-            sheetGesturesEnabled = false
-        ) {
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -363,23 +366,6 @@ private fun AssistantCreationSheet(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                ) {
-                    TextButton(
-                        onClick = {
-                            state.dismiss()
-                        }) {
-                        Text(stringResource(R.string.assistant_page_cancel))
-                    }
-                    TextButton(
-                        onClick = {
-                            state.confirm()
-                        }) {
-                        Text(stringResource(R.string.assistant_page_save))
-                    }
                 }
             }
         }
@@ -486,9 +472,12 @@ private fun AssistantActionSheet(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.assistant_page_actions),
+        imageVector = moreVert,
+        onDismiss = onDismiss,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -525,7 +514,10 @@ private fun AssistantActionSheet(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
-                modifier = Modifier.onClick { onCopy() },
+                modifier = Modifier.onClick {
+                    onCopy()
+                    dismiss()
+                },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
 

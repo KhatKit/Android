@@ -22,16 +22,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.data.datastore.Settings
@@ -49,6 +45,7 @@ import heizige.kk.khatkit.app.ui.context.LocalNavController
 import heizige.kk.khatkit.app.ui.hooks.rememberAssistantState
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.editNote
+import heizige.kk.khatkit.app.ui.icons.groups
 import heizige.kk.khatkit.app.ui.icons.search
 
 @Composable
@@ -114,8 +111,6 @@ private fun AssistantPickerSheet(
     onAssistantSelected: (Assistant) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-    val scope = rememberCoroutineScope()
     val defaultAssistantName = stringResource(R.string.assistant_page_default_assistant)
 
     // 标签过滤状态
@@ -132,10 +127,13 @@ private fun AssistantPickerSheet(
         }
     }
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.assistant_page_title),
+        imageVector = groups,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -143,12 +141,6 @@ private fun AssistantPickerSheet(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = stringResource(R.string.assistant_page_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
             // 标签过滤器
             if (settings.assistantTags.isNotEmpty()) {
                 LazyRow(
@@ -182,7 +174,10 @@ private fun AssistantPickerSheet(
                 items(filteredAssistants, key = { it.id }) { assistant ->
                     val checked = assistant.id == currentAssistant.id
                     Card(
-                        onClick = { onAssistantSelected(assistant) },
+                        onClick = {
+                            onAssistantSelected(assistant)
+                            dismiss()
+                        },
                         modifier = Modifier.animateItem(),
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(
@@ -194,11 +189,8 @@ private fun AssistantPickerSheet(
                             assistant = assistant,
                             defaultAssistantName = defaultAssistantName,
                             onEdit = {
-                                scope.launch {
-                                    sheetState.hide()
-                                    onDismiss()
-                                    navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
-                                }
+                                onDismiss()
+                                navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
                             }
                         )
                     }

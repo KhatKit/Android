@@ -24,7 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -32,8 +32,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +61,7 @@ import heizige.kk.khatkit.app.utils.onLoading
 import heizige.kk.khatkit.app.utils.onSuccess
 import heizige.kk.khatkit.app.utils.toLocalDateTime
 import java.time.Instant
+import heizige.kk.khatkit.app.ui.icons.settingsBackupRestore
 import heizige.kk.khatkit.app.ui.icons.upload
 import heizige.kk.khatkit.app.ui.icons.visibility
 import heizige.kk.khatkit.app.ui.icons.visibilityOff
@@ -304,12 +303,15 @@ fun WebDavTab(
     }
 
     if (showBackupFiles) {
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.backup_page_webdav_backup_files),
+            imageVector = settingsBackupRestore,
+            onDismiss = {
                 showBackupFiles = false
             },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-        ) {
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -318,10 +320,6 @@ fun WebDavTab(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    stringResource(R.string.backup_page_webdav_backup_files),
-                    modifier = Modifier.fillMaxWidth()
-                )
                 backupItemsState.onSuccess {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),

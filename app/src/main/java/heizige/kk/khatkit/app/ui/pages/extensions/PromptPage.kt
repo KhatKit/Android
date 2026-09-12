@@ -38,7 +38,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
@@ -48,8 +47,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,6 +66,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.app.R
@@ -98,8 +96,9 @@ import heizige.kk.khatkit.app.ui.icons.book2
 import heizige.kk.khatkit.app.ui.icons.build
 import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.delete
+import heizige.kk.khatkit.app.ui.icons.editNote
 import heizige.kk.khatkit.app.ui.icons.iosShare
-import heizige.kk.khatkit.app.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.ui.icons.menuBook
 import heizige.kk.khatkit.app.ui.icons.uploadFile
 
 @Composable
@@ -395,24 +394,15 @@ private fun ModeInjectionEditSheet(
     onConfirm: () -> Unit,
     onEdit: (PromptInjection.ModeInjection) -> Unit
 ) {
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-    val scope = rememberCoroutineScope()
-
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        sheetGesturesEnabled = false,
-        dragHandle = {
-            IconButton(onClick = {
-                scope.launch {
-                    sheetState.hide()
-                    onDismiss()
-                }
-            }) {
-                Icon(keyboardArrowDown, null)
-            }
-        }
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.prompt_page_edit_mode_injection),
+        imageVector = editNote,
+        confirmText = stringResource(R.string.prompt_page_confirm),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -420,12 +410,6 @@ private fun ModeInjectionEditSheet(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.prompt_page_edit_mode_injection),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -502,18 +486,6 @@ private fun ModeInjectionEditSheet(
                         .height(200.dp),
                     minLines = 5
                 )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.prompt_page_cancel))
-                }
-                TextButton(onClick = onConfirm) {
-                    Text(stringResource(R.string.prompt_page_confirm))
-                }
             }
         }
     }
@@ -818,8 +790,6 @@ private fun LorebookEditSheet(
     onConfirm: () -> Unit,
     onEdit: (Lorebook) -> Unit
 ) {
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-    val scope = rememberCoroutineScope()
     val entryEditState = useEditState<PromptInjection.RegexInjection> { edited ->
         val index = book.entries.indexOfFirst { it.id == edited.id }
         if (index >= 0) {
@@ -829,21 +799,15 @@ private fun LorebookEditSheet(
         }
     }
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        sheetGesturesEnabled = false,
-        dragHandle = {
-            IconButton(onClick = {
-                scope.launch {
-                    sheetState.hide()
-                    onDismiss()
-                }
-            }) {
-                Icon(keyboardArrowDown, null)
-            }
-        }
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.prompt_page_edit_lorebook),
+        imageVector = menuBook,
+        confirmText = stringResource(R.string.prompt_page_confirm),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -851,12 +815,6 @@ private fun LorebookEditSheet(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.prompt_page_edit_lorebook),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -912,18 +870,6 @@ private fun LorebookEditSheet(
                             onEdit(book.copy(entries = book.entries - entry))
                         }
                     )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.prompt_page_cancel))
-                }
-                TextButton(onClick = onConfirm) {
-                    Text(stringResource(R.string.prompt_page_confirm))
                 }
             }
         }

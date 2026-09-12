@@ -13,16 +13,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
-import androidx.compose.material3.SheetValue
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
@@ -32,6 +29,7 @@ import heizige.kk.khatkit.app.ui.pages.extensions.workspace.toShellStatusLabel
 import heizige.kk.khatkit.app.ui.icons.arrowForward
 import heizige.kk.khatkit.app.ui.icons.deployedCode
 import heizige.kk.khatkit.app.ui.icons.doneAll
+import heizige.kk.khatkit.app.ui.icons.terminal
 
 @Composable
 internal fun WorkspaceSelectSheet(
@@ -41,13 +39,13 @@ internal fun WorkspaceSelectSheet(
     onManage: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-        ),
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.workspace_select),
+        imageVector = terminal,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -55,12 +53,6 @@ internal fun WorkspaceSelectSheet(
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
-                text = stringResource(R.string.workspace_select),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-
             Column(
                 modifier = Modifier
                     .heightIn(max = 360.dp)
@@ -71,14 +63,20 @@ internal fun WorkspaceSelectSheet(
                 WorkspaceSelectRow(
                     title = stringResource(R.string.workspace_no_binding),
                     selected = assistant.workspaceId == null,
-                    onClick = { onSelect(null) },
+                    onClick = {
+                        onSelect(null)
+                        dismiss()
+                    },
                 )
                 workspaces.forEach { workspace ->
                     WorkspaceSelectRow(
                         title = workspace.name,
                         status = workspace.shellStatus.toShellStatusLabel(),
                         selected = workspace.id == assistant.workspaceId?.toString(),
-                        onClick = { onSelect(workspace.id) },
+                        onClick = {
+                            onSelect(workspace.id)
+                            dismiss()
+                        },
                     )
                 }
             }

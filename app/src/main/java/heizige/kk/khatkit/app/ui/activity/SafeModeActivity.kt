@@ -29,13 +29,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +52,7 @@ import heizige.kk.khatkit.app.data.datastore.Settings
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.ui.hooks.writeStringPreference
+import heizige.kk.khatkit.app.ui.icons.groups
 import heizige.kk.khatkit.app.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.RouteActivity
 import heizige.kk.khatkit.app.utils.CrashHandler
@@ -184,18 +183,19 @@ private fun AssistantPickerSheet(
     onAssistantSelected: (Uuid) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-    val scope = rememberCoroutineScope()
     var selectedTagIds by remember { mutableStateOf(emptySet<Uuid>()) }
     val filteredAssistants = remember(settings.assistants, selectedTagIds) {
         if (selectedTagIds.isEmpty()) settings.assistants
         else settings.assistants.filter { it.tags.any { id -> id in selectedTagIds } }
     }
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.safe_mode_assistants),
+        imageVector = groups,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -203,12 +203,6 @@ private fun AssistantPickerSheet(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = stringResource(R.string.safe_mode_assistants),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
             if (settings.assistantTags.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -239,10 +233,8 @@ private fun AssistantPickerSheet(
                     val checked = assistant.id == settings.assistantId
                     Card(
                         onClick = {
-                            scope.launch {
-                                sheetState.hide()
-                                onAssistantSelected(assistant.id)
-                            }
+                            onAssistantSelected(assistant.id)
+                            dismiss()
                         },
                         modifier = Modifier.animateItem(),
                         shape = MaterialTheme.shapes.large,

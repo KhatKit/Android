@@ -29,14 +29,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -89,6 +87,7 @@ import heizige.kk.khatkit.app.ui.icons.build
 import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.dragIndicator
 import heizige.kk.khatkit.app.ui.icons.favorite as favoriteIcon
+import heizige.kk.khatkit.app.ui.icons.memory
 import heizige.kk.khatkit.app.ui.icons.photo
 import heizige.kk.khatkit.app.ui.icons.psychology
 import heizige.kk.kedge.theme.KedgeColors
@@ -270,25 +269,15 @@ fun ModelListSheet(
 ) {
     if (!state.visible) return
 
-    val coroutineScope = rememberCoroutineScope()
-    val sheetState = rememberBottomSheetState(
-        initialValue = SheetValue.Hidden,
-        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-    )
-
-    fun dismiss() {
-        coroutineScope.launch {
-            sheetState.hide()
-            state.close()
-        }
-    }
-
-    AppModalBottomSheet(
-        onDismissRequest = {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.model_list_select_model),
+        imageVector = memory,
+        onDismiss = {
             state.close()
         },
-        sheetState = sheetState,
-    ) {
+        scrollable = false,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .padding(8.dp)

@@ -29,16 +29,13 @@ import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -58,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.g00fy2.quickie.QRResult
 import io.github.g00fy2.quickie.ScanQRCode
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
@@ -82,6 +80,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.ui.icons.close
+import heizige.kk.khatkit.app.ui.icons.dns
 import heizige.kk.khatkit.app.ui.icons.dragIndicator
 import heizige.kk.khatkit.app.ui.icons.image
 import heizige.kk.khatkit.app.ui.icons.photoCamera
@@ -243,13 +242,12 @@ private fun RecommendProviderButton(
     }
 
     if (showSheet) {
-        AppModalBottomSheet(
-            onDismissRequest = { showSheet = false },
-            sheetState = rememberBottomSheetState(
-                initialValue = SheetValue.Hidden,
-                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-            )
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_provider_page_recommend),
+            imageVector = dns,
+            onDismiss = { showSheet = false },
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -257,11 +255,6 @@ private fun RecommendProviderButton(
                     .padding(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_recommend),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
                 RECOMMENDED_PROVIDERS.forEach { provider ->
                     RecommendProviderItem(
                         provider = provider,

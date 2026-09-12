@@ -3,24 +3,15 @@ package heizige.kk.khatkit.app.ui.components.message
 import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +24,6 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.utils.copyMessageToClipboard
-import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.contentCopy
 
 @Composable
@@ -42,53 +32,24 @@ fun ChatMessageCopySheet(
     onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current
-    AppModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-        sheetGesturesEnabled = false,
-        dragHandle = null,
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.select_and_copy),
+        imageVector = contentCopy,
+        confirmText = stringResource(R.string.copy_all),
+        onConfirm = {
+            context.copyMessageToClipboard(message)
+            onDismissRequest()
+        },
+        onDismiss = onDismissRequest,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = {
-                        onDismissRequest()
-                    }
-                ) {
-                    Icon(close, null)
-                }
-
-                Text(
-                    text = stringResource(R.string.select_and_copy),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-
-                TextButton(
-                    onClick = {
-                        context.copyMessageToClipboard(message)
-                        onDismissRequest()
-                    }
-                ) {
-                    Icon(
-                        imageVector = contentCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.copy_all))
-                }
-            }
-
             // Content
             val textParts =
                 message.parts.filterIsInstance<UIMessagePart.Text>().filter { it.text.isNotBlank() }

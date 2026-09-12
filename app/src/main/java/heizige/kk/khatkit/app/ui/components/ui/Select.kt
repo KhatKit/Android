@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.ui.components.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +51,10 @@ fun <T> Select(
     trailing: @Composable () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "selectArrowRotation",
+    )
 
     ExposedDropdownMenuBox(
         modifier = modifier,
@@ -64,7 +70,6 @@ fun <T> Select(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(4.dp))
-                    .clickable { expanded = true }
                     .padding(vertical = 8.dp, horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -77,8 +82,9 @@ fun <T> Select(
                 )
                 trailing()
                 Icon(
-                    imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
-                    contentDescription = "expand"
+                    imageVector = keyboardArrowDown,
+                    contentDescription = "expand",
+                    modifier = Modifier.rotate(arrowRotation),
                 )
             }
         }
@@ -86,7 +92,8 @@ fun <T> Select(
             expanded = expanded,
             onDismissRequest = {
                 expanded = false
-            }
+            },
+            shape = RoundedCornerShape(20.dp),
         ) {
             options.fastForEach { option ->
                 DropdownMenuItem(
