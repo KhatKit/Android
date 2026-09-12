@@ -57,10 +57,10 @@ curl -X PUT https://heizige.space/admin/khatkit/versions/stable \
 | --- | --- |
 | `app` | 主应用（UI / ViewModel / 数据层） |
 | `ai` | 服务商抽象层（OpenAI / Google / Claude） |
-| `khatkit` | 卡片运行时、bridge、Rust/Lua/JS 引擎接入 |
+| `khatkit` | 卡片运行时、bridge、Rust 引擎接入（Lua/JS 同一核心） |
 | `khatkit-ui` | 卡片市场与表单宿主，Kedge 双风格桥接 |
 | `card-validator` | 卡片发布前静态校验 |
-| `search` / `speech` / `document` / `highlight` / `material3` / `common` / `web` / `workspace` / `videogen` / `oauth` | 功能模块 |
+| `search` / `speech` / `document` / `highlight` / `material3` / `common` / `web` / `workspace` / `oauth` | 功能模块 |
 | `khatkit-core` | Rust 脚本引擎（Cargo） |
 
 ## 🔨 构建
