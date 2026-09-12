@@ -17,91 +17,105 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.BuildConfig
+import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.common.http.okhttp.Request
 
-private const val API_URL = "https://updates.rikka-ai.com/"
-
+/**
+ * 应用更新检查：走 KodeHeadServer 的 KhatKit 独立更新通道
+ * （`GET /api/khatkit/app/update`），与 KodeHead/Kmd 同一套逻辑：
+ * 版本号为 Android versionCode，channel = stable | beta，force_min 强制更新。
+ */
 class UpdateChecker(
     private val client: OkHttpClient,
     appScope: AppScope,
+    private val controller: KhatKitToolProvider,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    val updateState: StateFlow<UiState<UpdateInfo>> = checkUpdate().stateIn(
+    val updateState: StateFlow<UiState<UpdateCheckResponse>> = checkUpdate().stateIn(
         scope = appScope,
         started = SharingStarted.Lazily,
         initialValue = UiState.Loading,
     )
 
-    private fun checkUpdate(): Flow<UiState<UpdateInfo>> = flow {
+    private fun checkUpdate(): Flow<UiState<UpdateCheckResponse>> = flow {
         emit(UiState.Loading)
         emit(
             UiState.Success(
-                data = try {
-                    val response = client.newCall(
-                        Request.Builder()
-                            .url(API_URL)
-                            .get()
-                            .addHeader(
-                                "User-Agent",
-                                "KhatKit ${BuildConfig.VERSION_NAME} #${BuildConfig.VERSION_CODE}"
-                            )
-                            .build()
-                    ).await()
-                    if (response.isSuccessful) {
-                        json.decodeFromString<UpdateInfo>(response.body.string())
-                    } else {
-                        throw Exception("Failed to fetch update info")
-                    }
-                } catch (e: Exception) {
-                    throw Exception("Failed to fetch update info", e)
-                }
+                data = fetchUpdateInfo()
             )
         )
     }.catch {
         emit(UiState.Error(it))
     }.flowOn(Dispatchers.IO)
 
-    fun downloadUpdate(context: Context, download: UpdateDownload) {
+    private suspend fun fetchUpdateInfo(): UpdateCheckResponse {
+        val currentVersionCode = BuildConfig.VERSION_CODE.toString()
+        val channel = if (controller.receiveBeta) "beta" else "stable"
+        val url = buildString {
+            append(controller.hubBaseUrl.trim().trimEnd('/'))
+            append("/api/khatkit/app/update?currentVersionCode=")
+            append(currentVersionCode)
+            append("&currentVersion=")
+            append(currentVersionCode)
+            append("&channel=")
+            append(channel)
+        }
+        val response = client.newCall(
+            Request.Builder()
+                .url(url)
+                .get()
+                .addHeader(
+                    "User-Agent",
+                    "KhatKit ${BuildConfig.VERSION_NAME} #${BuildConfig.VERSION_CODE}"
+                )
+                .build()
+        ).await()
+        if (!response.isSuccessful) {
+            throw Exception("Failed to fetch update info: ${response.code}")
+        }
+        return json.decodeFromString<UpdateCheckResponse>(response.body.string())
+    }
+
+    fun downloadUpdate(context: Context, info: UpdateCheckResponse) {
         runCatching {
-            val request = DownloadManager.Request(download.url.toUri()).apply {
+            val url = resolveUrl(info.downloadUrl)
+            val fileName = "KhatKit-${info.latestVersion}.apk"
+            val request = DownloadManager.Request(url.toUri()).apply {
                 // 设置下载时通知栏的标题和描述
-                setTitle(download.name)
+                setTitle("KhatKit ${info.latestVersion}")
                 setDescription("正在下载更新包...")
                 // 下载完成后通知栏可见
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 // 允许在移动网络和WiFi下下载
                 setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
                 // 设置文件保存路径
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, download.name)
+                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
                 // 允许下载的文件类型
                 setMimeType("application/vnd.android.package-archive")
             }
-            // 获取系统的DownloadManager
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             dm.enqueue(request)
-            // 你可以保存返回的downloadId到本地，以便后续查询下载进度或状态
         }.onFailure {
             Toast.makeText(context, "Failed to update", Toast.LENGTH_SHORT).show()
-            context.openUrl(download.url) // 跳转到下载页面
         }
+    }
+
+    /** 服务端可能下发相对路径（/media/...），拼到 hub 地址上。 */
+    private fun resolveUrl(raw: String): String = when {
+        raw.startsWith("http://") || raw.startsWith("https://") -> raw
+        else -> controller.hubBaseUrl.trim().trimEnd('/') + "/" + raw.trimStart('/')
     }
 }
 
 @Serializable
-data class UpdateDownload(
-    val name: String,
-    val url: String,
-    val size: String
-)
-
-@Serializable
-data class UpdateInfo(
-    val version: String,
-    val publishedAt: String,
-    val changelog: String,
-    val downloads: List<UpdateDownload>
+data class UpdateCheckResponse(
+    val hasUpdate: Boolean = false,
+    val forceUpdate: Boolean = false,
+    val latestVersion: String = "",
+    val downloadUrl: String = "",
+    val description: String = "",
 )
 
 /**
