@@ -1,0 +1,21 @@
+[package]
+name = "khatkit_core"
+version = "0.1.0"
+edition = "2021"
+description = "KhatKit native script runtime: mlua (Lua 5.4) + rquickjs (QuickJS) over JNI"
+
+[lib]
+name = "khatkit_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+jni = "0.21"
+mlua = { version = "0.12", features = ["lua54", "vendored"] }
+rquickjs = { version = "0.13", features = ["loader", "bindgen"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

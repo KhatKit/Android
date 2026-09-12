@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.speech"
+    namespace = "heizige.kk.khatkit.speech"
     tasks.withType<KotlinCompile>().configureEach {
         compilerOptions.optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
         compilerOptions.optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
@@ -24,7 +24,6 @@ dependencies {
     implementation(project(":common"))
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.okhttp)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)

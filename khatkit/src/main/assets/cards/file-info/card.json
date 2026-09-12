@@ -1,0 +1,32 @@
+{
+  "name": "file_info",
+  "version": "1.0.0",
+  "description": "查看文件大小与内容预览（共享库 require 示例）",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "js",
+  "entry": { "js": "main.js" },
+  "privilege": "none",
+  "requires": {
+    "bridges": ["tool", "ui"],
+    "libs": [
+      { "name": "@khatkit/std", "lang": "js", "version": "^1.0.0" }
+    ],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": [] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "description": "文件路径" }
+    },
+    "required": ["path"]
+  },
+  "ui": {
+    "path": { "source": "ui", "widget": "file_picker" }
+  },
+  "tags": { "domain": "file", "action": "read", "scene": "daily" },
+  "compliance": { "risk": "low", "note": "" },
+  "store": { "quota_mb": 5, "secret": false }
+}

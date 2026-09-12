@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.ai"
+    namespace = "heizige.kk.khatkit.ai"
 
     defaultConfig {
 //        externalNativeBuild {
@@ -30,17 +30,13 @@ android {
 }
 
 dependencies {
-    implementation(project(":common"))
+    // 兼容层（Ktor）在 common，作为 ai 的公开类型来源
+    api(project(":common"))
 
     // Compose
     implementation(libs.androidx.core.ktx)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.material3)
-
-    // okhttp
-    api(libs.okhttp)
-    api(libs.okhttp.sse)
-    api(libs.okhttp.logging)
 
     // kotlinx
     api(libs.kotlinx.serialization.json)

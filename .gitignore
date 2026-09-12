@@ -11,3 +11,9 @@ local.properties
 .cursor
 .history
 .kotlin
+
+# KhatKit native core build output
+/khatkit-core/target/
+
+# 各模块构建产物
+**/build/

@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.highlight"
+    namespace = "heizige.kk.khatkit.highlight"
 
     defaultConfig {
         minSdk = 24

@@ -1,0 +1,48 @@
+name: Cards CI
+
+# 卡片改动就校验：manifest 词表/字段、脚本 bridge 与域名声明、示例卡可解析。
+on:
+  push:
+    paths:
+      - 'khatkit/src/main/assets/cards/**'
+      - 'khatkit/src/main/assets/libs/**'
+      - 'khatkit/src/main/java/heizige/kk/khatkit/card/**'
+      - 'khatkit/src/test/java/heizige/kk/khatkit/card/**'
+      - '.github/workflows/cards-ci.yml'
+  pull_request:
+    paths:
+      - 'khatkit/src/main/assets/cards/**'
+      - 'khatkit/src/main/assets/libs/**'
+      - 'khatkit/src/main/java/heizige/kk/khatkit/card/**'
+      - 'khatkit/src/test/java/heizige/kk/khatkit/card/**'
+  workflow_dispatch:
+
+jobs:
+  validate-cards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Validate card manifest + script
+        run: |
+          chmod +x gradlew
+          ./gradlew :khatkit:testDebugUnitTest \
+            --tests "heizige.kk.khatkit.card.BuiltinCardSampleTest" \
+            --tests "heizige.kk.khatkit.card.CardValidatorTest" \
+            --tests "heizige.kk.khatkit.card.SemverTest"
