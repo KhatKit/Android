@@ -78,6 +78,7 @@ import heizige.kk.khatkit.app.ui.hooks.writeBooleanPreference
 import heizige.kk.khatkit.app.ui.hooks.rememberCustomAsrState
 import heizige.kk.khatkit.app.ui.hooks.rememberCustomTtsState
 import heizige.kk.khatkit.app.ui.pages.assistant.AssistantPage
+import heizige.kk.khatkit.app.ui.pages.download.DownloadCenterPage
 import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantBasicPage
 import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantDetailPage
 import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantExtensionsPage
@@ -99,9 +100,7 @@ import heizige.kk.khatkit.app.ui.pages.extensions.workspace.WorkspaceDetailPage
 import heizige.kk.khatkit.app.ui.pages.extensions.workspace.WorkspaceFileEditorPage
 import heizige.kk.khatkit.app.ui.pages.extensions.workspace.WorkspaceTerminalPage
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
-import heizige.kk.khatkit.app.ui.pages.favorite.FavoritePage
 import heizige.kk.khatkit.app.ui.pages.greeting.GreetingPage
-import heizige.kk.khatkit.app.ui.pages.history.HistoryPage
 import heizige.kk.khatkit.app.ui.pages.imggen.ImageGenPage
 import heizige.kk.khatkit.app.ui.pages.log.LogPage
 import heizige.kk.khatkit.app.ui.pages.search.SearchPage
@@ -125,7 +124,6 @@ import heizige.kk.khatkit.app.ui.pages.setting.SettingSearchPage
 import heizige.kk.khatkit.app.ui.pages.setting.SettingSpeechPage
 import heizige.kk.khatkit.app.ui.pages.setting.SettingWebPage
 import heizige.kk.khatkit.app.ui.pages.share.handler.ShareHandlerPage
-import heizige.kk.khatkit.app.ui.pages.stats.StatsPage
 import heizige.kk.khatkit.app.ui.pages.translator.TranslatorPage
 import heizige.kk.khatkit.app.ui.pages.webview.WebViewPage
 import heizige.kk.khatkit.app.ui.theme.LocalDarkMode
@@ -363,14 +361,6 @@ class RouteActivity : ComponentActivity() {
                                 )
                             }
 
-                            entry<Screen.History> {
-                                HistoryPage()
-                            }
-
-                            entry<Screen.Favorite> {
-                                FavoritePage()
-                            }
-
                             entry<Screen.Assistant> {
                                 AssistantPage()
                             }
@@ -557,9 +547,10 @@ class RouteActivity : ComponentActivity() {
                                 SearchPage()
                             }
 
-                            entry<Screen.Stats> {
-                                StatsPage()
+                            entry<Screen.DownloadCenter> {
+                                DownloadCenterPage()
                             }
+
                         }
                     )
                     if (BuildConfig.DEBUG) {
@@ -624,12 +615,6 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data class ShareHandler(val text: String, val streamUri: String? = null) : Screen
-
-    @Serializable
-    data object History : Screen
-
-    @Serializable
-    data object Favorite : Screen
 
     @Serializable
     data object Assistant : Screen
@@ -767,5 +752,6 @@ sealed interface Screen : NavKey {
     data object MessageSearch : Screen
 
     @Serializable
-    data object Stats : Screen
+    data object DownloadCenter : Screen
+
 }

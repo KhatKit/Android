@@ -36,9 +36,7 @@ import heizige.kk.khatkit.app.data.model.Assistant
 import heizige.kk.khatkit.app.data.model.Avatar
 import heizige.kk.khatkit.app.data.model.Conversation
 import heizige.kk.khatkit.app.data.model.MessageNode
-import heizige.kk.khatkit.app.data.model.NodeFavoriteTarget
 import heizige.kk.khatkit.app.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.data.repository.FavoriteRepository
 import heizige.kk.khatkit.app.service.ChatError
 import heizige.kk.khatkit.app.service.ChatService
 import heizige.kk.khatkit.app.ui.hooks.writeStringPreference
@@ -59,7 +57,6 @@ class ChatVM(
     val updateChecker: UpdateChecker,
     private val analytics: AppAnalytics,
     private val filesManager: FilesManager,
-    private val favoriteRepository: FavoriteRepository,
 ) : ViewModel() {
     private val _conversationId: Uuid = Uuid.parse(id)
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)
@@ -348,36 +345,6 @@ class ChatVM(
     fun updateConversation(newConversation: Conversation) {
         chatService.updateConversationState(_conversationId) {
             newConversation
-        }
-    }
-
-    fun toggleMessageFavorite(node: MessageNode) {
-        viewModelScope.launch {
-            val currentlyFavorited = favoriteRepository.isNodeFavorited(_conversationId, node.id)
-            if (currentlyFavorited) {
-                favoriteRepository.removeNodeFavorite(_conversationId, node.id)
-            } else {
-                favoriteRepository.addNodeFavorite(
-                    NodeFavoriteTarget(
-                        conversationId = _conversationId,
-                        conversationTitle = conversation.value.title,
-                        nodeId = node.id,
-                        node = node
-                    )
-                )
-            }
-
-            chatService.updateConversationState(_conversationId) { currentConversation ->
-                currentConversation.copy(
-                    messageNodes = currentConversation.messageNodes.map { existingNode ->
-                        if (existingNode.id == node.id) {
-                            existingNode.copy(isFavorite = !currentlyFavorited)
-                        } else {
-                            existingNode
-                        }
-                    }
-                )
-            }
         }
     }
 

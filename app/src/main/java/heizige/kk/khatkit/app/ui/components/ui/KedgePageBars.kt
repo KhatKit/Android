@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.ui.components.ui
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
@@ -45,6 +46,40 @@ fun KedgePageLargeTopBar(
             title = titleContent ?: { Text(title) },
             modifier = modifier,
             subtitle = subtitle?.let { { Text(it) } },
+            navigationIcon = navigationIcon,
+            actions = actions,
+            scrollBehavior = scrollBehavior,
+            colors = colors,
+        )
+    }
+}
+
+
+/** 页面中等标题栏（MD3 MediumTopAppBar，高度用组件默认值）。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun KedgePageMediumTopBar(
+    title: String,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    scrollBehavior: TopAppBarScrollBehavior? = null,
+    colors: TopAppBarColors = TopAppBarDefaults.mediumTopAppBarColors(),
+    subtitle: String? = null,
+    titleContent: (@Composable () -> Unit)? = null,
+) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        heizige.kk.kedge.adaptive.KedgeTopAppBar(
+            title = title,
+            subtitle = subtitle,
+            modifier = modifier,
+            navigationIcon = navigationIcon,
+            actions = actions,
+        )
+    } else {
+        MediumTopAppBar(
+            title = titleContent ?: { Text(title) },
+            modifier = modifier,
             navigationIcon = navigationIcon,
             actions = actions,
             scrollBehavior = scrollBehavior,

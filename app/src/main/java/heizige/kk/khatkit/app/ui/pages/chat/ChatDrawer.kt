@@ -1,5 +1,18 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import heizige.kk.khatkit.app.ui.icons.arrowBack
+import heizige.kk.khatkit.app.ui.icons.close
+import heizige.kk.khatkit.app.ui.icons.download
+import heizige.kk.khromia.components.TextTooltip
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -8,6 +21,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -25,10 +40,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -62,36 +85,28 @@ import heizige.kk.khatkit.app.data.model.Folder
 import heizige.kk.khatkit.app.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.ui.components.ai.AssistantPicker
 import heizige.kk.khatkit.app.ui.components.ui.BackupReminderCard
-import heizige.kk.khatkit.app.ui.components.ui.Greeting
 import heizige.kk.khatkit.app.ui.components.ui.Tooltip
 import heizige.kk.khatkit.app.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.ui.components.ui.UpdateCard
 import androidx.compose.ui.draw.clip
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.context.Navigator
-import heizige.kk.khatkit.app.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.ui.hooks.readBooleanPreference
 import heizige.kk.khatkit.app.ui.hooks.rememberIsPlayStoreVersion
-import heizige.kk.khatkit.app.ui.hooks.useEditState
-import heizige.kk.khatkit.app.ui.modifier.onClick
 import heizige.kk.khatkit.app.utils.navigateToChatPage
 import heizige.kk.khatkit.app.utils.toDp
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.ui.icons.autoAwesome
-import heizige.kk.khatkit.app.ui.icons.barChart
+import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
 import heizige.kk.khatkit.app.ui.icons.createNewFolder
 import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.edit
-import heizige.kk.khatkit.app.ui.icons.favorite
 import heizige.kk.khatkit.app.ui.icons.folder as folderIcon
 import heizige.kk.khatkit.app.ui.icons.groups
-import heizige.kk.khatkit.app.ui.icons.image
+import heizige.kk.khatkit.app.ui.icons.edit
 import heizige.kk.khatkit.app.ui.icons.receiptLong
 import heizige.kk.khatkit.app.ui.icons.search
 import heizige.kk.khatkit.app.ui.icons.settings as settingsIcon
-import heizige.kk.khatkit.app.ui.icons.translate
 
 @Composable
 fun ChatDrawerContent(
@@ -99,6 +114,7 @@ fun ChatDrawerContent(
     vm: ChatVM,
     settings: Settings,
     current: Conversation,
+    drawerState: DrawerState? = null,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -132,15 +148,21 @@ fun ChatDrawerContent(
         initialValue = emptyMap(),
     )
 
-    // 昵称编辑状态
-    val nicknameEditState = useEditState<String> { newNickname ->
-        vm.updateSettings(
-            settings.copy(
-                displaySetting = settings.displaySetting.copy(
-                    userNickname = newNickname
-                )
-            )
-        )
+    // 顶栏搜索（复刻 ImageToolbox 侧边栏：TopAppBar 内联搜索框，按标题过滤会话）
+    val searchKeyword by drawerVm.searchKeyword.collectAsStateWithLifecycle()
+    var showSearch by rememberSaveable { mutableStateOf(false) }
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(showSearch) {
+        if (showSearch) {
+            delay(100)
+            searchFocus.requestFocus()
+        }
+    }
+    if (showSearch) {
+        BackHandler {
+            drawerVm.updateSearchKeyword("")
+            showSearch = false
+        }
     }
 
     // 移动对话状态
@@ -155,8 +177,6 @@ fun ChatDrawerContent(
     var folderToDelete by remember { mutableStateOf<Folder?>(null) }
 
     // Menu popup 状态
-    var showMenuPopup by remember { mutableStateOf(false) }
-
     val updateCheckDisabledUntil = settings.displaySetting.updateCheckDisabledUntilEpochMillis
     var updateChecksEnabled by remember(updateCheckDisabledUntil) {
         mutableStateOf(updateCheckDisabledUntil <= System.currentTimeMillis())
@@ -173,13 +193,79 @@ fun ChatDrawerContent(
         }
     }
 
-    ModalDrawerSheet(
-        modifier = Modifier.width(300.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+    // 抽屉不垫状态栏/导航栏 insets：由 TopAppBar / BottomAppBar 自己消费，
+    // 这样两条 bar 的背景能画到状态栏/导航栏后面，和系统栏颜色一致。
+    val sheetContent: @Composable () -> Unit = {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+                navigationIcon = {
+                    if (showSearch) {
+                        IconButton(
+                            onClick = {
+                                drawerVm.updateSearchKeyword("")
+                                showSearch = false
+                            }
+                        ) {
+                            Icon(arrowBack, contentDescription = null)
+                        }
+                    }
+                },
+                title = {
+                    AnimatedContent(targetState = showSearch) { searching ->
+                        if (searching) {
+                            Box {
+                                if (searchKeyword.isBlank()) {
+                                    Text(
+                                        text = stringResource(R.string.chat_page_search_chats),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    )
+                                }
+                                BasicTextField(
+                                    value = searchKeyword,
+                                    onValueChange = drawerVm::updateSearchKeyword,
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    ),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(searchFocus),
+                                )
+                            }
+                        } else {
+                            Text("KhatKit")
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (!showSearch) {
+                                showSearch = true
+                            } else {
+                                drawerVm.updateSearchKeyword("")
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (showSearch && searchKeyword.isNotEmpty()) close else search,
+                            contentDescription = stringResource(R.string.chat_page_search_chats),
+                        )
+                    }
+                },
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
             if (updateChecksEnabled && !isPlayStore) {
                 UpdateCard(vm)
             }
@@ -188,65 +274,6 @@ fun ChatDrawerContent(
                 settings = settings,
                 onClick = { navController.navigate(Screen.Backup) },
             )
-
-            // 用户头像和昵称自定义区域
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                UIAvatar(
-                    name = settings.displaySetting.userNickname.ifBlank { stringResource(R.string.user_default_name) },
-                    value = settings.displaySetting.userAvatar,
-                    onUpdate = { newAvatar ->
-                        vm.updateSettings(
-                            settings.copy(
-                                displaySetting = settings.displaySetting.copy(
-                                    userAvatar = newAvatar
-                                )
-                            )
-                        )
-                    },
-                    modifier = Modifier.size(50.dp),
-                )
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = settings.displaySetting.userNickname.ifBlank { stringResource(R.string.user_default_name) },
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.clickable {
-                                nicknameEditState.open(settings.displaySetting.userNickname)
-                            }
-                        )
-
-                        Icon(
-                            imageVector = edit,
-                            contentDescription = "Edit",
-                            modifier = Modifier
-                                .onClick {
-                                    nicknameEditState.open(settings.displaySetting.userNickname)
-                                }
-                                .size(LocalTextStyle.current.fontSize.toDp())
-                        )
-                    }
-                    Greeting(
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
-            }
-
-            DrawerActions(navController = navController)
 
             FolderBar(
                 folders = folders,
@@ -318,139 +345,60 @@ fun ChatDrawerContent(
                 }
             )
 
-            Row(
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-            ) {
-                DrawerAction(
-                    icon = {
-                        Icon(
-                            imageVector = search,
-                            contentDescription = stringResource(R.string.assistant_page_title)
-                        )
-                    },
-                    label = {
-                        Text(stringResource(R.string.assistant_page_title))
-                    },
-                    onClick = {
-                        navController.navigate(Screen.Assistant)
-                    },
-                )
+            }
 
-                Box {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                ) {
                     DrawerAction(
                         icon = {
-                            Icon(autoAwesome, "Menu")
+                            Icon(settingsIcon, null)
                         },
-                        label = {
-                            Text(stringResource(R.string.menu))
-                        },
+                        label = stringResource(R.string.settings),
                         onClick = {
-                            showMenuPopup = true
+                            navController.navigate(Screen.Setting)
                         },
                     )
-                    DropdownMenu(
-                        expanded = showMenuPopup,
-                        onDismissRequest = { showMenuPopup = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.chat_page_menu_ai_translator)) },
-                            leadingIcon = { Icon(translate, null) },
-                            onClick = {
-                                showMenuPopup = false
-                                navController.navigate(Screen.Translator)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.chat_page_menu_image_generation)) },
-                            leadingIcon = { Icon(image, null) },
-                            onClick = {
-                                showMenuPopup = false
-                                navController.navigate(Screen.ImageGen)
-                            }
-                        )
-                    }
+
+                    Spacer(Modifier.weight(1f))
+
+                    DrawerAction(
+                        icon = {
+                            Icon(download, null)
+                        },
+                        label = "下载中心",
+                        onClick = {
+                            navController.navigate(Screen.DownloadCenter)
+                        },
+                    )
                 }
-
-                DrawerAction(
-                    icon = {
-                        Icon(favorite, stringResource(R.string.favorite_page_title))
-                    },
-                    label = {
-                        Text(stringResource(R.string.favorite_page_title))
-                    },
-                    onClick = {
-                        navController.navigate(Screen.Favorite)
-                    },
-                )
-
-                DrawerAction(
-                    icon = {
-                        Icon(barChart, "统计数据")
-                    },
-                    label = {
-                        Text("统计数据")
-                    },
-                    onClick = {
-                        navController.navigate(Screen.Stats)
-                    },
-                )
-
-                Spacer(Modifier.weight(1f))
-
-                DrawerAction(
-                    icon = {
-                        Icon(settingsIcon, null)
-                    },
-                    label = { Text(stringResource(R.string.settings)) },
-                    onClick = {
-                        navController.navigate(Screen.Setting)
-                    },
-                )
             }
         }
     }
 
-    // 昵称编辑对话框
-    nicknameEditState.EditStateContent { nickname, onUpdate ->
-        AppAlertDialog(
-            onDismissRequest = {
-                nicknameEditState.dismiss()
-            },
-            title = {
-                Text(stringResource(R.string.chat_page_edit_nickname))
-            },
-            text = {
-                OutlinedTextField(
-                    value = nickname,
-                    onValueChange = onUpdate,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text(stringResource(R.string.chat_page_nickname_placeholder)) }
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        nicknameEditState.confirm()
-                    }
-                ) {
-                    Text(stringResource(R.string.chat_page_save))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        nicknameEditState.dismiss()
-                    }
-                ) {
-                    Text(stringResource(R.string.chat_page_cancel))
-                }
-            }
-        )
+    // 有 drawerState 时用带预测返回的 ModalDrawerSheet（返回手势跟手关闭抽屉）
+    if (drawerState != null) {
+        ModalDrawerSheet(
+            drawerState = drawerState,
+            modifier = Modifier.width(300.dp),
+            windowInsets = WindowInsets(0),
+        ) {
+            sheetContent()
+        }
+    } else {
+        ModalDrawerSheet(
+            modifier = Modifier.width(300.dp),
+            windowInsets = WindowInsets(0),
+        ) {
+            sheetContent()
+        }
     }
 
     // 移动到文件夹 Bottom Sheet
@@ -675,96 +623,23 @@ fun ChatDrawerContent(
 }
 
 @Composable
-private fun DrawerActions(navController: Navigator) {
-    Column {
-        // 搜索入口
-        Surface(
-            onClick = { navController.navigate(Screen.MessageSearch) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    imageVector = search,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = stringResource(R.string.chat_page_search_chats),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-
-        // 历史记录入口
-        Surface(
-            onClick = { navController.navigate(Screen.History) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    imageVector = receiptLong,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = stringResource(R.string.chat_page_history),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun DrawerAction(
     modifier: Modifier = Modifier,
     icon: @Composable () -> Unit,
-    label: @Composable () -> Unit,
+    label: String,
     onClick: () -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        shape = CircleShape,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+        tooltip = { TextTooltip(label) },
+        state = rememberTooltipState(),
     ) {
-        Tooltip(
-            tooltip = {
-                label()
-            }
+        IconButton(
+            onClick = onClick,
+            modifier = modifier,
+            shapes = IconButtonDefaults.shapes(),
         ) {
-            Box(
-                modifier = Modifier
-                    .padding(10.dp)
-                    .size(20.dp),
-            ) {
-                icon()
-            }
+            icon()
         }
     }
 }

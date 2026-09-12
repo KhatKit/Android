@@ -25,7 +25,14 @@ object BuiltinCards {
             val manifest = CardParser.parse(manifestText).getOrNull() ?: continue
 
             val target = cache.cardDir(manifest.name, manifest.version)
-            if (File(target, "card.json").exists()) continue
+            val existing = File(target, "card.json")
+            if (existing.exists()) {
+                val existingVersion = runCatching {
+                    CardParser.parse(existing.readText()).getOrNull()?.version
+                }.getOrNull()
+                if (existingVersion == manifest.version) continue
+                target.deleteRecursively()
+            }
 
             target.mkdirs()
             context.assets.list(assetDir).orEmpty().forEach { fileName ->

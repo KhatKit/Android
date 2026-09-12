@@ -97,6 +97,8 @@ import heizige.kk.khatkit.app.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.ui.icons.musicNote
 import heizige.kk.khatkit.app.ui.icons.videocam
 
+private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
+
 @Composable
 fun ChatMessage(
     node: MessageNode,
@@ -111,8 +113,6 @@ fun ChatMessage(
     onShare: () -> Unit,
     onDelete: () -> Unit,
     onUpdate: (MessageNode) -> Unit,
-    isFavorite: Boolean = false,
-    onToggleFavorite: (() -> Unit)? = null,
     onTranslate: ((UIMessage, Locale) -> Unit)? = null,
     onClearTranslation: (UIMessage) -> Unit = {},
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
@@ -136,28 +136,6 @@ fun ChatMessage(
         horizontalAlignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        if (!message.parts.isEmptyUIMessage()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            ) {
-                ChatMessageAssistantAvatar(
-                    message = message,
-                    model = model,
-                    assistant = assistant,
-                    loading = loading,
-                    modifier = Modifier.weight(1f)
-                )
-                ChatMessageUserAvatar(
-                    message = message,
-                    avatar = settings.userAvatar,
-                    nickname = settings.userNickname,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
         ProvideTextStyle(textStyle) {
             MessagePartsBlock(
                 assistant = assistant,
@@ -228,8 +206,6 @@ fun ChatMessage(
             onSelectAndCopy = {
                 showSelectCopySheet = true
             },
-            isFavorite = isFavorite,
-            onToggleFavorite = onToggleFavorite,
             onWebViewPreview = {
                 val textContent = message.parts
                     .filterIsInstance<UIMessagePart.Text>()
@@ -487,7 +463,7 @@ private fun MessagePartsBlock(
 
                     is UIMessagePart.Image -> {
                         val isImageLoading =
-                            part.url.isBlank() || part.url.matches(Regex("^data:image/[^;]*;base64,\\s*$"))
+                            part.url.isBlank() || part.url.matches(EMPTY_BASE64_IMAGE_REGEX)
                         if (isImageLoading) {
                             Box(
                                 modifier = Modifier

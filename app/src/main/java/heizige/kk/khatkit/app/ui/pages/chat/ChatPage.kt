@@ -1,7 +1,9 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
 import android.net.Uri
-import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,8 +24,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.ui.components.ui.KedgePageMediumTopBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -35,7 +38,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -45,12 +50,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.Model
+import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
@@ -66,6 +74,8 @@ import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.service.ChatError
 import heizige.kk.khatkit.app.ui.components.ai.ChatAttachmentPickerActions
 import heizige.kk.khatkit.app.ui.components.ai.ChatInput
+import heizige.kk.khatkit.app.ui.components.ai.ModelListSheet
+import heizige.kk.khatkit.app.ui.components.ai.rememberModelListState
 import heizige.kk.khatkit.app.ui.components.ai.FilesPicker
 import heizige.kk.khatkit.app.ui.components.ai.SearchMode
 import heizige.kk.khatkit.app.ui.components.ai.completion.WorkspaceCompletionProvider
@@ -112,13 +122,6 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
-    // Handle back press when drawer is open
-    BackHandler(enabled = drawerState.isOpen) {
-        scope.launch {
-            drawerState.close()
-        }
-    }
-
     // Clear input focus so popup transitions cannot reopen the keyboard.
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
@@ -146,9 +149,11 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
     // 初始化输入状态（处理传入的 files 和 text 参数）
     LaunchedEffect(files, text) {
         if (files.isNotEmpty()) {
-            val localFiles = filesManager.createChatFilesByContents(files)
-            val contentTypes = files.mapNotNull { file ->
-                filesManager.getFileMimeType(file)
+            // 分享进来的附件复制与 MIME 查询都是磁盘 IO，不能在主线程做
+            val (localFiles, contentTypes) = withContext(Dispatchers.IO) {
+                filesManager.createChatFilesByContents(files) to files.mapNotNull { file ->
+                    filesManager.getFileMimeType(file)
+                }
             }
             val parts = buildList {
                 localFiles.forEachIndexed { index, file ->
@@ -227,7 +232,8 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
                         navController = navController,
                         current = conversation,
                         vm = vm,
-                        settings = setting
+                        settings = setting,
+                        drawerState = drawerState,
                     )
                 }
             ) {
@@ -249,9 +255,6 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
                     onDismissError = { vm.dismissError(it) },
                     onClearAllErrors = { vm.clearAllErrors() },
                 )
-            }
-            BackHandler(drawerState.isOpen) {
-                scope.launch { drawerState.close() }
             }
         }
     }
@@ -282,7 +285,16 @@ private fun ChatPageContent(
     var previewMode by rememberSaveable { mutableStateOf(false) }
     val hazeState = rememberHazeState()
     val assistant = setting.getCurrentAssistant()
+    val modelListState = rememberModelListState(
+        modelId = assistant.chatModelId ?: setting.chatModelId,
+        providers = setting.providers,
+        type = ModelType.CHAT,
+    )
     var showFilesSheet by remember { mutableStateOf(false) }
+    ModelListSheet(
+        state = modelListState,
+        onSelect = { vm.setChatModel(assistant = setting.getCurrentAssistant(), model = it) },
+    )
     val attachmentPickerActions = rememberChatAttachmentPickerActions(
         inputState = inputState,
         setting = setting,
@@ -305,12 +317,16 @@ private fun ChatPageContent(
 
     TTSAutoPlay(vm = vm, setting = setting, conversation = conversation)
 
+    // 滚动消息列表时折叠/展开 MediumTopAppBar
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Surface(
         color = heizige.kk.kedge.theme.KedgeColors.background,
         modifier = Modifier.fillMaxSize()
     ) {
         AssistantBackground(setting = setting, modifier = Modifier.hazeSource(hazeState))
         Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
                 TopBar(
                     settings = setting,
@@ -318,11 +334,15 @@ private fun ChatPageContent(
                     bigScreen = bigScreen,
                     drawerState = drawerState,
                     previewMode = previewMode,
+                    scrollBehavior = scrollBehavior,
                     onNewChat = {
                         navigateToChatPage(navController)
                     },
                     onClickMenu = {
                         previewMode = !previewMode
+                    },
+                    onModelClick = {
+                        modelListState.open()
                     },
                     onUpdateTitle = {
                         vm.updateTitle(it)
@@ -413,9 +433,6 @@ private fun ChatPageContent(
                         }
                         inputState.clearInput()
                     },
-                    onUpdateChatModel = {
-                        vm.setChatModel(assistant = setting.getCurrentAssistant(), model = it)
-                    },
                     onUpdateAssistant = {
                         vm.updateSettings(
                             setting.copy(
@@ -439,6 +456,7 @@ private fun ChatPageContent(
                     onMoreClick = {
                         showFilesSheet = true
                     },
+                    attachmentActions = attachmentPickerActions,
                 )
             },
             containerColor = Color.Transparent,
@@ -509,13 +527,6 @@ private fun ChatPageContent(
                 },
                 onToolAnswer = { toolCallId, answer ->
                     vm.handleToolAnswer(toolCallId, answer)
-                },
-                onToggleFavorite = { node ->
-                    vm.toggleMessageFavorite(node)
-                },
-                onConversationSystemPromptChange = { newPrompt ->
-                    vm.updateConversation(conversation.copy(customSystemPrompt = newPrompt))
-                    vm.saveConversationAsync()
                 },
             )
         }
@@ -621,8 +632,10 @@ private fun TopBar(
     drawerState: DrawerState,
     bigScreen: Boolean,
     previewMode: Boolean,
+    scrollBehavior: TopAppBarScrollBehavior,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
+    onModelClick: () -> Unit,
     onUpdateTitle: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -634,8 +647,9 @@ private fun TopBar(
     val topBarAssistant = settings.getCurrentAssistant()
     val topBarModel = settings.getCurrentChatModel()
     val topBarProvider = topBarModel?.findProvider(providers = settings.providers, checkOverwrite = false)
-    KedgePageTopBar(
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+    KedgePageMediumTopBar(
+        colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color.Transparent),
+        scrollBehavior = scrollBehavior,
         navigationIcon = {
             if (!bigScreen) {
                 IconButton(
@@ -654,13 +668,19 @@ private fun TopBar(
         titleContent = {
             val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
             Surface(
-                onClick = {
-                    if (conversation.messageNodes.isNotEmpty()) {
-                        titleState.open(conversation.title)
-                    } else {
-                        Toast.show(editTitleWarning, isError = false)
-                    }
-                },
+                modifier = Modifier
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .combinedClickable(
+                        onClick = onModelClick,
+                        onLongClick = {
+                            if (conversation.messageNodes.isNotEmpty()) {
+                                titleState.open(conversation.title)
+                            } else {
+                                Toast.show(editTitleWarning, isError = false)
+                            }
+                        },
+                    ),
                 color = Color.Transparent,
             ) {
                 Column {
@@ -670,7 +690,7 @@ private fun TopBar(
                     Text(
                         text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
                         maxLines = 1,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         overflow = TextOverflow.Ellipsis,
                     )
                     if (model != null && provider != null) {
@@ -679,9 +699,7 @@ private fun TopBar(
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 1,
                             color = LocalContentColor.current.copy(0.65f),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 8.sp,
-                            )
+                            style = MaterialTheme.typography.labelMedium,
                         )
                     }
                 }

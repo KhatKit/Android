@@ -7,7 +7,6 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.app.data.db.dao.ConversationDAO
-import heizige.kk.khatkit.app.data.db.dao.FavoriteDAO
 import heizige.kk.khatkit.app.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.data.db.dao.GenMediaDAO
 import heizige.kk.khatkit.app.data.db.dao.ManagedFileDAO
@@ -15,7 +14,6 @@ import heizige.kk.khatkit.app.data.db.dao.MemoryDAO
 import heizige.kk.khatkit.app.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.data.db.entity.ConversationEntity
-import heizige.kk.khatkit.app.data.db.entity.FavoriteEntity
 import heizige.kk.khatkit.app.data.db.entity.FolderEntity
 import heizige.kk.khatkit.app.data.db.entity.GenMediaEntity
 import heizige.kk.khatkit.app.data.db.entity.ManagedFileEntity
@@ -34,11 +32,10 @@ import heizige.kk.khatkit.app.utils.JsonInstant
         GenMediaEntity::class,
         MessageNodeEntity::class,
         ManagedFileEntity::class,
-        FavoriteEntity::class,
         WorkspaceEntity::class,
         FolderEntity::class,
     ],
-    version = 25,
+    version = 26,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -72,8 +69,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun messageNodeDao(): MessageNodeDAO
 
     abstract fun managedFileDao(): ManagedFileDAO
-
-    abstract fun favoriteDao(): FavoriteDAO
 
     abstract fun workspaceDao(): WorkspaceDAO
 

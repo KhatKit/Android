@@ -49,20 +49,33 @@ class ChatDrawerVM(
     private val _selectedFolderId = MutableStateFlow<Uuid?>(null)
     val selectedFolderId: StateFlow<Uuid?> = _selectedFolderId.asStateFlow()
 
+    // 抽屉顶栏搜索关键字（按标题过滤会话）
+    private val _searchKeyword = MutableStateFlow("")
+    val searchKeyword: StateFlow<String> = _searchKeyword.asStateFlow()
+
+    fun updateSearchKeyword(keyword: String) {
+        _searchKeyword.value = keyword
+    }
+
     // 当前助手的文件夹列表（Room Flow，增删改自动刷新）
     val folders: StateFlow<List<Folder>> = assistantIdFlow
         .flatMapLatest { folderRepo.getFoldersOfAssistant(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val conversations: Flow<PagingData<ConversationListItem>> =
-        combine(assistantIdFlow, _selectedFolderId) { assistantId, folderId ->
-            assistantId to folderId
+        combine(assistantIdFlow, _selectedFolderId, _searchKeyword) { assistantId, folderId, keyword ->
+            Triple(assistantId, folderId, keyword)
         }
-            .flatMapLatest { (assistantId, folderId) ->
-                if (folderId == null) {
-                    conversationRepo.getUnfiledConversationsOfAssistantPaging(assistantId)
-                } else {
-                    conversationRepo.getConversationsOfFolderPaging(folderId)
+            .flatMapLatest { (assistantId, folderId, keyword) ->
+                when {
+                    keyword.isNotBlank() ->
+                        conversationRepo.searchConversationsOfAssistantPaging(assistantId, keyword)
+
+                    folderId == null ->
+                        conversationRepo.getUnfiledConversationsOfAssistantPaging(assistantId)
+
+                    else ->
+                        conversationRepo.getConversationsOfFolderPaging(folderId)
                 }
             }
             .map { pagingData ->

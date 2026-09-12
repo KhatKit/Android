@@ -54,7 +54,6 @@ import heizige.kk.khatkit.app.ui.icons.contentCopy
 import heizige.kk.khatkit.app.ui.icons.conversionPath
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.edit
-import heizige.kk.khatkit.app.ui.icons.favorite
 import heizige.kk.khatkit.app.ui.icons.highlightAlt
 import heizige.kk.khatkit.app.ui.icons.moreVert
 import heizige.kk.khatkit.app.ui.icons.share
@@ -249,8 +248,6 @@ fun ChatMessageActionsSheet(
     onShare: () -> Unit,
     onFork: () -> Unit,
     onSelectAndCopy: () -> Unit,
-    isFavorite: Boolean = false,
-    onToggleFavorite: (() -> Unit)? = null,
     onWebViewPreview: () -> Unit,
     onDismissRequest: () -> Unit
 ) {
@@ -404,37 +401,6 @@ fun ChatMessageActionsSheet(
                         text = stringResource(R.string.create_fork),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                }
-            }
-
-            if (onToggleFavorite != null) {
-                Card(
-                    onClick = {
-                        dismiss()
-                        onToggleFavorite()
-                    },
-                    shape = MaterialTheme.shapes.medium,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = favorite,
-                            contentDescription = null,
-                            modifier = Modifier.padding(4.dp)
-                        )
-                        Text(
-                            text = stringResource(
-                                if (isFavorite) R.string.chat_message_remove_favorite
-                                else R.string.chat_message_add_favorite
-                            ),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
                 }
             }
 

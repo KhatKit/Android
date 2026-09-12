@@ -37,6 +37,8 @@ import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.app.data.datastore.migration.PreferenceStoreV1Migration
 import heizige.kk.khatkit.app.data.datastore.migration.PreferenceStoreV2Migration
 import heizige.kk.khatkit.app.data.datastore.migration.PreferenceStoreV3Migration
+import heizige.kk.khatkit.app.data.datastore.migration.PreferenceStoreV4Migration
+import heizige.kk.khatkit.app.data.datastore.migration.PreferenceStoreV5Migration
 import heizige.kk.khatkit.app.data.model.Assistant
 import heizige.kk.khatkit.app.data.model.Avatar
 import heizige.kk.khatkit.app.data.model.InjectionPosition
@@ -64,7 +66,9 @@ private val Context.settingsStore by preferencesDataStore(
         listOf(
             PreferenceStoreV1Migration(),
             PreferenceStoreV2Migration(),
-            PreferenceStoreV3Migration()
+            PreferenceStoreV3Migration(),
+            PreferenceStoreV4Migration(),
+            PreferenceStoreV5Migration()
         )
     }
 )
@@ -334,12 +338,7 @@ class SettingsStore(
                     )
                 } else provider
             }.toMutableList()
-            val assistants = it.assistants.ifEmpty { DEFAULT_ASSISTANTS }.toMutableList()
-            DEFAULT_ASSISTANTS.forEach { defaultAssistant ->
-                if (assistants.none { it.id == defaultAssistant.id }) {
-                    assistants.add(defaultAssistant.copy())
-                }
-            }
+            val assistants = it.assistants.ifEmpty { DEFAULT_ASSISTANTS }
             val ttsProviders = it.ttsProviders.ifEmpty { DEFAULT_TTS_PROVIDERS }.toMutableList()
             DEFAULT_TTS_PROVIDERS.forEach { defaultTTSProvider ->
                 if (ttsProviders.none { provider -> provider.id == defaultTTSProvider.id }) {
@@ -727,6 +726,7 @@ fun Settings.resolveBestASRProvider(): ASRProviderSetting? {
         is ASRProviderSetting.Step -> provider.apiKey.isNotBlank()
         is ASRProviderSetting.OpenAITranscribe -> provider.apiKey.isNotBlank()
         is ASRProviderSetting.GeminiTranscribe -> provider.apiKey.isNotBlank()
+        is ASRProviderSetting.SherpaLocal -> provider.modelId.isNotBlank()
     }
 
     selectedASRProviderId
@@ -743,6 +743,7 @@ fun Settings.resolveBestASRProvider(): ASRProviderSetting? {
         ASRProviderSetting.MiMo::class,
         ASRProviderSetting.OpenAITranscribe::class,
         ASRProviderSetting.GeminiTranscribe::class,
+        ASRProviderSetting.SherpaLocal::class,
     )
     priority.forEach { type ->
         available.firstOrNull { type.isInstance(it) }?.let { return it }
@@ -799,26 +800,14 @@ internal val DEFAULT_ASSISTANTS = listOf(
     Assistant(
         id = DEFAULT_ASSISTANT_ID,
         name = "",
-        systemPrompt = ""
-    ),
-    Assistant(
-        id = Uuid.parse("3d47790c-c415-4b90-9388-751128adb0a0"),
-        name = "",
-        systemPrompt = """
-            You are a helpful assistant, called {{char}}, based on model {{model_name}}.
-
-            ## Info
-            - Date: {{cur_date}}
-            - Locale: {{locale}}
-            - Timezone: {{timezone}}
-            - Device Info: {{device_info}}
-            - System Version: {{system_version}}
-            - User Nickname: {{user}}
-
-            ## Hint
-            - If the user does not specify a language, reply in the user's primary language.
-            - Remember to use Markdown syntax for formatting, and use latex for mathematical expressions.
-        """.trimIndent()
+        systemPrompt = "",
+        enableMemory = true,
+        enableRecentChatsReference = true,
+        enableTimeReminder = true,
+        enableWebSearch = true,
+        localTools = PreferenceStoreV4Migration.ALL_LOCAL_TOOLS,
+        allowConversationSystemPrompt = true,
+        allowConversationPromptInjection = true,
     ),
 )
 

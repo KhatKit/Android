@@ -492,6 +492,14 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
+            DropdownMenuItem(
+                text = { Text("本地识别 (sherpa-onnx)") },
+                onClick = {
+                    currentProvider = ASRProviderSetting.SherpaLocal()
+                    showTypeMenu = false
+                    showBottomSheet = true
+                }
+            )
         }
     }
 
@@ -736,6 +744,7 @@ private fun ASRProviderItem(
                             is ASRProviderSetting.Step -> "Step"
                             is ASRProviderSetting.OpenAITranscribe -> "OpenAI Transcribe"
                             is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
+                            is ASRProviderSetting.SherpaLocal -> "本地识别 (sherpa-onnx)"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

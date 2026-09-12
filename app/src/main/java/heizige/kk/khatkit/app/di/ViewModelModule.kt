@@ -5,11 +5,9 @@ import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantDetailVM
 import heizige.kk.khatkit.app.ui.pages.backup.BackupVM
 import heizige.kk.khatkit.app.ui.pages.chat.ChatDrawerVM
 import heizige.kk.khatkit.app.ui.pages.chat.ChatVM
+import heizige.kk.khatkit.app.ui.pages.download.DownloadCenterVM
 import heizige.kk.khatkit.app.ui.pages.debug.DebugVM
-import heizige.kk.khatkit.app.ui.pages.favorite.FavoriteVM
 import heizige.kk.khatkit.app.ui.pages.search.SearchVM
-import heizige.kk.khatkit.app.ui.pages.history.HistoryVM
-import heizige.kk.khatkit.app.ui.pages.stats.StatsVM
 import heizige.kk.khatkit.app.ui.pages.imggen.ImgGenVM
 import heizige.kk.khatkit.app.ui.pages.extensions.PromptVM
 import heizige.kk.khatkit.app.ui.pages.extensions.QuickMessagesVM
@@ -35,13 +33,12 @@ val viewModelModule = module {
             updateChecker = get(),
             analytics = get(),
             filesManager = get(),
-            favoriteRepository = get(),
         )
     }
     viewModelOf(::ChatDrawerVM)
+    viewModelOf(::DownloadCenterVM)
     viewModelOf(::SettingVM)
     viewModelOf(::DebugVM)
-    viewModelOf(::HistoryVM)
     viewModelOf(::AssistantVM)
     viewModel<AssistantDetailVM> {
         AssistantDetailVM(
@@ -74,7 +71,5 @@ val viewModelModule = module {
             terminalSessionManager = get(),
         )
     }
-    viewModelOf(::FavoriteVM)
     viewModelOf(::SearchVM)
-    viewModelOf(::StatsVM)
 }

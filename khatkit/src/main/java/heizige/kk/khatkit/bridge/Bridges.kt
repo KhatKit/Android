@@ -38,6 +38,13 @@ object UiWidgets {
 interface DownloadBridge {
     /** 立即返回 handle，不阻塞脚本（宿主 Kotlin 侧用） */
     fun enqueue(task: Map<String, Any?>): DownloadHandle
+
+    /** 下载中心观察所有任务（含脚本创建的下载）。 */
+    fun observeTasks(): kotlinx.coroutines.flow.StateFlow<List<DownloadTaskInfo>> =
+        kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+
+    /** 从下载中心删除记录（活动任务先取消）。 */
+    fun remove(id: String): Boolean = false
     fun list(state: String? = null): List<DownloadHandle>
     fun query(id: String): DownloadHandle?
 

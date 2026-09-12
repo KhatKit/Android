@@ -26,12 +26,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -82,43 +84,77 @@ fun SearchPickerButton(
     onUpdateSearchMode: (SearchMode) -> Unit,
     onUpdateSearchService: (Int) -> Unit,
     model: Model?,
+    chip: Boolean = false,
 ) {
     var showSearchPicker by remember { mutableStateOf(false) }
     val currentService = settings.searchServices.getOrNull(settings.searchServiceSelected)
 
-    ToggleSurface(
-        modifier = modifier,
-        checked = enableSearch || model?.tools?.contains(BuiltInTools.Search) == true,
-        onClick = {
-            showSearchPicker = true
-        }
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(vertical = 8.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    val checked = enableSearch || model?.tools?.contains(BuiltInTools.Search) == true
+    val iconContent: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { iconSize ->
+        Box(
+            modifier = Modifier.size(iconSize),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier.size(24.dp),
-                contentAlignment = Alignment.Center
+            if (model?.tools?.contains(BuiltInTools.Search) == true) {
+                Icon(
+                    imageVector = searchInsights,
+                    contentDescription = stringResource(R.string.use_web_search),
+                )
+            } else if (enableSearch && currentService != null) {
+                AutoAIIcon(
+                    name = currentService.displayName,
+                    color = Color.Transparent
+                )
+            } else {
+                Icon(
+                    imageVector = search,
+                    contentDescription = stringResource(R.string.use_web_search),
+                )
+            }
+        }
+    }
+
+    if (chip) {
+        Surface(
+            onClick = { showSearchPicker = true },
+            modifier = modifier,
+            shape = RoundedCornerShape(50),
+            color = Color.Transparent,
+            contentColor = if (checked) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            border = BorderStroke(
+                1.dp,
+                if (checked) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
+            ),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (model?.tools?.contains(BuiltInTools.Search) == true) {
-                    Icon(
-                        imageVector = searchInsights,
-                        contentDescription = stringResource(R.string.use_web_search),
-                    )
-                } else if (enableSearch && currentService != null) {
-                    AutoAIIcon(
-                        name = currentService.displayName,
-                        color = Color.Transparent
-                    )
-                } else {
-                    Icon(
-                        imageVector = search,
-                        contentDescription = stringResource(R.string.use_web_search),
-                    )
-                }
+                iconContent(18.dp)
+                Text("搜索", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    } else {
+        ToggleSurface(
+            modifier = modifier,
+            checked = checked,
+            onClick = {
+                showSearchPicker = true
+            }
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                iconContent(24.dp)
             }
         }
     }

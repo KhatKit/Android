@@ -42,7 +42,10 @@ class CardExecutor(
         val required = card.manifest.requiredBridges
         val missing = required - bridges.availableBridges()
         if (missing.isNotEmpty()) {
-            return EngineResult.Err("BRIDGE_UNAVAILABLE", "设备缺少卡片所需能力：$missing")
+            return EngineResult.Err(
+                "BRIDGE_UNAVAILABLE",
+                "设备缺少卡片所需能力：$missing。请在聊天输入框「+」面板中开启对应权限（root / Shizuku / 无障碍 / 所有文件访问）后重试。",
+            )
         }
 
         // 先解析脚本库（可能跨线程挂起）；引擎创建后到 eval 之间不能再有挂起点，

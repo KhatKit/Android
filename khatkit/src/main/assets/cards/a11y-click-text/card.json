@@ -1,0 +1,35 @@
+{
+  "name": "a11y_click_text",
+  "version": "1.0.1",
+  "description": "在当前屏幕上按文字查找并点击（无障碍）",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "lua",
+  "entry": { "lua": "main.lua" },
+  "privilege": "elevated",
+  "requires": {
+    "bridges": ["accessibility", "ui"],
+    "libs": [],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": [] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "text": { "type": "string", "description": "要点击的控件文字" },
+      "exact": { "type": "boolean", "description": "是否精确匹配，默认包含匹配" }
+    },
+    "required": ["text"]
+  },
+  "ui": {
+    "text": { "source": "ui", "widget": "input" },
+    "exact": { "source": "ui", "widget": "switch" }
+  },
+  "tags": { "domain": "device", "action": "control", "scene": "daily" },
+  "compliance": {
+    "risk": "medium",
+    "note": "需要用户开启无障碍服务；点击结果请自行确认"
+  },
+  "store": { "quota_mb": 1, "secret": false }
+}

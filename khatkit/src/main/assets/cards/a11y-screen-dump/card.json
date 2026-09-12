@@ -1,0 +1,28 @@
+{
+  "name": "a11y_screen_dump",
+  "version": "1.0.0",
+  "description": "导出当前屏幕的可见文字与可点击控件（无障碍）",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "js",
+  "entry": { "js": "main.js" },
+  "privilege": "elevated",
+  "requires": {
+    "bridges": ["accessibility"],
+    "libs": [],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": [] },
+  "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "tags": { "domain": "device", "action": "read", "scene": "daily" },
+  "compliance": {
+    "risk": "medium",
+    "note": "读取屏幕内容需要用户开启无障碍服务"
+  },
+  "store": { "quota_mb": 1, "secret": false }
+}
