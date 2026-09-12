@@ -29,27 +29,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khromia.helper.Toast
-import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.hooks.useThrottle
 import heizige.kk.khatkit.app.ui.pages.chat.ChatVM
-import heizige.kk.khatkit.app.utils.UpdateDownload
-import heizige.kk.khatkit.app.utils.Version
+import heizige.kk.khatkit.app.utils.UpdateCheckResponse
 import heizige.kk.khatkit.app.utils.onError
 import heizige.kk.khatkit.app.utils.onSuccess
-import heizige.kk.khatkit.app.utils.toLocalDateTime
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
-import kotlin.time.toJavaInstant
 import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.download
 
-@OptIn(ExperimentalTime::class)
 @Composable
 fun UpdateCard(vm: ChatVM) {
     val state by vm.updateState.collectAsStateWithLifecycle()
@@ -79,9 +71,7 @@ fun UpdateCard(vm: ChatVM) {
     state.onSuccess { info ->
         var showDetail by remember { mutableStateOf(false) }
         var dismissed by remember { mutableStateOf(false) }
-        val current = remember { Version(BuildConfig.VERSION_NAME) }
-        val latest = remember(info) { Version(info.version) }
-        if (latest > current && !dismissed) {
+        if (info.hasUpdate && (!dismissed || info.forceUpdate)) {
             Card(
                 onClick = {
                     showDetail = true
@@ -99,21 +89,23 @@ fun UpdateCard(vm: ChatVM) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = stringResource(R.string.update_card_new_version_found, info.version),
+                            text = stringResource(R.string.update_card_new_version_found, info.latestVersion),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { dismissed = true }) {
-                            Icon(
-                                imageVector = close,
-                                contentDescription = stringResource(R.string.update_card_close),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        if (!info.forceUpdate) {
+                            IconButton(onClick = { dismissed = true }) {
+                                Icon(
+                                    imageVector = close,
+                                    contentDescription = stringResource(R.string.update_card_close),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     MarkdownBlock(
-                        content = info.changelog,
+                        content = info.description,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.heightIn(max = 200.dp)
                     )
@@ -121,13 +113,13 @@ fun UpdateCard(vm: ChatVM) {
             }
         }
         if (showDetail) {
-            val downloadHandler = useThrottle<UpdateDownload>(500) { item ->
+            val downloadHandler = useThrottle<UpdateCheckResponse>(500) { item ->
                 vm.updateChecker.downloadUpdate(context, item)
                 showDetail = false
                 Toast.show(context.getString(R.string.update_card_downloading), isError = false)
             }
             AppModalBottomSheet(
-                onDismissRequest = { showDetail = false },
+                onDismissRequest = { if (!info.forceUpdate) showDetail = false },
                 sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
             ) {
                 Column(
@@ -138,48 +130,41 @@ fun UpdateCard(vm: ChatVM) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = info.version,
+                        text = info.latestVersion,
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        text = Instant.parse(info.publishedAt).toJavaInstant().toLocalDateTime(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                     MarkdownBlock(
-                        content = info.changelog,
+                        content = info.description,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(300.dp)
                             .verticalScroll(rememberScrollState()),
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    info.downloads.fastForEach { downloadItem ->
-                        OutlinedCard(
-                            onClick = {
-                                downloadHandler(downloadItem)
+                    OutlinedCard(
+                        onClick = {
+                            downloadHandler(info)
+                        },
+                    ) {
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = "KhatKit-${info.latestVersion}.apk",
+                                )
                             },
-                        ) {
-                            ListItem(
-                                headlineContent = {
-                                    Text(
-                                        text = downloadItem.name,
-                                    )
-                                },
-                                supportingContent = {
-                                    Text(
-                                        text = downloadItem.size
-                                    )
-                                },
-                                leadingContent = {
-                                    Icon(
-                                        imageVector = download,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                        }
+                            supportingContent = {
+                                Text(
+                                    text = info.downloadUrl
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = download,
+                                    contentDescription = null
+                                )
+                            }
+                        )
                     }
                 }
             }

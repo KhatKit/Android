@@ -32,5 +32,8 @@ interface KhatKitController {
     var downloadConcurrency: Int
     var uiStyle: KhatKitUiStyle
 
+    /** 是否接收 beta 更新通道（KodeHeadServer 的 KhatKit 独立更新通道）。 */
+    var receiveBeta: Boolean
+
     fun applySettings()
 }

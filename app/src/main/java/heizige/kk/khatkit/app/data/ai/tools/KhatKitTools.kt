@@ -143,6 +143,11 @@ class KhatKitToolProvider(
             settings.edit().putString(KEY_UI_STYLE, value.name).apply()
         }
 
+    /** 是否接收 beta 更新通道（默认关）。 */
+    override var receiveBeta: Boolean
+        get() = settings.getBoolean(KEY_RECEIVE_BETA, false)
+        set(value) = settings.edit().putBoolean(KEY_RECEIVE_BETA, value).apply()
+
     /** 设置变更后重建 bridge/客户端（下次 tasks() 生效）。 */
     override fun applySettings() {
         executor = null
@@ -367,6 +372,7 @@ class KhatKitToolProvider(
         private const val KEY_ENABLE_ROOT = "enable_root"
         private const val KEY_DOWNLOAD_CONCURRENCY = "download_concurrency"
         private const val KEY_UI_STYLE = "ui_style"
+        private const val KEY_RECEIVE_BETA = "receive_beta"
 
         /** 索引缓存有效期：5 分钟内不重复拉取 */
         private const val INDEX_TTL_MS = 5 * 60 * 1000L
