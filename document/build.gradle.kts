@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.document"
+    namespace = "heizige.kk.khatkit.document"
 
     defaultConfig {
         consumerProguardFiles("consumer-rules.pro")

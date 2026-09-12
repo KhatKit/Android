@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.workspace"
+    namespace = "heizige.kk.khatkit.workspace"
 
     defaultConfig {
         externalNativeBuild {

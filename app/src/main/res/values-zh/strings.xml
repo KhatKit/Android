@@ -7,7 +7,7 @@
   <string name="about_page_version">版本</string>
   <string name="about_page_website">官网</string>
   <string name="add">添加</string>
-  <string name="app_name">RikkaHub</string>
+  <string name="app_name">KhatKit</string>
   <string name="asr_button_content_description">语音识别</string>
   <string name="asr_button_stop">停止</string>
   <string name="assistant_detail_basic_desc">配置名称、头像、模型和参数</string>
@@ -860,7 +860,7 @@
   <string name="setting_page_search_title">搜索服务</string>
   <string name="setting_page_share">分享</string>
   <string name="setting_page_share_desc">分享本APP给朋友</string>
-  <string name="setting_page_share_text">RikkaHub - 开源安卓AI助手\n\n官网: https://rikka-ai.com/</string>
+  <string name="setting_page_share_text">KhatKit - 开源安卓AI助手\n\n官网: https://rikka-ai.com/</string>
   <string name="setting_page_sponsor_alert_confirm">捐赠</string>
   <string name="setting_page_sponsor_alert_desc">您已启动应用超过100次！如果您喜欢使用它，请考虑支持开发者。</string>
   <string name="setting_page_sponsor_alert_dismiss">暂不</string>
@@ -888,7 +888,7 @@
   <string name="setting_page_web_server_address_note_desc">局域网地址：使用设备 WiFi IP，同一网络中的其他设备可访问。移动数据网络下不可用。
 本地地址：使用 localhost，仅限本设备访问。
 mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过名称访问，无需知道 IP。</string>
-  <string name="setting_page_web_server_desc">允许你通过网页访问 RikkaHub</string>
+  <string name="setting_page_web_server_desc">允许你通过网页访问 KhatKit</string>
   <string name="setting_page_web_server_error">错误</string>
   <string name="setting_page_web_server_jwt_enable">启用身份验证</string>
   <string name="setting_page_web_server_jwt_enable_desc">访问网页界面时需要密码验证</string>
@@ -1379,4 +1379,75 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="workspace_detail_compatibility_mode">兼容模式</string>
   <string name="workspace_detail_compatibility_mode_desc">如果终端无法启动，请尝试启用此功能。这可能会降低性能。适用于新的终端标签页及后续命令。</string>
   <string name="workspace_detail_settings_save_failed">保存设置失败</string>
+
+  <!-- Greeting / onboarding -->
+  <string name="greeting_title_agreement">用户协议</string>
+  <string name="greeting_title_settings">初始化设置</string>
+  <string name="greeting_title_permissions">权限设置</string>
+  <string name="greeting_title_ai">AI 服务</string>
+  <string name="greeting_action_back">返回</string>
+  <string name="greeting_action_next">下一步</string>
+  <string name="greeting_action_read">阅读</string>
+  <string name="greeting_action_finish">完成</string>
+  <string name="greeting_agreement_accept">我已完整阅读并同意上述全部条款</string>
+  <string name="greeting_agreement_text">欢迎使用 KhatKit。\n\n请在使用前完整阅读并理解以下条款。你继续安装、启动或使用本应用，即表示你已阅读、理解并同意全部内容；如不同意，请立即停止使用并卸载本应用。\n\n一、按“现状”提供\n本应用及其全部功能、源代码、卡片、脚本与相关材料均按“现状”和“现有”提供，不附带任何明示或默示的担保，包括但不限于适销性、特定用途适用性、准确性、完整性、不中断、无错误及不侵权的担保。\n\n二、使用风险自负\n你理解并同意：使用本应用的全部风险由你自行承担。AI 生成内容可能错误、过时、有偏见或具有误导性，不构成任何专业意见，须自行核实；因使用或无法使用本应用造成的任何直接或间接损失，开发者不承担责任。\n\n三、你的责任\n你对使用本应用的一切行为及产生的内容负全部责任，包括但不限于提示词、上传的数据、安装的卡片与脚本、以及生成或传播的内容。你承诺遵守所在地区的法律法规，不将其用于任何违法、侵权或危害他人的用途。\n\n四、第三方服务\n本应用可能连接你自行配置的模型、搜索、卡片市场等第三方服务，也可能运行第三方提供的卡片脚本。这些内容由第三方独立提供，开发者无法控制，也不对其可用性、安全性、准确性或合法性承担任何责任。\n\n五、数据与设备风险\n你理解并同意：应用可能出现数据丢失、损坏、同步失败、设备异常、账号受限等风险，相关风险与后果由你自行承担。请自行做好备份。\n\n六、高权限能力\nroot、Shizuku、所有文件访问等高权限能力默认关闭，开启需你明确确认。因开启或使用这些能力造成的一切后果，由你自行承担。\n\n七、责任限制\n在适用法律允许的最大范围内，开发者及其贡献者、许可方不对任何间接、附带、特殊、惩罚性或后果性损害承担责任；即使已被告知可能发生此类损害。若法律强制要求承担责任，开发者的责任总额以你实际支付本应用的费用为限（本应用免费提供时为零）。\n\n八、变更与终止\n开发者保留随时修改本条款、变更或停止本应用及其任何功能的权利，且无需事先通知。条款更新后继续使用即视为接受；如不同意，请停止使用。\n\n九、开源许可\n本应用包含或依赖若干开源组件，其许可条款各自适用；如与开源许可冲突，以开源许可为准。</string>
+  <string name="greeting_permissions_subtitle">全部授权后功能完整可用</string>
+  <string name="greeting_ai_subtitle">配置 API Key 后开始对话</string>
+  <string name="greeting_permission_notification_title">通知权限</string>
+  <string name="greeting_permission_notification_desc">AI 生成完成、卡片下载进度等提醒</string>
+  <string name="greeting_permission_battery_title">忽略电池优化</string>
+  <string name="greeting_permission_battery_desc">避免后台生成与下载被系统省电策略中断</string>
+  <string name="greeting_permission_camera_title">相机</string>
+  <string name="greeting_permission_camera_desc">拍照、扫码后直接发给 AI</string>
+  <string name="greeting_permission_mic_title">麦克风</string>
+  <string name="greeting_permission_mic_desc">语音输入与语音识别</string>
+  <string name="greeting_permission_calendar_title">日历</string>
+  <string name="greeting_permission_calendar_desc">允许工具卡片读取、写入日程</string>
+  <string name="greeting_permission_files_title">所有文件访问（可选）</string>
+  <string name="greeting_permission_files_desc">下载文件到公共目录、文件类卡片读写</string>
+  <string name="greeting_permission_optional">可选</string>
+  <string name="greeting_permission_grant">去授权</string>
+  <string name="greeting_permission_granted">已授权</string>
+  <string name="greeting_settings_theme_mode">主题模式</string>
+  <string name="greeting_settings_theme_system">跟随系统</string>
+  <string name="greeting_settings_theme_light">浅色</string>
+  <string name="greeting_settings_theme_dark">深色</string>
+  <string name="greeting_settings_dynamic_color">动态取色</string>
+  <string name="greeting_settings_dynamic_color_desc">跟随壁纸生成主题配色（Android 12+）</string>
+  <string name="greeting_settings_theme_color">主题配色</string>
+  <string name="greeting_settings_ui_style">界面风格</string>
+  <string name="greeting_ai_providers">服务商</string>
+  <string name="greeting_ai_configured">已配置</string>
+  <string name="greeting_ai_not_configured">未配置 API Key</string>
+  <string name="greeting_settings_custom_color">自定义颜色</string>
+  <string name="greeting_settings_custom_color_confirm">使用</string>
+  <string name="setting_page_list_card_settings">列表卡片样式</string>
+  <string name="setting_display_page_card_corner_large">大圆角</string>
+  <string name="setting_display_page_card_corner_small">小圆角</string>
+  <string name="setting_display_page_card_gap">项间距</string>
+
+  <!-- KhatKit -->
+  <string name="khatkit_market_title">KhatKit 卡片市场</string>
+  <string name="khatkit_confirm">确认</string>
+  <string name="khatkit_confirm_danger">确认（危险操作）</string>
+  <string name="khatkit_action_cancel">取消</string>
+  <string name="khatkit_close">关闭</string>
+  <string name="khatkit_show_result_title">执行结果</string>
+  <string name="greeting_settings_subtitle">外观与卡片样式</string>
+  <string name="greeting_permissions_dangerous">高级权限（危险）</string>
+  <string name="greeting_permissions_normal">常规权限</string>
+  <string name="greeting_permission_root_title">Root</string>
+  <string name="greeting_permission_root_desc">允许卡片直接执行 root 命令，风险极高</string>
+  <string name="greeting_permission_shizuku_title">Shizuku</string>
+  <string name="greeting_permission_shizuku_desc">以 adb 权限执行系统级操作</string>
+  <string name="greeting_ai_save">保存配置</string>
+  <string name="greeting_ai_api_key">API Key</string>
+  <string name="greeting_ai_base_url">Base URL</string>
+  <string name="greeting_ai_custom_key">自定义 API Key</string>
+  <string name="greeting_permission_accessibility_title">无障碍</string>
+  <string name="greeting_permission_accessibility_desc">开启无障碍服务以执行自动化操作</string>
+  <string name="greeting_ai_custom_desc">添加任意 OpenAI 兼容服务</string>
+  <string name="greeting_ai_custom_name">名称</string>
+  <string name="greeting_settings_history_colors">历史颜色</string>
+  <string name="greeting_ai_enabled_models">启用模型</string>
 </resources>

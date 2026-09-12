@@ -9,17 +9,15 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.baselineprofile)
 }
 
 android {
-    namespace = "me.rerere.rikkahub"
+    namespace = "heizige.kk.khatkit.app"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "me.rerere.rikkahub"
+        applicationId = "heizige.kk.khatkit"
         minSdk = 26
         targetSdk = 37
         versionCode = 186
@@ -85,8 +83,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
         compose = true
@@ -136,7 +134,7 @@ ksp {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_21)
     }
 }
 
@@ -166,11 +164,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.material3.adaptive.navigation3)
 
-    // Firebase
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
-
     // DataStore
     implementation(libs.androidx.datastore.preferences)
 
@@ -192,15 +185,10 @@ dependencies {
     // jetbrains markdown parser
     implementation(libs.jetbrains.markdown)
 
-    // okhttp
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.sse)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.serialization.json)
-
-    // ktor client
+    // ktor client（networking 全量走 Ktor，无 OkHttp）
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.websockets)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
 
@@ -216,7 +204,7 @@ dependencies {
     // coil
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
-    implementation(libs.coil.okhttp)
+    implementation(libs.coil.network.ktor3)
     implementation(libs.coil.svg)
     implementation(libs.coil.cache.control)
 
@@ -254,10 +242,6 @@ dependencies {
     // Reorderable (https://github.com/Calvin-LL/Reorderable/)
     implementation(libs.reorderable)
 
-    // lucide icons
-    implementation(libs.lucide.icons)
-    implementation(libs.huge.icons)
-
     // image viewer
     implementation(libs.image.viewer)
 
@@ -292,6 +276,8 @@ dependencies {
     implementation(project(":material3"))
     implementation(project(":workspace"))
     implementation(project(":oauth"))
+    implementation(project(":khatkit"))
+    implementation(project(":khatkit-ui"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     implementation(kotlin("reflect"))
 

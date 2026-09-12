@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.videogen"
+    namespace = "heizige.kk.khatkit.videogen"
 }
 
 dependencies {
@@ -14,7 +14,6 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
-    implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 

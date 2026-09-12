@@ -1,0 +1,7 @@
+# PDFBox 的 JP2 编解码器与 LuaJ 的 javax.script 桥接都是可选路径。
+-dontwarn com.gemalto.jp2.**
+-dontwarn javax.script.**
+
+# UCrop 仅在裁剪「网络 URI」时会用到 OkHttp；本项目已移除 OkHttp，
+# 本地 content:// / file:// 裁剪不经过这些类。
+-dontwarn okhttp3.**

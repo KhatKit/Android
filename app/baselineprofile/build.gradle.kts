@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.baselineprofile"
+    namespace = "heizige.kk.khatkit.baselineprofile"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

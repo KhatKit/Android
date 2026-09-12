@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.oauth"
+    namespace = "heizige.kk.khatkit.oauth"
 }
 
 dependencies {
-    api(libs.okhttp)
+    api(project(":common"))
 
     implementation(libs.androidx.browser)
     implementation(libs.androidx.core.ktx)

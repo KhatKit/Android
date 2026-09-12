@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "me.rerere.search"
+    namespace = "heizige.kk.khatkit.search"
 
     defaultConfig {
         minSdk = 23
@@ -27,7 +27,6 @@ android {
 dependencies {
     implementation(project(":ai"))
     implementation(project(":common"))
-    implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(platform(libs.androidx.compose.bom))

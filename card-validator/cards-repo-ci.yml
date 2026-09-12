@@ -1,0 +1,39 @@
+# 独立「卡片仓库」的 CI 模板：复制到卡片仓库的 .github/workflows/cards-ci.yml。
+#
+# 校验逻辑来自 KhatKit 的 :card-validator（纯 JVM，无 Android 依赖）；
+# 若不想在 CI 里构建 KhatKit，也可以改为调用 Hub 的校验接口：
+#   POST {KHATKIT_HUB}/admin/khatkit/cards/validate   （需要 admin/developer JWT）
+name: Cards CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      # 1) 卡片仓库本身
+      - uses: actions/checkout@v4
+
+      # 2) 取 KhatKit 源码（换成你的仓库地址/分支）
+      - uses: actions/checkout@v4
+        with:
+          repository: khatkit/khatkit
+          path: .khatkit
+          submodules: recursive
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # KhatKit 是 Android 工程，Gradle 配置阶段需要 Android SDK
+      - uses: android-actions/setup-android@v3
+
+      - name: Validate cards
+        run: |
+          chmod +x .khatkit/gradlew
+          ./.khatkit/gradlew -p .khatkit :card-validator:run --args="$GITHUB_WORKSPACE/cards"
