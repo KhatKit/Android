@@ -14,6 +14,7 @@ import heizige.kk.khatkit.hub.BundledLibProvider
 import heizige.kk.khatkit.hub.CardCache
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubClient
+import heizige.kk.khatkit.hub.HubFilters
 import heizige.kk.khatkit.hub.HubLibProvider
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
@@ -182,7 +183,8 @@ class KhatKitToolProvider(
 
     suspend fun tools(): List<Tool> = withContext(Dispatchers.IO) {
         // 云端优先：索引里有什么，AI 就能看到什么；真正被调用时才下载。
-        val remote = remoteCards()
+        // 硬过滤（设计 9.1）：设备不具备的 bridge 对应卡片直接不可见。
+        val remote = HubFilters.byCapability(remoteCards(), capabilities())
         var installed = loadInstalledCards()
         if (installed.isEmpty() && remote.isEmpty()) {
             // Hub 不可达且本地为空时的离线兜底
@@ -204,7 +206,7 @@ class KhatKitToolProvider(
                 add(CardToolSpec(name = entry.name, entry = entry, card = null))
             }
         }
-        specs.map { spec -> spec.toTool() }
+        specs.take(TOOL_CANDIDATE_LIMIT).map { spec -> spec.toTool() }
     }
 
     /** 索引缓存：TTL 内不重复请求；请求失败时保留旧缓存。 */
@@ -218,7 +220,7 @@ class KhatKitToolProvider(
                 return@withLock indexCache
             }
             val fetched = runCatching {
-                hub().search("", capabilities(), limit = 200).cards
+                hub().search("", capabilities(), limit = TOOL_CANDIDATE_LIMIT).cards
             }.getOrDefault(emptyList())
             if (fetched.isNotEmpty() || indexCache.isEmpty()) {
                 indexCache = fetched
@@ -239,32 +241,38 @@ class KhatKitToolProvider(
         }.getOrNull() ?: spec.card
     }
 
-    private fun CardToolSpec.toTool(): Tool = Tool(
-        name = "khatkit__$name",
-        description = descriptionText(),
-        parameters = { inputSchema() },
-        execute = { args ->
-            val arguments = jsonToMap(args)
-            // 有状态机就统一走它：并发上限、状态、取消都在宿主侧。
-            // 任何异常都收敛成 error 文本，不能让卡片问题打断整轮生成。
-            val result = try {
-                val card = resolveCard(this)
-                if (card == null) {
-                    EngineResult.Err("CARD_UNAVAILABLE", "卡片未下载且 Hub 不可达：$name")
-                } else {
-                    runManager.run(card, arguments)
+    private fun CardToolSpec.toTool(): Tool {
+        // 设计 13.2：高权限 / 高风险卡片由宿主强制审批，而不是只靠脚本自觉调 ui.confirm
+        val privileged = card?.manifest?.let {
+            it.privilege == "elevated" || it.compliance?.risk == "high"
+        } ?: (entry?.privilege == "elevated")
+        return Tool(
+            name = "khatkit__$name",
+            description = descriptionText(),
+            parameters = { inputSchema() },
+            needsApproval = { privileged },
+            execute = { args ->
+                val arguments = jsonToMap(args)
+                // 任何异常都收敛成 error 文本，不能让卡片问题打断整轮生成。
+                val result = try {
+                    val card = resolveCard(this)
+                    if (card == null) {
+                        EngineResult.Err("CARD_UNAVAILABLE", "卡片未下载且 Hub 不可达：$name")
+                    } else {
+                        runManager.run(card, arguments)
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    EngineResult.Err("CARD_TOOL", e.message ?: e.toString())
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                EngineResult.Err("CARD_TOOL", e.message ?: e.toString())
-            }
-            when (result) {
-                is EngineResult.Ok -> listOf(UIMessagePart.Text(encode(result.value)))
-                is EngineResult.Err -> listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
-            }
-        },
-    )
+                when (result) {
+                    is EngineResult.Ok -> listOf(UIMessagePart.Text(encode(result.value)))
+                    is EngineResult.Err -> listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
+                }
+            },
+        )
+    }
 
     override fun submitForm(values: Map<String, Any?>?) = uiHost.submitForm(values)
 
@@ -376,6 +384,9 @@ class KhatKitToolProvider(
 
         /** 索引缓存有效期：5 分钟内不重复拉取 */
         private const val INDEX_TTL_MS = 5 * 60 * 1000L
+
+        /** 喂给 AI 的候选卡片上限（设计 9.1：控制在 20 以内） */
+        private const val TOOL_CANDIDATE_LIMIT = 20
     }
 }
 

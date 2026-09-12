@@ -42,11 +42,7 @@ object BridgeFactory {
         val http = HttpClient(CIO.create())
         val root = File(appContext.filesDir, "khatkit")
 
-        val shizukuBridge = if (ShizukuBridgeImpl.isAvailable(appContext)) {
-            ShizukuBridgeImpl(appContext)
-        } else {
-            null
-        }
+        val shizukuBridge = if (ShizukuBridgeImpl.isAvailable()) ShizukuBridgeImpl() else null
         val rootBridge = if (enableRoot && RootBridgeImpl.isAvailable()) RootBridgeImpl() else null
         val accessibilityBridge = AccessibilityBridgeHolder.current()
 

@@ -14,10 +14,6 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
-    buildFeatures {
-        aidl = true
-    }
-
 
 
     tasks.withType<KotlinCompile>().configureEach {
@@ -39,10 +35,6 @@ dependencies {
 
     // Compose 已迁至 :khatkit-ui（多风格 UI 组件库）
     implementation(libs.androidx.core.ktx)
-
-    // Script engines: LuaJ (pure JVM) + QuickJS (JS)
-    implementation(libs.luaj.jse)
-    implementation(libs.quickjs)
 
     // Bridge implementations: PDF merge + Shizuku (L1)
     implementation(libs.pdfbox.android)

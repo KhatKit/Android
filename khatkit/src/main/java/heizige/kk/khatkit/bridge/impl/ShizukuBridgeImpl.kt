@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.bridge.impl
 
-import android.content.Context
 import android.content.pm.PackageManager
 import heizige.kk.khatkit.bridge.ShizukuBridge
 import rikka.shizuku.Shizuku
@@ -8,9 +7,9 @@ import rikka.shizuku.Shizuku
 /**
  * shizuku bridge（L1）：只暴露动作级 API，不暴露通用 exec，脚本无法拼命令。
  *
- * 命令以参数数组直接 exec（不经 shell），并由白名单校验参数，注入面为零。
+ * 命令以参数数组交给 Shizuku.newProcess 直接 exec（不经 shell），参数由白名单校验，注入面为零。
  */
-class ShizukuBridgeImpl(private val context: Context) : ShizukuBridge {
+class ShizukuBridgeImpl : ShizukuBridge {
 
     override fun setAppEnabled(pkg: String, enabled: Boolean): String =
         exec(arrayOf("pm", if (enabled) "enable" else "disable", "--user", "0", requirePackage(pkg)))
@@ -37,8 +36,25 @@ class ShizukuBridgeImpl(private val context: Context) : ShizukuBridge {
     }
 
     private fun exec(command: Array<String>): String = runCatching {
-        ShizukuUserServiceManager.exec(command)
+        val process = newRemoteProcess(command)
+        val stdout = process.inputStream.bufferedReader().use { it.readText() }
+        val stderr = process.errorStream.bufferedReader().use { it.readText() }
+        val code = process.waitFor()
+        when {
+            code != 0 -> "[exit $code] ${stderr.ifBlank { stdout }}"
+            stdout.isBlank() -> "[ok]"
+            else -> stdout
+        }
     }.getOrElse { "[error] ${it.message}" }
+
+    /**
+     * Shizuku 13.x 未公开 newProcess，只能反射调用其私有入口；
+     * 免去 UserService + AIDL 的跨进程样板。
+     */
+    private fun newRemoteProcess(command: Array<String>): Process {
+        val method = newProcessMethod ?: error("当前 Shizuku 版本不支持 newProcess")
+        return method.invoke(null, command, null, null) as Process
+    }
 
     private fun requirePackage(pkg: String): String {
         require(PACKAGE_REGEX.matches(pkg)) { "非法包名：$pkg" }
@@ -54,12 +70,23 @@ class ShizukuBridgeImpl(private val context: Context) : ShizukuBridge {
             "install-existing", "grant", "revoke", "path", "suspend", "unsuspend",
         )
 
-        /** Shizuku 服务在线且已授权才挂这个 bridge，并预绑定 UserService。 */
-        fun isAvailable(context: Context): Boolean = runCatching {
+        private val newProcessMethod by lazy {
+            runCatching {
+                Shizuku::class.java
+                    .getDeclaredMethod(
+                        "newProcess",
+                        Array<String>::class.java,
+                        Array<String>::class.java,
+                        String::class.java,
+                    )
+                    .apply { isAccessible = true }
+            }.getOrNull()
+        }
+
+        /** Shizuku 服务在线且已授权才挂这个 bridge。 */
+        fun isAvailable(): Boolean = runCatching {
             if (!Shizuku.pingBinder()) return false
-            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) return false
-            ShizukuUserServiceManager.ensureBound(context.applicationContext)
-            true
+            Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
         }.getOrDefault(false)
 
         fun requestPermission(requestCode: Int) = runCatching {
