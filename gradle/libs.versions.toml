@@ -59,11 +59,10 @@ sqlite-android = "-SNAPSHOT"
 termux = "0.118.0"
 diffutils = "4.17"
 snakeyaml = "2.7"
-luaj = "3.0.1"
 pdfbox = "2.0.27.0"
 shizuku = "13.1.5"
-kedge = "0.1.0"
-khromia = "1.6.2"
+kedge = "0.1.1"
+khromia = "1.6.5"
 
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
@@ -173,7 +172,6 @@ slf4j-android = { module = "uk.uuid.slf4j:slf4j-android", version = "2.0.17-0" }
 sqlite-android = { module = "com.github.rikkahub:sqlite-android", version.ref = "sqlite-android" }
 termux-terminal-view = { module = "com.termux.termux-app:terminal-view", version.ref = "termux" }
 guava-listenablefuture = { module = "com.google.guava:listenablefuture", version = "9999.0-empty-to-avoid-conflict-with-guava" }
-luaj-jse = { module = "org.luaj:luaj-jse", version.ref = "luaj" }
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
 shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
