@@ -711,6 +711,69 @@ fun Settings.getSelectedASRProvider(): ASRProviderSetting? {
     } ?: asrProviders.firstOrNull()
 }
 
+/**
+ * 「最佳 ASR」选择：
+ * 1. 用户显式选中的 ASR 服务商（有 key 时优先）；
+ * 2. 没有则按识别质量/实时性优先级自动挑一个已配置的；
+ * 3. 一个都没配就用已启用的 OpenAI 兼容聊天服务商凭据走 gpt-4o-transcribe；
+ * 4. 都没有返回 null（输入框不显示语音按钮）。
+ */
+fun Settings.resolveBestASRProvider(): ASRProviderSetting? {
+    fun configured(provider: ASRProviderSetting): Boolean = when (provider) {
+        is ASRProviderSetting.OpenAIRealtime -> provider.apiKey.isNotBlank()
+        is ASRProviderSetting.DashScope -> provider.apiKey.isNotBlank()
+        is ASRProviderSetting.Volcengine -> provider.apiKey.isNotBlank()
+        is ASRProviderSetting.MiMo -> provider.apiKey.isNotBlank()
+        is ASRProviderSetting.Step -> provider.apiKey.isNotBlank()
+        is ASRProviderSetting.OpenAITranscribe -> provider.apiKey.isNotBlank()
+        is ASRProviderSetting.GeminiTranscribe -> provider.apiKey.isNotBlank()
+    }
+
+    selectedASRProviderId
+        ?.let { id -> asrProviders.find { it.id == id } }
+        ?.takeIf(::configured)
+        ?.let { return it }
+
+    val available = asrProviders.filter(::configured)
+    val priority = listOf(
+        ASRProviderSetting.OpenAIRealtime::class,
+        ASRProviderSetting.DashScope::class,
+        ASRProviderSetting.Volcengine::class,
+        ASRProviderSetting.Step::class,
+        ASRProviderSetting.MiMo::class,
+        ASRProviderSetting.OpenAITranscribe::class,
+        ASRProviderSetting.GeminiTranscribe::class,
+    )
+    priority.forEach { type ->
+        available.firstOrNull { type.isInstance(it) }?.let { return it }
+    }
+
+    // 没配置 ASR：优先借 Google 服务商（Gemini 有免费额度），再借 OpenAI 兼容。
+    val googleProvider = providers.firstOrNull {
+        it is ProviderSetting.Google && it.enabled && it.apiKey.isNotBlank() && !it.vertexAI
+    } as? ProviderSetting.Google
+    googleProvider?.let {
+        return ASRProviderSetting.GeminiTranscribe(
+            name = "Gemini Transcribe",
+            apiKey = it.apiKey,
+            baseUrl = it.baseUrl,
+            model = "gemini-2.5-flash",
+        )
+    }
+
+    val openAIProvider = providers.firstOrNull {
+        it is ProviderSetting.OpenAI && it.enabled && it.apiKey.isNotBlank()
+    } as? ProviderSetting.OpenAI
+    return openAIProvider?.let {
+        ASRProviderSetting.OpenAITranscribe(
+            name = "OpenAI Transcribe",
+            apiKey = it.apiKey,
+            baseUrl = it.baseUrl,
+            model = "gpt-4o-transcribe",
+        )
+    }
+}
+
 fun Model.findProvider(providers: List<ProviderSetting>, checkOverwrite: Boolean = true): ProviderSetting? {
     val provider = findModelProviderFromList(providers) ?: return null
     val providerOverwrite = this.providerOverwrite

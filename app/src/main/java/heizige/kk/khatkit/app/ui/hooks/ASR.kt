@@ -16,12 +16,14 @@ import heizige.kk.khatkit.asr.ASRController
 import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.asr.ASRState
 import heizige.kk.khatkit.asr.providers.DashScopeASRController
+import heizige.kk.khatkit.asr.providers.GeminiTranscribeASRController
 import heizige.kk.khatkit.asr.providers.MiMoASRController
+import heizige.kk.khatkit.asr.providers.OpenAITranscribeASRController
 import heizige.kk.khatkit.asr.providers.OpenAIRealtimeASRController
 import heizige.kk.khatkit.asr.providers.StepASRController
 import heizige.kk.khatkit.asr.providers.VolcengineASRController
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.data.datastore.getSelectedASRProvider
+import heizige.kk.khatkit.app.data.datastore.resolveBestASRProvider
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import org.koin.compose.koinInject
 
@@ -36,8 +38,8 @@ fun rememberCustomAsrState(): CustomAsrState {
         CustomAsrStateImpl(context.applicationContext, httpClient)
     }
 
-    DisposableEffect(settings.selectedASRProviderId, settings.asrProviders) {
-        asrState.updateProvider(settings.getSelectedASRProvider())
+    DisposableEffect(settings.selectedASRProviderId, settings.asrProviders, settings.providers) {
+        asrState.updateProvider(settings.resolveBestASRProvider())
         onDispose { }
     }
 
@@ -129,6 +131,16 @@ private class CustomAsrStateImpl(
             is ASRProviderSetting.Step -> {
                 if (provider.apiKey.isBlank()) return null
                 StepASRController(context, httpClient, provider)
+            }
+
+            is ASRProviderSetting.OpenAITranscribe -> {
+                if (provider.apiKey.isBlank()) return null
+                OpenAITranscribeASRController(context, httpClient, provider)
+            }
+
+            is ASRProviderSetting.GeminiTranscribe -> {
+                if (provider.apiKey.isBlank()) return null
+                GeminiTranscribeASRController(context, httpClient, provider)
             }
         }
     }
