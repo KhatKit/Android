@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.FancySlider
+import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -82,7 +82,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_create_new_conversation_on_start_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_create_new_conversation_on_start_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = createNewConversationOnStart,
                                 onCheckedChange = { createNewConversationOnStart = it }
                             )
@@ -92,7 +92,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_send_on_enter_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_send_on_enter_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.sendOnEnter,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(sendOnEnter = it))
@@ -104,7 +104,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_show_message_jumper_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_show_message_jumper_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.showMessageJumper,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(showMessageJumper = it))
@@ -117,7 +117,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                             headlineContent = { Text(stringResource(R.string.setting_display_page_message_jumper_position_title)) },
                             supportingContent = { Text(stringResource(R.string.setting_display_page_message_jumper_position_desc)) },
                             trailingContent = {
-                                Switch(
+                                OptionSwitch(
                                     checked = displaySetting.messageJumperOnLeft,
                                     onCheckedChange = {
                                         updateDisplaySetting(displaySetting.copy(messageJumperOnLeft = it))
@@ -130,7 +130,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_enable_auto_scroll_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_enable_auto_scroll_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.enableAutoScroll,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(enableAutoScroll = it))
@@ -144,7 +144,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                             Text(stringResource(R.string.setting_display_page_use_app_icon_style_loading_indicator_desc))
                         },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.useAppIconStyleLoadingIndicator,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(useAppIconStyleLoadingIndicator = it))
@@ -156,7 +156,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_enable_blur_effect_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_enable_blur_effect_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.enableBlurEffect,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(enableBlurEffect = it))
@@ -168,7 +168,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.enableMessageGenerationHapticEffect,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(enableMessageGenerationHapticEffect = it))
@@ -180,7 +180,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_skip_crop_image_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_skip_crop_image_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.skipCropImage,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(skipCropImage = it))
@@ -192,7 +192,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_paste_long_text_as_file_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_paste_long_text_as_file_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.pasteLongTextAsFile,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(pasteLongTextAsFile = it))
@@ -209,7 +209,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Slider(
+                                    FancySlider(
                                         value = displaySetting.pasteLongTextThreshold.toFloat(),
                                         onValueChange = {
                                             updateDisplaySetting(displaySetting.copy(pasteLongTextThreshold = it.toInt()))
@@ -226,7 +226,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_volume_key_scroll_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_volume_key_scroll_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.enableVolumeKeyScroll,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(enableVolumeKeyScroll = it))
@@ -243,7 +243,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Slider(
+                                    FancySlider(
                                         value = displaySetting.volumeKeyScrollRatio,
                                         onValueChange = {
                                             updateDisplaySetting(displaySetting.copy(volumeKeyScrollRatio = it))
@@ -277,7 +277,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Slider(
+                                    FancySlider(
                                         value = ttsPlaybackSpeed,
                                         onValueChange = {
                                             ttsPlaybackSpeed = (it * 10).roundToInt() / 10f
@@ -300,7 +300,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.ttsOnlyReadQuoted,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(ttsOnlyReadQuoted = it))
@@ -312,7 +312,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_tts_read_outside_brackets_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_tts_read_outside_brackets_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.ttsOnlyReadOutsideBrackets,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(ttsOnlyReadOutsideBrackets = it))
@@ -324,7 +324,7 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_auto_play_tts_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_auto_play_tts_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.autoPlayTTSAfterGeneration,
                                 onCheckedChange = {
                                     updateDisplaySetting(displaySetting.copy(autoPlayTTSAfterGeneration = it))

@@ -20,13 +20,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +57,7 @@ import heizige.kk.khatkit.app.ui.hooks.rememberAvatarShape
 import org.koin.compose.koinInject
 import java.io.File
 import heizige.kk.khatkit.app.ui.icons.editNote
+import heizige.kk.khatkit.app.ui.icons.palette
 
 @Composable
 fun TextAvatar(
@@ -278,16 +277,19 @@ fun UIAvatar(
     }
 
     if (showEmojiPicker) {
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(id = R.string.avatar_pick_emoji),
+            imageVector = palette,
+            onDismiss = {
                 showEmojiPicker = false
             },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        ) {
+            scrollable = false,
+        ) { dismiss ->
             EmojiPicker(
                 onEmojiSelected = { emoji ->
                     onUpdate?.invoke(Avatar.Emoji(content = emoji.emoji))
-                    showEmojiPicker = false
+                    dismiss()
                 },
                 modifier = Modifier
                     .fillMaxWidth()

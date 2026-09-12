@@ -23,14 +23,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -107,6 +105,7 @@ import heizige.kk.khatkit.app.ui.icons.book5
 import heizige.kk.khatkit.app.ui.icons.construction
 import heizige.kk.khatkit.app.ui.icons.image
 import heizige.kk.khatkit.app.ui.icons.insertDriveFile
+import heizige.kk.khatkit.app.ui.icons.iosShare
 import heizige.kk.khatkit.app.ui.icons.public
 import heizige.kk.khatkit.app.ui.icons.search
 
@@ -126,10 +125,12 @@ fun ChatExportSheet(
     var imageExportOptions by remember { mutableStateOf(ImageExportOptions()) }
 
     if (visible) {
-        AppModalBottomSheet(
-            onDismissRequest = onDismissRequest,
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(id = R.string.chat_page_export_format),
+            imageVector = iosShare,
+            onDismiss = onDismissRequest,
+        ) { dismiss ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,8 +138,6 @@ fun ChatExportSheet(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(text = stringResource(id = R.string.chat_page_export_format))
-
                 val markdownSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Markdown")
                 OutlinedCard(
@@ -148,7 +147,7 @@ fun ChatExportSheet(
                             markdownSuccessMessage,
                             isError = false
                         )
-                        onDismissRequest()
+                        dismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -228,7 +227,7 @@ fun ChatExportSheet(
                                         imageSuccessMessage,
                                         isError = false
                                     )
-                                    onDismissRequest()
+                                    dismiss()
                                 }
                             ) {
                                 Text(stringResource(R.string.mermaid_export))
@@ -248,7 +247,7 @@ fun ChatExportSheet(
                                 isError = !ok,
                             )
                         }
-                        onDismissRequest()
+                        dismiss()
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {

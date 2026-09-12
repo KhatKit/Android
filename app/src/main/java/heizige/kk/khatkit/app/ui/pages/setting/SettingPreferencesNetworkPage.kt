@@ -47,7 +47,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.network.toProxyOrNull
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.Switch
+import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
@@ -287,7 +287,7 @@ fun SettingPreferencesNetworkPage(vm: SettingVM = koinViewModel()) {
                             Text(stringResource(R.string.setting_page_preferences_network_auto_retry_desc))
                         },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = settings.networkSetting.enableAutoRetry,
                                 onCheckedChange = { enabled ->
                                     vm.updateSettings(

@@ -35,7 +35,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -44,20 +43,16 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,7 +68,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -85,6 +79,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.ui.ImageGenSize
@@ -113,6 +108,7 @@ import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.palette
 import heizige.kk.khatkit.app.ui.icons.photo
 import heizige.kk.khatkit.app.ui.icons.save
+import heizige.kk.khatkit.app.ui.icons.tune
 
 @Composable
 fun ImageGenPage(
@@ -247,10 +243,6 @@ private fun ImageGenScreen(
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     var showSettingsSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberBottomSheetState(
-        initialValue = SheetValue.Hidden,
-        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-    )
 
     LaunchedEffect(error) {
         error?.let { errorMessage ->
@@ -320,7 +312,6 @@ private fun ImageGenScreen(
             numberOfImages = numberOfImages,
             size = size,
             scope = scope,
-            sheetState = sheetState,
             onDismiss = { showSettingsSheet = false }
         )
     }
@@ -795,14 +786,15 @@ private fun SettingsBottomSheet(
     numberOfImages: Int,
     size: String,
     scope: CoroutineScope,
-    sheetState: SheetState,
     onDismiss: () -> Unit
 ) {
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.imggen_page_settings_title),
+        imageVector = tune,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -810,12 +802,6 @@ private fun SettingsBottomSheet(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.imggen_page_settings_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
             FormItem(
                 label = { Text(stringResource(R.string.imggen_page_generation_count)) },
                 description = { Text(stringResource(R.string.imggen_page_generation_count_desc)) }

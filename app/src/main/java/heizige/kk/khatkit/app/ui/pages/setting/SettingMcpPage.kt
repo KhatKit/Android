@@ -38,13 +38,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Tab
@@ -53,7 +51,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -89,8 +86,8 @@ import heizige.kk.khatkit.app.data.ai.mcp.McpStatus
 import heizige.kk.khatkit.app.data.ai.mcp.McpTool
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.components.ui.FormItem
-import heizige.kk.khatkit.app.ui.components.ui.Switch
-import heizige.kk.khatkit.app.ui.components.ui.SwitchSize
+import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.ui.components.ui.Tag
 import heizige.kk.khatkit.app.ui.components.ui.TagType
 import heizige.kk.khatkit.app.ui.hooks.EditState
@@ -106,7 +103,9 @@ import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.commentsDisabled
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.dns
+import heizige.kk.khatkit.app.ui.icons.download
 import heizige.kk.khatkit.app.ui.icons.error
+import heizige.kk.khatkit.app.ui.icons.extension
 import heizige.kk.khatkit.app.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.ui.icons.settings
@@ -441,12 +440,21 @@ private fun McpServerConfigModal(state: EditState<McpServerConfig>) {
     state.EditStateContent { config, updateValue ->
         val pagerState = rememberPagerState { 2 }
         val scope = rememberCoroutineScope()
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_mcp_page_title),
+            imageVector = extension,
+            confirmText = stringResource(R.string.setting_mcp_page_save),
+            onConfirm = {
+                if (config.commonOptions.name.isNotBlank() && isValidMcpName(config.commonOptions.name)) {
+                    state.confirm()
+                }
+            },
+            onDismiss = {
                 state.dismiss()
             },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        ) {
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -503,20 +511,6 @@ private fun McpServerConfigModal(state: EditState<McpServerConfig>) {
                         }
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                ) {
-                    TextButton(
-                        onClick = {
-                            if (config.commonOptions.name.isNotBlank() && isValidMcpName(config.commonOptions.name)) {
-                                state.confirm()
-                            }
-                        }
-                    ) {
-                        Text(stringResource(R.string.setting_mcp_page_save))
-                    }
-                }
             }
         }
     }
@@ -551,7 +545,7 @@ private fun McpCommonOptionsConfigure(
             ) {
                 Text(stringResource(R.string.setting_mcp_page_enable))
                 Spacer(Modifier.weight(1f))
-                Switch(
+                OptionSwitch(
                     checked = config.commonOptions.enable,
                     onCheckedChange = { enabled ->
                         update(
@@ -939,10 +933,9 @@ private fun McpToolCard(
                         text = stringResource(R.string.setting_mcp_page_needs_approval),
                         style = MaterialTheme.typography.labelSmall,
                     )
-                    Switch(
+                    OptionSwitch(
                         checked = tool.needsApproval,
                         onCheckedChange = onNeedsApprovalChange,
-                        size = SwitchSize.Small
                     )
                 }
                 // 启用开关
@@ -954,10 +947,9 @@ private fun McpToolCard(
                         text = "启用",
                         style = MaterialTheme.typography.labelSmall,
                     )
-                    Switch(
+                    OptionSwitch(
                         checked = tool.enable,
                         onCheckedChange = onEnableChange,
-                        size = SwitchSize.Small
                     )
                 }
                 // 展开/收起按钮
@@ -1039,10 +1031,26 @@ private fun McpImportModal(
     val noValidConfigMsg = stringResource(R.string.setting_mcp_page_import_no_valid_config)
     val parseErrorMsg = stringResource(R.string.setting_mcp_page_import_parse_error)
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.setting_mcp_page_import_title),
+        imageVector = download,
+        confirmText = stringResource(R.string.setting_mcp_page_import_confirm),
+        onConfirm = {
+            try {
+                val configs = parseMcpServersFromJson(jsonText.trim())
+                if (configs.isEmpty()) {
+                    errorMessage = noValidConfigMsg
+                } else {
+                    onImport(configs)
+                }
+            } catch (e: Exception) {
+                errorMessage = parseErrorMsg.format(e.message ?: "")
+            }
+        },
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1051,7 +1059,6 @@ private fun McpImportModal(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(stringResource(R.string.setting_mcp_page_import_title), style = MaterialTheme.typography.titleLarge)
             Text(
                 stringResource(R.string.setting_mcp_page_import_desc),
                 style = MaterialTheme.typography.bodySmall,
@@ -1070,30 +1077,6 @@ private fun McpImportModal(
                 isError = errorMessage != null,
                 supportingText = errorMessage?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } }
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.cancel))
-                }
-                Button(
-                    onClick = {
-                        try {
-                            val configs = parseMcpServersFromJson(jsonText.trim())
-                            if (configs.isEmpty()) {
-                                errorMessage = noValidConfigMsg
-                            } else {
-                                onImport(configs)
-                            }
-                        } catch (e: Exception) {
-                            errorMessage = parseErrorMsg.format(e.message ?: "")
-                        }
-                    }
-                ) {
-                    Text(stringResource(R.string.setting_mcp_page_import_confirm))
-                }
-            }
         }
     }
 }

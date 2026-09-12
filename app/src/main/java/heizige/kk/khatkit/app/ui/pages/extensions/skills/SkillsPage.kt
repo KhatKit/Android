@@ -26,14 +26,11 @@ import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +47,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.files.SkillFrontmatterParser
@@ -317,35 +315,41 @@ private fun SkillImportSheet(
     onImportFromFile: () -> Unit,
     onImportFromGitHub: () -> Unit,
 ) {
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.skills_page_add_title),
+        imageVector = extension,
+        onDismiss = onDismiss,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = stringResource(R.string.skills_page_add_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
             SkillImportSheetItem(
                 icon = { Icon(add, contentDescription = null) },
                 text = stringResource(R.string.skills_page_add_manually),
-                onClick = onAddManually,
+                onClick = {
+                    dismiss()
+                    onAddManually()
+                },
             )
             SkillImportSheetItem(
                 icon = { Icon(uploadFile, contentDescription = null) },
                 text = stringResource(R.string.skills_page_import_from_file),
-                onClick = onImportFromFile,
+                onClick = {
+                    dismiss()
+                    onImportFromFile()
+                },
             )
             SkillImportSheetItem(
                 icon = { Icon(download, contentDescription = null) },
                 text = stringResource(R.string.skills_page_import_from_github),
-                onClick = onImportFromGitHub,
+                onClick = {
+                    dismiss()
+                    onImportFromGitHub()
+                },
             )
         }
     }

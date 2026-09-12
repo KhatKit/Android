@@ -14,11 +14,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -118,10 +116,14 @@ fun UpdateCard(vm: ChatVM) {
                 showDetail = false
                 Toast.show(context.getString(R.string.update_card_downloading), isError = false)
             }
-            AppModalBottomSheet(
-                onDismissRequest = { if (!info.forceUpdate) showDetail = false },
-                sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
-            ) {
+            PrimaryBottomSheet(
+                visible = true,
+                title = info.latestVersion,
+                imageVector = download,
+                dismissible = !info.forceUpdate,
+                onDismiss = { showDetail = false },
+                scrollable = false,
+            ) { dismiss ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -129,11 +131,6 @@ fun UpdateCard(vm: ChatVM) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = info.latestVersion,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                     MarkdownBlock(
                         content = info.description,
                         modifier = Modifier
@@ -144,6 +141,7 @@ fun UpdateCard(vm: ChatVM) {
                     )
                     OutlinedCard(
                         onClick = {
+                            dismiss()
                             downloadHandler(info)
                         },
                     ) {

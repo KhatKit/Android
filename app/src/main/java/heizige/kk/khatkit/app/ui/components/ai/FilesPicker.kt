@@ -25,13 +25,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,6 +71,7 @@ import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.deployedCode
+import heizige.kk.khatkit.app.ui.icons.extension
 import heizige.kk.khatkit.app.ui.icons.folder
 import heizige.kk.khatkit.app.ui.icons.folderCopy
 import heizige.kk.khatkit.app.ui.icons.graphicEq
@@ -404,13 +403,15 @@ private fun InjectionQuickConfigSheet(
     onDismiss: () -> Unit,
     onDismissAll: () -> Unit,
 ) {
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
     val navController = LocalNavController.current
 
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.assistant_page_tab_extensions),
+        imageVector = extension,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()

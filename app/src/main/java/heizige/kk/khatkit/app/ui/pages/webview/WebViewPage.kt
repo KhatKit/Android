@@ -14,12 +14,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +32,7 @@ import heizige.kk.khatkit.app.ui.components.webview.WEB_VIEW_BASE_URL
 import heizige.kk.khatkit.app.ui.components.webview.WebView
 import heizige.kk.khatkit.app.ui.components.webview.WebViewContentCache
 import heizige.kk.khatkit.app.ui.components.webview.rememberWebViewState
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.ui.icons.arrowForward
 import heizige.kk.khatkit.app.ui.icons.bugReport
@@ -74,7 +72,6 @@ fun WebViewPage(url: String, contentId: String) {
 
     var showDropdown by remember { mutableStateOf(false) }
     var showConsoleSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
 
     BackHandler(state.canGoBack) {
         state.goBack()
@@ -145,21 +142,18 @@ fun WebViewPage(url: String, contentId: String) {
     }
 
     if (showConsoleSheet) {
-        AppModalBottomSheet(
-            onDismissRequest = { showConsoleSheet = false },
-            sheetState = sheetState
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = "Console Logs",
+            imageVector = bugReport,
+            onDismiss = { showConsoleSheet = false },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = "Console Logs",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
                 SelectionContainer {
                     LazyColumn {
                         items(state.consoleMessages) { message ->

@@ -3,18 +3,11 @@ package heizige.kk.khatkit.app.ui.components.ui
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.provider.ProviderSetting
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.utils.JsonInstant
 import kotlin.io.encoding.Base64
 import heizige.kk.khatkit.app.ui.icons.iosShare
@@ -35,12 +30,29 @@ fun ShareSheet(
 ) {
     val context = LocalContext.current
     if (state.isShow) {
-        AppModalBottomSheet(
-            onDismissRequest = {
+        PrimaryBottomSheet(
+            visible = true,
+            title = "共享你的LLM模型",
+            imageVector = iosShare,
+            confirmText = stringResource(R.string.share),
+            onConfirm = {
+                val intent = Intent(Intent.ACTION_SEND)
+                intent.type = "text/plain"
+                intent.putExtra(
+                    Intent.EXTRA_TEXT,
+                    state.currentProvider?.encodeForShare() ?: ""
+                )
+                try {
+                    context.startActivity(Intent.createChooser(intent, null))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
                 state.dismiss()
             },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        ) {
+            onDismiss = {
+                state.dismiss()
+            },
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -48,31 +60,6 @@ fun ShareSheet(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("共享你的LLM模型", style = MaterialTheme.typography.titleLarge)
-
-                    IconButton(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_SEND)
-                            intent.type = "text/plain"
-                            intent.putExtra(
-                                Intent.EXTRA_TEXT,
-                                state.currentProvider?.encodeForShare() ?: ""
-                            )
-                            try {
-                                context.startActivity(Intent.createChooser(intent, null))
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
-                        }
-                    ) {
-                        Icon(iosShare, null)
-                    }
-                }
-
                 QRCode(
                     value = state.currentProvider?.encodeForShare() ?: "",
                     modifier = Modifier

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,7 +33,9 @@ import heizige.kk.khatkit.app.data.datastore.Settings
 import heizige.kk.khatkit.app.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.ui.icons.arrowForward
+import heizige.kk.khatkit.app.ui.icons.editNote
 
 @Composable
 internal fun PromptSettingsPage(settings: Settings, vm: SettingVM, contentPadding: PaddingValues) {
@@ -131,9 +132,13 @@ private fun PromptSettingItem(
     }
 
     if (showEditor) {
-        AppModalBottomSheet(
-            onDismissRequest = { showEditor = false },
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = title,
+            imageVector = editNote,
+            onDismiss = { showEditor = false },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
@@ -141,10 +146,6 @@ private fun PromptSettingItem(
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                )
                 Text(
                     text = promptDescription,
                     style = MaterialTheme.typography.bodySmall,

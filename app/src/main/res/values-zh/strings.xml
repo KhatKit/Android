@@ -611,6 +611,10 @@
   <string name="setting_asr_configure_model_desc">实时转录模型</string>
   <string name="setting_asr_configure_name">名称</string>
   <string name="setting_asr_configure_name_desc">此ASR提供商的自定义名称</string>
+  <string name="setting_asr_configure_gemini_api_key_desc">Gemini 音频转写使用的 Google AI Studio API Key</string>
+  <string name="setting_asr_configure_gemini_base_url_desc">Gemini API Base URL（generativelanguage）</string>
+  <string name="setting_asr_configure_openai_transcribe_base_url_desc">支持 /audio/transcriptions 的 OpenAI 兼容 Base URL</string>
+  <string name="setting_asr_configure_sample_rate_desc">录音使用的 PCM 采样率</string>
   <string name="setting_asr_configure_openai_api_key_desc">实时 WebSocket 使用的 OpenAI API 密钥</string>
   <string name="setting_asr_configure_openai_websocket_desc">OpenAI 实时 websocket 端点</string>
   <string name="setting_asr_configure_prefix_padding">前缀填充</string>

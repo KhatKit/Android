@@ -32,11 +32,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
-import androidx.compose.material3.SheetValue
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -126,10 +124,13 @@ fun SearchPickerButton(
     }
 
     if (showSearchPicker) {
-        AppModalBottomSheet(
-            onDismissRequest = { showSearchPicker = false },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.search_picker_title),
+            imageVector = searchInsights,
+            onDismiss = { showSearchPicker = false },
+            scrollable = false,
+        ) { _ ->
             var selectingProvider by remember { mutableStateOf(false) }
             AnimatedContent(
                 targetState = selectingProvider,
@@ -200,12 +201,8 @@ private fun SearchPicker(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(R.string.search_picker_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
+            Spacer(modifier = Modifier.weight(1f))
+
             IconButton(
                 onClick = {
                     onDismiss()

@@ -10,14 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.util.concurrent.CancellationException
@@ -73,7 +71,18 @@ fun WorkspaceCwdPickerSheet(
         }
     }
 
-    AppModalBottomSheet(onDismissRequest = onDismiss) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(R.string.workspace_cwd_select_directory),
+        imageVector = folder,
+        confirmText = stringResource(R.string.workspace_cwd_set),
+        onConfirm = {
+            onSelectCwd(toAbsolutePath(browsePath))
+            onDismiss()
+        },
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,10 +90,6 @@ fun WorkspaceCwdPickerSheet(
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = stringResource(R.string.workspace_cwd_select_directory),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            )
             Text(
                 text = stringResource(R.string.workspace_cwd_select_desc),
                 style = MaterialTheme.typography.bodyMedium,
@@ -160,24 +165,12 @@ fun WorkspaceCwdPickerSheet(
 
             HorizontalDivider()
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (currentCwd != null) {
-                    TextButton(onClick = {
-                        onSelectCwd(null)
-                        onDismiss()
-                    }) {
-                        Text(stringResource(R.string.workspace_cwd_reset))
-                    }
-                }
-                FilledTonalButton(onClick = {
-                    onSelectCwd(toAbsolutePath(browsePath))
-                    onDismiss()
+            if (currentCwd != null) {
+                TextButton(onClick = {
+                    onSelectCwd(null)
+                    dismiss()
                 }) {
-                    Text(stringResource(R.string.workspace_cwd_set))
+                    Text(stringResource(R.string.workspace_cwd_reset))
                 }
             }
         }

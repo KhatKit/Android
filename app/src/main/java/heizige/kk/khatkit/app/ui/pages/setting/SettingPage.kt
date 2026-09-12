@@ -1,9 +1,12 @@
 package heizige.kk.khatkit.app.ui.pages.setting
 
+import heizige.kk.kedge.components.KedgeOptionItem
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -19,10 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +60,9 @@ import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.joinQQGroup
 import heizige.kk.khatkit.app.utils.openUrl
 import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khromia.components.AnimatedRadioItem
+import heizige.kk.khromia.components.ExpandableOptionItem
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.utils.writeClipboardText
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -140,31 +144,23 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                 }
             }
 
-            item("generalSettings") {
-                var colorMode by rememberColorMode()
-                val selectedColorModeText = when (colorMode) {
+            item("themeMode") {
+                val colorMode = rememberColorMode()
+                val selectedColorModeText = when (colorMode.value) {
                     ColorMode.SYSTEM -> stringResource(R.string.setting_page_color_mode_system)
                     ColorMode.LIGHT -> stringResource(R.string.setting_page_color_mode_light)
                     ColorMode.DARK -> stringResource(R.string.setting_page_color_mode_dark)
                 }
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text(stringResource(R.string.setting_page_general_settings)) },
                 ) {
                     item(
                         leadingContent = { Icon(lightMode, null) },
                         trailingContent = {
                             Select(
                                 options = ColorMode.entries,
-                                selectedOption = colorMode,
-                                onOptionSelected = {
-                                    colorMode = it
-                                    navController.navigate(Screen.Setting) {
-                                        popUpTo(Screen.Setting) {
-                                            inclusive = true
-                                        }
-                                    }
-                                },
+                                selectedOption = colorMode.value,
+                                onOptionSelected = { colorMode.value = it },
                                 optionToString = {
                                     when (it) {
                                         ColorMode.SYSTEM -> stringResource(R.string.setting_page_color_mode_system)
@@ -178,6 +174,14 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_color_mode)) },
                         supportingContent = { Text(selectedColorModeText) },
                     )
+                }
+            }
+
+            item("generalSettings") {
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    title = { Text(stringResource(R.string.setting_page_general_settings)) },
+                ) {
                     item(
                         onClick = { navController.navigate(Screen.SettingPreferences) },
                         leadingContent = { Icon(settingsIcon, null) },
@@ -392,19 +396,15 @@ private fun ProviderConfigWarningCard(navController: Navigator) {
                 .padding(8.dp),
             horizontalAlignment = Alignment.End
         ) {
-            ListItem(
-                supportingContent = {
-                    Text(stringResource(R.string.setting_page_config_api_desc))
-                },
+            KedgeOptionItem(
+                onClick = {},
+                backgroundColor = Color.Transparent,
                 leadingContent = {
                     Icon(warning, null)
                 },
-                colors = ListItemDefaults.colors(
-                    containerColor = Color.Transparent
-                )
-            ) {
-                Text(stringResource(R.string.setting_page_config_api_title))
-            }
+                titleContent = { Text(stringResource(R.string.setting_page_config_api_title)) },
+                supportingContent = { Text(stringResource(R.string.setting_page_config_api_desc)) },
+            )
 
             TextButton(
                 onClick = {
@@ -434,7 +434,12 @@ private val QQ_GROUPS = listOf(
 @Composable
 private fun QQGroupBottomSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    AppModalBottomSheet(onDismissRequest = onDismiss) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = "加入群聊",
+        imageVector = groups,
+        onDismiss = onDismiss,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -442,7 +447,7 @@ private fun QQGroupBottomSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             QQ_GROUPS.forEach { group ->
-                ListItem(
+                KedgeOptionItem(
                     onClick = {
                         if (group.number != null) {
                             context.writeClipboardText(group.number)
@@ -450,10 +455,7 @@ private fun QQGroupBottomSheet(onDismiss: () -> Unit) {
                         } else {
                             context.joinQQGroup(group.key)
                         }
-                        onDismiss()
-                    },
-                    supportingContent = group.number?.let { number ->
-                        { Text(number) }
+                        dismiss()
                     },
                     leadingContent = {
                         Icon(
@@ -462,9 +464,11 @@ private fun QQGroupBottomSheet(onDismiss: () -> Unit) {
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     },
-                ) {
-                    Text(group.name)
-                }
+                    titleContent = { Text(group.name) },
+                    supportingContent = group.number?.let { number ->
+                        { Text(number) }
+                    },
+                )
             }
         }
     }

@@ -16,7 +16,7 @@ import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -172,7 +172,7 @@ private fun SuggestionSettingItem(
         item(
             headlineContent = { Text(stringResource(R.string.setting_model_page_enable_suggestion)) },
             trailingContent = {
-                Switch(
+                OptionSwitch(
                     checked = settings.enableSuggestion,
                     onCheckedChange = {
                         vm.updateSettings(settings.copy(enableSuggestion = it))

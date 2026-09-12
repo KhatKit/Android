@@ -14,7 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -258,7 +258,7 @@ private fun ProviderConfigureOpenAI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.setting_provider_page_enable))
-        Switch(
+        OptionSwitch(
             checked = provider.enabled,
             onCheckedChange = { onEdit(provider.copy(enabled = it)) }
         )
@@ -271,7 +271,7 @@ private fun ProviderConfigureOpenAI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.setting_provider_page_response_api))
-        Switch(
+        OptionSwitch(
             checked = provider.useResponseApi,
             onCheckedChange = {
                 onEdit(provider.copy(useResponseApi = it))
@@ -288,7 +288,7 @@ private fun ProviderConfigureOpenAI(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.setting_provider_page_include_history_reasoning))
-        Switch(
+        OptionSwitch(
             checked = provider.includeHistoryReasoning,
             onCheckedChange = { onEdit(provider.copy(includeHistoryReasoning = it)) }
         )
@@ -339,7 +339,7 @@ private fun ProviderConfigureClaude(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.setting_provider_page_enable))
-        Switch(
+        OptionSwitch(
             checked = provider.enabled,
             onCheckedChange = { onEdit(provider.copy(enabled = it)) }
         )
@@ -351,7 +351,7 @@ private fun ProviderConfigureClaude(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.setting_provider_page_claude_prompt_caching))
-        Switch(
+        OptionSwitch(
             checked = provider.promptCaching,
             onCheckedChange = { onEdit(provider.copy(promptCaching = it)) }
         )
@@ -459,7 +459,7 @@ private fun ProviderConfigureGoogle(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.setting_provider_page_enable))
-        Switch(
+        OptionSwitch(
             checked = provider.enabled,
             onCheckedChange = { onEdit(provider.copy(enabled = it)) }
         )
@@ -471,7 +471,7 @@ private fun ProviderConfigureGoogle(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.setting_provider_page_vertex_ai))
-        Switch(
+        OptionSwitch(
             checked = provider.vertexAI,
             onCheckedChange = { onEdit(provider.copy(vertexAI = it)) }
         )
@@ -484,7 +484,7 @@ private fun ProviderConfigureGoogle(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(stringResource(R.string.setting_provider_page_use_service_account))
-            Switch(
+            OptionSwitch(
                 checked = provider.useServiceAccount,
                 onCheckedChange = { onEdit(provider.copy(useServiceAccount = it)) }
             )

@@ -25,11 +25,9 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -113,10 +110,13 @@ fun McpPickerButton(
         }
     }
     if (showMcpPicker) {
-        AppModalBottomSheet(
-            onDismissRequest = { showMcpPicker = false },
-            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(id = R.string.mcp_picker_title),
+            imageVector = dns,
+            onDismiss = { showMcpPicker = false },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier.Companion
                     .fillMaxWidth()
@@ -125,12 +125,6 @@ fun McpPickerButton(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = stringResource(id = R.string.mcp_picker_title),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
                 AnimatedVisibility(loading) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -226,10 +220,13 @@ private fun McpPickerSheet(
     onUpdateAssistant: (Assistant) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AppModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-    ) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = stringResource(id = R.string.mcp_picker_title),
+        imageVector = dns,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -238,12 +235,6 @@ private fun McpPickerSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.mcp_picker_title),
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
             AnimatedVisibility(loading) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

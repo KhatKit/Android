@@ -15,11 +15,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.ui.components.ui.AppModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +43,9 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.ui.theme.extendColors
 import heizige.kk.khatkit.app.utils.UiState
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.ui.icons.error
 import heizige.kk.khatkit.app.ui.icons.link
 
 @Composable
@@ -282,14 +281,16 @@ private fun TestResultItem(
     }
 
     if (showErrorSheet && state is UiState.Error) {
-        val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
         val stackTrace = remember(state.error) {
             state.error.stackTraceToString()
         }
-        AppModalBottomSheet(
-            onDismissRequest = { showErrorSheet = false },
-            sheetState = sheetState,
-        ) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = label,
+            imageVector = error,
+            onDismiss = { showErrorSheet = false },
+            scrollable = false,
+        ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -298,10 +299,6 @@ private fun TestResultItem(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleMedium
-                )
                 Text(
                     text = state.error.message ?: "Error",
                     style = MaterialTheme.typography.bodyMedium,

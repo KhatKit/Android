@@ -15,7 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
+import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -119,7 +119,7 @@ fun SettingPreferencesNotificationPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_display_page_notification_message_generated)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_notification_message_generated_desc)) },
                         trailingContent = {
-                            Switch(
+                            OptionSwitch(
                                 checked = displaySetting.enableNotificationOnMessageGeneration,
                                 onCheckedChange = {
                                     if (it && !permissionState.allPermissionsGranted) {
@@ -135,7 +135,7 @@ fun SettingPreferencesNotificationPage(vm: SettingVM = koinViewModel()) {
                             headlineContent = { Text(stringResource(R.string.setting_display_page_live_update_notification)) },
                             supportingContent = { Text(stringResource(R.string.setting_display_page_live_update_notification_desc)) },
                             trailingContent = {
-                                Switch(
+                                OptionSwitch(
                                     checked = displaySetting.enableLiveUpdateNotification,
                                     onCheckedChange = {
                                         updateDisplaySetting(displaySetting.copy(enableLiveUpdateNotification = it))
