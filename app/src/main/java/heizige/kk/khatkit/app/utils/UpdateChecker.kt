@@ -82,21 +82,8 @@ class UpdateChecker(
         runCatching {
             val url = resolveUrl(info.downloadUrl)
             val fileName = "KhatKit-${info.latestVersion}.apk"
-            val request = DownloadManager.Request(url.toUri()).apply {
-                // 设置下载时通知栏的标题和描述
-                setTitle("KhatKit ${info.latestVersion}")
-                setDescription("正在下载更新包...")
-                // 下载完成后通知栏可见
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                // 允许在移动网络和WiFi下下载
-                setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
-                // 设置文件保存路径
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-                // 允许下载的文件类型
-                setMimeType("application/vnd.android.package-archive")
-            }
-            val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            dm.enqueue(request)
+            // 统一进 KhatKit 下载中心（可暂停/续传/查看进度）
+            controller.enqueueDownloadAsync(url, fileName)
         }.onFailure {
             Toast.makeText(context, "Failed to update", Toast.LENGTH_SHORT).show()
         }

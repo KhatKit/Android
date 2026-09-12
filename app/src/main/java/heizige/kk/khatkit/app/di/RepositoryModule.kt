@@ -5,7 +5,6 @@ import heizige.kk.khatkit.app.data.files.FileFolders
 import heizige.kk.khatkit.app.data.files.FilesManager
 import heizige.kk.khatkit.app.data.files.SkillManager
 import heizige.kk.khatkit.app.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.data.repository.FavoriteRepository
 import heizige.kk.khatkit.app.data.repository.FolderRepository
 import heizige.kk.khatkit.app.data.repository.FilesRepository
 import heizige.kk.khatkit.app.data.repository.GenMediaRepository
@@ -20,7 +19,7 @@ import java.io.File
 
 val repositoryModule = module {
     single {
-        ConversationRepository(get(), get(), get(), get(), get(), get())
+        ConversationRepository(get(), get(), get(), get(), get())
     }
 
     single {
@@ -37,10 +36,6 @@ val repositoryModule = module {
 
     single {
         FilesRepository(get())
-    }
-
-    single {
-        FavoriteRepository(get())
     }
 
     single {

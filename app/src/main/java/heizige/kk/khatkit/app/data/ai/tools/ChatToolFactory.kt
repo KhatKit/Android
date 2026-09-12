@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.data.ai.tools
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.util.Log
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -19,7 +21,8 @@ import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 private const val TAG = "ChatToolFactory"
 
 internal fun shouldUseExternalWebSearch(assistant: Assistant, model: Model): Boolean {
-    return assistant.enableWebSearch && BuiltInTools.Search !in model.tools
+    // 搜索强制开启：模型没有内置搜索时始终走外部搜索
+    return BuiltInTools.Search !in model.tools
 }
 
 class InvalidMcpServerNamesException(val names: List<String>) :
@@ -72,7 +75,7 @@ class ChatToolFactory(
             addAll(
                 createSkillTools(
                     enabledSkills = assistant.enabledSkills,
-                    allSkills = skillManager.listSkills(),
+                    allSkills = withContext(Dispatchers.IO) { skillManager.listSkills() },
                 )
             )
         }

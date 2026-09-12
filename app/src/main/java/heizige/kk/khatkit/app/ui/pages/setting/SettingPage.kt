@@ -444,10 +444,12 @@ private fun QQGroupBottomSheet(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            QQ_GROUPS.forEach { group ->
+            val cards = heizige.kk.khatkit.app.ui.theme.listCardStyle()
+            QQ_GROUPS.forEachIndexed { index, group ->
                 KedgeOptionItem(
+                    shape = cards.indexedShape(index, QQ_GROUPS.size),
                     onClick = {
                         if (group.number != null) {
                             context.writeClipboardText(group.number)

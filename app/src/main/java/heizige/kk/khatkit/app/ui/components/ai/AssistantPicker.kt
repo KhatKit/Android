@@ -127,10 +127,17 @@ private fun AssistantPickerSheet(
         }
     }
 
+    val navController = LocalNavController.current
+
     PrimaryBottomSheet(
         visible = true,
         title = stringResource(R.string.assistant_page_title),
         imageVector = groups,
+        confirmText = stringResource(R.string.assistant_page_manage),
+        onConfirm = {
+            onDismiss()
+            navController.navigate(Screen.Assistant)
+        },
         onDismiss = onDismiss,
         scrollable = false,
     ) { dismiss ->
@@ -166,7 +173,6 @@ private fun AssistantPickerSheet(
             }
 
             // 助手列表
-            val navController = LocalNavController.current
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),

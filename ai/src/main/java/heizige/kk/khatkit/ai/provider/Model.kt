@@ -14,7 +14,7 @@ data class Model(
     val customBodies: List<CustomBody> = emptyList(),
     val inputModalities: List<Modality> = listOf(Modality.TEXT),
     val outputModalities: List<Modality> = listOf(Modality.TEXT),
-    val abilities: List<ModelAbility> = emptyList(),
+    val abilities: List<ModelAbility> = listOf(ModelAbility.TOOL),
     val tools: Set<BuiltInTools> = emptySet(),
     val providerOverwrite: ProviderSetting? = null,
 )

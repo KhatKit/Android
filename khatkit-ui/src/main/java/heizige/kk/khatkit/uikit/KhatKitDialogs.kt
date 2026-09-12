@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,13 +25,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeRadioButton
 import heizige.kk.kedge.components.KedgeSlider
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.overlays.KedgeDialog
+import heizige.kk.khromia.components.PrimaryBottomSheet
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -43,11 +45,13 @@ fun KhatKitSecretsDialog(
     var secrets by remember(cardName) { mutableStateOf(controller.listCardSecrets(cardName)) }
     val context = LocalContext.current
 
-    KedgeDialog(
-        show = true,
-        onDismissRequest = onDismiss,
+    PrimaryBottomSheet(
+        visible = true,
         title = stringResource(R.string.khatkit_secrets_title, cardName),
-    ) {
+        imageVector = Icons.Filled.Lock,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         if (secrets.isEmpty()) {
             Text(stringResource(R.string.khatkit_secrets_empty))
         } else {
@@ -71,12 +75,6 @@ fun KhatKitSecretsDialog(
                     }
                 }
             }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            KedgeTextButton(onClick = onDismiss) { Text(stringResource(R.string.khatkit_close)) }
         }
     }
 }
@@ -103,11 +101,22 @@ fun KhatKitSettingsDialog(
     val shizukuDeniedText = stringResource(R.string.khatkit_toast_shizuku_denied)
     val settingsSavedText = stringResource(R.string.khatkit_settings_saved)
 
-    KedgeDialog(
-        show = true,
-        onDismissRequest = onDismiss,
+    PrimaryBottomSheet(
+        visible = true,
         title = stringResource(R.string.khatkit_settings_title),
-    ) {
+        imageVector = Icons.Filled.Settings,
+        confirmText = stringResource(R.string.khatkit_action_save),
+        onConfirm = {
+            controller.hubBaseUrl = hubUrl
+            controller.enableRoot = rootEnabled
+            controller.downloadConcurrency = concurrency.toInt()
+            controller.uiStyle = style
+            controller.applySettings()
+            onToast(settingsSavedText, false)
+            onApplied()
+        },
+        onDismiss = onDismiss,
+    ) { _ ->
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             KedgeOutlinedTextField(
                 value = hubUrl,
@@ -209,25 +218,6 @@ fun KhatKitSettingsDialog(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-        ) {
-            KedgeTextButton(onClick = onDismiss) { Text(stringResource(R.string.khatkit_action_cancel)) }
-            KedgeButton(
-                onClick = {
-                    controller.hubBaseUrl = hubUrl
-                    controller.enableRoot = rootEnabled
-                    controller.downloadConcurrency = concurrency.toInt()
-                    controller.uiStyle = style
-                    controller.applySettings()
-                    onToast(settingsSavedText, false)
-                    onApplied()
-                },
-            ) {
-                Text(stringResource(R.string.khatkit_action_save))
-            }
-        }
     }
 }
 

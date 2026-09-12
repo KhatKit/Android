@@ -28,6 +28,11 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 
+    // 本地语音识别：仅打包 sherpa-onnx Kotlin 类（~220KB，已把 loadLibrary 换成 NativeLibLoader），
+    // 原生库 .so 由用户按需下载（见 SherpaModelStore.downloadEngine）
+    implementation(files("libs/sherpa-onnx-arm64-nolib-1.13.8.aar"))
+    implementation(libs.commons.compress)
+
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.common)

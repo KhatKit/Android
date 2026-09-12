@@ -44,6 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.R
@@ -132,8 +134,6 @@ fun ChatList(
     onJumpToMessage: (Int) -> Unit = {},
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
-    onToggleFavorite: ((MessageNode) -> Unit)? = null,
-    onConversationSystemPromptChange: ((String?) -> Unit)? = null,
 ) {
     AnimatedContent(
         targetState = previewMode,
@@ -174,8 +174,6 @@ fun ChatList(
                 animatedVisibilityScope = this@AnimatedContent,
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
-                onToggleFavorite = onToggleFavorite,
-                onConversationSystemPromptChange = onConversationSystemPromptChange,
             )
         }
     }
@@ -204,8 +202,6 @@ private fun ChatListNormal(
     animatedVisibilityScope: AnimatedVisibilityScope,
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
-    onToggleFavorite: ((MessageNode) -> Unit)? = null,
-    onConversationSystemPromptChange: ((String?) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val loadingState by rememberUpdatedState(loading)
@@ -275,16 +271,16 @@ private fun ChatListNormal(
     ) {
         // 自动滚动到底部
         if (settings.displaySetting.enableAutoScroll) {
+            val isAtBottom by remember { derivedStateOf { state.layoutInfo.visibleItemsInfo.isAtBottom() } }
+            val loadingNow by rememberUpdatedState(loadingState)
             LaunchedEffect(state) {
-                snapshotFlow { state.layoutInfo.visibleItemsInfo }.collect { visibleItemsInfo ->
-                    // println("is bottom = ${visibleItemsInfo.isAtBottom()}, scroll = ${state.isScrollInProgress}, can_scroll = ${state.canScrollForward}, loading = $loading")
-                    if (!state.isScrollInProgress && loadingState) {
-                        if (visibleItemsInfo.isAtBottom()) {
+                snapshotFlow { isAtBottom }
+                    .distinctUntilChanged()
+                    .collect { atBottom ->
+                        if (atBottom && loadingNow && !state.isScrollInProgress) {
                             state.requestScrollToItem(conversationUpdated.messageNodes.lastIndex + 10)
-                            // Log.i(TAG, "ChatList: scroll to ${conversationUpdated.messageNodes.lastIndex}")
                         }
                     }
-                }
             }
         }
 
@@ -354,10 +350,6 @@ private fun ChatListNormal(
                             onUpdate = {
                                 onUpdateMessage(it)
                             },
-                            isFavorite = node.isFavorite,
-                            onToggleFavorite = {
-                                onToggleFavorite?.invoke(node)
-                            },
                             onTranslate = onTranslate,
                             onClearTranslation = onClearTranslation,
                             onToolApproval = onToolApproval,
@@ -365,15 +357,6 @@ private fun ChatListNormal(
                             lastMessage = index == lastMessageIndex,
                         )
                     }
-                }
-            }
-
-            if (!loading && assistant?.allowConversationSystemPrompt == true && onConversationSystemPromptChange != null) {
-                item(key = "ConversationSystemPrompt") {
-                    ConversationSystemPromptButton(
-                        customSystemPrompt = conversation.customSystemPrompt,
-                        onSystemPromptChange = onConversationSystemPromptChange,
-                    )
                 }
             }
 

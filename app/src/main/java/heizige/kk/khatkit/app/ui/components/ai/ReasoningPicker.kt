@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.ui.components.ai
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
@@ -29,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.app.R
@@ -48,6 +52,7 @@ private val levelCount = levels.size
 fun ReasoningButton(
     modifier: Modifier = Modifier,
     onlyIcon: Boolean = false,
+    chip: Boolean = false,
     reasoningLevel: ReasoningLevel,
     onUpdateReasoningLevel: (ReasoningLevel) -> Unit,
 ) {
@@ -61,23 +66,56 @@ fun ReasoningButton(
         )
     }
 
-    ToggleSurface(
-        checked = reasoningLevel.isEnabled,
-        onClick = { showPicker = true },
-        modifier = modifier,
-    ) {
-        Row(
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    if (chip) {
+        Surface(
+            onClick = { showPicker = true },
+            modifier = modifier,
+            shape = RoundedCornerShape(50),
+            color = Color.Transparent,
+            contentColor = if (reasoningLevel.isEnabled) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            border = BorderStroke(
+                1.dp,
+                if (reasoningLevel.isEnabled) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
+            ),
         ) {
-            Box(
-                modifier = Modifier.size(24.dp),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                ReasoningIcon(reasoningLevel)
+                Box(
+                    modifier = Modifier.size(18.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ReasoningIcon(reasoningLevel)
+                }
+                Text("推理", style = MaterialTheme.typography.labelMedium)
             }
-            if (!onlyIcon) Text(stringResource(R.string.setting_provider_page_reasoning))
+        }
+    } else {
+        ToggleSurface(
+            checked = reasoningLevel.isEnabled,
+            onClick = { showPicker = true },
+            modifier = modifier,
+        ) {
+            Row(
+                modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ReasoningIcon(reasoningLevel)
+                }
+                if (!onlyIcon) Text(stringResource(R.string.setting_provider_page_reasoning))
+            }
         }
     }
 }

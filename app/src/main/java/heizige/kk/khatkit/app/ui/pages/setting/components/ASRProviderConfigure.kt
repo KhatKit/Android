@@ -16,6 +16,28 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.ui.components.ui.OutlinedNumberInput
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import heizige.kk.khatkit.asr.sherpa.SherpaModelStore
+import heizige.kk.khatkit.asr.sherpa.SherpaModels
+import kotlinx.coroutines.launch
+
 @Composable
 fun ASRProviderConfigure(
     setting: ASRProviderSetting,
@@ -39,6 +61,7 @@ fun ASRProviderConfigure(
                     is ASRProviderSetting.Step -> "Step"
                     is ASRProviderSetting.OpenAITranscribe -> "OpenAI Transcribe"
                     is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
+                    is ASRProviderSetting.SherpaLocal -> "本地识别 (sherpa-onnx)"
                 },
                 onValueChange = {},
                 readOnly = true,
@@ -66,6 +89,7 @@ fun ASRProviderConfigure(
             is ASRProviderSetting.Step -> StepASRConfiguration(setting, onValueChange)
             is ASRProviderSetting.OpenAITranscribe -> OpenAITranscribeASRConfiguration(setting, onValueChange)
             is ASRProviderSetting.GeminiTranscribe -> GeminiTranscribeASRConfiguration(setting, onValueChange)
+            is ASRProviderSetting.SherpaLocal -> SherpaLocalASRConfiguration(setting, onValueChange)
         }
     }
 }
@@ -686,5 +710,263 @@ private fun StepASRConfiguration(
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("热词1, 热词2, 热词3") }
         )
+    }
+}
+
+@Composable
+private fun SherpaLocalASRConfiguration(
+    setting: ASRProviderSetting.SherpaLocal,
+    onValueChange: (ASRProviderSetting) -> Unit,
+) {
+    val context = LocalContext.current
+    val store = remember { SherpaModelStore(context) }
+    val scope = rememberCoroutineScope()
+    var downloadedIds by remember {
+        mutableStateOf(
+            SherpaModels.PRESETS.filter { store.isDownloaded(it.id) }.map { it.id }.toSet()
+        )
+    }
+    var downloadingId by remember { mutableStateOf<String?>(null) }
+    var progress by remember { mutableFloatStateOf(0f) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // 引擎（原生库）按需下载
+    var engineReady by remember { mutableStateOf(store.isEngineReady()) }
+    var engineDownloading by remember { mutableStateOf(false) }
+    var engineProgress by remember { mutableFloatStateOf(0f) }
+    var engineError by remember { mutableStateOf<String?>(null) }
+
+    FormItem(
+        label = { Text("识别引擎") },
+        description = { Text("原生库不进安装包，首次使用需要下载一次；之后完全离线") },
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "sherpa-onnx ${SherpaModels.ENGINE_VERSION}",
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            text = "约 ${SherpaModels.ENGINE_SIZE_BYTES / 1024 / 1024} MB · " +
+                                if (engineReady) "已安装" else "未安装",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    when {
+                        engineDownloading -> CircularProgressIndicator(
+                            progress = { engineProgress },
+                            modifier = Modifier.size(24.dp),
+                        )
+
+                        engineReady -> TextButton(
+                            onClick = {
+                                store.deleteEngine()
+                                engineReady = false
+                            }
+                        ) {
+                            Text("删除")
+                        }
+
+                        else -> TextButton(
+                            onClick = {
+                                engineError = null
+                                scope.launch {
+                                    engineDownloading = true
+                                    engineProgress = 0f
+                                    runCatching {
+                                        store.downloadEngine { engineProgress = it }
+                                    }.onSuccess {
+                                        engineReady = true
+                                    }.onFailure {
+                                        engineError = it.message ?: "引擎下载失败"
+                                    }
+                                    engineDownloading = false
+                                }
+                            }
+                        ) {
+                            Text("下载")
+                        }
+                    }
+                }
+                if (engineDownloading) {
+                    LinearProgressIndicator(
+                        progress = { engineProgress },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                engineError?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+        }
+    }
+
+    FormItem(
+        label = { Text("本地模型") },
+        description = { Text("下载后保存在应用内部存储，识别全程离线、不上传音频") },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SherpaModels.PRESETS.forEach { preset ->
+                val isDownloaded = preset.id in downloadedIds
+                val isSelected = setting.modelId == preset.id
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        }
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = preset.displayName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+                                Text(
+                                    text = "${preset.sizeBytes / 1024 / 1024} MB · ${if (preset.streaming) "流式" else "离线"} · ${preset.type}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            when {
+                                downloadingId == preset.id -> CircularProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier.size(24.dp),
+                                )
+
+                                isDownloaded -> TextButton(
+                                    onClick = {
+                                        store.delete(preset.id)
+                                        downloadedIds = downloadedIds - preset.id
+                                        if (setting.modelId == preset.id) {
+                                            onValueChange(setting.copy(modelId = ""))
+                                        }
+                                    }
+                                ) {
+                                    Text("删除")
+                                }
+
+                                else -> TextButton(
+                                    onClick = {
+                                        errorMessage = null
+                                        scope.launch {
+                                            downloadingId = preset.id
+                                            progress = 0f
+                                            runCatching {
+                                                store.download(preset) { progress = it }
+                                            }.onSuccess {
+                                                downloadedIds = downloadedIds + preset.id
+                                                onValueChange(
+                                                    setting.copy(
+                                                        modelId = preset.id,
+                                                        modelType = preset.type,
+                                                    )
+                                                )
+                                            }.onFailure {
+                                                errorMessage = it.message ?: "下载失败"
+                                            }
+                                            downloadingId = null
+                                        }
+                                    }
+                                ) {
+                                    Text("下载")
+                                }
+                            }
+                        }
+
+                        if (downloadingId == preset.id) {
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+
+                        if (isDownloaded) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = {
+                                        onValueChange(
+                                            setting.copy(
+                                                modelId = preset.id,
+                                                modelType = preset.type,
+                                            )
+                                        )
+                                    },
+                                )
+                                Text(
+                                    text = if (isSelected) "当前使用" else "使用该模型",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            errorMessage?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+    }
+
+    FormItem(
+        label = { Text("线程数") },
+        description = { Text("识别占用的 CPU 线程，越大越快但更耗电") },
+    ) {
+        OutlinedNumberInput(
+            value = setting.threads,
+            onValueChange = { value ->
+                if (value in 1..8) {
+                    onValueChange(setting.copy(threads = value))
+                }
+            },
+        )
+    }
+
+    if (setting.modelType == "whisper") {
+        FormItem(
+            label = { Text("识别语言") },
+            description = { Text("auto 自动检测；也可填 zh / en 等") },
+        ) {
+            OutlinedTextField(
+                value = setting.language,
+                onValueChange = { onValueChange(setting.copy(language = it)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("auto") },
+            )
+        }
     }
 }

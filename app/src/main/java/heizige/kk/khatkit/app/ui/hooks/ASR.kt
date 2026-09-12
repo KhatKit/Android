@@ -20,6 +20,7 @@ import heizige.kk.khatkit.asr.providers.GeminiTranscribeASRController
 import heizige.kk.khatkit.asr.providers.MiMoASRController
 import heizige.kk.khatkit.asr.providers.OpenAITranscribeASRController
 import heizige.kk.khatkit.asr.providers.OpenAIRealtimeASRController
+import heizige.kk.khatkit.asr.providers.SherpaASRController
 import heizige.kk.khatkit.asr.providers.StepASRController
 import heizige.kk.khatkit.asr.providers.VolcengineASRController
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
@@ -141,6 +142,11 @@ private class CustomAsrStateImpl(
             is ASRProviderSetting.GeminiTranscribe -> {
                 if (provider.apiKey.isBlank()) return null
                 GeminiTranscribeASRController(context, httpClient, provider)
+            }
+
+            is ASRProviderSetting.SherpaLocal -> {
+                if (provider.modelId.isBlank()) return null
+                SherpaASRController(context, provider)
             }
         }
     }

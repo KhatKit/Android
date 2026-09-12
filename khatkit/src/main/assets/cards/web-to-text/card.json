@@ -1,0 +1,32 @@
+{
+  "name": "web_to_text",
+  "version": "1.0.1",
+  "description": "抓取网页并提取纯文本保存到本地",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "lua",
+  "entry": { "lua": "main.lua" },
+  "privilege": "none",
+  "requires": {
+    "bridges": ["tool", "ui", "store"],
+    "libs": [],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": [] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "url": { "type": "string", "description": "要抓取的网页地址" },
+      "output": { "type": "string", "description": "保存路径，留空自动生成" }
+    },
+    "required": ["url"]
+  },
+  "ui": {
+    "url": { "source": "ui", "widget": "input" },
+    "output": { "source": "ui", "widget": "input" }
+  },
+  "tags": { "domain": "net", "action": "read", "scene": "work" },
+  "compliance": { "risk": "low", "note": "" },
+  "store": { "quota_mb": 5, "secret": false }
+}

@@ -350,7 +350,7 @@ private fun CustomThemeItem(
 
     KedgeOptionItem(
         modifier = Modifier.padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = heizige.kk.khatkit.app.ui.theme.listCardStyle().indexedShape(0, 1),
         backgroundColor = CustomColors.listItemColors.containerColor,
         onClick = { onSelect() },
         leadingContent = {

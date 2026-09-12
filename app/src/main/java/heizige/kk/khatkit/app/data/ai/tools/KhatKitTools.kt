@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.data.ai.tools
 
 import android.content.Context
 import androidx.compose.runtime.mutableStateOf
+import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
@@ -23,8 +24,13 @@ import heizige.kk.khatkit.uikit.KhatKitController
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -100,6 +106,9 @@ class KhatKitToolProvider(
     private var executor: CardExecutor? = null
 
     @Volatile
+    private var builtinsInstalled = false
+
+    @Volatile
     private var hubClient: HubClient? = null
 
     @Volatile
@@ -144,10 +153,19 @@ class KhatKitToolProvider(
             settings.edit().putString(KEY_UI_STYLE, value.name).apply()
         }
 
+    /** 放手模式：高权限/高风险卡片不再逐条审批，全部交给 AI。 */
+    var handsOffMode: Boolean
+        get() = settings.getBoolean(KEY_HANDS_OFF, false)
+        set(value) = settings.edit().putBoolean(KEY_HANDS_OFF, value).apply()
+
     /** 是否接收 beta 更新通道（默认关）。 */
     override var receiveBeta: Boolean
         get() = settings.getBoolean(KEY_RECEIVE_BETA, false)
         set(value) = settings.edit().putBoolean(KEY_RECEIVE_BETA, value).apply()
+
+    /** 下载中心任务（含脚本创建的下载）。 */
+    val downloadTasks = MutableStateFlow<List<DownloadTaskInfo>>(emptyList())
+    private var downloadBindJob: Job? = null
 
     /** 设置变更后重建 bridge/客户端（下次 tasks() 生效）。 */
     override fun applySettings() {
@@ -155,6 +173,48 @@ class KhatKitToolProvider(
         hubClient = null
         indexCache = emptyList()
         indexFetchedAt = 0L
+        downloadBindJob?.cancel()
+        downloadTasks.value = emptyList()
+    }
+
+    private fun bindDownloadCenter(cardExecutor: CardExecutor) {
+        val bridge = cardExecutor.bridges.downloadBridge() ?: return
+        downloadBindJob?.cancel()
+        downloadBindJob = scope.launch {
+            bridge.observeTasks().collect { downloadTasks.value = it }
+        }
+    }
+
+    /** 进入下载中心时确保下载管理器已创建并绑定任务流。 */
+    suspend fun ensureDownloadsBound() {
+        executor()
+    }
+
+    suspend fun pauseDownload(id: String) {
+        executor().bridges.downloadBridge()?.pause(id)
+    }
+
+    suspend fun resumeDownload(id: String) {
+        executor().bridges.downloadBridge()?.resume(id)
+    }
+
+    suspend fun cancelDownload(id: String) {
+        executor().bridges.downloadBridge()?.cancel(id)
+    }
+
+    suspend fun removeDownload(id: String) {
+        executor().bridges.downloadBridge()?.remove(id)
+    }
+
+    /** 供更新包等宿主功能下单，任务会出现在下载中心。 */
+    fun enqueueDownloadAsync(url: String, name: String) {
+        scope.launch {
+            runCatching {
+                executor().bridges.downloadBridge()?.start(
+                    mapOf("url" to url, "name" to name)
+                )
+            }
+        }
     }
 
     private suspend fun executor(): CardExecutor {
@@ -172,7 +232,10 @@ class KhatKitToolProvider(
                         HubLibProvider(hub(), cache),
                     )
                 ),
-            ).also { executor = it }
+            ).also {
+                executor = it
+                bindDownloadCenter(it)
+            }
         }
     }
 
@@ -182,15 +245,15 @@ class KhatKitToolProvider(
     }
 
     suspend fun tools(): List<Tool> = withContext(Dispatchers.IO) {
+        // 内置卡片先落地（已存在的跳过），保证随版本新增的示例卡片可见
+        if (!builtinsInstalled) {
+            runCatching { BuiltinCards.install(appContext, cache) }
+            builtinsInstalled = true
+        }
         // 云端优先：索引里有什么，AI 就能看到什么；真正被调用时才下载。
         // 硬过滤（设计 9.1）：设备不具备的 bridge 对应卡片直接不可见。
         val remote = HubFilters.byCapability(remoteCards(), capabilities())
-        var installed = loadInstalledCards()
-        if (installed.isEmpty() && remote.isEmpty()) {
-            // Hub 不可达且本地为空时的离线兜底
-            runCatching { BuiltinCards.install(appContext, cache) }
-            installed = loadInstalledCards()
-        }
+        val installed = loadInstalledCards()
         val installedNames = installed.mapTo(mutableSetOf()) { it.manifest.name }
         val specs = buildList {
             installed.forEach { card ->
@@ -219,9 +282,12 @@ class KhatKitToolProvider(
             if (!force && now - indexFetchedAt < INDEX_TTL_MS && indexCache.isNotEmpty()) {
                 return@withLock indexCache
             }
+            // Hub 不可达时最多等 3 秒，失败沿用旧缓存，避免阻塞首条消息
             val fetched = runCatching {
-                hub().search("", capabilities(), limit = TOOL_CANDIDATE_LIMIT).cards
-            }.getOrDefault(emptyList())
+                withTimeoutOrNull(INDEX_FETCH_TIMEOUT_MS) {
+                    hub().search("", capabilities(), limit = TOOL_CANDIDATE_LIMIT).cards
+                }
+            }.getOrNull().orEmpty()
             if (fetched.isNotEmpty() || indexCache.isEmpty()) {
                 indexCache = fetched
                 indexFetchedAt = System.currentTimeMillis()
@@ -250,7 +316,7 @@ class KhatKitToolProvider(
             name = "khatkit__$name",
             description = descriptionText(),
             parameters = { inputSchema() },
-            needsApproval = { privileged },
+            needsApproval = { privileged && !handsOffMode },
             execute = { args ->
                 val arguments = jsonToMap(args)
                 // 任何异常都收敛成 error 文本，不能让卡片问题打断整轮生成。
@@ -381,12 +447,16 @@ class KhatKitToolProvider(
         private const val KEY_DOWNLOAD_CONCURRENCY = "download_concurrency"
         private const val KEY_UI_STYLE = "ui_style"
         private const val KEY_RECEIVE_BETA = "receive_beta"
+        private const val KEY_HANDS_OFF = "hands_off_mode"
 
         /** 索引缓存有效期：5 分钟内不重复拉取 */
         private const val INDEX_TTL_MS = 5 * 60 * 1000L
 
         /** 喂给 AI 的候选卡片上限（设计 9.1：控制在 20 以内） */
         private const val TOOL_CANDIDATE_LIMIT = 20
+
+        /** Hub 索引拉取超时：超时沿用旧缓存，不阻塞生成 */
+        private const val INDEX_FETCH_TIMEOUT_MS = 3_000L
     }
 }
 

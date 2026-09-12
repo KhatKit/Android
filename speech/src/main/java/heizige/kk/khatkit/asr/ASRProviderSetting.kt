@@ -230,6 +230,35 @@ sealed class ASRProviderSetting {
         }
     }
 
+    /**
+     * sherpa-onnx 本地识别：录音结束后用离线模型识别，不联网、不上传。
+     * 模型由设置页里的模型管理器下载（tar.bz2 解压到 filesDir/sherpa-models）。
+     */
+    @Serializable
+    @SerialName("sherpa_local")
+    data class SherpaLocal(
+        override val id: Uuid = Uuid.random(),
+        override val name: String = "本地识别 (sherpa-onnx)",
+        /** 已下载模型目录名，空表示未选择 */
+        val modelId: String = "",
+        /** paraformer / whisper / transducer / sense_voice */
+        val modelType: String = "paraformer",
+        /** whisper 用：auto / zh / en ... */
+        val language: String = "auto",
+        val sampleRate: Int = 16000,
+        val threads: Int = 2,
+    ) : ASRProviderSetting() {
+        override fun copyProvider(
+            id: Uuid,
+            name: String,
+        ): ASRProviderSetting {
+            return this.copy(
+                id = id,
+                name = name,
+            )
+        }
+    }
+
     companion object {
         val Types by lazy {
             listOf(
@@ -240,6 +269,7 @@ sealed class ASRProviderSetting {
                 Step::class,
                 OpenAITranscribe::class,
                 GeminiTranscribe::class,
+                SherpaLocal::class,
             )
         }
     }

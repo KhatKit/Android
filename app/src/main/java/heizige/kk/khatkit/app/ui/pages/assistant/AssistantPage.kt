@@ -229,6 +229,29 @@ fun AssistantPage(vm: AssistantVM = koinViewModel()) {
                         )
                     }
                 }
+
+                item(key = "new_assistant") {
+                    Surface(
+                        onClick = { createState.open(Assistant()) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(add, contentDescription = null)
+                            Text(
+                                text = stringResource(R.string.assistant_page_new),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

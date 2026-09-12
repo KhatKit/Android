@@ -15,7 +15,6 @@ import heizige.kk.khatkit.app.data.db.AppDatabase
 import heizige.kk.khatkit.app.data.db.fts.MessageFtsManager
 import heizige.kk.khatkit.app.data.db.fts.MessageSearchSort
 import heizige.kk.khatkit.app.data.db.dao.ConversationDAO
-import heizige.kk.khatkit.app.data.db.dao.FavoriteDAO
 import heizige.kk.khatkit.app.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.data.db.entity.ConversationEntity
 import heizige.kk.khatkit.app.data.db.entity.MessageNodeEntity
@@ -29,7 +28,6 @@ import kotlin.uuid.Uuid
 class ConversationRepository(
     private val conversationDAO: ConversationDAO,
     private val messageNodeDAO: MessageNodeDAO,
-    private val favoriteDAO: FavoriteDAO,
     private val database: AppDatabase,
     private val filesManager: FilesManager,
     private val messageFtsManager: MessageFtsManager,
@@ -431,11 +429,6 @@ class ConversationRepository(
     }
 
     private suspend fun loadMessageNodes(conversationId: String): List<MessageNode> {
-        val favoriteNodeIds = favoriteDAO
-            .getFavoriteNodeIdsOfConversation(conversationId)
-            .mapNotNull { runCatching { Uuid.parse(it) }.getOrNull() }
-            .toSet()
-
         return database.withTransaction {
             val nodes = mutableListOf<MessageNode>()
             var offset = 0
@@ -461,7 +454,6 @@ class ConversationRepository(
                             id = nodeId,
                             messages = messages,
                             selectIndex = entity.selectIndex,
-                            isFavorite = favoriteNodeIds.contains(nodeId)
                         )
                     )
                 }

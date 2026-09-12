@@ -3,6 +3,7 @@ package heizige.kk.khatkit.bridge.impl
 import android.content.Context
 import heizige.kk.khatkit.bridge.DownloadBridge
 import heizige.kk.khatkit.bridge.DownloadHandle
+import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import io.ktor.client.HttpClient
 import io.ktor.client.request.header
 import io.ktor.client.request.prepareGet
@@ -16,6 +17,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -74,6 +78,29 @@ class DownloadManagerImpl(
     }
 
     private val tasks = LinkedHashMap<String, Record>()
+
+    private val _taskFlow = MutableStateFlow<List<DownloadTaskInfo>>(emptyList())
+
+    override fun observeTasks(): StateFlow<List<DownloadTaskInfo>> = _taskFlow.asStateFlow()
+
+    private fun publishTasks() {
+        val list = synchronized(tasks) {
+            tasks.values.map { record ->
+                DownloadTaskInfo(
+                    id = record.id,
+                    name = record.name,
+                    url = record.url,
+                    state = record.state,
+                    bytes = record.bytes,
+                    total = record.total,
+                    speedBps = record.speedBps,
+                    file = record.fileOrNull(),
+                    error = record.error,
+                )
+            }
+        }
+        _taskFlow.value = list
+    }
     private val semaphore = Semaphore(maxConcurrent.coerceAtLeast(1))
     private val persistMutex = Mutex()
     private val indexFile = File(rootDir, "index.json")
@@ -112,6 +139,7 @@ class DownloadManagerImpl(
         }
         if (record.state != STATE_DONE) launch(record)
         persist()
+        publishTasks()
         return Handle(record)
     }
 
@@ -146,6 +174,22 @@ class DownloadManagerImpl(
                 "error" to record.error,
             )
         }
+    }
+
+    override fun remove(id: String): Boolean {
+        val record = synchronized(tasks) { tasks[id] } ?: return false
+        record.state = STATE_CANCELLED
+        record.job?.cancel()
+        runCatching {
+            File(record.target).delete()
+            File("${record.target}.part").delete()
+        }
+        synchronized(tasks) {
+            tasks.remove(id)
+        }
+        persist()
+        publishTasks()
+        return true
     }
 
     override fun pause(id: String): Boolean = query(id)?.let { it.pause(); true } ?: false
@@ -190,6 +234,7 @@ class DownloadManagerImpl(
             KhatKitDownloadService.start(context)
             KhatKitDownloadService.update(context)
         }
+        publishTasks()
     }
 
     private suspend fun download(record: Record) {
@@ -314,6 +359,7 @@ class DownloadManagerImpl(
                 tasks[record.id] = record
             }
         }
+        publishTasks()
     }
 
     private inner class Handle(private val record: Record) : DownloadHandle {

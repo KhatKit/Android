@@ -30,7 +30,7 @@ import org.koin.compose.koinInject
 import java.io.File
 import kotlin.uuid.Uuid
 
-internal data class ChatAttachmentPickerActions(
+data class ChatAttachmentPickerActions(
     val onTakePicture: () -> Unit,
     val onPickImage: () -> Unit,
     val onPickVideo: () -> Unit,
