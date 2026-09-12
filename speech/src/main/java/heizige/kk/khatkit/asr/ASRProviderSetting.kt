@@ -174,6 +174,62 @@ sealed class ASRProviderSetting {
         }
     }
 
+    /**
+     * OpenAI 兼容的音频转写接口 (`POST {baseUrl}/audio/transcriptions`)。
+     *
+     * 用于没有单独配置 ASR 时，直接借用已启用的 OpenAI 兼容聊天服务商凭据调用
+     * `gpt-4o-transcribe`；也可手动添加后用其它兼容中转。
+     */
+    @Serializable
+    @SerialName("openai_transcribe")
+    data class OpenAITranscribe(
+        override val id: Uuid = Uuid.random(),
+        override val name: String = "OpenAI Transcribe",
+        val apiKey: String = "",
+        val baseUrl: String = "https://api.openai.com/v1",
+        val model: String = "gpt-4o-transcribe",
+        val language: String = "",
+        val sampleRate: Int = 16000,
+    ) : ASRProviderSetting() {
+        override fun copyProvider(
+            id: Uuid,
+            name: String,
+        ): ASRProviderSetting {
+            return this.copy(
+                id = id,
+                name = name,
+            )
+        }
+    }
+
+    /**
+     * Google Gemini 音频转写：把整段 WAV 作为 inline_data 发给
+     * `{baseUrl}/models/{model}:generateContent`，从 candidates 里取文本。
+     *
+     * Gemini 有免费额度，可作为没有单独配置 ASR 时的免费回退。
+     */
+    @Serializable
+    @SerialName("gemini_transcribe")
+    data class GeminiTranscribe(
+        override val id: Uuid = Uuid.random(),
+        override val name: String = "Gemini Transcribe",
+        val apiKey: String = "",
+        val baseUrl: String = "https://generativelanguage.googleapis.com/v1beta",
+        val model: String = "gemini-2.5-flash",
+        val language: String = "",
+        val sampleRate: Int = 16000,
+    ) : ASRProviderSetting() {
+        override fun copyProvider(
+            id: Uuid,
+            name: String,
+        ): ASRProviderSetting {
+            return this.copy(
+                id = id,
+                name = name,
+            )
+        }
+    }
+
     companion object {
         val Types by lazy {
             listOf(
@@ -182,6 +238,8 @@ sealed class ASRProviderSetting {
                 Volcengine::class,
                 MiMo::class,
                 Step::class,
+                OpenAITranscribe::class,
+                GeminiTranscribe::class,
             )
         }
     }
