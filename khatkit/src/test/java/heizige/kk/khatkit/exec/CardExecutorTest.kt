@@ -4,9 +4,11 @@ import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineKind
 import heizige.kk.khatkit.engine.EngineResult
+import heizige.kk.khatkit.engine.RustEngineTest
 import heizige.kk.khatkit.hub.LoadedCard
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
 
@@ -57,6 +59,7 @@ class CardExecutorTest {
 
     @Test
     fun luaCardRunsWithoutBridges() = runBlocking {
+        assumeTrue(RustEngineTest.NativeLib.available)
         val manifest = CardManifest(
             name = "plain",
             engine = "lua",

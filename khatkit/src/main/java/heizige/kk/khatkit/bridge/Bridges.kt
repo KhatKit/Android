@@ -32,11 +32,7 @@ interface UiBridge {
 
 /** 白名单组件，CI 扫描 card 时校验 type 必须在此集合内 */
 object UiWidgets {
-    val ALLOWED: Set<String> = linkedSetOf(
-        "text", "input", "number", "switch", "slider", "select", "radio",
-        "file_picker", "dir_picker", "date_picker", "color",
-        "button", "progress", "image", "qrcode", "markdown", "divider", "custom",
-    )
+    val ALLOWED: Set<String> = heizige.kk.khatkit.card.UiWidgetVocabulary.ALLOWED
 }
 
 interface DownloadBridge {

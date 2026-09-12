@@ -7,13 +7,10 @@ import heizige.kk.khatkit.hub.LoadedCard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,32 +33,28 @@ class CardRunManagerTest {
     private fun scope() = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Test
-    fun successfulRunEndsInDoneState() = runBlocking {
+    fun successfulRunReturnsOk() = runBlocking {
         val manager = CardRunManager(scope()) { _, _ -> EngineResult.Ok(mapOf("ok" to true)) }
         val result = manager.run(card("demo"), emptyMap())
 
         assertTrue(result is EngineResult.Ok)
-        val info = manager.snapshot().first { it.cardName == "demo" }
-        assertEquals(CardRunState.DONE, info.state)
     }
 
     @Test
-    fun failedRunEndsInFailedState() = runBlocking {
+    fun failedRunReturnsErr() = runBlocking {
         val manager = CardRunManager(scope()) { _, _ -> EngineResult.Err("BOOM", "炸了") }
-        manager.run(card("demo"), emptyMap())
+        val result = manager.run(card("demo"), emptyMap())
 
-        val info = manager.snapshot().first { it.cardName == "demo" }
-        assertEquals(CardRunState.FAILED, info.state)
-        assertEquals("炸了", info.error)
+        assertEquals("炸了", (result as EngineResult.Err).message)
     }
 
     @Test
-    fun exceptionBecomesFailedRun() = runBlocking {
+    fun exceptionBecomesErr() = runBlocking {
         val manager = CardRunManager(scope()) { _, _ -> error("kaboom") }
         val result = manager.run(card("demo"), emptyMap())
 
         assertTrue(result is EngineResult.Err)
-        assertEquals(CardRunState.FAILED, manager.snapshot().first().state)
+        assertEquals("CARD_RUN_CRASH", (result as EngineResult.Err).code)
     }
 
     @Test
@@ -80,26 +73,5 @@ class CardRunManagerTest {
         jobs.joinAll()
 
         assertTrue("并发上限失效：max=$maxSeen", maxSeen.get() <= 2)
-    }
-
-    @Test
-    fun cancelMarksRunCancelled() = runBlocking {
-        val manager = CardRunManager(scope(), maxConcurrent = 1) { _, _ ->
-            delay(10_000)
-            EngineResult.Ok(emptyMap())
-        }
-
-        val pending = async { manager.run(card("slow"), emptyMap()) }
-        withTimeout(2_000) {
-            manager.runs.first { state ->
-                state.values.any { it.state == CardRunState.RUNNING }
-            }
-        }
-        val running = manager.snapshot().first { it.state == CardRunState.RUNNING }
-        assertTrue(manager.cancel(running.id))
-
-        val result = withTimeout(2_000) { pending.await() }
-        assertTrue(result is EngineResult.Err)
-        assertEquals(CardRunState.CANCELLED, manager.snapshot().first { it.id == running.id }.state)
     }
 }

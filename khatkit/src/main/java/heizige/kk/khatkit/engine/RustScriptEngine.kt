@@ -5,10 +5,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
 /**
- * Rust 引擎（mlua + rquickjs）的 Kotlin 门面。
+ * Rust 引擎（mlua + rquickjs）的 Kotlin 门面，KhatKit 唯一脚本引擎。
  *
- * 设计文档 6.1 的 LuaJ 是纯 JVM 备选；这里走 native 以获得接近原生的性能，
- * 两个引擎实现同一个 [ScriptEngine] 接口，卡片脚本无需感知。
+ * 同一份 native 核心同时承载 Lua 与 JS，卡片脚本无需感知。
  *
  * 注意：native 句柄只在创建它的线程上使用，每个卡片执行应新建实例。
  */
@@ -56,7 +55,7 @@ class RustScriptEngine private constructor(private val kind: Int) : ScriptEngine
         const val KIND_LUA = 0
         const val KIND_JS = 1
 
-        /** native 库是否可用；不可用时 EngineFactory 回退到 LuaJ/QuickJS。 */
+        /** native 库是否可用；不可用时引擎创建即失败。 */
         val isAvailable: Boolean by lazy {
             runCatching { System.loadLibrary("khatkit_core") }.isSuccess
         }

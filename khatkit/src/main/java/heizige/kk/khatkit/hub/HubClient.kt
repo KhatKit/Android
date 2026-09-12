@@ -43,14 +43,6 @@ class HubClient(
         if (path.startsWith("http://") || path.startsWith("https://")) path
         else baseUrl.trimEnd('/') + "/" + path.trimStart('/')
 
-    /** v1：拉全量索引（量大后改分片）。 */
-    suspend fun fetchIndex(): CardIndex =
-        client.get(resolve("/api/khatkit/index.json")).body()
-
-    /** 分片索引：/index/shard/{tag}/{page}.json */
-    suspend fun fetchShard(tag: String, page: Int = 1): CardIndex =
-        client.get(resolve("/api/khatkit/index/shard/$tag/$page.json")).body()
-
     /** 语义召回：服务端 embedding + 硬过滤，返回 top-K 候选喂给 AI。 */
     suspend fun search(
         query: String,

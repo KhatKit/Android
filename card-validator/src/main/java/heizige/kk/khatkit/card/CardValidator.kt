@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.card
 
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+
 /** 校验严重级别。 */
 enum class Severity { ERROR, WARNING }
 
@@ -87,6 +90,18 @@ object CardValidator {
         // game 域强制 compliance
         if (tags?.domain == "game" && manifest.compliance == null) {
             error("GAME_COMPLIANCE_MISSING", "domain=game 必须带 compliance（合规风险声明）")
+        }
+
+        // UI 声明：widget 必须在宿主白名单内，source 只能是 ai/ui（设计 7.2/13.1）
+        manifest.ui.forEach { (param, spec) ->
+            val widget = (spec["widget"] as? JsonPrimitive)?.contentOrNull
+            if (widget != null && widget !in UiWidgetVocabulary.ALLOWED) {
+                error("UI_WIDGET_UNKNOWN", "参数 $param 使用了未实现的组件：$widget")
+            }
+            val source = (spec["source"] as? JsonPrimitive)?.contentOrNull
+            if (source != null && source !in UiWidgetVocabulary.SOURCES) {
+                error("UI_SOURCE_INVALID", "参数 $param 的 source 必须是 ai|ui：$source")
+            }
         }
 
         // 脚本正文扫描：bridge 调用 ⊆ 声明；域名 ⊆ network.allow

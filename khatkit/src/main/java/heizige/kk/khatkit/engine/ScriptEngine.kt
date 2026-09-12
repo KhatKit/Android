@@ -41,25 +41,15 @@ class CardExecutionException(val code: String, message: String) : RuntimeExcepti
 enum class EngineKind { LUA, JS, COMMAND }
 
 object EngineFactory {
-    /**
-     * 优先用 Rust 核心（mlua / rquickjs）以获得接近原生的性能；
-     * native 库缺失或加载失败时自动回退到纯 JVM 的 LuaJ / QuickJS。
-     */
-    @Volatile
-    var preferNative: Boolean = true
-
-    fun create(kind: EngineKind): ScriptEngine = when (kind) {
-        EngineKind.LUA -> if (preferNative && RustScriptEngine.isAvailable) {
-            RustScriptEngine.create(RustScriptEngine.KIND_LUA)
-        } else {
-            LuaEngine()
+    fun create(kind: EngineKind): ScriptEngine {
+        if (!RustScriptEngine.isAvailable) {
+            throw CardExecutionException("RUST_ENGINE", "khatkit_core native 库不可用")
         }
-        EngineKind.JS -> if (preferNative && RustScriptEngine.isAvailable) {
-            RustScriptEngine.create(RustScriptEngine.KIND_JS)
-        } else {
-            JsEngine()
+        return when (kind) {
+            EngineKind.LUA -> RustScriptEngine.create(RustScriptEngine.KIND_LUA)
+            EngineKind.JS -> RustScriptEngine.create(RustScriptEngine.KIND_JS)
+            EngineKind.COMMAND -> throw IllegalArgumentException("command 卡片不经脚本引擎")
         }
-        EngineKind.COMMAND -> throw IllegalArgumentException("command 卡片不经脚本引擎")
     }
 
     /** 按 card.json 的 engine 字段解析；auto 时按 entry 文件存在性选择（JS 优先）。 */
