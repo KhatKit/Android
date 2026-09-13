@@ -503,6 +503,9 @@ private fun ChatListNormal(
             val captureProgress = LocalScrollCaptureInProgress.current
 
             // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
+            val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            val scrollbarThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            val scrollbarDotColor = MaterialTheme.colorScheme.primary
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -535,7 +538,7 @@ private fun ChatListNormal(
 
                 // 轨道
                 drawRoundRect(
-                    color = Color(0x1F9E9E9E),
+                    color = scrollbarTrackColor,
                     topLeft = androidx.compose.ui.geometry.Offset(x, 0f),
                     size = androidx.compose.ui.geometry.Size(thickness, track),
                     cornerRadius = radius,
@@ -547,14 +550,14 @@ private fun ChatListNormal(
                 val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
                 val thumbTop = progress * (track - thumbH)
                 drawRoundRect(
-                    color = Color(0xCC9E9E9E),
+                    color = scrollbarThumbColor,
                     topLeft = androidx.compose.ui.geometry.Offset(x, thumbTop),
                     size = androidx.compose.ui.geometry.Size(thickness, thumbH),
                     cornerRadius = radius,
                 )
 
                 // 回答位置点
-                val dotColor = Color(0xCC7C9CF5)
+                val dotColor = scrollbarDotColor
                 nodes.forEachIndexed { index, node ->
                     if (node.currentMessage.role == MessageRole.ASSISTANT) {
                         val y = if (nodeCount <= 1) 0f else index.toFloat() / (nodeCount - 1) * track
