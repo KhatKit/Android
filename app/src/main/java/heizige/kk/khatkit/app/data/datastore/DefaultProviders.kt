@@ -9,12 +9,13 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import heizige.kk.khatkit.ai.provider.BalanceOption
+import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.ui.components.richtext.MarkdownBlock
 import kotlin.uuid.Uuid
 
-val DEFAULT_AUTO_MODEL_ID = Uuid.parse("b7055fb4-39f9-4042-a88a-0d80ed76cf08")
+val DEFAULT_AUTO_MODEL_ID = Uuid.parse("5a86b2d6-9c3c-4c58-9b27-f9295ba39201")
 
 val DEFAULT_PROVIDERS = listOf(
     ProviderSetting.OpenAI(
@@ -292,6 +293,44 @@ val DEFAULT_PROVIDERS = listOf(
             )
         },
         useResponseApi = true,
+    ),
+    ProviderSetting.OpenAI(
+        id = Uuid.parse("5197b3ae-21fd-4924-abb0-2aa70ff4ac42"),
+        name = "极客猫",
+        baseUrl = "https://api.zenneko.top/v1",
+        apiKey = "sk-17a5ead68d1b29c84b4b39d4330b8e18bc229c57c7e681e0",
+        enabled = true,
+        builtIn = true,
+        description = {
+            Text(
+                text = buildAnnotatedString {
+                    append("免费 AI 网关，OpenAI 兼容，默认启用。")
+                    appendLine()
+                    append("模型：")
+                    withLink(LinkAnnotation.Url("https://platform.zenneko.top/index.php?page=doc&api=ai")) {
+                        withStyle(SpanStyle(MaterialTheme.colorScheme.primary)) {
+                            append("查看接口文档")
+                        }
+                    }
+                }
+            )
+        },
+        shortDescription = {
+            Text("免费 DeepSeek V4 Flash / GLM 5.2，开箱即用")
+        },
+        models = listOf(
+            Model(
+                id = Uuid.parse("5a86b2d6-9c3c-4c58-9b27-f9295ba39201"),
+                modelId = "deepseek-v4-flash",
+                displayName = "DeepSeek V4 Flash",
+            ),
+            Model(
+                id = Uuid.parse("8b6bf21c-56d8-40fd-93c8-6d657cac71a4"),
+                modelId = "glm-5.2",
+                displayName = "GLM 5.2",
+                abilities = listOf(heizige.kk.khatkit.ai.provider.ModelAbility.TOOL, heizige.kk.khatkit.ai.provider.ModelAbility.REASONING),
+            ),
+        ),
     ),
     ProviderSetting.Claude(
         id = Uuid.parse("b4deabea-20fb-4101-a74c-65679c7e4754"),
