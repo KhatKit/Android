@@ -514,6 +514,21 @@ private fun ChatListNormal(
             val thumbRatio = if (sbTotal > 1) {
                 (stableVisible.intValue.toFloat() / sbTotal).coerceIn(0.06f, 1f)
             } else 1f
+            // 组合期计算进度：index + 当前 item 内的像素比例
+            val firstVisibleIndex = state.firstVisibleItemIndex
+            val firstVisibleOffset = state.firstVisibleItemScrollOffset
+            val firstVisibleItemSize = state.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.index == firstVisibleIndex }
+                ?.size
+                ?.coerceAtLeast(1)
+                ?: 1
+            val scrollOffsetFraction =
+                (firstVisibleOffset.toFloat() / firstVisibleItemSize).coerceIn(0f, 1f)
+            var scrollProgress = if (sbTotal > 1) {
+                ((firstVisibleIndex + scrollOffsetFraction) / sbTotal).coerceIn(0f, 1f)
+            } else 0f
+            if (!state.canScrollForward) scrollProgress = 1f
+            if (!state.canScrollBackward) scrollProgress = 0f
             val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             val scrollbarThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             val scrollbarDotColor = MaterialTheme.colorScheme.primary
@@ -557,11 +572,7 @@ private fun ChatListNormal(
 
                 // 滑块（动画比例；到底/到顶时严格贴边）
                 val thumbH = (track * thumbRatio).coerceAtLeast(32.dp.toPx()).coerceAtMost(track)
-                val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
-                var progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
-                if (!state.canScrollForward) progress = 1f
-                if (!state.canScrollBackward) progress = 0f
-                val thumbTop = progress * (track - thumbH)
+                val thumbTop = scrollProgress * (track - thumbH)
                 drawRoundRect(
                     color = scrollbarThumbColor,
                     topLeft = androidx.compose.ui.geometry.Offset(x, thumbTop),
