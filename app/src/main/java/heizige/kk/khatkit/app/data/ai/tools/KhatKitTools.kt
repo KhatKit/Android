@@ -20,6 +20,7 @@ import heizige.kk.khatkit.hub.HubLibProvider
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
 import heizige.kk.khatkit.ui.UiBridgeHost
+import heizige.kk.khatkit.uikit.CardRunResult
 import heizige.kk.khatkit.uikit.KhatKitController
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.CancellationException
@@ -64,6 +65,11 @@ private fun CardToolSpec.descriptionText(): String =
         ?: entry?.description?.takeIf { it.isNotBlank() }
         ?: card?.manifest?.description?.takeIf { it.isNotBlank() }
         ?: name
+
+private fun CardToolSpec.supportsAi(): Boolean =
+    card?.manifest?.supportsAi()
+        ?: entry?.triggers?.contains(CardManifest.TRIGGER_AI)
+        ?: false
 
 private fun CardToolSpec.inputSchema(): InputSchema? {
     // 未下载时用索引里的 schema，保证 AI 仍能正确填参
@@ -269,7 +275,7 @@ class KhatKitToolProvider(
                 add(CardToolSpec(name = entry.name, entry = entry, card = null))
             }
         }
-        specs.take(TOOL_CANDIDATE_LIMIT).map { spec -> spec.toTool() }
+        specs.filter { it.supportsAi() }.take(TOOL_CANDIDATE_LIMIT).map { spec -> spec.toTool() }
     }
 
     /** 索引缓存：TTL 内不重复请求；请求失败时保留旧缓存。 */
@@ -322,10 +328,12 @@ class KhatKitToolProvider(
                 // 任何异常都收敛成 error 文本，不能让卡片问题打断整轮生成。
                 val result = try {
                     val card = resolveCard(this)
-                    if (card == null) {
-                        EngineResult.Err("CARD_UNAVAILABLE", "卡片未下载且 Hub 不可达：$name")
-                    } else {
-                        runManager.run(card, arguments)
+                    when {
+                        card == null ->
+                            EngineResult.Err("CARD_UNAVAILABLE", "卡片未下载且 Hub 不可达：$name")
+                        !card.manifest.supportsAi() ->
+                            EngineResult.Err("TRIGGER_DENIED", "卡片未启用 ai 触发：$name")
+                        else -> runManager.run(card, arguments)
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -374,6 +382,28 @@ class KhatKitToolProvider(
     /** 已安装卡片 name -> version，市场页据此显示"更新"。 */
     override suspend fun installedCardVersions(): Map<String, String> = withContext(Dispatchers.IO) {
         cache.installedVersions()
+    }
+
+    /** 已安装卡片的触发方式（name -> triggers），市场页据此显示徽标与运行入口。 */
+    override suspend fun installedCardTriggers(): Map<String, List<String>> = withContext(Dispatchers.IO) {
+        loadInstalledCards().associate { it.manifest.name to it.manifest.triggers }
+    }
+
+    /** 用户手动运行已安装卡片：不带参数，需要输入时由脚本自己弹 ui.form。 */
+    override suspend fun runCard(name: String): CardRunResult = withContext(Dispatchers.IO) {
+        val card = loadInstalledCards().firstOrNull { it.manifest.name == name }
+            ?: return@withContext CardRunResult(false, "卡片未安装：$name")
+        if (!card.manifest.supportsUser()) {
+            return@withContext CardRunResult(false, "卡片未启用用户触发：$name")
+        }
+        when (val result = runManager.run(card, emptyMap())) {
+            is EngineResult.Ok -> {
+                // 脚本约定 return { error = "..." } 表示失败，宿主侧转成错误提示
+                val error = result.value["error"]?.toString()
+                if (error.isNullOrBlank()) CardRunResult(true) else CardRunResult(false, error)
+            }
+            is EngineResult.Err -> CardRunResult(false, result.message)
+        }
     }
 
     /** 把「会话存成卡片」生成的卡片写成本地已安装卡片。 */

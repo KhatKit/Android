@@ -49,6 +49,18 @@ object CardValidator {
             error("PRIVILEGE_UNKNOWN", "privilege 必须是 none|elevated：${manifest.privilege}")
         }
 
+        // 触发方式：只允许 ai/user，不允许为空或重复
+        if (manifest.triggers.isEmpty()) {
+            error("TRIGGER_EMPTY", "triggers 不能为空数组")
+        }
+        val unknownTriggers = manifest.triggers.toSet() - CardManifest.ALL_TRIGGERS
+        if (unknownTriggers.isNotEmpty()) {
+            error("TRIGGER_UNKNOWN", "triggers 只支持 ai|user：$unknownTriggers")
+        }
+        if (manifest.triggers.distinct().size != manifest.triggers.size) {
+            error("TRIGGER_DUPLICATE", "triggers 不允许重复：${manifest.triggers}")
+        }
+
         val declared = manifest.requires.bridges
         val unknown = declared.filterNot { it in BRIDGES }
         if (unknown.isNotEmpty()) {

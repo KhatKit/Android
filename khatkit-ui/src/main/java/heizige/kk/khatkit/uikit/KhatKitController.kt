@@ -24,6 +24,12 @@ interface KhatKitController {
     suspend fun uninstallCard(name: String): Boolean
     suspend fun installedCardVersions(): Map<String, String>
 
+    /** 已安装卡片支持的触发方式（name -> triggers），市场页据此显示徽标与运行入口。 */
+    suspend fun installedCardTriggers(): Map<String, List<String>>
+
+    /** 用户手动运行已安装卡片；ok=false 时 message 为错误原因。 */
+    suspend fun runCard(name: String): CardRunResult
+
     fun listCardSecrets(cardName: String): List<String>
     fun removeCardSecret(cardName: String, key: String)
 
@@ -37,3 +43,9 @@ interface KhatKitController {
 
     fun applySettings()
 }
+
+/** 用户手动运行卡片的结果。 */
+data class CardRunResult(
+    val ok: Boolean,
+    val message: String = "",
+)

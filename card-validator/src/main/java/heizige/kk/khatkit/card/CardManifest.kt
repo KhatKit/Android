@@ -35,6 +35,9 @@ data class CardManifest(
     /** 声明哪些参数必须由用户 UI 填写：{ 参数名: { source, widget, ... } } */
     val ui: Map<String, JsonObject> = emptyMap(),
 
+    /** 触发方式：ai（AI 工具调用）/ user（用户在卡片界面手动运行），默认两者都允许 */
+    val triggers: List<String> = DEFAULT_TRIGGERS,
+
     val tags: Tags? = null,
     val compliance: Compliance? = null,
     val store: Store = Store(),
@@ -95,4 +98,17 @@ data class CardManifest(
 
     /** 卡片要求的能力集合，供能力协商过滤 */
     val requiredBridges: Set<String> get() = requires.bridges.toSet()
+
+    /** 是否允许 AI 工具调用 */
+    fun supportsAi(): Boolean = TRIGGER_AI in triggers
+
+    /** 是否允许用户在卡片界面手动运行 */
+    fun supportsUser(): Boolean = TRIGGER_USER in triggers
+
+    companion object {
+        const val TRIGGER_AI = "ai"
+        const val TRIGGER_USER = "user"
+        val DEFAULT_TRIGGERS = listOf(TRIGGER_AI, TRIGGER_USER)
+        val ALL_TRIGGERS = setOf(TRIGGER_AI, TRIGGER_USER)
+    }
 }

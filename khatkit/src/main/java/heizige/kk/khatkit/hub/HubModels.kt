@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.hub
 
+import heizige.kk.khatkit.card.CardManifest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
@@ -20,6 +21,8 @@ data class CardIndexEntry(
     val privilege: String = "none",
     val engine: String = "auto",
     val bridges: List<String> = emptyList(),
+    /** 触发方式：ai（AI 工具）/ user（用户手动），未提供时按旧卡片默认两者都允许 */
+    val triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
     /** 卡片包下载地址（相对 CDN 根或绝对 URL） */
     val url: String,
     /** sha256 */
