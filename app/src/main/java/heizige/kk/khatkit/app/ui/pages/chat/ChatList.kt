@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -70,6 +72,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.ai.core.MessageRole
 import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.zIndex
 import dev.chrisbanes.haze.HazeState
@@ -493,6 +496,45 @@ private fun ChatListNormal(
             )
 
             val captureProgress = LocalScrollCaptureInProgress.current
+
+            // 右侧滚动条：每个回答在对应位置标一个点
+            androidx.compose.foundation.Canvas(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 3.dp, top = 24.dp, bottom = 24.dp)
+                    .width(12.dp)
+                    .fillMaxHeight(),
+            ) {
+                val info = state.layoutInfo
+                val total = info.totalItemsCount
+                if (total <= 1 || size.height <= 0f) return@Canvas
+                val nodes = conversation.messageNodes
+                val nodeCount = nodes.size.coerceAtLeast(1)
+                val track = size.height
+                val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
+                val thumbH = (track * visible / total).coerceAtLeast(24.dp.toPx()).coerceAtMost(track)
+                val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
+                val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
+                val thumbTop = progress * (track - thumbH)
+                val barWidth = 3.dp.toPx()
+                drawRoundRect(
+                    color = Color(0x5A9E9E9E),
+                    topLeft = androidx.compose.ui.geometry.Offset(size.width - barWidth, thumbTop),
+                    size = androidx.compose.ui.geometry.Size(barWidth, thumbH),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f),
+                )
+                val dotColor = Color(0xCC7C9CF5)
+                nodes.forEachIndexed { index, node ->
+                    if (node.currentMessage.role == MessageRole.ASSISTANT) {
+                        val y = if (nodeCount <= 1) 0f else index.toFloat() / (nodeCount - 1) * track
+                        drawCircle(
+                            color = dotColor,
+                            radius = 2.dp.toPx(),
+                            center = androidx.compose.ui.geometry.Offset(size.width - barWidth / 2f, y),
+                        )
+                    }
+                }
+            }
 
             // 消息快速跳转
             MessageJumper(
