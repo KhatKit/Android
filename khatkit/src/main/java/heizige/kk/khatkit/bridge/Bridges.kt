@@ -16,6 +16,7 @@ interface ToolBridge {
     fun readText(path: String): String
     fun writeText(path: String, content: String)
     fun httpGet(url: String, headers: Map<String, String> = emptyMap()): String
+    fun httpPost(url: String, body: String, headers: Map<String, String> = emptyMap()): String
     fun compressImage(path: String, quality: Int): String
     fun mergePdf(paths: List<String>, output: String): String
     fun openDir(path: String)
