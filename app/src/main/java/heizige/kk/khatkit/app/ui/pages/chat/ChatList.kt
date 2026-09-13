@@ -503,20 +503,35 @@ private fun ChatListNormal(
             val captureProgress = LocalScrollCaptureInProgress.current
 
             // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
-            // 纯索引比例（量化 5% 步进）+ 当前 item 内偏移：稳定不跳变
+            // 纯索引比例（量化 5% 步进）；生成/流式期间冻结，避免每帧重排导致跳变
+            val frozenTotal = remember { androidx.compose.runtime.mutableIntStateOf(0) }
+            val frozenVisible = remember { androidx.compose.runtime.mutableIntStateOf(1) }
+            val frozenProgress = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
             val sbInfo = state.layoutInfo
-            val sbTotal = sbInfo.totalItemsCount.coerceAtLeast(1)
-            val sbVisible = sbInfo.visibleItemsInfo.size.coerceAtLeast(1)
-            val thumbRatio = ((sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f) * 20f)
-                .let { kotlin.math.round(it) / 20f }
+            val liveTotal = sbInfo.totalItemsCount.coerceAtLeast(1)
+            val liveVisible = sbInfo.visibleItemsInfo.size.coerceAtLeast(1)
             val firstIndex = state.firstVisibleItemIndex
             val firstSize = sbInfo.visibleItemsInfo.firstOrNull { it.index == firstIndex }
                 ?.size?.coerceAtLeast(1) ?: 1
             val offsetFraction = (state.firstVisibleItemScrollOffset.toFloat() / firstSize)
                 .coerceIn(0f, 1f)
-            var scrollProgress = ((firstIndex + offsetFraction) / sbTotal).coerceIn(0f, 1f)
-            if (!state.canScrollForward) scrollProgress = 1f
-            if (!state.canScrollBackward) scrollProgress = 0f
+            var liveProgress = ((firstIndex + offsetFraction) / liveTotal).coerceIn(0f, 1f)
+            if (!state.canScrollForward) liveProgress = 1f
+            if (!state.canScrollBackward) liveProgress = 0f
+
+            LaunchedEffect(loading) {
+                if (loading) {
+                    frozenTotal.intValue = liveTotal
+                    frozenVisible.intValue = liveVisible
+                    frozenProgress.floatValue = liveProgress
+                }
+            }
+
+            val sbTotal = if (loading) frozenTotal.intValue.coerceAtLeast(1) else liveTotal
+            val sbVisible = if (loading) frozenVisible.intValue.coerceAtLeast(1) else liveVisible
+            val thumbRatio = ((sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f) * 20f)
+                .let { kotlin.math.round(it) / 20f }
+            val scrollProgress = if (loading) frozenProgress.floatValue else liveProgress
             val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             val scrollbarThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             val scrollbarDotColor = MaterialTheme.colorScheme.primary
