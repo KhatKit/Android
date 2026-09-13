@@ -10,6 +10,10 @@ import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import heizige.kk.khatkit.bridge.ToolBridge
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.runBlocking
@@ -54,6 +58,14 @@ class AndroidToolBridge(
 
     override fun httpGet(url: String, headers: Map<String, String>): String = runBlocking {
         httpClient.get(url) { headers.forEach { (key, value) -> header(key, value) } }.bodyAsText()
+    }
+
+    override fun httpPost(url: String, body: String, headers: Map<String, String>): String = runBlocking {
+        httpClient.post(url) {
+            headers.forEach { (key, value) -> header(key, value) }
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.bodyAsText()
     }
 
     override fun compressImage(path: String, quality: Int): String {
