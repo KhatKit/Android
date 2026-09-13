@@ -513,8 +513,8 @@ private fun ChatListNormal(
                             val total = info.totalItemsCount
                             if (total <= 1 || size.height <= 0) return@detectVerticalDragGestures
                             val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
-                            val thumbH = (size.height * visible / total).coerceAtLeast(24.dp.toPx())
-                            val travel = (size.height - thumbH).coerceAtLeast(1f)
+                            val thumbH = (size.height.toFloat() * visible / total).coerceAtLeast(24.dp.toPx())
+                            val travel = (size.height.toFloat() - thumbH).coerceAtLeast(1f)
                             val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
                             val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
                             val next = (progress + dragAmount / travel).coerceIn(0f, 1f)
