@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import heizige.kk.khatkit.bridge.ToolBridge
@@ -17,7 +18,13 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
@@ -72,6 +79,94 @@ class AndroidToolBridge(
             contentType(ContentType.Application.Json)
             setBody(body)
         }.bodyAsText()
+    }
+
+    override fun httpMultipart(
+        url: String,
+        fields: Map<String, String>,
+        fileField: String?,
+        filePath: String?,
+        headers: Map<String, String>,
+        saveBinary: Boolean,
+    ): String = runBlocking {
+        if (!filePath.isNullOrBlank()) requireSharedStorageAccess(filePath)
+        val response = httpClient.post(url) {
+            headers.forEach { (key, value) -> header(key, value) }
+            setBody(
+                MultiPartFormDataContent(
+                    formData {
+                        fields.forEach { (name, value) -> append(name, value) }
+                        if (!fileField.isNullOrBlank() && !filePath.isNullOrBlank()) {
+                            val file = File(filePath)
+                            require(file.exists()) { "文件不存在：$filePath" }
+                            append(
+                                fileField,
+                                file.readBytes(),
+                                Headers.build {
+                                    append(HttpHeaders.ContentType, mimeFor(file.name))
+                                    append(HttpHeaders.ContentDisposition, "filename=\"${file.name}\"")
+                                },
+                            )
+                        }
+                    }
+                )
+            )
+        }
+        saveImageOrText(url, response, saveBinary)
+    }
+
+    override fun readBase64(path: String): String {
+        requireSharedStorageAccess(path)
+        val file = File(path)
+        require(file.exists()) { "文件不存在：$path" }
+        val encoded = Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+        return "data:${mimeFor(file.name)};base64,$encoded"
+    }
+
+    override fun saveBase64(data: String, outputPath: String): String {
+        requireSharedStorageAccess(outputPath)
+        val payload = data.substringAfter("base64,", data).trim()
+        val bytes = Base64.decode(payload, Base64.DEFAULT)
+        val file = File(outputPath)
+        file.parentFile?.mkdirs()
+        file.writeBytes(bytes)
+        return file.absolutePath
+    }
+
+    /** 图片响应落盘；其余一律按文本返回。 */
+    private suspend fun saveImageOrText(url: String, response: HttpResponse, saveBinary: Boolean): String {
+        val contentType = response.contentType()
+        val isImage = contentType?.contentType?.equals("image", ignoreCase = true) == true
+        if (!saveBinary || !isImage) return response.bodyAsText()
+
+        val bytes = response.readRawBytes()
+        val subtype = contentType?.contentSubtype.orEmpty().lowercase()
+        val extension = when (subtype) {
+            "jpeg", "jpg" -> "jpg"
+            "png", "webp", "gif", "bmp", "svg" -> subtype
+            else -> subtype.ifBlank { "png" }.replace(Regex("[^a-z0-9]"), "").ifBlank { "png" }
+        }
+        val output = File("/sdcard/Download", "zenneko_${apiName(url)}_${System.currentTimeMillis()}.$extension")
+        requireSharedStorageAccess(output.absolutePath)
+        output.parentFile?.mkdirs()
+        output.writeBytes(bytes)
+        return output.absolutePath
+    }
+
+    private fun apiName(url: String): String {
+        val name = url.substringAfterLast('/').substringBefore('?').removeSuffix(".php")
+        return name.replace(Regex("[^A-Za-z0-9_]+"), "_").ifBlank { "api" }
+    }
+
+    private fun mimeFor(fileName: String): String = when (fileName.substringAfterLast('.', "").lowercase()) {
+        "png" -> "image/png"
+        "jpg", "jpeg" -> "image/jpeg"
+        "webp" -> "image/webp"
+        "gif" -> "image/gif"
+        "bmp" -> "image/bmp"
+        "heic" -> "image/heic"
+        "pdf" -> "application/pdf"
+        else -> "application/octet-stream"
     }
 
     override fun compressImage(path: String, quality: Int): String {

@@ -1,0 +1,34 @@
+{
+  "name": "zenneko_translate",
+  "version": "1.0.0",
+  "description": "AI 翻译：基于大模型的流式翻译（SSE），支持多语言与多种引擎（免费）",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "lua",
+  "entry": { "lua": "main.lua" },
+  "privilege": "none",
+  "requires": {
+    "bridges": ["tool", "ui", "store"],
+    "libs": [],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": ["zenneko.top"] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "originText": { "type": "string", "description": "待翻译文本" },
+      "targetLang": { "type": "string", "description": "目标语言，默认 en（如 zh-CN / en / ja）" },
+      "sourceLang": { "type": "string", "description": "源语言，留空自动检测" },
+      "aiEngineName": { "type": "string", "description": "翻译引擎，默认 gpt-4o-mini" }
+    },
+    "required": ["originText"]
+  },
+  "ui": {
+    "originText": { "source": "ui", "widget": "input" },
+    "targetLang": { "source": "ui", "widget": "input" }
+  },
+  "tags": { "domain": "text", "action": "convert", "scene": "work" },
+  "compliance": { "risk": "low", "note": "免费接口" },
+  "store": { "quota_mb": 1, "secret": true }
+}
