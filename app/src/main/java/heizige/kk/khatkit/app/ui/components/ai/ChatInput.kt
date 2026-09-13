@@ -25,8 +25,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
@@ -486,10 +488,6 @@ fun ChatInput(
                         }
                     }
 
-                    // 单行输入栏：[+] [输入框] [发送]；语音改成独立的 FAB
-                    val imeVisible = WindowInsets.isImeVisible
-                    val showSend = !asrState.isRecording &&
-                        (imeVisible || loading || !asrState.isAvailable)
 
                     Surface(
                         shape = RoundedCornerShape(innerRadiusDp.dp),
@@ -541,52 +539,65 @@ fun ChatInput(
                             KeepScreenOn()
                         }
 
-                        AnimatedVisibility(
-                            visible = showSend,
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut(),
-                        ) {
-                            SendButton(
-                                loading = loading,
-                                empty = state.isEmpty(),
-                                onClick = { sendMessage() },
-                                onLongClick = { sendMessageWithoutAnswer() },
-                            )
-                        }
                     }
                     }
                 }
             }
 
-            // 独立的语音 / 打字切换按钮（和输入框同高）
-            if (asrState.isAvailable || asrState.isRecording) {
-                Spacer(Modifier.width(8.dp))
-                FloatingActionButton(
-                    onClick = {
-                        when (asrState.status) {
-                            ASRStatus.Listening -> asr.stop()
-                            ASRStatus.Idle, ASRStatus.Error -> {
-                                if (!asrPermission.allRequiredPermissionsGranted) {
-                                    asrPermission.requestPermissions()
-                                } else {
-                                    asrBaseText = state.textContent.text.toString()
-                                    asr.start { transcript ->
-                                        val spacer =
-                                            if (asrBaseText.isBlank() || transcript.isBlank()) "" else " "
-                                        state.setMessageText(asrBaseText + spacer + transcript)
-                                    }
+            // 语音输入 / 发送 二合一的 FAB（和输入框同高，按状态动画切换）
+            val imeVisible = WindowInsets.isImeVisible
+            val showSend = !asrState.isRecording &&
+                (imeVisible || loading || !asrState.isAvailable)
+            val fabState = when {
+                asrState.isRecording -> FabState.Recording
+                showSend || !asrState.isAvailable -> FabState.Send
+                else -> FabState.Mic
+            }
+            Spacer(Modifier.width(8.dp))
+            FloatingActionButton(
+                onClick = {
+                    when (fabState) {
+                        FabState.Recording -> asr.stop()
+                        FabState.Send -> sendMessage()
+                        FabState.Mic -> {
+                            if (!asrPermission.allRequiredPermissionsGranted) {
+                                asrPermission.requestPermissions()
+                            } else {
+                                asrBaseText = state.textContent.text.toString()
+                                asr.start { transcript ->
+                                    val spacer =
+                                        if (asrBaseText.isBlank() || transcript.isBlank()) "" else " "
+                                    state.setMessageText(asrBaseText + spacer + transcript)
                                 }
                             }
-
-                            ASRStatus.Connecting, ASRStatus.Stopping -> {}
                         }
+                    }
+                },
+                modifier = Modifier.size(56.dp),
+                containerColor = when (fabState) {
+                    FabState.Recording -> KedgeColors.errorContainer
+                    FabState.Send -> KedgeColors.primary
+                    FabState.Mic -> KedgeColors.secondaryContainer
+                },
+                contentColor = when (fabState) {
+                    FabState.Recording -> KedgeColors.onErrorContainer
+                    FabState.Send -> KedgeColors.onPrimary
+                    FabState.Mic -> KedgeColors.onSecondaryContainer
+                },
+            ) {
+                AnimatedContent(
+                    targetState = fabState,
+                    transitionSpec = {
+                        (fadeIn() + scaleIn()) togetherWith (fadeOut() + scaleOut())
                     },
-                    modifier = Modifier.size(56.dp),
-                    containerColor = if (asrState.isRecording) KedgeColors.errorContainer else KedgeColors.primary,
-                    contentColor = if (asrState.isRecording) KedgeColors.onErrorContainer else KedgeColors.onPrimary,
-                ) {
+                    label = "fabState",
+                ) { fab ->
                     Icon(
-                        imageVector = if (asrState.isRecording) close else mic,
+                        imageVector = when (fab) {
+                            FabState.Recording -> close
+                            FabState.Send -> arrowUpward
+                            FabState.Mic -> mic
+                        },
                         contentDescription = null,
                     )
                 }
@@ -1124,3 +1135,5 @@ private fun PanelAction(
         )
     }
 }
+
+private enum class FabState { Mic, Send, Recording }
