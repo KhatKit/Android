@@ -5,6 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListState
@@ -26,6 +27,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageMediumTopBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
@@ -94,6 +101,7 @@ import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.addComment
+import heizige.kk.khatkit.app.ui.icons.arrowBack
 import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.extension
 import heizige.kk.khatkit.app.ui.icons.formatListBulleted
@@ -283,6 +291,7 @@ private fun ChatPageContent(
     val toaster = LocalToaster.current
     val workspaceRepository: WorkspaceRepository = koinInject()
     var previewMode by rememberSaveable { mutableStateOf(false) }
+    var previewSearchQuery by remember { mutableStateOf("") }
     val hazeState = rememberHazeState()
     val assistant = setting.getCurrentAssistant()
     val modelListState = rememberModelListState(
@@ -334,6 +343,8 @@ private fun ChatPageContent(
                     bigScreen = bigScreen,
                     drawerState = drawerState,
                     previewMode = previewMode,
+                    searchQuery = previewSearchQuery,
+                    onSearchQueryChange = { previewSearchQuery = it },
                     scrollBehavior = scrollBehavior,
                     onNewChat = {
                         navigateToChatPage(navController)
@@ -468,6 +479,8 @@ private fun ChatPageContent(
                 loading = loadingJob != null,
                 processingStatus = processingStatus,
                 previewMode = previewMode,
+                previewSearchQuery = previewSearchQuery,
+                onPreviewSearchQueryChange = { previewSearchQuery = it },
                 settings = setting,
                 hazeState = hazeState,
                 errors = errors,
@@ -632,6 +645,8 @@ private fun TopBar(
     drawerState: DrawerState,
     bigScreen: Boolean,
     previewMode: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
@@ -651,13 +666,39 @@ private fun TopBar(
         colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color.Transparent),
         scrollBehavior = scrollBehavior,
         navigationIcon = {
-            if (!bigScreen) {
-                IconButton(
-                    onClick = {
-                        scope.launch { drawerState.open() }
+            AnimatedContent(
+                targetState = previewMode,
+                transitionSpec = {
+                    (fadeIn(androidx.compose.animation.core.tween(220)) +
+                        slideInHorizontally(
+                            animationSpec = androidx.compose.animation.core.tween(220),
+                            initialOffsetX = { -it / 2 },
+                        )) togetherWith
+                        (fadeOut(androidx.compose.animation.core.tween(160)) +
+                            slideOutHorizontally(
+                                animationSpec = androidx.compose.animation.core.tween(160),
+                                targetOffsetX = { -it / 2 },
+                            ))
+                },
+                label = "topSearchNav",
+            ) { searching ->
+                if (searching) {
+                    IconButton(
+                        onClick = {
+                            onSearchQueryChange("")
+                            onClickMenu()
+                        }
+                    ) {
+                        Icon(arrowBack, contentDescription = null)
                     }
-                ) {
-                    Icon(menu, "Messages")
+                } else if (!bigScreen) {
+                    IconButton(
+                        onClick = {
+                            scope.launch { drawerState.open() }
+                        }
+                    ) {
+                        Icon(menu, "Messages")
+                    }
                 }
             }
         },
@@ -666,6 +707,35 @@ private fun TopBar(
             "${topBarAssistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${topBarModel.displayName} (${topBarProvider.name})"
         } else null,
         titleContent = {
+            AnimatedContent(
+                targetState = previewMode,
+                transitionSpec = {
+                    fadeIn(androidx.compose.animation.core.tween(220)) togetherWith
+                        fadeOut(androidx.compose.animation.core.tween(160))
+                },
+                label = "topSearchTitle",
+            ) { searching ->
+            if (searching) {
+                Box {
+                    if (searchQuery.isBlank()) {
+                        Text(
+                            text = stringResource(R.string.history_page_search),
+                            style = androidx.compose.material3.LocalTextStyle.current,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                    }
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        singleLine = true,
+                        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                        ),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
             val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
             Surface(
                 modifier = Modifier
@@ -703,6 +773,8 @@ private fun TopBar(
                         )
                     }
                 }
+            }
+            }
             }
         },
         actions = {
