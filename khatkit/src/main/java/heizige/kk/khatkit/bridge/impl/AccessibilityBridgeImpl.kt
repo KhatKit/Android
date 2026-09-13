@@ -164,6 +164,15 @@ class AccessibilityBridgeImpl(
         return result
     }
 
+    override fun waitForNode(query: Map<String, Any?>, timeoutMs: Long): Map<String, Any?>? {
+        val deadline = System.currentTimeMillis() + timeoutMs.coerceIn(0L, 120_000L)
+        while (true) {
+            findNodes(query).firstOrNull()?.let { return it }
+            if (System.currentTimeMillis() >= deadline) return null
+            Thread.sleep(150)
+        }
+    }
+
     private fun firstMatch(query: Map<String, Any?>): AccessibilityNodeInfo? {
         val root = service.rootInActiveWindow ?: return null
         return firstNode(root) { matches(it, query) }

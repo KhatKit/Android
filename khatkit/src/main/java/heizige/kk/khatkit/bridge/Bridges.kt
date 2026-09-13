@@ -20,6 +20,14 @@ interface ToolBridge {
     fun compressImage(path: String, quality: Int): String
     fun mergePdf(paths: List<String>, output: String): String
     fun openDir(path: String)
+    fun listFiles(path: String): String
+    fun copyPath(src: String, dst: String)
+    fun deletePath(path: String, recursive: Boolean): Boolean
+    fun mkdir(path: String)
+    fun renamePath(src: String, dst: String)
+    fun zip(paths: List<String>, output: String): String
+    fun unzip(zipPath: String, outputDir: String): String
+    fun sleep(seconds: Int)
 }
 
 interface UiBridge {
@@ -149,6 +157,9 @@ interface AccessibilityBridge {
 
     /** 启动应用主界面。 */
     fun openApp(packageName: String): Boolean
+
+    /** 轮询等待首个匹配节点出现，超时返回 null。 */
+    fun waitForNode(query: Map<String, Any?>, timeoutMs: Long): Map<String, Any?>?
 }
 
 interface RootBridge {

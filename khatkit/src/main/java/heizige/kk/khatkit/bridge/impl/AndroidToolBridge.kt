@@ -8,6 +8,11 @@ import android.net.Uri
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import heizige.kk.khatkit.bridge.ToolBridge
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -18,6 +23,7 @@ import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 
 /**
@@ -104,6 +110,94 @@ class AndroidToolBridge(
             "无共享存储访问权限：$blocked\n" +
                 "请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」"
         )
+    }
+
+    override fun listFiles(path: String): String {
+        requireSharedStorageAccess(path)
+        val dir = File(path)
+        require(dir.isDirectory) { "不是目录：$path" }
+        val array = JSONArray()
+        dir.listFiles()?.sortedBy { it.name.lowercase() }?.forEach { file ->
+            array.put(JSONObject().apply {
+                put("name", file.name)
+                put("path", file.absolutePath)
+                put("is_dir", file.isDirectory)
+                put("size", file.length())
+                put("modified", file.lastModified())
+            })
+        }
+        return array.toString()
+    }
+
+    override fun copyPath(src: String, dst: String) {
+        requireSharedStorageAccess(src, dst)
+        val source = File(src)
+        require(source.exists()) { "不存在：$src" }
+        source.copyRecursively(File(dst), overwrite = true)
+    }
+
+    override fun deletePath(path: String, recursive: Boolean): Boolean {
+        requireSharedStorageAccess(path)
+        val target = File(path)
+        require(target.exists()) { "不存在：$path" }
+        return if (recursive) target.deleteRecursively() else target.delete()
+    }
+
+    override fun mkdir(path: String) {
+        requireSharedStorageAccess(path)
+        val dir = File(path)
+        require(dir.mkdirs() || dir.isDirectory) { "创建目录失败：$path" }
+    }
+
+    override fun renamePath(src: String, dst: String) {
+        requireSharedStorageAccess(src, dst)
+        require(File(src).renameTo(File(dst))) { "重命名失败：$src -> $dst" }
+    }
+
+    override fun zip(paths: List<String>, output: String): String {
+        require(paths.isNotEmpty()) { "没有待压缩的文件" }
+        requireSharedStorageAccess(*(paths + output).toTypedArray())
+        ZipOutputStream(FileOutputStream(output).buffered()).use { zos ->
+            paths.forEach { path ->
+                val file = File(path)
+                require(file.exists()) { "不存在：$path" }
+                val base = file.parentFile ?: File("/")
+                file.walkTopDown().forEach { current ->
+                    val entryName = current.relativeTo(base).path + if (current.isDirectory) "/" else ""
+                    zos.putNextEntry(ZipEntry(entryName))
+                    if (current.isFile) current.inputStream().use { it.copyTo(zos) }
+                    zos.closeEntry()
+                }
+            }
+        }
+        return output
+    }
+
+    override fun unzip(zipPath: String, outputDir: String): String {
+        requireSharedStorageAccess(zipPath, outputDir)
+        val out = File(outputDir)
+        out.mkdirs()
+        val canonicalOut = out.canonicalPath + File.separator
+        ZipInputStream(FileInputStream(zipPath).buffered()).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                val target = File(out, entry.name)
+                require(target.canonicalPath.startsWith(canonicalOut)) { "非法压缩包路径：${entry.name}" }
+                if (entry.isDirectory) {
+                    target.mkdirs()
+                } else {
+                    target.parentFile?.mkdirs()
+                    FileOutputStream(target).use { zis.copyTo(it) }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return out.absolutePath
+    }
+
+    override fun sleep(seconds: Int) {
+        Thread.sleep(seconds.coerceIn(0, 120) * 1000L)
     }
 
     private fun isSharedStorage(path: String): Boolean {
