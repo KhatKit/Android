@@ -118,6 +118,8 @@ fun ChatList(
     loading: Boolean,
     processingStatus: String? = null,
     previewMode: Boolean,
+    previewSearchQuery: String = "",
+    onPreviewSearchQueryChange: (String) -> Unit = {},
     settings: Settings,
     hazeState: HazeState,
     errors: List<ChatError> = emptyList(),
@@ -148,6 +150,8 @@ fun ChatList(
                 conversation = conversation,
                 settings = settings,
                 hazeState = hazeState,
+                searchQuery = previewSearchQuery,
+                onSearchQueryChange = onPreviewSearchQueryChange,
                 onJumpToMessage = onJumpToMessage,
                 animatedVisibilityScope = this@AnimatedContent,
             )
@@ -582,10 +586,10 @@ private fun ChatListPreview(
     settings: Settings,
     hazeState: HazeState,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onJumpToMessage: (Int) -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-
     // 过滤消息，同时保留原始 index 避免后续 O(n) indexOf 查找
     val filteredMessages = remember(conversation.messageNodes, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -602,36 +606,6 @@ private fun ChatListPreview(
             .fillMaxSize()
             .hazeSource(state = hazeState),
     ) {
-        // 搜索框
-        KedgeTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            placeholder = stringResource(R.string.history_page_search),
-            leadingIcon = {
-                Icon(
-                    imageVector = search,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(
-                            imageVector = close,
-                            contentDescription = "Clear",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            shape = CircleShape,
-        )
-
         // 消息预览
         LazyColumn(
             contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 32.dp + innerPadding.calculateBottomPadding()),
