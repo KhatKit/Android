@@ -1,0 +1,32 @@
+{
+  "name": "zenneko_face_gender",
+  "version": "1.0.0",
+  "description": "人脸性别转换：上传人像，转换为目标性别效果图（成功扣费 ¥0.02/次）",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "lua",
+  "entry": { "lua": "main.lua" },
+  "privilege": "none",
+  "requires": {
+    "bridges": ["tool", "ui", "store"],
+    "libs": [],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": ["zenneko.top"] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "image": { "type": "string", "description": "人像图片本地路径（不超过 8MB）" },
+      "gender": { "type": "string", "enum": ["0", "1"], "description": "目标性别：0 或 1，默认 0" }
+    },
+    "required": ["image"]
+  },
+  "ui": {
+    "image": { "source": "ui", "widget": "file_picker" },
+    "gender": { "source": "ui", "widget": "select" }
+  },
+  "tags": { "domain": "media", "action": "convert", "scene": "daily" },
+  "compliance": { "risk": "medium", "note": "付费接口：成功调用扣费 ¥0.02/次（失败不扣费）；人像处理请确保拥有图片及肖像使用授权" },
+  "store": { "quota_mb": 1, "secret": true }
+}

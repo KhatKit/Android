@@ -1,0 +1,32 @@
+{
+  "name": "zenneko_cutout",
+  "version": "1.0.0",
+  "description": "智能抠图：上传图片去除背景，返回透明 PNG（成功扣费 ¥0.02/次）",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "lua",
+  "entry": { "lua": "main.lua" },
+  "privilege": "none",
+  "requires": {
+    "bridges": ["tool", "ui", "store"],
+    "libs": [],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": ["zenneko.top"] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "image": { "type": "string", "description": "本地图片路径（也可直接传 data URL / base64）" },
+      "model": { "type": "string", "enum": ["sharp", "fur"], "description": "抠图模型：sharp（默认）/ fur（毛发）" }
+    },
+    "required": ["image"]
+  },
+  "ui": {
+    "image": { "source": "ui", "widget": "file_picker" },
+    "model": { "source": "ui", "widget": "select" }
+  },
+  "tags": { "domain": "media", "action": "convert", "scene": "daily" },
+  "compliance": { "risk": "medium", "note": "付费接口：成功调用扣费 ¥0.02/次（失败不扣费）；请确保拥有图片使用授权" },
+  "store": { "quota_mb": 1, "secret": true }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "zenneko_set_key",
+  "version": "1.0.0",
+  "description": "设置极客猫开放平台 API Key（统一保存为 zenneko_key，所有 zenneko 卡片共用；用免费快递查询接口验证）",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "lua",
+  "entry": { "lua": "main.lua" },
+  "privilege": "none",
+  "requires": {
+    "bridges": ["tool", "ui", "store"],
+    "libs": [],
+    "bins": [],
+    "env": []
+  },
+  "network": { "allow": ["zenneko.top"] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "key": { "type": "string", "description": "极客猫开放平台 API Key（sk- 开头）" }
+    },
+    "required": []
+  },
+  "ui": {
+    "key": { "source": "ui", "widget": "input" }
+  },
+  "triggers": ["user"],
+  "tags": { "domain": "system", "action": "control", "scene": "daily" },
+  "compliance": { "risk": "low", "note": "仅在本机保存 API Key，不会上传到第三方" },
+  "store": { "quota_mb": 1, "secret": true }
+}
