@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
+import heizige.kk.khatkit.app.ui.icons.search
 import android.net.Uri
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -783,7 +784,7 @@ private fun TopBar(
                     onClickMenu()
                 }
             ) {
-                Icon(if (previewMode) close else formatListBulleted, "Chat Options")
+                Icon(if (previewMode) close else search, "Chat Options")
             }
 
             IconButton(
