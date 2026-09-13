@@ -669,7 +669,6 @@ private fun TopBar(
             val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
             Surface(
                 modifier = Modifier
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
                     // 涟漪裁成圆形
                     .clip(androidx.compose.foundation.shape.CircleShape)
                     .combinedClickable(
@@ -684,9 +683,9 @@ private fun TopBar(
                     ),
                 color = Color.Transparent,
             ) {
-                // 内边距：内容不被圆形裁掉
+                // 内边距：内容不被圆形裁掉（不额外增大左右边距）
                 Column(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                 ) {
                     val assistant = settings.getCurrentAssistant()
                     val model = settings.getCurrentChatModel()
