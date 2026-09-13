@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalScrollCaptureInProgress
@@ -501,9 +503,26 @@ private fun ChatListNormal(
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 3.dp, top = 24.dp, bottom = 24.dp)
-                    .width(12.dp)
-                    .fillMaxHeight(),
+                    .padding(end = 2.dp, top = 24.dp, bottom = 24.dp)
+                    .width(16.dp)
+                    .fillMaxHeight()
+                    // 可拖动的 MD3 风格滑块
+                    .pointerInput(state.layoutInfo.totalItemsCount) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            val info = state.layoutInfo
+                            val total = info.totalItemsCount
+                            if (total <= 1 || size.height <= 0) return@detectVerticalDragGestures
+                            val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
+                            val thumbH = (size.height * visible / total).coerceAtLeast(24.dp.toPx())
+                            val travel = (size.height - thumbH).coerceAtLeast(1f)
+                            val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
+                            val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
+                            val next = (progress + dragAmount / travel).coerceIn(0f, 1f)
+                            scope.launch {
+                                state.scrollToItem((next * total).toInt().coerceIn(0, total - 1), 0)
+                            }
+                        }
+                    },
             ) {
                 val info = state.layoutInfo
                 val total = info.totalItemsCount
@@ -516,7 +535,14 @@ private fun ChatListNormal(
                 val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
                 val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
                 val thumbTop = progress * (track - thumbH)
-                val barWidth = 3.dp.toPx()
+                val barWidth = 4.dp.toPx()
+                // 轨道
+                drawRoundRect(
+                    color = Color(0x1F9E9E9E),
+                    topLeft = androidx.compose.ui.geometry.Offset(size.width - barWidth, 0f),
+                    size = androidx.compose.ui.geometry.Size(barWidth, track),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f),
+                )
                 drawRoundRect(
                     color = Color(0x5A9E9E9E),
                     topLeft = androidx.compose.ui.geometry.Offset(size.width - barWidth, thumbTop),
