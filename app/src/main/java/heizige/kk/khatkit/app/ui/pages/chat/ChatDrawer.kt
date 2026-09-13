@@ -212,24 +212,31 @@ fun ChatDrawerContent(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 navigationIcon = {
-                    AnimatedVisibility(
-                        visible = showSearch,
-                        enter = slideInHorizontally(
-                            animationSpec = androidx.compose.animation.core.tween(260),
-                            initialOffsetX = { -it },
-                        ) + fadeIn(androidx.compose.animation.core.tween(260)),
-                        exit = slideOutHorizontally(
-                            animationSpec = androidx.compose.animation.core.tween(200),
-                            targetOffsetX = { -it },
-                        ) + fadeOut(androidx.compose.animation.core.tween(200)),
-                    ) {
-                        IconButton(
-                            onClick = {
-                                drawerVm.updateSearchKeyword("")
-                                showSearch = false
+                    AnimatedContent(
+                        targetState = showSearch,
+                        transitionSpec = {
+                            (fadeIn(androidx.compose.animation.core.tween(220)) +
+                                slideInHorizontally(
+                                    animationSpec = androidx.compose.animation.core.tween(220),
+                                    initialOffsetX = { -it / 2 },
+                                )) togetherWith
+                                (fadeOut(androidx.compose.animation.core.tween(160)) +
+                                    slideOutHorizontally(
+                                        animationSpec = androidx.compose.animation.core.tween(160),
+                                        targetOffsetX = { -it / 2 },
+                                    ))
+                        },
+                        label = "searchNav",
+                    ) { searching ->
+                        if (searching) {
+                            IconButton(
+                                onClick = {
+                                    drawerVm.updateSearchKeyword("")
+                                    showSearch = false
+                                }
+                            ) {
+                                Icon(arrowBack, contentDescription = null)
                             }
-                        ) {
-                            Icon(arrowBack, contentDescription = null)
                         }
                     }
                 },
@@ -237,16 +244,8 @@ fun ChatDrawerContent(
                     AnimatedContent(
                         targetState = showSearch,
                         transitionSpec = {
-                            (fadeIn(androidx.compose.animation.core.tween(260)) +
-                                scaleIn(
-                                    animationSpec = androidx.compose.animation.core.tween(260),
-                                    initialScale = 0.92f,
-                                )) togetherWith
-                                (fadeOut(androidx.compose.animation.core.tween(200)) +
-                                    scaleOut(
-                                        animationSpec = androidx.compose.animation.core.tween(200),
-                                        targetScale = 0.92f,
-                                    ))
+                            fadeIn(androidx.compose.animation.core.tween(220)) togetherWith
+                                fadeOut(androidx.compose.animation.core.tween(160))
                         },
                         label = "searchTitle",
                     ) { searching ->
