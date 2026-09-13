@@ -214,8 +214,14 @@ fun ChatDrawerContent(
                 navigationIcon = {
                     AnimatedVisibility(
                         visible = showSearch,
-                        enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
-                        exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut(),
+                        enter = slideInHorizontally(
+                            animationSpec = androidx.compose.animation.core.tween(260),
+                            initialOffsetX = { -it },
+                        ) + fadeIn(androidx.compose.animation.core.tween(260)),
+                        exit = slideOutHorizontally(
+                            animationSpec = androidx.compose.animation.core.tween(200),
+                            targetOffsetX = { -it },
+                        ) + fadeOut(androidx.compose.animation.core.tween(200)),
                     ) {
                         IconButton(
                             onClick = {
@@ -231,8 +237,16 @@ fun ChatDrawerContent(
                     AnimatedContent(
                         targetState = showSearch,
                         transitionSpec = {
-                            fadeIn(androidx.compose.animation.core.tween(180)) togetherWith
-                                fadeOut(androidx.compose.animation.core.tween(180))
+                            (fadeIn(androidx.compose.animation.core.tween(260)) +
+                                scaleIn(
+                                    animationSpec = androidx.compose.animation.core.tween(260),
+                                    initialScale = 0.92f,
+                                )) togetherWith
+                                (fadeOut(androidx.compose.animation.core.tween(200)) +
+                                    scaleOut(
+                                        animationSpec = androidx.compose.animation.core.tween(200),
+                                        targetScale = 0.92f,
+                                    ))
                         },
                         label = "searchTitle",
                     ) { searching ->
