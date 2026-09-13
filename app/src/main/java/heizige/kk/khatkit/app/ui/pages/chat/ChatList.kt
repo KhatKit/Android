@@ -503,17 +503,17 @@ private fun ChatListNormal(
             val captureProgress = LocalScrollCaptureInProgress.current
 
             // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
-            // 当前可视比例：加动画过渡
-            val sbInfo = state.layoutInfo
-            val sbTotal = sbInfo.totalItemsCount
-            val sbVisible = sbInfo.visibleItemsInfo.size
-            val thumbRatio by androidx.compose.animation.core.animateFloatAsState(
-                targetValue = if (sbTotal > 1) {
-                    (sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f)
-                } else 1f,
-                animationSpec = androidx.compose.animation.core.tween(220),
-                label = "scrollbarThumbRatio",
-            )
+            // 可视比例：滚动中冻结，停止滚动后再更新，避免高度鬼畜
+            val sbTotal = state.layoutInfo.totalItemsCount
+            val stableVisible = remember { androidx.compose.runtime.mutableIntStateOf(1) }
+            LaunchedEffect(state.isScrollInProgress) {
+                if (!state.isScrollInProgress) {
+                    stableVisible.intValue = state.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+                }
+            }
+            val thumbRatio = if (sbTotal > 1) {
+                (stableVisible.intValue.toFloat() / sbTotal).coerceIn(0.06f, 1f)
+            } else 1f
             val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             val scrollbarThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             val scrollbarDotColor = MaterialTheme.colorScheme.primary
@@ -576,8 +576,8 @@ private fun ChatListNormal(
                         val y = if (nodeCount <= 1) 0f else index.toFloat() / (nodeCount - 1) * track
                         drawCircle(
                             color = dotColor,
-                            radius = 2.5.dp.toPx(),
-                            center = androidx.compose.ui.geometry.Offset(size.width - thickness, y),
+                            radius = 2.dp.toPx(),
+                            center = androidx.compose.ui.geometry.Offset(size.width - thickness / 2f, y),
                         )
                     }
                 }
