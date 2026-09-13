@@ -503,30 +503,22 @@ private fun ChatListNormal(
             val captureProgress = LocalScrollCaptureInProgress.current
 
             // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
-            // 可视比例：滚动中冻结，停止滚动后再更新，避免高度鬼畜
-            val sbTotal = state.layoutInfo.totalItemsCount
-            val stableVisible = remember { androidx.compose.runtime.mutableIntStateOf(1) }
-            LaunchedEffect(state.isScrollInProgress) {
-                if (!state.isScrollInProgress) {
-                    stableVisible.intValue = state.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
-                }
-            }
-            val thumbRatio = if (sbTotal > 1) {
-                (stableVisible.intValue.toFloat() / sbTotal).coerceIn(0.06f, 1f)
-            } else 1f
-            // 组合期计算进度：index + 当前 item 内的像素比例
-            val firstVisibleIndex = state.firstVisibleItemIndex
-            val firstVisibleOffset = state.firstVisibleItemScrollOffset
-            val firstVisibleItemSize = state.layoutInfo.visibleItemsInfo
-                .firstOrNull { it.index == firstVisibleIndex }
-                ?.size
-                ?.coerceAtLeast(1)
-                ?: 1
-            val scrollOffsetFraction =
-                (firstVisibleOffset.toFloat() / firstVisibleItemSize).coerceIn(0f, 1f)
-            var scrollProgress = if (sbTotal > 1) {
-                ((firstVisibleIndex + scrollOffsetFraction) / sbTotal).coerceIn(0f, 1f)
-            } else 0f
+            // 基于像素高度估算：回复长高时比例/位置平滑变化，不按个数跳变
+            val sbLayout = state.layoutInfo
+            val sbTotal = sbLayout.totalItemsCount
+            val sbVisibleItems = sbLayout.visibleItemsInfo
+            val viewportPx = (sbLayout.viewportEndOffset - sbLayout.viewportStartOffset)
+                .toFloat().coerceAtLeast(1f)
+            val visibleSum = sbVisibleItems.sumOf { it.size }.toFloat().coerceAtLeast(1f)
+            val avgItemPx = if (sbVisibleItems.isNotEmpty()) {
+                visibleSum / sbVisibleItems.size
+            } else viewportPx
+            val estContentPx = (avgItemPx * sbTotal).coerceAtLeast(viewportPx)
+            val thumbRatio = (viewportPx / estContentPx).coerceIn(0.06f, 1f)
+            val scrolledPx = state.firstVisibleItemIndex * avgItemPx +
+                state.firstVisibleItemScrollOffset
+            var scrollProgress =
+                (scrolledPx / (estContentPx - viewportPx).coerceAtLeast(1f)).coerceIn(0f, 1f)
             if (!state.canScrollForward) scrollProgress = 1f
             if (!state.canScrollBackward) scrollProgress = 0f
             val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
