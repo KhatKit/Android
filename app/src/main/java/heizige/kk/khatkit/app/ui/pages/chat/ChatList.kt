@@ -503,6 +503,17 @@ private fun ChatListNormal(
             val captureProgress = LocalScrollCaptureInProgress.current
 
             // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
+            // 当前可视比例：加动画过渡
+            val sbInfo = state.layoutInfo
+            val sbTotal = sbInfo.totalItemsCount
+            val sbVisible = sbInfo.visibleItemsInfo.size
+            val thumbRatio by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (sbTotal > 1) {
+                    (sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f)
+                } else 1f,
+                animationSpec = androidx.compose.animation.core.tween(220),
+                label = "scrollbarThumbRatio",
+            )
             val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             val scrollbarThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             val scrollbarDotColor = MaterialTheme.colorScheme.primary
@@ -544,10 +555,12 @@ private fun ChatListNormal(
                     cornerRadius = radius,
                 )
 
-                // 滑块（Now in Android：可见高度比例）
-                val thumbH = (track * visible / total).coerceAtLeast(32.dp.toPx()).coerceAtMost(track)
+                // 滑块（动画比例；到底/到顶时严格贴边）
+                val thumbH = (track * thumbRatio).coerceAtLeast(32.dp.toPx()).coerceAtMost(track)
                 val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
-                val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
+                var progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
+                if (!state.canScrollForward) progress = 1f
+                if (!state.canScrollBackward) progress = 0f
                 val thumbTop = progress * (track - thumbH)
                 drawRoundRect(
                     color = scrollbarThumbColor,
@@ -563,8 +576,8 @@ private fun ChatListNormal(
                         val y = if (nodeCount <= 1) 0f else index.toFloat() / (nodeCount - 1) * track
                         drawCircle(
                             color = dotColor,
-                            radius = 2.dp.toPx(),
-                            center = androidx.compose.ui.geometry.Offset(size.width - thickness / 2f, y),
+                            radius = 2.5.dp.toPx(),
+                            center = androidx.compose.ui.geometry.Offset(size.width - thickness, y),
                         )
                     }
                 }
