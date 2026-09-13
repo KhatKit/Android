@@ -503,22 +503,18 @@ private fun ChatListNormal(
             val captureProgress = LocalScrollCaptureInProgress.current
 
             // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
-            // 基于像素高度估算：回复长高时比例/位置平滑变化，不按个数跳变
-            val sbLayout = state.layoutInfo
-            val sbTotal = sbLayout.totalItemsCount
-            val sbVisibleItems = sbLayout.visibleItemsInfo
-            val viewportPx = (sbLayout.viewportEndOffset - sbLayout.viewportStartOffset)
-                .toFloat().coerceAtLeast(1f)
-            val visibleSum = sbVisibleItems.sumOf { it.size }.toFloat().coerceAtLeast(1f)
-            val avgItemPx = if (sbVisibleItems.isNotEmpty()) {
-                visibleSum / sbVisibleItems.size
-            } else viewportPx
-            val estContentPx = (avgItemPx * sbTotal).coerceAtLeast(viewportPx)
-            val thumbRatio = (viewportPx / estContentPx).coerceIn(0.06f, 1f)
-            val scrolledPx = state.firstVisibleItemIndex * avgItemPx +
-                state.firstVisibleItemScrollOffset
-            var scrollProgress =
-                (scrolledPx / (estContentPx - viewportPx).coerceAtLeast(1f)).coerceIn(0f, 1f)
+            // 纯索引比例（量化 5% 步进）+ 当前 item 内偏移：稳定不跳变
+            val sbInfo = state.layoutInfo
+            val sbTotal = sbInfo.totalItemsCount.coerceAtLeast(1)
+            val sbVisible = sbInfo.visibleItemsInfo.size.coerceAtLeast(1)
+            val thumbRatio = ((sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f) * 20f)
+                .let { kotlin.math.round(it) / 20f }
+            val firstIndex = state.firstVisibleItemIndex
+            val firstSize = sbInfo.visibleItemsInfo.firstOrNull { it.index == firstIndex }
+                ?.size?.coerceAtLeast(1) ?: 1
+            val offsetFraction = (state.firstVisibleItemScrollOffset.toFloat() / firstSize)
+                .coerceIn(0f, 1f)
+            var scrollProgress = ((firstIndex + offsetFraction) / sbTotal).coerceIn(0f, 1f)
             if (!state.canScrollForward) scrollProgress = 1f
             if (!state.canScrollBackward) scrollProgress = 0f
             val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
