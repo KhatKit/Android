@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -499,56 +502,58 @@ private fun ChatListNormal(
 
             val captureProgress = LocalScrollCaptureInProgress.current
 
-            // 右侧滚动条：每个回答在对应位置标一个点
+            // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 2.dp, top = 24.dp, bottom = 24.dp)
-                    .width(16.dp)
+                    .width(14.dp)
                     .fillMaxHeight()
-                    // 可拖动的 MD3 风格滑块
-                    .pointerInput(state.layoutInfo.totalItemsCount) {
-                        detectVerticalDragGestures { _, dragAmount ->
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
                             val info = state.layoutInfo
                             val total = info.totalItemsCount
-                            if (total <= 1 || size.height <= 0) return@detectVerticalDragGestures
                             val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
-                            val thumbH = (size.height.toFloat() * visible / total).coerceAtLeast(24.dp.toPx())
-                            val travel = (size.height.toFloat() - thumbH).coerceAtLeast(1f)
-                            val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
-                            val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
-                            val next = (progress + dragAmount / travel).coerceIn(0f, 1f)
-                            scope.launch {
-                                state.scrollToItem((next * total).toInt().coerceIn(0, total - 1), 0)
+                            if (total > 1) {
+                                val raw = delta * total / visible
+                                scope.launch { state.dispatchRawDelta(raw) }
                             }
-                        }
-                    },
+                        },
+                    ),
             ) {
                 val info = state.layoutInfo
                 val total = info.totalItemsCount
                 if (total <= 1 || size.height <= 0f) return@Canvas
                 val nodes = conversation.messageNodes
                 val nodeCount = nodes.size.coerceAtLeast(1)
-                val track = size.height
                 val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
-                val thumbH = (track * visible / total).coerceAtLeast(24.dp.toPx()).coerceAtMost(track)
-                val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
-                val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
-                val thumbTop = progress * (track - thumbH)
-                val barWidth = 4.dp.toPx()
+                val track = size.height
+                val thickness = 4.dp.toPx()
+                val radius = androidx.compose.ui.geometry.CornerRadius(thickness / 2f)
+                val x = size.width - thickness
+
                 // 轨道
                 drawRoundRect(
                     color = Color(0x1F9E9E9E),
-                    topLeft = androidx.compose.ui.geometry.Offset(size.width - barWidth, 0f),
-                    size = androidx.compose.ui.geometry.Size(barWidth, track),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f),
+                    topLeft = androidx.compose.ui.geometry.Offset(x, 0f),
+                    size = androidx.compose.ui.geometry.Size(thickness, track),
+                    cornerRadius = radius,
                 )
+
+                // 滑块（Now in Android：可见高度比例）
+                val thumbH = (track * visible / total).coerceAtLeast(32.dp.toPx()).coerceAtMost(track)
+                val offsetFraction = (state.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
+                val progress = ((state.firstVisibleItemIndex + offsetFraction) / total).coerceIn(0f, 1f)
+                val thumbTop = progress * (track - thumbH)
                 drawRoundRect(
-                    color = Color(0x5A9E9E9E),
-                    topLeft = androidx.compose.ui.geometry.Offset(size.width - barWidth, thumbTop),
-                    size = androidx.compose.ui.geometry.Size(barWidth, thumbH),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f),
+                    color = Color(0xCC9E9E9E),
+                    topLeft = androidx.compose.ui.geometry.Offset(x, thumbTop),
+                    size = androidx.compose.ui.geometry.Size(thickness, thumbH),
+                    cornerRadius = radius,
                 )
+
+                // 回答位置点
                 val dotColor = Color(0xCC7C9CF5)
                 nodes.forEachIndexed { index, node ->
                     if (node.currentMessage.role == MessageRole.ASSISTANT) {
@@ -556,7 +561,7 @@ private fun ChatListNormal(
                         drawCircle(
                             color = dotColor,
                             radius = 2.dp.toPx(),
-                            center = androidx.compose.ui.geometry.Offset(size.width - barWidth / 2f, y),
+                            center = androidx.compose.ui.geometry.Offset(size.width - thickness / 2f, y),
                         )
                     }
                 }
