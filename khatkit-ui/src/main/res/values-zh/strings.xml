@@ -21,6 +21,11 @@
   <string name="khatkit_market_secrets">密钥</string>
   <string name="khatkit_market_uninstall">卸载</string>
   <string name="khatkit_market_install">安装</string>
+  <string name="khatkit_market_run">运行</string>
+  <string name="khatkit_market_run_done">已运行 %1$s</string>
+  <string name="khatkit_market_run_failed">运行失败</string>
+  <string name="khatkit_trigger_ai">AI</string>
+  <string name="khatkit_trigger_user">用户</string>
   <string name="khatkit_secrets_title">%1$s 的密钥</string>
   <string name="khatkit_secrets_empty">该卡片没有存储任何密钥</string>
   <string name="khatkit_secrets_revoked">已撤销 %1$s</string>

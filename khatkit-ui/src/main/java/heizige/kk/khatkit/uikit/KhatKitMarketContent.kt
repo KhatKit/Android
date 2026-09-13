@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOutlinedTextField
@@ -49,14 +51,20 @@ fun KhatKitMarketContent(
     var loading by remember { mutableStateOf(true) }
     var cards by remember { mutableStateOf<List<CardIndexEntry>>(emptyList()) }
     var installed by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var triggers by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
     var showSettings by remember { mutableStateOf(false) }
     var secretCard by remember { mutableStateOf<String?>(null) }
+
+    suspend fun reloadInstalled() {
+        installed = controller.installedCardVersions()
+        triggers = controller.installedCardTriggers()
+    }
 
     fun refresh(search: String) {
         scope.launch {
             loading = true
             cards = controller.searchCards(search, limit = 50)
-            installed = controller.installedCardVersions()
+            reloadInstalled()
             loading = false
         }
     }
@@ -130,29 +138,42 @@ fun KhatKitMarketContent(
                 val updateFailedToast = stringResource(R.string.khatkit_market_update_failed)
                 val uninstalledToast = stringResource(R.string.khatkit_market_uninstalled, entry.name)
                 val uninstallFailedToast = stringResource(R.string.khatkit_market_uninstall_failed)
+                val runDoneToast = stringResource(R.string.khatkit_market_run_done, entry.name)
+                val runFailedToast = stringResource(R.string.khatkit_market_run_failed)
 
                 KhatKitCardItem(
                     entry = entry,
                     installedVersion = installed[entry.name],
+                    triggers = triggers[entry.name] ?: entry.triggers,
+                    onRun = {
+                        scope.launch {
+                            val result = controller.runCard(entry.name)
+                            if (result.ok) {
+                                onToast(runDoneToast, false)
+                            } else {
+                                onToast(result.message.ifBlank { runFailedToast }, true)
+                            }
+                        }
+                    },
                     onInstall = {
                         scope.launch {
                             val ok = controller.installCard(entry)
                             onToast(if (ok) installedToast else installFailedToast, !ok)
-                            installed = controller.installedCardVersions()
+                            reloadInstalled()
                         }
                     },
                     onUpdate = {
                         scope.launch {
                             val ok = controller.installCard(entry, force = true)
                             onToast(if (ok) updatedToast else updateFailedToast, !ok)
-                            installed = controller.installedCardVersions()
+                            reloadInstalled()
                         }
                     },
                     onUninstall = {
                         scope.launch {
                             val ok = controller.uninstallCard(entry.name)
                             onToast(if (ok) uninstalledToast else uninstallFailedToast, !ok)
-                            installed = controller.installedCardVersions()
+                            reloadInstalled()
                         }
                     },
                     onSecrets = { secretCard = entry.name },
@@ -166,13 +187,23 @@ fun KhatKitMarketContent(
 private fun KhatKitCardItem(
     entry: CardIndexEntry,
     installedVersion: String?,
+    triggers: List<String>,
+    onRun: () -> Unit,
     onInstall: () -> Unit,
     onUpdate: () -> Unit,
     onUninstall: () -> Unit,
     onSecrets: () -> Unit,
 ) {
+    val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
+
     KedgeCard(modifier = Modifier.fillMaxWidth()) {
         Text(entry.name, style = MaterialTheme.typography.titleMedium)
+
+        if (displayTriggers.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                displayTriggers.forEach { trigger -> TriggerBadge(trigger) }
+            }
+        }
 
         val description = entry.summary.ifBlank { entry.description }
         if (description.isNotBlank()) {
@@ -197,6 +228,9 @@ private fun KhatKitCardItem(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                 )
+                if (CardManifest.TRIGGER_USER in triggers) {
+                    KedgeTextButton(onClick = onRun) { Text(stringResource(R.string.khatkit_market_run)) }
+                }
                 if (installedVersion != entry.version) {
                     KedgeTextButton(onClick = onUpdate) { Text(stringResource(R.string.khatkit_market_update)) }
                 }
@@ -207,4 +241,23 @@ private fun KhatKitCardItem(
             }
         }
     }
+}
+
+@Composable
+private fun TriggerBadge(trigger: String) {
+    val label = when (trigger) {
+        CardManifest.TRIGGER_AI -> stringResource(R.string.khatkit_trigger_ai)
+        else -> stringResource(R.string.khatkit_trigger_user)
+    }
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = MaterialTheme.shapes.small,
+            )
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
 }

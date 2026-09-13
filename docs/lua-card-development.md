@@ -70,9 +70,16 @@ return { message = "Hello, " .. (v.name or name or "world") }
 | `network.allow` | ✅ | 域名白名单，空数组 = 禁止联网；脚本里出现的 `http(s)://host` 必须在此 |
 | `parameters` | ✅ | 标准 JSON Schema（AI 按它填参），设计上兼容 MCP tool schema |
 | `ui` | | 声明哪些参数必须由人填：`{ "路径参数": { "source": "ui", "widget": "file_picker" } }` |
+| `triggers` | | 触发方式数组：`ai`（AI 工具可调用）/ `user`（用户可在卡片市场手动运行），缺省 `["ai", "user"]` |
 | `tags` | ✅ | 对象结构：`{ "domain": ..., "action": ..., "scene": ... }` |
 | `compliance` | 条件 | `domain: game` 时强制：`{ "risk": "high", "note": "..." }` |
 | `store` | | `{ "quota_mb": 50, "secret": false }` |
+
+### 触发方式（triggers）
+
+- `ai`：卡片会暴露给 AI 作为工具，AI 可自动调用；不声明 `ai` 的卡片不会出现在 AI 的工具列表里，被调用也会被拒绝。
+- `user`：卡片市场中的「运行」按钮只在声明了 `user` 时出现，用户可手动执行。
+- 可同时声明（`["ai", "user"]`），也是不写该字段时的默认值；CI 会拒绝未知值（如 `timer`）、重复值和空数组。
 
 ### 标签词表（受控，CI 校验）
 

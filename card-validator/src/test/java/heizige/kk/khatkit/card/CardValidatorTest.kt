@@ -17,6 +17,7 @@ class CardValidatorTest {
         compliance: CardManifest.Compliance? = null,
         network: List<String> = emptyList(),
         command: String? = null,
+        triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
     ) = CardManifest(
         name = name,
         version = "1.2.0",
@@ -26,6 +27,7 @@ class CardValidatorTest {
         requires = CardManifest.Requires(bridges = bridges),
         network = CardManifest.Network(allow = network),
         parameters = JsonObject(emptyMap()),
+        triggers = triggers,
         tags = tags,
         compliance = compliance,
         command = command,
@@ -102,6 +104,52 @@ class CardValidatorTest {
     }
 
     @Test
+    fun unknownTriggerRejected() {
+        val issues = CardValidator.validate(manifest(triggers = listOf("timer")))
+        assertTrue(issues.any { it.code == "TRIGGER_UNKNOWN" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun duplicateTriggerRejected() {
+        val issues = CardValidator.validate(manifest(triggers = listOf("ai", "ai")))
+        assertTrue(issues.any { it.code == "TRIGGER_DUPLICATE" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun emptyTriggersRejected() {
+        val issues = CardValidator.validate(manifest(triggers = emptyList()))
+        assertTrue(issues.any { it.code == "TRIGGER_EMPTY" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun defaultTriggersSupportAiAndUser() {
+        val parsed = manifest()
+        assertTrue(parsed.supportsAi())
+        assertTrue(parsed.supportsUser())
+    }
+
+    @Test
+    fun explicitUserOnlyTriggerParses() {
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "user_only",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": { "bridges": ["ui"] },
+              "network": { "allow": [] },
+              "triggers": ["user"],
+              "tags": { "domain": "file", "action": "convert" }
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        assertFalse(parsed.supportsAi())
+        assertTrue(parsed.supportsUser())
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
     fun jsonParsingRoundTrip() {
         val json = """
             {
@@ -122,6 +170,7 @@ class CardValidatorTest {
         assertEquals("pdf_merge", parsed.name)
         assertEquals("work", parsed.tags?.scene)
         assertEquals(50, parsed.store.quotaMb)
+        assertEquals(listOf("ai", "user"), parsed.triggers)
         assertTrue(CardValidator.isValid(parsed))
     }
 }

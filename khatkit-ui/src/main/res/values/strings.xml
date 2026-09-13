@@ -21,6 +21,11 @@
   <string name="khatkit_market_secrets">Keys</string>
   <string name="khatkit_market_uninstall">Uninstall</string>
   <string name="khatkit_market_install">Install</string>
+  <string name="khatkit_market_run">Run</string>
+  <string name="khatkit_market_run_done">Ran %1$s</string>
+  <string name="khatkit_market_run_failed">Run failed</string>
+  <string name="khatkit_trigger_ai">AI</string>
+  <string name="khatkit_trigger_user">User</string>
   <string name="khatkit_secrets_title">Keys of %1$s</string>
   <string name="khatkit_secrets_empty">This card has no stored keys</string>
   <string name="khatkit_secrets_revoked">Revoked %1$s</string>
