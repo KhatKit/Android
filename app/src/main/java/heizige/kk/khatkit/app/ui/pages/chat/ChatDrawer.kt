@@ -231,16 +231,17 @@ fun ChatDrawerContent(
                     AnimatedContent(
                         targetState = showSearch,
                         transitionSpec = {
-                            (fadeIn() + expandHorizontally(expandFrom = Alignment.Start, clip = false)) togetherWith
-                                (fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start, clip = false))
+                            fadeIn(androidx.compose.animation.core.tween(180)) togetherWith
+                                fadeOut(androidx.compose.animation.core.tween(180))
                         },
+                        label = "searchTitle",
                     ) { searching ->
                         if (searching) {
                             Box {
                                 if (searchKeyword.isBlank()) {
                                     Text(
                                         text = stringResource(R.string.chat_page_search_chats),
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style = androidx.compose.material3.LocalTextStyle.current,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                     )
                                 }
@@ -248,7 +249,7 @@ fun ChatDrawerContent(
                                     value = searchKeyword,
                                     onValueChange = drawerVm::updateSearchKeyword,
                                     singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
                                         color = MaterialTheme.colorScheme.onSurface,
                                     ),
                                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
