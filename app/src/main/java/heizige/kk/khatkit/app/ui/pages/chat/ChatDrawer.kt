@@ -1,5 +1,15 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.text.BasicTextField
@@ -202,7 +212,11 @@ fun ChatDrawerContent(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 navigationIcon = {
-                    if (showSearch) {
+                    AnimatedVisibility(
+                        visible = showSearch,
+                        enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
+                        exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut(),
+                    ) {
                         IconButton(
                             onClick = {
                                 drawerVm.updateSearchKeyword("")
@@ -214,7 +228,13 @@ fun ChatDrawerContent(
                     }
                 },
                 title = {
-                    AnimatedContent(targetState = showSearch) { searching ->
+                    AnimatedContent(
+                        targetState = showSearch,
+                        transitionSpec = {
+                            (fadeIn() + expandHorizontally(expandFrom = Alignment.Start, clip = false)) togetherWith
+                                (fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start, clip = false))
+                        },
+                    ) { searching ->
                         if (searching) {
                             Box {
                                 if (searchKeyword.isBlank()) {
@@ -243,19 +263,27 @@ fun ChatDrawerContent(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            if (!showSearch) {
-                                showSearch = true
-                            } else {
-                                drawerVm.updateSearchKeyword("")
+                    AnimatedContent(
+                        targetState = showSearch to searchKeyword.isNotEmpty(),
+                        transitionSpec = {
+                            (fadeIn() + scaleIn()) togetherWith (fadeOut() + scaleOut())
+                        },
+                        label = "searchAction",
+                    ) { (searching, hasKey) ->
+                        IconButton(
+                            onClick = {
+                                if (!showSearch) {
+                                    showSearch = true
+                                } else {
+                                    drawerVm.updateSearchKeyword("")
+                                }
                             }
+                        ) {
+                            Icon(
+                                imageVector = if (searching && hasKey) close else search,
+                                contentDescription = stringResource(R.string.chat_page_search_chats),
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = if (showSearch && searchKeyword.isNotEmpty()) close else search,
-                            contentDescription = stringResource(R.string.chat_page_search_chats),
-                        )
                     }
                 },
             )
