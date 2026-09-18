@@ -350,15 +350,6 @@ fun PermissionChecklist(
                 },
             )
         )
-        add(
-            PermissionUiItem(
-                titleRes = R.string.greeting_permission_accessibility_title,
-                descRes = R.string.greeting_permission_accessibility_desc,
-                granted = accessibilityEnabled,
-                actionLabelRes = R.string.greeting_permission_action_settings,
-                onAction = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
-            )
-        )
     }
 
     Column(
@@ -431,6 +422,15 @@ fun PermissionChecklist(
         Spacer(modifier = Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
             PermissionRadioItem(
+                title = stringResource(R.string.greeting_permission_accessibility_title),
+                subtitle = stringResource(R.string.greeting_permission_accessibility_desc),
+                selected = accessibilityEnabled,
+                shape = cards.indexedShape(0, 3),
+                dangerous = true,
+                enabled = true,
+                onClick = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+            )
+            PermissionRadioItem(
                 title = stringResource(R.string.greeting_permission_root_title),
                 subtitle = if (rootAvailable) {
                     stringResource(R.string.greeting_permission_root_desc)
@@ -438,7 +438,7 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
                 },
                 selected = rootAvailable && rootEnabled,
-                shape = cards.indexedShape(0, 2),
+                shape = cards.indexedShape(1, 3),
                 dangerous = true,
                 enabled = rootAvailable,
                 onClick = {
@@ -456,7 +456,7 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
                 },
                 selected = shizukuGranted,
-                shape = cards.indexedShape(1, 2),
+                shape = cards.indexedShape(2, 3),
                 dangerous = true,
                 enabled = shizukuAvailable,
                 onClick = {
