@@ -264,13 +264,22 @@ class KhatKitToolProvider(
     /**
      * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后清除。
      * AI tool / 用户手动 / 事件触发三个入口都汇聚到这里；用户已请求停止时不再开新运行。
+     * 执行前通过 [AutomationBus.requestApproval] 在看板上请求用户授权（放手模式或已授权则跳过）。
      */
-    suspend fun runCardWithStatus(card: LoadedCard, args: Map<String, Any?>): EngineResult {
+    suspend fun runCardWithStatus(
+        card: LoadedCard,
+        args: Map<String, Any?>,
+        trigger: String = "AI",
+    ): EngineResult {
         if (AutomationBus.isCancelRequested()) {
             AutomationBus.clear()
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
         AutomationBus.update("正在运行卡片：${card.manifest.name}")
+        if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger")) {
+            AutomationBus.clear()
+            return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
+        }
         return try {
             runManager.run(card, args)
         } finally {
@@ -348,15 +357,11 @@ class KhatKitToolProvider(
     }
 
     private fun CardToolSpec.toTool(): Tool {
-        // 设计 13.2：高权限 / 高风险卡片由宿主强制审批，而不是只靠脚本自觉调 ui.confirm
-        val privileged = card?.manifest?.let {
-            it.privilege == "elevated" || it.compliance?.risk == "high"
-        } ?: (entry?.privilege == "elevated")
+        // 审批已统一移到自动化悬浮看板（runCardWithStatus），这里不再走会话内审批
         return Tool(
             name = "khatkit__$name",
             description = descriptionText(),
             parameters = { inputSchema() },
-            needsApproval = { privileged && !handsOffMode },
             execute = { args ->
                 val arguments = jsonToMap(args)
                 // 任何异常都收敛成 error 文本，不能让卡片问题打断整轮生成。
@@ -367,7 +372,7 @@ class KhatKitToolProvider(
                             EngineResult.Err("CARD_UNAVAILABLE", "卡片未下载且 Hub 不可达：$name")
                         !card.manifest.supportsAi() ->
                             EngineResult.Err("TRIGGER_DENIED", "卡片未启用 ai 触发：$name")
-                        else -> runCardWithStatus(card, arguments)
+                        else -> runCardWithStatus(card, arguments, trigger = "AI")
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -521,13 +526,17 @@ class KhatKitToolProvider(
         }
     }
 
-    private fun deviceAct(params: Map<String, Any?>): String {
+    private suspend fun deviceAct(params: Map<String, Any?>): String {
         if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
         val bridge = AccessibilityBridgeHolder.current()
             ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
         val action = params.str("action")?.lowercase()
             ?: return "缺少参数：action"
         AutomationBus.update(deviceActLabel(action, params))
+        if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params))) {
+            AutomationBus.clear()
+            return "用户拒绝授权，已取消操作：$action"
+        }
         val result = runCatching {
             when (action) {
                 "click_text" -> {
@@ -603,6 +612,29 @@ class KhatKitToolProvider(
         return result
     }
 
+    /** 授权请求里展示的动作摘要：动作 + 文本 / id / 坐标。 */
+    private fun deviceActApprovalDetail(action: String, params: Map<String, Any?>): String {
+        val target = when (action) {
+            "click_text", "set_text", "wait_text", "open_app" ->
+                params.str("text") ?: params.str("id")
+            "click_id" -> params.str("id")
+            "tap", "press" -> {
+                val x = params.float("x")
+                val y = params.float("y")
+                if (x != null && y != null) "($x, $y)" else null
+            }
+            "swipe" -> {
+                val x1 = params.float("x")
+                val y1 = params.float("y")
+                val x2 = params.float("x2")
+                val y2 = params.float("y2")
+                if (x1 != null && y1 != null && x2 != null && y2 != null) "($x1,$y1) → ($x2,$y2)" else null
+            }
+            else -> null
+        }
+        return if (target.isNullOrBlank()) "动作：$action" else "动作：$action $target"
+    }
+
     /** 设备动作的看板文案（中文）。 */
     private fun deviceActLabel(action: String, params: Map<String, Any?>): String = when (action) {
         "click_text" -> "正在点击「${params.str("text").orEmpty()}」"
@@ -668,7 +700,7 @@ class KhatKitToolProvider(
         if (!card.manifest.supportsUser()) {
             return@withContext CardRunResult(false, "卡片未启用用户触发：$name")
         }
-        when (val result = runCardWithStatus(card, emptyMap())) {
+        when (val result = runCardWithStatus(card, emptyMap(), trigger = "用户")) {
             is EngineResult.Ok -> {
                 // 脚本约定 return { error = "..." } 表示失败，宿主侧转成错误提示
                 val error = result.value["error"]?.toString()

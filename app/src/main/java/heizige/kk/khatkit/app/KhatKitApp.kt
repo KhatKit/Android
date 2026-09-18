@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import heizige.kk.khatkit.app.data.files.FileFolders
 import heizige.kk.khatkit.app.automation.AutomationBus
+import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
 import java.io.File
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -101,6 +102,8 @@ class KhatKitApp : Application() {
 
         // 自动化状态看板：状态出现时拉起悬浮窗服务（未授予悬浮权限时静默跳过）
         AutomationBus.install(this)
+        val khatKitTools = get<KhatKitToolProvider>()
+        AutomationBus.setHandsOffProvider { khatKitTools.handsOffMode }
 
         // Increment launch count
         incrementLaunchCount()

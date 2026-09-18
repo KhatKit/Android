@@ -106,6 +106,7 @@ fun PermissionChecklist(
     var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     var accessibilityEnabled by remember { mutableStateOf(KhatKitAccessibilityService.isEnabled(context)) }
     var listenerEnabled by remember { mutableStateOf(checkNotificationListener(context)) }
+    var handsOff by remember { mutableStateOf(provider.handsOffMode) }
 
     fun refresh() {
         rootEnabled = provider.enableRoot
@@ -127,6 +128,7 @@ fun PermissionChecklist(
         overlayGranted = Settings.canDrawOverlays(context)
         accessibilityEnabled = KhatKitAccessibilityService.isEnabled(context)
         listenerEnabled = checkNotificationListener(context)
+        handsOff = provider.handsOffMode
     }
 
     LifecycleResumeEffect(Unit) {
@@ -425,7 +427,7 @@ fun PermissionChecklist(
                 title = stringResource(R.string.greeting_permission_accessibility_title),
                 subtitle = stringResource(R.string.greeting_permission_accessibility_desc),
                 selected = accessibilityEnabled,
-                shape = cards.indexedShape(0, 3),
+                shape = cards.indexedShape(0, 4),
                 dangerous = true,
                 enabled = true,
                 onClick = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
@@ -438,7 +440,7 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
                 },
                 selected = rootAvailable && rootEnabled,
-                shape = cards.indexedShape(1, 3),
+                shape = cards.indexedShape(1, 4),
                 dangerous = true,
                 enabled = rootAvailable,
                 onClick = {
@@ -456,7 +458,7 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
                 },
                 selected = shizukuGranted,
-                shape = cards.indexedShape(2, 3),
+                shape = cards.indexedShape(2, 4),
                 dangerous = true,
                 enabled = shizukuAvailable,
                 onClick = {
@@ -468,6 +470,20 @@ fun PermissionChecklist(
                     } else {
                         refresh()
                     }
+                },
+            )
+            PermissionRadioItem(
+                title = "放手模式",
+                subtitle = "允许自动化执行任何操作，不再弹窗询问 · " +
+                    if (handsOff) "已开启" else "已关闭",
+                selected = handsOff,
+                shape = cards.indexedShape(3, 4),
+                dangerous = true,
+                enabled = true,
+                onClick = {
+                    val next = !handsOff
+                    provider.handsOffMode = next
+                    handsOff = next
                 },
             )
         }

@@ -11,17 +11,33 @@ import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,13 +47,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
@@ -65,14 +84,23 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private const val TAG = "AutomationOverlay"
+private const val ANIMATION_MS = 250
+
+private val ToastContainerColor = Color(0xE6323232)
+private val ToastContentColor = Color.White
+private val ToastRunningColor = Color(0xFF7ED9A7)
+private val ToastStoppingColor = Color(0xFFFFB4AB)
 
 /**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
  * 用 [WindowManager] + `TYPE_APPLICATION_OVERLAY` 在系统最上层显示当前步骤、
- * 最近 4 步历史与「停止」按钮；空闲约 3 秒后移除视图并 [stopSelf]。
+ * 最近步骤与「停止」按钮；空闲后播放退场动画（约 [ANIMATION_MS] ms）再移除视图并 [stopSelf]。
+ * 运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，空闲或销毁时释放。
  *
  * 未授予悬浮窗权限（SYSTEM_ALERT_WINDOW）时直接结束，不显示也不崩溃。
  */
@@ -86,9 +114,14 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var observeJob: Job? = null
+    private var hideJob: Job? = null
     private var overlayView: ComposeView? = null
     private var overlayParams: WindowManager.LayoutParams? = null
     private var windowManager: WindowManager? = null
+    private val overlayVisible = mutableStateOf(false)
+    private val overlayStatus = mutableStateOf<AutomationBus.AutomationStatus?>(null)
+    private val overlayApproval = mutableStateOf<AutomationBus.ApprovalRequest?>(null)
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -121,6 +154,9 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     override fun onDestroy() {
         observeJob?.cancel()
         observeJob = null
+        hideJob?.cancel()
+        hideJob = null
+        releaseWakeLock()
         detachOverlay()
         scope.cancel()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
@@ -157,8 +193,12 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             setContent {
                 KhatKitTheme {
                     AutomationStatusBoard(
-                        status = AutomationBus.status.collectAsState().value,
+                        status = overlayStatus.value,
+                        approval = overlayApproval.value,
+                        visible = overlayVisible.value,
                         onStop = { AutomationBus.requestCancel() },
+                        onApprove = { AutomationBus.approve() },
+                        onDeny = { AutomationBus.deny() },
                         onDrag = ::moveOverlay,
                     )
                 }
@@ -169,12 +209,13 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT,
         ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 24
-            y = 200
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            x = 0
+            y = (BOTTOM_MARGIN_DP * resources.displayMetrics.density).roundToInt()
         }
         try {
             manager.addView(view, params)
@@ -190,6 +231,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     }
 
     private fun detachOverlay() {
+        overlayVisible.value = false
         val view = overlayView ?: return
         runCatching { windowManager?.removeView(view) }
             .onFailure { Log.w(TAG, "removeView failed", it) }
@@ -203,11 +245,29 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun observeStatus() {
         if (observeJob != null) return
         observeJob = scope.launch {
-            AutomationBus.status.collect { status ->
-                if (status == null) {
-                    delay(IDLE_HIDE_DELAY_MS)
-                    if (AutomationBus.status.value == null) {
-                        stopSelf()
+            combine(AutomationBus.status, AutomationBus.pendingApproval) { status, approval ->
+                status to approval
+            }.collect { (status, approval) ->
+                overlayStatus.value = status
+                overlayApproval.value = approval
+                if (status != null || approval != null) {
+                    hideJob?.cancel()
+                    hideJob = null
+                    if (overlayView == null) attachOverlay()
+                    if (overlayView != null) {
+                        overlayVisible.value = true
+                        acquireWakeLock()
+                    }
+                } else {
+                    overlayVisible.value = false
+                    releaseWakeLock()
+                    hideJob?.cancel()
+                    hideJob = scope.launch {
+                        delay(HIDE_DELAY_MS)
+                        if (AutomationBus.status.value == null && AutomationBus.pendingApproval.value == null) {
+                            detachOverlay()
+                            stopSelf()
+                        }
                     }
                 }
             }
@@ -218,8 +278,30 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         val view = overlayView ?: return
         val params = overlayParams ?: return
         params.x += dx.toInt()
-        params.y += dy.toInt()
+        params.y -= dy.toInt()
         runCatching { windowManager?.updateViewLayout(view, params) }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true) return
+        runCatching {
+            val manager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (wakeLock == null) {
+                wakeLock = manager.newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    WAKE_LOCK_TAG,
+                ).apply { setReferenceCounted(false) }
+            }
+            wakeLock?.takeIf { !it.isHeld }?.acquire()
+        }.onFailure { Log.w(TAG, "acquire wake lock failed", it) }
+    }
+
+    private fun releaseWakeLock() {
+        val lock = wakeLock ?: return
+        wakeLock = null
+        runCatching { if (lock.isHeld) lock.release() }
+            .onFailure { Log.w(TAG, "release wake lock failed", it) }
     }
 
     private fun buildNotification(): Notification {
@@ -243,7 +325,9 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     companion object {
         const val CHANNEL_ID = "automation_overlay"
         private const val NOTIFICATION_ID = 2003
-        private const val IDLE_HIDE_DELAY_MS = 3_000L
+        private const val HIDE_DELAY_MS = 300L
+        private const val BOTTOM_MARGIN_DP = 96
+        private const val WAKE_LOCK_TAG = "KhatKit:AutomationOverlay"
 
         /** 启动看板服务；未授予悬浮窗权限时直接跳过，后台启动受限等异常也被吞掉。 */
         fun start(context: Context) {
@@ -278,73 +362,176 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
 @Composable
 private fun AutomationStatusBoard(
     status: AutomationBus.AutomationStatus?,
+    approval: AutomationBus.ApprovalRequest?,
+    visible: Boolean,
     onStop: () -> Unit,
+    onApprove: () -> Unit,
+    onDeny: () -> Unit,
     onDrag: (Float, Float) -> Unit,
 ) {
-    val current = status ?: return
+    AnimatedVisibility(
+        visible = visible && (status != null || approval != null),
+        enter = slideInVertically(animationSpec = tween(ANIMATION_MS)) { it } +
+            fadeIn(animationSpec = tween(ANIMATION_MS)) +
+            scaleIn(initialScale = 0.92f, animationSpec = tween(ANIMATION_MS)),
+        exit = slideOutVertically(animationSpec = tween(ANIMATION_MS)) { it } +
+            fadeOut(animationSpec = tween(ANIMATION_MS)) +
+            scaleOut(targetScale = 0.92f, animationSpec = tween(ANIMATION_MS)),
+    ) {
+        if (status != null || approval != null) {
+            AutomationToast(
+                status = status,
+                approval = approval,
+                onStop = onStop,
+                onApprove = onApprove,
+                onDeny = onDeny,
+                onDrag = onDrag,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AutomationToast(
+    status: AutomationBus.AutomationStatus?,
+    approval: AutomationBus.ApprovalRequest?,
+    onStop: () -> Unit,
+    onApprove: () -> Unit,
+    onDeny: () -> Unit,
+    onDrag: (Float, Float) -> Unit,
+) {
+    val maxWidth = (LocalContext.current.resources.configuration.screenWidthDp * 0.82f).dp
+    val pulse by rememberInfiniteTransition(label = "automation_status").animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "automation_status_dot",
+    )
+    val recent = status?.recent?.dropLast(1)?.takeLast(3)?.reversed().orEmpty()
+    val cancelRequested = status?.cancelRequested == true
     KedgeSurface(
         modifier = Modifier
-            .widthIn(min = 200.dp, max = 300.dp)
+            .widthIn(min = 180.dp, max = maxWidth)
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
                     onDrag(dragAmount.x, dragAmount.y)
                 }
             },
-        shape = RoundedCornerShape(16.dp),
-        shadowElevation = 8.dp,
+        color = ToastContainerColor,
+        contentColor = ToastContentColor,
+        shape = RoundedCornerShape(22.dp),
+        shadowElevation = 10.dp,
     ) {
         Column(
             modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(
                     modifier = Modifier
                         .size(8.dp)
+                        .alpha(pulse)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
+                        .background(if (cancelRequested) ToastStoppingColor else ToastRunningColor),
                 )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "自动化运行中",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                KedgeTextButton(onClick = onStop, enabled = !current.cancelRequested) {
-                    Text(if (current.cancelRequested) "正在停止…" else "停止")
+                Spacer(Modifier.width(10.dp))
+                Column(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    if (approval != null) {
+                        Text(
+                            text = approval.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ToastContentColor,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (approval.detail.isNotBlank()) {
+                            Text(
+                                text = approval.detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ToastContentColor.copy(alpha = 0.72f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    } else if (status != null) {
+                        Text(
+                            text = status.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ToastContentColor,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (status.detail.isNotBlank()) {
+                            Text(
+                                text = status.detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ToastContentColor.copy(alpha = 0.72f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        recent.forEach { line ->
+                            Text(
+                                text = "· $line",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ToastContentColor.copy(alpha = 0.55f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                MaterialTheme(
+                    colorScheme = MaterialTheme.colorScheme.copy(primary = ToastContentColor.copy(alpha = 0.92f)),
+                ) {
+                    KedgeTextButton(
+                        onClick = onStop,
+                        enabled = !cancelRequested,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = if (cancelRequested) "正在停止…" else "停止",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
                 }
             }
-            Text(
-                text = current.label,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (current.detail.isNotBlank()) {
-                Text(
-                    text = current.detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            val history = current.recent.dropLast(1).takeLast(3).reversed()
-            if (history.isNotEmpty()) {
-                Text(
-                    text = "最近",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                history.forEach { line ->
-                    Text(
-                        text = "· $line",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+            if (approval != null) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    KedgeTextButton(
+                        onClick = onApprove,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                    ) {
+                        Text(
+                            text = "允许",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = ToastRunningColor,
+                        )
+                    }
+                    KedgeTextButton(
+                        onClick = onDeny,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                    ) {
+                        Text(
+                            text = "拒绝",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = ToastStoppingColor,
+                        )
+                    }
                 }
             }
         }

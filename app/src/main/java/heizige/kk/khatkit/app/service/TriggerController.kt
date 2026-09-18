@@ -134,7 +134,7 @@ class TriggerController(
             Log.w(TAG, "card not installed: $name")
             return RunOutcome(ok = false, message = "卡片未安装")
         }
-        return when (val result = provider.runCardWithStatus(card, args)) {
+        return when (val result = provider.runCardWithStatus(card, args, trigger = "事件触发")) {
             is EngineResult.Err -> RunOutcome(ok = false, message = "${result.code}: ${result.message}")
             is EngineResult.Ok -> {
                 val scriptError = result.value["error"]?.toString()
