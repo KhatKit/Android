@@ -124,6 +124,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ModelAbility
 import heizige.kk.khatkit.ai.ui.UIMessagePart
@@ -144,6 +145,7 @@ import heizige.kk.khatkit.app.ui.components.ai.completion.ChatCompletionContext
 import heizige.kk.khatkit.app.ui.components.ai.completion.ChatCompletionItem
 import heizige.kk.khatkit.app.ui.components.ai.completion.ChatCompletionList
 import heizige.kk.khatkit.app.ui.components.ai.completion.ChatCompletionProvider
+import heizige.kk.khatkit.app.ui.components.permission.PermissionChecklist
 import heizige.kk.khatkit.app.ui.components.ui.KeepScreenOn
 import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionRecordAudio
@@ -221,6 +223,7 @@ fun ChatInput(
     }
     // 面板全开后继续上滑 → 进入全屏编辑
     var fullScreenEditor by remember { mutableStateOf(false) }
+    var permissionSheetVisible by remember { mutableStateOf(false) }
     var overscrollPx by remember { mutableFloatStateOf(0f) }
     val fullscreenThresholdPx = with(LocalDensity.current) { 110.dp.toPx() }
 
@@ -508,6 +511,7 @@ fun ChatInput(
                                     PanelAction(image, "图像", actions.onPickImage)
                                     PanelAction(insertDriveFile, "文件", actions.onPickFile)
                                 }
+                                PanelAction(verifiedUser, "权限") { permissionSheetVisible = true }
                             }
                         }
                     }
@@ -646,6 +650,18 @@ fun ChatInput(
             }
             }
 
+        }
+    }
+
+    if (permissionSheetVisible) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.greeting_title_permissions),
+            imageVector = verifiedUser,
+            onDismiss = { permissionSheetVisible = false },
+            scrollable = true,
+        ) { _ ->
+            PermissionChecklist(compact = true)
         }
     }
 
