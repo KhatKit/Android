@@ -798,9 +798,6 @@ class ChatService(
             launchWithConversationReference(conversationId) {
                 generateTitle(conversationId, finalConversation)
             }
-            launchWithConversationReference(conversationId) {
-                generateSuggestion(conversationId, finalConversation)
-            }
         }
     }
 
@@ -932,59 +929,6 @@ class ChatService(
                 title = context.getString(R.string.error_title_generate_title),
                 solution = ChatErrorSolution.CheckFastModelSettings,
             )
-        }
-    }
-
-    // ---- 生成建议 ----
-
-    suspend fun generateSuggestion(
-        conversationId: Uuid,
-        conversation: Conversation,
-    ) = withContext(Dispatchers.IO) {
-        runCatching {
-            val settings = settingsStore.settingsFlow.first()
-            if (!settings.enableSuggestion) return@runCatching
-            val model = settings.findModelById(settings.fastModelId)
-                ?: return@runCatching
-            val provider = model.findProvider(settings.providers) ?: return@runCatching
-
-            sessions[conversationId]?.let { session ->
-                updateConversation(
-                    conversationId,
-                    session.state.value.copy(chatSuggestions = emptyList())
-                )
-            }
-
-            val providerHandler = providerManager.getProviderByType(provider)
-            val result = providerHandler.generateText(
-                providerSetting = provider,
-                messages = listOf(
-                    UIMessage.user(
-                        settings.suggestionPrompt.applyPlaceholders(
-                            "locale" to Locale.getDefault().displayName,
-                            "content" to conversation.currentMessages
-                                .takeLast(8).joinToString("\n\n") { it.summaryAsText(maxLength = 500) }),
-                    )
-                ),
-                params = backgroundTextGenerationParams(model, conversationId, settings.fastModelReasoningLevel),
-            )
-            val suggestions =
-                result.message.toText().split("\n").map { it.trim() }
-                    .filter { it.isNotBlank() }
-
-            val latestConversation = conversationRepo.getConversationById(conversationId)
-                ?: sessions[conversationId]?.state?.value
-                ?: conversation
-            saveConversation(
-                conversationId,
-                latestConversation.copy(
-                    chatSuggestions = suggestions.take(
-                        10
-                    )
-                )
-            )
-        }.onFailure {
-            it.printStackTrace()
         }
     }
 

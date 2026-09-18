@@ -29,7 +29,6 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_COMPRESS_PROMPT
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_OCR_PROMPT
-import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_SUGGESTION_PROMPT
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_TITLE_PROMPT
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_TRANSLATION_PROMPT
 import heizige.kk.khatkit.app.data.ai.prompts.LEARNING_MODE_PROMPT
@@ -254,7 +253,7 @@ class SettingsStore(
                 titlePrompt = preferences[TITLE_PROMPT] ?: DEFAULT_TITLE_PROMPT,
                 translatePrompt = preferences[TRANSLATION_PROMPT] ?: DEFAULT_TRANSLATION_PROMPT,
                 translateThinkingBudget = preferences[TRANSLATE_THINKING_BUDGET] ?: 0,
-                suggestionPrompt = preferences[SUGGESTION_PROMPT] ?: DEFAULT_SUGGESTION_PROMPT,
+                suggestionPrompt = preferences[SUGGESTION_PROMPT] ?: "",
                 ocrModelId = preferences[OCR_MODEL]?.let { Uuid.parse(it) } ?: Uuid.random(),
                 ocrPrompt = preferences[OCR_PROMPT] ?: DEFAULT_OCR_PROMPT,
                 compressModelId = preferences[COMPRESS_MODEL]?.let { Uuid.parse(it) } ?: DEFAULT_AUTO_MODEL_ID,
@@ -538,7 +537,7 @@ data class Settings(
     val translatePrompt: String = DEFAULT_TRANSLATION_PROMPT,
     val translateThinkingBudget: Int = 0,
     val enableSuggestion: Boolean = true,
-    val suggestionPrompt: String = DEFAULT_SUGGESTION_PROMPT,
+    val suggestionPrompt: String = "",
     val ocrModelId: Uuid = Uuid.random(),
     val ocrPrompt: String = DEFAULT_OCR_PROMPT,
     val compressModelId: Uuid = Uuid.random(),

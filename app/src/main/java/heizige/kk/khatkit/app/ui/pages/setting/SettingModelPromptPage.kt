@@ -26,7 +26,6 @@ import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_COMPRESS_PROMPT
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_OCR_PROMPT
-import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_SUGGESTION_PROMPT
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_TITLE_PROMPT
 import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_TRANSLATION_PROMPT
 import heizige.kk.khatkit.app.data.datastore.Settings
@@ -62,15 +61,6 @@ internal fun PromptSettingsPage(settings: Settings, vm: SettingVM, contentPaddin
                 promptValue = settings.titlePrompt,
                 onPromptChange = { vm.updateSettings(settings.copy(titlePrompt = it)) },
                 onResetPrompt = { vm.updateSettings(settings.copy(titlePrompt = DEFAULT_TITLE_PROMPT)) },
-            )
-        }
-        item {
-            PromptSettingItem(
-                title = stringResource(R.string.setting_model_page_prompt_suggestion),
-                promptDescription = stringResource(R.string.setting_model_page_suggestion_prompt_vars),
-                promptValue = settings.suggestionPrompt,
-                onPromptChange = { vm.updateSettings(settings.copy(suggestionPrompt = it)) },
-                onResetPrompt = { vm.updateSettings(settings.copy(suggestionPrompt = DEFAULT_SUGGESTION_PROMPT)) },
             )
         }
         item {

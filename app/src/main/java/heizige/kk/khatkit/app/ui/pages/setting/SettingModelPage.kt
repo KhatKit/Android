@@ -16,7 +16,6 @@ import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -128,12 +127,6 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingVM, contentPadding:
             )
         }
         item {
-            SuggestionSettingItem(
-                settings = settings,
-                vm = vm,
-            )
-        }
-        item {
             ModelSettingItem(
                 title = stringResource(R.string.setting_model_page_translate_model),
                 description = stringResource(R.string.setting_model_page_translate_model_desc),
@@ -160,26 +153,6 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingVM, contentPadding:
                 onSelect = { vm.updateSettings(settings.copy(compressModelId = it.id)) },
             )
         }
-    }
-}
-
-@Composable
-private fun SuggestionSettingItem(
-    settings: Settings,
-    vm: SettingVM,
-) {
-    CardGroup {
-        item(
-            headlineContent = { Text(stringResource(R.string.setting_model_page_enable_suggestion)) },
-            trailingContent = {
-                OptionSwitch(
-                    checked = settings.enableSuggestion,
-                    onCheckedChange = {
-                        vm.updateSettings(settings.copy(enableSuggestion = it))
-                    }
-                )
-            },
-        )
     }
 }
 
