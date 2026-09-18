@@ -24,15 +24,11 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,12 +36,18 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconButtonShapes
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,11 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
@@ -85,9 +83,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.automation.AutomationBus
 import heizige.kk.khatkit.app.ui.icons.check
 import heizige.kk.khatkit.app.ui.icons.close
-import heizige.kk.khatkit.app.ui.icons.stop
-import heizige.kk.kedge.components.KedgeButtonDefaults
-import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.KhatKitTheme
@@ -113,9 +108,6 @@ private const val IDLE_EXIT_DELAY_MS = 3_000L
 /** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完。 */
 private const val EXIT_SETTLE_MS = 200L
 
-private val ToastRunningColor = Color(0xFF7ED9A7)
-private val ToastStoppingColor = Color(0xFFFFB4AB)
-
 /** Khromia Toast 的视觉常量：0.87 透明度、胶囊形、12dp 阴影、48dp 最小高度。 */
 private const val TOAST_ALPHA = 0.87f
 private val ToastMaxWidth = 300.dp
@@ -130,7 +122,8 @@ private val ToastShadowRoom = 16.dp
 
 /**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
- * 显示当前步骤、最近步骤与「停止」图标按钮；一次运行结束（[AutomationBus.finish]）
+ * 仅显示当前步骤；授权请求期间显示请求文本 + 倒计时与 MD3 ButtonGroup（✓ / ✗）。
+ * 一次运行结束（[AutomationBus.finish]）
  * 后先展示「自动化已结束」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast 同款退场动画
  * （[ANIMATION_MS] ms）并移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
  * 直接 AI 工具序列不调用 [AutomationBus.finish]：看板在有活动后超过一个
@@ -245,7 +238,6 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         status = overlayStatus.value,
                         approval = overlayApproval.value,
                         visible = overlayVisible.value,
-                        onStop = { AutomationBus.requestCancel() },
                         onApprove = { AutomationBus.approve() },
                         onDeny = { AutomationBus.deny() },
                         onDrag = ::moveOverlay,
@@ -486,7 +478,6 @@ private fun AutomationStatusBoard(
     status: AutomationBus.AutomationStatus?,
     approval: AutomationBus.ApprovalRequest?,
     visible: Boolean,
-    onStop: () -> Unit,
     onApprove: () -> Unit,
     onDeny: () -> Unit,
     onDrag: (Float, Float) -> Unit,
@@ -530,7 +521,6 @@ private fun AutomationStatusBoard(
                 AutomationToast(
                     status = status,
                     approval = approval,
-                    onStop = onStop,
                     onApprove = onApprove,
                     onDeny = onDeny,
                     onDrag = onDrag,
@@ -580,21 +570,17 @@ private fun remainingApprovalSeconds(requestedAt: Long): Int {
  * - padding(bottom = 48.dp) + systemBarsPadding()（与 Toast 相同的屏幕边距）
  * - heightIn(min = 48.dp)、widthIn(max = 300.dp)
  * - graphicsLayer { shadowElevation = 12.dp.toPx(); shape = CircleShape; clip = true }
- * - 内容 Row：horizontal = 16.dp、vertical = 12.dp、Center 对齐
- * - 文本：12.sp / Medium / letterSpacing 0.5.sp / TextAlign.Center
- * 操作按钮统一为小尺寸图标按钮：停止（stop）、允许/拒绝（check / close）成组。
+ * - 单行 Row：普通/完成态仅当前步骤文本；授权态为「请求文本（剩余秒数）」+
+ *   右侧 MD3 ButtonGroup（允许 / 拒绝），文本 12.sp / Medium / letterSpacing 0.5.sp。
  */
 @Composable
 private fun AutomationToast(
     status: AutomationBus.AutomationStatus?,
     approval: AutomationBus.ApprovalRequest?,
-    onStop: () -> Unit,
     onApprove: () -> Unit,
     onDeny: () -> Unit,
     onDrag: (Float, Float) -> Unit,
 ) {
-    val recent = status?.recent?.dropLast(1)?.takeLast(3)?.reversed().orEmpty()
-    val cancelRequested = status?.cancelRequested == true
     val finished = status?.finished == true && approval == null
     val containerColor = MaterialTheme.colorScheme.inverseSurface.harmonizeWithPrimary()
     val contentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
@@ -622,139 +608,49 @@ private fun AutomationToast(
                 }
             },
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    when {
-                        finished -> {
-                            // 纯文本提示，与普通状态同一排版；不出现任何图标/圆点
-                            Text(
-                                text = "自动化已结束",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 0.5.sp,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-
-                        approval != null -> {
-                            val remainingSeconds = rememberApprovalRemainingSeconds(approval)
-                            Text(
-                                text = approval.title,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 0.5.sp,
-                                textAlign = TextAlign.Center,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (approval.detail.isNotBlank()) {
-                                Text(
-                                    text = approval.detail,
-                                    color = contentColor.copy(alpha = 0.72f),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.5.sp,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            Text(
-                                text = "$remainingSeconds 秒后自动拒绝",
-                                color = contentColor.copy(alpha = 0.72f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 0.5.sp,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-
-                        status != null -> {
-                            Text(
-                                text = status.label,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 0.5.sp,
-                                textAlign = TextAlign.Center,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (status.detail.isNotBlank()) {
-                                Text(
-                                    text = status.detail,
-                                    color = contentColor.copy(alpha = 0.72f),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.5.sp,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            recent.forEach { line ->
-                                Text(
-                                    text = line,
-                                    color = contentColor.copy(alpha = 0.55f),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.5.sp,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
+            when {
+                finished -> {
+                    // 纯文本提示，不出现任何图标/按钮
+                    Text(
+                        text = "自动化已结束",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.5.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                if (!finished) {
+
+                approval != null -> {
+                    val remainingSeconds = rememberApprovalRemainingSeconds(approval)
+                    Text(
+                        text = "${approval.title}（${remainingSeconds}s）",
+                        modifier = Modifier.weight(1f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Spacer(Modifier.width(8.dp))
-                    ToastIconButton(
-                        icon = stop,
-                        contentDescription = if (cancelRequested) "正在停止" else "停止",
-                        tint = contentColor.copy(alpha = 0.92f),
-                        containerColor = Color.Transparent,
-                        shape = CircleShape,
-                        enabled = !cancelRequested,
-                        size = 28.dp,
-                        onClick = onStop,
-                    )
+                    ApprovalButtonGroup(onApprove = onApprove, onDeny = onDeny)
                 }
-            }
-            if (approval != null && !finished) {
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ToastIconButton(
-                        icon = check,
-                        contentDescription = "允许",
-                        tint = ToastRunningColor,
-                        containerColor = ToastRunningColor.copy(alpha = 0.18f),
-                        shape = ToastGroupStartShape,
-                        onClick = onApprove,
-                    )
-                    ToastIconButton(
-                        icon = close,
-                        contentDescription = "拒绝",
-                        tint = ToastStoppingColor,
-                        containerColor = ToastStoppingColor.copy(alpha = 0.18f),
-                        shape = ToastGroupEndShape,
-                        onClick = onDeny,
+
+                status != null -> {
+                    Text(
+                        text = status.label,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.5.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -762,50 +658,68 @@ private fun AutomationToast(
     }
 }
 
-/** 成组按钮尺寸：外侧胶囊圆角 = 尺寸一半，中间共享 2dp 小圆角（对齐 KedgeSegmentedList 分组思路）。 */
-private val ToastGroupButtonSize = 30.dp
-private val ToastGroupStartShape = RoundedCornerShape(
-    topStart = 15.dp,
-    bottomStart = 15.dp,
-    topEnd = 2.dp,
-    bottomEnd = 2.dp,
-)
-private val ToastGroupEndShape = RoundedCornerShape(
-    topStart = 2.dp,
-    bottomStart = 2.dp,
-    topEnd = 15.dp,
-    bottomEnd = 15.dp,
-)
+/** 授权按钮尺寸：紧凑适配 Toast（32dp 触摸区，16dp 图标）。 */
+private val ApprovalButtonSize = 32.dp
 
 /**
- * 看板内的小尺寸图标按钮：KedgeIconButton（自动跟随 MD3 / Miuix 风格），
- * 容器色与分组形状由调用方给出，图标固定 16dp，默认 30dp 触摸区以保持 Toast 紧凑。
+ * 授权操作组：官方 MD3 [ButtonGroup] + connected 首尾形状，内含 ✓（允许）/ ✗（拒绝）
+ * 两个 [FilledIconButton]，颜色取自 [MaterialTheme.colorScheme]；关闭最小交互尺寸约束
+ * 以保持 Toast 紧凑（按钮与图标均为小尺寸）。
  */
 @Composable
-private fun ToastIconButton(
-    icon: ImageVector,
-    contentDescription: String,
-    tint: Color,
-    containerColor: Color,
-    shape: Shape,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-    size: Dp = ToastGroupButtonSize,
+private fun ApprovalButtonGroup(
+    onApprove: () -> Unit,
+    onDeny: () -> Unit,
 ) {
-    KedgeIconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier
-            .size(size)
-            .clip(shape)
-            .background(containerColor),
-        shapes = KedgeButtonDefaults.md3IconButtonShapes(shape = shape),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = if (enabled) tint else tint.copy(alpha = 0.38f),
-            modifier = Modifier.size(16.dp),
-        )
+    val leadingShapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
+    val trailingShapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        ButtonGroup(
+            overflowIndicator = { menuState ->
+                ButtonGroupDefaults.OverflowIndicator(menuState = menuState)
+            },
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            customItem(
+                buttonGroupContent = {
+                    FilledIconButton(
+                        onClick = onApprove,
+                        shapes = IconButtonShapes(leadingShapes.shape, leadingShapes.pressedShape),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        modifier = Modifier.size(ApprovalButtonSize),
+                    ) {
+                        Icon(
+                            imageVector = check,
+                            contentDescription = "允许",
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                },
+                menuContent = { },
+            )
+            customItem(
+                buttonGroupContent = {
+                    FilledIconButton(
+                        onClick = onDeny,
+                        shapes = IconButtonShapes(trailingShapes.shape, trailingShapes.pressedShape),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                        modifier = Modifier.size(ApprovalButtonSize),
+                    ) {
+                        Icon(
+                            imageVector = close,
+                            contentDescription = "拒绝",
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                },
+                menuContent = { },
+            )
+        }
     }
 }
