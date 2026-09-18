@@ -46,9 +46,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -130,6 +133,9 @@ private val ToastShadowRoom = 16.dp
  * 显示当前步骤、最近步骤与「停止」图标按钮；一次运行结束（[AutomationBus.finish]）
  * 后先展示「自动化已结束」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast 同款退场动画
  * （[ANIMATION_MS] ms）并移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
+ * 直接 AI 工具序列不调用 [AutomationBus.finish]：看板在有活动后超过一个
+ * [IDLE_EXIT_DELAY_MS] 无更新即判定会话结束并走同样的完成态退场；卡片/触发运行由
+ * [AutomationBus.begin] 会话持有标记保护，不会因执行期间无进度更新被误判。
  * 运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，空闲或销毁时释放。
  *
  * 无障碍服务在线时优先走 `TYPE_ACCESSIBILITY_OVERLAY`（层级高于状态栏/通知栏），
@@ -321,17 +327,34 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                     if (overlayView == null) attachOverlay()
                     if (overlayView != null) {
                         overlayVisible.value = true
-                        if (status?.finished == true && approval == null) {
-                            // 完成态：短暂展示「自动化已结束」，立即释放常亮，到时退场并复位总线
-                            releaseWakeLock()
-                            hideJob = scope.launch {
-                                delay(IDLE_EXIT_DELAY_MS)
-                                if (AutomationBus.status.value?.finished != true) return@launch
-                                hideBoard()
-                                AutomationBus.clear()
+                        when {
+                            status?.finished == true && approval == null -> {
+                                // 完成态：短暂展示「自动化已结束」，立即释放常亮，到时退场并复位总线
+                                releaseWakeLock()
+                                hideJob = scope.launch {
+                                    delay(IDLE_EXIT_DELAY_MS)
+                                    if (AutomationBus.status.value?.finished != true) return@launch
+                                    hideBoard()
+                                    AutomationBus.clear()
+                                }
                             }
-                        } else {
-                            acquireWakeLock()
+
+                            approval == null && status != null && !AutomationBus.isSessionHeld() -> {
+                                // 直接 AI 工具序列没有显式 finish：空闲超过一个退场窗口即视为会话结束，
+                                // 标记完成后走完成态分支展示「自动化已结束」并退场。
+                                // 卡片/触发等显式运行由 begin()/finish() 的会话持有标记保护，不受此影响。
+                                acquireWakeLock()
+                                hideJob = scope.launch {
+                                    delay(IDLE_EXIT_DELAY_MS)
+                                    val current = AutomationBus.status.value
+                                    if (current == null || current.finished) return@launch
+                                    if (AutomationBus.pendingApproval.value != null) return@launch
+                                    if (AutomationBus.isSessionHeld()) return@launch
+                                    AutomationBus.finish()
+                                }
+                            }
+
+                            else -> acquireWakeLock()
                         }
                     }
                 } else {
@@ -468,6 +491,13 @@ private fun AutomationStatusBoard(
     onDeny: () -> Unit,
     onDrag: (Float, Float) -> Unit,
 ) {
+    // 首帧先以不可见状态组合，下一帧再翻成可见：状态初始为 true 时 AnimatedVisibility
+    // 不会播进入动画，这里保证进入与退场使用同一组 150ms 动画。
+    val entered = remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        entered.value = true
+    }
     // 动画参数与 Khromia Toast（GlobalToastHost）逐字一致：
     // slide ±it/2、scale 0.5f、tween(150)。
     // Box 只包住看板；窗口底边已在屏幕物理底部，因此 ±it/2 的位移会一直渲染到最底端。
@@ -476,7 +506,7 @@ private fun AutomationStatusBoard(
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedVisibility(
-            visible = visible && (status != null || approval != null),
+            visible = entered.value && visible && (status != null || approval != null),
             enter = slideInVertically(
                 initialOffsetY = { it / 2 },
                 animationSpec = tween(ANIMATION_MS),
@@ -605,26 +635,16 @@ private fun AutomationToast(
                 ) {
                     when {
                         finished -> {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Icon(
-                                    imageVector = check,
-                                    contentDescription = null,
-                                    tint = ToastRunningColor,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Text(
-                                    text = "自动化已结束",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.5.sp,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+                            // 纯文本提示，与普通状态同一排版；不出现任何图标/圆点
+                            Text(
+                                text = "自动化已结束",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.5.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
 
                         approval != null -> {
@@ -686,7 +706,7 @@ private fun AutomationToast(
                             }
                             recent.forEach { line ->
                                 Text(
-                                    text = "· $line",
+                                    text = line,
                                     color = contentColor.copy(alpha = 0.55f),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,

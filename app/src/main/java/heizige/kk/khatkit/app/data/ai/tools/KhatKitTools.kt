@@ -265,6 +265,7 @@ class KhatKitToolProvider(
      * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后进入完成态。
      * AI tool / 用户手动 / 事件触发三个入口都汇聚到这里；用户已请求停止时不再开新运行。
      * 执行前通过 [AutomationBus.requestApproval] 在看板上请求用户授权（放手模式或已授权则跳过）。
+     * [AutomationBus.begin] 持有会话：卡片执行期间即使长时间没有进度更新，看板也不会误判会话结束。
      */
     suspend fun runCardWithStatus(
         card: LoadedCard,
@@ -275,6 +276,7 @@ class KhatKitToolProvider(
             AutomationBus.finish()
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
+        AutomationBus.begin()
         AutomationBus.update("正在运行卡片：${card.manifest.name}")
         if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger")) {
             AutomationBus.finish()
@@ -479,51 +481,48 @@ class KhatKitToolProvider(
         if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
         val bridge = AccessibilityBridgeHolder.current()
             ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
+        // 会话中步骤：只更新看板，不结束会话（直接 AI 工具序列由看板空闲判定结束）
         AutomationBus.update("正在读取屏幕")
-        return try {
-            runCatching {
-                val shot = bridge.captureScreen()
-                val captured = shot.startsWith("/")
-                val ocr = if (includeOcr && captured) {
-                    runCatching { ocrBridge.ocrText(shot) }
-                        .getOrElse { """{"error":"OCR 失败：${it.message ?: it.javaClass.simpleName}"}""" }
-                } else {
-                    null
-                }
-                val nodes = if (includeNodes) {
-                    runCatching { bridge.dumpWindow() }.getOrDefault(emptyList())
-                } else {
-                    emptyList()
-                }
-                buildJsonObject {
-                    if (captured) put("screenshot", shot) else put("screenshot_error", shot)
-                    bridge.currentPackage()?.let { put("package", it) }
-                    ocr?.let { text ->
-                        if (text.contains("\"error\"")) {
-                            put("ocr_error", text)
-                        } else {
-                            val lines = text.lineSequence()
-                                .map { it.trim().take(SCREEN_LINE_MAX) }
-                                .filter { it.isNotEmpty() }
-                                .take(SCREEN_LINE_LIMIT)
-                                .toList()
-                            put("ocr", lines.joinToString("\n"))
-                        }
-                    }
-                    if (includeNodes) {
-                        val lines = nodes.asSequence()
-                            .mapNotNull { formatScreenNode(it) }
-                            .distinct()
+        return runCatching {
+            val shot = bridge.captureScreen()
+            val captured = shot.startsWith("/")
+            val ocr = if (includeOcr && captured) {
+                runCatching { ocrBridge.ocrText(shot) }
+                    .getOrElse { """{"error":"OCR 失败：${it.message ?: it.javaClass.simpleName}"}""" }
+            } else {
+                null
+            }
+            val nodes = if (includeNodes) {
+                runCatching { bridge.dumpWindow() }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+            buildJsonObject {
+                if (captured) put("screenshot", shot) else put("screenshot_error", shot)
+                bridge.currentPackage()?.let { put("package", it) }
+                ocr?.let { text ->
+                    if (text.contains("\"error\"")) {
+                        put("ocr_error", text)
+                    } else {
+                        val lines = text.lineSequence()
+                            .map { it.trim().take(SCREEN_LINE_MAX) }
+                            .filter { it.isNotEmpty() }
                             .take(SCREEN_LINE_LIMIT)
-                            .map { JsonPrimitive(it) }
                             .toList()
-                        put("nodes", JsonArray(lines))
+                        put("ocr", lines.joinToString("\n"))
                     }
-                }.toString()
-            }.getOrElse { """{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""" }
-        } finally {
-            AutomationBus.finish()
-        }
+                }
+                if (includeNodes) {
+                    val lines = nodes.asSequence()
+                        .mapNotNull { formatScreenNode(it) }
+                        .distinct()
+                        .take(SCREEN_LINE_LIMIT)
+                        .map { JsonPrimitive(it) }
+                        .toList()
+                    put("nodes", JsonArray(lines))
+                }
+            }.toString()
+        }.getOrElse { """{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""" }
     }
 
     private suspend fun deviceAct(params: Map<String, Any?>): String {
@@ -534,7 +533,7 @@ class KhatKitToolProvider(
             ?: return "缺少参数：action"
         AutomationBus.update(deviceActLabel(action, params))
         if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params))) {
-            AutomationBus.finish()
+            // 会话中步骤：拒绝只取消本步，不结束整个自动化会话
             return "用户拒绝授权，已取消操作：$action"
         }
         val result = runCatching {
@@ -608,7 +607,7 @@ class KhatKitToolProvider(
                 else -> "不支持的动作：$action"
             }
         }.getOrElse { "操作失败：${it.message ?: it.javaClass.simpleName}" }
-        AutomationBus.finish()
+        // 会话中步骤：本步结束只保留看板状态，整段 AI 工具序列由看板空闲判定结束
         return result
     }
 

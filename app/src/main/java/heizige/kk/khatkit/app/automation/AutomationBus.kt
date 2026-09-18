@@ -73,6 +73,10 @@ object AutomationBus {
     @Volatile
     private var sessionApproved = false
 
+    /** 卡片/触发等显式运行是否正在进行：期间看板不会因长时间无更新自动结束会话。 */
+    @Volatile
+    private var sessionHeld = false
+
     @Volatile
     private var approvalDeferred: CompletableDeferred<Boolean>? = null
     private val approvalMutex = Mutex()
@@ -98,6 +102,17 @@ object AutomationBus {
             activeSince = prev?.activeSince ?: System.currentTimeMillis(),
         )
     }
+
+    /**
+     * 显式运行（卡片 / 触发）开始：在首次 [update] 前调用，运行期间看板不会把
+     * 长时间无更新误判为会话结束；[finish] / [clear] 会释放该标记。
+     */
+    fun begin() {
+        sessionHeld = true
+    }
+
+    /** 是否有显式运行正在持有会话（直接 AI 设备工具序列为 false）。 */
+    fun isSessionHeld(): Boolean = sessionHeld
 
     /** 看板「停止」按钮：请求取消当前自动化，脚本侧轮询 [isCancelRequested]。 */
     fun requestCancel() {
@@ -155,9 +170,11 @@ object AutomationBus {
      * 一次运行结束（成功/失败都调用）：保留最后一帧并标记 [AutomationStatus.finished]，
      * 看板先展示完成提示，约 3s 后播放退场动画并隐藏。期间出现新的 [update]
      * （例如事件触发再次运行）会清除完成态、取消退场。
-     * 没有正在进行的运行时为 no-op。
+     * 同时释放 [begin] 的会话持有标记；没有正在进行的运行时为 no-op。
+     * 直接 AI 工具序列不调用它，由看板在空闲一个退场窗口后代为判定会话结束。
      */
     fun finish() {
+        sessionHeld = false
         val prev = _status.value ?: return
         if (prev.finished) return
         _status.value = prev.copy(finished = true)
@@ -165,6 +182,7 @@ object AutomationBus {
 
     /** 看板服务在完成态退场后复位总线；业务侧结束一次运行请调用 [finish]。 */
     fun clear() {
+        sessionHeld = false
         _status.value = null
         sessionApproved = false
     }
