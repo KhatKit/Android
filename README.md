@@ -22,7 +22,7 @@
 客户端在启动时请求 Hub 上的更新接口，版本号为 Android `versionCode`：
 
 ```http
-GET https://heizige.space/api/khatkit/app/update?currentVersionCode=186&currentVersion=186&channel=stable
+GET https://heizige.top/api/khatkit/app/update?currentVersionCode=186&currentVersion=186&channel=stable
 ```
 
 ```json
@@ -35,18 +35,18 @@ GET https://heizige.space/api/khatkit/app/update?currentVersionCode=186&currentV
 }
 ```
 
-`channel` 支持 `stable` / `beta`，`force_min` 通道满足时返回强制更新。客户端 Hub 地址可在设置里修改（默认 `https://heizige.space`）。
+`channel` 支持 `stable` / `beta`，`force_min` 通道满足时返回强制更新。客户端 Hub 地址可在设置里修改（默认 `https://heizige.top`）。
 
 发布新版本（管理端需 admin / developer JWT）：
 
 ```bash
 # 1. 上传 APK，返回 downloadUrl
-curl -X POST https://heizige.space/admin/khatkit/releases/upload \
+curl -X POST https://heizige.top/admin/khatkit/releases/upload \
   -H "Authorization: Bearer <JWT>" \
   -F "file=@app-universal-release.apk"
 
 # 2. 发布到通道（version 必须是递增的 Android versionCode）
-curl -X PUT https://heizige.space/admin/khatkit/versions/stable \
+curl -X PUT https://heizige.top/admin/khatkit/versions/stable \
   -H "Authorization: Bearer <JWT>" \
   -H "Content-Type: application/json" \
   -d '{"version":"187","downloadUrl":"/media/khatkit-app-updates/xxx.apk","description":"更新说明"}'

@@ -471,7 +471,7 @@ class KhatKitToolProvider(
 
     companion object {
         /** 卡片 Hub 默认指向 KodeHeadServer；可在卡片市场设置里改。 */
-        const val DEFAULT_HUB_BASE_URL = "https://heizige.space"
+        const val DEFAULT_HUB_BASE_URL = "https://heizige.top"
         private const val KEY_HUB_URL = "hub_base_url"
         private const val KEY_ENABLE_ROOT = "enable_root"
         private const val KEY_DOWNLOAD_CONCURRENCY = "download_concurrency"
