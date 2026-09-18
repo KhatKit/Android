@@ -17,6 +17,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -107,6 +108,9 @@ private const val ANIMATION_MS = 150
 
 /** 自动化空闲/结束提示后看板保持可见的时长，到时才播放退场动画并移除视图。 */
 private const val IDLE_EXIT_DELAY_MS = 3_000L
+
+/** 直接 AI 工具序列判定"会话结束"的空闲阈值：足够长，避免每个操作之间都提示已结束 */
+private const val SESSION_END_IDLE_MS = 15_000L
 
 /** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完。 */
 private const val EXIT_SETTLE_MS = 200L
@@ -340,7 +344,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                                 // 卡片/触发等显式运行由 begin()/finish() 的会话持有标记保护，不受此影响。
                                 acquireWakeLock()
                                 hideJob = scope.launch {
-                                    delay(IDLE_EXIT_DELAY_MS)
+                                    delay(SESSION_END_IDLE_MS)
                                     val current = AutomationBus.status.value
                                     if (current == null || current.finished) return@launch
                                     if (AutomationBus.pendingApproval.value != null) return@launch
@@ -593,6 +597,7 @@ private fun AutomationToast(
         contentColor = contentColor,
         shape = CircleShape,
         modifier = Modifier
+            .animateContentSize(animationSpec = tween(durationMillis = 150))
             .padding(bottom = 48.dp)
             .systemBarsPadding()
             .heightIn(min = ToastMinHeight)
@@ -687,30 +692,8 @@ private fun ApprovalButtonGroup(
                 buttonGroupContent = {
                     ToggleButton(
                         checked = false,
-                        onCheckedChange = { onApprove() },
-                        shapes = leadingShapes,
-                        colors = ToggleButtonDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(ApprovalButtonSize),
-                    ) {
-                        Icon(
-                            imageVector = check,
-                            contentDescription = "允许",
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                },
-                menuContent = { },
-            )
-            customItem(
-                buttonGroupContent = {
-                    ToggleButton(
-                        checked = false,
                         onCheckedChange = { onDeny() },
-                        shapes = trailingShapes,
+                        shapes = leadingShapes,
                         colors = ToggleButtonDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.error,
                             contentColor = MaterialTheme.colorScheme.onError,
@@ -721,6 +704,28 @@ private fun ApprovalButtonGroup(
                         Icon(
                             imageVector = close,
                             contentDescription = "拒绝",
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                },
+                menuContent = { },
+            )
+            customItem(
+                buttonGroupContent = {
+                    ToggleButton(
+                        checked = false,
+                        onCheckedChange = { onApprove() },
+                        shapes = trailingShapes,
+                        colors = ToggleButtonDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(ApprovalButtonSize),
+                    ) {
+                        Icon(
+                            imageVector = check,
+                            contentDescription = "允许",
                             modifier = Modifier.size(16.dp),
                         )
                     }
