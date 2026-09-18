@@ -598,6 +598,8 @@ private fun AutomationToast(
         shape = CircleShape,
         modifier = Modifier
             .animateContentSize(animationSpec = tween(durationMillis = 150))
+            // 透明留白：给 12dp 阴影留出窗口内空间，避免被窗口边界裁剪
+            .padding(horizontal = 20.dp, vertical = 20.dp)
             .padding(bottom = 48.dp)
             .systemBarsPadding()
             .heightIn(min = ToastMinHeight)
@@ -607,7 +609,7 @@ private fun AutomationToast(
                 // 这能保证在 scale 和 fade 动画过程中阴影依然存在
                 shadowElevation = ToastShadowElevation.toPx()
                 shape = CircleShape
-                clip = true
+                clip = false
             }
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
