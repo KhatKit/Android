@@ -1,5 +1,8 @@
 # 极客猫（ZenNeko）开放平台卡片
 
+> 卡片开发规范、bridge API 与安全合规请以
+> [卡片脚本开发文档](lua-card-development.md) 为准，本文只列出极客猫接口清单。
+
 本仓库内置了一组调用 [极客猫开放平台](https://platform.zenneko.top) 的 Lua 卡片，接口全部为中文场景，宿主侧通过
 `tool.httpMultipart` / `tool.readBase64` / `tool.saveBase64` 等 bridge 完成 multipart 上传与图片落盘。
 
