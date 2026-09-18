@@ -114,6 +114,11 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.material3.Material3
+import dev.chrisbanes.haze.glass.GlassDefaults
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
+import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.material3.Material3
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -125,6 +130,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.data.datastore.BackgroundEffectType
 import heizige.kk.khatkit.app.data.datastore.Settings
 import heizige.kk.khatkit.app.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.data.datastore.getCurrentChatModel
@@ -364,11 +370,29 @@ fun ChatInput(
                     )
                     .clip(containerShape)
                     .then(
-                        if (easedProgress() > 0.05f) {
-                            Modifier.hazeBlur(
-                                input = HazeInput.Sources(hazeState),
-                                style = HazeBlurStyle.Material3 { blurRadius(40.dp) },
-                            )
+                        if (easedProgress() > 0.05f && settings.displaySetting.enableBlurEffect) {
+                            when (settings.displaySetting.backgroundEffectType) {
+                                BackgroundEffectType.BLUR -> Modifier.hazeBlur(
+                                    input = HazeInput.Sources(hazeState),
+                                    style = HazeBlurStyle.Material3 { blurRadius(40.dp) },
+                                )
+
+                                BackgroundEffectType.GLASS -> Modifier.hazeGlass(
+                                    input = HazeInput.Sources(hazeState),
+                                    style = GlassStyle.Material3(
+                                        containerColor = hazeTintColor,
+                                        tint = hazeTintColor.copy(alpha = 0.72f),
+                                    ) {
+                                        optics(
+                                            GlassDefaults.optics.copy(
+                                                blurRadius = OpticalSizeValue.Fixed(16.dp),
+                                                depth = OpticalSizeValue.Fixed(0.5f),
+                                            )
+                                        )
+                                        shape(containerShape)
+                                    },
+                                )
+                            }
                         } else Modifier
                     ),
                 shape = containerShape,

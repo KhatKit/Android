@@ -18,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +42,7 @@ import heizige.kk.khatkit.app.ui.components.easteregg.EmojiBurstHost
 import heizige.kk.khatkit.app.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.ui.context.LocalNavController
 import heizige.kk.khatkit.app.ui.theme.CustomColors
+import heizige.kk.khatkit.app.utils.SoundEffectPlayer
 import heizige.kk.khatkit.app.utils.openUrl
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.app.ui.icons.code
@@ -53,6 +55,14 @@ fun SettingAboutPage() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
     val navController = LocalNavController.current
+    val soundOptions = remember { listOf(R.raw.bingbingbing, R.raw.gangguan) }
+    val soundEffectPlayer = remember(context) { SoundEffectPlayer(context) }
+    DisposableEffect(soundEffectPlayer) {
+        soundEffectPlayer.preload(*soundOptions.toIntArray())
+        onDispose {
+            soundEffectPlayer.release()
+        }
+    }
     val emojiOptions = remember {
         listOf(
             "🎉", "✨", "🌟", "💫", "🎊", "🥳", "🎈", "🎆", "🎇", "🧨",
@@ -113,6 +123,7 @@ fun SettingAboutPage() {
                                 }
                                 .clickable {
                                     onBurst(logoCenterPx)
+                                    soundEffectPlayer.play(soundOptions.random())
                                 }
                         )
 

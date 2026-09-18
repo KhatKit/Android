@@ -27,9 +27,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.data.datastore.BackgroundEffectType
 import heizige.kk.khatkit.app.data.datastore.DisplaySetting
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.ui.components.ui.Select
 import heizige.kk.khatkit.app.ui.hooks.rememberSharedPreferenceBoolean
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
@@ -153,8 +155,8 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         },
                     )
                     item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_enable_blur_effect_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_enable_blur_effect_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_background_effect_title)) },
+                        supportingContent = { Text(stringResource(R.string.setting_display_page_background_effect_desc)) },
                         trailingContent = {
                             OptionSwitch(
                                 checked = displaySetting.enableBlurEffect,
@@ -164,6 +166,27 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                             )
                         },
                     )
+                    if (displaySetting.enableBlurEffect) {
+                        item(
+                            headlineContent = { Text(stringResource(R.string.setting_display_page_background_effect_type)) },
+                            supportingContent = {
+                                Select(
+                                    options = BackgroundEffectType.entries,
+                                    selectedOption = displaySetting.backgroundEffectType,
+                                    onOptionSelected = {
+                                        updateDisplaySetting(displaySetting.copy(backgroundEffectType = it))
+                                    },
+                                    modifier = Modifier.padding(top = 4.dp).fillMaxWidth(),
+                                    optionToString = {
+                                        when (it) {
+                                            BackgroundEffectType.BLUR -> stringResource(R.string.setting_display_page_background_effect_blur)
+                                            BackgroundEffectType.GLASS -> stringResource(R.string.setting_display_page_background_effect_glass)
+                                        }
+                                    },
+                                )
+                            },
+                        )
+                    }
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_desc)) },

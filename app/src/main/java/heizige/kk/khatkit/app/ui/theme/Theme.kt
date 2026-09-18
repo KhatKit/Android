@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -25,6 +24,7 @@ import kotlinx.serialization.Serializable
 import heizige.kk.khatkit.app.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.ui.hooks.rememberUserSettingsState
+import heizige.kk.khatkit.app.utils.getActivity
 import heizige.kk.khromia.components.LocalOptionSwitchExpressiveEnabled
 import heizige.kk.khromia.components.LocalOptionSwitchScale
 
@@ -82,9 +82,11 @@ fun KhatKitTheme(
 
     // 更新状态栏图标颜色
     val view = LocalView.current
-    if (!view.isInEditMode) {
-        DisposableEffect(view, darkTheme) {
-            val window = (view.context as Activity).window
+    val activity = view.context.getActivity()
+    // 浮窗可能使用 Application Context，没有可更新系统栏的 Activity。
+    if (!view.isInEditMode && activity != null) {
+        DisposableEffect(view, activity, darkTheme) {
+            val window = activity.window
             val controller = WindowCompat.getInsetsController(window, view)
             val previousLightStatusBars = controller.isAppearanceLightStatusBars
             val previousLightNavigationBars = controller.isAppearanceLightNavigationBars

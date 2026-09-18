@@ -78,6 +78,7 @@ curl -X PUT https://heizige.space/admin/khatkit/versions/stable \
 ## 🙏 致谢
 
 - [RikkaHub](https://github.com/rikkahub/rikkahub)：本项目基于其深度定制
+- [vFlow](https://github.com/ChaoMixian/vFlow)：卡片对接的自动化能力（本地 Web API）
 - Kedge / Khromia：双风格 UI 组件桥
 - [Miuix](https://github.com/compose-miuix-ui/miuix)：Miuix 组件库
 

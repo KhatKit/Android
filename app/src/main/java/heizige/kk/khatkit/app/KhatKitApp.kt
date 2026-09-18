@@ -25,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import heizige.kk.khatkit.common.android.appTempFolder
-import com.whl.quickjs.android.QuickJSLoader
 import heizige.kk.khatkit.app.di.appModule
 import heizige.kk.khatkit.app.di.dataSourceModule
 import heizige.kk.khatkit.app.di.repositoryModule
@@ -80,9 +79,6 @@ class KhatKitApp : Application() {
 
         // install crash handler
         CrashHandler.install(this)
-
-        // Init QuickJS native library
-        QuickJSLoader.init()
 
         // delete temp files
         deleteTempFiles()
