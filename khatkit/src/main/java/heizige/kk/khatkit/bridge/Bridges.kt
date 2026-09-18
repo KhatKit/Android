@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.bridge
 
+import android.view.View
+import android.view.WindowManager
+
 /**
  * 七个 bridge（设计文档第 7 节）。全部由宿主 Kotlin 实现，脚本只能调用暴露出来的方法。
  *
@@ -261,6 +264,15 @@ interface AccessibilityBridge {
 
     /** 对当前聚焦的输入框执行粘贴。 */
     fun paste(): Boolean
+
+    /**
+     * 用无障碍服务的 WindowManager 添加悬浮窗（`TYPE_ACCESSIBILITY_OVERLAY`，
+     * 层级在状态栏/通知栏之上）。添加失败返回 false，不抛异常。
+     */
+    fun addOverlay(view: View, params: WindowManager.LayoutParams): Boolean
+
+    /** 移除由 [addOverlay] 添加的悬浮窗；失败静默。 */
+    fun removeOverlay(view: View)
 }
 
 interface RootBridge {

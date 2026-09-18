@@ -38,12 +38,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,7 +56,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
@@ -75,9 +74,13 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.automation.AutomationBus
+import heizige.kk.kedge.components.KedgeButtonDefaults
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
+import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.KhatKitTheme
+import heizige.kk.khromia.data.harmonizeWithPrimary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -91,18 +94,24 @@ import kotlin.math.roundToInt
 private const val TAG = "AutomationOverlay"
 private const val ANIMATION_MS = 250
 
-private val ToastContainerColor = Color(0xE6323232)
-private val ToastContentColor = Color.White
 private val ToastRunningColor = Color(0xFF7ED9A7)
 private val ToastStoppingColor = Color(0xFFFFB4AB)
 
+/** Khromia Toast 的视觉常量：0.87 透明度、胶囊形、12dp 阴影、48dp 最小高度。 */
+private const val TOAST_ALPHA = 0.87f
+private val ToastMaxWidth = 300.dp
+private val ToastMinHeight = 48.dp
+private val ToastShadowElevation = 12.dp
+
 /**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
- * 用 [WindowManager] + `TYPE_APPLICATION_OVERLAY` 在系统最上层显示当前步骤、
- * 最近步骤与「停止」按钮；空闲后播放退场动画（约 [ANIMATION_MS] ms）再移除视图并 [stopSelf]。
- * 运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，空闲或销毁时释放。
+ * 显示当前步骤、最近步骤与「停止」按钮；空闲后播放退场动画（约 [ANIMATION_MS] ms）
+ * 再移除视图并 [stopSelf]。运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，
+ * 空闲或销毁时释放。
  *
- * 未授予悬浮窗权限（SYSTEM_ALERT_WINDOW）时直接结束，不显示也不崩溃。
+ * 无障碍服务在线时优先走 `TYPE_ACCESSIBILITY_OVERLAY`（层级高于状态栏/通知栏），
+ * 否则回退 `TYPE_APPLICATION_OVERLAY`（需要 SYSTEM_ALERT_WINDOW）。两者都没有时
+ * 直接结束，不显示也不崩溃。
  */
 class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
 
@@ -118,6 +127,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private var overlayView: ComposeView? = null
     private var overlayParams: WindowManager.LayoutParams? = null
     private var windowManager: WindowManager? = null
+    private var overlayBridge: AccessibilityBridgeImpl? = null
     private val overlayVisible = mutableStateOf(false)
     private val overlayStatus = mutableStateOf<AutomationBus.AutomationStatus?>(null)
     private val overlayApproval = mutableStateOf<AutomationBus.ApprovalRequest?>(null)
@@ -137,7 +147,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             stopSelf()
             return START_NOT_STICKY
         }
-        if (!Settings.canDrawOverlays(this)) {
+        if (AccessibilityBridgeHolder.current() == null && !Settings.canDrawOverlays(this)) {
             Log.w(TAG, "overlay permission not granted, skip")
             stopSelf()
             return START_NOT_STICKY
@@ -186,6 +196,9 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun attachOverlay() {
         if (overlayView != null) return
         val manager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        // 无障碍服务在线时走 TYPE_ACCESSIBILITY_OVERLAY：层级在状态栏/通知栏之上；
+        // 否则回退到 TYPE_APPLICATION_OVERLAY（需要悬浮窗权限）。
+        val bridge = AccessibilityBridgeHolder.current()
         val view = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@AutomationOverlayService)
             setViewTreeViewModelStoreOwner(this@AutomationOverlayService)
@@ -207,25 +220,39 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            if (bridge != null) {
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            } else {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            },
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             x = 0
             y = (BOTTOM_MARGIN_DP * resources.displayMetrics.density).roundToInt()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            }
         }
-        try {
-            manager.addView(view, params)
-        } catch (e: Exception) {
-            Log.e(TAG, "addView failed", e)
+        val attached = if (bridge != null) {
+            bridge.addOverlay(view, params)
+        } else {
+            runCatching { manager.addView(view, params) }.isSuccess
+        }
+        if (!attached) {
+            Log.e(TAG, "attach overlay failed (${if (bridge != null) "accessibility" else "application"})")
             return
         }
         overlayView = view
         overlayParams = params
         windowManager = manager
+        overlayBridge = bridge
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
@@ -233,11 +260,17 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun detachOverlay() {
         overlayVisible.value = false
         val view = overlayView ?: return
-        runCatching { windowManager?.removeView(view) }
-            .onFailure { Log.w(TAG, "removeView failed", it) }
+        val bridge = overlayBridge
+        if (bridge != null) {
+            bridge.removeOverlay(view)
+        } else {
+            runCatching { windowManager?.removeView(view) }
+                .onFailure { Log.w(TAG, "removeView failed", it) }
+        }
         overlayView = null
         overlayParams = null
         windowManager = null
+        overlayBridge = null
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
     }
@@ -329,9 +362,12 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         private const val BOTTOM_MARGIN_DP = 96
         private const val WAKE_LOCK_TAG = "KhatKit:AutomationOverlay"
 
-        /** 启动看板服务；未授予悬浮窗权限时直接跳过，后台启动受限等异常也被吞掉。 */
+        /**
+         * 启动看板服务；无障碍服务在线时无需悬浮窗权限，
+         * 两者都没有则直接跳过，后台启动受限等异常也被吞掉。
+         */
         fun start(context: Context) {
-            if (!Settings.canDrawOverlays(context)) {
+            if (AccessibilityBridgeHolder.current() == null && !Settings.canDrawOverlays(context)) {
                 Log.w(TAG, "overlay permission not granted, skip start")
                 return
             }
@@ -400,7 +436,6 @@ private fun AutomationToast(
     onDeny: () -> Unit,
     onDrag: (Float, Float) -> Unit,
 ) {
-    val maxWidth = (LocalContext.current.resources.configuration.screenWidthDp * 0.82f).dp
     val pulse by rememberInfiniteTransition(label = "automation_status").animateFloat(
         initialValue = 0.4f,
         targetValue = 1f,
@@ -412,34 +447,42 @@ private fun AutomationToast(
     )
     val recent = status?.recent?.dropLast(1)?.takeLast(3)?.reversed().orEmpty()
     val cancelRequested = status?.cancelRequested == true
+    val containerColor = MaterialTheme.colorScheme.inverseSurface.harmonizeWithPrimary()
+    val contentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
     KedgeSurface(
         modifier = Modifier
-            .widthIn(min = 180.dp, max = maxWidth)
+            .widthIn(max = ToastMaxWidth)
+            .heightIn(min = ToastMinHeight)
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
                     onDrag(dragAmount.x, dragAmount.y)
                 }
             },
-        color = ToastContainerColor,
-        contentColor = ToastContentColor,
-        shape = RoundedCornerShape(22.dp),
-        shadowElevation = 10.dp,
+        color = containerColor.copy(alpha = TOAST_ALPHA),
+        contentColor = contentColor,
+        shape = CircleShape,
+        shadowElevation = ToastShadowElevation,
     ) {
         Column(
-            modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .alpha(pulse)
-                        .clip(CircleShape)
-                        .background(if (cancelRequested) ToastStoppingColor else ToastRunningColor),
-                )
-                Spacer(Modifier.width(10.dp))
+                    modifier = Modifier.size(20.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .alpha(pulse)
+                            .clip(CircleShape)
+                            .background(if (cancelRequested) ToastStoppingColor else ToastRunningColor),
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
                 Column(
                     modifier = Modifier.weight(1f, fill = false),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -447,16 +490,16 @@ private fun AutomationToast(
                     if (approval != null) {
                         Text(
                             text = approval.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = ToastContentColor,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = contentColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (approval.detail.isNotBlank()) {
                             Text(
                                 text = approval.detail,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ToastContentColor.copy(alpha = 0.72f),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = contentColor.copy(alpha = 0.72f),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -464,16 +507,16 @@ private fun AutomationToast(
                     } else if (status != null) {
                         Text(
                             text = status.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = ToastContentColor,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = contentColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (status.detail.isNotBlank()) {
                             Text(
                                 text = status.detail,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ToastContentColor.copy(alpha = 0.72f),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = contentColor.copy(alpha = 0.72f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -482,7 +525,7 @@ private fun AutomationToast(
                             Text(
                                 text = "· $line",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = ToastContentColor.copy(alpha = 0.55f),
+                                color = contentColor.copy(alpha = 0.55f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -490,16 +533,17 @@ private fun AutomationToast(
                     }
                 }
                 MaterialTheme(
-                    colorScheme = MaterialTheme.colorScheme.copy(primary = ToastContentColor.copy(alpha = 0.92f)),
+                    colorScheme = MaterialTheme.colorScheme.copy(primary = contentColor.copy(alpha = 0.92f)),
                 ) {
                     KedgeTextButton(
                         onClick = onStop,
                         enabled = !cancelRequested,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        shapes = KedgeButtonDefaults.md3ButtonShapes(shape = CircleShape),
                     ) {
                         Text(
                             text = if (cancelRequested) "正在停止…" else "停止",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelMedium,
                         )
                     }
                 }
@@ -513,22 +557,24 @@ private fun AutomationToast(
                     KedgeTextButton(
                         onClick = onApprove,
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shapes = KedgeButtonDefaults.md3ButtonShapes(shape = CircleShape),
                     ) {
                         Text(
                             text = "允许",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelMedium,
                             color = ToastRunningColor,
                         )
                     }
                     KedgeTextButton(
                         onClick = onDeny,
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shapes = KedgeButtonDefaults.md3ButtonShapes(shape = CircleShape),
                     ) {
                         Text(
                             text = "拒绝",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelMedium,
                             color = ToastStoppingColor,
                         )
                     }

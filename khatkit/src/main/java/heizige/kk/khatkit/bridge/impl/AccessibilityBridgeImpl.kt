@@ -2,6 +2,7 @@ package heizige.kk.khatkit.bridge.impl
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +11,8 @@ import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.view.Display
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
 import heizige.kk.khatkit.bridge.AccessibilityBridge
 import org.json.JSONArray
@@ -54,6 +57,10 @@ class AccessibilityBridgeImpl(
     /** 前台包名由 app 的 Service 在 TYPE_WINDOW_STATE_CHANGED 时更新。 */
     @Volatile
     var foregroundPackage: String? = null
+
+    /** 无障碍服务上下文的 WindowManager，addView 后窗口带 `TYPE_ACCESSIBILITY_OVERLAY` token。 */
+    private val overlayWindowManager: WindowManager
+        get() = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     override fun isAvailable(): Boolean = true
 
@@ -447,6 +454,16 @@ class AccessibilityBridgeImpl(
         val focused = service.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return false
         val target = editableTarget(focused) ?: return false
         return target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+    }
+
+    override fun addOverlay(view: View, params: WindowManager.LayoutParams): Boolean =
+        runCatching {
+            overlayWindowManager.addView(view, params)
+            true
+        }.getOrDefault(false)
+
+    override fun removeOverlay(view: View) {
+        runCatching { overlayWindowManager.removeView(view) }
     }
 
     private fun windowHash(): Int {
