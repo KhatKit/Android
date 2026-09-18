@@ -370,8 +370,8 @@ fun ChatInput(
                     )
                     .clip(containerShape)
                     .then(
-                        if (easedProgress() > 0.05f && settings.displaySetting.enableBlurEffect) {
-                            when (settings.displaySetting.backgroundEffectType) {
+                        if (easedProgress() > 0.05f) {
+                            when (if (settings.displaySetting.enableBlurEffect) settings.displaySetting.backgroundEffectType else BackgroundEffectType.BLUR) {
                                 BackgroundEffectType.BLUR -> Modifier.hazeBlur(
                                     input = HazeInput.Sources(hazeState),
                                     style = HazeBlurStyle.Material3 { blurRadius(40.dp) },
