@@ -16,8 +16,10 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,7 +27,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -54,14 +56,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -99,7 +102,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 private const val TAG = "AutomationOverlay"
 
@@ -159,12 +161,13 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var observeJob: Job? = null
+    private var hiddenJob: Job? = null
     private var hideJob: Job? = null
     private var overlayView: ComposeView? = null
-    private var overlayParams: WindowManager.LayoutParams? = null
     private var windowManager: WindowManager? = null
     private var overlayBridge: AccessibilityBridgeImpl? = null
     private val overlayVisible = mutableStateOf(false)
+    private val overlayHidden = mutableStateOf(false)
     private val overlayStatus = mutableStateOf<AutomationBus.AutomationStatus?>(null)
     private val overlayApproval = mutableStateOf<AutomationBus.ApprovalRequest?>(null)
     private var wakeLock: PowerManager.WakeLock? = null
@@ -194,12 +197,15 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             return START_NOT_STICKY
         }
         observeStatus()
+        observeHidden()
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
         observeJob?.cancel()
         observeJob = null
+        hiddenJob?.cancel()
+        hiddenJob = null
         hideJob?.cancel()
         hideJob = null
         releaseWakeLock()
@@ -245,9 +251,9 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         status = overlayStatus.value,
                         approval = overlayApproval.value,
                         visible = overlayVisible.value,
+                        hidden = overlayHidden.value,
                         onApprove = { AutomationBus.approve() },
                         onDeny = { AutomationBus.deny() },
-                        onDrag = ::moveOverlay,
                     )
                 }
             }
@@ -287,7 +293,6 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             return
         }
         overlayView = view
-        overlayParams = params
         windowManager = manager
         overlayBridge = bridge
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
@@ -305,7 +310,6 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                 .onFailure { Log.w(TAG, "removeView failed", it) }
         }
         overlayView = null
-        overlayParams = null
         windowManager = null
         overlayBridge = null
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
@@ -389,17 +393,16 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     }
 
     /**
-     * 拖动看板：移动窗口位置并夹在屏幕范围内（y 从 0 起，0 表示贴屏幕底部）。
+     * 订阅总线的临时隐藏标记：只驱动看板退场/进场动画，不 detach 窗口也不 stopSelf，
+     * 因此隐藏期间服务保持存活、到时（或授权强制恢复）能原样播进入动画。
      */
-    private fun moveOverlay(dx: Float, dy: Float) {
-        val view = overlayView ?: return
-        val params = overlayParams ?: return
-        val metrics = resources.displayMetrics
-        val maxX = ((metrics.widthPixels - view.width) / 2).coerceAtLeast(0)
-        val maxY = (metrics.heightPixels - view.height).coerceAtLeast(0)
-        params.x = (params.x + dx.roundToInt()).coerceIn(-maxX, maxX)
-        params.y = (params.y - dy.roundToInt()).coerceIn(0, maxY)
-        runCatching { windowManager?.updateViewLayout(view, params) }
+    private fun observeHidden() {
+        if (hiddenJob != null) return
+        hiddenJob = scope.launch {
+            AutomationBus.overlayHidden.collect { hidden ->
+                overlayHidden.value = hidden
+            }
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -485,28 +488,39 @@ private fun AutomationStatusBoard(
     status: AutomationBus.AutomationStatus?,
     approval: AutomationBus.ApprovalRequest?,
     visible: Boolean,
+    hidden: Boolean,
     onApprove: () -> Unit,
     onDeny: () -> Unit,
-    onDrag: (Float, Float) -> Unit,
 ) {
-    // 首帧先以不可见状态组合，下一帧再翻成可见：状态初始为 true 时 AnimatedVisibility
-    // 不会播进入动画，这里保证进入与退场使用同一组 150ms 动画。
-    val entered = remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        entered.value = true
+    val boardVisible = visible && !hidden && (status != null || approval != null)
+
+    // 与 Khromia Toast（GlobalToastHost）一致的可见性驱动：MutableTransitionState 从 false
+    // 开始，首帧组合后再由 LaunchedEffect 翻到目标值，保证第一次展示也播进入动画。
+    val visibleState = remember { MutableTransitionState(false) }
+
+    // 滑动位移基准高度：只在可见性切换的那一刻冻结当前实测高度（等价 Toast 的 it），
+    // 内容尺寸动画（SizeTransform）逐帧改高度时 it/2 不再跟着变，避免窗口 relayout
+    // 与滑动 offset 相互追逐造成鬼畜/振荡。
+    var measuredHeightPx by remember { mutableIntStateOf(0) }
+    var slideHeightPx by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(boardVisible) {
+        if (visibleState.targetState != boardVisible) {
+            if (measuredHeightPx > 0) slideHeightPx = measuredHeightPx
+            visibleState.targetState = boardVisible
+        }
     }
     // 动画参数与 Khromia Toast（GlobalToastHost）逐字一致：
-    // slide ±it/2、scale 0.5f、tween(150)。
+    // slide ±it/2、scale 0.5f、tween(150)（这里 it 用冻结的稳定高度）。
     // Box 只包住看板；窗口底边已在屏幕物理底部，因此 ±it/2 的位移会一直渲染到最底端。
     Box(
         modifier = Modifier.padding(start = ToastShadowRoom, top = ToastShadowRoom, end = ToastShadowRoom),
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedVisibility(
-            visible = entered.value && visible && (status != null || approval != null),
+            visibleState = visibleState,
             enter = slideInVertically(
-                initialOffsetY = { it / 2 },
+                initialOffsetY = { slideHeightPx / 2 },
                 animationSpec = tween(ANIMATION_MS),
             ) + fadeIn(
                 animationSpec = tween(ANIMATION_MS),
@@ -515,7 +529,7 @@ private fun AutomationStatusBoard(
                 animationSpec = tween(ANIMATION_MS),
             ),
             exit = slideOutVertically(
-                targetOffsetY = { it / 2 },
+                targetOffsetY = { slideHeightPx / 2 },
                 animationSpec = tween(ANIMATION_MS),
             ) + fadeOut(
                 animationSpec = tween(ANIMATION_MS),
@@ -530,7 +544,10 @@ private fun AutomationStatusBoard(
                     approval = approval,
                     onApprove = onApprove,
                     onDeny = onDeny,
-                    onDrag = onDrag,
+                    modifier = Modifier.onSizeChanged { size ->
+                        measuredHeightPx = size.height
+                        if (slideHeightPx == 0) slideHeightPx = size.height
+                    },
                 )
             }
         }
@@ -570,15 +587,32 @@ private fun remainingApprovalSeconds(requestedAt: Long): Int {
 }
 
 /**
+ * 看板内容种类：作为 [AnimatedContent] 的 targetState 驱动内容切换与尺寸动画。
+ * [Approval] 自带请求数据，过渡期间旧内容仍渲染旧请求（不会被新值覆盖）。
+ */
+private sealed interface BoardContent {
+    data object Finished : BoardContent
+
+    data class Approval(val request: AutomationBus.ApprovalRequest) : BoardContent
+
+    data object Status : BoardContent
+}
+
+/**
  * 看板容器逐项对齐 Khromia Toast 的 ToastCard：
  * - color = inverseSurface.harmonizeWithPrimary().copy(alpha = 0.87)
  * - contentColor = inverseOnSurface.harmonizeWithPrimary()
  * - shape = CircleShape
  * - padding(bottom = 48.dp) + systemBarsPadding()（与 Toast 相同的屏幕边距）
  * - heightIn(min = 48.dp)、widthIn(max = 300.dp)
- * - graphicsLayer { shadowElevation = 12.dp.toPx(); shape = CircleShape; clip = true }
+ * - graphicsLayer { shadowElevation = 12.dp.toPx(); shape = CircleShape; clip = false }
  * - 单行 Row：普通/完成态仅当前步骤文本；授权态为「请求文本（剩余秒数）」+
  *   右侧 MD3 ButtonGroup（允许 / 拒绝），文本 12.sp / Medium / letterSpacing 0.5.sp。
+ *
+ * 内容由 [AnimatedContent] 承载：尺寸变化交给 [SizeTransform] 做容器动画，子内容
+ * 始终按目标尺寸测量，避免独立 animateContentSize 在 WRAP_CONTENT 悬浮窗里
+ * 逐帧把高度反哺测量导致抖动；clip = false 由外层 Surface 的 shape 裁剪兜底，
+ * 不会裁掉 graphicsLayer 的 12dp 阴影。
  */
 @Composable
 private fun AutomationToast(
@@ -586,9 +620,14 @@ private fun AutomationToast(
     approval: AutomationBus.ApprovalRequest?,
     onApprove: () -> Unit,
     onDeny: () -> Unit,
-    onDrag: (Float, Float) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val finished = status?.finished == true && approval == null
+    val content: BoardContent = when {
+        finished -> BoardContent.Finished
+        approval != null -> BoardContent.Approval(approval)
+        else -> BoardContent.Status
+    }
     val containerColor = MaterialTheme.colorScheme.inverseSurface.harmonizeWithPrimary()
     val contentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
 
@@ -596,8 +635,7 @@ private fun AutomationToast(
         color = containerColor.copy(alpha = TOAST_ALPHA),
         contentColor = contentColor,
         shape = CircleShape,
-        modifier = Modifier
-            .animateContentSize(animationSpec = tween(durationMillis = 150))
+        modifier = modifier
             // 透明留白：给 12dp 阴影留出窗口内空间，避免被窗口边界裁剪
             .padding(horizontal = 20.dp, vertical = 20.dp)
             .padding(bottom = 48.dp)
@@ -610,58 +648,79 @@ private fun AutomationToast(
                 shadowElevation = ToastShadowElevation.toPx()
                 shape = CircleShape
                 clip = false
-            }
-            .pointerInput(Unit) {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    onDrag(dragAmount.x, dragAmount.y)
-                }
             },
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            when {
-                finished -> {
-                    // 纯文本提示，不出现任何图标/按钮
-                    Text(
-                        text = "自动化已结束",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.5.sp,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+        AnimatedContent(
+            targetState = content,
+            transitionSpec = {
+                (fadeIn(tween(ANIMATION_MS)) togetherWith fadeOut(tween(ANIMATION_MS)))
+                    .using(SizeTransform(clip = false) { _, _ -> tween(ANIMATION_MS) })
+            },
+            contentAlignment = Alignment.BottomCenter,
+            label = "automationToastContent",
+        ) { target ->
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                when (target) {
+                    BoardContent.Finished -> {
+                        // 纯文本提示，不出现任何图标/按钮
+                        Text(
+                            text = "自动化已结束",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
 
-                approval != null -> {
-                    val remainingSeconds = rememberApprovalRemainingSeconds(approval)
-                    Text(
-                        text = "${approval.title}（${remainingSeconds}s）",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.5.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    ApprovalButtonGroup(onApprove = onApprove, onDeny = onDeny)
-                }
+                    is BoardContent.Approval -> {
+                        val remainingSeconds = rememberApprovalRemainingSeconds(target.request)
+                        Text(
+                            text = "${target.request.title}（${remainingSeconds}s）",
+                            modifier = Modifier.weight(1f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        ApprovalButtonGroup(onApprove = onApprove, onDeny = onDeny)
+                    }
 
-                status != null -> {
-                    Text(
-                        text = status.label,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.5.sp,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    BoardContent.Status -> {
+                        // 步骤文本每次变化都做一次淡入淡出 + 轻微垂直滑动，
+                        // 尺寸变化交给 SizeTransform（clip = false），避免窗口 relayout 抖动
+                        AnimatedContent(
+                            targetState = status?.label.orEmpty(),
+                            transitionSpec = {
+                                (
+                                    fadeIn(tween(ANIMATION_MS)) +
+                                        slideInVertically(tween(ANIMATION_MS)) { it / 4 }
+                                    ) togetherWith (
+                                    fadeOut(tween(ANIMATION_MS)) +
+                                        slideOutVertically(tween(ANIMATION_MS)) { -it / 4 }
+                                    ) using SizeTransform(clip = false) { _, _ -> tween(ANIMATION_MS) }
+                            },
+                            contentAlignment = Alignment.Center,
+                            label = "boardText",
+                        ) { label ->
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.5.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
         }

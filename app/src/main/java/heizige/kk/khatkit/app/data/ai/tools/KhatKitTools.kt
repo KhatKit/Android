@@ -396,7 +396,9 @@ class KhatKitToolProvider(
             "模型本身看不到图片，请依据 OCR 与节点信息判断界面内容，再用 khatkit__device_act 操作。" +
             "节点每行格式：文本 | 描述 | #viewId [类名] (左,上,右,下) @中心X,中心Y 标记，" +
             "标记 click=可点击、edit=可输入、scroll=可滚动、long=可长按。" +
-            "include_ocr / include_nodes 默认 true，可按需关闭以减少输出。",
+            "include_ocr / include_nodes 默认 true，可按需关闭以减少输出。" +
+            "注意：截图可能包含 KhatKit 的自动化悬浮看板；若看板遮挡了要读取的内容，" +
+            "可先调用 khatkit__device_act 的 overlay_hide 临时隐藏看板（到时自动恢复）。",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -430,7 +432,11 @@ class KhatKitToolProvider(
             "action 取值：click_text（按文本点击）、click_id（按 viewId 点击）、tap（坐标点击）、" +
             "swipe（坐标滑动）、press（坐标长按，duration_ms 默认 600）、set_text（写入 id 指定或首个可编辑输入框）、" +
             "back / home / recents / notifications（系统全局动作）、open_app（包名用 text 传）、" +
-            "wait_text（等待文本出现，timeout_ms 默认 5000；找到会返回节点 bounds/centerX/centerY 的 JSON，可据此 tap）。",
+            "wait_text（等待文本出现，timeout_ms 默认 5000；找到会返回节点 bounds/centerX/centerY 的 JSON，可据此 tap）、" +
+            "overlay_hide（临时隐藏自动化悬浮看板，duration_ms 默认 5000、范围 1000..30000，到时自动恢复；" +
+            "用户授权请求会强制重新显示看板，且 update/新步骤不会提前恢复）、" +
+            "overlay_show（立即恢复看板显示）。" +
+            "overlay_hide / overlay_show 不操作屏幕，无需用户授权。",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -442,6 +448,7 @@ class KhatKitToolProvider(
                                 listOf(
                                     "click_text", "click_id", "tap", "swipe", "press", "set_text",
                                     "back", "home", "recents", "notifications", "open_app", "wait_text",
+                                    "overlay_hide", "overlay_show",
                                 ).map { JsonPrimitive(it) }
                             )
                         )
@@ -461,7 +468,8 @@ class KhatKitToolProvider(
                     put("y2", buildJsonObject { put("type", "number"); put("description", "swipe 的终点 Y。") })
                     put("duration_ms", buildJsonObject {
                         put("type", "integer")
-                        put("description", "press / swipe 的手势时长毫秒，默认 press 600、swipe 300。")
+                        put("description", "press / swipe 的手势时长毫秒，默认 press 600、swipe 300；" +
+                            "overlay_hide 的隐藏时长毫秒，默认 5000，范围 1000..30000。")
                     })
                     put("timeout_ms", buildJsonObject {
                         put("type", "integer")
@@ -527,10 +535,24 @@ class KhatKitToolProvider(
 
     private suspend fun deviceAct(params: Map<String, Any?>): String {
         if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
-        val bridge = AccessibilityBridgeHolder.current()
-            ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
         val action = params.str("action")?.lowercase()
             ?: return "缺少参数：action"
+        // 看板显隐不操作屏幕：不需要无障碍服务，也不走授权请求
+        when (action) {
+            "overlay_hide" -> {
+                val duration = (params.long("duration_ms") ?: AutomationBus.DEFAULT_OVERLAY_HIDE_MS)
+                    .coerceIn(1_000L, 30_000L)
+                AutomationBus.hideOverlayTemporarily(duration)
+                return "看板已临时隐藏，${duration}ms 后自动恢复；用户授权请求会强制显示看板"
+            }
+
+            "overlay_show" -> {
+                AutomationBus.showOverlay()
+                return "看板已恢复显示"
+            }
+        }
+        val bridge = AccessibilityBridgeHolder.current()
+            ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
         AutomationBus.update(deviceActLabel(action, params))
         if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params))) {
             // 会话中步骤：拒绝只取消本步，不结束整个自动化会话

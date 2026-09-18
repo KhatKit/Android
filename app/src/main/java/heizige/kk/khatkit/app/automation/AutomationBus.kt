@@ -6,7 +6,9 @@ import heizige.kk.khatkit.app.service.AutomationOverlayService
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +55,11 @@ object AutomationBus {
     /** 授权等待上限，超时按拒绝处理；看板倒计时与它保持同一时间基准。 */
     const val APPROVAL_TIMEOUT_MS = 60_000L
 
+    /** 临时隐藏看板的默认时长；[hideOverlayTemporarily] 会把时长夹在 1s..30s 之间。 */
+    const val DEFAULT_OVERLAY_HIDE_MS = 5_000L
+    private const val MIN_OVERLAY_HIDE_MS = 1_000L
+    private const val MAX_OVERLAY_HIDE_MS = 30_000L
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val _status = MutableStateFlow<AutomationStatus?>(null)
@@ -60,6 +67,12 @@ object AutomationBus {
 
     private val _pendingApproval = MutableStateFlow<ApprovalRequest?>(null)
     val pendingApproval: StateFlow<ApprovalRequest?> = _pendingApproval.asStateFlow()
+
+    /** 看板是否被 AI 临时隐藏：true 时只播退场动画，服务/窗口保持挂载。 */
+    private val _overlayHidden = MutableStateFlow(false)
+    val overlayHidden: StateFlow<Boolean> = _overlayHidden.asStateFlow()
+
+    private var overlayHideJob: Job? = null
 
     @Volatile
     private var installed = false
@@ -142,6 +155,8 @@ object AutomationBus {
             if (isHandsOff() || sessionApproved) return@withLock true
             val deferred = CompletableDeferred<Boolean>()
             val request = ApprovalRequest(id = UUID.randomUUID().toString(), title = title, detail = detail)
+            // 授权必须可见：即便看板正处于临时隐藏，也强制恢复显示
+            showOverlay()
             approvalDeferred = deferred
             _pendingApproval.value = request
             val approved = try {
@@ -167,6 +182,32 @@ object AutomationBus {
     }
 
     /**
+     * 临时隐藏悬浮看板（AI 发现看板遮挡屏幕内容时使用）：只播退场动画，服务与窗口
+     * 保持挂载，[durationMs] 到时后自动恢复显示（夹在 1s..30s）。期间 [update] 不会
+     * 让它提前出现；新的授权请求（[requestApproval]）会强制恢复显示。
+     */
+    fun hideOverlayTemporarily(durationMs: Long = DEFAULT_OVERLAY_HIDE_MS) {
+        val duration = durationMs.coerceIn(MIN_OVERLAY_HIDE_MS, MAX_OVERLAY_HIDE_MS)
+        overlayHideJob?.cancel()
+        _overlayHidden.value = true
+        overlayHideJob = scope.launch {
+            delay(duration)
+            overlayHideJob = null
+            _overlayHidden.value = false
+        }
+    }
+
+    /** 立即恢复看板显示（取消临时隐藏计时）。 */
+    fun showOverlay() {
+        overlayHideJob?.cancel()
+        overlayHideJob = null
+        _overlayHidden.value = false
+    }
+
+    /** 看板当前是否处于临时隐藏状态（授权请求不受影响，会强制显示）。 */
+    fun isOverlayHidden(): Boolean = _overlayHidden.value
+
+    /**
      * 一次运行结束（成功/失败都调用）：保留最后一帧并标记 [AutomationStatus.finished]，
      * 看板先展示完成提示，约 3s 后播放退场动画并隐藏。期间出现新的 [update]
      * （例如事件触发再次运行）会清除完成态、取消退场。
@@ -175,6 +216,8 @@ object AutomationBus {
      */
     fun finish() {
         sessionHeld = false
+        // 会话结束：临时隐藏状态复位，保证完成提示可见
+        showOverlay()
         val prev = _status.value ?: return
         if (prev.finished) return
         _status.value = prev.copy(finished = true)
@@ -185,6 +228,7 @@ object AutomationBus {
         sessionHeld = false
         _status.value = null
         sessionApproved = false
+        showOverlay()
     }
 
     private fun isHandsOff(): Boolean = handsOffProvider?.invoke() == true
