@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -92,7 +93,15 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private const val TAG = "AutomationOverlay"
-private const val ANIMATION_MS = 250
+
+/** 与 Khromia Toast（GlobalToastHost 默认 durations=150L）完全一致的动画时长。 */
+private const val ANIMATION_MS = 150
+
+/** 自动化空闲后看板保持可见的时长，到时才播放退场动画并移除视图。 */
+private const val IDLE_EXIT_DELAY_MS = 3_000L
+
+/** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完。 */
+private const val EXIT_SETTLE_MS = 200L
 
 private val ToastRunningColor = Color(0xFF7ED9A7)
 private val ToastStoppingColor = Color(0xFFFFB4AB)
@@ -105,9 +114,9 @@ private val ToastShadowElevation = 12.dp
 
 /**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
- * 显示当前步骤、最近步骤与「停止」按钮；空闲后播放退场动画（约 [ANIMATION_MS] ms）
- * 再移除视图并 [stopSelf]。运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，
- * 空闲或销毁时释放。
+ * 显示当前步骤、最近步骤与「停止」按钮；空闲后先保持 [IDLE_EXIT_DELAY_MS] 可见，
+ * 再播放 Khromia Toast 同款退场动画（[ANIMATION_MS] ms）并移除视图、[stopSelf]。
+ * 运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，空闲或销毁时释放。
  *
  * 无障碍服务在线时优先走 `TYPE_ACCESSIBILITY_OVERLAY`（层级高于状态栏/通知栏），
  * 否则回退 `TYPE_APPLICATION_OVERLAY`（需要 SYSTEM_ALERT_WINDOW）。两者都没有时
@@ -281,9 +290,9 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             combine(AutomationBus.status, AutomationBus.pendingApproval) { status, approval ->
                 status to approval
             }.collect { (status, approval) ->
-                overlayStatus.value = status
-                overlayApproval.value = approval
                 if (status != null || approval != null) {
+                    overlayStatus.value = status
+                    overlayApproval.value = approval
                     hideJob?.cancel()
                     hideJob = null
                     if (overlayView == null) attachOverlay()
@@ -292,15 +301,20 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         acquireWakeLock()
                     }
                 } else {
-                    overlayVisible.value = false
+                    // 空闲：保留最后一帧内容，先停留 IDLE_EXIT_DELAY_MS，再播退场动画并 detach
                     releaseWakeLock()
                     hideJob?.cancel()
                     hideJob = scope.launch {
-                        delay(HIDE_DELAY_MS)
-                        if (AutomationBus.status.value == null && AutomationBus.pendingApproval.value == null) {
-                            detachOverlay()
-                            stopSelf()
+                        delay(IDLE_EXIT_DELAY_MS)
+                        if (AutomationBus.status.value != null || AutomationBus.pendingApproval.value != null) {
+                            return@launch
                         }
+                        if (overlayView != null) {
+                            overlayVisible.value = false
+                            delay(EXIT_SETTLE_MS)
+                            detachOverlay()
+                        }
+                        stopSelf()
                     }
                 }
             }
@@ -358,7 +372,6 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     companion object {
         const val CHANNEL_ID = "automation_overlay"
         private const val NOTIFICATION_ID = 2003
-        private const val HIDE_DELAY_MS = 300L
         private const val BOTTOM_MARGIN_DP = 96
         private const val WAKE_LOCK_TAG = "KhatKit:AutomationOverlay"
 
@@ -405,14 +418,28 @@ private fun AutomationStatusBoard(
     onDeny: () -> Unit,
     onDrag: (Float, Float) -> Unit,
 ) {
+    // 动画参数与 Khromia Toast（GlobalToastHost）逐字一致：
+    // slide ±it/2、scale 0.5f、tween(150)
     AnimatedVisibility(
         visible = visible && (status != null || approval != null),
-        enter = slideInVertically(animationSpec = tween(ANIMATION_MS)) { it } +
-            fadeIn(animationSpec = tween(ANIMATION_MS)) +
-            scaleIn(initialScale = 0.92f, animationSpec = tween(ANIMATION_MS)),
-        exit = slideOutVertically(animationSpec = tween(ANIMATION_MS)) { it } +
-            fadeOut(animationSpec = tween(ANIMATION_MS)) +
-            scaleOut(targetScale = 0.92f, animationSpec = tween(ANIMATION_MS)),
+        enter = slideInVertically(
+            initialOffsetY = { it / 2 },
+            animationSpec = tween(ANIMATION_MS),
+        ) + fadeIn(
+            animationSpec = tween(ANIMATION_MS),
+        ) + scaleIn(
+            initialScale = 0.5f,
+            animationSpec = tween(ANIMATION_MS),
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { it / 2 },
+            animationSpec = tween(ANIMATION_MS),
+        ) + fadeOut(
+            animationSpec = tween(ANIMATION_MS),
+        ) + scaleOut(
+            targetScale = 0.5f,
+            animationSpec = tween(ANIMATION_MS),
+        ),
     ) {
         if (status != null || approval != null) {
             AutomationToast(
@@ -425,6 +452,38 @@ private fun AutomationStatusBoard(
             )
         }
     }
+}
+
+/**
+ * 授权剩余秒数：以 [AutomationBus.ApprovalRequest.requestedAt] 为起点每秒刷新，
+ * 与总线 [AutomationBus.APPROVAL_TIMEOUT_MS] 同基准，归零即自动拒绝触发点。
+ */
+@Composable
+private fun rememberApprovalRemainingSeconds(approval: AutomationBus.ApprovalRequest?): Int {
+    val request = approval
+    val remaining by produceState(
+        initialValue = request?.let { remainingApprovalSeconds(it.requestedAt) } ?: 0,
+        key1 = request?.id,
+    ) {
+        if (request == null) {
+            value = 0
+        } else {
+            while (true) {
+                val seconds = remainingApprovalSeconds(request.requestedAt)
+                value = seconds
+                if (seconds <= 0) break
+                delay(1_000L)
+            }
+        }
+    }
+    return remaining
+}
+
+/** 向上取整的剩余秒数（0..60）。 */
+private fun remainingApprovalSeconds(requestedAt: Long): Int {
+    val remainingMs = (requestedAt + AutomationBus.APPROVAL_TIMEOUT_MS - System.currentTimeMillis())
+        .coerceAtLeast(0L)
+    return ((remainingMs + 999L) / 1_000L).toInt()
 }
 
 @Composable
@@ -488,6 +547,7 @@ private fun AutomationToast(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     if (approval != null) {
+                        val remainingSeconds = rememberApprovalRemainingSeconds(approval)
                         Text(
                             text = approval.title,
                             style = MaterialTheme.typography.labelMedium,
@@ -504,6 +564,13 @@ private fun AutomationToast(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        Text(
+                            text = "$remainingSeconds 秒后自动拒绝",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha = 0.72f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     } else if (status != null) {
                         Text(
                             text = status.label,

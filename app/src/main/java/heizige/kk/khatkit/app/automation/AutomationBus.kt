@@ -41,10 +41,14 @@ object AutomationBus {
         val id: String,
         val title: String,
         val detail: String,
+        /** 请求创建时间，看板倒计时以它为起点，与 [APPROVAL_TIMEOUT_MS] 对齐。 */
+        val requestedAt: Long = System.currentTimeMillis(),
     )
 
     private const val MAX_RECENT = 4
-    private const val APPROVAL_TIMEOUT_MS = 60_000L
+
+    /** 授权等待上限，超时按拒绝处理；看板倒计时与它保持同一时间基准。 */
+    const val APPROVAL_TIMEOUT_MS = 60_000L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
