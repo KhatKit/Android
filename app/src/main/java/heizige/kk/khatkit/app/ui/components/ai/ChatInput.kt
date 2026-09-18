@@ -316,7 +316,7 @@ fun ChatInput(
             modifier = modifier
                 .imePadding()
                 .navigationBarsPadding()
-                .padding(horizontal = (12f + 10f * easedProgress()).dp)
+                .padding(horizontal = 12.dp)
                 .padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -370,8 +370,8 @@ fun ChatInput(
                     )
                     .clip(containerShape)
                     .then(
-                        if (easedProgress() > 0.05f) {
-                            when (if (settings.displaySetting.enableBlurEffect) settings.displaySetting.backgroundEffectType else BackgroundEffectType.BLUR) {
+                        if (easedProgress() > 0.05f && settings.displaySetting.enableBlurEffect) {
+                            when (settings.displaySetting.backgroundEffectType) {
                                 BackgroundEffectType.BLUR -> Modifier.hazeBlur(
                                     input = HazeInput.Sources(hazeState),
                                     style = HazeBlurStyle.Material3 { blurRadius(40.dp) },
@@ -577,7 +577,16 @@ fun ChatInput(
                 showSend || !asrState.isAvailable -> FabState.Send
                 else -> FabState.Mic
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(((1f - easedProgress()) * 8f).dp))
+            Box(
+                modifier = Modifier.layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    val progress = easedProgress()
+                    layout((placeable.width * (1f - progress)).toInt().coerceAtLeast(0), placeable.height) {
+                        placeable.place(0, 0)
+                    }
+                }
+            ) {
             FloatingActionButton(
                 onClick = {
                     when (fabState) {
@@ -597,7 +606,15 @@ fun ChatInput(
                         }
                     }
                 },
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier
+                    .size(56.dp)
+                    .graphicsLayer {
+                        val progress = easedProgress()
+                        translationX = progress * (size.width + 12.dp.toPx())
+                        scaleX = 1f - 0.2f * progress
+                        scaleY = 1f - 0.2f * progress
+                        alpha = 1f - progress
+                    },
                 containerColor = when (fabState) {
                     FabState.Recording -> KedgeColors.errorContainer
                     FabState.Send -> KedgeColors.primary
@@ -625,6 +642,7 @@ fun ChatInput(
                         contentDescription = null,
                     )
                 }
+            }
             }
             }
 
