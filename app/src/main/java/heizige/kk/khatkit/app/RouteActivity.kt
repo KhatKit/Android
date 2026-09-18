@@ -122,6 +122,7 @@ import heizige.kk.khatkit.app.ui.pages.setting.SettingProviderPage
 import heizige.kk.khatkit.app.ui.pages.setting.SettingSearchDetailPage
 import heizige.kk.khatkit.app.ui.pages.setting.SettingSearchPage
 import heizige.kk.khatkit.app.ui.pages.setting.SettingSpeechPage
+import heizige.kk.khatkit.app.ui.pages.setting.SettingTriggersPage
 import heizige.kk.khatkit.app.ui.pages.setting.SettingWebPage
 import heizige.kk.khatkit.app.ui.pages.share.handler.ShareHandlerPage
 import heizige.kk.khatkit.app.ui.pages.translator.TranslatorPage
@@ -495,6 +496,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingWebPage()
                             }
 
+                            entry<Screen.SettingTriggers> {
+                                SettingTriggersPage()
+                            }
+
                             entry<Screen.Debug> {
                                 DebugPage()
                             }
@@ -714,6 +719,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingWeb : Screen
+
+    @Serializable
+    data object SettingTriggers : Screen
 
     @Serializable
     data object Debug : Screen

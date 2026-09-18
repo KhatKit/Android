@@ -49,6 +49,18 @@ interface ToolBridge {
     fun zip(paths: List<String>, output: String): String
     fun unzip(zipPath: String, outputDir: String): String
     fun sleep(seconds: Int)
+
+    /** 写入系统剪贴板（应用在前台时可用）。 */
+    fun setClipboard(text: String)
+
+    /** 读取系统剪贴板文本；无内容返回空串。 */
+    fun getClipboard(): String
+
+    /** 点亮屏幕。成功返回「屏幕已点亮」，失败返回中文错误说明。 */
+    fun wakeScreen(): String
+
+    /** 本地图片 OCR（中文 + 拉丁字母）。成功返回识别文本，失败返回 {"error":"..."}。 */
+    fun ocrText(path: String): String
 }
 
 interface UiBridge {
@@ -181,6 +193,31 @@ interface AccessibilityBridge {
 
     /** 轮询等待首个匹配节点出现，超时返回 null。 */
     fun waitForNode(query: Map<String, Any?>, timeoutMs: Long): Map<String, Any?>?
+
+    /** 坐标长按 durationMs 毫秒（100~10000）。 */
+    fun press(x: Float, y: Float, durationMs: Long): Boolean
+
+    /**
+     * 执行多段手势。strokesJson 为 JSON 数组：
+     * `[ [ {"x":1,"y":2,"t":0}, {"x":3,"y":4,"t":500} ], ... ]`
+     * t 为段内毫秒偏移；超过系统段数上限的轨迹会被忽略。
+     */
+    fun gesture(strokesJson: String): Boolean
+
+    /** 等待窗口内容稳定（连续两次节点摘要一致）或超时。 */
+    fun waitForIdle(timeoutMs: Long): Boolean
+
+    /** 等待指定包名成为前台应用。 */
+    fun waitForPackage(packageName: String, timeoutMs: Long): Boolean
+
+    /**
+     * 截屏并保存到共享存储，返回 PNG 路径。
+     * API 30 以下或失败时返回中文错误文本，不抛异常。
+     */
+    fun captureScreen(outputPath: String? = null): String
+
+    /** 对当前聚焦的输入框执行粘贴。 */
+    fun paste(): Boolean
 }
 
 interface RootBridge {

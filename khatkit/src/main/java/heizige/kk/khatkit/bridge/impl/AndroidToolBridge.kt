@@ -1,16 +1,24 @@
 package heizige.kk.khatkit.bridge.impl
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.PowerManager
 import android.util.Base64
+import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import heizige.kk.khatkit.bridge.ToolBridge
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -295,6 +303,51 @@ class AndroidToolBridge(
         Thread.sleep(seconds.coerceIn(0, 120) * 1000L)
     }
 
+    override fun setClipboard(text: String) {
+        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        manager.setPrimaryClip(ClipData.newPlainText("KhatKit", text))
+    }
+
+    override fun getClipboard(): String {
+        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = manager.primaryClip ?: return ""
+        return clip.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+    }
+
+    override fun wakeScreen(): String {
+        val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (power.isInteractive) return "屏幕已点亮"
+        return try {
+            @Suppress("DEPRECATION")
+            val wakeLock = power.newWakeLock(
+                PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "khatkit:wakeScreen",
+            )
+            wakeLock.acquire(3_000L)
+            "屏幕已点亮"
+        } catch (e: SecurityException) {
+            "点亮屏幕失败：${e.message ?: "缺少权限"}\n" +
+                "请授予 WAKE_LOCK 权限，或用 Shizuku/root 执行 input keyevent KEYCODE_WAKEUP"
+        }
+    }
+
+    override fun ocrText(path: String): String {
+        requireSharedStorageAccess(path)
+        val file = File(path)
+        require(file.exists()) { "文件不存在：$path" }
+        return try {
+            val image = InputImage.fromFilePath(context, Uri.fromFile(file))
+            Tasks.await(ocrRecognizer.process(image), OCR_TIMEOUT_SEC, TimeUnit.SECONDS).text
+        } catch (e: Exception) {
+            if (e is InterruptedException) Thread.currentThread().interrupt()
+            JSONObject().put("error", "OCR 失败：${e.message ?: e.javaClass.simpleName}").toString()
+        }
+    }
+
+    private val ocrRecognizer by lazy {
+        TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+    }
+
     private fun isSharedStorage(path: String): Boolean {
         val normalized = path.trim()
         return normalized.startsWith("/sdcard") ||
@@ -308,5 +361,9 @@ class AndroidToolBridge(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         runCatching { context.startActivity(intent) }
+    }
+
+    private companion object {
+        const val OCR_TIMEOUT_SEC = 30L
     }
 }

@@ -68,6 +68,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import heizige.kk.khatkit.app.ui.icons.addPhotoAlternate
 import heizige.kk.khatkit.app.ui.icons.autoAwesome
+import heizige.kk.khatkit.app.ui.icons.bolt
 import heizige.kk.khatkit.app.ui.icons.book2
 import heizige.kk.khatkit.app.ui.icons.campaign
 import heizige.kk.khatkit.app.ui.icons.celebration
@@ -243,6 +244,12 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         leadingContent = { Icon(inventory2, null) },
                         supportingContent = { Text("浏览、安装脚本卡片，让 AI 能操作手机") },
                         headlineContent = { Text("KhatKit 卡片市场") },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingTriggers) },
+                        leadingContent = { Icon(bolt, null) },
+                        supportingContent = { Text("卡片在定时、通知、应用启动、充电时自动运行") },
+                        headlineContent = { Text("自动化触发器") },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingWeb) },

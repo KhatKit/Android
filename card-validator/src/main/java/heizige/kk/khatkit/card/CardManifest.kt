@@ -38,6 +38,9 @@ data class CardManifest(
     /** 触发方式：ai（AI 工具调用）/ user（用户在卡片界面手动运行），默认两者都允许 */
     val triggers: List<String> = DEFAULT_TRIGGERS,
 
+    /** 事件触发：定时 / 通知 / 应用启动 / 充电，空数组 = 不参与自动触发 */
+    val events: List<Event> = emptyList(),
+
     val tags: Tags? = null,
     val compliance: Compliance? = null,
     val store: Store = Store(),
@@ -73,6 +76,33 @@ data class CardManifest(
         val allow: List<String> = emptyList(),
     )
 
+    /**
+     * 事件触发器声明。一个事件 = 一组匹配条件：
+     * - schedule：`times`（HH:mm 列表）或 `intervalMinutes`（间隔分钟）二选一，`days` 限定星期
+     * - notification：`package` / `titleContains` / `textContains` 任意组合（空 = 不限制）
+     * - app_launch：`package` 为空表示任意应用进入前台
+     * - charging：`state` 为 connected | disconnected
+     */
+    @Serializable
+    data class Event(
+        /** schedule | notification | app_launch | charging */
+        val type: String,
+        /** schedule：["08:00","21:30"] */
+        val times: List<String> = emptyList(),
+        /** schedule：重复间隔（分钟，>=1），与 times 二选一 */
+        val intervalMinutes: Int = 0,
+        /** schedule：1=周一 .. 7=周日，空 = 每天 */
+        val days: List<Int> = emptyList(),
+        /** notification / app_launch 的包名（空 = 任意），JSON 字段名为 package */
+        @SerialName("package") val packageName: String = "",
+        /** notification：标题包含 */
+        val titleContains: String = "",
+        /** notification：正文包含 */
+        val textContains: String = "",
+        /** charging：connected | disconnected */
+        val state: String = "",
+    )
+
     /** 两个正交维度 + 一个可选场景，见 TagVocabulary */
     @Serializable
     data class Tags(
@@ -105,10 +135,23 @@ data class CardManifest(
     /** 是否允许用户在卡片界面手动运行 */
     fun supportsUser(): Boolean = TRIGGER_USER in triggers
 
+    /** 卡片是否声明了至少一个事件触发器 */
+    fun supportsEvents(): Boolean = events.isNotEmpty()
+
     companion object {
         const val TRIGGER_AI = "ai"
         const val TRIGGER_USER = "user"
         val DEFAULT_TRIGGERS = listOf(TRIGGER_AI, TRIGGER_USER)
         val ALL_TRIGGERS = setOf(TRIGGER_AI, TRIGGER_USER)
+
+        const val EVENT_SCHEDULE = "schedule"
+        const val EVENT_NOTIFICATION = "notification"
+        const val EVENT_APP_LAUNCH = "app_launch"
+        const val EVENT_CHARGING = "charging"
+        val ALL_EVENT_TYPES = setOf(EVENT_SCHEDULE, EVENT_NOTIFICATION, EVENT_APP_LAUNCH, EVENT_CHARGING)
+
+        const val CHARGING_CONNECTED = "connected"
+        const val CHARGING_DISCONNECTED = "disconnected"
+        val ALL_CHARGING_STATES = setOf(CHARGING_CONNECTED, CHARGING_DISCONNECTED)
     }
 }

@@ -440,6 +440,12 @@
   <string name="notification_web_server_running">Web服务器运行中</string>
   <string name="notification_web_server_starting">正在启动...</string>
   <string name="notification_web_server_stop">停止</string>
+  <string name="trigger_notification_channel">自动化触发器</string>
+  <string name="trigger_notification_channel_desc">卡片在定时、通知、应用启动或充电时自动运行</string>
+  <string name="trigger_notification_failed_title">卡片自动触发失败</string>
+  <string name="trigger_notification_failed_text">「%1$s」运行失败：%2$s</string>
+  <string name="trigger_service_notification_title">自动化触发器运行中</string>
+  <string name="trigger_service_notification_text">正在监听定时 / 通知 / 应用启动 / 充电事件</string>
   <string name="permission_camera">相机</string>
   <string name="permission_camera_desc">需要相机权限以拍摄照片</string>
   <string name="permission_desc_goto_setting">某些权限已被永久拒绝，请前往应用设置手动开启：</string>

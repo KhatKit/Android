@@ -41,6 +41,9 @@ dependencies {
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
 
+    // OCR: ML Kit 中文文字识别（模型随包，无需 GMS）
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+
     // Networking: Ktor client only, deliberately not OkHttp
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)

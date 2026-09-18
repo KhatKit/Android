@@ -81,6 +81,42 @@ return { message = "Hello, " .. (v.name or name or "world") }
 - `user`：卡片市场中的「运行」按钮只在声明了 `user` 时出现，用户可手动执行。
 - 可同时声明（`["ai", "user"]`），也是不写该字段时的默认值；CI 会拒绝未知值（如 `timer`）、重复值和空数组。
 
+### 事件触发（events）
+
+`events` 让卡片在没有 AI、没有用户点击的情况下自动运行（宿主总开关打开后生效）。运行参数通过 `args.event` 注入：
+
+| type | 参数 | 说明 |
+|---|---|---|
+| `schedule` | `times: ["08:00"]` 或 `intervalMinutes: 30`，可选 `days: [1..7]`（1=周一，缺省每天） | 定时，分钟级精度 |
+| `notification` | `package`（缺省任意应用）、`titleContains`、`textContains` | 通知到达；至少一个匹配条件 |
+| `app_launch` | `package`（缺省任意应用） | 应用进入前台 |
+| `charging` | `state: "connected" \| "disconnected"` | 插拔充电器 |
+
+```json
+"events": [
+  { "type": "schedule", "times": ["08:00"], "days": [1, 2, 3, 4, 5] },
+  { "type": "notification", "package": "com.tencent.mm", "titleContains": "红包" },
+  { "type": "charging", "state": "connected" }
+]
+```
+
+脚本侧取值示例：
+
+```lua
+local event = args.event or {}
+if event.type == "notification" then
+  local pkg = event.package   -- 包名
+  local title = event.title   -- 标题
+  local text = event.text     -- 正文
+elseif event.type == "schedule" then
+  local time = event.time     -- "08:00"
+elseif event.type == "charging" then
+  local state = event.state   -- connected / disconnected
+end
+```
+
+注意：事件卡片同样通过沙箱与 bridge 执行；单卡有冷却（通知 3 秒、应用启动 60 秒、充电 5 秒），失败只会发通知，不影响宿主。详见 `docs/triggers.md`。
+
 ### 标签词表（受控，CI 校验）
 
 - `domain`（10 选 1）：`file` `media` `app` `system` `net` `text` `device` `game` `social` `data`
@@ -299,3 +335,43 @@ return { output = output, chars = #text, preview = string.sub(text, 1, 200) }
 - **网络尽量只在 `tool.httpGet`**，域名写进 `network.allow`，不要从参数拼任意域名。
 - **状态用 store**：记住上次选择、断点信息，避免重复问用户。
 - 返回结构保持精简（AI 会读），大文本写文件、只回路径和摘要。
+
+---
+
+## 9. 手机自动化扩展（剪贴板 / 截屏 / 手势 / 等待 / OCR）
+
+以下方法挂在原有 bridge 上，`requires.bridges` 声明不变（`tool` / `accessibility`）；无障碍相关仍需 `privilege: "elevated"` 并在系统设置里开启服务。
+
+### 9.1 tool 新增
+
+```lua
+tool.setClipboard("文本")          -- 写入系统剪贴板
+tool.getClipboard()                -- 读取剪贴板文本，无内容返回 ""
+tool.wakeScreen()                  -- 点亮屏幕，返回「屏幕已点亮」或中文错误说明
+tool.ocrText("/sdcard/a.png")      -- 中英文 OCR，成功返回识别文本，失败返回 {"error":"..."}
+```
+
+- `tool.ocrText` 由随 APK 打包的 ML Kit 中文识别模型提供（支持中文 + 拉丁字母），无需联网；识别较慢，建议先 `compressImage` 或裁剪。
+- `tool.wakeScreen` 依赖 `WAKE_LOCK` 权限；部分 ROM 会拦截，失败时返回错误说明，可改用 Shizuku/root 执行 `input keyevent KEYCODE_WAKEUP`。
+
+### 9.2 accessibility 新增
+
+```lua
+accessibility.press(x, y, durationMs)                  -- 坐标长按（100~10000ms）
+accessibility.gesture(strokesJson)                     -- 多段手势，入参为 JSON 字符串
+accessibility.waitForIdle(timeoutMs)                   -- 等窗口内容稳定（连续两次节点摘要一致）
+accessibility.waitForPackage("com.example.app", 5000)  -- 等指定应用变为前台，返回 boolean
+accessibility.captureScreen()                          -- 截屏存 /sdcard/Download/KhatKit/，返回路径
+accessibility.captureScreen("/sdcard/Download/a.png")  -- 指定保存路径
+accessibility.paste()                                  -- 对当前聚焦输入框执行粘贴
+```
+
+`gesture` 的 JSON 格式（外层数组 = 手势段，内层数组 = 单段轨迹，`t` 为段内毫秒偏移）：
+
+```lua
+accessibility.gesture('[ [ {"x":100,"y":200,"t":0}, {"x":300,"y":200,"t":500} ] ]')
+```
+
+- 段数上限取系统 `getMaxStrokeCount()`（API 30 以下按 10 处理），超出的段被忽略；单段时长 50ms~60s。
+- `captureScreen` 需要 Android 11（API 30）以上并授予「所有文件访问」；API 30 以下或失败时返回中文错误文本，不抛异常。
+- `waitForIdle` / `waitForPackage` 超时返回 `false`；`waitForIdle` 轮询间隔 200ms。

@@ -8,6 +8,7 @@ import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.data.event.AppEventBus
 import heizige.kk.khatkit.app.service.ChatNotificationManager
 import heizige.kk.khatkit.app.service.ChatService
+import heizige.kk.khatkit.app.service.TriggerController
 import heizige.kk.khatkit.app.ui.pages.extensions.workspace.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.utils.AppAnalytics
 import heizige.kk.khatkit.app.utils.EmojiData
@@ -81,6 +82,15 @@ val appModule = module {
             context = get(),
             scope = get<AppScope>(),
             json = get(),
+        )
+    }
+
+    // 事件触发器：卡片在定时/通知/应用启动/充电时自动运行
+    single {
+        TriggerController(
+            context = get(),
+            provider = get(),
+            scope = get<AppScope>(),
         )
     }
 

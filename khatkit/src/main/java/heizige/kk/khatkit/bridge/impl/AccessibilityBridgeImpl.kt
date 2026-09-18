@@ -3,11 +3,19 @@ package heizige.kk.khatkit.bridge.impl
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Path
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
+import android.view.Display
 import android.view.accessibility.AccessibilityNodeInfo
 import heizige.kk.khatkit.bridge.AccessibilityBridge
+import org.json.JSONArray
+import java.io.File
+import java.io.FileOutputStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * 无障碍服务实例的宿主侧注册表。
@@ -173,6 +181,170 @@ class AccessibilityBridgeImpl(
         }
     }
 
+    override fun press(x: Float, y: Float, durationMs: Long): Boolean =
+        gesture(Path().apply { moveTo(x, y) }, durationMs.coerceIn(100L, 10_000L))
+
+    override fun gesture(strokesJson: String): Boolean {
+        val strokes = try {
+            JSONArray(strokesJson)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("手势 JSON 解析失败：${e.message ?: "格式错误"}")
+        }
+        if (strokes.length() == 0) return false
+        val maxStrokes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            GestureDescription.getMaxStrokeCount()
+        } else {
+            FALLBACK_MAX_STROKES
+        }
+        val builder = GestureDescription.Builder()
+        var added = 0
+        for (i in 0 until strokes.length()) {
+            if (added >= maxStrokes) break
+            val points = strokes.optJSONArray(i) ?: continue
+            val path = Path()
+            var startMs = 0L
+            var endMs = 0L
+            for (j in 0 until points.length()) {
+                val point = points.optJSONObject(j) ?: continue
+                val px = point.optDouble("x", Double.NaN).toFloat()
+                val py = point.optDouble("y", Double.NaN).toFloat()
+                if (px.isNaN() || py.isNaN()) continue
+                val offset = point.optLong("t", endMs).coerceAtLeast(0L)
+                if (path.isEmpty) {
+                    path.moveTo(px, py)
+                    startMs = offset
+                    endMs = offset
+                } else {
+                    path.lineTo(px, py)
+                    endMs = offset.coerceAtLeast(startMs)
+                }
+            }
+            if (path.isEmpty || startMs > MAX_GESTURE_MS - MIN_GESTURE_MS) continue
+            val duration = (endMs - startMs).coerceIn(MIN_GESTURE_MS, MAX_GESTURE_MS - startMs)
+            builder.addStroke(GestureDescription.StrokeDescription(path, startMs, duration))
+            added++
+        }
+        if (added == 0) return false
+        return dispatch(builder.build())
+    }
+
+    override fun waitForIdle(timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs.coerceIn(0L, 120_000L)
+        var lastHash = 0
+        var stable = 0
+        while (true) {
+            val hash = windowHash()
+            if (hash != 0 && hash == lastHash) {
+                stable++
+                if (stable >= 2) return true
+            } else {
+                stable = 0
+                lastHash = hash
+            }
+            if (System.currentTimeMillis() >= deadline) return false
+            Thread.sleep(POLL_INTERVAL_MS)
+        }
+    }
+
+    override fun waitForPackage(packageName: String, timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs.coerceIn(0L, 120_000L)
+        while (true) {
+            if (currentPackage() == packageName) return true
+            if (System.currentTimeMillis() >= deadline) return false
+            Thread.sleep(POLL_INTERVAL_MS)
+        }
+    }
+
+    override fun captureScreen(outputPath: String?): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return "截图失败：需要 Android 11（API 30）及以上系统"
+        }
+        val target = outputPath?.takeIf { it.isNotBlank() }
+            ?: "/sdcard/Download/KhatKit/screenshot_${System.currentTimeMillis()}.png"
+        return try {
+            requireSharedStorageAccess(target)
+            val latch = CountDownLatch(1)
+            var saved: String? = null
+            var error: String? = null
+            service.takeScreenshot(
+                Display.DEFAULT_DISPLAY,
+                service.mainExecutor,
+                object : AccessibilityService.TakeScreenshotCallback {
+                    override fun onSuccess(result: AccessibilityService.ScreenshotResult) {
+                        try {
+                            val buffer = result.hardwareBuffer
+                            val bitmap = Bitmap.wrapHardwareBuffer(buffer, result.colorSpace)
+                            buffer.close()
+                            if (bitmap == null) {
+                                error = "截图失败：无法解码屏幕图像"
+                            } else {
+                                val software = bitmap.copy(Bitmap.Config.ARGB_8888, false)
+                                bitmap.recycle()
+                                val file = File(target)
+                                file.parentFile?.mkdirs()
+                                FileOutputStream(file).use { out ->
+                                    software.compress(Bitmap.CompressFormat.PNG, 100, out)
+                                }
+                                software.recycle()
+                                saved = file.absolutePath
+                            }
+                        } catch (e: Exception) {
+                            error = "截图保存失败：${e.message ?: e.javaClass.simpleName}"
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        error = "截图失败（系统错误码 $errorCode）"
+                        latch.countDown()
+                    }
+                },
+            )
+            if (!latch.await(SCREENSHOT_TIMEOUT_SEC, TimeUnit.SECONDS)) return "截图失败：等待系统回调超时"
+            saved ?: error ?: "截图失败：未知错误"
+        } catch (e: SecurityException) {
+            "无共享存储访问权限：$target\n请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」"
+        }
+    }
+
+    override fun paste(): Boolean {
+        val focused = service.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return false
+        val target = editableTarget(focused) ?: return false
+        return target.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+    }
+
+    private fun windowHash(): Int {
+        val root = service.rootInActiveWindow ?: return 0
+        var hash = 1
+        var visited = 0
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(root)
+        while (queue.isNotEmpty() && visited < MAX_NODES) {
+            val node = queue.removeFirst()
+            visited++
+            hash = 31 * hash + node.text?.toString().hashCode()
+            hash = 31 * hash + node.contentDescription?.toString().hashCode()
+            hash = 31 * hash + node.viewIdResourceName.hashCode()
+            val bounds = Rect()
+            node.getBoundsInScreen(bounds)
+            hash = 31 * hash + bounds.hashCode()
+            for (index in 0 until node.childCount) {
+                node.getChild(index)?.let(queue::add)
+            }
+        }
+        return hash
+    }
+
+    private fun requireSharedStorageAccess(path: String) {
+        if (AllFilesAccess.isGranted()) return
+        if (!path.startsWith("/sdcard") && !path.startsWith("/storage") && !path.startsWith("/mnt/sdcard")) return
+        throw SecurityException(
+            "无共享存储访问权限：$path\n" +
+                "请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」"
+        )
+    }
+
     private fun firstMatch(query: Map<String, Any?>): AccessibilityNodeInfo? {
         val root = service.rootInActiveWindow ?: return null
         return firstNode(root) { matches(it, query) }
@@ -270,16 +442,15 @@ class AccessibilityBridgeImpl(
         }
     }
 
-    private fun gesture(path: Path, durationMs: Long): Boolean {
-        return runCatching {
-            val stroke = GestureDescription.StrokeDescription(path, 0L, durationMs)
-            service.dispatchGesture(
-                GestureDescription.Builder().addStroke(stroke).build(),
-                null,
-                null,
-            )
-        }.getOrDefault(false)
-    }
+    private fun gesture(path: Path, durationMs: Long): Boolean =
+        dispatch(
+            GestureDescription.Builder()
+                .addStroke(GestureDescription.StrokeDescription(path, 0L, durationMs))
+                .build()
+        )
+
+    private fun dispatch(description: GestureDescription): Boolean =
+        runCatching { service.dispatchGesture(description, null, null) }.getOrDefault(false)
 
     private fun gestureScroll(direction: String): Boolean {
         val metrics = service.resources.displayMetrics
@@ -299,5 +470,10 @@ class AccessibilityBridgeImpl(
         const val MAX_RESULTS = 80
         const val MAX_PARENT_HOPS = 12
         const val MAX_TEXT = 512
+        const val FALLBACK_MAX_STROKES = 10
+        const val MIN_GESTURE_MS = 50L
+        const val MAX_GESTURE_MS = 60_000L
+        const val POLL_INTERVAL_MS = 200L
+        const val SCREENSHOT_TIMEOUT_SEC = 8L
     }
 }

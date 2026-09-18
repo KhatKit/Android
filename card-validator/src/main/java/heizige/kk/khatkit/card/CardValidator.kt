@@ -27,6 +27,8 @@ object CardValidator {
     private val SEMVER_REGEX = Regex("^\\d+\\.\\d+\\.\\d+([-+].*)?$")
     private val URL_REGEX = Regex("""https?://([A-Za-z0-9.-]+)""")
     private val BRIDGE_CALL_REGEX = Regex("""\b(tool|ui|download|store|shizuku|root|accessibility)\s*[.:]""")
+    private val TIME_REGEX = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
+    private const val ALL_EVENT_TYPE_TEXT = "schedule|notification|app_launch|charging"
 
     /**
      * @param manifest 解析后的卡片
@@ -59,6 +61,54 @@ object CardValidator {
         }
         if (manifest.triggers.distinct().size != manifest.triggers.size) {
             error("TRIGGER_DUPLICATE", "triggers 不允许重复：${manifest.triggers}")
+        }
+
+        // 事件触发器（events）：类型/参数必须自洽，见 card.json 文档
+        manifest.events.forEachIndexed { index, event ->
+            val where = "events[$index]"
+            if (event.type !in CardManifest.ALL_EVENT_TYPES) {
+                error("EVENT_TYPE_UNKNOWN", "$where 未知事件类型 ${event.type}，支持 $ALL_EVENT_TYPE_TEXT")
+                return@forEachIndexed
+            }
+            when (event.type) {
+                CardManifest.EVENT_SCHEDULE -> {
+                    if (event.intervalMinutes < 0) {
+                        error("EVENT_INTERVAL_INVALID", "$where intervalMinutes 不能为负数：${event.intervalMinutes}")
+                    }
+                    if (event.times.isEmpty() && event.intervalMinutes <= 0) {
+                        error("EVENT_SCHEDULE_EMPTY", "$where schedule 需要 times 或 intervalMinutes（>=1）")
+                    }
+                    event.times.forEach { time ->
+                        if (!TIME_REGEX.matches(time)) {
+                            error("EVENT_TIME_INVALID", "$where 时间格式必须是 HH:mm：$time")
+                        }
+                    }
+                    event.days.forEach { day ->
+                        if (day !in 1..7) {
+                            error("EVENT_DAY_INVALID", "$where days 取值必须是 1..7（1=周一）：$day")
+                        }
+                    }
+                }
+
+                CardManifest.EVENT_NOTIFICATION -> {
+                    if (event.packageName.isBlank() &&
+                        event.titleContains.isBlank() &&
+                        event.textContains.isBlank()
+                    ) {
+                        error("EVENT_NOTIFICATION_EMPTY", "$where 通知触发器至少需要一个匹配条件（package/titleContains/textContains）")
+                    }
+                }
+
+                CardManifest.EVENT_APP_LAUNCH -> {
+                    // package 留空 = 任意应用进入前台，合法
+                }
+
+                CardManifest.EVENT_CHARGING -> {
+                    if (event.state !in CardManifest.ALL_CHARGING_STATES) {
+                        error("EVENT_CHARGING_STATE_INVALID", "$where charging 的 state 必须是 connected|disconnected：${event.state}")
+                    }
+                }
+            }
         }
 
         val declared = manifest.requires.bridges

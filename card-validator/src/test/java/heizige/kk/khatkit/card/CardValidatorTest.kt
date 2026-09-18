@@ -18,6 +18,7 @@ class CardValidatorTest {
         network: List<String> = emptyList(),
         command: String? = null,
         triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
+        events: List<CardManifest.Event> = emptyList(),
     ) = CardManifest(
         name = name,
         version = "1.2.0",
@@ -31,6 +32,7 @@ class CardValidatorTest {
         tags = tags,
         compliance = compliance,
         command = command,
+        events = events,
     )
 
     @Test
@@ -146,6 +148,142 @@ class CardValidatorTest {
         ).getOrThrow()
         assertFalse(parsed.supportsAi())
         assertTrue(parsed.supportsUser())
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
+    fun unknownEventTypeRejected() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "timer")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_TYPE_UNKNOWN" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun scheduleWithoutTimesOrIntervalRejected() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "schedule")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_SCHEDULE_EMPTY" })
+    }
+
+    @Test
+    fun scheduleTimeFormatChecked() {
+        val issues = CardValidator.validate(
+            manifest(
+                events = listOf(
+                    CardManifest.Event(type = "schedule", times = listOf("8:00", "25:00"))
+                )
+            )
+        )
+        assertEquals(2, issues.count { it.code == "EVENT_TIME_INVALID" })
+    }
+
+    @Test
+    fun scheduleValidTimePasses() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(
+                            type = "schedule",
+                            times = listOf("08:00", "21:30"),
+                            days = listOf(1, 3, 5, 7),
+                        )
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun scheduleInvalidDayRejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                events = listOf(
+                    CardManifest.Event(type = "schedule", intervalMinutes = 30, days = listOf(0, 8))
+                )
+            )
+        )
+        assertEquals(2, issues.count { it.code == "EVENT_DAY_INVALID" })
+    }
+
+    @Test
+    fun scheduleIntervalModePasses() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "schedule", intervalMinutes = 15)))
+            )
+        )
+    }
+
+    @Test
+    fun notificationWithoutAnyMatchRejected() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "notification")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_NOTIFICATION_EMPTY" })
+    }
+
+    @Test
+    fun notificationWithTitleButNoPackagePasses() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(type = "notification", titleContains = "验证码")
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun appLaunchWithEmptyPackagePasses() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "app_launch")))
+            )
+        )
+    }
+
+    @Test
+    fun chargingRequiresKnownState() {
+        val invalid = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "charging", state = "plugged")))
+        )
+        assertTrue(invalid.any { it.code == "EVENT_CHARGING_STATE_INVALID" })
+
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "charging", state = "connected")))
+            )
+        )
+    }
+
+    @Test
+    fun eventsJsonRoundTrip() {
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "notify_hook",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": { "bridges": ["ui"] },
+              "tags": { "domain": "system", "action": "monitor" },
+              "events": [
+                { "type": "schedule", "times": ["08:00"], "days": [1, 2] },
+                { "type": "notification", "package": "com.tencent.mm", "titleContains": "红包" },
+                { "type": "app_launch", "package": "com.tencent.mm" },
+                { "type": "charging", "state": "connected" }
+              ]
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        assertEquals(4, parsed.events.size)
+        assertEquals("com.tencent.mm", parsed.events[1].packageName)
+        assertTrue(parsed.supportsEvents())
         assertTrue(CardValidator.isValid(parsed))
     }
 
