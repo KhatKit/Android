@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonGroup
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -46,6 +47,8 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -682,13 +685,15 @@ private fun ApprovalButtonGroup(
         ) {
             customItem(
                 buttonGroupContent = {
-                    FilledIconButton(
-                        onClick = onApprove,
-                        shapes = IconButtonShapes(leadingShapes.shape, leadingShapes.pressedShape),
-                        colors = IconButtonDefaults.filledIconButtonColors(
+                    ToggleButton(
+                        checked = false,
+                        onCheckedChange = { onApprove() },
+                        shapes = leadingShapes,
+                        colors = ToggleButtonDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
+                        contentPadding = PaddingValues(0.dp),
                         modifier = Modifier.size(ApprovalButtonSize),
                     ) {
                         Icon(
@@ -702,13 +707,15 @@ private fun ApprovalButtonGroup(
             )
             customItem(
                 buttonGroupContent = {
-                    FilledIconButton(
-                        onClick = onDeny,
-                        shapes = IconButtonShapes(trailingShapes.shape, trailingShapes.pressedShape),
-                        colors = IconButtonDefaults.filledIconButtonColors(
+                    ToggleButton(
+                        checked = false,
+                        onCheckedChange = { onDeny() },
+                        shapes = trailingShapes,
+                        colors = ToggleButtonDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.error,
                             contentColor = MaterialTheme.colorScheme.onError,
                         ),
+                        contentPadding = PaddingValues(0.dp),
                         modifier = Modifier.size(ApprovalButtonSize),
                     ) {
                         Icon(
