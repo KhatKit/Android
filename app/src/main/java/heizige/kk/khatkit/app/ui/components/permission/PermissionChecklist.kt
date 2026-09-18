@@ -15,7 +15,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,12 +32,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -49,20 +45,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.service.KhatKitAccessibilityService
-import heizige.kk.khatkit.app.ui.icons.accessibility
-import heizige.kk.khatkit.app.ui.icons.barChart
-import heizige.kk.khatkit.app.ui.icons.bluetooth
 import heizige.kk.khatkit.app.ui.icons.bolt
-import heizige.kk.khatkit.app.ui.icons.calendarMonth
-import heizige.kk.khatkit.app.ui.icons.checkCircle
-import heizige.kk.khatkit.app.ui.icons.folderOpen
-import heizige.kk.khatkit.app.ui.icons.locationOn
-import heizige.kk.khatkit.app.ui.icons.mic
-import heizige.kk.khatkit.app.ui.icons.notifications
-import heizige.kk.khatkit.app.ui.icons.photoCamera
-import heizige.kk.khatkit.app.ui.icons.pictureInPicture
-import heizige.kk.khatkit.app.ui.icons.power
-import heizige.kk.khatkit.app.ui.icons.schedule
 import heizige.kk.khatkit.app.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.utils.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
@@ -72,16 +55,9 @@ import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeRadioButton
-import heizige.kk.kedge.components.KedgeStatusDefaults
 import heizige.kk.kedge.components.KedgeStatusLevel
-import heizige.kk.kedge.components.KedgeStatusTag
-import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeWarningCard
 import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import org.koin.compose.koinInject
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
@@ -198,7 +174,6 @@ fun PermissionChecklist(
     val runtimeItems = buildList {
         add(
             PermissionUiItem(
-                icon = notifications,
                 titleRes = R.string.greeting_permission_notification_title,
                 descRes = R.string.greeting_permission_notification_desc,
                 granted = notificationsGranted,
@@ -214,7 +189,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = mic,
                 titleRes = R.string.greeting_permission_mic_title,
                 descRes = R.string.greeting_permission_mic_desc,
                 granted = micGranted,
@@ -224,7 +198,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = locationOn,
                 titleRes = R.string.greeting_permission_location_title,
                 descRes = R.string.greeting_permission_location_desc,
                 granted = locationGranted,
@@ -242,7 +215,6 @@ fun PermissionChecklist(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             add(
                 PermissionUiItem(
-                    icon = bluetooth,
                     titleRes = R.string.greeting_permission_bluetooth_title,
                     descRes = R.string.greeting_permission_bluetooth_desc,
                     granted = bluetoothGranted,
@@ -260,7 +232,6 @@ fun PermissionChecklist(
         }
         add(
             PermissionUiItem(
-                icon = photoCamera,
                 titleRes = R.string.greeting_permission_camera_title,
                 descRes = R.string.greeting_permission_camera_desc,
                 granted = cameraGranted,
@@ -270,7 +241,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = calendarMonth,
                 titleRes = R.string.greeting_permission_calendar_title,
                 descRes = R.string.greeting_permission_calendar_desc,
                 granted = calendarGranted,
@@ -287,7 +257,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = bolt,
                 titleRes = R.string.greeting_permission_background_title,
                 descRes = R.string.greeting_permission_background_desc,
                 granted = true,
@@ -299,7 +268,6 @@ fun PermissionChecklist(
     val specialItems = buildList {
         add(
             PermissionUiItem(
-                icon = barChart,
                 titleRes = R.string.greeting_permission_usage_stats_title,
                 descRes = R.string.greeting_permission_usage_stats_desc,
                 granted = usageStatsGranted,
@@ -310,7 +278,6 @@ fun PermissionChecklist(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             add(
                 PermissionUiItem(
-                    icon = schedule,
                     titleRes = R.string.greeting_permission_exact_alarm_title,
                     descRes = R.string.greeting_permission_exact_alarm_desc,
                     granted = exactAlarmGranted,
@@ -325,7 +292,6 @@ fun PermissionChecklist(
         }
         add(
             PermissionUiItem(
-                icon = power,
                 titleRes = R.string.greeting_permission_battery_title,
                 descRes = R.string.greeting_permission_battery_desc,
                 granted = batteryIgnored,
@@ -343,7 +309,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = folderOpen,
                 titleRes = R.string.greeting_permission_files_title,
                 descRes = R.string.greeting_permission_files_desc,
                 granted = allFilesGranted,
@@ -359,7 +324,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = pictureInPicture,
                 titleRes = R.string.greeting_permission_overlay_title,
                 descRes = R.string.greeting_permission_overlay_desc,
                 granted = overlayGranted,
@@ -377,7 +341,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = notifications,
                 titleRes = R.string.greeting_permission_listener_title,
                 descRes = R.string.greeting_permission_listener_desc,
                 granted = listenerEnabled,
@@ -389,7 +352,6 @@ fun PermissionChecklist(
         )
         add(
             PermissionUiItem(
-                icon = accessibility,
                 titleRes = R.string.greeting_permission_accessibility_title,
                 descRes = R.string.greeting_permission_accessibility_desc,
                 granted = accessibilityEnabled,
@@ -512,11 +474,7 @@ fun PermissionChecklist(
     }
 }
 
-@Composable
-private fun isMiuixStyle(): Boolean = LocalKedgeStyle.current == KedgeStyle.Miuix
-
 private data class PermissionUiItem(
-    val icon: ImageVector,
     @StringRes val titleRes: Int,
     @StringRes val descRes: Int,
     val granted: Boolean,
@@ -529,48 +487,18 @@ private fun PermissionActionItem(
     item: PermissionUiItem,
     shape: Shape,
 ) {
-    val successColor = KedgeStatusDefaults.colors(KedgeStatusLevel.Success).content
-    val grantedLabel = stringResource(R.string.greeting_permission_status_granted)
-    val actionLabel = stringResource(item.actionLabelRes)
-    KedgeOptionItem(
+    val statusLabel = if (item.granted) {
+        stringResource(R.string.greeting_permission_status_granted)
+    } else {
+        stringResource(R.string.greeting_permission_status_not_granted) +
+            " · " + stringResource(item.actionLabelRes)
+    }
+    AnimatedRadioItem(
+        text = stringResource(item.titleRes),
+        subtitle = stringResource(item.descRes) + " · " + statusLabel,
+        isSelected = item.granted,
         onClick = { if (!item.granted) item.onAction?.invoke() },
         shape = shape,
-        leadingContent = {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = null,
-                tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
-            )
-        },
-        titleContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(item.titleRes),
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                KedgeStatusTag(
-                    label = if (item.granted) {
-                        grantedLabel
-                    } else {
-                        stringResource(R.string.greeting_permission_status_not_granted)
-                    },
-                    level = if (item.granted) KedgeStatusLevel.Success else KedgeStatusLevel.Warning,
-                )
-            }
-        },
-        supportingContent = { Text(stringResource(item.descRes)) },
-        trailingContent = {
-            if (item.granted) {
-                Icon(
-                    imageVector = checkCircle,
-                    contentDescription = grantedLabel,
-                    tint = successColor,
-                )
-            } else if (item.onAction != null) {
-                KedgeTextButton(onClick = item.onAction) { Text(actionLabel) }
-            }
-        },
     )
 }
 
@@ -584,23 +512,6 @@ private fun PermissionRadioItem(
     enabled: Boolean = true,
     dangerous: Boolean = false,
 ) {
-    if (isMiuixStyle()) {
-        KedgeOptionItem(
-            onClick = { if (enabled) onClick() },
-            modifier = Modifier.alpha(if (enabled) 1f else 0.6f),
-            shape = shape,
-            titleContent = { Text(title) },
-            supportingContent = { Text(subtitle) },
-            trailingContent = {
-                KedgeRadioButton(
-                    selected = selected,
-                    onClick = { if (enabled) onClick() },
-                    enabled = enabled,
-                )
-            },
-        )
-        return
-    }
     val colors = MaterialTheme.colorScheme
     AnimatedRadioItem(
         text = title,
@@ -612,10 +523,8 @@ private fun PermissionRadioItem(
         unselectedBackground = colors.surfaceVariant.copy(alpha = if (enabled) 0.26f else 0.12f),
         checkIconTint = if (dangerous) colors.error else colors.primary,
         textColor = if (enabled) colors.onSurface else colors.onSurface.copy(alpha = 0.38f),
-        cornerRadius = 4.dp,
-        modifier = Modifier
-            .clip(shape)
-            .alpha(if (enabled) 1f else 0.6f),
+        shape = shape,
+        modifier = Modifier.alpha(if (enabled) 1f else 0.6f),
     )
 }
 
