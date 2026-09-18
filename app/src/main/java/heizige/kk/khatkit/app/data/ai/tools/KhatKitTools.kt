@@ -10,6 +10,7 @@ import heizige.kk.khatkit.bridge.impl.AndroidToolBridge
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
+import heizige.kk.khatkit.app.automation.AutomationBus
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.exec.CardExecutor
@@ -108,7 +109,10 @@ class KhatKitToolProvider(
     private val appContext = context.applicationContext
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
     private val cache = CardCache(rootDir)
-    private val uiHost = UiBridgeHost()
+    private val uiHost = UiBridgeHost(
+        onAutomationStatus = { label, detail -> AutomationBus.update(label, detail) },
+        onCancelled = { AutomationBus.isCancelRequested() },
+    )
     private val initMutex = Mutex()
     private val settings = appContext.getSharedPreferences("khatkit_settings", Context.MODE_PRIVATE)
 
@@ -257,6 +261,23 @@ class KhatKitToolProvider(
         CardRunManager(scope = scope) { card, args -> executor().execute(card, args) }
     }
 
+    /**
+     * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后清除。
+     * AI tool / 用户手动 / 事件触发三个入口都汇聚到这里；用户已请求停止时不再开新运行。
+     */
+    suspend fun runCardWithStatus(card: LoadedCard, args: Map<String, Any?>): EngineResult {
+        if (AutomationBus.isCancelRequested()) {
+            AutomationBus.clear()
+            return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
+        }
+        AutomationBus.update("正在运行卡片：${card.manifest.name}")
+        return try {
+            runManager.run(card, args)
+        } finally {
+            AutomationBus.clear()
+        }
+    }
+
     suspend fun tools(): List<Tool> = withContext(Dispatchers.IO) {
         // 内置卡片先落地（已存在的跳过），保证随版本新增的示例卡片可见
         if (!builtinsInstalled) {
@@ -346,7 +367,7 @@ class KhatKitToolProvider(
                             EngineResult.Err("CARD_UNAVAILABLE", "卡片未下载且 Hub 不可达：$name")
                         !card.manifest.supportsAi() ->
                             EngineResult.Err("TRIGGER_DENIED", "卡片未启用 ai 触发：$name")
-                        else -> runManager.run(card, arguments)
+                        else -> runCardWithStatus(card, arguments)
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -450,56 +471,64 @@ class KhatKitToolProvider(
     )
 
     private fun captureDeviceScreen(includeOcr: Boolean, includeNodes: Boolean): String {
+        if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
         val bridge = AccessibilityBridgeHolder.current()
             ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
-        return runCatching {
-            val shot = bridge.captureScreen()
-            val captured = shot.startsWith("/")
-            val ocr = if (includeOcr && captured) {
-                runCatching { ocrBridge.ocrText(shot) }
-                    .getOrElse { """{"error":"OCR 失败：${it.message ?: it.javaClass.simpleName}"}""" }
-            } else {
-                null
-            }
-            val nodes = if (includeNodes) {
-                runCatching { bridge.dumpWindow() }.getOrDefault(emptyList())
-            } else {
-                emptyList()
-            }
-            buildJsonObject {
-                if (captured) put("screenshot", shot) else put("screenshot_error", shot)
-                bridge.currentPackage()?.let { put("package", it) }
-                ocr?.let { text ->
-                    if (text.contains("\"error\"")) {
-                        put("ocr_error", text)
-                    } else {
-                        val lines = text.lineSequence()
-                            .map { it.trim().take(SCREEN_LINE_MAX) }
-                            .filter { it.isNotEmpty() }
-                            .take(SCREEN_LINE_LIMIT)
-                            .toList()
-                        put("ocr", lines.joinToString("\n"))
+        AutomationBus.update("正在读取屏幕")
+        return try {
+            runCatching {
+                val shot = bridge.captureScreen()
+                val captured = shot.startsWith("/")
+                val ocr = if (includeOcr && captured) {
+                    runCatching { ocrBridge.ocrText(shot) }
+                        .getOrElse { """{"error":"OCR 失败：${it.message ?: it.javaClass.simpleName}"}""" }
+                } else {
+                    null
+                }
+                val nodes = if (includeNodes) {
+                    runCatching { bridge.dumpWindow() }.getOrDefault(emptyList())
+                } else {
+                    emptyList()
+                }
+                buildJsonObject {
+                    if (captured) put("screenshot", shot) else put("screenshot_error", shot)
+                    bridge.currentPackage()?.let { put("package", it) }
+                    ocr?.let { text ->
+                        if (text.contains("\"error\"")) {
+                            put("ocr_error", text)
+                        } else {
+                            val lines = text.lineSequence()
+                                .map { it.trim().take(SCREEN_LINE_MAX) }
+                                .filter { it.isNotEmpty() }
+                                .take(SCREEN_LINE_LIMIT)
+                                .toList()
+                            put("ocr", lines.joinToString("\n"))
+                        }
                     }
-                }
-                if (includeNodes) {
-                    val lines = nodes.asSequence()
-                        .mapNotNull { formatScreenNode(it) }
-                        .distinct()
-                        .take(SCREEN_LINE_LIMIT)
-                        .map { JsonPrimitive(it) }
-                        .toList()
-                    put("nodes", JsonArray(lines))
-                }
-            }.toString()
-        }.getOrElse { """{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""" }
+                    if (includeNodes) {
+                        val lines = nodes.asSequence()
+                            .mapNotNull { formatScreenNode(it) }
+                            .distinct()
+                            .take(SCREEN_LINE_LIMIT)
+                            .map { JsonPrimitive(it) }
+                            .toList()
+                        put("nodes", JsonArray(lines))
+                    }
+                }.toString()
+            }.getOrElse { """{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""" }
+        } finally {
+            AutomationBus.clear()
+        }
     }
 
     private fun deviceAct(params: Map<String, Any?>): String {
+        if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
         val bridge = AccessibilityBridgeHolder.current()
             ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
         val action = params.str("action")?.lowercase()
             ?: return "缺少参数：action"
-        return runCatching {
+        AutomationBus.update(deviceActLabel(action, params))
+        val result = runCatching {
             when (action) {
                 "click_text" -> {
                     val text = params.str("text") ?: return@runCatching "缺少参数：text"
@@ -570,6 +599,25 @@ class KhatKitToolProvider(
                 else -> "不支持的动作：$action"
             }
         }.getOrElse { "操作失败：${it.message ?: it.javaClass.simpleName}" }
+        AutomationBus.clear()
+        return result
+    }
+
+    /** 设备动作的看板文案（中文）。 */
+    private fun deviceActLabel(action: String, params: Map<String, Any?>): String = when (action) {
+        "click_text" -> "正在点击「${params.str("text").orEmpty()}」"
+        "click_id" -> "正在点击控件「${params.str("id").orEmpty()}」"
+        "tap" -> "正在点击坐标…"
+        "swipe" -> "正在滑动…"
+        "press" -> "正在长按…"
+        "set_text" -> "正在输入「${params.str("text").orEmpty()}」"
+        "back" -> "正在返回"
+        "home" -> "正在回到桌面"
+        "recents" -> "正在打开最近任务"
+        "notifications" -> "正在打开通知栏"
+        "open_app" -> "正在打开应用「${params.str("text") ?: params.str("id").orEmpty()}」"
+        "wait_text" -> "正在等待「${params.str("text").orEmpty()}」出现"
+        else -> "正在执行：$action"
     }
 
     override fun submitForm(values: Map<String, Any?>?) = uiHost.submitForm(values)
@@ -620,7 +668,7 @@ class KhatKitToolProvider(
         if (!card.manifest.supportsUser()) {
             return@withContext CardRunResult(false, "卡片未启用用户触发：$name")
         }
-        when (val result = runManager.run(card, emptyMap())) {
+        when (val result = runCardWithStatus(card, emptyMap())) {
             is EngineResult.Ok -> {
                 // 脚本约定 return { error = "..." } 表示失败，宿主侧转成错误提示
                 val error = result.value["error"]?.toString()

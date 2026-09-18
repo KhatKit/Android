@@ -77,6 +77,15 @@ interface UiBridge {
     fun confirm(title: String, message: String, danger: Boolean = false): Boolean
     fun progress(ratio: Float, label: String)
     fun show(card: Map<String, Any?>)
+
+    /**
+     * 发布当前自动化步骤到宿主悬浮看板（桌面等无宿主 UI 时可保持默认 no-op）。
+     * 连续重复的 label 由宿主侧去重，`detail` 可选补充说明。
+     */
+    fun automationStatus(label: String, detail: String = "") {}
+
+    /** 用户是否在浮窗看板点了「停止」；长脚本可在每步之间轮询以便尽早退出。 */
+    fun isCancelled(): Boolean = false
 }
 
 /** 白名单组件，CI 扫描 card 时校验 type 必须在此集合内 */

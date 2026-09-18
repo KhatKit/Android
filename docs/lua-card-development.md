@@ -439,3 +439,29 @@ local out = shizuku.shell("pm list packages -3 | head -5")
 - **高风险**：这是通用命令入口，会获得 shell 权限；脚本不应把用户输入直接拼进命令，
   能用的动作级 API（`pm` / `settingsPut` / `setAppEnabled`）优先用动作级 API。
 - 超时 30s，超时返回 `[error] 命令超时`；Shizuku 不可用或版本不支持时返回 `[error] Shizuku shell 执行失败：...`。
+
+## 11. 自动化状态浮窗（ui.automationStatus / ui.isCancelled）
+
+卡片、事件触发与 AI 设备工具运行期间，宿主会在系统最上层显示一个「自动化运行中」悬浮看板：
+实时展示当前步骤、最近 4 步历史，并提供「停止」按钮。首次使用需授予悬浮窗权限，
+未授予时看板静默跳过，不影响脚本执行。
+
+```lua
+-- 发布当前步骤：label 为当前动作，detail 可选补充（一起写入看板历史，最多保留 4 条）
+ui.automationStatus("正在打开微信")
+ui.automationStatus("正在点击「登录」", "登录页")
+
+-- 长任务在每步之间轮询，用户点「停止」后尽快安全退出
+for i = 1, 60 do
+  if ui.isCancelled() then
+    return { cancelled = true }
+  end
+  accessibility.click({ text = "下一步" })
+  tool.sleep(1)
+end
+```
+
+- `ui.automationStatus(label, detail)`：发布/更新看板当前步骤；连续重复的 label 会自动去重。
+- `ui.isCancelled()`：用户点过看板上的「停止」后返回 `true`；新一次运行开始会重置为 `false`。
+- 不轮询也不会报错，但长脚本建议每步检查一次，以便及时退出。
+- 运行结束后看板约 3 秒自动隐藏；`ui.progress(ratio, label)` 的 label 也会同步显示在看板上。

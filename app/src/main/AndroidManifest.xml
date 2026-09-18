@@ -154,6 +154,14 @@
         android:value="run installed card event triggers (schedule/notification/app launch/charging)" />
     </service>
     <service
+      android:name=".service.AutomationOverlayService"
+      android:exported="false"
+      android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="floating automation status board over system UI" />
+    </service>
+    <service
       android:name=".service.KhatKitNotificationListenerService"
       android:exported="true"
       android:label="@string/app_name"

@@ -34,6 +34,8 @@ sealed interface UiRequest {
  */
 class UiBridgeHost(
     private val timeoutMillis: Long = 300_000,
+    private val onAutomationStatus: (String, String) -> Unit = { _, _ -> },
+    private val onCancelled: () -> Boolean = { false },
 ) : UiBridge {
 
     private val _request = MutableStateFlow<UiRequest?>(null)
@@ -59,12 +61,20 @@ class UiBridgeHost(
 
     override fun progress(ratio: Float, label: String) {
         _progress.value = ratio.coerceIn(0f, 1f) to label
+        // 进度文字同步到自动化看板（宿主未接线时为 no-op）
+        if (label.isNotBlank()) onAutomationStatus(label, "")
     }
 
     override fun show(card: Map<String, Any?>) {
         _shown.value = card
         _request.value = UiRequest.Show(card)
     }
+
+    override fun automationStatus(label: String, detail: String) {
+        onAutomationStatus(label, detail)
+    }
+
+    override fun isCancelled(): Boolean = onCancelled()
 
     fun submitForm(values: Map<String, Any?>?) {
         val current = _request.value as? UiRequest.Form ?: return
