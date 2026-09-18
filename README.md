@@ -15,6 +15,7 @@
 - 🖥️ 内置 Web 访问、MCP、Markdown 渲染（代码高亮 / LaTeX / 表格 / Mermaid）
 - 🪾 消息分支、搜索（Exa / Tavily / Zhipu / Brave 等）、TTS / ASR、AI 翻译、自定义请求头与请求体、快捷消息
 - ⬆️ **应用更新**：走 KodeHeadServer 的 KhatKit 独立更新通道（stable / beta / force_min）
+- 📝 **更新日志**：见 [CHANGELOG.md](CHANGELOG.md)
 
 ## ⬆️ 应用更新
 
