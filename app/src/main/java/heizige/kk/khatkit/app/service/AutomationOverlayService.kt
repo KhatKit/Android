@@ -17,10 +17,6 @@ import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,7 +29,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,10 +36,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,13 +51,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -75,9 +80,11 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.automation.AutomationBus
+import heizige.kk.khatkit.app.ui.icons.check
+import heizige.kk.khatkit.app.ui.icons.close
+import heizige.kk.khatkit.app.ui.icons.stop
 import heizige.kk.kedge.components.KedgeButtonDefaults
-import heizige.kk.kedge.components.KedgeSurface
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.KhatKitTheme
@@ -97,7 +104,7 @@ private const val TAG = "AutomationOverlay"
 /** 与 Khromia Toast（GlobalToastHost 默认 durations=150L）完全一致的动画时长。 */
 private const val ANIMATION_MS = 150
 
-/** 自动化空闲后看板保持可见的时长，到时才播放退场动画并移除视图。 */
+/** 自动化空闲/结束提示后看板保持可见的时长，到时才播放退场动画并移除视图。 */
 private const val IDLE_EXIT_DELAY_MS = 3_000L
 
 /** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完。 */
@@ -113,14 +120,28 @@ private val ToastMinHeight = 48.dp
 private val ToastShadowElevation = 12.dp
 
 /**
+ * 阴影渲染留白：窗口只包裹看板本身，四周留 16dp 让 graphicsLayer 的 12dp 阴影
+ * 不被窗口边界裁掉（底部方向由看板自带的 Toast 边距提供空间）。
+ */
+private val ToastShadowRoom = 16.dp
+
+/**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
- * 显示当前步骤、最近步骤与「停止」按钮；空闲后先保持 [IDLE_EXIT_DELAY_MS] 可见，
- * 再播放 Khromia Toast 同款退场动画（[ANIMATION_MS] ms）并移除视图、[stopSelf]。
+ * 显示当前步骤、最近步骤与「停止」图标按钮；一次运行结束（[AutomationBus.finish]）
+ * 后先展示「自动化已结束」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast 同款退场动画
+ * （[ANIMATION_MS] ms）并移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
  * 运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，空闲或销毁时释放。
  *
  * 无障碍服务在线时优先走 `TYPE_ACCESSIBILITY_OVERLAY`（层级高于状态栏/通知栏），
  * 否则回退 `TYPE_APPLICATION_OVERLAY`（需要 SYSTEM_ALERT_WINDOW）。两者都没有时
  * 直接结束，不显示也不崩溃。
+ *
+ * 窗口不是全屏：全屏窗口的触摸区域覆盖整个屏幕（`WindowState#getSurfaceTouchableRegion`
+ * → `getTouchableRegion`），且 Android 12+ 的 `InputDispatcher#computeTouchOcclusionInfoLocked`
+ * 会把全屏可见悬浮窗视为遮挡并拦截下层应用的触摸（`getTouchOcclusionMode` 对
+ * `TYPE_APPLICATION_OVERLAY` 返回 USE_OPACITY、对 `TYPE_ACCESSIBILITY_OVERLAY` 返回
+ * BLOCK_UNTRUSTED）。因此窗口只包裹看板并让底边贴住屏幕物理底部：看板以外区域触摸
+ * 正常穿透，退场动画也能一路滑到屏幕最底端。
  */
 class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
 
@@ -241,9 +262,11 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT,
         ).apply {
+            // y = 0：窗口底边贴住屏幕物理底部，看板自身用 Khromia Toast 的
+            // 48dp + systemBarsPadding 决定离屏距离，退场动画可以直接滑到最底端。
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             x = 0
-            y = (BOTTOM_MARGIN_DP * resources.displayMetrics.density).roundToInt()
+            y = 0
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
@@ -298,22 +321,34 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                     if (overlayView == null) attachOverlay()
                     if (overlayView != null) {
                         overlayVisible.value = true
-                        acquireWakeLock()
+                        if (status?.finished == true && approval == null) {
+                            // 完成态：短暂展示「自动化已结束」，立即释放常亮，到时退场并复位总线
+                            releaseWakeLock()
+                            hideJob = scope.launch {
+                                delay(IDLE_EXIT_DELAY_MS)
+                                if (AutomationBus.status.value?.finished != true) return@launch
+                                hideBoard()
+                                AutomationBus.clear()
+                            }
+                        } else {
+                            acquireWakeLock()
+                        }
                     }
                 } else {
-                    // 空闲：保留最后一帧内容，先停留 IDLE_EXIT_DELAY_MS，再播退场动画并 detach
                     releaseWakeLock()
                     hideJob?.cancel()
-                    hideJob = scope.launch {
-                        delay(IDLE_EXIT_DELAY_MS)
-                        if (AutomationBus.status.value != null || AutomationBus.pendingApproval.value != null) {
-                            return@launch
+                    hideJob = null
+                    if (overlayView != null) {
+                        // 空闲：保留最后一帧内容，先停留 IDLE_EXIT_DELAY_MS，再播退场动画并 detach
+                        hideJob = scope.launch {
+                            delay(IDLE_EXIT_DELAY_MS)
+                            if (AutomationBus.status.value != null || AutomationBus.pendingApproval.value != null) {
+                                return@launch
+                            }
+                            hideBoard()
                         }
-                        if (overlayView != null) {
-                            overlayVisible.value = false
-                            delay(EXIT_SETTLE_MS)
-                            detachOverlay()
-                        }
+                    } else {
+                        // 完成态退场已 detach：总线复位引起的空闲分支无需再次等待
                         stopSelf()
                     }
                 }
@@ -321,11 +356,27 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
         }
     }
 
+    /** 播放退场动画、移除视图并结束服务；完成态结束时的总线复位由调用方负责。 */
+    private suspend fun hideBoard() {
+        if (overlayView != null) {
+            overlayVisible.value = false
+            delay(EXIT_SETTLE_MS)
+            detachOverlay()
+        }
+        stopSelf()
+    }
+
+    /**
+     * 拖动看板：移动窗口位置并夹在屏幕范围内（y 从 0 起，0 表示贴屏幕底部）。
+     */
     private fun moveOverlay(dx: Float, dy: Float) {
         val view = overlayView ?: return
         val params = overlayParams ?: return
-        params.x += dx.toInt()
-        params.y -= dy.toInt()
+        val metrics = resources.displayMetrics
+        val maxX = ((metrics.widthPixels - view.width) / 2).coerceAtLeast(0)
+        val maxY = (metrics.heightPixels - view.height).coerceAtLeast(0)
+        params.x = (params.x + dx.roundToInt()).coerceIn(-maxX, maxX)
+        params.y = (params.y - dy.roundToInt()).coerceIn(0, maxY)
         runCatching { windowManager?.updateViewLayout(view, params) }
     }
 
@@ -372,7 +423,6 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     companion object {
         const val CHANNEL_ID = "automation_overlay"
         private const val NOTIFICATION_ID = 2003
-        private const val BOTTOM_MARGIN_DP = 96
         private const val WAKE_LOCK_TAG = "KhatKit:AutomationOverlay"
 
         /**
@@ -419,37 +469,43 @@ private fun AutomationStatusBoard(
     onDrag: (Float, Float) -> Unit,
 ) {
     // 动画参数与 Khromia Toast（GlobalToastHost）逐字一致：
-    // slide ±it/2、scale 0.5f、tween(150)
-    AnimatedVisibility(
-        visible = visible && (status != null || approval != null),
-        enter = slideInVertically(
-            initialOffsetY = { it / 2 },
-            animationSpec = tween(ANIMATION_MS),
-        ) + fadeIn(
-            animationSpec = tween(ANIMATION_MS),
-        ) + scaleIn(
-            initialScale = 0.5f,
-            animationSpec = tween(ANIMATION_MS),
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { it / 2 },
-            animationSpec = tween(ANIMATION_MS),
-        ) + fadeOut(
-            animationSpec = tween(ANIMATION_MS),
-        ) + scaleOut(
-            targetScale = 0.5f,
-            animationSpec = tween(ANIMATION_MS),
-        ),
+    // slide ±it/2、scale 0.5f、tween(150)。
+    // Box 只包住看板；窗口底边已在屏幕物理底部，因此 ±it/2 的位移会一直渲染到最底端。
+    Box(
+        modifier = Modifier.padding(start = ToastShadowRoom, top = ToastShadowRoom, end = ToastShadowRoom),
+        contentAlignment = Alignment.BottomCenter,
     ) {
-        if (status != null || approval != null) {
-            AutomationToast(
-                status = status,
-                approval = approval,
-                onStop = onStop,
-                onApprove = onApprove,
-                onDeny = onDeny,
-                onDrag = onDrag,
-            )
+        AnimatedVisibility(
+            visible = visible && (status != null || approval != null),
+            enter = slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(ANIMATION_MS),
+            ) + fadeIn(
+                animationSpec = tween(ANIMATION_MS),
+            ) + scaleIn(
+                initialScale = 0.5f,
+                animationSpec = tween(ANIMATION_MS),
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { it / 2 },
+                animationSpec = tween(ANIMATION_MS),
+            ) + fadeOut(
+                animationSpec = tween(ANIMATION_MS),
+            ) + scaleOut(
+                targetScale = 0.5f,
+                animationSpec = tween(ANIMATION_MS),
+            ),
+        ) {
+            if (status != null || approval != null) {
+                AutomationToast(
+                    status = status,
+                    approval = approval,
+                    onStop = onStop,
+                    onApprove = onApprove,
+                    onDeny = onDeny,
+                    onDrag = onDrag,
+                )
+            }
         }
     }
 }
@@ -486,6 +542,18 @@ private fun remainingApprovalSeconds(requestedAt: Long): Int {
     return ((remainingMs + 999L) / 1_000L).toInt()
 }
 
+/**
+ * 看板容器逐项对齐 Khromia Toast 的 ToastCard：
+ * - color = inverseSurface.harmonizeWithPrimary().copy(alpha = 0.87)
+ * - contentColor = inverseOnSurface.harmonizeWithPrimary()
+ * - shape = CircleShape
+ * - padding(bottom = 48.dp) + systemBarsPadding()（与 Toast 相同的屏幕边距）
+ * - heightIn(min = 48.dp)、widthIn(max = 300.dp)
+ * - graphicsLayer { shadowElevation = 12.dp.toPx(); shape = CircleShape; clip = true }
+ * - 内容 Row：horizontal = 16.dp、vertical = 12.dp、Center 对齐
+ * - 文本：12.sp / Medium / letterSpacing 0.5.sp / TextAlign.Center
+ * 操作按钮统一为小尺寸图标按钮：停止（stop）、允许/拒绝（check / close）成组。
+ */
 @Composable
 private fun AutomationToast(
     status: AutomationBus.AutomationStatus?,
@@ -495,158 +563,229 @@ private fun AutomationToast(
     onDeny: () -> Unit,
     onDrag: (Float, Float) -> Unit,
 ) {
-    val pulse by rememberInfiniteTransition(label = "automation_status").animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 700),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "automation_status_dot",
-    )
     val recent = status?.recent?.dropLast(1)?.takeLast(3)?.reversed().orEmpty()
     val cancelRequested = status?.cancelRequested == true
+    val finished = status?.finished == true && approval == null
     val containerColor = MaterialTheme.colorScheme.inverseSurface.harmonizeWithPrimary()
     val contentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
-    KedgeSurface(
+
+    Surface(
+        color = containerColor.copy(alpha = TOAST_ALPHA),
+        contentColor = contentColor,
+        shape = CircleShape,
         modifier = Modifier
-            .widthIn(max = ToastMaxWidth)
+            .padding(bottom = 48.dp)
+            .systemBarsPadding()
             .heightIn(min = ToastMinHeight)
+            .widthIn(max = ToastMaxWidth)
+            .graphicsLayer {
+                // 关键点：通过 graphicsLayer 强制渲染阴影
+                // 这能保证在 scale 和 fade 动画过程中阴影依然存在
+                shadowElevation = ToastShadowElevation.toPx()
+                shape = CircleShape
+                clip = true
+            }
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
                     onDrag(dragAmount.x, dragAmount.y)
                 }
             },
-        color = containerColor.copy(alpha = TOAST_ALPHA),
-        contentColor = contentColor,
-        shape = CircleShape,
-        shadowElevation = ToastShadowElevation,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
             ) {
-                Box(
-                    modifier = Modifier.size(20.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .alpha(pulse)
-                            .clip(CircleShape)
-                            .background(if (cancelRequested) ToastStoppingColor else ToastRunningColor),
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
                 Column(
                     modifier = Modifier.weight(1f, fill = false),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    if (approval != null) {
-                        val remainingSeconds = rememberApprovalRemainingSeconds(approval)
-                        Text(
-                            text = approval.title,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = contentColor,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (approval.detail.isNotBlank()) {
+                    when {
+                        finished -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(
+                                    imageVector = check,
+                                    contentDescription = null,
+                                    tint = ToastRunningColor,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    text = "自动化已结束",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.5.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
+                        approval != null -> {
+                            val remainingSeconds = rememberApprovalRemainingSeconds(approval)
                             Text(
-                                text = approval.detail,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = contentColor.copy(alpha = 0.72f),
+                                text = approval.title,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.5.sp,
+                                textAlign = TextAlign.Center,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                        }
-                        Text(
-                            text = "$remainingSeconds 秒后自动拒绝",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = contentColor.copy(alpha = 0.72f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    } else if (status != null) {
-                        Text(
-                            text = status.label,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = contentColor,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (status.detail.isNotBlank()) {
+                            if (approval.detail.isNotBlank()) {
+                                Text(
+                                    text = approval.detail,
+                                    color = contentColor.copy(alpha = 0.72f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.5.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                             Text(
-                                text = status.detail,
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "$remainingSeconds 秒后自动拒绝",
                                 color = contentColor.copy(alpha = 0.72f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.5.sp,
+                                textAlign = TextAlign.Center,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        recent.forEach { line ->
+
+                        status != null -> {
                             Text(
-                                text = "· $line",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = contentColor.copy(alpha = 0.55f),
-                                maxLines = 1,
+                                text = status.label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.5.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            if (status.detail.isNotBlank()) {
+                                Text(
+                                    text = status.detail,
+                                    color = contentColor.copy(alpha = 0.72f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.5.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            recent.forEach { line ->
+                                Text(
+                                    text = "· $line",
+                                    color = contentColor.copy(alpha = 0.55f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.5.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 }
-                MaterialTheme(
-                    colorScheme = MaterialTheme.colorScheme.copy(primary = contentColor.copy(alpha = 0.92f)),
-                ) {
-                    KedgeTextButton(
-                        onClick = onStop,
+                if (!finished) {
+                    Spacer(Modifier.width(8.dp))
+                    ToastIconButton(
+                        icon = stop,
+                        contentDescription = if (cancelRequested) "正在停止" else "停止",
+                        tint = contentColor.copy(alpha = 0.92f),
+                        containerColor = Color.Transparent,
+                        shape = CircleShape,
                         enabled = !cancelRequested,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        shapes = KedgeButtonDefaults.md3ButtonShapes(shape = CircleShape),
-                    ) {
-                        Text(
-                            text = if (cancelRequested) "正在停止…" else "停止",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
+                        size = 28.dp,
+                        onClick = onStop,
+                    )
                 }
             }
-            if (approval != null) {
+            if (approval != null && !finished) {
                 Spacer(Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    KedgeTextButton(
+                    ToastIconButton(
+                        icon = check,
+                        contentDescription = "允许",
+                        tint = ToastRunningColor,
+                        containerColor = ToastRunningColor.copy(alpha = 0.18f),
+                        shape = ToastGroupStartShape,
                         onClick = onApprove,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shapes = KedgeButtonDefaults.md3ButtonShapes(shape = CircleShape),
-                    ) {
-                        Text(
-                            text = "允许",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = ToastRunningColor,
-                        )
-                    }
-                    KedgeTextButton(
+                    )
+                    ToastIconButton(
+                        icon = close,
+                        contentDescription = "拒绝",
+                        tint = ToastStoppingColor,
+                        containerColor = ToastStoppingColor.copy(alpha = 0.18f),
+                        shape = ToastGroupEndShape,
                         onClick = onDeny,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shapes = KedgeButtonDefaults.md3ButtonShapes(shape = CircleShape),
-                    ) {
-                        Text(
-                            text = "拒绝",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = ToastStoppingColor,
-                        )
-                    }
+                    )
                 }
             }
         }
+    }
+}
+
+/** 成组按钮尺寸：外侧胶囊圆角 = 尺寸一半，中间共享 2dp 小圆角（对齐 KedgeSegmentedList 分组思路）。 */
+private val ToastGroupButtonSize = 30.dp
+private val ToastGroupStartShape = RoundedCornerShape(
+    topStart = 15.dp,
+    bottomStart = 15.dp,
+    topEnd = 2.dp,
+    bottomEnd = 2.dp,
+)
+private val ToastGroupEndShape = RoundedCornerShape(
+    topStart = 2.dp,
+    bottomStart = 2.dp,
+    topEnd = 15.dp,
+    bottomEnd = 15.dp,
+)
+
+/**
+ * 看板内的小尺寸图标按钮：KedgeIconButton（自动跟随 MD3 / Miuix 风格），
+ * 容器色与分组形状由调用方给出，图标固定 16dp，默认 30dp 触摸区以保持 Toast 紧凑。
+ */
+@Composable
+private fun ToastIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    tint: Color,
+    containerColor: Color,
+    shape: Shape,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    size: Dp = ToastGroupButtonSize,
+) {
+    KedgeIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .size(size)
+            .clip(shape)
+            .background(containerColor),
+        shapes = KedgeButtonDefaults.md3IconButtonShapes(shape = shape),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (enabled) tint else tint.copy(alpha = 0.38f),
+            modifier = Modifier.size(16.dp),
+        )
     }
 }

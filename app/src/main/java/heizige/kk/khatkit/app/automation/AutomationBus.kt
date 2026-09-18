@@ -24,7 +24,8 @@ import java.util.UUID
  *
  * - [update] 发布一步，自动追加到 [AutomationStatus.recent]（最多 4 条，连续重复去重）
  * - [requestCancel] 用户在看板点「停止」，长脚本可通过 `ui.isCancelled()` 轮询感知
- * - [clear] 一次运行结束（服务会在约 3s 后自动隐藏看板）
+ * - [finish] 一次运行结束，看板先展示「自动化已结束」约 3s 再自动隐藏
+ * - [clear] 看板服务在完成态展示结束后复位总线；业务侧结束请调用 [finish]
  */
 object AutomationBus {
 
@@ -33,6 +34,8 @@ object AutomationBus {
         val detail: String = "",
         val recent: List<String> = emptyList(),
         val cancelRequested: Boolean = false,
+        /** 一次运行已结束，看板短暂展示完成提示后隐藏；下一次 [update] 会清除。 */
+        val finished: Boolean = false,
         val activeSince: Long,
     )
 
@@ -74,11 +77,12 @@ object AutomationBus {
     private var approvalDeferred: CompletableDeferred<Boolean>? = null
     private val approvalMutex = Mutex()
 
-    /** 发布/更新当前步骤；重复的 label 不会刷屏历史。 */
+    /** 发布/更新当前步骤；重复的 label 不会刷屏历史，并结束上一次的完成态。 */
     fun update(label: String, detail: String = "") {
         if (label.isBlank()) return
         val entry = if (detail.isBlank()) label else "$label · $detail"
-        val prev = _status.value
+        // 完成态之后的新活动视为一次全新运行：历史与停止标记都重新开始
+        val prev = _status.value?.takeUnless { it.finished }
         val recent = when {
             prev == null -> listOf(entry)
             prev.recent.lastOrNull() == entry -> prev.recent
@@ -88,8 +92,9 @@ object AutomationBus {
             label = label,
             detail = detail,
             recent = recent,
-            // 新一次运行（上一次已 clear）重置停止标记
+            // 新一次运行（上一次已结束）重置停止标记
             cancelRequested = prev?.cancelRequested ?: false,
+            finished = false,
             activeSince = prev?.activeSince ?: System.currentTimeMillis(),
         )
     }
@@ -146,7 +151,19 @@ object AutomationBus {
         approvalDeferred?.complete(false)
     }
 
-    /** 一次运行结束（成功/失败都调用），看板随即进入空闲并自动隐藏。 */
+    /**
+     * 一次运行结束（成功/失败都调用）：保留最后一帧并标记 [AutomationStatus.finished]，
+     * 看板先展示完成提示，约 3s 后播放退场动画并隐藏。期间出现新的 [update]
+     * （例如事件触发再次运行）会清除完成态、取消退场。
+     * 没有正在进行的运行时为 no-op。
+     */
+    fun finish() {
+        val prev = _status.value ?: return
+        if (prev.finished) return
+        _status.value = prev.copy(finished = true)
+    }
+
+    /** 看板服务在完成态退场后复位总线；业务侧结束一次运行请调用 [finish]。 */
     fun clear() {
         _status.value = null
         sessionApproved = false

@@ -262,7 +262,7 @@ class KhatKitToolProvider(
     }
 
     /**
-     * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后清除。
+     * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后进入完成态。
      * AI tool / 用户手动 / 事件触发三个入口都汇聚到这里；用户已请求停止时不再开新运行。
      * 执行前通过 [AutomationBus.requestApproval] 在看板上请求用户授权（放手模式或已授权则跳过）。
      */
@@ -272,18 +272,18 @@ class KhatKitToolProvider(
         trigger: String = "AI",
     ): EngineResult {
         if (AutomationBus.isCancelRequested()) {
-            AutomationBus.clear()
+            AutomationBus.finish()
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
         AutomationBus.update("正在运行卡片：${card.manifest.name}")
         if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger")) {
-            AutomationBus.clear()
+            AutomationBus.finish()
             return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
         }
         return try {
             runManager.run(card, args)
         } finally {
-            AutomationBus.clear()
+            AutomationBus.finish()
         }
     }
 
@@ -522,7 +522,7 @@ class KhatKitToolProvider(
                 }.toString()
             }.getOrElse { """{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""" }
         } finally {
-            AutomationBus.clear()
+            AutomationBus.finish()
         }
     }
 
@@ -534,7 +534,7 @@ class KhatKitToolProvider(
             ?: return "缺少参数：action"
         AutomationBus.update(deviceActLabel(action, params))
         if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params))) {
-            AutomationBus.clear()
+            AutomationBus.finish()
             return "用户拒绝授权，已取消操作：$action"
         }
         val result = runCatching {
@@ -608,7 +608,7 @@ class KhatKitToolProvider(
                 else -> "不支持的动作：$action"
             }
         }.getOrElse { "操作失败：${it.message ?: it.javaClass.simpleName}" }
-        AutomationBus.clear()
+        AutomationBus.finish()
         return result
     }
 
