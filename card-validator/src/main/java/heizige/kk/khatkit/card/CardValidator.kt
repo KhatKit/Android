@@ -28,7 +28,8 @@ object CardValidator {
     private val URL_REGEX = Regex("""https?://([A-Za-z0-9.-]+)""")
     private val BRIDGE_CALL_REGEX = Regex("""\b(tool|ui|download|store|shizuku|root|accessibility)\s*[.:]""")
     private val TIME_REGEX = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
-    private const val ALL_EVENT_TYPE_TEXT = "schedule|notification|app_launch|charging"
+    private const val ALL_EVENT_TYPE_TEXT =
+        "schedule|notification|app_launch|charging|wifi|network|battery|screen|clipboard|bluetooth|location"
 
     /**
      * @param manifest 解析后的卡片
@@ -106,6 +107,72 @@ object CardValidator {
                 CardManifest.EVENT_CHARGING -> {
                     if (event.state !in CardManifest.ALL_CHARGING_STATES) {
                         error("EVENT_CHARGING_STATE_INVALID", "$where charging 的 state 必须是 connected|disconnected：${event.state}")
+                    }
+                }
+
+                CardManifest.EVENT_WIFI -> {
+                    if (event.state.isNotBlank() && event.state !in CardManifest.ALL_CONNECTION_STATES) {
+                        error("EVENT_WIFI_STATE_INVALID", "$where wifi 的 state 必须是 connected|disconnected 或留空：${event.state}")
+                    }
+                }
+
+                CardManifest.EVENT_NETWORK -> {
+                    if (event.state !in CardManifest.ALL_NETWORK_STATES) {
+                        error("EVENT_NETWORK_STATE_INVALID", "$where network 的 state 必须是 online|offline：${event.state}")
+                    }
+                }
+
+                CardManifest.EVENT_BATTERY -> {
+                    val hasLevel = event.levelBelow >= 0 || event.levelAbove >= 0
+                    if (!hasLevel && event.state.isBlank()) {
+                        error("EVENT_BATTERY_EMPTY", "$where battery 至少需要 level_below / level_above / state 之一")
+                    }
+                    if (event.state.isNotBlank() && event.state !in CardManifest.ALL_BATTERY_STATES) {
+                        error("EVENT_BATTERY_STATE_INVALID", "$where battery 的 state 必须是 charging|discharging 或留空：${event.state}")
+                    }
+                    if (event.levelBelow < -1 || event.levelBelow > 100) {
+                        error("EVENT_BATTERY_LEVEL_INVALID", "$where level_below 必须在 0..100：${event.levelBelow}")
+                    }
+                    if (event.levelAbove < -1 || event.levelAbove > 100) {
+                        error("EVENT_BATTERY_LEVEL_INVALID", "$where level_above 必须在 0..100：${event.levelAbove}")
+                    }
+                    if (event.levelBelow >= 0 && event.levelAbove >= 0 && event.levelBelow >= event.levelAbove) {
+                        error("EVENT_BATTERY_LEVEL_RANGE", "$where level_below 必须小于 level_above：${event.levelBelow} >= ${event.levelAbove}")
+                    }
+                }
+
+                CardManifest.EVENT_SCREEN -> {
+                    if (event.state !in CardManifest.ALL_SCREEN_STATES) {
+                        error("EVENT_SCREEN_STATE_INVALID", "$where screen 的 state 必须是 on|off|unlocked|locked：${event.state}")
+                    }
+                }
+
+                CardManifest.EVENT_CLIPBOARD -> {
+                    if (event.textContains.isBlank()) {
+                        error("EVENT_CLIPBOARD_EMPTY", "$where clipboard 需要 text_contains 匹配条件")
+                    }
+                }
+
+                CardManifest.EVENT_BLUETOOTH -> {
+                    if (event.state !in CardManifest.ALL_CONNECTION_STATES) {
+                        error("EVENT_BLUETOOTH_STATE_INVALID", "$where bluetooth 的 state 必须是 connected|disconnected：${event.state}")
+                    }
+                }
+
+                CardManifest.EVENT_LOCATION -> {
+                    if (event.state !in CardManifest.ALL_LOCATION_STATES) {
+                        error("EVENT_LOCATION_STATE_INVALID", "$where location 的 state 必须是 enter|exit：${event.state}")
+                    }
+                    val lat = event.lat
+                    val lon = event.lon
+                    if (lat == null || lat !in -90.0..90.0) {
+                        error("EVENT_LOCATION_LAT_INVALID", "$where location 的 lat 必须在 -90..90：$lat")
+                    }
+                    if (lon == null || lon !in -180.0..180.0) {
+                        error("EVENT_LOCATION_LON_INVALID", "$where location 的 lon 必须在 -180..180：$lon")
+                    }
+                    if (event.radiusM < 1) {
+                        error("EVENT_LOCATION_RADIUS_INVALID", "$where location 的 radius_m 必须 >=1：${event.radiusM}")
                     }
                 }
             }

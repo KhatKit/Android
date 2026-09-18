@@ -45,9 +45,11 @@ class TriggerController(
 
     val settings = TriggerSettings(appContext)
 
+    val logs = TriggerLogStore(appContext)
+
     private val _cards = MutableStateFlow<List<TriggerCard>>(emptyList())
 
-    /** 声明了 events 的已安装卡片（供设置页展示）。 */
+    /** 已安装卡片及其生效事件（用户覆盖优先于 manifest，供设置页展示/编辑）。 */
     val cards: StateFlow<List<TriggerCard>> = _cards.asStateFlow()
 
     val engine = TriggerEngine(
@@ -62,16 +64,24 @@ class TriggerController(
         scope.launch { refreshCards() }
     }
 
-    /** 重新扫描本地已安装卡片并同步到引擎（只保留启用中的卡片）。 */
+    /** 重新扫描本地已安装卡片并同步到引擎（用户覆盖优先于 manifest 事件）。 */
     suspend fun refreshCards(): Unit = withContext(Dispatchers.IO) {
         runCatching {
             BuiltinCards.install(appContext, cache)
             val loaded = cache.installedVersions().mapNotNull { (name, version) ->
                 runCatching { cache.load(cache.cardDir(name, version)) }.getOrNull()
             }
-            _cards.value = loaded
-                .filter { it.manifest.events.isNotEmpty() }
-                .map { TriggerCard(it.manifest.name, it.manifest.events) }
+            _cards.value = loaded.map { installed ->
+                val name = installed.manifest.name
+                val override = settings.overrideFor(name)
+                TriggerCard(
+                    name = name,
+                    events = override.events ?: installed.manifest.events,
+                    maxRetries = override.maxRetries.coerceIn(0, MAX_RETRIES),
+                    retryDelaySeconds = override.retryDelaySeconds.coerceIn(0, MAX_RETRY_DELAY_SECONDS),
+                    baseEvents = installed.manifest.events,
+                )
+            }
             syncEngine()
         }.onFailure { Log.e(TAG, "refreshCards failed", it) }
     }
@@ -79,31 +89,79 @@ class TriggerController(
     /** 总开关/单卡开关变化后调用。 */
     fun syncEngine() {
         engine.updateCards(
-            _cards.value.filter { settings.isCardEnabled(it.name) }
+            _cards.value.filter { settings.isCardEnabled(it.name) && it.events.isNotEmpty() }
         )
+    }
+
+    /** 保存某卡片的覆盖事件与重试配置，并立即刷新引擎。 */
+    fun saveOverride(name: String, override: CardTriggerOverride) {
+        settings.setOverride(name, override)
+        refreshCardsAsync()
     }
 
     private fun runCard(name: String, args: Map<String, Any?>) {
         if (!settings.masterEnabled) return
         scope.launch(Dispatchers.IO) {
-            val card = cache.installedVersions()[name]?.let { version ->
-                runCatching { cache.load(cache.cardDir(name, version)) }.getOrNull()
-            }
-            if (card == null) {
-                Log.w(TAG, "card not installed: $name")
-                return@launch
-            }
-            val result = provider.runManager.run(card, args)
-            when (result) {
-                is EngineResult.Err -> notifyFailure(name, "${result.code}: ${result.message}")
-                is EngineResult.Ok -> {
-                    val scriptError = result.value["error"]?.toString()
-                    if (!scriptError.isNullOrBlank()) notifyFailure(name, scriptError)
-                    else Log.i(TAG, "card executed: $name args=${args.keys}")
-                }
+            val startedAt = System.currentTimeMillis()
+            val outcome = executeCard(name, args)
+            logs.append(
+                TriggerLogEntry(
+                    at = startedAt,
+                    card = name,
+                    type = eventTypeOf(args),
+                    payload = briefPayload(args),
+                    ok = outcome.ok,
+                    message = outcome.message.maybeTruncate(),
+                )
+            )
+            val retryQueued = engine.reportRunResult(name, args, outcome.ok)
+            if (outcome.ok) {
+                Log.i(TAG, "card executed: $name args=${args.keys}")
+            } else if (!retryQueued) {
+                // 重试次数已用尽（或未配置重试）：最终失败才通知用户
+                notifyFailure(name, outcome.message)
+            } else {
+                Log.w(TAG, "card failed, retry queued: $name: ${outcome.message}")
             }
         }
     }
+
+    private suspend fun executeCard(name: String, args: Map<String, Any?>): RunOutcome {
+        val card = cache.installedVersions()[name]?.let { version ->
+            runCatching { cache.load(cache.cardDir(name, version)) }.getOrNull()
+        }
+        if (card == null) {
+            Log.w(TAG, "card not installed: $name")
+            return RunOutcome(ok = false, message = "卡片未安装")
+        }
+        return when (val result = provider.runManager.run(card, args)) {
+            is EngineResult.Err -> RunOutcome(ok = false, message = "${result.code}: ${result.message}")
+            is EngineResult.Ok -> {
+                val scriptError = result.value["error"]?.toString()
+                if (!scriptError.isNullOrBlank()) RunOutcome(ok = false, message = scriptError)
+                else RunOutcome(ok = true)
+            }
+        }
+    }
+
+    private fun eventTypeOf(args: Map<String, Any?>): String =
+        (args[TriggerEngine.ARG_EVENT] as? Map<*, *>)?.get("type")?.toString().orEmpty()
+            .ifBlank { "unknown" }
+
+    private fun briefPayload(args: Map<String, Any?>): String {
+        val event = args[TriggerEngine.ARG_EVENT] as? Map<*, *> ?: return ""
+        return event.entries
+            .filter { it.key != "type" && it.value != null }
+            .joinToString(", ") { "${it.key}=${it.value}" }
+    }
+
+    private fun String.maybeTruncate(): String =
+        if (length <= MAX_MESSAGE_LENGTH) this else take(MAX_MESSAGE_LENGTH) + "…"
+
+    private data class RunOutcome(
+        val ok: Boolean,
+        val message: String = "",
+    )
 
     private fun notifyFailure(name: String, message: String) {
         Log.e(TAG, "card trigger failed: $name: $message")
@@ -134,6 +192,9 @@ class TriggerController(
         private const val TAG = "TriggerController"
         const val CHANNEL_ID = "khatkit_trigger"
         private const val NOTIFICATION_ID_BASE = 2100
+        private const val MAX_RETRIES = 3
+        private const val MAX_RETRY_DELAY_SECONDS = 3600
+        private const val MAX_MESSAGE_LENGTH = 200
 
         /** 幂等创建通知渠道；前台服务 startForeground 前必须先有渠道。 */
         fun ensureChannel(context: Context) {

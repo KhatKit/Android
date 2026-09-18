@@ -2,6 +2,7 @@ package heizige.kk.khatkit.card
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -82,10 +83,17 @@ data class CardManifest(
      * - notification：`package` / `titleContains` / `textContains` 任意组合（空 = 不限制）
      * - app_launch：`package` 为空表示任意应用进入前台
      * - charging：`state` 为 connected | disconnected
+     * - wifi：`ssid`（可选，空 = 任意热点）、`state` connected | disconnected（可选，空 = 任意变化）
+     * - network：`state` online | offline（网络通断）
+     * - battery：`levelBelow` / `levelAbove`（0-100，可只写其一）与可选 `state` charging | discharging
+     * - screen：`state` on | off | unlocked | locked
+     * - clipboard：`textContains`（新剪贴板文本包含该子串）
+     * - bluetooth：`state` connected | disconnected，可选 `device`（设备名包含，空 = 任意）
+     * - location：`lat` / `lon` / `radiusM` + `state` enter | exit（进入/离开圆形区域）
      */
     @Serializable
     data class Event(
-        /** schedule | notification | app_launch | charging */
+        /** schedule | notification | app_launch | charging | wifi | network | battery | screen | clipboard | bluetooth | location */
         val type: String,
         /** schedule：["08:00","21:30"] */
         val times: List<String> = emptyList(),
@@ -97,10 +105,24 @@ data class CardManifest(
         @SerialName("package") val packageName: String = "",
         /** notification：标题包含 */
         val titleContains: String = "",
-        /** notification：正文包含 */
-        val textContains: String = "",
-        /** charging：connected | disconnected */
+        /** notification：正文包含；clipboard：新剪贴板文本包含（兼容 text_contains 写法） */
+        @JsonNames("text_contains") val textContains: String = "",
+        /** charging | wifi | network | battery | screen | bluetooth | location：状态 / 转换方向 */
         val state: String = "",
+        /** wifi：目标热点 SSID（空 = 任意） */
+        val ssid: String = "",
+        /** bluetooth：设备名包含（空 = 任意） */
+        val device: String = "",
+        /** battery：低于该电量（0-100）触发；-1 = 未设置 */
+        @SerialName("level_below") val levelBelow: Int = -1,
+        /** battery：高于该电量（0-100）触发；-1 = 未设置 */
+        @SerialName("level_above") val levelAbove: Int = -1,
+        /** location：圆心纬度 [-90,90] */
+        val lat: Double? = null,
+        /** location：圆心经度 [-180,180] */
+        val lon: Double? = null,
+        /** location：半径（米，>=1） */
+        @SerialName("radius_m") val radiusM: Int = 0,
     )
 
     /** 两个正交维度 + 一个可选场景，见 TagVocabulary */
@@ -148,10 +170,55 @@ data class CardManifest(
         const val EVENT_NOTIFICATION = "notification"
         const val EVENT_APP_LAUNCH = "app_launch"
         const val EVENT_CHARGING = "charging"
-        val ALL_EVENT_TYPES = setOf(EVENT_SCHEDULE, EVENT_NOTIFICATION, EVENT_APP_LAUNCH, EVENT_CHARGING)
+        const val EVENT_WIFI = "wifi"
+        const val EVENT_NETWORK = "network"
+        const val EVENT_BATTERY = "battery"
+        const val EVENT_SCREEN = "screen"
+        const val EVENT_CLIPBOARD = "clipboard"
+        const val EVENT_BLUETOOTH = "bluetooth"
+        const val EVENT_LOCATION = "location"
+        val ALL_EVENT_TYPES = setOf(
+            EVENT_SCHEDULE,
+            EVENT_NOTIFICATION,
+            EVENT_APP_LAUNCH,
+            EVENT_CHARGING,
+            EVENT_WIFI,
+            EVENT_NETWORK,
+            EVENT_BATTERY,
+            EVENT_SCREEN,
+            EVENT_CLIPBOARD,
+            EVENT_BLUETOOTH,
+            EVENT_LOCATION,
+        )
 
-        const val CHARGING_CONNECTED = "connected"
-        const val CHARGING_DISCONNECTED = "disconnected"
-        val ALL_CHARGING_STATES = setOf(CHARGING_CONNECTED, CHARGING_DISCONNECTED)
+        /** 通断类状态（charging / wifi / bluetooth 共用） */
+        const val STATE_CONNECTED = "connected"
+        const val STATE_DISCONNECTED = "disconnected"
+        const val CHARGING_CONNECTED = STATE_CONNECTED
+        const val CHARGING_DISCONNECTED = STATE_DISCONNECTED
+        val ALL_CONNECTION_STATES = setOf(STATE_CONNECTED, STATE_DISCONNECTED)
+        val ALL_CHARGING_STATES = ALL_CONNECTION_STATES
+
+        /** network 状态 */
+        const val NETWORK_ONLINE = "online"
+        const val NETWORK_OFFLINE = "offline"
+        val ALL_NETWORK_STATES = setOf(NETWORK_ONLINE, NETWORK_OFFLINE)
+
+        /** battery 充放电状态 */
+        const val BATTERY_CHARGING = "charging"
+        const val BATTERY_DISCHARGING = "discharging"
+        val ALL_BATTERY_STATES = setOf(BATTERY_CHARGING, BATTERY_DISCHARGING)
+
+        /** screen 状态 */
+        const val SCREEN_ON = "on"
+        const val SCREEN_OFF = "off"
+        const val SCREEN_UNLOCKED = "unlocked"
+        const val SCREEN_LOCKED = "locked"
+        val ALL_SCREEN_STATES = setOf(SCREEN_ON, SCREEN_OFF, SCREEN_UNLOCKED, SCREEN_LOCKED)
+
+        /** location 转换方向 */
+        const val LOCATION_ENTER = "enter"
+        const val LOCATION_EXIT = "exit"
+        val ALL_LOCATION_STATES = setOf(LOCATION_ENTER, LOCATION_EXIT)
     }
 }

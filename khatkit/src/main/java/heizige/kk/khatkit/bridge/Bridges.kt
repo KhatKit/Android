@@ -61,6 +61,13 @@ interface ToolBridge {
 
     /** 本地图片 OCR（中文 + 拉丁字母）。成功返回识别文本，失败返回 {"error":"..."}。 */
     fun ocrText(path: String): String
+
+    /**
+     * 本地图片 OCR（带坐标）。成功返回 JSON 数组：
+     * `[{"text":"..","x":..,"y":..,"w":..,"h":..}]`，坐标为图片像素（已按 EXIF 方向校正），
+     * 失败返回 {"error":"..."}。
+     */
+    fun ocrBoxes(path: String): String
 }
 
 interface UiBridge {
@@ -141,10 +148,17 @@ interface StoreBridge {
 }
 
 interface ShizukuBridge {
-    /** 只暴露动作级 API，不暴露通用 exec */
+    /** 动作级 API */
     fun setAppEnabled(pkg: String, enabled: Boolean): String
     fun settingsPut(namespace: String, key: String, value: String): String
     fun pm(action: String, pkg: String): String
+
+    /**
+     * 以 shell 身份执行命令（`/system/bin/sh -c`），返回合并后的 stdout/stderr
+     * 与退出码（`[exit N]` 前缀）。高风险通用能力，仅 elevated 卡片可声明使用；
+     * Shizuku 不可用或执行失败返回 `[error] 中文说明`。
+     */
+    fun shell(cmd: String): String
 }
 
 /**
@@ -215,6 +229,26 @@ interface AccessibilityBridge {
      * API 30 以下或失败时返回中文错误文本，不抛异常。
      */
     fun captureScreen(outputPath: String? = null): String
+
+    /**
+     * 在当前屏幕上做模板匹配（多尺度灰度归一化互相关，纯 Kotlin 无 OpenCV）。
+     * 命中返回 `{"found":true,"x":..,"y":..,"score":..}`（x/y 为屏幕像素中心坐标），
+     * 未命中返回 `{"found":false}`，参数或截图失败返回 `{"error":"..."}`。
+     */
+    fun findImage(templatePath: String, threshold: Double = 0.9): String
+
+    /**
+     * 查找模板并点击其中心；timeoutMs > 0 时每 300ms 轮询一次直到超时。
+     * 返回是否点击成功。
+     */
+    fun tapImage(templatePath: String, threshold: Double = 0.9, timeoutMs: Long = 0): Boolean
+
+    /**
+     * 查找指定颜色的第一个像素（每通道容差 tolerance）。
+     * region 为空表示全屏，或传 "x,y,w,h" 限定区域。
+     * 命中返回 `{"found":true,"x":..,"y":..,"color":"#RRGGBB"}`，未命中返回 `{"found":false}`。
+     */
+    fun findColor(colorHex: String, tolerance: Int = 16, region: String = ""): String
 
     /** 对当前聚焦的输入框执行粘贴。 */
     fun paste(): Boolean

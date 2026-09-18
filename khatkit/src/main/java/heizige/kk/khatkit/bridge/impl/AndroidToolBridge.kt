@@ -344,6 +344,43 @@ class AndroidToolBridge(
         }
     }
 
+    /**
+     * 带坐标 OCR：按行返回识别文本与外接矩形。
+     * `InputImage.fromFilePath` 已按 EXIF 方向把位图转正，boundingBox 即该位图像素坐标。
+     */
+    override fun ocrBoxes(path: String): String {
+        requireSharedStorageAccess(path)
+        val file = File(path)
+        require(file.exists()) { "文件不存在：$path" }
+        return try {
+            val image = InputImage.fromFilePath(context, Uri.fromFile(file))
+            val result = Tasks.await(ocrRecognizer.process(image), OCR_TIMEOUT_SEC, TimeUnit.SECONDS)
+            val array = JSONArray()
+            result.textBlocks.forEach { block ->
+                val lines = block.lines
+                if (lines.isEmpty()) {
+                    block.boundingBox?.let { array.put(boxJson(block.text, it)) }
+                } else {
+                    lines.forEach { line ->
+                        line.boundingBox?.let { array.put(boxJson(line.text, it)) }
+                    }
+                }
+            }
+            array.toString()
+        } catch (e: Exception) {
+            if (e is InterruptedException) Thread.currentThread().interrupt()
+            JSONObject().put("error", "OCR 失败：${e.message ?: e.javaClass.simpleName}").toString()
+        }
+    }
+
+    private fun boxJson(text: String, box: android.graphics.Rect): JSONObject =
+        JSONObject()
+            .put("text", text)
+            .put("x", box.left)
+            .put("y", box.top)
+            .put("w", box.width())
+            .put("h", box.height())
+
     private val ocrRecognizer by lazy {
         TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
     }

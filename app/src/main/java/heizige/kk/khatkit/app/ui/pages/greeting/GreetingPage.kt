@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.ui.pages.greeting
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,6 +11,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -97,6 +99,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -120,6 +123,7 @@ import heizige.kk.khatkit.app.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.service.KhatKitAccessibilityService
+import heizige.kk.khatkit.app.utils.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
@@ -136,8 +140,12 @@ import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCheckbox
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeRadioButton
+import heizige.kk.kedge.components.KedgeStatusDefaults
+import heizige.kk.kedge.components.KedgeStatusLevel
+import heizige.kk.kedge.components.KedgeStatusTag
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.kedge.components.KedgeWarningCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -148,15 +156,28 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.ui.icons.accessibility
 import heizige.kk.khatkit.app.ui.icons.add
+import heizige.kk.khatkit.app.ui.icons.barChart
+import heizige.kk.khatkit.app.ui.icons.bluetooth
+import heizige.kk.khatkit.app.ui.icons.bolt
 import heizige.kk.khatkit.app.ui.icons.brightnessAuto
+import heizige.kk.khatkit.app.ui.icons.calendarMonth
 import heizige.kk.khatkit.app.ui.icons.check
 import heizige.kk.khatkit.app.ui.icons.checkCircle
 import heizige.kk.khatkit.app.ui.icons.darkMode
+import heizige.kk.khatkit.app.ui.icons.folderOpen
 import heizige.kk.khatkit.app.ui.icons.lightMode
+import heizige.kk.khatkit.app.ui.icons.locationOn
 import heizige.kk.khatkit.app.ui.icons.menuBook
+import heizige.kk.khatkit.app.ui.icons.mic
 import heizige.kk.khatkit.app.ui.icons.neurology
+import heizige.kk.khatkit.app.ui.icons.notifications
 import heizige.kk.khatkit.app.ui.icons.palette
+import heizige.kk.khatkit.app.ui.icons.photoCamera
+import heizige.kk.khatkit.app.ui.icons.pictureInPicture
+import heizige.kk.khatkit.app.ui.icons.power
+import heizige.kk.khatkit.app.ui.icons.schedule
 import heizige.kk.khatkit.app.ui.icons.smartphone
 import heizige.kk.khatkit.app.ui.icons.tune
 import heizige.kk.khatkit.app.ui.icons.verifiedUser
@@ -803,32 +824,51 @@ private fun GreetingPermissionsScreen() {
     var rootAvailable by remember { mutableStateOf(RootBridgeImpl.isAvailable()) }
     var shizukuAvailable by remember { mutableStateOf(ShizukuPermission.isAvailable()) }
     var shizukuGranted by remember { mutableStateOf(ShizukuPermission.isGranted()) }
-    var accessibilityEnabled by remember { mutableStateOf(KhatKitAccessibilityService.isEnabled(context)) }
+
     var notificationsGranted by remember { mutableStateOf(checkNotifications(context)) }
-    var cameraGranted by remember { mutableStateOf(hasPermission(context, Manifest.permission.CAMERA)) }
     var micGranted by remember { mutableStateOf(hasPermission(context, Manifest.permission.RECORD_AUDIO)) }
+    var cameraGranted by remember { mutableStateOf(hasPermission(context, Manifest.permission.CAMERA)) }
     var calendarGranted by remember {
         mutableStateOf(
             hasPermission(context, Manifest.permission.READ_CALENDAR) &&
                 hasPermission(context, Manifest.permission.WRITE_CALENDAR)
         )
     }
+    var locationGranted by remember {
+        mutableStateOf(
+            hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) &&
+                hasPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        )
+    }
+    var bluetoothGranted by remember { mutableStateOf(checkBluetoothPermission(context)) }
+    var usageStatsGranted by remember { mutableStateOf(context.hasUsageStatsPermission()) }
+    var exactAlarmGranted by remember { mutableStateOf(checkExactAlarm(context)) }
     var batteryIgnored by remember { mutableStateOf(checkBatteryOptimization(context)) }
     var allFilesGranted by remember { mutableStateOf(AllFilesAccess.isGranted()) }
+    var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+    var accessibilityEnabled by remember { mutableStateOf(KhatKitAccessibilityService.isEnabled(context)) }
+    var listenerEnabled by remember { mutableStateOf(checkNotificationListener(context)) }
 
     fun refresh() {
         rootEnabled = provider.enableRoot
         rootAvailable = RootBridgeImpl.isAvailable()
         shizukuAvailable = ShizukuPermission.isAvailable()
         shizukuGranted = ShizukuPermission.isGranted()
-        accessibilityEnabled = KhatKitAccessibilityService.isEnabled(context)
         notificationsGranted = checkNotifications(context)
-        cameraGranted = hasPermission(context, Manifest.permission.CAMERA)
         micGranted = hasPermission(context, Manifest.permission.RECORD_AUDIO)
+        cameraGranted = hasPermission(context, Manifest.permission.CAMERA)
         calendarGranted = hasPermission(context, Manifest.permission.READ_CALENDAR) &&
             hasPermission(context, Manifest.permission.WRITE_CALENDAR)
+        locationGranted = hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) &&
+            hasPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        bluetoothGranted = checkBluetoothPermission(context)
+        usageStatsGranted = context.hasUsageStatsPermission()
+        exactAlarmGranted = checkExactAlarm(context)
         batteryIgnored = checkBatteryOptimization(context)
         allFilesGranted = AllFilesAccess.isGranted()
+        overlayGranted = Settings.canDrawOverlays(context)
+        accessibilityEnabled = KhatKitAccessibilityService.isEnabled(context)
+        listenerEnabled = checkNotificationListener(context)
     }
 
     LifecycleResumeEffect(Unit) {
@@ -836,15 +876,246 @@ private fun GreetingPermissionsScreen() {
         onPauseOrDispose { }
     }
 
-    val notificationLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { refresh() }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { refresh() }
-    val batteryLauncher = rememberLauncherForActivityResult(
+    val settingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { refresh() }
+
+    fun openSettings(intent: Intent) {
+        runCatching { settingsLauncher.launch(intent) }
+            .onFailure {
+                runCatching {
+                    context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            }
+    }
+
+    val packageUri = "package:${context.packageName}".toUri()
+    val missingRuntime = buildList {
+        if (!notificationsGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (!micGranted) add(Manifest.permission.RECORD_AUDIO)
+        if (!locationGranted) {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (!bluetoothGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            add(Manifest.permission.BLUETOOTH_CONNECT)
+            add(Manifest.permission.BLUETOOTH_SCAN)
+        }
+        if (!cameraGranted) add(Manifest.permission.CAMERA)
+        if (!calendarGranted) {
+            add(Manifest.permission.READ_CALENDAR)
+            add(Manifest.permission.WRITE_CALENDAR)
+        }
+    }
+
+    val runtimeItems = buildList {
+        add(
+            PermissionUiItem(
+                icon = notifications,
+                titleRes = R.string.greeting_permission_notification_title,
+                descRes = R.string.greeting_permission_notification_desc,
+                granted = notificationsGranted,
+                actionLabelRes = R.string.greeting_permission_grant,
+                onAction = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+                    } else {
+                        refresh()
+                    }
+                },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = mic,
+                titleRes = R.string.greeting_permission_mic_title,
+                descRes = R.string.greeting_permission_mic_desc,
+                granted = micGranted,
+                actionLabelRes = R.string.greeting_permission_grant,
+                onAction = { permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO)) },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = locationOn,
+                titleRes = R.string.greeting_permission_location_title,
+                descRes = R.string.greeting_permission_location_desc,
+                granted = locationGranted,
+                actionLabelRes = R.string.greeting_permission_grant,
+                onAction = {
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        )
+                    )
+                },
+            )
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            add(
+                PermissionUiItem(
+                    icon = bluetooth,
+                    titleRes = R.string.greeting_permission_bluetooth_title,
+                    descRes = R.string.greeting_permission_bluetooth_desc,
+                    granted = bluetoothGranted,
+                    actionLabelRes = R.string.greeting_permission_grant,
+                    onAction = {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.BLUETOOTH_CONNECT,
+                                Manifest.permission.BLUETOOTH_SCAN,
+                            )
+                        )
+                    },
+                )
+            )
+        }
+        add(
+            PermissionUiItem(
+                icon = photoCamera,
+                titleRes = R.string.greeting_permission_camera_title,
+                descRes = R.string.greeting_permission_camera_desc,
+                granted = cameraGranted,
+                actionLabelRes = R.string.greeting_permission_grant,
+                onAction = { permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA)) },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = calendarMonth,
+                titleRes = R.string.greeting_permission_calendar_title,
+                descRes = R.string.greeting_permission_calendar_desc,
+                granted = calendarGranted,
+                actionLabelRes = R.string.greeting_permission_grant,
+                onAction = {
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.READ_CALENDAR,
+                            Manifest.permission.WRITE_CALENDAR,
+                        )
+                    )
+                },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = bolt,
+                titleRes = R.string.greeting_permission_background_title,
+                descRes = R.string.greeting_permission_background_desc,
+                granted = true,
+                actionLabelRes = R.string.greeting_permission_grant,
+            )
+        )
+    }
+
+    val specialItems = buildList {
+        add(
+            PermissionUiItem(
+                icon = barChart,
+                titleRes = R.string.greeting_permission_usage_stats_title,
+                descRes = R.string.greeting_permission_usage_stats_desc,
+                granted = usageStatsGranted,
+                actionLabelRes = R.string.greeting_permission_action_settings,
+                onAction = { openSettings(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
+            )
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            add(
+                PermissionUiItem(
+                    icon = schedule,
+                    titleRes = R.string.greeting_permission_exact_alarm_title,
+                    descRes = R.string.greeting_permission_exact_alarm_desc,
+                    granted = exactAlarmGranted,
+                    actionLabelRes = R.string.greeting_permission_action_settings,
+                    onAction = {
+                        openSettings(
+                            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, packageUri)
+                        )
+                    },
+                )
+            )
+        }
+        add(
+            PermissionUiItem(
+                icon = power,
+                titleRes = R.string.greeting_permission_battery_title,
+                descRes = R.string.greeting_permission_battery_desc,
+                granted = batteryIgnored,
+                actionLabelRes = R.string.greeting_permission_action_settings,
+                onAction = {
+                    val request = Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        packageUri,
+                    )
+                    runCatching { settingsLauncher.launch(request) }.onFailure {
+                        openSettings(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                    }
+                },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = folderOpen,
+                titleRes = R.string.greeting_permission_files_title,
+                descRes = R.string.greeting_permission_files_desc,
+                granted = allFilesGranted,
+                actionLabelRes = R.string.greeting_permission_action_settings,
+                onAction = {
+                    if (activity != null) {
+                        AllFilesAccess.request(activity)
+                    } else {
+                        openSettings(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                    }
+                },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = pictureInPicture,
+                titleRes = R.string.greeting_permission_overlay_title,
+                descRes = R.string.greeting_permission_overlay_desc,
+                granted = overlayGranted,
+                actionLabelRes = R.string.greeting_permission_action_settings,
+                onAction = {
+                    runCatching {
+                        settingsLauncher.launch(
+                            Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, packageUri)
+                        )
+                    }.onFailure {
+                        openSettings(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+                    }
+                },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = notifications,
+                titleRes = R.string.greeting_permission_listener_title,
+                descRes = R.string.greeting_permission_listener_desc,
+                granted = listenerEnabled,
+                actionLabelRes = R.string.greeting_permission_action_settings,
+                onAction = {
+                    openSettings(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                },
+            )
+        )
+        add(
+            PermissionUiItem(
+                icon = accessibility,
+                titleRes = R.string.greeting_permission_accessibility_title,
+                descRes = R.string.greeting_permission_accessibility_desc,
+                granted = accessibilityEnabled,
+                actionLabelRes = R.string.greeting_permission_action_settings,
+                onAction = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+            )
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -854,6 +1125,56 @@ private fun GreetingPermissionsScreen() {
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
+        OptionsText(stringResource(R.string.greeting_permissions_normal))
+        Spacer(modifier = Modifier.height(8.dp))
+        if (missingRuntime.isNotEmpty()) {
+            KedgeButton(
+                onClick = { permissionLauncher.launch(missingRuntime.toTypedArray()) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = bolt,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.greeting_permission_grant_all, missingRuntime.size))
+            }
+        } else {
+            KedgeWarningCard(
+                message = stringResource(R.string.greeting_permission_all_granted),
+                level = KedgeStatusLevel.Success,
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
+            runtimeItems.forEachIndexed { index, item ->
+                PermissionActionItem(
+                    item = item,
+                    shape = cards.indexedShape(index, runtimeItems.size),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        OptionsText(stringResource(R.string.greeting_permissions_special))
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.greeting_permissions_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = KedgeColors.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
+            specialItems.forEachIndexed { index, item ->
+                PermissionActionItem(
+                    item = item,
+                    shape = cards.indexedShape(index, specialItems.size),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         OptionsText(stringResource(R.string.greeting_permissions_dangerous))
         Spacer(modifier = Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
@@ -865,7 +1186,7 @@ private fun GreetingPermissionsScreen() {
                     stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
                 },
                 selected = rootAvailable && rootEnabled,
-                shape = cards.indexedShape(0, 3),
+                shape = cards.indexedShape(0, 2),
                 dangerous = true,
                 enabled = rootAvailable,
                 onClick = {
@@ -883,7 +1204,7 @@ private fun GreetingPermissionsScreen() {
                     stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
                 },
                 selected = shizukuGranted,
-                shape = cards.indexedShape(1, 3),
+                shape = cards.indexedShape(1, 2),
                 dangerous = true,
                 enabled = shizukuAvailable,
                 onClick = {
@@ -897,127 +1218,67 @@ private fun GreetingPermissionsScreen() {
                     }
                 },
             )
-
-            PermissionRadioItem(
-                title = stringResource(R.string.greeting_permission_accessibility_title),
-                subtitle = stringResource(R.string.greeting_permission_accessibility_desc),
-                selected = accessibilityEnabled,
-                shape = cards.indexedShape(2, 3),
-                dangerous = true,
-                onClick = {
-                    runCatching {
-                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    }
-                },
-            )
-
-
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        OptionsText(stringResource(R.string.greeting_permissions_normal))
-        Spacer(modifier = Modifier.height(8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-            PermissionRadioItem(
-                title = stringResource(R.string.greeting_permission_notification_title),
-                subtitle = stringResource(R.string.greeting_permission_notification_desc),
-                selected = notificationsGranted,
-                shape = cards.indexedShape(0, 6),
-                onClick = {
-                    if (!notificationsGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        refresh()
-                    }
-                },
-            )
-
-            PermissionRadioItem(
-                title = stringResource(R.string.greeting_permission_camera_title),
-                subtitle = stringResource(R.string.greeting_permission_camera_desc),
-                selected = cameraGranted,
-                shape = cards.indexedShape(1, 6),
-                onClick = {
-                    if (!cameraGranted) {
-                        permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
-                    } else {
-                        refresh()
-                    }
-                },
-            )
-
-            PermissionRadioItem(
-                title = stringResource(R.string.greeting_permission_mic_title),
-                subtitle = stringResource(R.string.greeting_permission_mic_desc),
-                selected = micGranted,
-                shape = cards.indexedShape(2, 6),
-                onClick = {
-                    if (!micGranted) {
-                        permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
-                    } else {
-                        refresh()
-                    }
-                },
-            )
-
-            PermissionRadioItem(
-                title = stringResource(R.string.greeting_permission_calendar_title),
-                subtitle = stringResource(R.string.greeting_permission_calendar_desc),
-                selected = calendarGranted,
-                shape = cards.indexedShape(3, 6),
-                onClick = {
-                    if (!calendarGranted) {
-                        permissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.READ_CALENDAR,
-                                Manifest.permission.WRITE_CALENDAR,
-                            )
-                        )
-                    } else {
-                        refresh()
-                    }
-                },
-            )
-
-            PermissionRadioItem(
-                title = stringResource(R.string.greeting_permission_battery_title),
-                subtitle = stringResource(R.string.greeting_permission_battery_desc),
-                selected = batteryIgnored,
-                shape = cards.indexedShape(4, 6),
-                onClick = {
-                    if (!batteryIgnored) {
-                        val intent = Intent(
-                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                            "package:${context.packageName}".toUri(),
-                        )
-                        runCatching { batteryLauncher.launch(intent) }
-                            .onFailure {
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                    )
-                                }
-                            }
-                    } else {
-                        refresh()
-                    }
-                },
-            )
-
-            PermissionRadioItem(
-                title = stringResource(R.string.greeting_permission_files_title),
-                subtitle = stringResource(R.string.greeting_permission_files_desc),
-                selected = allFilesGranted,
-                shape = cards.indexedShape(5, 6),
-                onClick = {
-                    if (!allFilesGranted && activity != null) {
-                        AllFilesAccess.request(activity)
-                    }
-                    refresh()
-                },
-            )
         }
     }
+}
+
+private data class PermissionUiItem(
+    val icon: ImageVector,
+    @StringRes val titleRes: Int,
+    @StringRes val descRes: Int,
+    val granted: Boolean,
+    @StringRes val actionLabelRes: Int,
+    val onAction: (() -> Unit)? = null,
+)
+
+@Composable
+private fun PermissionActionItem(
+    item: PermissionUiItem,
+    shape: Shape,
+) {
+    val successColor = KedgeStatusDefaults.colors(KedgeStatusLevel.Success).content
+    val grantedLabel = stringResource(R.string.greeting_permission_status_granted)
+    val actionLabel = stringResource(item.actionLabelRes)
+    KedgeOptionItem(
+        onClick = { if (!item.granted) item.onAction?.invoke() },
+        shape = shape,
+        leadingContent = {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = null,
+                tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+            )
+        },
+        titleContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(item.titleRes),
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                KedgeStatusTag(
+                    label = if (item.granted) {
+                        grantedLabel
+                    } else {
+                        stringResource(R.string.greeting_permission_status_not_granted)
+                    },
+                    level = if (item.granted) KedgeStatusLevel.Success else KedgeStatusLevel.Warning,
+                )
+            }
+        },
+        supportingContent = { Text(stringResource(item.descRes)) },
+        trailingContent = {
+            if (item.granted) {
+                Icon(
+                    imageVector = checkCircle,
+                    contentDescription = grantedLabel,
+                    tint = successColor,
+                )
+            } else if (item.onAction != null) {
+                KedgeTextButton(onClick = item.onAction) { Text(actionLabel) }
+            }
+        },
+    )
 }
 
 @Composable
@@ -1432,3 +1693,19 @@ private fun checkBatteryOptimization(context: Context): Boolean {
     val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return false
     return powerManager.isIgnoringBatteryOptimizations(context.packageName)
 }
+
+private fun checkBluetoothPermission(context: Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+        (
+            hasPermission(context, Manifest.permission.BLUETOOTH_CONNECT) &&
+                hasPermission(context, Manifest.permission.BLUETOOTH_SCAN)
+        )
+
+private fun checkExactAlarm(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return false
+    return alarmManager.canScheduleExactAlarms()
+}
+
+private fun checkNotificationListener(context: Context): Boolean =
+    NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)

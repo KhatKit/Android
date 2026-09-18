@@ -2,6 +2,8 @@ package heizige.kk.khatkit.trigger
 
 import heizige.kk.khatkit.card.CardManifest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -176,6 +178,196 @@ class TriggerEngineTest {
         assertEquals(1, engine.onCharging("connected", now + 5_000))
         assertEquals("charging", argsOf(recorder.runs[0].second)["type"])
         assertEquals("connected", argsOf(recorder.runs[0].second)["state"])
+    }
+
+    @Test
+    fun wifiMatchesSsidAndOptionalState() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard("wifi_home", listOf(CardManifest.Event(type = "wifi", ssid = "Home", state = "connected"))),
+                TriggerCard("wifi_any", listOf(CardManifest.Event(type = "wifi"))),
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        // "Office" 只命中任意热点卡片
+        assertEquals(1, engine.onWifi("Office", true, now))
+        assertEquals("wifi_any", recorder.runs[0].first)
+        // 同刻 "home" 命中指定 SSID，任意卡片仍在冷却
+        assertEquals(1, engine.onWifi("home", true, now))
+        assertEquals("wifi_home", recorder.runs[1].first)
+        assertEquals("home", argsOf(recorder.runs[1].second)["ssid"])
+        // 冷却 15s 后连接事件两卡都命中
+        assertEquals(2, engine.onWifi("home", true, now + 15_000))
+    }
+
+    @Test
+    fun networkMatchesOnlineOffline() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(TriggerCard("net_card", listOf(CardManifest.Event(type = "network", state = "offline"))))
+        )
+        val now = at(2026, 9, 18, 8, 0)
+        assertEquals(0, engine.onNetwork(true, now))
+        assertEquals(1, engine.onNetwork(false, now))
+        assertEquals("offline", argsOf(recorder.runs[0].second)["state"])
+    }
+
+    @Test
+    fun batteryMatchesThresholdAndState() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "battery_card",
+                    listOf(
+                        CardManifest.Event(type = "battery", levelBelow = 20),
+                        CardManifest.Event(type = "battery", levelAbove = 80, state = "charging"),
+                    ),
+                )
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        assertEquals(0, engine.onBattery(50, false, now))
+        assertEquals(1, engine.onBattery(15, false, now))
+        // 冷却期内低电量重复上报被抑制
+        assertEquals(0, engine.onBattery(10, false, now + 1_000))
+        // 高电量 + 充电条件：60s 冷却后
+        assertEquals(1, engine.onBattery(85, true, now + 60_000))
+        // 高电量但不充电：不匹配 state
+        assertEquals(0, engine.onBattery(90, false, now + 120_000))
+    }
+
+    @Test
+    fun screenClipboardBluetoothMatch() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard("screen_card", listOf(CardManifest.Event(type = "screen", state = "unlocked"))),
+                TriggerCard("clip_card", listOf(CardManifest.Event(type = "clipboard", textContains = "https://"))),
+                TriggerCard(
+                    "bt_card",
+                    listOf(CardManifest.Event(type = "bluetooth", state = "connected", device = "耳机")),
+                ),
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        assertEquals(0, engine.onScreen("on", now))
+        assertEquals(1, engine.onScreen("unlocked", now))
+        assertEquals("unlocked", argsOf(recorder.runs[0].second)["state"])
+
+        assertEquals(0, engine.onClipboard("普通文本", now))
+        assertEquals(1, engine.onClipboard("打开 HTTPS://example.com", now))
+
+        assertEquals(0, engine.onBluetooth("connected", "键盘", now))
+        assertEquals(1, engine.onBluetooth("connected", "蓝牙耳机", now))
+        assertEquals("connected", argsOf(recorder.runs[2].second)["state"])
+    }
+
+    @Test
+    fun locationFiresOnlyOnBoundaryCrossing() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "geo_card",
+                    listOf(
+                        CardManifest.Event(
+                            type = "location",
+                            state = "enter",
+                            lat = 31.2304,
+                            lon = 121.4737,
+                            radiusM = 500,
+                        ),
+                        CardManifest.Event(
+                            type = "location",
+                            state = "exit",
+                            lat = 31.2304,
+                            lon = 121.4737,
+                            radiusM = 500,
+                        ),
+                    ),
+                )
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        // 首次采样只记基线
+        assertEquals(0, engine.onLocation(31.2304, 121.4737, now))
+        // 离开围栏 → exit
+        assertEquals(1, engine.onLocation(31.3000, 121.4737, now + 60_000))
+        // 再次离开不重复
+        assertEquals(0, engine.onLocation(31.3100, 121.4737, now + 120_000))
+        // 回到围栏 → enter
+        assertEquals(1, engine.onLocation(31.2304, 121.4737, now + 180_000))
+        assertEquals("enter", argsOf(recorder.runs[1].second)["state"])
+        assertEquals(31.2304, argsOf(recorder.runs[1].second)["lat"] as Double, 0.0001)
+    }
+
+    @Test
+    fun retryReDispatchesFailedRunUntilSuccess() {
+        val recorder = Recorder()
+        val now = at(2026, 9, 18, 8, 0)
+        val engine = engine(recorder, now)
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "flaky_card",
+                    listOf(CardManifest.Event(type = "charging", state = "connected")),
+                    maxRetries = 2,
+                    retryDelaySeconds = 10,
+                )
+            )
+        )
+
+        assertEquals(1, engine.onCharging("connected", now))
+        val args = recorder.runs[0].second
+        assertTrue(engine.reportRunResult("flaky_card", args, success = false, now = now))
+        // 延迟未到
+        assertEquals(0, engine.tickRetries(now + 9_000))
+        assertTrue(engine.hasPendingRetry("flaky_card"))
+        // 到期重试
+        assertEquals(1, engine.tickRetries(now + 10_000))
+        assertTrue(engine.reportRunResult("flaky_card", args, success = false, now = now + 10_000))
+        assertEquals(1, engine.tickRetries(now + 20_000))
+        // 重试次数用尽，不再排队
+        assertFalse(engine.reportRunResult("flaky_card", args, success = false, now = now + 20_000))
+        assertFalse(engine.hasPendingRetry("flaky_card"))
+        assertEquals(0, engine.tickRetries(now + 30_000))
+        assertEquals(3, recorder.runs.size)
+    }
+
+    @Test
+    fun retryClearedAfterSuccess() {
+        val recorder = Recorder()
+        val now = at(2026, 9, 18, 8, 0)
+        val engine = engine(recorder, now)
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "recover_card",
+                    listOf(CardManifest.Event(type = "charging", state = "connected")),
+                    maxRetries = 3,
+                    retryDelaySeconds = 5,
+                )
+            )
+        )
+        engine.onCharging("connected", now)
+        val args = recorder.runs[0].second
+        assertTrue(engine.reportRunResult("recover_card", args, success = false, now = now))
+        engine.tickRetries(now + 5_000)
+        assertFalse(engine.reportRunResult("recover_card", args, success = true, now = now + 5_000))
+        assertFalse(engine.hasPendingRetry("recover_card"))
+        assertEquals(0, engine.tickRetries(now + 60_000))
+        assertEquals(2, recorder.runs.size)
     }
 
     @Test

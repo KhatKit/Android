@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.ui.pages.setting
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -28,22 +29,46 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.app.service.CardTriggerOverride
 import heizige.kk.khatkit.app.service.KhatKitNotificationListenerService
 import heizige.kk.khatkit.app.service.TriggerController
 import heizige.kk.khatkit.app.service.TriggerService
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionInfo
 import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionNotification
 import heizige.kk.khatkit.app.ui.components.ui.permission.rememberPermissionState
+import heizige.kk.khatkit.app.ui.icons.bolt
+import heizige.kk.khatkit.app.ui.icons.cleaningServices
+import heizige.kk.khatkit.app.ui.icons.editNote
+import heizige.kk.khatkit.app.ui.icons.notifications
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.card.CardManifest
+import heizige.kk.khatkit.trigger.TriggerCard
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
-/** 自动化触发器设置：总开关、事件卡片列表、通知监听/电池优化入口。 */
+private val PermissionFineLocation = PermissionInfo(
+    permission = Manifest.permission.ACCESS_FINE_LOCATION,
+    displayName = { Text("位置权限（可选）") },
+    usage = { Text("位置触发器需要定位权限；不授权时位置事件会被跳过") },
+    required = false,
+)
+
+private val PermissionBluetoothConnect = PermissionInfo(
+    permission = Manifest.permission.BLUETOOTH_CONNECT,
+    displayName = { Text("蓝牙权限（可选）") },
+    usage = { Text("蓝牙触发器需要连接权限；不授权时蓝牙事件会被跳过") },
+    required = false,
+)
+
+/** 自动化触发器设置：总开关、事件卡片编辑、执行日志、通知监听/电池优化入口。 */
 @Composable
 fun SettingTriggersPage() {
     val controller: TriggerController = koinInject()
@@ -52,20 +77,28 @@ fun SettingTriggersPage() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val triggerState by controller.settings.state.collectAsStateWithLifecycle()
     val cards by controller.cards.collectAsStateWithLifecycle()
+    val logEntries by controller.logs.entries.collectAsStateWithLifecycle()
 
     val permissionState = rememberPermissionState(
         permissions = buildSet {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(PermissionNotification)
+            add(PermissionFineLocation)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(PermissionBluetoothConnect)
         },
     )
     PermissionManager(permissionState = permissionState)
     var pendingStart by remember { mutableStateOf(false) }
+    var editingCard by remember { mutableStateOf<TriggerCard?>(null) }
+    val editingOverride = remember(editingCard) {
+        editingCard?.let { controller.settings.overrideFor(it.name) } ?: CardTriggerOverride.NONE
+    }
+    val timeFormat = remember { SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()) }
 
     LaunchedEffect(Unit) {
         controller.refreshCardsAsync()
     }
-    LaunchedEffect(permissionState.allPermissionsGranted) {
-        if (pendingStart && permissionState.allPermissionsGranted) {
+    LaunchedEffect(permissionState.allRequiredPermissionsGranted) {
+        if (pendingStart && permissionState.allRequiredPermissionsGranted) {
             pendingStart = false
             TriggerService.start(context)
         }
@@ -78,7 +111,7 @@ fun SettingTriggersPage() {
         }
         if (enabled) {
             controller.refreshCardsAsync()
-            if (permissionState.allPermissionsGranted) {
+            if (permissionState.allRequiredPermissionsGranted) {
                 TriggerService.start(context)
             } else {
                 pendingStart = true
@@ -87,6 +120,18 @@ fun SettingTriggersPage() {
         } else {
             TriggerService.stop(context)
         }
+    }
+
+    editingCard?.let { card ->
+        TriggerCardEditorSheet(
+            card = card,
+            override = editingOverride,
+            onSave = { override ->
+                controller.saveOverride(card.name, override)
+                editingCard = null
+            },
+            onDismiss = { editingCard = null },
+        )
     }
 
     Scaffold(
@@ -113,7 +158,7 @@ fun SettingTriggersPage() {
                     item(
                         headlineContent = { Text("启用自动化触发器") },
                         supportingContent = {
-                            Text("卡片在定时、通知、应用启动、充电时自动运行，可逐张关闭")
+                            Text("卡片在定时、通知、应用启动、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置事件时自动运行")
                         },
                         trailingContent = {
                             OptionSwitch(
@@ -128,13 +173,13 @@ fun SettingTriggersPage() {
             item("cards") {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text("事件卡片") },
+                    title = { Text("事件卡片（点击编辑事件）") },
                 ) {
                     if (cards.isEmpty()) {
                         item(
-                            headlineContent = { Text("暂无事件卡片") },
+                            headlineContent = { Text("暂无已安装卡片") },
                             supportingContent = {
-                                Text("已安装卡片声明 events 后会显示在这里，可在卡片市场更新卡片")
+                                Text("在卡片市场安装卡片后，可在这里给它们配置事件触发器")
                             },
                         )
                     }
@@ -142,9 +187,14 @@ fun SettingTriggersPage() {
                         val cardEnabled = triggerState.masterEnabled &&
                             triggerState.isCardEnabled(card.name)
                         item(
+                            onClick = { editingCard = card },
+                            leadingContent = { Icon(editNote, contentDescription = null) },
                             headlineContent = { Text(card.name) },
                             supportingContent = {
-                                Text(card.events.joinToString("\n") { "· ${eventSummary(it)}" })
+                                Text(
+                                    if (card.events.isEmpty()) "未配置事件，点击添加"
+                                    else card.events.joinToString("\n") { "· ${eventSummary(it)}" }
+                                )
                             },
                             trailingContent = {
                                 OptionSwitch(
@@ -157,6 +207,58 @@ fun SettingTriggersPage() {
                                 )
                             },
                         )
+                    }
+                }
+            }
+
+            item("logs") {
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    title = { Text("执行日志（最近 ${minOf(logEntries.size, LOG_UI_LIMIT)} / ${logEntries.size} 条）") },
+                ) {
+                    if (logEntries.isEmpty()) {
+                        item(
+                            headlineContent = { Text("暂无执行记录") },
+                            supportingContent = { Text("卡片被事件触发后会在这里留下运行结果") },
+                        )
+                    } else {
+                        item(
+                            onClick = { controller.logs.clear() },
+                            leadingContent = { Icon(cleaningServices, contentDescription = null) },
+                            headlineContent = { Text("清空日志") },
+                            supportingContent = { Text("仅清除本地运行记录，不影响卡片配置") },
+                        )
+                        logEntries.asReversed().take(LOG_UI_LIMIT).forEach { entry ->
+                            item(
+                                headlineContent = {
+                                    Text(
+                                        "${if (entry.ok) "成功" else "失败"} · ${entry.card}",
+                                        color = if (entry.ok) {
+                                            MaterialTheme.colorScheme.onSurface
+                                        } else {
+                                            MaterialTheme.colorScheme.error
+                                        },
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        buildString {
+                                            append(timeFormat.format(Date(entry.at)))
+                                            append(" · ")
+                                            append(eventTypeLabel(entry.type))
+                                            if (entry.payload.isNotBlank()) {
+                                                append(" · ")
+                                                append(entry.payload)
+                                            }
+                                            if (entry.message.isNotBlank()) {
+                                                append("\n")
+                                                append(entry.message)
+                                            }
+                                        }
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -180,7 +282,7 @@ fun SettingTriggersPage() {
                                 )
                             }
                         },
-                        leadingContent = { Icon(heizige.kk.khatkit.app.ui.icons.notifications, null) },
+                        leadingContent = { Icon(notifications, null) },
                         headlineContent = { Text("通知监听权限") },
                         supportingContent = {
                             Text(
@@ -204,9 +306,16 @@ fun SettingTriggersPage() {
                                 }
                             }
                         },
-                        leadingContent = { Icon(heizige.kk.khatkit.app.ui.icons.bolt, null) },
+                        leadingContent = { Icon(bolt, null) },
                         headlineContent = { Text("忽略电池优化") },
                         supportingContent = { Text("防止系统在后台限制触发器服务") },
+                    )
+                    item(
+                        onClick = { permissionState.requestPermissions() },
+                        headlineContent = { Text("请求位置 / 蓝牙等运行时权限") },
+                        supportingContent = {
+                            Text("位置与蓝牙触发器需要额外权限；未授权时对应事件自动跳过")
+                        },
                     )
                     item(
                         headlineContent = {
@@ -223,7 +332,9 @@ fun SettingTriggersPage() {
     }
 }
 
-private fun eventSummary(event: CardManifest.Event): String = when (event.type) {
+private const val LOG_UI_LIMIT = 50
+
+internal fun eventSummary(event: CardManifest.Event): String = when (event.type) {
     CardManifest.EVENT_SCHEDULE -> buildString {
         append("定时 ")
         when {
@@ -253,6 +364,55 @@ private fun eventSummary(event: CardManifest.Event): String = when (event.type) 
 
     CardManifest.EVENT_CHARGING ->
         if (event.state == CardManifest.CHARGING_DISCONNECTED) "充电 · 断开电源" else "充电 · 接入电源"
+
+    CardManifest.EVENT_WIFI -> buildString {
+        append("Wi-Fi ")
+        append(event.ssid.ifBlank { "任意热点" })
+        when (event.state) {
+            CardManifest.STATE_CONNECTED -> append(" · 已连接")
+            CardManifest.STATE_DISCONNECTED -> append(" · 已断开")
+            else -> append(" · 任意状态")
+        }
+    }
+
+    CardManifest.EVENT_NETWORK ->
+        if (event.state == CardManifest.NETWORK_OFFLINE) "网络 · 离线" else "网络 · 在线"
+
+    CardManifest.EVENT_BATTERY -> buildString {
+        append("电量")
+        val conds = buildList {
+            if (event.levelBelow >= 0) add("低于 ${event.levelBelow}%")
+            if (event.levelAbove >= 0) add("高于 ${event.levelAbove}%")
+            when (event.state) {
+                CardManifest.BATTERY_CHARGING -> add("充电中")
+                CardManifest.BATTERY_DISCHARGING -> add("放电中")
+            }
+        }
+        if (conds.isNotEmpty()) append(" · ${conds.joinToString("，")}") else append(" · 任意")
+    }
+
+    CardManifest.EVENT_SCREEN -> when (event.state) {
+        CardManifest.SCREEN_ON -> "屏幕 · 点亮"
+        CardManifest.SCREEN_OFF -> "屏幕 · 熄灭"
+        CardManifest.SCREEN_UNLOCKED -> "屏幕 · 解锁"
+        CardManifest.SCREEN_LOCKED -> "屏幕 · 锁屏"
+        else -> "屏幕"
+    }
+
+    CardManifest.EVENT_CLIPBOARD -> "剪贴板含「${event.textContains}」"
+
+    CardManifest.EVENT_BLUETOOTH -> buildString {
+        append("蓝牙")
+        if (event.device.isNotBlank()) append(" ${event.device}")
+        append(
+            if (event.state == CardManifest.STATE_DISCONNECTED) " · 已断开" else " · 已连接"
+        )
+    }
+
+    CardManifest.EVENT_LOCATION -> buildString {
+        append("位置 · ${if (event.state == CardManifest.LOCATION_EXIT) "离开" else "进入"}")
+        append(" ${event.lat ?: "-"},${event.lon ?: "-"} 半径 ${event.radiusM}m")
+    }
 
     else -> event.type
 }

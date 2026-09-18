@@ -262,6 +262,155 @@ class CardValidatorTest {
     }
 
     @Test
+    fun wifiStateValidatedButOptional() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "wifi")))
+            )
+        )
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(type = "wifi", ssid = "Home", state = "disconnected")
+                    )
+                )
+            )
+        )
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "wifi", state = "on")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_WIFI_STATE_INVALID" })
+    }
+
+    @Test
+    fun networkStateRequired() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "network", state = "wifi")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_NETWORK_STATE_INVALID" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "network", state = "offline")))
+            )
+        )
+    }
+
+    @Test
+    fun batteryNeedsConditionAndValidRange() {
+        val empty = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "battery")))
+        )
+        assertTrue(empty.any { it.code == "EVENT_BATTERY_EMPTY" })
+
+        val badLevel = CardValidator.validate(
+            manifest(
+                events = listOf(CardManifest.Event(type = "battery", levelBelow = 120))
+            )
+        )
+        assertTrue(badLevel.any { it.code == "EVENT_BATTERY_LEVEL_INVALID" })
+
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(
+                            type = "battery",
+                            levelBelow = 20,
+                            levelAbove = 80,
+                            state = "discharging",
+                        )
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun screenStateValidated() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "screen", state = "bright")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_SCREEN_STATE_INVALID" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "screen", state = "locked")))
+            )
+        )
+    }
+
+    @Test
+    fun clipboardNeedsTextContains() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "clipboard")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_CLIPBOARD_EMPTY" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "clipboard", textContains = "https://")))
+            )
+        )
+    }
+
+    @Test
+    fun bluetoothNeedsConnectionState() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "bluetooth", state = "paired")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_BLUETOOTH_STATE_INVALID" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(type = "bluetooth", state = "connected", device = "耳机")
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun locationGeometryValidated() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "location", state = "enter")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_LOCATION_LAT_INVALID" })
+        assertTrue(issues.any { it.code == "EVENT_LOCATION_LON_INVALID" })
+        assertTrue(issues.any { it.code == "EVENT_LOCATION_RADIUS_INVALID" })
+
+        val badState = CardValidator.validate(
+            manifest(
+                events = listOf(
+                    CardManifest.Event(
+                        type = "location",
+                        state = "inside",
+                        lat = 31.23,
+                        lon = 121.47,
+                        radiusM = 200,
+                    )
+                )
+            )
+        )
+        assertTrue(badState.any { it.code == "EVENT_LOCATION_STATE_INVALID" })
+
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(
+                            type = "location",
+                            state = "exit",
+                            lat = 31.23,
+                            lon = 121.47,
+                            radiusM = 200,
+                        )
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
     fun eventsJsonRoundTrip() {
         val parsed = CardParser.parse(
             """
@@ -276,13 +425,29 @@ class CardValidatorTest {
                 { "type": "schedule", "times": ["08:00"], "days": [1, 2] },
                 { "type": "notification", "package": "com.tencent.mm", "titleContains": "红包" },
                 { "type": "app_launch", "package": "com.tencent.mm" },
-                { "type": "charging", "state": "connected" }
+                { "type": "charging", "state": "connected" },
+                { "type": "wifi", "ssid": "Home", "state": "connected" },
+                { "type": "network", "state": "offline" },
+                { "type": "battery", "level_below": 20, "state": "discharging" },
+                { "type": "screen", "state": "unlocked" },
+                { "type": "clipboard", "text_contains": "https://" },
+                { "type": "bluetooth", "state": "connected", "device": "耳机" },
+                {
+                  "type": "location",
+                  "state": "enter",
+                  "lat": 31.23,
+                  "lon": 121.47,
+                  "radius_m": 200
+                }
               ]
             }
             """.trimIndent()
         ).getOrThrow()
-        assertEquals(4, parsed.events.size)
+        assertEquals(11, parsed.events.size)
         assertEquals("com.tencent.mm", parsed.events[1].packageName)
+        assertEquals(20, parsed.events[6].levelBelow)
+        assertEquals(200, parsed.events[10].radiusM)
+        assertEquals(31.23, parsed.events[10].lat!!, 0.0001)
         assertTrue(parsed.supportsEvents())
         assertTrue(CardValidator.isValid(parsed))
     }

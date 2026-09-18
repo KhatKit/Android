@@ -3,17 +3,14 @@ package heizige.kk.khatkit.app.service
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import androidx.core.content.ContextCompat
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import kotlinx.coroutines.CoroutineScope
@@ -29,9 +26,9 @@ import org.koin.android.ext.android.inject
 /**
  * 事件触发前台服务：用户在主开关打开后启动。
  *
- * - 每 60s tick 一次 schedule（分钟级精度）
+ * - 每 60s tick 一次 schedule（分钟级精度），每秒 tick 一次失败重试队列
  * - 每 ~1s 轮询无障碍 bridge 的前台包名，检测 app_launch 变化
- * - 监听 ACTION_POWER_CONNECTED / DISCONNECTED → charging
+ * - Wi-Fi / 网络 / 电量 / 屏幕 / 剪贴板 / 蓝牙 / 位置由 [TriggerEventSources] 投递
  *
  * 通知由 NotificationListenerService 独立投递（不需要本服务）。
  */
@@ -41,7 +38,7 @@ class TriggerService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var loopJob: Job? = null
-    private var powerReceiver: BroadcastReceiver? = null
+    private var sources: TriggerEventSources? = null
 
     @Volatile
     private var lastForegroundPackage: String? = null
@@ -66,17 +63,22 @@ class TriggerService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        registerPowerReceiver()
+        startSources()
         startLoop()
         return START_STICKY
     }
 
     override fun onDestroy() {
         loopJob?.cancel()
-        powerReceiver?.let { runCatching { unregisterReceiver(it) } }
-        powerReceiver = null
+        sources?.stop()
+        sources = null
         serviceScope.cancel()
         super.onDestroy()
+    }
+
+    private fun startSources() {
+        if (sources != null) return
+        sources = TriggerEventSources(this, controller.engine, serviceScope).also { it.start() }
     }
 
     private fun startLoop() {
@@ -93,6 +95,8 @@ class TriggerService : Service() {
                     runCatching { controller.engine.tickSchedule() }
                         .onFailure { Log.e(TAG, "tickSchedule failed", it) }
                 }
+                runCatching { controller.engine.tickRetries() }
+                    .onFailure { Log.e(TAG, "tickRetries failed", it) }
                 pollForegroundApp()
             }
         }
@@ -105,32 +109,6 @@ class TriggerService : Service() {
         lastForegroundPackage = pkg
         runCatching { controller.engine.onAppLaunch(pkg) }
             .onFailure { Log.e(TAG, "onAppLaunch failed", it) }
-    }
-
-    private fun registerPowerReceiver() {
-        if (powerReceiver != null) return
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                when (intent?.action) {
-                    Intent.ACTION_POWER_CONNECTED ->
-                        runCatching { controller.engine.onCharging("connected") }
-
-                    Intent.ACTION_POWER_DISCONNECTED ->
-                        runCatching { controller.engine.onCharging("disconnected") }
-                }
-            }
-        }
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_POWER_CONNECTED)
-            addAction(Intent.ACTION_POWER_DISCONNECTED)
-        }
-        ContextCompat.registerReceiver(
-            this,
-            receiver,
-            filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED,
-        )
-        powerReceiver = receiver
     }
 
     private fun startForegroundCompat(): Boolean = try {

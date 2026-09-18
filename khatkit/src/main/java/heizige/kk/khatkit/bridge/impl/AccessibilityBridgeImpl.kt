@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Path
 import android.graphics.Rect
 import android.os.Build
@@ -12,10 +13,13 @@ import android.view.Display
 import android.view.accessibility.AccessibilityNodeInfo
 import heizige.kk.khatkit.bridge.AccessibilityBridge
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * 无障碍服务实例的宿主侧注册表。
@@ -263,9 +267,115 @@ class AccessibilityBridgeImpl(
             ?: "/sdcard/Download/KhatKit/screenshot_${System.currentTimeMillis()}.png"
         return try {
             requireSharedStorageAccess(target)
-            val latch = CountDownLatch(1)
-            var saved: String? = null
-            var error: String? = null
+            val outcome = captureBitmap()
+            val bitmap = outcome.bitmap ?: return outcome.error ?: "截图失败：未知错误"
+            try {
+                val file = File(target)
+                file.parentFile?.mkdirs()
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                }
+                file.absolutePath
+            } catch (e: Exception) {
+                "截图保存失败：${e.message ?: e.javaClass.simpleName}"
+            } finally {
+                bitmap.recycle()
+            }
+        } catch (e: SecurityException) {
+            "无共享存储访问权限：$target\n请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」"
+        }
+    }
+
+    override fun findImage(templatePath: String, threshold: Double): String {
+        val file = File(templatePath)
+        if (!file.isFile) return errorJson("模板图片不存在：$templatePath")
+        val template = try {
+            BitmapFactory.decodeFile(templatePath)
+        } catch (e: Exception) {
+            null
+        } ?: return errorJson("模板图片无法解码：$templatePath")
+        val outcome = captureBitmap()
+        val screen = outcome.bitmap ?: return errorJson(outcome.error ?: "截图失败：未知错误")
+        return try {
+            val match = TemplateMatcher.find(screen, template)
+            val limit = if (threshold > 0.0) threshold.coerceAtMost(1.0) else DEFAULT_IMAGE_THRESHOLD
+            if (match == null || match.score < limit) {
+                JSONObject().put("found", false).toString()
+            } else {
+                JSONObject()
+                    .put("found", true)
+                    .put("x", match.centerX.roundToInt())
+                    .put("y", match.centerY.roundToInt())
+                    .put("score", (match.score * 10_000).roundToInt() / 10_000.0)
+                    .toString()
+            }
+        } finally {
+            screen.recycle()
+            template.recycle()
+        }
+    }
+
+    override fun tapImage(templatePath: String, threshold: Double, timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs.coerceIn(0L, MAX_WAIT_MS)
+        while (true) {
+            val tapped = runCatching {
+                val json = JSONObject(findImage(templatePath, threshold))
+                if (json.optBoolean("found")) {
+                    tap(json.optDouble("x").toFloat(), json.optDouble("y").toFloat())
+                } else {
+                    false
+                }
+            }.getOrDefault(false)
+            if (tapped) return true
+            if (System.currentTimeMillis() >= deadline) return false
+            Thread.sleep(IMAGE_POLL_INTERVAL_MS)
+        }
+    }
+
+    override fun findColor(colorHex: String, tolerance: Int, region: String): String {
+        val target = parseColorHex(colorHex) ?: return errorJson("颜色格式错误：$colorHex（应为 #RRGGBB）")
+        val toleranceValue = tolerance.coerceIn(0, 255)
+        val outcome = captureBitmap()
+        val screen = outcome.bitmap ?: return errorJson(outcome.error ?: "截图失败：未知错误")
+        return try {
+            val area = parseRegion(region, screen.width, screen.height)
+                ?: return errorJson("region 格式错误：$region（应为 x,y,w,h）")
+            val pixels = IntArray(area.width * area.height)
+            screen.getPixels(pixels, 0, area.width, area.x, area.y, area.width, area.height)
+            val targetR = (target shr 16) and 0xFF
+            val targetG = (target shr 8) and 0xFF
+            val targetB = target and 0xFF
+            for (index in pixels.indices) {
+                val color = pixels[index]
+                if (abs(((color shr 16) and 0xFF) - targetR) <= toleranceValue &&
+                    abs(((color shr 8) and 0xFF) - targetG) <= toleranceValue &&
+                    abs((color and 0xFF) - targetB) <= toleranceValue
+                ) {
+                    return JSONObject()
+                        .put("found", true)
+                        .put("x", area.x + index % area.width)
+                        .put("y", area.y + index / area.width)
+                        .put("color", "#" + Integer.toHexString(color and 0xFFFFFF).uppercase().padStart(6, '0'))
+                        .toString()
+                }
+            }
+            JSONObject().put("found", false).toString()
+        } finally {
+            screen.recycle()
+        }
+    }
+
+    private data class CaptureOutcome(val bitmap: Bitmap?, val error: String?)
+
+    /** 通过无障碍 takeScreenshot 拿到屏幕位图的软件副本（ARGB_8888，可读像素）。 */
+    private fun captureBitmap(): CaptureOutcome {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return CaptureOutcome(null, "截图失败：需要 Android 11（API 30）及以上系统")
+        }
+        val latch = CountDownLatch(1)
+        var bitmap: Bitmap? = null
+        var error: String? = null
+        try {
             service.takeScreenshot(
                 Display.DEFAULT_DISPLAY,
                 service.mainExecutor,
@@ -273,23 +383,16 @@ class AccessibilityBridgeImpl(
                     override fun onSuccess(result: AccessibilityService.ScreenshotResult) {
                         try {
                             val buffer = result.hardwareBuffer
-                            val bitmap = Bitmap.wrapHardwareBuffer(buffer, result.colorSpace)
+                            val hardware = Bitmap.wrapHardwareBuffer(buffer, result.colorSpace)
                             buffer.close()
-                            if (bitmap == null) {
+                            if (hardware == null) {
                                 error = "截图失败：无法解码屏幕图像"
                             } else {
-                                val software = bitmap.copy(Bitmap.Config.ARGB_8888, false)
-                                bitmap.recycle()
-                                val file = File(target)
-                                file.parentFile?.mkdirs()
-                                FileOutputStream(file).use { out ->
-                                    software.compress(Bitmap.CompressFormat.PNG, 100, out)
-                                }
-                                software.recycle()
-                                saved = file.absolutePath
+                                bitmap = hardware.copy(Bitmap.Config.ARGB_8888, false)
+                                hardware.recycle()
                             }
                         } catch (e: Exception) {
-                            error = "截图保存失败：${e.message ?: e.javaClass.simpleName}"
+                            error = "截图失败：${e.message ?: e.javaClass.simpleName}"
                         } finally {
                             latch.countDown()
                         }
@@ -301,11 +404,43 @@ class AccessibilityBridgeImpl(
                     }
                 },
             )
-            if (!latch.await(SCREENSHOT_TIMEOUT_SEC, TimeUnit.SECONDS)) return "截图失败：等待系统回调超时"
-            saved ?: error ?: "截图失败：未知错误"
-        } catch (e: SecurityException) {
-            "无共享存储访问权限：$target\n请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」"
+        } catch (e: Exception) {
+            return CaptureOutcome(null, "截图失败：${e.message ?: e.javaClass.simpleName}")
         }
+        if (!latch.await(SCREENSHOT_TIMEOUT_SEC, TimeUnit.SECONDS)) {
+            return CaptureOutcome(null, "截图失败：等待系统回调超时")
+        }
+        return CaptureOutcome(bitmap, error)
+    }
+
+    private fun errorJson(message: String): String = JSONObject().put("error", message).toString()
+
+    private fun parseColorHex(value: String): Int? {
+        val hex = value.trim().removePrefix("#")
+        return when (hex.length) {
+            6 -> hex.toIntOrNull(16)
+            8 -> hex.substring(2).toIntOrNull(16)
+            else -> null
+        }
+    }
+
+    private data class Region(val x: Int, val y: Int, val width: Int, val height: Int)
+
+    private fun parseRegion(region: String, screenWidth: Int, screenHeight: Int): Region? {
+        if (region.isBlank()) return Region(0, 0, screenWidth, screenHeight)
+        val parts = region.split(',').map { it.trim().toIntOrNull() }
+        if (parts.size != 4) return null
+        val x = parts[0] ?: return null
+        val y = parts[1] ?: return null
+        val w = parts[2] ?: return null
+        val h = parts[3] ?: return null
+        if (w <= 0 || h <= 0) return null
+        val left = x.coerceIn(0, screenWidth - 1)
+        val top = y.coerceIn(0, screenHeight - 1)
+        val width = w.coerceAtMost(screenWidth - left)
+        val height = h.coerceAtMost(screenHeight - top)
+        if (width <= 0 || height <= 0) return null
+        return Region(left, top, width, height)
     }
 
     override fun paste(): Boolean {
@@ -475,5 +610,8 @@ class AccessibilityBridgeImpl(
         const val MAX_GESTURE_MS = 60_000L
         const val POLL_INTERVAL_MS = 200L
         const val SCREENSHOT_TIMEOUT_SEC = 8L
+        const val IMAGE_POLL_INTERVAL_MS = 300L
+        const val MAX_WAIT_MS = 120_000L
+        const val DEFAULT_IMAGE_THRESHOLD = 0.9
     }
 }

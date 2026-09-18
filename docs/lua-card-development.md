@@ -224,6 +224,7 @@ store.sharedWrite(name, content); store.sharedRead(name); store.sharedList(); st
 shizuku.setAppEnabled(pkg, enabled)          -- 启用/禁用应用
 shizuku.settingsPut(namespace, key, value)   -- namespace: system/secure/global
 shizuku.pm(action, pkg)                      -- disable/enable/clear/grant/revoke...
+shizuku.shell(cmd)                           -- 通用 shell（高风险，见第 10 节）
 
 root.shell(cmd)                              -- 仅 root 卡片，慎用
 ```
@@ -349,6 +350,7 @@ tool.setClipboard("文本")          -- 写入系统剪贴板
 tool.getClipboard()                -- 读取剪贴板文本，无内容返回 ""
 tool.wakeScreen()                  -- 点亮屏幕，返回「屏幕已点亮」或中文错误说明
 tool.ocrText("/sdcard/a.png")      -- 中英文 OCR，成功返回识别文本，失败返回 {"error":"..."}
+tool.ocrBoxes("/sdcard/a.png")     -- 带坐标 OCR，返回 [{"text":"..","x":..,"y":..,"w":..,"h":..}]
 ```
 
 - `tool.ocrText` 由随 APK 打包的 ML Kit 中文识别模型提供（支持中文 + 拉丁字母），无需联网；识别较慢，建议先 `compressImage` 或裁剪。
@@ -364,6 +366,9 @@ accessibility.waitForPackage("com.example.app", 5000)  -- 等指定应用变为�
 accessibility.captureScreen()                          -- 截屏存 /sdcard/Download/KhatKit/，返回路径
 accessibility.captureScreen("/sdcard/Download/a.png")  -- 指定保存路径
 accessibility.paste()                                  -- 对当前聚焦输入框执行粘贴
+accessibility.findImage("/sdcard/tpl.png", 0.9)        -- 模板匹配，返回 {"found":..,"x":..,"y":..,"score":..}
+accessibility.tapImage("/sdcard/tpl.png", 0.9, 5000)   -- 找到模板并点击中心，最多轮询 5s
+accessibility.findColor("#FF0000", 16, "0,0,1080,720") -- 找第一个匹配颜色的像素，region 可省略
 ```
 
 `gesture` 的 JSON 格式（外层数组 = 手势段，内层数组 = 单段轨迹，`t` 为段内毫秒偏移）：
@@ -375,3 +380,62 @@ accessibility.gesture('[ [ {"x":100,"y":200,"t":0}, {"x":300,"y":200,"t":500} ] 
 - 段数上限取系统 `getMaxStrokeCount()`（API 30 以下按 10 处理），超出的段被忽略；单段时长 50ms~60s。
 - `captureScreen` 需要 Android 11（API 30）以上并授予「所有文件访问」；API 30 以下或失败时返回中文错误文本，不抛异常。
 - `waitForIdle` / `waitForPackage` 超时返回 `false`；`waitForIdle` 轮询间隔 200ms。
+
+---
+
+## 10. 高级自动化（模板匹配 / 颜色查找 / OCR 坐标 / Shizuku shell）
+
+### 10.1 accessibility.findImage / tapImage
+
+```lua
+local r = accessibility.findImage("/sdcard/tpl/btn.png", 0.9)
+-- 命中: {"found":true,"x":540,"y":1200,"score":0.97}
+-- 未中: {"found":false}；参数/截图失败: {"error":"中文说明"}
+local tx, ty = r.x, r.y
+
+-- 找到后点击中心；timeoutMs > 0 时每 300ms 轮询一次，超时返回 false
+local ok = accessibility.tapImage("/sdcard/tpl/btn.png", 0.9, 5000)
+```
+
+- 纯 Kotlin 实现，无 OpenCV 依赖：屏幕灰度图缩到长边 ≤1280 后先粗搜、再原分辨率局部精修，
+  模板按 `0.8 / 1.0 / 1.25` 三个尺度匹配（归一化互相关 ZNCC）。
+- `threshold` 为 0~1 的相似度阈值，缺省 `0.9`；`score` 为命中位置得分。
+- 返回的 `x`/`y` 是**屏幕像素坐标**，可直接喂给 `accessibility.tap` 或 `tapImage` 内部点击。
+- 与 `captureScreen` 相同，需要 Android 11（API 30）以上；不落盘，无需存储权限。
+- 建议模板裁剪成按钮/图标本体并略留边距；相似度低时先降 `threshold` 到 0.8 左右再排查模板尺度。
+
+### 10.2 accessibility.findColor
+
+```lua
+local r = accessibility.findColor("#FF5722", 16)                   -- 全屏
+local r2 = accessibility.findColor("#FF5722", 16, "0,0,1080,720")  -- 限定区域 x,y,w,h
+-- 命中: {"found":true,"x":12,"y":36,"color":"#FF5722"}
+-- 未命中: {"found":false}；格式错误: {"error":"..."}
+```
+
+- `tolerance` 为每通道（R/G/B）容差，范围 0~255，缺省 16。
+- 按行优先返回**第一个**匹配像素的坐标（屏幕像素）；`region` 省略或传 `""` 表示全屏。
+
+### 10.3 tool.ocrBoxes
+
+```lua
+local boxes = tool.ocrBoxes("/sdcard/Download/shot.png")
+-- [{"text":"确定","x":420,"y":1180,"w":180,"h":64}, ...]
+```
+
+- 与 `tool.ocrText` 同一份 ML Kit 中文模型；按文本行输出，坐标为图片像素（已按 EXIF 方向校正）。
+- 典型用法：`captureScreen` 截图后 `ocrBoxes` 定位文字，再 `accessibility.tap(box.x + box.w/2, box.y + box.h/2)`。
+- 失败返回 `{"error":"..."}`；识别较慢，建议配合 `compressImage` 或先裁剪。
+
+### 10.4 shizuku.shell
+
+```lua
+local out = shizuku.shell("pm list packages -3 | head -5")
+-- "[exit 0]\npackage:com.example.app\n..."
+```
+
+- 以 shell 身份执行 `/system/bin/sh -c <cmd>`，支持管道/重定向；返回 `[exit N]` + 合并的 stdout/stderr。
+- 需要 `privilege: "elevated"`、Shizuku 服务在线且已授权，并且 `card.json` 声明 `shizuku` bridge。
+- **高风险**：这是通用命令入口，会获得 shell 权限；脚本不应把用户输入直接拼进命令，
+  能用的动作级 API（`pm` / `settingsPut` / `setAppEnabled`）优先用动作级 API。
+- 超时 30s，超时返回 `[error] 命令超时`；Shizuku 不可用或版本不支持时返回 `[error] Shizuku shell 执行失败：...`。

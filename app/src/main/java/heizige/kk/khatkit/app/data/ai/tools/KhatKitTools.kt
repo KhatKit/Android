@@ -2,7 +2,11 @@ package heizige.kk.khatkit.app.data.ai.tools
 
 import android.content.Context
 import androidx.compose.runtime.mutableStateOf
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
+import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
+import heizige.kk.khatkit.bridge.impl.AndroidToolBridge
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
@@ -107,6 +111,9 @@ class KhatKitToolProvider(
     private val uiHost = UiBridgeHost()
     private val initMutex = Mutex()
     private val settings = appContext.getSharedPreferences("khatkit_settings", Context.MODE_PRIVATE)
+
+    /** OCR 走 tool bridge；只有 device_screen 需要时才懒加载，避免多养一个 HttpClient。 */
+    private val ocrBridge by lazy { AndroidToolBridge(appContext, HttpClient(CIO.create())) }
 
     @Volatile
     private var executor: CardExecutor? = null
@@ -275,7 +282,13 @@ class KhatKitToolProvider(
                 add(CardToolSpec(name = entry.name, entry = entry, card = null))
             }
         }
-        specs.filter { it.supportsAi() }.take(TOOL_CANDIDATE_LIMIT).map { spec -> spec.toTool() }
+        val cardTools = specs.filter { it.supportsAi() }.take(TOOL_CANDIDATE_LIMIT).map { spec -> spec.toTool() }
+        // 无障碍可用时额外挂两个内置工具：看屏幕 + 直接动作，让纯文本模型也能驱动手机
+        if (AccessibilityBridgeHolder.current() == null) {
+            cardTools
+        } else {
+            cardTools + listOf(deviceScreenTool(), deviceActTool())
+        }
     }
 
     /** 索引缓存：TTL 内不重复请求；请求失败时保留旧缓存。 */
@@ -346,6 +359,217 @@ class KhatKitToolProvider(
                 }
             },
         )
+    }
+
+    /** 内置工具：截屏 + OCR + 无障碍节点清单，给纯文本模型「看」当前屏幕。 */
+    private fun deviceScreenTool(): Tool = Tool(
+        name = "khatkit__device_screen",
+        description = "读取当前手机屏幕并返回文本视图：截图 PNG 路径、截图 OCR 文本、当前窗口无障碍节点清单。" +
+            "模型本身看不到图片，请依据 OCR 与节点信息判断界面内容，再用 khatkit__device_act 操作。" +
+            "节点每行格式：文本 | 描述 | #viewId [类名] (左,上,右,下) @中心X,中心Y 标记，" +
+            "标记 click=可点击、edit=可输入、scroll=可滚动、long=可长按。" +
+            "include_ocr / include_nodes 默认 true，可按需关闭以减少输出。",
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("include_ocr", buildJsonObject {
+                        put("type", "boolean")
+                        put("description", "是否对截图做本地 OCR，默认 true。")
+                    })
+                    put("include_nodes", buildJsonObject {
+                        put("type", "boolean")
+                        put("description", "是否附带当前窗口节点清单，默认 true。")
+                    })
+                },
+            )
+        },
+        execute = { args ->
+            val params = jsonToMap(args)
+            val includeOcr = params.bool("include_ocr", true)
+            val includeNodes = params.bool("include_nodes", true)
+            listOf(
+                UIMessagePart.Text(
+                    withContext(Dispatchers.IO) { captureDeviceScreen(includeOcr, includeNodes) }
+                )
+            )
+        },
+    )
+
+    /** 内置工具：一步执行一个无障碍动作，省去为每步操作编写卡片。 */
+    private fun deviceActTool(): Tool = Tool(
+        name = "khatkit__device_act",
+        description = "对当前手机界面执行一个无障碍动作，返回简短中文结果（已点击…/未找到…/已输入…）。" +
+            "action 取值：click_text（按文本点击）、click_id（按 viewId 点击）、tap（坐标点击）、" +
+            "swipe（坐标滑动）、press（坐标长按，duration_ms 默认 600）、set_text（写入 id 指定或首个可编辑输入框）、" +
+            "back / home / recents / notifications（系统全局动作）、open_app（包名用 text 传）、" +
+            "wait_text（等待文本出现，timeout_ms 默认 5000；找到会返回节点 bounds/centerX/centerY 的 JSON，可据此 tap）。",
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("action", buildJsonObject {
+                        put("type", "string")
+                        put(
+                            "enum",
+                            JsonArray(
+                                listOf(
+                                    "click_text", "click_id", "tap", "swipe", "press", "set_text",
+                                    "back", "home", "recents", "notifications", "open_app", "wait_text",
+                                ).map { JsonPrimitive(it) }
+                            )
+                        )
+                        put("description", "要执行的动作。")
+                    })
+                    put("text", buildJsonObject {
+                        put("type", "string")
+                        put("description", "click_text / set_text / wait_text 的目标文本；open_app 时为包名。")
+                    })
+                    put("id", buildJsonObject {
+                        put("type", "string")
+                        put("description", "click_id 的 viewId；set_text 时用它指定输入框。")
+                    })
+                    put("x", buildJsonObject { put("type", "number"); put("description", "tap / press 的 X 坐标；swipe 的起点 X。") })
+                    put("y", buildJsonObject { put("type", "number"); put("description", "tap / press 的 Y 坐标；swipe 的起点 Y。") })
+                    put("x2", buildJsonObject { put("type", "number"); put("description", "swipe 的终点 X。") })
+                    put("y2", buildJsonObject { put("type", "number"); put("description", "swipe 的终点 Y。") })
+                    put("duration_ms", buildJsonObject {
+                        put("type", "integer")
+                        put("description", "press / swipe 的手势时长毫秒，默认 press 600、swipe 300。")
+                    })
+                    put("timeout_ms", buildJsonObject {
+                        put("type", "integer")
+                        put("description", "wait_text 的超时毫秒，默认 5000。")
+                    })
+                },
+                required = listOf("action"),
+            )
+        },
+        execute = { args ->
+            val params = jsonToMap(args)
+            listOf(UIMessagePart.Text(withContext(Dispatchers.IO) { deviceAct(params) }))
+        },
+    )
+
+    private fun captureDeviceScreen(includeOcr: Boolean, includeNodes: Boolean): String {
+        val bridge = AccessibilityBridgeHolder.current()
+            ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
+        return runCatching {
+            val shot = bridge.captureScreen()
+            val captured = shot.startsWith("/")
+            val ocr = if (includeOcr && captured) {
+                runCatching { ocrBridge.ocrText(shot) }
+                    .getOrElse { """{"error":"OCR 失败：${it.message ?: it.javaClass.simpleName}"}""" }
+            } else {
+                null
+            }
+            val nodes = if (includeNodes) {
+                runCatching { bridge.dumpWindow() }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+            buildJsonObject {
+                if (captured) put("screenshot", shot) else put("screenshot_error", shot)
+                bridge.currentPackage()?.let { put("package", it) }
+                ocr?.let { text ->
+                    if (text.contains("\"error\"")) {
+                        put("ocr_error", text)
+                    } else {
+                        val lines = text.lineSequence()
+                            .map { it.trim().take(SCREEN_LINE_MAX) }
+                            .filter { it.isNotEmpty() }
+                            .take(SCREEN_LINE_LIMIT)
+                            .toList()
+                        put("ocr", lines.joinToString("\n"))
+                    }
+                }
+                if (includeNodes) {
+                    val lines = nodes.asSequence()
+                        .mapNotNull { formatScreenNode(it) }
+                        .distinct()
+                        .take(SCREEN_LINE_LIMIT)
+                        .map { JsonPrimitive(it) }
+                        .toList()
+                    put("nodes", JsonArray(lines))
+                }
+            }.toString()
+        }.getOrElse { """{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""" }
+    }
+
+    private fun deviceAct(params: Map<String, Any?>): String {
+        val bridge = AccessibilityBridgeHolder.current()
+            ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
+        val action = params.str("action")?.lowercase()
+            ?: return "缺少参数：action"
+        return runCatching {
+            when (action) {
+                "click_text" -> {
+                    val text = params.str("text") ?: return@runCatching "缺少参数：text"
+                    if (bridge.click(mapOf("text" to text))) "已点击：$text" else "未找到：$text"
+                }
+
+                "click_id" -> {
+                    val id = params.str("id") ?: return@runCatching "缺少参数：id"
+                    if (bridge.click(mapOf("viewId" to id))) "已点击：$id" else "未找到：$id"
+                }
+
+                "tap" -> {
+                    val x = params.float("x") ?: return@runCatching "缺少参数：x"
+                    val y = params.float("y") ?: return@runCatching "缺少参数：y"
+                    if (bridge.tap(x, y)) "已点击：($x, $y)" else "点击失败：($x, $y)"
+                }
+
+                "swipe" -> {
+                    val x1 = params.float("x") ?: return@runCatching "缺少参数：x"
+                    val y1 = params.float("y") ?: return@runCatching "缺少参数：y"
+                    val x2 = params.float("x2") ?: return@runCatching "缺少参数：x2"
+                    val y2 = params.float("y2") ?: return@runCatching "缺少参数：y2"
+                    val duration = params.long("duration_ms") ?: 300L
+                    if (bridge.swipe(x1, y1, x2, y2, duration)) "已滑动：($x1,$y1) → ($x2,$y2)" else "滑动失败"
+                }
+
+                "press" -> {
+                    val x = params.float("x") ?: return@runCatching "缺少参数：x"
+                    val y = params.float("y") ?: return@runCatching "缺少参数：y"
+                    val duration = params.long("duration_ms") ?: 600L
+                    if (bridge.press(x, y, duration)) "已长按：($x, $y)" else "长按失败：($x, $y)"
+                }
+
+                "set_text" -> {
+                    val text = params.str("text") ?: return@runCatching "缺少参数：text"
+                    val query = params.str("id")
+                        ?.let { mapOf<String, Any?>("viewId" to it) }
+                        ?: mapOf<String, Any?>("editable" to true)
+                    if (bridge.setText(query, text)) "已输入：$text" else "未找到输入框：$text"
+                }
+
+                "back", "home", "recents", "notifications" ->
+                    if (bridge.globalAction(action)) "已执行：$action" else "执行失败：$action"
+
+                "open_app" -> {
+                    val pkg = params.str("text") ?: params.str("id")
+                        ?: return@runCatching "缺少参数：text（目标应用包名）"
+                    if (bridge.openApp(pkg)) "已打开：$pkg" else "打开失败：$pkg"
+                }
+
+                "wait_text" -> {
+                    val text = params.str("text") ?: return@runCatching "缺少参数：text"
+                    val timeout = (params.long("timeout_ms") ?: 5_000L).coerceIn(0L, 120_000L)
+                    val node = bridge.waitForNode(mapOf("text" to text), timeout)
+                    if (node == null) {
+                        "未找到：$text（等待 ${timeout}ms 超时）"
+                    } else {
+                        buildJsonObject {
+                            put("found", true)
+                            put("text", node["text"]?.toString() ?: text)
+                            node["bounds"]?.let { put("bounds", it.toString()) }
+                            (node["centerX"] as? Number)?.let { put("centerX", it.toInt()) }
+                            (node["centerY"] as? Number)?.let { put("centerY", it.toInt()) }
+                        }.toString()
+                    }
+                }
+
+                else -> "不支持的动作：$action"
+            }
+        }.getOrElse { "操作失败：${it.message ?: it.javaClass.simpleName}" }
     }
 
     override fun submitForm(values: Map<String, Any?>?) = uiHost.submitForm(values)
@@ -488,6 +712,56 @@ class KhatKitToolProvider(
         /** Hub 索引拉取超时：超时沿用旧缓存，不阻塞生成 */
         private const val INDEX_FETCH_TIMEOUT_MS = 3_000L
     }
+}
+
+/** 屏幕工具输出上限：OCR 行数 / 节点行数 / 单行字符数 */
+private const val SCREEN_LINE_LIMIT = 120
+private const val SCREEN_LINE_MAX = 300
+
+private fun formatScreenNode(node: Map<String, Any?>): String? {
+    val text = node["text"]?.toString()?.takeIf { it.isNotBlank() }
+    val desc = node["desc"]?.toString()?.takeIf { it.isNotBlank() && it != text }
+    val viewId = node["viewId"]?.toString()?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+    val clickable = node["clickable"] == true
+    val editable = node["editable"] == true
+    if (text == null && desc == null && viewId == null && !clickable && !editable) return null
+    val className = node["className"]?.toString()?.substringAfterLast('.')?.takeIf { it.isNotBlank() }
+    val bounds = node["bounds"]?.toString().orEmpty()
+    val centerX = (node["centerX"] as? Number)?.toInt()
+    val centerY = (node["centerY"] as? Number)?.toInt()
+    return buildString {
+        text?.let { append(it) }
+        desc?.let { if (isNotEmpty()) append(" | "); append(it) }
+        viewId?.let { if (isNotEmpty()) append(" | "); append('#').append(it) }
+        append(" [").append(className ?: "?").append(']')
+        append(" (").append(bounds).append(')')
+        if (centerX != null && centerY != null) append(" @").append(centerX).append(',').append(centerY)
+        val flags = buildList {
+            if (clickable) add("click")
+            if (editable) add("edit")
+            if (node["scrollable"] == true) add("scroll")
+            if (node["longClickable"] == true) add("long")
+        }
+        if (flags.isNotEmpty()) append(' ').append(flags.joinToString(","))
+    }.take(SCREEN_LINE_MAX)
+}
+
+private fun Map<String, Any?>.str(key: String): String? =
+    (this[key] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+
+private fun Map<String, Any?>.bool(key: String, default: Boolean): Boolean =
+    this[key] as? Boolean ?: default
+
+private fun Map<String, Any?>.float(key: String): Float? = when (val value = this[key]) {
+    is Number -> value.toFloat()
+    is String -> value.toFloatOrNull()
+    else -> null
+}
+
+private fun Map<String, Any?>.long(key: String): Long? = when (val value = this[key]) {
+    is Number -> value.toLong()
+    is String -> value.toLongOrNull()
+    else -> null
 }
 
 private fun jsonToMap(element: JsonElement): Map<String, Any?> =
