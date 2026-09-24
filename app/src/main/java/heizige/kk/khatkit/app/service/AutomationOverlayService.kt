@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ButtonGroupDefaults
@@ -868,14 +870,17 @@ private fun ApproveButton(
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
+                shape = RoundedCornerShape(12.dp),
                 containerColor = menuContainerColor.copy(alpha = TOAST_ALPHA),
             ) {
                 DropdownMenuItem(
                     text = {
                         Text(
                             text = "仅本次允许",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp,
+                            lineHeight = 16.sp,
                             maxLines = 1,
                         )
                     },
@@ -885,13 +890,16 @@ private fun ApproveButton(
                     },
                     colors = itemColors,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.height(32.dp),
                 )
                 DropdownMenuItem(
                     text = {
                         Text(
                             text = "10 分钟内自动允许",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp,
+                            lineHeight = 16.sp,
                             maxLines = 1,
                         )
                     },
@@ -901,6 +909,7 @@ private fun ApproveButton(
                     },
                     colors = itemColors,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.height(32.dp),
                 )
             }
         }
