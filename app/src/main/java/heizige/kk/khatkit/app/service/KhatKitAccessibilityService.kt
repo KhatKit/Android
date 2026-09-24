@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
+import heizige.kk.khatkit.app.record.KhatKitOperationRecorder
 
 /**
  * L1 无障碍服务：连接后把 [AccessibilityBridgeImpl] 注册到 bridge 宿主，
@@ -24,11 +25,14 @@ class KhatKitAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            event.packageName?.toString()?.takeIf { it.isNotBlank() }?.let { pkg ->
+        val current = event ?: return
+        if (current.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            current.packageName?.toString()?.takeIf { it.isNotBlank() }?.let { pkg ->
                 bridge?.foregroundPackage = pkg
             }
         }
+        // 录制人工操作：未在录制时只是一次 volatile 读，开销可忽略
+        KhatKitOperationRecorder.onAccessibilityEvent(current)
     }
 
     override fun onInterrupt() = Unit

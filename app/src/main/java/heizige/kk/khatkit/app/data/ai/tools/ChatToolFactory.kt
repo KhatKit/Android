@@ -69,7 +69,7 @@ class ChatToolFactory(
         }
         addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), workspaceCwd))
         khatKitToolProvider?.let { provider ->
-            addAll(provider.tools())
+            addAll(provider.tools(model))
         }
         if (assistant.enabledSkills.isNotEmpty()) {
             addAll(

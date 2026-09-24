@@ -167,7 +167,7 @@ fun SettingTriggersPage() {
                     item(
                         headlineContent = { Text("启用自动化触发器") },
                         supportingContent = {
-                            Text("卡片在定时、通知、应用启动/退出、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置、快捷方式、磁贴事件时自动运行")
+                            Text("卡片在定时、通知/点击/回复、应用启动/退出/安装/卸载、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置、快捷方式、磁贴事件时自动运行")
                         },
                         trailingContent = {
                             OptionSwitch(
@@ -355,8 +355,8 @@ fun SettingTriggersPage() {
                         headlineContent = { Text("通知监听权限") },
                         supportingContent = {
                             Text(
-                                if (listenerEnabled) "已授予，通知触发器可工作"
-                                else "未授予，通知触发器无法工作，点此前往开启"
+                                if (listenerEnabled) "已授予，通知/点击/直接回复触发器可工作"
+                                else "未授予，通知/点击/直接回复触发器无法工作，点此前往开启"
                             )
                         },
                     )
@@ -435,10 +435,23 @@ internal fun eventSummary(event: CardManifest.Event): String = when (event.type)
         } else {
             append(" 每天")
         }
+        when (event.calendar) {
+            CardManifest.CALENDAR_WORKDAY -> append(" · 仅工作日")
+            CardManifest.CALENDAR_WEEKEND -> append(" · 仅休息日")
+            CardManifest.CALENDAR_HOLIDAY -> append(" · 仅节假日")
+        }
     }
 
-    CardManifest.EVENT_NOTIFICATION -> buildString {
-        append("通知 ")
+    CardManifest.EVENT_NOTIFICATION,
+    CardManifest.EVENT_NOTIFICATION_CLICK,
+    CardManifest.EVENT_NOTIFICATION_REPLY -> buildString {
+        append(
+            when (event.type) {
+                CardManifest.EVENT_NOTIFICATION_CLICK -> "通知点击 "
+                CardManifest.EVENT_NOTIFICATION_REPLY -> "通知回复 "
+                else -> "通知 "
+            }
+        )
         append(event.packageName.ifBlank { "任意应用" })
         val conds = buildList {
             if (event.titleContains.isNotBlank()) add("标题含「${event.titleContains}」")
@@ -452,6 +465,12 @@ internal fun eventSummary(event: CardManifest.Event): String = when (event.type)
 
     CardManifest.EVENT_APP_EXIT ->
         "应用退出 ${event.packageName.ifBlank { "（未填包名）" }}"
+
+    CardManifest.EVENT_APP_INSTALL ->
+        "应用安装 ${event.packageName.ifBlank { "任意应用" }}"
+
+    CardManifest.EVENT_APP_UNINSTALL ->
+        "应用卸载 ${event.packageName.ifBlank { "任意应用" }}"
 
     CardManifest.EVENT_SHORTCUT ->
         "桌面快捷方式「${event.name.ifBlank { "未命名" }}」"

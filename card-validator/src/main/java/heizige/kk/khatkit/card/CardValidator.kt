@@ -29,7 +29,7 @@ object CardValidator {
     private val BRIDGE_CALL_REGEX = Regex("""\b(tool|ui|download|store|shizuku|root|accessibility)\s*[.:]""")
     private val TIME_REGEX = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
     private const val ALL_EVENT_TYPE_TEXT =
-        "schedule|notification|app_launch|app_exit|charging|wifi|network|battery|screen|clipboard|bluetooth|location|shortcut|tile"
+        "schedule|notification|notification_click|notification_reply|app_launch|app_exit|app_install|app_uninstall|charging|wifi|network|battery|screen|clipboard|bluetooth|location|shortcut|tile"
 
     /**
      * @param manifest 解析后的卡片
@@ -71,6 +71,10 @@ object CardValidator {
                 error("EVENT_TYPE_UNKNOWN", "$where 未知事件类型 ${event.type}，支持 $ALL_EVENT_TYPE_TEXT")
                 return@forEachIndexed
             }
+            // calendar 只属于 schedule；其他事件写非默认值会误导用户，直接拦截
+            if (event.type != CardManifest.EVENT_SCHEDULE && event.calendar != CardManifest.CALENDAR_ANY) {
+                error("EVENT_CALENDAR_UNSUPPORTED", "$where calendar 仅适用于 schedule 事件：${event.calendar}")
+            }
             when (event.type) {
                 CardManifest.EVENT_SCHEDULE -> {
                     if (event.intervalMinutes < 0) {
@@ -89,6 +93,9 @@ object CardValidator {
                             error("EVENT_DAY_INVALID", "$where days 取值必须是 1..7（1=周一）：$day")
                         }
                     }
+                    if (event.calendar !in CardManifest.ALL_CALENDARS) {
+                        error("EVENT_CALENDAR_INVALID", "$where calendar 必须是 any|workday|weekend|holiday：${event.calendar}")
+                    }
                 }
 
                 CardManifest.EVENT_NOTIFICATION -> {
@@ -98,6 +105,29 @@ object CardValidator {
                     ) {
                         error("EVENT_NOTIFICATION_EMPTY", "$where 通知触发器至少需要一个匹配条件（package/titleContains/textContains）")
                     }
+                }
+
+                CardManifest.EVENT_NOTIFICATION_CLICK -> {
+                    if (event.packageName.isBlank() &&
+                        event.titleContains.isBlank() &&
+                        event.textContains.isBlank()
+                    ) {
+                        error("EVENT_NOTIFICATION_CLICK_EMPTY", "$where 通知点击触发器至少需要一个匹配条件（package/titleContains/textContains）")
+                    }
+                }
+
+                CardManifest.EVENT_NOTIFICATION_REPLY -> {
+                    if (event.packageName.isBlank()) {
+                        error("EVENT_NOTIFICATION_REPLY_PACKAGE_REQUIRED", "$where notification_reply 必须指定 package（要监听回复的应用）")
+                    }
+                }
+
+                CardManifest.EVENT_APP_INSTALL -> {
+                    // package 留空 = 任意应用安装，合法
+                }
+
+                CardManifest.EVENT_APP_UNINSTALL -> {
+                    // package 留空 = 任意应用卸载，合法
                 }
 
                 CardManifest.EVENT_APP_LAUNCH -> {

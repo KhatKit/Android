@@ -358,6 +358,23 @@ private fun EventFields(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                ChipSelector(
+                    label = "日历（按中国节假日过滤）",
+                    options = listOf(
+                        CardManifest.CALENDAR_ANY to "不限",
+                        CardManifest.CALENDAR_WORKDAY to "工作日",
+                        CardManifest.CALENDAR_WEEKEND to "休息日",
+                        CardManifest.CALENDAR_HOLIDAY to "节假日",
+                    ),
+                    selected = event.calendar.ifBlank { CardManifest.CALENDAR_ANY },
+                    onSelect = { onChange(event.copy(calendar = it)) },
+                )
+                Text(
+                    text = "「休息日」= 周末与法定假日，「节假日」仅法定放假日；" +
+                        "数据来自内置 holidays_cn.json，可按格式自行覆盖编辑。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             CardManifest.EVENT_NOTIFICATION -> {
@@ -379,6 +396,55 @@ private fun EventFields(
                 )
             }
 
+            CardManifest.EVENT_NOTIFICATION_CLICK -> {
+                TextStateField(
+                    label = "应用包名（留空 = 任意应用）",
+                    value = event.packageName,
+                    onValueChange = { onChange(event.copy(packageName = it.trim())) },
+                    placeholder = "com.tencent.mm",
+                )
+                TextStateField(
+                    label = "标题包含",
+                    value = event.titleContains,
+                    onValueChange = { onChange(event.copy(titleContains = it)) },
+                )
+                TextStateField(
+                    label = "正文包含",
+                    value = event.textContains,
+                    onValueChange = { onChange(event.copy(textContains = it)) },
+                )
+                Text(
+                    text = "用户在状态栏点击该通知时触发，需通知监听权限；3 秒内多次点击只触发一次。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            CardManifest.EVENT_NOTIFICATION_REPLY -> {
+                TextStateField(
+                    label = "应用包名（必填）",
+                    value = event.packageName,
+                    onValueChange = { onChange(event.copy(packageName = it.trim())) },
+                    placeholder = "com.tencent.mm",
+                )
+                TextStateField(
+                    label = "标题包含（可选）",
+                    value = event.titleContains,
+                    onValueChange = { onChange(event.copy(titleContains = it)) },
+                )
+                TextStateField(
+                    label = "回复文本包含（可选，启发式）",
+                    value = event.textContains,
+                    onValueChange = { onChange(event.copy(textContains = it)) },
+                )
+                Text(
+                    text = "启发式：点击带「直接回复」输入框的通知后，监听同应用 10 秒内的下一条通知；" +
+                        "无法读取你实际发送的内容，文本可能为空，部分应用不会触发。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             CardManifest.EVENT_APP_LAUNCH -> {
                 TextStateField(
                     label = "应用包名（留空 = 任意应用）",
@@ -396,6 +462,32 @@ private fun EventFields(
                 )
                 Text(
                     text = "该应用离开前台约 2 秒后触发（回到前台则取消）。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            CardManifest.EVENT_APP_INSTALL -> {
+                TextStateField(
+                    label = "应用包名（留空 = 任意应用）",
+                    value = event.packageName,
+                    onValueChange = { onChange(event.copy(packageName = it.trim())) },
+                )
+                Text(
+                    text = "仅在触发服务运行期间监听系统安装广播；应用更新（覆盖安装）不算安装。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            CardManifest.EVENT_APP_UNINSTALL -> {
+                TextStateField(
+                    label = "应用包名（留空 = 任意应用）",
+                    value = event.packageName,
+                    onValueChange = { onChange(event.copy(packageName = it.trim())) },
+                )
+                Text(
+                    text = "仅在触发服务运行期间监听系统卸载广播；应用更新（覆盖安装）不算卸载。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -656,8 +748,12 @@ private fun DoubleStateField(
 internal fun eventTypeLabel(type: String): String = when (type) {
     CardManifest.EVENT_SCHEDULE -> "定时"
     CardManifest.EVENT_NOTIFICATION -> "通知"
+    CardManifest.EVENT_NOTIFICATION_CLICK -> "通知点击"
+    CardManifest.EVENT_NOTIFICATION_REPLY -> "通知直接回复"
     CardManifest.EVENT_APP_LAUNCH -> "应用启动"
     CardManifest.EVENT_APP_EXIT -> "应用退出"
+    CardManifest.EVENT_APP_INSTALL -> "应用安装"
+    CardManifest.EVENT_APP_UNINSTALL -> "应用卸载"
     CardManifest.EVENT_CHARGING -> "充电"
     CardManifest.EVENT_WIFI -> "Wi-Fi"
     CardManifest.EVENT_NETWORK -> "网络"
@@ -674,8 +770,12 @@ internal fun eventTypeLabel(type: String): String = when (type) {
 internal fun defaultEventFor(type: String): CardManifest.Event = when (type) {
     CardManifest.EVENT_SCHEDULE -> CardManifest.Event(type = type, times = listOf("08:00"))
     CardManifest.EVENT_NOTIFICATION -> CardManifest.Event(type = type)
+    CardManifest.EVENT_NOTIFICATION_CLICK -> CardManifest.Event(type = type)
+    CardManifest.EVENT_NOTIFICATION_REPLY -> CardManifest.Event(type = type)
     CardManifest.EVENT_APP_LAUNCH -> CardManifest.Event(type = type)
     CardManifest.EVENT_APP_EXIT -> CardManifest.Event(type = type)
+    CardManifest.EVENT_APP_INSTALL -> CardManifest.Event(type = type)
+    CardManifest.EVENT_APP_UNINSTALL -> CardManifest.Event(type = type)
     CardManifest.EVENT_CHARGING -> CardManifest.Event(type = type, state = CardManifest.STATE_CONNECTED)
     CardManifest.EVENT_WIFI -> CardManifest.Event(type = type)
     CardManifest.EVENT_NETWORK -> CardManifest.Event(type = type, state = CardManifest.NETWORK_OFFLINE)
@@ -697,8 +797,12 @@ internal fun defaultEventFor(type: String): CardManifest.Event = when (type) {
 internal val ALL_EVENT_TYPES = listOf(
     CardManifest.EVENT_SCHEDULE,
     CardManifest.EVENT_NOTIFICATION,
+    CardManifest.EVENT_NOTIFICATION_CLICK,
+    CardManifest.EVENT_NOTIFICATION_REPLY,
     CardManifest.EVENT_APP_LAUNCH,
     CardManifest.EVENT_APP_EXIT,
+    CardManifest.EVENT_APP_INSTALL,
+    CardManifest.EVENT_APP_UNINSTALL,
     CardManifest.EVENT_CHARGING,
     CardManifest.EVENT_WIFI,
     CardManifest.EVENT_NETWORK,
@@ -725,6 +829,14 @@ internal fun validateEvent(event: CardManifest.Event): String? = when (event.typ
         if (event.packageName.isBlank() && event.titleContains.isBlank() && event.textContains.isBlank()) {
             "至少填写包名 / 标题 / 正文之一"
         } else null
+
+    CardManifest.EVENT_NOTIFICATION_CLICK ->
+        if (event.packageName.isBlank() && event.titleContains.isBlank() && event.textContains.isBlank()) {
+            "至少填写包名 / 标题 / 正文之一"
+        } else null
+
+    CardManifest.EVENT_NOTIFICATION_REPLY ->
+        if (event.packageName.isBlank()) "需要填写应用包名（要监听回复的应用）" else null
 
     CardManifest.EVENT_APP_EXIT ->
         if (event.packageName.isBlank()) "需要填写应用包名" else null

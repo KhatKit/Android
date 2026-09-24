@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import heizige.kk.khatkit.trigger.TriggerCard
 import heizige.kk.khatkit.trigger.TriggerSchedulePlanner
+import heizige.kk.khatkit.trigger.WorkdayCalendar
 import java.time.ZoneId
 
 /**
@@ -25,12 +26,22 @@ object TriggerExactAlarmScheduler {
     private const val REQUEST_CODE = 3100
 
     /** 仅存在分钟级定时事件时保留闹钟；[masterEnabled] 为 false 或权限缺失则取消。 */
-    fun schedule(context: Context, cards: List<TriggerCard>, masterEnabled: Boolean) {
+    fun schedule(
+        context: Context,
+        cards: List<TriggerCard>,
+        masterEnabled: Boolean,
+        calendar: WorkdayCalendar = WorkdayCalendar.EMPTY,
+    ) {
         val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
         val pendingIntent = pendingIntent(context)
         val allowed = canScheduleExact(alarmManager)
         val next = if (masterEnabled && allowed) {
-            TriggerSchedulePlanner.nextTriggerAt(cards, System.currentTimeMillis(), ZoneId.systemDefault())
+            TriggerSchedulePlanner.nextTriggerAt(
+                cards,
+                System.currentTimeMillis(),
+                ZoneId.systemDefault(),
+                calendar,
+            )
         } else {
             null
         }

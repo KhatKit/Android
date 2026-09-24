@@ -287,7 +287,7 @@ class CardValidatorTest {
     }
 
     @Test
-    fun newEventTypesJsonRoundTrip() {
+    fun appExitShortcutTileJsonRoundTrip() {
         val parsed = CardParser.parse(
             """
             {
@@ -514,6 +514,134 @@ class CardValidatorTest {
         assertEquals(200, parsed.events[10].radiusM)
         assertEquals(31.23, parsed.events[10].lat!!, 0.0001)
         assertTrue(parsed.supportsEvents())
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
+    fun scheduleCalendarValidated() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(
+                            type = "schedule",
+                            times = listOf("08:00"),
+                            calendar = CardManifest.CALENDAR_WORKDAY,
+                        )
+                    )
+                )
+            )
+        )
+        val issues = CardValidator.validate(
+            manifest(
+                events = listOf(
+                    CardManifest.Event(type = "schedule", intervalMinutes = 60, calendar = "monday")
+                )
+            )
+        )
+        assertTrue(issues.any { it.code == "EVENT_CALENDAR_INVALID" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun calendarOnlyAllowedOnSchedule() {
+        val issues = CardValidator.validate(
+            manifest(
+                events = listOf(
+                    CardManifest.Event(
+                        type = "notification",
+                        packageName = "com.example.app",
+                        calendar = CardManifest.CALENDAR_WORKDAY,
+                    )
+                )
+            )
+        )
+        assertTrue(issues.any { it.code == "EVENT_CALENDAR_UNSUPPORTED" })
+    }
+
+    @Test
+    fun notificationClickRequiresMatchCondition() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "notification_click")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_NOTIFICATION_CLICK_EMPTY" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(type = "notification_click", packageName = "com.tencent.mm")
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun notificationReplyRequiresPackage() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "notification_reply", titleContains = "群聊")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_NOTIFICATION_REPLY_PACKAGE_REQUIRED" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(type = "notification_reply", packageName = "com.tencent.mm")
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun appInstallAndUninstallAllowEmptyPackage() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    events = listOf(
+                        CardManifest.Event(type = "app_install"),
+                        CardManifest.Event(type = "app_uninstall", packageName = "com.example.app"),
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun newEventTypesJsonRoundTrip() {
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "hook2",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": { "bridges": ["ui"] },
+              "tags": { "domain": "system", "action": "monitor" },
+              "events": [
+                {
+                  "type": "schedule",
+                  "times": ["08:00"],
+                  "calendar": "workday"
+                },
+                {
+                  "type": "notification_click",
+                  "package": "com.tencent.mm",
+                  "title_contains": "红包",
+                  "text_contains": "领取"
+                },
+                { "type": "notification_reply", "package": "com.tencent.mm" },
+                { "type": "app_install" },
+                { "type": "app_uninstall", "package": "com.example.app" }
+              ]
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        assertEquals(5, parsed.events.size)
+        assertEquals(CardManifest.CALENDAR_WORKDAY, parsed.events[0].calendar)
+        assertEquals("红包", parsed.events[1].titleContains)
+        assertEquals("领取", parsed.events[1].textContains)
+        assertEquals("com.tencent.mm", parsed.events[2].packageName)
+        assertEquals("com.example.app", parsed.events[4].packageName)
         assertTrue(CardValidator.isValid(parsed))
     }
 

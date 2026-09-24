@@ -29,8 +29,10 @@ fun interface TriggerRunner {
 /**
  * 事件触发引擎（纯逻辑，无 Android 依赖，可 JVM 单测）。
  *
- * - schedule：宿主定时 tick，按本地时间匹配 times（HH:mm）或 intervalMinutes
- * - notification / app_launch / app_exit / charging / wifi / network / battery / screen /
+ * - schedule：宿主定时 tick，按本地时间匹配 times（HH:mm）或 intervalMinutes，
+ *   可选 `calendar` 按 [calendar] 过滤工作日/休息日/法定假日
+ * - notification / notification_click / notification_reply / app_install / app_uninstall /
+ *   app_launch / app_exit / charging / wifi / network / battery / screen /
  *   clipboard / bluetooth：宿主投递事件，引擎匹配包名/内容/状态
  * - 用户可在每张卡片上按事件下标停用部分事件（[TriggerCard.disabledIndexes]），引擎直接跳过
  * - location：宿主轮询位置，引擎按 haversine 距离做 enter/exit 边界判定（首次采样只记基线）
@@ -43,6 +45,13 @@ class TriggerEngine(
 ) {
     private val lock = Any()
     private var cards: List<TriggerCard> = emptyList()
+
+    /**
+     * schedule 事件的 `calendar` 过滤数据源（工作日/休息日/法定假日）。
+     * 宿主加载 holiday 资产后注入；默认 [WorkdayCalendar.EMPTY] 退化为自然周。
+     */
+    @Volatile
+    var calendar: WorkdayCalendar = WorkdayCalendar.EMPTY
 
     /** "card|type" -> 最近一次运行时间 */
     private val lastRunAt = mutableMapOf<String, Long>()
@@ -85,9 +94,11 @@ class TriggerEngine(
     /** 宿主每 60s 调用一次；返回本次实际派发的卡片次数。 */
     fun tickSchedule(now: Long = clock(), zone: ZoneId = ZoneId.systemDefault()): Int {
         val zoned = Instant.ofEpochMilli(now).atZone(zone)
-        val epochDay = zoned.toLocalDate().toEpochDay()
+        val date = zoned.toLocalDate()
+        val epochDay = date.toEpochDay()
         val hhmm = "%02d:%02d".format(zoned.hour, zoned.minute)
         val isoDay = zoned.dayOfWeek.value
+        val workdayCalendar = calendar
 
         val dispatches = synchronized(lock) {
             val out = mutableListOf<Pair<String, Map<String, Any?>>>()
@@ -96,6 +107,8 @@ class TriggerEngine(
                     if (index in card.disabledIndexes) return@forEachIndexed
                     if (event.type != CardManifest.EVENT_SCHEDULE) return@forEachIndexed
                     if (event.days.isNotEmpty() && isoDay !in event.days) return@forEachIndexed
+                    // calendar 过滤：工作日/休息日/法定假日（any = 不过滤）
+                    if (!workdayCalendar.matches(event.calendar, date)) return@forEachIndexed
 
                     when {
                         event.times.isNotEmpty() -> {
@@ -149,6 +162,60 @@ class TriggerEngine(
         ) }
     )
 
+    /**
+     * 通知被点击。匹配语义与 [onNotification] 相同，
+     * 但空条件事件会被拒绝（manifest 校验层同样拦截）。
+     */
+    fun onNotificationClick(
+        packageName: String,
+        title: String = "",
+        text: String = "",
+        now: Long = clock(),
+    ): Int = dispatch(
+        matchAndAcquire(now, CardManifest.EVENT_NOTIFICATION_CLICK) { _, event ->
+            event.type == CardManifest.EVENT_NOTIFICATION_CLICK &&
+                (event.packageName.isNotBlank() ||
+                    event.titleContains.isNotBlank() ||
+                    event.textContains.isNotBlank()) &&
+                (event.packageName.isBlank() || event.packageName == packageName) &&
+                (event.titleContains.isBlank() || title.contains(event.titleContains, ignoreCase = true)) &&
+                (event.textContains.isBlank() || text.contains(event.textContains, ignoreCase = true))
+        }.map { it to eventArgs(
+            type = CardManifest.EVENT_NOTIFICATION_CLICK,
+            packageName = packageName,
+            title = title,
+            text = text,
+        ) }
+    )
+
+    /**
+     * 用户对通知直接回复（启发式）：宿主在点击带 RemoteInput 的通知后，
+     * 把同包名短时间内的下一条通知投递进来。package 必填，
+     * titleContains / textContains 针对恢复到的文本做包含匹配。
+     */
+    fun onNotificationReply(
+        packageName: String,
+        title: String = "",
+        text: String = "",
+        now: Long = clock(),
+    ): Int {
+        if (packageName.isBlank()) return 0
+        return dispatch(
+            matchAndAcquire(now, CardManifest.EVENT_NOTIFICATION_REPLY) { _, event ->
+                event.type == CardManifest.EVENT_NOTIFICATION_REPLY &&
+                    event.packageName.isNotBlank() &&
+                    event.packageName == packageName &&
+                    (event.titleContains.isBlank() || title.contains(event.titleContains, ignoreCase = true)) &&
+                    (event.textContains.isBlank() || text.contains(event.textContains, ignoreCase = true))
+            }.map { it to eventArgs(
+                type = CardManifest.EVENT_NOTIFICATION_REPLY,
+                packageName = packageName,
+                title = title,
+                text = text,
+            ) }
+        )
+    }
+
     /** 应用进入前台。空包名事件视为“任意应用”。 */
     fun onAppLaunch(packageName: String, now: Long = clock()): Int = dispatch(
         matchAndAcquire(now, CardManifest.EVENT_APP_LAUNCH) { _, event ->
@@ -170,6 +237,34 @@ class TriggerEngine(
                     event.packageName == packageName
             }.map { it to eventArgs(
                 type = CardManifest.EVENT_APP_EXIT,
+                packageName = packageName,
+            ) }
+        )
+    }
+
+    /** 应用安装完成。空包名事件视为“任意应用”。 */
+    fun onAppInstall(packageName: String, now: Long = clock()): Int {
+        if (packageName.isBlank()) return 0
+        return dispatch(
+            matchAndAcquire(now, CardManifest.EVENT_APP_INSTALL) { _, event ->
+                event.type == CardManifest.EVENT_APP_INSTALL &&
+                    (event.packageName.isBlank() || event.packageName == packageName)
+            }.map { it to eventArgs(
+                type = CardManifest.EVENT_APP_INSTALL,
+                packageName = packageName,
+            ) }
+        )
+    }
+
+    /** 应用卸载完成。空包名事件视为“任意应用”。 */
+    fun onAppUninstall(packageName: String, now: Long = clock()): Int {
+        if (packageName.isBlank()) return 0
+        return dispatch(
+            matchAndAcquire(now, CardManifest.EVENT_APP_UNINSTALL) { _, event ->
+                event.type == CardManifest.EVENT_APP_UNINSTALL &&
+                    (event.packageName.isBlank() || event.packageName == packageName)
+            }.map { it to eventArgs(
+                type = CardManifest.EVENT_APP_UNINSTALL,
                 packageName = packageName,
             ) }
         )
@@ -401,8 +496,12 @@ class TriggerEngine(
 
     private fun cooldownFor(type: String): Long = when (type) {
         CardManifest.EVENT_NOTIFICATION -> COOLDOWN_NOTIFICATION_MS
+        CardManifest.EVENT_NOTIFICATION_CLICK -> COOLDOWN_NOTIFICATION_CLICK_MS
+        CardManifest.EVENT_NOTIFICATION_REPLY -> COOLDOWN_NOTIFICATION_REPLY_MS
         CardManifest.EVENT_APP_LAUNCH -> COOLDOWN_APP_LAUNCH_MS
         CardManifest.EVENT_APP_EXIT -> COOLDOWN_APP_EXIT_MS
+        CardManifest.EVENT_APP_INSTALL -> COOLDOWN_APP_INSTALL_MS
+        CardManifest.EVENT_APP_UNINSTALL -> COOLDOWN_APP_UNINSTALL_MS
         CardManifest.EVENT_CHARGING -> COOLDOWN_CHARGING_MS
         CardManifest.EVENT_WIFI -> COOLDOWN_WIFI_MS
         CardManifest.EVENT_NETWORK -> COOLDOWN_NETWORK_MS
@@ -418,11 +517,23 @@ class TriggerEngine(
         /** 通知防风暴冷却 */
         const val COOLDOWN_NOTIFICATION_MS = 3_000L
 
+        /** 通知点击防抖冷却 */
+        const val COOLDOWN_NOTIFICATION_CLICK_MS = 3_000L
+
+        /** 通知直接回复（启发式）冷却 */
+        const val COOLDOWN_NOTIFICATION_REPLY_MS = 3_000L
+
         /** 前后台抖动冷却 */
         const val COOLDOWN_APP_LAUNCH_MS = 60_000L
 
         /** 应用退出冷却（宿主已有短防抖，此处再抑制频繁切换） */
         const val COOLDOWN_APP_EXIT_MS = 15_000L
+
+        /** 应用安装冷却 */
+        const val COOLDOWN_APP_INSTALL_MS = 3_000L
+
+        /** 应用卸载冷却 */
+        const val COOLDOWN_APP_UNINSTALL_MS = 3_000L
 
         /** 充电抖动冷却 */
         const val COOLDOWN_CHARGING_MS = 5_000L

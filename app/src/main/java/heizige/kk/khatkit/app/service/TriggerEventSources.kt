@@ -53,6 +53,7 @@ class TriggerEventSources(
     private var powerReceiver: BroadcastReceiver? = null
     private var screenReceiver: BroadcastReceiver? = null
     private var bluetoothReceiver: BroadcastReceiver? = null
+    private var packageReceiver: BroadcastReceiver? = null
     private var pollJob: Job? = null
 
     fun start() {
@@ -60,6 +61,7 @@ class TriggerEventSources(
         registerPowerReceiver()
         registerScreenReceiver()
         registerBluetoothReceiver()
+        registerPackageReceiver()
         startPolling()
     }
 
@@ -75,6 +77,8 @@ class TriggerEventSources(
         screenReceiver = null
         unregister(bluetoothReceiver)
         bluetoothReceiver = null
+        unregister(packageReceiver)
+        packageReceiver = null
         pollJob?.cancel()
         pollJob = null
     }
@@ -263,6 +267,48 @@ class TriggerEventSources(
         return runCatching { device.name }.getOrNull()
             ?.takeIf { it.isNotBlank() }
             ?: runCatching { device.address }.getOrDefault("")
+    }
+
+    // ------------------------------------------------------- 安装 / 卸载事件
+
+    /**
+     * 运行期内监听应用安装/卸载（ACTION_PACKAGE_ADDED / REMOVED）。
+     *
+     * 包变更广播在 Android 8+ 无法静态注册，因此仅在触发服务存活期间生效；
+     * 覆盖安装（EXTRA_REPLACING = true）视为更新而非安装/卸载，直接忽略。
+     */
+    private fun registerPackageReceiver() {
+        if (packageReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val action = intent?.action ?: return
+                val packageName = intent.data?.schemeSpecificPart.orEmpty()
+                if (packageName.isBlank()) return
+                if (intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) return
+                when (action) {
+                    Intent.ACTION_PACKAGE_ADDED ->
+                        dispatch("onAppInstall") { engine.onAppInstall(packageName) }
+
+                    Intent.ACTION_PACKAGE_REMOVED ->
+                        dispatch("onAppUninstall") { engine.onAppUninstall(packageName) }
+                }
+            }
+        }
+        runCatching {
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addDataScheme("package")
+            }
+            // 包变更属于系统 protected broadcast，第三方无法伪造；用 EXPORTED 保证各版本稳定接收
+            ContextCompat.registerReceiver(
+                appContext,
+                receiver,
+                filter,
+                ContextCompat.RECEIVER_EXPORTED,
+            )
+            packageReceiver = receiver
+        }.onFailure { Log.e(TAG, "register package receiver failed", it) }
     }
 
     // ------------------------------------------------------------- 轮询事件源

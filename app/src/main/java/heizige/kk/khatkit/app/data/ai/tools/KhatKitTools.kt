@@ -2,6 +2,9 @@ package heizige.kk.khatkit.app.data.ai.tools
 
 import android.app.KeyguardManager
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.PowerManager
 import androidx.compose.runtime.mutableStateOf
 import io.ktor.client.HttpClient
@@ -54,11 +57,15 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import heizige.kk.khatkit.ai.core.InputSchema
+import heizige.kk.khatkit.ai.provider.Modality
+import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.web.McpToolDescriptor
 import heizige.kk.khatkit.web.McpToolResult
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import java.io.File
+import java.io.FileOutputStream
+import kotlin.math.roundToInt
 
 /**
  * 卡片工具描述：可能来自本地已安装（[card]），也可能只在 Hub 索引里（[entry]）。
@@ -308,7 +315,11 @@ class KhatKitToolProvider(
         return if (shell) ApprovalCategory.SHELL_ROOT else ApprovalCategory.CARD_RUN
     }
 
-    suspend fun tools(): List<Tool> = withContext(Dispatchers.IO) {
+    /**
+     * 组装全部工具。[model] 为当前生成所用模型：支持图片输入时 device_screen 会把截图作为图片
+     * 一并返回，让多模态模型直接「看」屏幕；为 null（如 MCP 出口）时只返回文本。
+     */
+    suspend fun tools(model: Model? = null): List<Tool> = withContext(Dispatchers.IO) {
         // 内置卡片先落地（已存在的跳过），保证随版本新增的示例卡片可见
         if (!builtinsInstalled) {
             runCatching { BuiltinCards.install(appContext, cache) }
@@ -338,7 +349,8 @@ class KhatKitToolProvider(
         if (AccessibilityBridgeHolder.current() == null) {
             cardTools
         } else {
-            cardTools + listOf(deviceScreenTool(), deviceActTool())
+            val supportsVision = model?.inputModalities?.contains(Modality.IMAGE) == true
+            cardTools + listOf(deviceScreenTool(supportsVision), deviceActTool())
         }
     }
 
@@ -408,11 +420,22 @@ class KhatKitToolProvider(
         )
     }
 
-    /** 内置工具：截屏 + OCR + 无障碍节点清单，给纯文本模型「看」当前屏幕。 */
-    private fun deviceScreenTool(): Tool = Tool(
+    /**
+     * 内置工具：截屏 + OCR + 无障碍节点清单。
+     *
+     * [supportsVision] 为 true（当前模型 inputModalities 含 IMAGE）时，工具结果在文本之外
+     * 额外附带压缩后的截图图片（[UIMessagePart.Image]），多模态模型可直接查看；否则只返回文本。
+     */
+    private fun deviceScreenTool(supportsVision: Boolean): Tool = Tool(
         name = "khatkit__device_screen",
-        description = "读取当前手机屏幕并返回文本视图：截图 PNG 路径、截图 OCR 文本、当前窗口无障碍节点清单。" +
-            "模型本身看不到图片，请依据 OCR 与节点信息判断界面内容，再用 khatkit__device_act 操作。" +
+        description = "读取当前手机屏幕并返回视图：截图 PNG 路径、截图 OCR 文本、当前窗口无障碍节点清单。" +
+            if (supportsVision) {
+                "当前模型支持图片输入：截图会压缩后作为图片随结果一并返回，可直接观察界面细节；" +
+                    "include_image 默认 true，设为 false 可只返回文本。"
+            } else {
+                "当前模型不支持图片输入，仅返回文本；请依据 OCR 与节点信息判断界面内容。"
+            } +
+            "再用 khatkit__device_act 操作。" +
             "节点每行格式：文本 | 描述 | #viewId [类名] (左,上,右,下) @中心X,中心Y 标记，" +
             "标记 click=可点击、edit=可输入、scroll=可滚动、long=可长按。" +
             "include_ocr / include_nodes 默认 true，可按需关闭以减少输出。" +
@@ -429,6 +452,17 @@ class KhatKitToolProvider(
                         put("type", "boolean")
                         put("description", "是否附带当前窗口节点清单，默认 true。")
                     })
+                    put("include_image", buildJsonObject {
+                        put("type", "boolean")
+                        put(
+                            "description",
+                            if (supportsVision) {
+                                "是否附带压缩后的截图图片供模型直接查看，默认 true；设为 false 只返回文本。"
+                            } else {
+                                "当前模型不支持图片输入，此参数无效。"
+                            }
+                        )
+                    })
                 },
             )
         },
@@ -436,11 +470,16 @@ class KhatKitToolProvider(
             val params = jsonToMap(args)
             val includeOcr = params.bool("include_ocr", true)
             val includeNodes = params.bool("include_nodes", true)
-            listOf(
-                UIMessagePart.Text(
-                    withContext(Dispatchers.IO) { captureDeviceScreen(includeOcr, includeNodes) }
-                )
-            )
+            val includeImage = supportsVision && params.bool("include_image", true)
+            val capture = withContext(Dispatchers.IO) {
+                captureDeviceScreen(includeOcr, includeNodes, includeImage)
+            }
+            buildList {
+                add(UIMessagePart.Text(capture.text))
+                capture.imagePath?.let { path ->
+                    add(UIMessagePart.Image(url = Uri.fromFile(File(path)).toString()))
+                }
+            }
         },
     )
 
@@ -512,15 +551,21 @@ class KhatKitToolProvider(
         },
     )
 
-    private fun captureDeviceScreen(includeOcr: Boolean, includeNodes: Boolean): String {
-        if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
+    private fun captureDeviceScreen(
+        includeOcr: Boolean,
+        includeNodes: Boolean,
+        includeImage: Boolean,
+    ): ScreenCapture {
+        if (AutomationBus.isCancelRequested()) return ScreenCapture("已停止：用户取消了自动化")
         val bridge = AccessibilityBridgeHolder.current()
-            ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
+            ?: return ScreenCapture("""{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}""")
         // 会话中步骤：只更新看板，不结束会话（直接 AI 工具序列由看板空闲判定结束）
         AutomationBus.update("正在读取屏幕")
         return runCatching {
             val shot = bridge.captureScreen()
             val captured = shot.startsWith("/")
+            // 多模态模型：截图成功且被请求时，额外压缩出一份可随工具结果回传的 JPEG
+            val visionPath = if (includeImage && captured) compressScreenshotForVision(shot) else null
             val ocr = if (includeOcr && captured) {
                 runCatching { ocrBridge.ocrText(shot) }
                     .getOrElse { """{"error":"OCR 失败：${it.message ?: it.javaClass.simpleName}"}""" }
@@ -532,7 +577,7 @@ class KhatKitToolProvider(
             } else {
                 emptyList()
             }
-            buildJsonObject {
+            val text = buildJsonObject {
                 if (captured) put("screenshot", shot) else put("screenshot_error", shot)
                 bridge.currentPackage()?.let { put("package", it) }
                 ocr?.let { text ->
@@ -557,8 +602,57 @@ class KhatKitToolProvider(
                     put("nodes", JsonArray(lines))
                 }
             }.toString()
-        }.getOrElse { """{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""" }
+            ScreenCapture(text, visionPath)
+        }.getOrElse { ScreenCapture("""{"error":"读取屏幕失败：${it.message ?: it.javaClass.simpleName}"}""") }
     }
+
+    /**
+     * 把 PNG 截图压成适合图片输入的 JPEG：短边不超过 1080、长边不超过 1920，质量 [VISION_JPEG_QUALITY]。
+     * 图片存到应用私有目录 khatkit/vision 下（不额外占用共享存储），并顺带清理过期文件；失败返回 null。
+     */
+    private fun compressScreenshotForVision(pngPath: String): String? = runCatching {
+        val bitmap = BitmapFactory.decodeFile(pngPath) ?: return null
+        val scale = minOf(
+            1f,
+            VISION_MAX_SHORT_EDGE.toFloat() / minOf(bitmap.width, bitmap.height).coerceAtLeast(1),
+            VISION_MAX_LONG_EDGE.toFloat() / maxOf(bitmap.width, bitmap.height).coerceAtLeast(1),
+        )
+        val scaled = if (scale >= 1f) {
+            bitmap
+        } else {
+            Bitmap.createScaledBitmap(
+                bitmap,
+                (bitmap.width * scale).roundToInt().coerceAtLeast(1),
+                (bitmap.height * scale).roundToInt().coerceAtLeast(1),
+                true,
+            )
+        }
+        try {
+            val dir = File(rootDir, VISION_DIR_NAME).apply { mkdirs() }
+            pruneVisionCache(dir)
+            val output = File(dir, "screen_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(output).use { stream ->
+                scaled.compress(Bitmap.CompressFormat.JPEG, VISION_JPEG_QUALITY, stream)
+            }
+            output.takeIf { it.length() > 0 }?.absolutePath
+        } finally {
+            if (scaled !== bitmap) scaled.recycle()
+            bitmap.recycle()
+        }
+    }.getOrNull()
+
+    /** 清理过期/超量的 vision 截图，避免应用私有目录无限增长。 */
+    private fun pruneVisionCache(dir: File) {
+        val files = dir.listFiles()?.filter { it.isFile } ?: return
+        val cutoff = System.currentTimeMillis() - VISION_CACHE_TTL_MS
+        files.filter { it.lastModified() < cutoff }.forEach { it.delete() }
+        files.sortedByDescending { it.lastModified() }
+            .drop(VISION_CACHE_MAX_FILES)
+            .forEach { it.delete() }
+    }
+
+    /** device_screen 结果：给模型的文本 + 可选的多模态图片路径。 */
+    private data class ScreenCapture(val text: String, val imagePath: String? = null)
 
     private suspend fun deviceAct(params: Map<String, Any?>): String {
         if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
@@ -977,6 +1071,14 @@ class KhatKitToolProvider(
 /** 屏幕工具输出上限：OCR 行数 / 节点行数 / 单行字符数 */
 private const val SCREEN_LINE_LIMIT = 120
 private const val SCREEN_LINE_MAX = 300
+
+/** device_screen 多模态截图：短边/长边上限、JPEG 质量与私有目录缓存策略 */
+private const val VISION_MAX_SHORT_EDGE = 1080
+private const val VISION_MAX_LONG_EDGE = 1920
+private const val VISION_JPEG_QUALITY = 80
+private const val VISION_DIR_NAME = "vision"
+private const val VISION_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000L
+private const val VISION_CACHE_MAX_FILES = 40
 
 /** device_act 触屏 / 手势动作（执行前需确认屏幕点亮） */
 private val TOUCH_ACTIONS = setOf("click_text", "click_id", "tap", "swipe", "press", "set_text")

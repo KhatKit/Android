@@ -28,6 +28,7 @@ object TriggerSchedulePlanner {
         cards: List<TriggerCard>,
         now: Long,
         zone: ZoneId = ZoneId.systemDefault(),
+        calendar: WorkdayCalendar = WorkdayCalendar.EMPTY,
     ): Long? {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         var best: Long? = null
@@ -35,9 +36,12 @@ object TriggerSchedulePlanner {
             card.events.forEachIndexed { index, event ->
                 if (index in card.disabledIndexes) return@forEachIndexed
                 if (event.type != CardManifest.EVENT_SCHEDULE || event.times.isEmpty()) return@forEachIndexed
-                for (offset in 0L..7L) {
+                // 最长连续假期（春节）约 9 天，留出 14 天窗口保证能跨过
+                for (offset in 0L..14L) {
                     val date = today.plusDays(offset)
                     if (event.days.isNotEmpty() && date.dayOfWeek.value !in event.days) continue
+                    // calendar 过滤：工作日/休息日/法定假日（any = 不过滤）
+                    if (!calendar.matches(event.calendar, date)) continue
                     for (raw in event.times) {
                         val match = TIME_REGEX.matchEntire(raw) ?: continue
                         val candidate = date

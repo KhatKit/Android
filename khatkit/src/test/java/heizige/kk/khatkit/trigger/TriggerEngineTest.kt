@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
-
 class TriggerEngineTest {
 
     private val zone: ZoneId = ZoneId.of("Asia/Shanghai")
@@ -437,6 +436,192 @@ class TriggerEngineTest {
         assertEquals(1, engine.onCharging("connected", now))
         engine.updateCards(emptyList())
         assertEquals(0, engine.onCharging("connected", now + 1))
+        assertEquals(1, recorder.runs.size)
+    }
+
+    @Test
+    fun notificationClickMatchesAndCoolsDown() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "click_card",
+                    listOf(
+                        CardManifest.Event(
+                            type = "notification_click",
+                            packageName = "com.example.sms",
+                            textContains = "领取",
+                        ),
+                        // 空条件事件在引擎层被显式拒绝
+                        CardManifest.Event(type = "notification_click"),
+                    ),
+                )
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        assertEquals(0, engine.onNotificationClick("com.other.app", "红包", "点此领取", now))
+        assertEquals(1, engine.onNotificationClick("com.example.sms", "红包", "点此领取", now))
+        // 冷却期内重复点击被抑制
+        assertEquals(0, engine.onNotificationClick("com.example.sms", "红包", "点此领取", now + 1_000))
+        assertEquals(1, engine.onNotificationClick("com.example.sms", "红包", "点此领取", now + 3_000))
+        assertEquals(2, recorder.runs.size)
+        val event = argsOf(recorder.runs[0].second)
+        assertEquals("notification_click", event["type"])
+        assertEquals("com.example.sms", event["package"])
+        assertEquals("点此领取", event["text"])
+    }
+
+    @Test
+    fun notificationReplyMatchesPackageAndTextWithCooldown() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "reply_ok",
+                    listOf(
+                        CardManifest.Event(
+                            type = "notification_reply",
+                            packageName = "com.tencent.mm",
+                            textContains = "收到",
+                        )
+                    ),
+                ),
+                // 运行期兜底：缺包名的回复事件不应匹配任何输入
+                TriggerCard(
+                    "reply_missing_package",
+                    listOf(CardManifest.Event(type = "notification_reply", textContains = "收到")),
+                ),
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        assertEquals(0, engine.onNotificationReply("com.other.app", "群聊", "收到", now))
+        assertEquals(1, engine.onNotificationReply("com.tencent.mm", "群聊", "收到，谢谢", now))
+        assertEquals(0, engine.onNotificationReply("com.tencent.mm", "群聊", "收到", now + 1_000))
+        assertEquals(1, engine.onNotificationReply("com.tencent.mm", "群聊", "收到", now + 3_000))
+        assertEquals(2, recorder.runs.size)
+        val event = argsOf(recorder.runs[0].second)
+        assertEquals("notification_reply", event["type"])
+        assertEquals("com.tencent.mm", event["package"])
+        assertEquals("收到，谢谢", event["text"])
+    }
+
+    @Test
+    fun appInstallAndUninstallMatchOptionalPackage() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard("install_any", listOf(CardManifest.Event(type = "app_install"))),
+                TriggerCard(
+                    "install_target",
+                    listOf(CardManifest.Event(type = "app_install", packageName = "com.example.new")),
+                ),
+                TriggerCard(
+                    "uninstall_target",
+                    listOf(CardManifest.Event(type = "app_uninstall", packageName = "com.example.old")),
+                ),
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        // 空包名输入被拒绝
+        assertEquals(0, engine.onAppInstall("", now))
+        // 任意卡片 + 指定卡片同时命中
+        assertEquals(2, engine.onAppInstall("com.example.new", now))
+        assertEquals(0, engine.onAppInstall("com.example.new", now + 1_000))
+        assertEquals(2, engine.onAppInstall("com.example.new", now + 3_000))
+        // 卸载只命中指定包名
+        assertEquals(0, engine.onAppUninstall("com.other.app", now))
+        assertEquals(1, engine.onAppUninstall("com.example.old", now))
+        assertEquals("app_uninstall", argsOf(recorder.runs.last().second)["type"])
+        assertEquals("com.example.old", argsOf(recorder.runs.last().second)["package"])
+    }
+
+    @Test
+    fun scheduleCalendarFiltersWorkdayAndHoliday() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 24, 9, 0))
+        engine.calendar = WorkdayCalendar.parse(
+            """{"holidays":["2026-09-25","2026-10-01"],"workdays":["2026-09-20"]}"""
+        )
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "workday_card",
+                    listOf(CardManifest.Event(type = "schedule", times = listOf("08:00"), calendar = "workday")),
+                ),
+                TriggerCard(
+                    "holiday_card",
+                    listOf(CardManifest.Event(type = "schedule", times = listOf("08:00"), calendar = "holiday")),
+                ),
+            )
+        )
+
+        // 2026-09-24 周四：仅工作日命中
+        assertEquals(1, engine.tickSchedule(now = at(2026, 9, 24, 8, 0), zone = zone))
+        assertEquals("workday_card", recorder.runs.last().first)
+        // 2026-09-25 周五（中秋，法定假日）：仅节假日命中
+        assertEquals(1, engine.tickSchedule(now = at(2026, 9, 25, 8, 0), zone = zone))
+        assertEquals("holiday_card", recorder.runs.last().first)
+        // 2026-09-26 周六（自然周末，非法定假日）：两卡都不命中
+        assertEquals(0, engine.tickSchedule(now = at(2026, 9, 26, 8, 0), zone = zone))
+        assertEquals(2, recorder.runs.size)
+    }
+
+    @Test
+    fun scheduleCalendarWeekendMatchesRestDaysAndMakeupWorkday() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 25, 9, 0))
+        engine.calendar = WorkdayCalendar.parse(
+            """{"holidays":["2026-09-25"],"workdays":["2026-09-20"]}"""
+        )
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "weekend_card",
+                    listOf(CardManifest.Event(type = "schedule", times = listOf("08:00"), calendar = "weekend")),
+                ),
+                TriggerCard(
+                    "workday_card",
+                    listOf(CardManifest.Event(type = "schedule", times = listOf("08:00"), calendar = "workday")),
+                ),
+            )
+        )
+
+        // 法定假日在「休息日」语义内：weekend 命中
+        assertEquals(1, engine.tickSchedule(now = at(2026, 9, 25, 8, 0), zone = zone))
+        assertEquals("weekend_card", recorder.runs.last().first)
+        // 周六同样是休息日
+        assertEquals(1, engine.tickSchedule(now = at(2026, 9, 26, 8, 0), zone = zone))
+        // 周一恢复上班：weekend 不命中，workday 命中
+        assertEquals(1, engine.tickSchedule(now = at(2026, 9, 28, 8, 0), zone = zone))
+        assertEquals("workday_card", recorder.runs.last().first)
+    }
+
+    @Test
+    fun scheduleCalendarTreatsMakeupSundayAsWorkday() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 20, 8, 0))
+        engine.calendar = WorkdayCalendar.parse("""{"workdays":["2026-09-20"],"holidays":[]}""")
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "workday_card",
+                    listOf(CardManifest.Event(type = "schedule", times = listOf("08:00"), calendar = "workday")),
+                ),
+                TriggerCard(
+                    "weekend_card",
+                    listOf(CardManifest.Event(type = "schedule", times = listOf("08:00"), calendar = "weekend")),
+                ),
+            )
+        )
+        // 2026-09-20 是周日，但为调休上班日：仅 workday 命中
+        assertEquals(1, engine.tickSchedule(zone = zone))
+        assertEquals("workday_card", recorder.runs.last().first)
         assertEquals(1, recorder.runs.size)
     }
 }

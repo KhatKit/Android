@@ -19,6 +19,7 @@ import heizige.kk.khatkit.hub.CardCache
 import heizige.kk.khatkit.trigger.TriggerCard
 import heizige.kk.khatkit.trigger.TriggerEngine
 import heizige.kk.khatkit.trigger.TriggerRunner
+import heizige.kk.khatkit.trigger.WorkdayCalendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,9 +64,26 @@ class TriggerController(
         maxParallel = { settings.maxParallel },
     )
 
+    /** 节假日日历（schedule 的 calendar 过滤），懒加载后缓存；[reloadCalendar] 可刷新覆盖文件。 */
+    @Volatile
+    private var workdayCalendar: WorkdayCalendar? = null
+
     init {
         ensureChannel(appContext)
     }
+
+    /** 重新加载节假日日历（内置资产 + 用户覆盖文件）并注入引擎。 */
+    fun reloadCalendar() {
+        val loaded = WorkdayCalendar.load(appContext)
+        workdayCalendar = loaded
+        engine.calendar = loaded
+    }
+
+    private fun calendar(): WorkdayCalendar =
+        workdayCalendar ?: WorkdayCalendar.load(appContext).also {
+            workdayCalendar = it
+            engine.calendar = it
+        }
 
     fun refreshCardsAsync() {
         scope.launch { refreshCards() }
@@ -75,6 +93,7 @@ class TriggerController(
     suspend fun refreshCards(): Unit = withContext(Dispatchers.IO) {
         runCatching {
             BuiltinCards.install(appContext, cache)
+            reloadCalendar()
             val loaded = cache.installedVersions().mapNotNull { (name, version) ->
                 runCatching { cache.load(cache.cardDir(name, version)) }.getOrNull()
             }
@@ -99,12 +118,12 @@ class TriggerController(
     fun syncEngine() {
         val enabled = automationCards()
         engine.updateCards(enabled)
-        TriggerExactAlarmScheduler.schedule(appContext, enabled, settings.masterEnabled)
+        TriggerExactAlarmScheduler.schedule(appContext, enabled, settings.masterEnabled, calendar())
     }
 
     /** 闹钟投递后由 TriggerService 调用，重排下一次精确闹钟。 */
     fun rescheduleExactAlarm() {
-        TriggerExactAlarmScheduler.schedule(appContext, automationCards(), settings.masterEnabled)
+        TriggerExactAlarmScheduler.schedule(appContext, automationCards(), settings.masterEnabled, calendar())
     }
 
     /** 全局并发上限（1..3），即时生效（队列每次调度都会重新读取）。 */

@@ -220,6 +220,9 @@
     <receiver
       android:name=".automation.ApprovalActionReceiver"
       android:exported="false" />
+    <receiver
+      android:name=".record.RecorderStopReceiver"
+      android:exported="false" />
 
     <provider
       android:name="androidx.core.content.FileProvider"
