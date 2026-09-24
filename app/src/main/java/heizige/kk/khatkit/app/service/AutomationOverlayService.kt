@@ -705,10 +705,10 @@ private fun AutomationToast(
                             transitionSpec = {
                                 (
                                     fadeIn(tween(ANIMATION_MS)) +
-                                        slideInVertically(tween(ANIMATION_MS)) { it / 4 }
+                                        scaleIn(tween(ANIMATION_MS), initialScale = 0.92f)
                                     ) togetherWith (
                                     fadeOut(tween(ANIMATION_MS)) +
-                                        slideOutVertically(tween(ANIMATION_MS)) { -it / 4 }
+                                        scaleOut(tween(ANIMATION_MS), targetScale = 0.92f)
                                     ) using SizeTransform(clip = false) { _, _ -> tween(ANIMATION_MS) }
                             },
                             modifier = Modifier.weight(1f),
@@ -740,10 +740,10 @@ private fun AutomationToast(
                             transitionSpec = {
                                 (
                                     fadeIn(tween(ANIMATION_MS)) +
-                                        slideInVertically(tween(ANIMATION_MS)) { it / 4 }
+                                        scaleIn(tween(ANIMATION_MS), initialScale = 0.92f)
                                     ) togetherWith (
                                     fadeOut(tween(ANIMATION_MS)) +
-                                        slideOutVertically(tween(ANIMATION_MS)) { -it / 4 }
+                                        scaleOut(tween(ANIMATION_MS), targetScale = 0.92f)
                                     ) using SizeTransform(clip = false) { _, _ -> tween(ANIMATION_MS) }
                             },
                             contentAlignment = Alignment.Center,
