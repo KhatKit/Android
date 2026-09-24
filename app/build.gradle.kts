@@ -24,8 +24,8 @@ android {
         applicationId = "heizige.kk.khatkit"
         minSdk = 26
         targetSdk = 37
-        versionCode = 187
-        versionName = "2.5.2"
+        versionCode = 189
+        versionName = "2.5.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
