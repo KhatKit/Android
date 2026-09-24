@@ -700,15 +700,30 @@ private fun AutomationToast(
 
                     is BoardContent.Approval -> {
                         val remainingSeconds = rememberApprovalRemainingSeconds(target.request)
-                        Text(
-                            text = "${target.request.title}（${remainingSeconds}s）",
+                        AnimatedContent(
+                            targetState = target.request.title,
+                            transitionSpec = {
+                                (
+                                    fadeIn(tween(ANIMATION_MS)) +
+                                        slideInVertically(tween(ANIMATION_MS)) { it / 4 }
+                                    ) togetherWith (
+                                    fadeOut(tween(ANIMATION_MS)) +
+                                        slideOutVertically(tween(ANIMATION_MS)) { -it / 4 }
+                                    ) using SizeTransform(clip = false) { _, _ -> tween(ANIMATION_MS) }
+                            },
                             modifier = Modifier.weight(1f),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.5.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                            contentAlignment = Alignment.CenterStart,
+                            label = "approvalTitle",
+                        ) { title ->
+                            Text(
+                                text = "$title（${remainingSeconds}s）",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.5.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                         Spacer(Modifier.width(8.dp))
                         ApprovalButtonGroup(
                             onApprove = onApprove,
