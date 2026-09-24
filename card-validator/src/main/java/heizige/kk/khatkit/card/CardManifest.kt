@@ -46,6 +46,9 @@ data class CardManifest(
     val compliance: Compliance? = null,
     val store: Store = Store(),
 
+    /** 调用计费（可选）：缺省表示免费，由 Hub 的套餐/工具次数量化 */
+    val pricing: Pricing? = null,
+
     /** engine == command 时的命令模板，`{}` 占位符由宿主白名单转义 */
     val command: String? = null,
 ) {
@@ -155,6 +158,13 @@ data class CardManifest(
     data class Store(
         @SerialName("quota_mb") val quotaMb: Int = 50,
         val secret: Boolean = false,
+    )
+
+    /** 调用计费：price 为每次调用价格（>= 0，0 = 免费），currency 为币种（默认 CNY）。 */
+    @Serializable
+    data class Pricing(
+        val price: Double = 0.0,
+        val currency: String = "CNY",
     )
 
     val isCommand: Boolean get() = engine == "command"

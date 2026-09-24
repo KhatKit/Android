@@ -269,6 +269,16 @@ object CardValidator {
             error("GAME_COMPLIANCE_MISSING", "domain=game 必须带 compliance（合规风险声明）")
         }
 
+        // 调用计费（可选）：缺省 = 免费；price 必须 >= 0，currency 不能为空
+        manifest.pricing?.let { pricing ->
+            if (pricing.price.isNaN() || pricing.price < 0.0) {
+                error("PRICING_PRICE_INVALID", "pricing.price 不能为负数：${pricing.price}")
+            }
+            if (pricing.currency.isBlank()) {
+                error("PRICING_CURRENCY_INVALID", "pricing.currency 不能为空")
+            }
+        }
+
         // UI 声明：widget 必须在宿主白名单内，source 只能是 ai/ui（设计 7.2/13.1）
         manifest.ui.forEach { (param, spec) ->
             val widget = (spec["widget"] as? JsonPrimitive)?.contentOrNull

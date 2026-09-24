@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.PowerManager
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -18,7 +19,9 @@ import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.automation.ApprovalCategory
 import heizige.kk.khatkit.app.automation.AutomationBus
+import heizige.kk.khatkit.app.data.ai.hub.HubAccountStore
 import heizige.kk.khatkit.card.CardManifest
+import heizige.kk.khatkit.card.CardParser
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CardRunManager
@@ -26,9 +29,17 @@ import heizige.kk.khatkit.hub.BuiltinCards
 import heizige.kk.khatkit.hub.BundledLibProvider
 import heizige.kk.khatkit.hub.CardCache
 import heizige.kk.khatkit.hub.CardIndexEntry
+import heizige.kk.khatkit.hub.HubAccountStatus
+import heizige.kk.khatkit.hub.HubActivateRequest
+import heizige.kk.khatkit.hub.HubActionResult
+import heizige.kk.khatkit.hub.HubAuthorizeOutcome
+import heizige.kk.khatkit.hub.HubCardForkRequest
+import heizige.kk.khatkit.hub.HubCardMarketInfo
+import heizige.kk.khatkit.hub.HubCardPublishRequest
 import heizige.kk.khatkit.hub.HubClient
 import heizige.kk.khatkit.hub.HubFilters
 import heizige.kk.khatkit.hub.HubLibProvider
+import heizige.kk.khatkit.hub.HubToolReportRequest
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
 import heizige.kk.khatkit.ui.UiBridgeHost
@@ -66,6 +77,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 /**
  * 卡片工具描述：可能来自本地已安装（[card]），也可能只在 Hub 索引里（[entry]）。
@@ -127,6 +139,9 @@ class KhatKitToolProvider(
     )
     private val initMutex = Mutex()
     private val settings = appContext.getSharedPreferences("khatkit_settings", Context.MODE_PRIVATE)
+
+    /** 套餐账户存储：激活令牌走 Keystore 加密通道，额度缓存用于离线展示。 */
+    private val accountStore by lazy { HubAccountStore(appContext) }
 
     /** OCR 走 tool bridge；只有 device_screen 需要时才懒加载，避免多养一个 HttpClient。 */
     private val ocrBridge by lazy { AndroidToolBridge(appContext, HttpClient(CIO.create())) }
@@ -279,6 +294,10 @@ class KhatKitToolProvider(
      * 执行前通过 [AutomationBus.requestApproval] 在看板上请求用户授权（放手模式或已授权则跳过）。
      * [AutomationBus.begin] 持有会话：卡片执行期间即使长时间没有进度更新，看板也不会误判会话结束；
      * 授权被拒 / 取消 / 异常都会在 finally 释放持有，看板必定进入完成态并退场。
+     *
+     * 套餐计量：本机存有激活令牌时，执行前调用 POST /api/tools/authorize；
+     * 仅当服务端「明确拒绝」时阻止运行（中文提示），网络/服务端不可用一律失败开放，
+     * 免费本地卡片不受影响；运行结束后 best-effort 上报 POST /api/tools/report。
      */
     suspend fun runCardWithStatus(
         card: LoadedCard,
@@ -290,15 +309,73 @@ class KhatKitToolProvider(
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
         AutomationBus.begin()
-        return try {
+        try {
+            val manifest = card.manifest
+            val price = manifest.pricing?.price ?: 0.0
+            // Hub 的价格单位是「分」，manifest 的 pricing.price 是元
+            val priceCents = (price * 100).roundToLong()
+            val hubToken = accountStore.token()
+            if (!hubToken.isNullOrBlank()) {
+                // 授权请求限时，避免 Hub 不可达时拖慢卡片启动；失败开放
+                val decision = withTimeoutOrNull(METERING_TIMEOUT_MS) {
+                    runCatching { hub().authorizeTool(hubToken, manifest.name, priceCents) }.getOrNull()
+                }
+                when (decision) {
+                    is HubAuthorizeOutcome.Denied -> {
+                        Log.w(TAG, "Hub 拒绝工具调用：${manifest.name}（${decision.message}）")
+                        return EngineResult.Err(
+                            "CARD_QUOTA",
+                            "套餐工具次数不足/令牌无效：${decision.message}（卡片：${manifest.name}）",
+                        )
+                    }
+
+                    is HubAuthorizeOutcome.Unavailable ->
+                        Log.w(TAG, "Hub 授权不可用，降级为本地运行：${manifest.name}（${decision.reason}）")
+
+                    else -> Unit
+                }
+            }
+
             AutomationBus.update("正在运行卡片：${card.manifest.name}")
             val category = cardApprovalCategory(card)
             if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger", category)) {
                 return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
             }
-            runManager.run(card, args)
+            val startedAt = System.currentTimeMillis()
+            val result = runManager.run(card, args)
+            if (!hubToken.isNullOrBlank()) {
+                reportToolCallAsync(hubToken, manifest, price, trigger, startedAt, result)
+            }
+            return result
         } finally {
             AutomationBus.finish()
+        }
+    }
+
+    /** 运行结果 best-effort 上报，不阻塞调用方；失败只记日志。 */
+    private fun reportToolCallAsync(
+        token: String,
+        manifest: CardManifest,
+        price: Double,
+        trigger: String,
+        startedAt: Long,
+        result: EngineResult,
+    ) {
+        scope.launch {
+            runCatching {
+                hub().reportTool(
+                    token,
+                    HubToolReportRequest(
+                        cardName = manifest.name,
+                        price = price,
+                        currency = manifest.pricing?.currency?.takeIf { it.isNotBlank() } ?: "CNY",
+                        ok = result is EngineResult.Ok,
+                        trigger = trigger,
+                        durationMs = System.currentTimeMillis() - startedAt,
+                        message = (result as? EngineResult.Err)?.message.orEmpty(),
+                    ),
+                )
+            }.onFailure { Log.w(TAG, "工具调用上报失败：${manifest.name}（${it.message}）") }
         }
     }
 
@@ -995,6 +1072,214 @@ class KhatKitToolProvider(
         }.getOrDefault(false)
     }
 
+    // ===== KhatKitHub 套餐 / 市场（失败一律优雅降级，不抛异常）=====
+
+    /** 本机保存的激活令牌；未激活返回 null。 */
+    override fun hubToken(): String? = accountStore.token()
+
+    /**
+     * 当前套餐账户状态。[refresh] 为 true 时请求 GET /api/me；
+     * 网络失败时退回缓存额度并带中文错误信息。
+     */
+    override suspend fun hubAccountStatus(refresh: Boolean): HubAccountStatus = withContext(Dispatchers.IO) {
+        val base = HubAccountStatus(
+            activated = false,
+            hubBaseUrl = hubBaseUrl,
+            deviceId = accountStore.deviceId(),
+            deviceName = accountStore.deviceName(),
+        )
+        val token = accountStore.token()
+        if (token.isNullOrBlank()) {
+            return@withContext base.copy(message = "未激活套餐，可继续使用免费卡片与本地功能")
+        }
+        if (!refresh) {
+            val cached = accountStore.cachedAccount()
+            return@withContext base.copy(
+                activated = true,
+                plan = cached.plan,
+                aiTokensRemaining = cached.aiTokensRemaining,
+                toolCallsRemaining = cached.toolCallsRemaining,
+                expiresAt = cached.expiresAt,
+            )
+        }
+        val result = runCatching { hub().me(token) }.getOrNull()
+        if (result?.ok == true) {
+            accountStore.cacheAccount(result.info)
+            return@withContext base.copy(
+                activated = true,
+                plan = result.info.plan,
+                aiTokensRemaining = result.info.aiTokensRemaining,
+                toolCallsRemaining = result.info.toolCallsRemaining,
+                expiresAt = result.info.expiresAt,
+            )
+        }
+        val cached = accountStore.cachedAccount()
+        base.copy(
+            activated = true,
+            plan = cached.plan,
+            aiTokensRemaining = cached.aiTokensRemaining,
+            toolCallsRemaining = cached.toolCallsRemaining,
+            expiresAt = cached.expiresAt,
+            message = result?.message ?: "无法连接 Hub，展示缓存额度",
+        )
+    }
+
+    /** 激活套餐：保存 Hub 地址与令牌，随后尝试拉取额度（失败只影响额度展示）。 */
+    override suspend fun activateHub(token: String, hubBaseUrl: String): HubAccountStatus =
+        withContext(Dispatchers.IO) {
+            val trimmed = token.trim()
+            if (trimmed.isBlank()) {
+                return@withContext HubAccountStatus(
+                    hubBaseUrl = this@KhatKitToolProvider.hubBaseUrl,
+                    deviceId = accountStore.deviceId(),
+                    deviceName = accountStore.deviceName(),
+                    message = "请输入激活令牌",
+                )
+            }
+            val base = hubBaseUrl.trim().ifBlank { DEFAULT_HUB_BASE_URL }
+            this@KhatKitToolProvider.hubBaseUrl = base
+            applySettings()
+            val activation = runCatching {
+                hub().activate(
+                    base,
+                    HubActivateRequest(
+                        token = trimmed,
+                        deviceId = accountStore.deviceId(),
+                        deviceName = accountStore.deviceName(),
+                    ),
+                )
+            }.getOrElse {
+                return@withContext HubAccountStatus(
+                    hubBaseUrl = base,
+                    deviceId = accountStore.deviceId(),
+                    deviceName = accountStore.deviceName(),
+                    message = "无法连接 Hub：${it.message ?: it.javaClass.simpleName}",
+                )
+            }
+            if (!activation.ok) {
+                return@withContext HubAccountStatus(
+                    hubBaseUrl = base,
+                    deviceId = accountStore.deviceId(),
+                    deviceName = accountStore.deviceName(),
+                    message = activation.message.ifBlank { "激活失败，请检查令牌是否有效" },
+                )
+            }
+            accountStore.saveActivation(activation.token, activation.sessionKey)
+            accountStore.cacheAccount(activation.account)
+            val refreshed = runCatching { hub().me(activation.token) }.getOrNull()
+            if (refreshed?.ok == true) accountStore.cacheAccount(refreshed.info)
+            val cached = accountStore.cachedAccount()
+            HubAccountStatus(
+                activated = true,
+                hubBaseUrl = base,
+                deviceId = accountStore.deviceId(),
+                deviceName = accountStore.deviceName(),
+                plan = cached.plan,
+                aiTokensRemaining = cached.aiTokensRemaining,
+                toolCallsRemaining = cached.toolCallsRemaining,
+                expiresAt = cached.expiresAt,
+                message = activation.message,
+            )
+        }
+
+    /** 清除本机激活信息。 */
+    override suspend fun clearHubActivation(): HubAccountStatus = withContext(Dispatchers.IO) {
+        accountStore.clear()
+        HubAccountStatus(
+            activated = false,
+            hubBaseUrl = hubBaseUrl,
+            deviceId = accountStore.deviceId(),
+            deviceName = accountStore.deviceName(),
+            message = "已清除本机激活信息",
+        )
+    }
+
+    /** 市场卡片详情（价格 / 协议 / 优选 / 票数）；Hub 不可达返回空表。 */
+    override suspend fun hubMarketCards(): List<HubCardMarketInfo> = withContext(Dispatchers.IO) {
+        runCatching { hub().listCards(accountStore.token()) }.getOrNull()
+            ?.takeIf { it.ok }?.cards.orEmpty()
+    }
+
+    /** 发布已安装卡片到 Hub（价格入参为元，上传时转成分）。 */
+    override suspend fun publishCard(
+        name: String,
+        license: String,
+        price: Double,
+        changelog: String,
+    ): HubActionResult = withContext(Dispatchers.IO) {
+        val token = accountStore.token()
+            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐/激活」中激活套餐")
+        val card = loadInstalledCards().firstOrNull { it.manifest.name == name }
+            ?: return@withContext HubActionResult(false, "本机未安装卡片：$name")
+        val manifest = card.manifest
+        runCatching {
+            hub().publishCard(
+                token,
+                HubCardPublishRequest(
+                    name = manifest.name,
+                    version = manifest.version,
+                    description = manifest.description,
+                    script = card.scriptText,
+                    manifestJson = CardParser.serialize(manifest),
+                    pricePerCall = (price.coerceAtLeast(0.0) * 100).roundToLong(),
+                    license = license.ifBlank { manifest.license }.ifBlank { "MIT" },
+                    changelog = changelog,
+                ),
+            )
+        }.getOrElse { HubActionResult(false, "发布失败：${it.message ?: it.javaClass.simpleName}") }
+            .let { it.copy(message = it.message.ifBlank { if (it.ok) "已发布到 Hub：$name" else "发布失败" }) }
+    }
+
+    /** 提交改进：把本机卡片作为 fork 上传，带父版本、新版本号与更新说明。 */
+    override suspend fun forkCard(
+        name: String,
+        parentVersion: String,
+        changelog: String,
+        newVersion: String,
+    ): HubActionResult = withContext(Dispatchers.IO) {
+        val token = accountStore.token()
+            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐/激活」中激活套餐")
+        val card = loadInstalledCards().firstOrNull { it.manifest.name == name }
+            ?: return@withContext HubActionResult(false, "本机未安装卡片：$name")
+        val manifest = card.manifest
+        runCatching {
+            hub().forkCard(
+                token,
+                name,
+                HubCardForkRequest(
+                    parentVersion = parentVersion.ifBlank { manifest.version },
+                    version = newVersion.trim().ifBlank { bumpPatchVersion(manifest.version) },
+                    description = manifest.description,
+                    script = card.scriptText,
+                    manifestJson = CardParser.serialize(manifest),
+                    pricePerCall = ((manifest.pricing?.price ?: 0.0).coerceAtLeast(0.0) * 100).roundToLong(),
+                    license = manifest.license.ifBlank { "MIT" },
+                    changelog = changelog,
+                ),
+            )
+        }.getOrElse { HubActionResult(false, "提交改进失败：${it.message ?: it.javaClass.simpleName}") }
+            .let { it.copy(message = it.message.ifBlank { if (it.ok) "已提交改进：$name" else "提交改进失败" }) }
+    }
+
+    /** 新版本号默认按补丁位 +1（1.2.3 -> 1.2.4），解析失败则在末尾追加 .1。 */
+    private fun bumpPatchVersion(version: String): String {
+        val parts = version.trim().split('.')
+        if (parts.size >= 3) {
+            val patch = parts[2].toIntOrNull()
+            if (patch != null) return "${parts[0]}.${parts[1]}.${patch + 1}"
+        }
+        return if (version.isBlank()) "1.0.0" else "$version.1"
+    }
+
+    /** 给市场卡片投票。 */
+    override suspend fun voteCard(name: String): HubActionResult = withContext(Dispatchers.IO) {
+        val token = accountStore.token()
+            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐/激活」中激活套餐")
+        runCatching { hub().voteCard(token, name) }
+            .getOrElse { HubActionResult(false, "投票失败：${it.message ?: it.javaClass.simpleName}") }
+            .let { it.copy(message = it.message.ifBlank { if (it.ok) "已投票：$name" else "投票失败" }) }
+    }
+
     /** 该卡片存了哪些密钥（设计文档 7.4：可展示、可撤销）。 */
     override fun listCardSecrets(cardName: String): List<String> =
         FileStoreBridge(appContext, cardName).secretList()
@@ -1057,6 +1342,9 @@ class KhatKitToolProvider(
         private const val KEY_RECEIVE_BETA = "receive_beta"
         private const val KEY_HANDS_OFF = "hands_off_mode"
 
+        /** 日志 TAG（套餐计量 / 上报降级）。 */
+        const val TAG = "KhatKitTools"
+
         /** 索引缓存有效期：5 分钟内不重复拉取 */
         private const val INDEX_TTL_MS = 5 * 60 * 1000L
 
@@ -1065,6 +1353,9 @@ class KhatKitToolProvider(
 
         /** Hub 索引拉取超时：超时沿用旧缓存，不阻塞生成 */
         private const val INDEX_FETCH_TIMEOUT_MS = 3_000L
+
+        /** 工具授权请求限时：超时按失败开放处理，不拖慢卡片启动 */
+        private const val METERING_TIMEOUT_MS = 4_000L
     }
 }
 

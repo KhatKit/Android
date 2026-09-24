@@ -51,4 +51,32 @@
   <string name="khatkit_action_cancel">取消</string>
   <string name="khatkit_action_save">保存</string>
   <string name="khatkit_settings_saved">设置已保存，下次调用生效</string>
+  <string name="khatkit_market_publish">发布到 Hub</string>
+  <string name="khatkit_market_fork">提交改进</string>
+  <string name="khatkit_market_vote">投票</string>
+  <string name="khatkit_market_price_free">免费</string>
+  <string name="khatkit_market_price_per_call">¥%1$s/次</string>
+  <string name="khatkit_market_preferred">优选</string>
+  <string name="khatkit_market_votes">▲ %1$d</string>
+  <string name="khatkit_market_local_only_title">本机卡片（未在 Hub 上架）</string>
+  <string name="khatkit_market_local_only_badge">仅本机</string>
+  <string name="khatkit_market_need_activation">请先在「设置 → 套餐 / 激活」中激活套餐</string>
+  <string name="khatkit_market_vote_done">已投票 %1$s</string>
+  <string name="khatkit_market_vote_failed">投票失败</string>
+  <string name="khatkit_market_publish_title">发布到 Hub：%1$s</string>
+  <string name="khatkit_market_license_label">开源协议（如 MIT）</string>
+  <string name="khatkit_market_publish_price">每次调用价格（元，0 = 免费）</string>
+  <string name="khatkit_market_publish_changelog">更新说明（可选）</string>
+  <string name="khatkit_market_publish_license_confirm">我确认该卡片采用开源协议，且我有权发布到 Hub</string>
+  <string name="khatkit_market_publish_need_license_confirm">请先勾选开源协议确认</string>
+  <string name="khatkit_market_publish_invalid_price">价格格式不正确</string>
+  <string name="khatkit_market_publish_action">发布</string>
+  <string name="khatkit_market_publish_failed">发布失败</string>
+  <string name="khatkit_market_fork_title">提交改进：%1$s</string>
+  <string name="khatkit_market_fork_parent">父版本</string>
+  <string name="khatkit_market_fork_version">新版本号（需高于父版本）</string>
+  <string name="khatkit_market_fork_changelog">更新说明（必填）</string>
+  <string name="khatkit_market_fork_need_changelog">请填写更新说明</string>
+  <string name="khatkit_market_fork_action">提交</string>
+  <string name="khatkit_market_fork_failed">提交失败</string>
 </resources>

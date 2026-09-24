@@ -51,4 +51,32 @@
   <string name="khatkit_action_cancel">Cancel</string>
   <string name="khatkit_action_save">Save</string>
   <string name="khatkit_settings_saved">Settings saved, effective on the next call</string>
+  <string name="khatkit_market_publish">Publish</string>
+  <string name="khatkit_market_fork">Improve</string>
+  <string name="khatkit_market_vote">Vote</string>
+  <string name="khatkit_market_price_free">Free</string>
+  <string name="khatkit_market_price_per_call">¥%1$s/call</string>
+  <string name="khatkit_market_preferred">Preferred</string>
+  <string name="khatkit_market_votes">▲ %1$d</string>
+  <string name="khatkit_market_local_only_title">Local cards (not on Hub)</string>
+  <string name="khatkit_market_local_only_badge">local only</string>
+  <string name="khatkit_market_need_activation">Activate a package in Settings → Package / Activation first</string>
+  <string name="khatkit_market_vote_done">Voted %1$s</string>
+  <string name="khatkit_market_vote_failed">Vote failed</string>
+  <string name="khatkit_market_publish_title">Publish to Hub: %1$s</string>
+  <string name="khatkit_market_license_label">Open-source license (e.g. MIT)</string>
+  <string name="khatkit_market_publish_price">Price per call (CNY, 0 = free)</string>
+  <string name="khatkit_market_publish_changelog">Changelog (optional)</string>
+  <string name="khatkit_market_publish_license_confirm">I confirm this card is open-source licensed and I have the right to publish it</string>
+  <string name="khatkit_market_publish_need_license_confirm">Please confirm the open-source license first</string>
+  <string name="khatkit_market_publish_invalid_price">Invalid price</string>
+  <string name="khatkit_market_publish_action">Publish</string>
+  <string name="khatkit_market_publish_failed">Publish failed</string>
+  <string name="khatkit_market_fork_title">Submit improvement: %1$s</string>
+  <string name="khatkit_market_fork_parent">Parent version</string>
+  <string name="khatkit_market_fork_version">New version (must be newer)</string>
+  <string name="khatkit_market_fork_changelog">Changelog (required)</string>
+  <string name="khatkit_market_fork_need_changelog">Please fill in the changelog</string>
+  <string name="khatkit_market_fork_action">Submit</string>
+  <string name="khatkit_market_fork_failed">Submit failed</string>
 </resources>

@@ -246,6 +246,12 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text("KhatKit 卡片市场") },
                     )
                     item(
+                        onClick = { navController.navigate(Screen.SettingPackage) },
+                        leadingContent = { Icon(favorite, null) },
+                        supportingContent = { Text("激活 KhatKitHub 套餐、查看额度，并创建 AI 网关供应商") },
+                        headlineContent = { Text("套餐 / 激活") },
+                    )
+                    item(
                         onClick = { navController.navigate(Screen.SettingTriggers) },
                         leadingContent = { Icon(bolt, null) },
                         supportingContent = { Text("卡片在定时、通知、应用启动、充电时自动运行") },

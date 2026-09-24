@@ -19,6 +19,7 @@ class CardValidatorTest {
         command: String? = null,
         triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
         events: List<CardManifest.Event> = emptyList(),
+        pricing: CardManifest.Pricing? = null,
     ) = CardManifest(
         name = name,
         version = "1.2.0",
@@ -33,6 +34,7 @@ class CardValidatorTest {
         compliance = compliance,
         command = command,
         events = events,
+        pricing = pricing,
     )
 
     @Test
@@ -642,6 +644,57 @@ class CardValidatorTest {
         assertEquals("领取", parsed.events[1].textContains)
         assertEquals("com.tencent.mm", parsed.events[2].packageName)
         assertEquals("com.example.app", parsed.events[4].packageName)
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
+    fun cardWithoutPricingIsFreeAndValid() {
+        assertTrue(CardValidator.isValid(manifest()))
+    }
+
+    @Test
+    fun freePricingIsValid() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(pricing = CardManifest.Pricing(price = 0.0, currency = "CNY"))
+            )
+        )
+    }
+
+    @Test
+    fun negativePricingRejected() {
+        val issues = CardValidator.validate(
+            manifest(pricing = CardManifest.Pricing(price = -0.01))
+        )
+        assertTrue(issues.any { it.code == "PRICING_PRICE_INVALID" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun blankPricingCurrencyRejected() {
+        val issues = CardValidator.validate(
+            manifest(pricing = CardManifest.Pricing(price = 1.0, currency = " "))
+        )
+        assertTrue(issues.any { it.code == "PRICING_CURRENCY_INVALID" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun pricingJsonRoundTrip() {
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "paid_card",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": { "bridges": ["ui"] },
+              "tags": { "domain": "file", "action": "convert" },
+              "pricing": { "price": 0.2, "currency": "CNY" }
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        val pricing = parsed.pricing!!
+        assertEquals(0.2, pricing.price, 0.0001)
+        assertEquals("CNY", pricing.currency)
         assertTrue(CardValidator.isValid(parsed))
     }
 
