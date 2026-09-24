@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.hub.BuiltinCards
 import heizige.kk.khatkit.hub.CardCache
@@ -32,6 +33,7 @@ import java.io.File
  *
  * - 复用 KhatKitToolProvider 的 CardRunManager/CardExecutor（同一并发闸门与 bridge）
  * - 卡片清单来自 CardCache（与卡片市场/工具用的是同一份本地缓存）
+ * - 触发运行经过 [TriggerRunQueue] 串行排队（并发上限见 TriggerSettings.maxParallel）
  * - 脚本失败只发通知 + 日志，不抛出，绝不打断宿主
  */
 class TriggerController(
@@ -54,6 +56,11 @@ class TriggerController(
 
     val engine = TriggerEngine(
         runner = TriggerRunner { name, args -> runCard(name, args) },
+    )
+
+    private val runQueue = TriggerRunQueue(
+        capacity = QUEUE_CAPACITY,
+        maxParallel = { settings.maxParallel },
     )
 
     init {
@@ -80,17 +87,50 @@ class TriggerController(
                     maxRetries = override.maxRetries.coerceIn(0, MAX_RETRIES),
                     retryDelaySeconds = override.retryDelaySeconds.coerceIn(0, MAX_RETRY_DELAY_SECONDS),
                     baseEvents = installed.manifest.events,
+                    disabledIndexes = override.disabledEvents.filter { it >= 0 }.toSet(),
                 )
             }
             syncEngine()
+            syncExternalBindings()
         }.onFailure { Log.e(TAG, "refreshCards failed", it) }
     }
 
-    /** 总开关/单卡开关变化后调用。 */
+    /** 总开关/单卡开关/事件变化后调用；同步引擎卡片与精确闹钟。 */
     fun syncEngine() {
-        engine.updateCards(
-            _cards.value.filter { settings.isCardEnabled(it.name) && it.events.isNotEmpty() }
-        )
+        val enabled = automationCards()
+        engine.updateCards(enabled)
+        TriggerExactAlarmScheduler.schedule(appContext, enabled, settings.masterEnabled)
+    }
+
+    /** 闹钟投递后由 TriggerService 调用，重排下一次精确闹钟。 */
+    fun rescheduleExactAlarm() {
+        TriggerExactAlarmScheduler.schedule(appContext, automationCards(), settings.masterEnabled)
+    }
+
+    /** 全局并发上限（1..3），即时生效（队列每次调度都会重新读取）。 */
+    fun setMaxParallel(value: Int) {
+        settings.setMaxParallel(value)
+    }
+
+    private fun automationCards(): List<TriggerCard> =
+        _cards.value.filter { settings.isCardEnabled(it.name) && it.events.isNotEmpty() }
+
+    /** 按当前启用卡片同步桌面快捷方式与磁贴槽位（仅受单卡开关影响，不受总开关影响）。 */
+    private fun syncExternalBindings() {
+        val configured = _cards.value.filter { settings.isCardEnabled(it.name) && it.events.isNotEmpty() }
+        runCatching { TriggerShortcutPublisher.sync(appContext, configured) }
+            .onFailure { Log.e(TAG, "sync shortcuts failed", it) }
+        runCatching {
+            val tileCards = configured
+                .filter { card ->
+                    card.events.indices.any { index ->
+                        index !in card.disabledIndexes &&
+                            card.events[index].type == CardManifest.EVENT_TILE
+                    }
+                }
+                .map { it.name }
+            TriggerTileRegistry(appContext).sync(tileCards)
+        }.onFailure { Log.e(TAG, "sync tiles failed", it) }
     }
 
     /** 保存某卡片的覆盖事件与重试配置，并立即刷新引擎。 */
@@ -99,30 +139,90 @@ class TriggerController(
         refreshCardsAsync()
     }
 
+    /** 单卡开关变化后异步重同步桌面快捷方式 / 磁贴（不必重扫卡片目录）。 */
+    fun syncExternalBindingsAsync() {
+        scope.launch(Dispatchers.IO) { syncExternalBindings() }
+    }
+
     private fun runCard(name: String, args: Map<String, Any?>) {
         if (!settings.masterEnabled) return
+        submitRun(TriggerRunQueue.Item(card = name, args = args))
+    }
+
+    /**
+     * 用户主动触发（桌面快捷方式 / 快捷设置磁贴）：不受总开关影响，
+     * 但仍要求卡片已启用且声明了对应事件（未被单独停用）。
+     */
+    fun runExternal(name: String, eventType: String) {
         scope.launch(Dispatchers.IO) {
-            val startedAt = System.currentTimeMillis()
-            val outcome = executeCard(name, args)
-            logs.append(
-                TriggerLogEntry(
-                    at = startedAt,
+            if (_cards.value.none { it.name == name }) refreshCards()
+            val card = _cards.value.firstOrNull { it.name == name } ?: return@launch
+            if (!settings.isCardEnabled(name)) return@launch
+            val index = card.events.indices.firstOrNull { i ->
+                i !in card.disabledIndexes && card.events[i].type == eventType
+            } ?: return@launch
+            val label = card.events[index].name.ifBlank { card.name }
+            submitRun(
+                TriggerRunQueue.Item(
                     card = name,
-                    type = eventTypeOf(args),
-                    payload = briefPayload(args),
-                    ok = outcome.ok,
-                    message = outcome.message.maybeTruncate(),
+                    args = TriggerEngine.eventArgs(type = eventType, name = label),
+                    external = true,
                 )
             )
-            val retryQueued = engine.reportRunResult(name, args, outcome.ok)
-            if (outcome.ok) {
-                Log.i(TAG, "card executed: $name args=${args.keys}")
-            } else if (!retryQueued) {
-                // 重试次数已用尽（或未配置重试）：最终失败才通知用户
-                notifyFailure(name, outcome.message)
-            } else {
-                Log.w(TAG, "card failed, retry queued: $name: ${outcome.message}")
+        }
+    }
+
+    /** 提交到串行队列；队列满时丢弃最旧任务并写日志。 */
+    private fun submitRun(item: TriggerRunQueue.Item) {
+        val batch = runQueue.submit(item)
+        batch.dropped?.let { dropped ->
+            logs.append(
+                TriggerLogEntry(
+                    at = System.currentTimeMillis(),
+                    card = dropped.card,
+                    type = eventTypeOf(dropped.args),
+                    payload = briefPayload(dropped.args),
+                    ok = false,
+                    message = "触发队列已满，丢弃最早排队任务".maybeTruncate(),
+                )
+            )
+        }
+        batch.starts.forEach(::launchRun)
+    }
+
+    private fun launchRun(item: TriggerRunQueue.Item) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                executeAndLog(item)
+            } finally {
+                runQueue.complete().forEach(::launchRun)
             }
+        }
+    }
+
+    private suspend fun executeAndLog(item: TriggerRunQueue.Item) {
+        // 排队期间总开关被关闭：自动触发直接放弃（用户主动触发继续）
+        if (!item.external && !settings.masterEnabled) return
+        val startedAt = System.currentTimeMillis()
+        val outcome = executeCard(item.card, item.args)
+        logs.append(
+            TriggerLogEntry(
+                at = startedAt,
+                card = item.card,
+                type = eventTypeOf(item.args),
+                payload = briefPayload(item.args),
+                ok = outcome.ok,
+                message = outcome.message.maybeTruncate(),
+            )
+        )
+        val retryQueued = engine.reportRunResult(item.card, item.args, outcome.ok)
+        if (outcome.ok) {
+            Log.i(TAG, "card executed: ${item.card} args=${item.args.keys}")
+        } else if (!retryQueued) {
+            // 重试次数已用尽（或未配置重试）：最终失败才通知用户
+            notifyFailure(item.card, outcome.message)
+        } else {
+            Log.w(TAG, "card failed, retry queued: ${item.card}: ${outcome.message}")
         }
     }
 
@@ -195,6 +295,7 @@ class TriggerController(
         private const val MAX_RETRIES = 3
         private const val MAX_RETRY_DELAY_SECONDS = 3600
         private const val MAX_MESSAGE_LENGTH = 200
+        private const val QUEUE_CAPACITY = 10
 
         /** 幂等创建通知渠道；前台服务 startForeground 前必须先有渠道。 */
         fun ensureChannel(context: Context) {

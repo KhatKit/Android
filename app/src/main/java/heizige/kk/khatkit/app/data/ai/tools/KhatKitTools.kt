@@ -1,15 +1,19 @@
 package heizige.kk.khatkit.app.data.ai.tools
 
+import android.app.KeyguardManager
 import android.content.Context
+import android.os.PowerManager
 import androidx.compose.runtime.mutableStateOf
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import heizige.kk.khatkit.bridge.AccessibilityBridge
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AndroidToolBridge
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
+import heizige.kk.khatkit.app.automation.ApprovalCategory
 import heizige.kk.khatkit.app.automation.AutomationBus
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineResult
@@ -31,6 +35,7 @@ import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -278,7 +283,8 @@ class KhatKitToolProvider(
         }
         AutomationBus.begin()
         AutomationBus.update("正在运行卡片：${card.manifest.name}")
-        if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger")) {
+        val category = cardApprovalCategory(card)
+        if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger", category)) {
             AutomationBus.finish()
             return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
         }
@@ -287,6 +293,19 @@ class KhatKitToolProvider(
         } finally {
             AutomationBus.finish()
         }
+    }
+
+    /**
+     * 卡片运行的审批类别：声明 elevated、依赖 shizuku/root bridge 或 command 引擎的卡片
+     * 会走 shell 执行，归为 [ApprovalCategory.SHELL_ROOT]；其余为普通卡片运行。
+     * 脚本内部更细粒度的文件 / 应用操作不在卡片运行层区分（由触发子系统后续补充）。
+     */
+    private fun cardApprovalCategory(card: LoadedCard): ApprovalCategory {
+        val manifest = card.manifest
+        val shell = manifest.isCommand ||
+            manifest.privilege == "elevated" ||
+            manifest.requiredBridges.any { it == "root" || it == "shizuku" }
+        return if (shell) ApprovalCategory.SHELL_ROOT else ApprovalCategory.CARD_RUN
     }
 
     suspend fun tools(): List<Tool> = withContext(Dispatchers.IO) {
@@ -433,9 +452,16 @@ class KhatKitToolProvider(
             "swipe（坐标滑动）、press（坐标长按，duration_ms 默认 600）、set_text（写入 id 指定或首个可编辑输入框）、" +
             "back / home / recents / notifications（系统全局动作）、open_app（包名用 text 传）、" +
             "wait_text（等待文本出现，timeout_ms 默认 5000；找到会返回节点 bounds/centerX/centerY 的 JSON，可据此 tap）、" +
+            "wake（点亮屏幕）、screen_state（返回屏幕是否点亮/锁定）、" +
+            "unlock（root/Shizuku 下执行 KEYCODE_WAKEUP + 上滑解锁；安全锁屏无法绕过，会返回中文说明）、" +
             "overlay_hide（临时隐藏自动化悬浮看板，duration_ms 默认 5000、范围 1000..30000，到时自动恢复；" +
             "用户授权请求会强制重新显示看板，且 update/新步骤不会提前恢复）、" +
             "overlay_show（立即恢复看板显示）。" +
+            "自动重试：click_text / click_id / set_text 首次未找到目标时会等待约 400ms 再试（最多重试 2 次，共 3 次尝试）；" +
+            "wait_text 保持自身超时等待语义，超时预算按 3 次尝试均分。仍失败时返回当前窗口按文本相似度排序的候选节点" +
+            "（最多 5 条，含类名/bounds/中心坐标/edit 标记），可据此改用 click_id 或 tap 坐标。" +
+            "熄屏保护：tap / swipe / press / click_text / click_id / set_text 执行前若屏幕熄灭，会自动调用 wakeScreen 点亮并重试一次，" +
+            "仍失败则返回中文错误。wake / unlock / 触屏动作需要用户授权（ui_action 类别）；screen_state 与 " +
             "overlay_hide / overlay_show 不操作屏幕，无需用户授权。",
         parameters = {
             InputSchema.Obj(
@@ -448,6 +474,7 @@ class KhatKitToolProvider(
                                 listOf(
                                     "click_text", "click_id", "tap", "swipe", "press", "set_text",
                                     "back", "home", "recents", "notifications", "open_app", "wait_text",
+                                    "wake", "screen_state", "unlock",
                                     "overlay_hide", "overlay_show",
                                 ).map { JsonPrimitive(it) }
                             )
@@ -537,7 +564,7 @@ class KhatKitToolProvider(
         if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
         val action = params.str("action")?.lowercase()
             ?: return "缺少参数：action"
-        // 看板显隐不操作屏幕：不需要无障碍服务，也不走授权请求
+        // 看板显隐不操作屏幕：不需要无障碍服务，也不走授权请求；screen_state 只读同理
         when (action) {
             "overlay_hide" -> {
                 val duration = (params.long("duration_ms") ?: AutomationBus.DEFAULT_OVERLAY_HIDE_MS)
@@ -550,24 +577,53 @@ class KhatKitToolProvider(
                 AutomationBus.showOverlay()
                 return "看板已恢复显示"
             }
+
+            "screen_state" -> return screenStateJson()
+        }
+        // wake / unlock 走 tool / root / shizuku bridge，不依赖无障碍服务，但仍是设备动作走 ui_action 授权
+        if (action == "wake" || action == "unlock") {
+            AutomationBus.update(deviceActLabel(action, params))
+            if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params), ApprovalCategory.UI_ACTION)) {
+                return "用户拒绝授权，已取消操作：$action"
+            }
+            return if (action == "wake") wakeScreenAction() else unlockScreenAction()
         }
         val bridge = AccessibilityBridgeHolder.current()
             ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
         AutomationBus.update(deviceActLabel(action, params))
-        if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params))) {
+        val category = if (action == "open_app") {
+            ApprovalCategory.APP_MANAGE
+        } else {
+            ApprovalCategory.UI_ACTION
+        }
+        if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params), category)) {
             // 会话中步骤：拒绝只取消本步，不结束整个自动化会话
             return "用户拒绝授权，已取消操作：$action"
+        }
+        // 触屏 / 手势动作前确保屏幕点亮：熄灭时先唤醒一次，仍失败返回中文错误
+        if (action in TOUCH_ACTIONS) {
+            ensureScreenInteractive()?.let { return it }
         }
         val result = runCatching {
             when (action) {
                 "click_text" -> {
                     val text = params.str("text") ?: return@runCatching "缺少参数：text"
-                    if (bridge.click(mapOf("text" to text))) "已点击：$text" else "未找到：$text"
+                    val found = retryFind { if (bridge.click(mapOf("text" to text))) true else null }
+                    if (found.value == true) {
+                        "已点击：$text（第 ${found.attempts} 次尝试成功）"
+                    } else {
+                        "未找到：$text（已尝试 ${found.attempts} 次）" + findAlternativesSuffix(bridge, text)
+                    }
                 }
 
                 "click_id" -> {
                     val id = params.str("id") ?: return@runCatching "缺少参数：id"
-                    if (bridge.click(mapOf("viewId" to id))) "已点击：$id" else "未找到：$id"
+                    val found = retryFind { if (bridge.click(mapOf("viewId" to id))) true else null }
+                    if (found.value == true) {
+                        "已点击：$id（第 ${found.attempts} 次尝试成功）"
+                    } else {
+                        "未找到：$id（已尝试 ${found.attempts} 次）" + findAlternativesSuffix(bridge, id)
+                    }
                 }
 
                 "tap" -> {
@@ -594,10 +650,18 @@ class KhatKitToolProvider(
 
                 "set_text" -> {
                     val text = params.str("text") ?: return@runCatching "缺少参数：text"
-                    val query = params.str("id")
+                    val id = params.str("id")
+                    val query = id
                         ?.let { mapOf<String, Any?>("viewId" to it) }
                         ?: mapOf<String, Any?>("editable" to true)
-                    if (bridge.setText(query, text)) "已输入：$text" else "未找到输入框：$text"
+                    val target = id ?: "首个可编辑输入框"
+                    val found = retryFind { if (bridge.setText(query, text)) true else null }
+                    if (found.value == true) {
+                        "已输入：$text（目标：$target，第 ${found.attempts} 次尝试成功）"
+                    } else {
+                        "未找到输入框：$target（已尝试 ${found.attempts} 次）" +
+                            findAlternativesSuffix(bridge, id ?: text)
+                    }
                 }
 
                 "back", "home", "recents", "notifications" ->
@@ -612,9 +676,13 @@ class KhatKitToolProvider(
                 "wait_text" -> {
                     val text = params.str("text") ?: return@runCatching "缺少参数：text"
                     val timeout = (params.long("timeout_ms") ?: 5_000L).coerceIn(0L, 120_000L)
-                    val node = bridge.waitForNode(mapOf("text" to text), timeout)
+                    // 保持自身超时语义：总等待预算按尝试次数均分，重试间隔（400ms）另计
+                    val slice = timeout / FIND_ATTEMPTS
+                    val found = retryFind { bridge.waitForNode(mapOf("text" to text), slice) }
+                    val node = found.value
                     if (node == null) {
-                        "未找到：$text（等待 ${timeout}ms 超时）"
+                        "未找到：$text（等待 ${timeout}ms 超时，已尝试 ${found.attempts} 次）" +
+                            findAlternativesSuffix(bridge, text)
                     } else {
                         buildJsonObject {
                             put("found", true)
@@ -632,6 +700,94 @@ class KhatKitToolProvider(
         // 会话中步骤：本步结束只保留看板状态，整段 AI 工具序列由看板空闲判定结束
         return result
     }
+
+    /** 熄屏保护：屏幕熄灭时调用工具 bridge 唤醒并等待一次；仍熄灭返回中文错误。 */
+    private suspend fun ensureScreenInteractive(): String? {
+        if (isScreenInteractive()) return null
+        runCatching { ocrBridge.wakeScreen() }
+        delay(WAKE_RETRY_DELAY_MS)
+        return if (isScreenInteractive()) {
+            null
+        } else {
+            "屏幕处于熄灭状态，尝试唤醒后仍未点亮，已取消操作。" +
+                "请检查 KhatKit 的 WAKE_LOCK 权限，或先用 unlock 动作解锁设备。"
+        }
+    }
+
+    /** wake 动作：调用工具 bridge 点亮屏幕，返回唤醒结果与最新屏幕状态。 */
+    private suspend fun wakeScreenAction(): String {
+        val result = runCatching { ocrBridge.wakeScreen() }
+            .getOrElse { "点亮屏幕失败：${it.message ?: it.javaClass.simpleName}" }
+        delay(WAKE_RETRY_DELAY_MS)
+        return "$result；${screenStateJson()}"
+    }
+
+    /**
+     * unlock 动作：设备锁定时优先 root shell、其次 Shizuku shell，执行
+     * KEYCODE_WAKEUP + 上滑（`input swipe 540 1800 540 600`）解除普通锁屏；
+     * 安全锁屏（PIN / 密码 / 图案）无法用 input 绕过，返回中文说明。
+     */
+    private suspend fun unlockScreenAction(): String {
+        if (!keyguardLocked()) return "设备当前未锁定，无需解锁；${screenStateJson()}"
+        val root = executor().bridges.rootBridge()
+        val shizuku = executor().bridges.shizukuBridge()
+        val runner = when {
+            root != null -> "root" to { cmd: String -> root.shell(cmd) }
+            shizuku != null -> "shizuku" to { cmd: String -> shizuku.shell(cmd) }
+            else -> null
+        } ?: return "设备已锁定，但未开启 root / Shizuku，无法通过 shell 唤醒并上滑解锁。" +
+            "请在 KhatKit 设置中开启 Shizuku 或 root 后重试，或手动解锁屏幕。"
+        val (name, shell) = runner
+        runCatching { shell("input keyevent KEYCODE_WAKEUP") }
+        delay(UNLOCK_STEP_DELAY_MS)
+        val swipe = runCatching { shell("input swipe 540 1800 540 600") }
+        delay(UNLOCK_STEP_DELAY_MS)
+        return when {
+            !keyguardLocked() ->
+                "已通过 $name 执行 KEYCODE_WAKEUP + 上滑解锁，当前设备已解锁；${screenStateJson()}"
+
+            keyguardSecure() ->
+                "设备仍处于安全锁屏（已设置 PIN / 密码 / 图案），$name 的 input 命令无法绕过安全锁。" +
+                    "请手动输入密码解锁；如需自动解锁，需先在系统设置中关闭锁屏密码。"
+
+            else -> "已通过 $name 执行 KEYCODE_WAKEUP + 上滑（$swipe），但设备仍显示锁屏，" +
+                "可能被系统安全策略拦截，请手动解锁。"
+        }
+    }
+
+    /** 屏幕 / 锁屏状态（JSON，含中文描述）。 */
+    private fun screenStateJson(): String {
+        val interactive = isScreenInteractive()
+        val locked = keyguardLocked()
+        val secure = keyguardSecure()
+        val text = when {
+            !interactive -> "屏幕已熄灭"
+            locked && secure -> "屏幕已点亮，处于安全锁屏（需要 PIN / 密码 / 图案）"
+            locked -> "屏幕已点亮，处于锁屏但未设置安全密码"
+            else -> "屏幕已点亮，未锁定"
+        }
+        return buildJsonObject {
+            put("interactive", interactive)
+            put("locked", locked)
+            put("secure", secure)
+            put("text", text)
+        }.toString()
+    }
+
+    private fun powerManager(): PowerManager? =
+        runCatching { appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager }.getOrNull()
+
+    private fun keyguardManager(): KeyguardManager? =
+        runCatching { appContext.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager }.getOrNull()
+
+    private fun isScreenInteractive(): Boolean =
+        runCatching { powerManager()?.isInteractive ?: true }.getOrDefault(true)
+
+    private fun keyguardLocked(): Boolean =
+        runCatching { keyguardManager()?.isKeyguardLocked == true }.getOrDefault(false)
+
+    private fun keyguardSecure(): Boolean =
+        runCatching { keyguardManager()?.isDeviceSecure == true }.getOrDefault(false)
 
     /** 授权请求里展示的动作摘要：动作 + 文本 / id / 坐标。 */
     private fun deviceActApprovalDetail(action: String, params: Map<String, Any?>): String {
@@ -670,6 +826,9 @@ class KhatKitToolProvider(
         "notifications" -> "正在打开通知栏"
         "open_app" -> "正在打开应用「${params.str("text") ?: params.str("id").orEmpty()}」"
         "wait_text" -> "正在等待「${params.str("text").orEmpty()}」出现"
+        "wake" -> "正在点亮屏幕"
+        "screen_state" -> "正在读取屏幕状态"
+        "unlock" -> "正在尝试解锁屏幕"
         else -> "正在执行：$action"
     }
 
@@ -818,6 +977,140 @@ class KhatKitToolProvider(
 /** 屏幕工具输出上限：OCR 行数 / 节点行数 / 单行字符数 */
 private const val SCREEN_LINE_LIMIT = 120
 private const val SCREEN_LINE_MAX = 300
+
+/** device_act 触屏 / 手势动作（执行前需确认屏幕点亮） */
+private val TOUCH_ACTIONS = setOf("click_text", "click_id", "tap", "swipe", "press", "set_text")
+
+/** 查找失败重试：等待 400ms，最多 2 次（共 3 次尝试） */
+private const val FIND_MAX_RETRIES = 2
+private const val FIND_RETRY_DELAY_MS = 400L
+private const val FIND_ATTEMPTS = FIND_MAX_RETRIES + 1
+
+/** 唤醒屏幕后的等待 / unlock 两步 shell 之间的等待 */
+private const val WAKE_RETRY_DELAY_MS = 400L
+private const val UNLOCK_STEP_DELAY_MS = 350L
+
+/** 相似候选节点输出上限（条数与总字符数） */
+private const val ALTERNATIVE_LIMIT = 5
+private const val ALTERNATIVE_MAX_CHARS = 1200
+
+/** 查找结果：value 为 null 表示最终未找到，attempts 为总尝试次数。 */
+private data class FindAttempt<T>(val value: T?, val attempts: Int)
+
+/**
+ * 首次失败后等待约 400ms 重试，最多 [FIND_MAX_RETRIES] 次。
+ * click_text / click_id / set_text / wait_text 的「找不到就重试」共用。
+ */
+private suspend fun <T : Any> retryFind(
+    maxRetries: Int = FIND_MAX_RETRIES,
+    delayMs: Long = FIND_RETRY_DELAY_MS,
+    find: suspend () -> T?,
+): FindAttempt<T> {
+    var value = find()
+    var attempts = 1
+    while (value == null && attempts <= maxRetries) {
+        delay(delayMs)
+        value = find()
+        attempts++
+    }
+    return FindAttempt(value, attempts)
+}
+
+/** 找不到目标时从当前窗口挑相似节点给模型纠偏；无候选返回中文说明。 */
+private fun findAlternativesSuffix(bridge: AccessibilityBridge, query: String): String {
+    val nodes = runCatching { bridge.dumpWindow() }.getOrDefault(emptyList())
+    val hint = buildFindAlternatives(nodes, query)
+        ?: return "\n（当前窗口没有可参考的相近节点，可先用 device_screen 查看屏幕）"
+    return "\n相近候选（可改用 click_id 或 tap 坐标）：\n$hint"
+}
+
+/** 候选节点排序依据：命中查询优先，其次文本更短、相似度更高。 */
+private data class ScoredNode(
+    val node: Map<String, Any?>,
+    val contains: Boolean,
+    val similarity: Double,
+    val length: Int,
+)
+
+/** 从当前窗口节点里取与 query 最相近的 top 5，格式化为中文多行提示；无候选返回 null。 */
+private fun buildFindAlternatives(nodes: List<Map<String, Any?>>, query: String): String? {
+    val q = query.trim().lowercase()
+    if (q.isEmpty()) return null
+    val scored = nodes.mapNotNull { node ->
+        val text = node["text"]?.toString()?.trim().orEmpty()
+        val desc = node["desc"]?.toString()?.trim().orEmpty()
+        val viewId = node["viewId"]?.toString()?.substringAfterLast('/').orEmpty()
+        if (text.isBlank() && desc.isBlank() && viewId.isBlank()) return@mapNotNull null
+        val hay = listOf(text, desc, viewId).joinToString(" ").lowercase()
+        ScoredNode(
+            node = node,
+            contains = hay.contains(q),
+            similarity = maxOf(
+                textSimilarity(text.lowercase(), q),
+                textSimilarity(desc.lowercase(), q),
+                textSimilarity(viewId.lowercase(), q),
+            ),
+            length = text.ifBlank { desc.ifBlank { viewId } }.length,
+        )
+    }.sortedWith(
+        compareByDescending<ScoredNode> { it.contains }
+            .thenBy { it.length }
+            .thenByDescending { it.similarity }
+    )
+    if (scored.isEmpty()) return null
+    val lines = scored.take(ALTERNATIVE_LIMIT).mapIndexedNotNull { index, item ->
+        formatAlternativeNode(index + 1, item.node)
+    }
+    if (lines.isEmpty()) return null
+    return lines.joinToString("\n").take(ALTERNATIVE_MAX_CHARS)
+}
+
+/** 候选行：`序号. 文本/描述 [类名] (bounds) @中心X,中心Y click,edit`。 */
+private fun formatAlternativeNode(index: Int, node: Map<String, Any?>): String? {
+    val text = node["text"]?.toString()?.trim().orEmpty()
+    val desc = node["desc"]?.toString()?.trim().orEmpty()
+    val viewId = node["viewId"]?.toString()?.substringAfterLast('/').orEmpty()
+    val label = when {
+        text.isNotBlank() && desc.isNotBlank() && desc != text -> "$text | $desc"
+        text.isNotBlank() -> text
+        desc.isNotBlank() -> desc
+        viewId.isNotBlank() -> viewId
+        else -> return null
+    }
+    val className = node["className"]?.toString()?.substringAfterLast('.')
+        ?.takeIf { it.isNotBlank() } ?: "?"
+    val bounds = node["bounds"]?.toString().orEmpty()
+    val centerX = (node["centerX"] as? Number)?.toInt()
+    val centerY = (node["centerY"] as? Number)?.toInt()
+    val flags = buildList {
+        if (node["clickable"] == true) add("click")
+        if (node["editable"] == true) add("edit")
+    }
+    return buildString {
+        append(index).append(". ").append(label)
+        append(" [").append(className).append(']')
+        if (bounds.isNotBlank()) append(" (").append(bounds).append(')')
+        if (centerX != null && centerY != null) append(" @").append(centerX).append(',').append(centerY)
+        if (flags.isNotEmpty()) append(' ').append(flags.joinToString(","))
+    }.take(SCREEN_LINE_MAX)
+}
+
+/** 简单文本相似度：相等 1.0，否则按二元组 Jaccard 计算（单字符退化为字符集合）。 */
+private fun textSimilarity(a: String, b: String): Double {
+    if (a.isEmpty() || b.isEmpty()) return 0.0
+    if (a == b) return 1.0
+    if (a.length < 2 || b.length < 2) {
+        val ac = a.toSet()
+        val bc = b.toSet()
+        val union = ac.union(bc).size
+        return if (union == 0) 0.0 else ac.intersect(bc).size.toDouble() / union
+    }
+    val ab = a.windowed(2).toSet()
+    val bb = b.windowed(2).toSet()
+    val inter = ab.count { it in bb }
+    val union = ab.size + bb.size - inter
+    return if (union == 0) 0.0 else inter.toDouble() / union
+}
 
 private fun formatScreenNode(node: Map<String, Any?>): String? {
     val text = node["text"]?.toString()?.takeIf { it.isNotBlank() }

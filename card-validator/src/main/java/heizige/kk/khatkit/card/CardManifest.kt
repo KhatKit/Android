@@ -82,6 +82,9 @@ data class CardManifest(
      * - schedule：`times`（HH:mm 列表）或 `intervalMinutes`（间隔分钟）二选一，`days` 限定星期
      * - notification：`package` / `titleContains` / `textContains` 任意组合（空 = 不限制）
      * - app_launch：`package` 为空表示任意应用进入前台
+     * - app_exit：`package`（必填）离开前台时触发
+     * - shortcut：`name`（必填）在桌面创建动态快捷方式，点击即运行卡片
+     * - tile：`name`（必填）注册到快捷设置磁贴槽位，点击磁贴运行卡片
      * - charging：`state` 为 connected | disconnected
      * - wifi：`ssid`（可选，空 = 任意热点）、`state` connected | disconnected（可选，空 = 任意变化）
      * - network：`state` online | offline（网络通断）
@@ -93,7 +96,7 @@ data class CardManifest(
      */
     @Serializable
     data class Event(
-        /** schedule | notification | app_launch | charging | wifi | network | battery | screen | clipboard | bluetooth | location */
+        /** schedule | notification | app_launch | app_exit | charging | wifi | network | battery | screen | clipboard | bluetooth | location | shortcut | tile */
         val type: String,
         /** schedule：["08:00","21:30"] */
         val times: List<String> = emptyList(),
@@ -101,8 +104,10 @@ data class CardManifest(
         val intervalMinutes: Int = 0,
         /** schedule：1=周一 .. 7=周日，空 = 每天 */
         val days: List<Int> = emptyList(),
-        /** notification / app_launch 的包名（空 = 任意），JSON 字段名为 package */
+        /** notification / app_launch / app_exit 的包名（空 = 任意；app_exit 必填），JSON 字段名为 package */
         @SerialName("package") val packageName: String = "",
+        /** shortcut / tile：快捷方式或磁贴的显示名称（必填） */
+        val name: String = "",
         /** notification：标题包含 */
         val titleContains: String = "",
         /** notification：正文包含；clipboard：新剪贴板文本包含（兼容 text_contains 写法） */
@@ -169,6 +174,7 @@ data class CardManifest(
         const val EVENT_SCHEDULE = "schedule"
         const val EVENT_NOTIFICATION = "notification"
         const val EVENT_APP_LAUNCH = "app_launch"
+        const val EVENT_APP_EXIT = "app_exit"
         const val EVENT_CHARGING = "charging"
         const val EVENT_WIFI = "wifi"
         const val EVENT_NETWORK = "network"
@@ -177,10 +183,13 @@ data class CardManifest(
         const val EVENT_CLIPBOARD = "clipboard"
         const val EVENT_BLUETOOTH = "bluetooth"
         const val EVENT_LOCATION = "location"
+        const val EVENT_SHORTCUT = "shortcut"
+        const val EVENT_TILE = "tile"
         val ALL_EVENT_TYPES = setOf(
             EVENT_SCHEDULE,
             EVENT_NOTIFICATION,
             EVENT_APP_LAUNCH,
+            EVENT_APP_EXIT,
             EVENT_CHARGING,
             EVENT_WIFI,
             EVENT_NETWORK,
@@ -189,6 +198,8 @@ data class CardManifest(
             EVENT_CLIPBOARD,
             EVENT_BLUETOOTH,
             EVENT_LOCATION,
+            EVENT_SHORTCUT,
+            EVENT_TILE,
         )
 
         /** 通断类状态（charging / wifi / bluetooth 共用） */

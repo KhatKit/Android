@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,11 +33,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.service.CardTriggerOverride
 import heizige.kk.khatkit.app.service.TriggerController
+import heizige.kk.khatkit.app.service.TriggerTilePublisher
 import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.editNote
@@ -59,6 +62,9 @@ internal fun TriggerCardEditorSheet(
     val events = remember(card.name) {
         (override.events ?: card.events).toMutableStateList()
     }
+    val disabledIndexes = remember(card.name) {
+        override.disabledEvents.filter { it >= 0 }.toMutableStateList()
+    }
     var maxRetries by remember(card.name) { mutableStateOf(override.maxRetries.coerceIn(0, 3)) }
     var retryDelay by remember(card.name) {
         mutableStateOf(override.retryDelaySeconds.coerceAtLeast(0).toString())
@@ -68,6 +74,24 @@ internal fun TriggerCardEditorSheet(
     var errorText by remember(card.name) { mutableStateOf<String?>(null) }
     val dismissHolder = remember { mutableStateOf<(() -> Unit)?>(null) }
 
+    fun toggleEventEnabled(index: Int, enabled: Boolean) {
+        if (enabled) {
+            disabledIndexes.remove(index)
+        } else if (index !in disabledIndexes) {
+            disabledIndexes.add(index)
+        }
+    }
+
+    fun removeEvent(index: Int) {
+        events.removeAt(index)
+        val shifted = disabledIndexes
+            .filter { it != index }
+            .map { if (it > index) it - 1 else it }
+        disabledIndexes.clear()
+        disabledIndexes.addAll(shifted)
+        expandedIndex = null
+    }
+
     fun save() {
         val invalid = events.indexOfFirst { validateEvent(it) != null }
         if (invalid >= 0) {
@@ -76,12 +100,15 @@ internal fun TriggerCardEditorSheet(
             return
         }
         val delay = retryDelay.toIntOrNull()?.coerceIn(0, 3600) ?: 0
+        val disabled = disabledIndexes.distinct().sorted()
         val merged = CardTriggerOverride(
             events = events.toList(),
             maxRetries = maxRetries,
             retryDelaySeconds = delay,
+            disabledEvents = disabled,
         )
-        val unchanged = events.toList() == card.baseEvents && maxRetries == 0 && delay == 0
+        val unchanged = events.toList() == card.baseEvents && maxRetries == 0 && delay == 0 &&
+            disabled.isEmpty()
         onSave(if (unchanged) CardTriggerOverride.NONE else merged)
         dismissHolder.value?.invoke()
     }
@@ -152,14 +179,14 @@ internal fun TriggerCardEditorSheet(
             events.forEachIndexed { index, event ->
                 key(index, event.type) {
                     EventCard(
+                        cardName = card.name,
                         event = event,
+                        enabled = index !in disabledIndexes,
                         expanded = expandedIndex == index,
+                        onToggleEnabled = { toggleEventEnabled(index, it) },
                         onToggle = { expandedIndex = if (expandedIndex == index) null else index },
                         onChange = { events[index] = it },
-                        onRemove = {
-                            events.removeAt(index)
-                            expandedIndex = null
-                        },
+                        onRemove = { removeEvent(index) },
                     )
                 }
             }
@@ -200,6 +227,7 @@ internal fun TriggerCardEditorSheet(
                 onClick = {
                     events.clear()
                     events.addAll(card.baseEvents)
+                    disabledIndexes.clear()
                     maxRetries = 0
                     retryDelay = "0"
                     errorText = null
@@ -213,8 +241,11 @@ internal fun TriggerCardEditorSheet(
 
 @Composable
 private fun EventCard(
+    cardName: String,
     event: CardManifest.Event,
+    enabled: Boolean,
     expanded: Boolean,
+    onToggleEnabled: (Boolean) -> Unit,
     onToggle: () -> Unit,
     onChange: (CardManifest.Event) -> Unit,
     onRemove: () -> Unit,
@@ -228,13 +259,18 @@ private fun EventCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggle() }
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = eventTypeLabel(event.type),
+                    text = eventTypeLabel(event.type) + if (enabled) "" else "（已停用）",
                     style = MaterialTheme.typography.titleSmall,
+                    color = if (enabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
                 Text(
                     text = eventSummary(event),
@@ -242,6 +278,10 @@ private fun EventCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onToggleEnabled,
+            )
             IconButton(onClick = onRemove) {
                 Icon(delete, contentDescription = "删除事件", modifier = Modifier.size(18.dp))
             }
@@ -253,13 +293,17 @@ private fun EventCard(
             )
         }
         AnimatedVisibility(visible = expanded) {
-            EventFields(event = event, onChange = onChange)
+            EventFields(cardName = cardName, event = event, onChange = onChange)
         }
     }
 }
 
 @Composable
-private fun EventFields(event: CardManifest.Event, onChange: (CardManifest.Event) -> Unit) {
+private fun EventFields(
+    cardName: String,
+    event: CardManifest.Event,
+    onChange: (CardManifest.Event) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -341,6 +385,60 @@ private fun EventFields(event: CardManifest.Event, onChange: (CardManifest.Event
                     value = event.packageName,
                     onValueChange = { onChange(event.copy(packageName = it.trim())) },
                 )
+            }
+
+            CardManifest.EVENT_APP_EXIT -> {
+                TextStateField(
+                    label = "应用包名（必填）",
+                    value = event.packageName,
+                    onValueChange = { onChange(event.copy(packageName = it.trim())) },
+                    placeholder = "com.tencent.mm",
+                )
+                Text(
+                    text = "该应用离开前台约 2 秒后触发（回到前台则取消）。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            CardManifest.EVENT_SHORTCUT -> {
+                TextStateField(
+                    label = "快捷方式名称（必填）",
+                    value = event.name,
+                    onValueChange = { onChange(event.copy(name = it)) },
+                    placeholder = "一键签到",
+                )
+                Text(
+                    text = "保存后出现在启动器长按图标的快捷方式列表里，点击即运行卡片。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            CardManifest.EVENT_TILE -> {
+                TextStateField(
+                    label = "磁贴名称（必填）",
+                    value = event.name,
+                    onValueChange = { onChange(event.copy(name = it)) },
+                    placeholder = "快速记账",
+                )
+                Text(
+                    text = "每个磁贴占用一个槽位（最多 3 个）。保存后点击下方按钮，在系统快捷设置里添加。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                val context = LocalContext.current
+                TextButton(
+                    onClick = {
+                        TriggerTilePublisher.requestAdd(
+                            context = context,
+                            card = cardName,
+                            label = event.name.ifBlank { cardName },
+                        )
+                    },
+                ) {
+                    Text("添加到快捷设置")
+                }
             }
 
             CardManifest.EVENT_CHARGING -> {
@@ -559,6 +657,7 @@ internal fun eventTypeLabel(type: String): String = when (type) {
     CardManifest.EVENT_SCHEDULE -> "定时"
     CardManifest.EVENT_NOTIFICATION -> "通知"
     CardManifest.EVENT_APP_LAUNCH -> "应用启动"
+    CardManifest.EVENT_APP_EXIT -> "应用退出"
     CardManifest.EVENT_CHARGING -> "充电"
     CardManifest.EVENT_WIFI -> "Wi-Fi"
     CardManifest.EVENT_NETWORK -> "网络"
@@ -567,6 +666,8 @@ internal fun eventTypeLabel(type: String): String = when (type) {
     CardManifest.EVENT_CLIPBOARD -> "剪贴板"
     CardManifest.EVENT_BLUETOOTH -> "蓝牙"
     CardManifest.EVENT_LOCATION -> "位置"
+    CardManifest.EVENT_SHORTCUT -> "桌面快捷方式"
+    CardManifest.EVENT_TILE -> "快捷设置磁贴"
     else -> type
 }
 
@@ -574,6 +675,7 @@ internal fun defaultEventFor(type: String): CardManifest.Event = when (type) {
     CardManifest.EVENT_SCHEDULE -> CardManifest.Event(type = type, times = listOf("08:00"))
     CardManifest.EVENT_NOTIFICATION -> CardManifest.Event(type = type)
     CardManifest.EVENT_APP_LAUNCH -> CardManifest.Event(type = type)
+    CardManifest.EVENT_APP_EXIT -> CardManifest.Event(type = type)
     CardManifest.EVENT_CHARGING -> CardManifest.Event(type = type, state = CardManifest.STATE_CONNECTED)
     CardManifest.EVENT_WIFI -> CardManifest.Event(type = type)
     CardManifest.EVENT_NETWORK -> CardManifest.Event(type = type, state = CardManifest.NETWORK_OFFLINE)
@@ -596,6 +698,7 @@ internal val ALL_EVENT_TYPES = listOf(
     CardManifest.EVENT_SCHEDULE,
     CardManifest.EVENT_NOTIFICATION,
     CardManifest.EVENT_APP_LAUNCH,
+    CardManifest.EVENT_APP_EXIT,
     CardManifest.EVENT_CHARGING,
     CardManifest.EVENT_WIFI,
     CardManifest.EVENT_NETWORK,
@@ -604,6 +707,8 @@ internal val ALL_EVENT_TYPES = listOf(
     CardManifest.EVENT_CLIPBOARD,
     CardManifest.EVENT_BLUETOOTH,
     CardManifest.EVENT_LOCATION,
+    CardManifest.EVENT_SHORTCUT,
+    CardManifest.EVENT_TILE,
 )
 
 private val TIME_REGEX = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
@@ -620,6 +725,15 @@ internal fun validateEvent(event: CardManifest.Event): String? = when (event.typ
         if (event.packageName.isBlank() && event.titleContains.isBlank() && event.textContains.isBlank()) {
             "至少填写包名 / 标题 / 正文之一"
         } else null
+
+    CardManifest.EVENT_APP_EXIT ->
+        if (event.packageName.isBlank()) "需要填写应用包名" else null
+
+    CardManifest.EVENT_SHORTCUT ->
+        if (event.name.isBlank()) "需要填写快捷方式名称" else null
+
+    CardManifest.EVENT_TILE ->
+        if (event.name.isBlank()) "需要填写磁贴名称" else null
 
     CardManifest.EVENT_CLIPBOARD ->
         if (event.textContains.isBlank()) "需要填写匹配文本" else null

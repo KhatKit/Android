@@ -1,8 +1,21 @@
 package heizige.kk.khatkit.app.automation
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.service.AutomationOverlayService
+import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +32,35 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * 授权操作类别：审批策略按类别持久化，10 分钟记住同样按类别生效。
+ * [SHELL_ROOT] 覆盖 root / Shizuku 命令执行；[FILE_DELETE] / [APP_MANAGE] 预留给后续
+ * 更细粒度的调用方（卡片脚本内部的文件 / 应用操作暂不细分）。
+ */
+enum class ApprovalCategory(val id: String, val label: String) {
+    CARD_RUN("card_run", "运行卡片"),
+    UI_ACTION("ui_action", "界面操作"),
+    SHELL_ROOT("shell_root", "Shell / Root"),
+    FILE_DELETE("file_delete", "删除文件"),
+    APP_MANAGE("app_manage", "应用管理");
+
+    companion object {
+        fun fromId(id: String?): ApprovalCategory? = entries.firstOrNull { it.id == id }
+    }
+}
+
+/** 单个类别的审批策略：默认每次询问。 */
+enum class ApprovalPolicy(val id: String, val label: String) {
+    ALWAYS_ASK("always_ask", "每次询问"),
+    ALLOW("allow", "允许"),
+    DENY("deny", "拒绝");
+
+    companion object {
+        fun fromId(id: String?): ApprovalPolicy? = entries.firstOrNull { it.id == id }
+    }
+}
 
 /**
  * 自动化状态总线：卡片脚本 / 事件触发 / AI 设备工具在运行时通过它发布当前步骤，
@@ -46,11 +88,31 @@ object AutomationBus {
         val id: String,
         val title: String,
         val detail: String,
+        /** 请求所属操作类别：审批策略与 10 分钟记住都按它生效。 */
+        val category: ApprovalCategory,
         /** 请求创建时间，看板倒计时以它为起点，与 [APPROVAL_TIMEOUT_MS] 对齐。 */
         val requestedAt: Long = System.currentTimeMillis(),
     )
 
     private const val MAX_RECENT = 4
+
+    /** 通知回退渠道 ID 与通知 ID；无悬浮窗能力时用高优先级通知征求授权。 */
+    private const val APPROVAL_CHANNEL_ID = "automation_approval"
+    private const val APPROVAL_NOTIFICATION_ID = 2004
+
+    /** 审批策略持久化文件名 / key 前缀（khatkit 自动化设置）。 */
+    private const val POLICY_PREFS = "khatkit_automation"
+    private const val POLICY_KEY_PREFIX = "approval_policy_"
+
+    /** 「记住 10 分钟」按钮设置的有效期：期间同类请求自动放行（不跨策略拒绝）。 */
+    const val APPROVAL_REMEMBER_MS = 10 * 60_000L
+
+    /** 通知回退的广播动作：点击通知上的「允许 / 拒绝」按钮。 */
+    const val ACTION_APPROVAL_ALLOW = "heizige.kk.khatkit.app.action.APPROVAL_ALLOW"
+    const val ACTION_APPROVAL_DENY = "heizige.kk.khatkit.app.action.APPROVAL_DENY"
+
+    /** 看板按钮决议：✓ / ✗ / 记住 10 分钟（仅 ✓ 提升为整个会话放行）。 */
+    private enum class ApprovalOutcome { APPROVED, DENIED, REMEMBERED }
 
     /** 授权等待上限，超时按拒绝处理；看板倒计时与它保持同一时间基准。 */
     const val APPROVAL_TIMEOUT_MS = 60_000L
@@ -91,8 +153,15 @@ object AutomationBus {
     private var sessionHeld = false
 
     @Volatile
-    private var approvalDeferred: CompletableDeferred<Boolean>? = null
+    private var approvalDeferred: CompletableDeferred<ApprovalOutcome>? = null
     private val approvalMutex = Mutex()
+
+    /** 按类别的持久化审批策略存储（安装时注入）。 */
+    @Volatile
+    private var policyPrefs: SharedPreferences? = null
+
+    /** 「记住 10 分钟」的到期时间戳（按类别，仅进程内有效）。 */
+    private val rememberedUntil = ConcurrentHashMap<ApprovalCategory, Long>()
 
     /** 发布/更新当前步骤；重复的 label 不会刷屏历史，并结束上一次的完成态。 */
     fun update(label: String, detail: String = "") {
@@ -141,44 +210,187 @@ object AutomationBus {
         handsOffProvider = provider
     }
 
+    /** 读取某类别的持久化审批策略；未设置时默认 [ApprovalPolicy.ALWAYS_ASK]。 */
+    fun policyOf(category: ApprovalCategory): ApprovalPolicy =
+        ApprovalPolicy.fromId(
+            runCatching { policyPrefs?.getString(POLICY_KEY_PREFIX + category.id, null) }.getOrNull()
+        ) ?: ApprovalPolicy.ALWAYS_ASK
+
+    /** 持久化某类别的审批策略（设置页调用，立即生效）。 */
+    fun setPolicy(category: ApprovalCategory, policy: ApprovalPolicy) {
+        policyPrefs?.edit()?.putString(POLICY_KEY_PREFIX + category.id, policy.id)?.apply()
+    }
+
     /**
-     * 请求一次自动化授权：放手模式开启或本次运行已授权时立即返回 true；
-     * 否则发布 [pendingApproval] 等待悬浮看板上的「允许 / 拒绝」，
-     * 60s 未响应按拒绝处理，同一时刻只允许一个请求。
-     * 无悬浮窗权限时无法弹窗，直接拒绝（不阻塞）。
+     * 请求一次自动化授权。判定顺序：
+     * 1. 放手模式开启 → 直接放行（覆盖一切）；
+     * 2. 类别策略 allow / deny → 直接放行 / 拒绝；
+     * 3. 本次运行已授权（看板 ✓）或类别处于 10 分钟记住期内 → 直接放行；
+     * 4. 无障碍悬浮窗或 SYSTEM_ALERT_WINDOW 可用 → 看板展示「✗ / 记住 10 分钟 / ✓」；
+     * 5. 两者都不可用 → 高优先级通知「允许 / 拒绝」，通知权限也没有时直接拒绝。
+     * 60s 未响应按拒绝处理；同一时刻只允许一个请求。
      */
-    suspend fun requestApproval(title: String, detail: String): Boolean {
-        if (isHandsOff() || sessionApproved) return true
+    suspend fun requestApproval(title: String, detail: String, category: ApprovalCategory): Boolean {
+        if (isHandsOff()) return true
+        when (policyOf(category)) {
+            ApprovalPolicy.ALLOW -> return true
+            ApprovalPolicy.DENY -> return false
+            ApprovalPolicy.ALWAYS_ASK -> Unit
+        }
+        if (sessionApproved || isRemembered(category)) return true
         val context = appContext ?: return false
-        if (!Settings.canDrawOverlays(context)) return false
         return approvalMutex.withLock {
-            if (isHandsOff() || sessionApproved) return@withLock true
-            val deferred = CompletableDeferred<Boolean>()
-            val request = ApprovalRequest(id = UUID.randomUUID().toString(), title = title, detail = detail)
-            // 授权必须可见：即便看板正处于临时隐藏，也强制恢复显示
-            showOverlay()
+            if (isHandsOff()) return@withLock true
+            when (policyOf(category)) {
+                ApprovalPolicy.ALLOW -> return@withLock true
+                ApprovalPolicy.DENY -> return@withLock false
+                ApprovalPolicy.ALWAYS_ASK -> Unit
+            }
+            if (sessionApproved || isRemembered(category)) return@withLock true
+            val deferred = CompletableDeferred<ApprovalOutcome>()
+            val request = ApprovalRequest(
+                id = UUID.randomUUID().toString(),
+                title = title,
+                detail = detail,
+                category = category,
+            )
             approvalDeferred = deferred
             _pendingApproval.value = request
-            val approved = try {
-                withTimeoutOrNull(APPROVAL_TIMEOUT_MS) { deferred.await() } ?: false
+            val posted = if (canShowOverlay(context)) {
+                // 授权必须可见：即便看板正处于临时隐藏，也强制恢复显示
+                showOverlay()
+                true
+            } else {
+                postApprovalNotification(context, request)
+            }
+            if (!posted) {
+                // 无悬浮窗也无通知权限：保持现状直接拒绝，不阻塞
+                approvalDeferred = null
+                _pendingApproval.value = null
+                return@withLock false
+            }
+            val outcome = try {
+                withTimeoutOrNull(APPROVAL_TIMEOUT_MS) { deferred.await() } ?: ApprovalOutcome.DENIED
             } finally {
-                deferred.complete(false)
+                deferred.complete(ApprovalOutcome.DENIED)
                 if (approvalDeferred === deferred) approvalDeferred = null
                 _pendingApproval.value = null
+                cancelApprovalNotification()
             }
-            if (approved) sessionApproved = true
-            approved
+            if (outcome == ApprovalOutcome.APPROVED) sessionApproved = true
+            outcome != ApprovalOutcome.DENIED
         }
     }
 
     /** 看板「允许」：放行当前授权请求，本次运行后续操作不再询问。 */
     fun approve() {
-        approvalDeferred?.complete(true)
+        approvalDeferred?.complete(ApprovalOutcome.APPROVED)
     }
 
     /** 看板「拒绝」：拒绝当前授权请求，调用方应终止本次操作。 */
     fun deny() {
-        approvalDeferred?.complete(false)
+        approvalDeferred?.complete(ApprovalOutcome.DENIED)
+    }
+
+    /**
+     * 看板「记住 10 分钟」：放行当前请求，并让同类请求在 [APPROVAL_REMEMBER_MS] 内
+     * 自动放行；不提升为整个会话放行（✓ 的语义保持不变）。
+     */
+    fun approveAndRemember() {
+        val request = _pendingApproval.value ?: return
+        rememberedUntil[request.category] = System.currentTimeMillis() + APPROVAL_REMEMBER_MS
+        approvalDeferred?.complete(ApprovalOutcome.REMEMBERED)
+    }
+
+    private fun isRemembered(category: ApprovalCategory): Boolean =
+        (rememberedUntil[category] ?: 0L) > System.currentTimeMillis()
+
+    /** 看板可用的判定：无障碍悬浮窗或 SYSTEM_ALERT_WINDOW 任一即可（与看板服务一致）。 */
+    private fun canShowOverlay(context: Context): Boolean =
+        AccessibilityBridgeHolder.current() != null || Settings.canDrawOverlays(context)
+
+    /**
+     * 无悬浮窗能力时的回退：发一条高优先级通知，带「允许 / 拒绝」两个广播按钮，
+     * 等待期间与看板共用同一 [approvalDeferred]，60s 超时由调用方按拒绝处理。
+     * @return 通知是否成功发出；没有 POST_NOTIFICATIONS / 通知被关闭时返回 false。
+     */
+    private fun postApprovalNotification(context: Context, request: ApprovalRequest): Boolean {
+        if (!canPostNotifications(context)) return false
+        return runCatching {
+            ensureApprovalChannel(context)
+            val notification = NotificationCompat.Builder(context, APPROVAL_CHANNEL_ID)
+                .setSmallIcon(R.drawable.small_icon)
+                .setContentTitle(context.getString(R.string.automation_approval_notification_title))
+                .setContentText(
+                    context.getString(
+                        R.string.automation_approval_notification_text,
+                        request.title,
+                        request.detail,
+                    )
+                )
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setAutoCancel(false)
+                .addAction(
+                    0,
+                    context.getString(R.string.automation_approval_action_deny),
+                    approvalActionPendingIntent(context, request, ACTION_APPROVAL_DENY, 1),
+                )
+                .addAction(
+                    0,
+                    context.getString(R.string.automation_approval_action_allow),
+                    approvalActionPendingIntent(context, request, ACTION_APPROVAL_ALLOW, 2),
+                )
+                .build()
+            NotificationManagerCompat.from(context).notify(APPROVAL_NOTIFICATION_ID, notification)
+            true
+        }.getOrDefault(false)
+    }
+
+    /** 取消授权通知；请求结束（允许 / 拒绝 / 超时）时调用，看板路径下为 no-op。 */
+    fun cancelApprovalNotification() {
+        val context = appContext ?: return
+        runCatching { NotificationManagerCompat.from(context).cancel(APPROVAL_NOTIFICATION_ID) }
+    }
+
+    private fun approvalActionPendingIntent(
+        context: Context,
+        request: ApprovalRequest,
+        action: String,
+        offset: Int,
+    ): PendingIntent {
+        val intent = Intent(context, ApprovalActionReceiver::class.java)
+            .setAction(action)
+            .setPackage(context.packageName)
+        return PendingIntent.getBroadcast(
+            context,
+            request.id.hashCode() + offset,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun canPostNotifications(context: Context): Boolean {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun ensureApprovalChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        if (manager.getNotificationChannel(APPROVAL_CHANNEL_ID) != null) return
+        manager.createNotificationChannel(
+            NotificationChannel(
+                APPROVAL_CHANNEL_ID,
+                context.getString(R.string.automation_approval_channel),
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply { setShowBadge(false) }
+        )
     }
 
     /**
@@ -242,6 +454,7 @@ object AutomationBus {
         installed = true
         val applicationContext = context.applicationContext
         appContext = applicationContext
+        policyPrefs = applicationContext.getSharedPreferences(POLICY_PREFS, Context.MODE_PRIVATE)
         scope.launch {
             combine(status, pendingApproval) { status, approval -> status != null || approval != null }
                 .distinctUntilChanged()

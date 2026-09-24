@@ -159,6 +159,60 @@ class TriggerEngineTest {
     }
 
     @Test
+    fun appExitMatchesExactPackageOnly() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "exit_card",
+                    listOf(CardManifest.Event(type = "app_exit", packageName = "com.example.app")),
+                )
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        // 未声明该包名 / 空包名不触发
+        assertEquals(0, engine.onAppExit("com.other.app", now))
+        assertEquals(0, engine.onAppExit("", now))
+        assertEquals(1, engine.onAppExit("com.example.app", now))
+        // 冷却期内不重复
+        assertEquals(0, engine.onAppExit("com.example.app", now + 1_000))
+        // 超过 15s 冷却可再次触发
+        assertEquals(1, engine.onAppExit("com.example.app", now + 15_000))
+        assertEquals("app_exit", argsOf(recorder.runs[0].second)["type"])
+        assertEquals("com.example.app", argsOf(recorder.runs[0].second)["package"])
+    }
+
+    @Test
+    fun disabledEventIndexIsSkipped() {
+        val recorder = Recorder()
+        val engine = engine(recorder, at(2026, 9, 18, 8, 0))
+        engine.updateCards(
+            listOf(
+                TriggerCard(
+                    "mixed_card",
+                    listOf(
+                        CardManifest.Event(type = "charging", state = "connected"),
+                        CardManifest.Event(type = "network", state = "offline"),
+                        CardManifest.Event(type = "schedule", times = listOf("08:00")),
+                    ),
+                    disabledIndexes = setOf(0, 2),
+                )
+            )
+        )
+
+        val now = at(2026, 9, 18, 8, 0)
+        // 被停用的充电与定时事件不派发
+        assertEquals(0, engine.onCharging("connected", now))
+        assertEquals(0, engine.tickSchedule(now = now, zone = zone))
+        // 未停用的网络事件正常派发
+        assertEquals(1, engine.onNetwork(false, now))
+        assertEquals("network", argsOf(recorder.runs[0].second)["type"])
+        assertEquals(1, recorder.runs.size)
+    }
+
+    @Test
     fun chargingMatchesState() {
         val recorder = Recorder()
         val engine = engine(recorder, at(2026, 9, 18, 8, 0))

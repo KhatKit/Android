@@ -90,6 +90,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.automation.AutomationBus
 import heizige.kk.khatkit.app.ui.icons.check
 import heizige.kk.khatkit.app.ui.icons.close
+import heizige.kk.khatkit.app.ui.icons.schedule
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.KhatKitTheme
@@ -254,6 +255,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         hidden = overlayHidden.value,
                         onApprove = { AutomationBus.approve() },
                         onDeny = { AutomationBus.deny() },
+                        onRemember = { AutomationBus.approveAndRemember() },
                     )
                 }
             }
@@ -491,6 +493,7 @@ private fun AutomationStatusBoard(
     hidden: Boolean,
     onApprove: () -> Unit,
     onDeny: () -> Unit,
+    onRemember: () -> Unit,
 ) {
     val boardVisible = visible && !hidden && (status != null || approval != null)
 
@@ -544,6 +547,7 @@ private fun AutomationStatusBoard(
                     approval = approval,
                     onApprove = onApprove,
                     onDeny = onDeny,
+                    onRemember = onRemember,
                     modifier = Modifier.onSizeChanged { size ->
                         measuredHeightPx = size.height
                         if (slideHeightPx == 0) slideHeightPx = size.height
@@ -620,6 +624,7 @@ private fun AutomationToast(
     approval: AutomationBus.ApprovalRequest?,
     onApprove: () -> Unit,
     onDeny: () -> Unit,
+    onRemember: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val finished = status?.finished == true && approval == null
@@ -690,7 +695,11 @@ private fun AutomationToast(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Spacer(Modifier.width(8.dp))
-                        ApprovalButtonGroup(onApprove = onApprove, onDeny = onDeny)
+                        ApprovalButtonGroup(
+                            onApprove = onApprove,
+                            onDeny = onDeny,
+                            onRemember = onRemember,
+                        )
                     }
 
                     BoardContent.Status -> {
@@ -731,16 +740,19 @@ private fun AutomationToast(
 private val ApprovalButtonSize = 32.dp
 
 /**
- * 授权操作组：官方 MD3 [ButtonGroup] + connected 首尾形状，内含 ✓（允许）/ ✗（拒绝）
- * 两个 [FilledIconButton]，颜色取自 [MaterialTheme.colorScheme]；关闭最小交互尺寸约束
+ * 授权操作组：官方 MD3 [ButtonGroup] + connected 形状，固定 3 项：
+ * ✗（拒绝，leading）/ 时钟（记住 10 分钟，middle）/ ✓（允许，trailing）三个
+ * [FilledIconButton]，颜色取自 [MaterialTheme.colorScheme]；关闭最小交互尺寸约束
  * 以保持 Toast 紧凑（按钮与图标均为小尺寸）。
  */
 @Composable
 private fun ApprovalButtonGroup(
     onApprove: () -> Unit,
     onDeny: () -> Unit,
+    onRemember: () -> Unit,
 ) {
     val leadingShapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
+    val middleShapes = ButtonGroupDefaults.connectedMiddleButtonShapes()
     val trailingShapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
         ButtonGroup(
@@ -765,6 +777,28 @@ private fun ApprovalButtonGroup(
                         Icon(
                             imageVector = close,
                             contentDescription = "拒绝",
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                },
+                menuContent = { },
+            )
+            customItem(
+                buttonGroupContent = {
+                    ToggleButton(
+                        checked = false,
+                        onCheckedChange = { onRemember() },
+                        shapes = middleShapes,
+                        colors = ToggleButtonDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(ApprovalButtonSize),
+                    ) {
+                        Icon(
+                            imageVector = schedule,
+                            contentDescription = "记住 10 分钟",
                             modifier = Modifier.size(16.dp),
                         )
                     }

@@ -789,9 +789,17 @@ end
 无障碍服务在线时，AI 会额外获得两个内置工具，适合一次性操作而非可复用卡片：
 
 - `khatkit__device_screen`：截屏 + 本地 OCR + 当前窗口节点清单（可用 `include_ocr` / `include_nodes` 关闭）。
-- `khatkit__device_act`：执行单个无障碍动作，`action` 取值 `click_text`、`click_id`、`tap`、`swipe`、`press`、`set_text`、`back`、`home`、`recents`、`notifications`、`open_app`、`wait_text`。
+- `khatkit__device_act`：执行单个无障碍动作，`action` 取值 `click_text`、`click_id`、`tap`、`swipe`、`press`、`set_text`、`back`、`home`、`recents`、`notifications`、`open_app`、`wait_text`、`wake`、`screen_state`、`unlock`。
 
-`device_act` 每次执行前同样请求「操作手机屏幕」授权（放手模式/本次已授权则跳过），取消与看板行为与卡片一致。
+`device_act` 每次执行前同样请求「操作手机屏幕」授权（放手模式/本次已授权则跳过），取消与看板行为与卡片一致；`screen_state` 只读、`overlay_hide` / `overlay_show` 不操作屏幕，无需授权。
+
+自愈与屏幕处理：
+
+- **自动重试**：`click_text` / `click_id` / `set_text` 首次找不到目标会等待约 400ms 重试，最多 2 次（共 3 次尝试）；`wait_text` 保持自身超时语义，等待预算按 3 次尝试均分。仍失败时从当前窗口（`dumpWindow`）返回按文本相似度排序的 top 5 候选节点（含类名 / bounds / 中心坐标 / click、edit 标记），模型可据此改用 `click_id` 或 `tap` 坐标。
+- **熄屏唤醒**：`tap` / `swipe` / `press` / `click_text` / `click_id` / `set_text` 执行前检查 `PowerManager.isInteractive`，屏幕熄灭时调用工具 bridge `wakeScreen()` 并重试一次，仍失败返回中文错误。
+- **`wake`**：点亮屏幕并返回最新屏幕状态（`interactive` / `locked`）。
+- **`screen_state`**：返回 `{"interactive":..,"locked":..,"secure":..,"text":"中文描述"}`。
+- **`unlock`**：锁定时优先用 root shell、其次 Shizuku shell 执行 `input keyevent KEYCODE_WAKEUP` + `input swipe 540 1800 540 600` 解除普通锁屏；安全锁屏（PIN / 密码 / 图案，`KeyguardManager.isDeviceSecure`）无法用 input 绕过，会明确提示需手动解锁或在系统设置中关闭锁屏密码；无 root / Shizuku 时返回开启指引。归类为 `ui_action` 授权类别。
 
 ---
 

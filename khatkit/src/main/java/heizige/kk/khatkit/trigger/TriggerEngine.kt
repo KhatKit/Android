@@ -14,6 +14,8 @@ data class TriggerCard(
     val retryDelaySeconds: Int = 0,
     /** 卡片 manifest 原始事件（用户覆盖前的默认值，仅 UI 使用） */
     val baseEvents: List<CardManifest.Event> = events,
+    /** 用户按事件下标停用的事件集合（引擎跳过这些事件，下标对应 [events]） */
+    val disabledIndexes: Set<Int> = emptySet(),
 )
 
 /**
@@ -28,8 +30,9 @@ fun interface TriggerRunner {
  * 事件触发引擎（纯逻辑，无 Android 依赖，可 JVM 单测）。
  *
  * - schedule：宿主定时 tick，按本地时间匹配 times（HH:mm）或 intervalMinutes
- * - notification / app_launch / charging / wifi / network / battery / screen /
+ * - notification / app_launch / app_exit / charging / wifi / network / battery / screen /
  *   clipboard / bluetooth：宿主投递事件，引擎匹配包名/内容/状态
+ * - 用户可在每张卡片上按事件下标停用部分事件（[TriggerCard.disabledIndexes]），引擎直接跳过
  * - location：宿主轮询位置，引擎按 haversine 距离做 enter/exit 边界判定（首次采样只记基线）
  * - 同一卡片同类型事件有冷却时间，避免通知风暴/前后台抖动导致连发
  * - 失败重试：执行方通过 [reportRunResult] 回报结果，[tickRetries] 派发到期的重试
@@ -90,6 +93,7 @@ class TriggerEngine(
             val out = mutableListOf<Pair<String, Map<String, Any?>>>()
             cards.forEach { card ->
                 card.events.forEachIndexed { index, event ->
+                    if (index in card.disabledIndexes) return@forEachIndexed
                     if (event.type != CardManifest.EVENT_SCHEDULE) return@forEachIndexed
                     if (event.days.isNotEmpty() && isoDay !in event.days) return@forEachIndexed
 
@@ -128,7 +132,7 @@ class TriggerEngine(
         text: String = "",
         now: Long = clock(),
     ): Int = dispatch(
-        matchAndAcquire(now, CardManifest.EVENT_NOTIFICATION) { event ->
+        matchAndAcquire(now, CardManifest.EVENT_NOTIFICATION) { _, event ->
             event.type == CardManifest.EVENT_NOTIFICATION &&
                 // 空条件事件会匹配所有通知，显式拒绝（manifest 校验层也会拦截）
                 (event.packageName.isNotBlank() ||
@@ -147,7 +151,7 @@ class TriggerEngine(
 
     /** 应用进入前台。空包名事件视为“任意应用”。 */
     fun onAppLaunch(packageName: String, now: Long = clock()): Int = dispatch(
-        matchAndAcquire(now, CardManifest.EVENT_APP_LAUNCH) { event ->
+        matchAndAcquire(now, CardManifest.EVENT_APP_LAUNCH) { _, event ->
             event.type == CardManifest.EVENT_APP_LAUNCH &&
                 (event.packageName.isBlank() || event.packageName == packageName)
         }.map { it to eventArgs(
@@ -156,9 +160,24 @@ class TriggerEngine(
         ) }
     )
 
+    /** 应用离开前台（宿主做短暂防抖后投递）。空包名事件会被忽略。 */
+    fun onAppExit(packageName: String, now: Long = clock()): Int {
+        if (packageName.isBlank()) return 0
+        return dispatch(
+            matchAndAcquire(now, CardManifest.EVENT_APP_EXIT) { _, event ->
+                event.type == CardManifest.EVENT_APP_EXIT &&
+                    event.packageName.isNotBlank() &&
+                    event.packageName == packageName
+            }.map { it to eventArgs(
+                type = CardManifest.EVENT_APP_EXIT,
+                packageName = packageName,
+            ) }
+        )
+    }
+
     /** 充电状态变化：connected | disconnected。 */
     fun onCharging(state: String, now: Long = clock()): Int = dispatch(
-        matchAndAcquire(now, CardManifest.EVENT_CHARGING) { event ->
+        matchAndAcquire(now, CardManifest.EVENT_CHARGING) { _, event ->
             event.type == CardManifest.EVENT_CHARGING && event.state == state
         }.map { it to eventArgs(
             type = CardManifest.EVENT_CHARGING,
@@ -170,7 +189,7 @@ class TriggerEngine(
     fun onWifi(ssid: String, connected: Boolean, now: Long = clock()): Int {
         val state = if (connected) CardManifest.STATE_CONNECTED else CardManifest.STATE_DISCONNECTED
         return dispatch(
-            matchAndAcquire(now, CardManifest.EVENT_WIFI) { event ->
+            matchAndAcquire(now, CardManifest.EVENT_WIFI) { _, event ->
                 event.type == CardManifest.EVENT_WIFI &&
                     (event.state.isBlank() || event.state == state) &&
                     (event.ssid.isBlank() || event.ssid.equals(ssid, ignoreCase = true))
@@ -186,7 +205,7 @@ class TriggerEngine(
     fun onNetwork(online: Boolean, now: Long = clock()): Int {
         val state = if (online) CardManifest.NETWORK_ONLINE else CardManifest.NETWORK_OFFLINE
         return dispatch(
-            matchAndAcquire(now, CardManifest.EVENT_NETWORK) { event ->
+            matchAndAcquire(now, CardManifest.EVENT_NETWORK) { _, event ->
                 event.type == CardManifest.EVENT_NETWORK && event.state == state
             }.map { it to eventArgs(
                 type = CardManifest.EVENT_NETWORK,
@@ -204,7 +223,7 @@ class TriggerEngine(
     fun onBattery(level: Int, charging: Boolean, now: Long = clock()): Int {
         val state = if (charging) CardManifest.BATTERY_CHARGING else CardManifest.BATTERY_DISCHARGING
         return dispatch(
-            matchAndAcquire(now, CardManifest.EVENT_BATTERY) { event ->
+            matchAndAcquire(now, CardManifest.EVENT_BATTERY) { _, event ->
                 event.type == CardManifest.EVENT_BATTERY &&
                     (event.state.isBlank() || event.state == state) &&
                     when {
@@ -223,7 +242,7 @@ class TriggerEngine(
 
     /** 屏幕状态：on | off | locked | unlocked。 */
     fun onScreen(state: String, now: Long = clock()): Int = dispatch(
-        matchAndAcquire(now, CardManifest.EVENT_SCREEN) { event ->
+        matchAndAcquire(now, CardManifest.EVENT_SCREEN) { _, event ->
             event.type == CardManifest.EVENT_SCREEN && event.state == state
         }.map { it to eventArgs(
             type = CardManifest.EVENT_SCREEN,
@@ -233,7 +252,7 @@ class TriggerEngine(
 
     /** 新剪贴板文本（去重由调用方负责）。 */
     fun onClipboard(text: String, now: Long = clock()): Int = dispatch(
-        matchAndAcquire(now, CardManifest.EVENT_CLIPBOARD) { event ->
+        matchAndAcquire(now, CardManifest.EVENT_CLIPBOARD) { _, event ->
             event.type == CardManifest.EVENT_CLIPBOARD &&
                 event.textContains.isNotBlank() &&
                 text.contains(event.textContains, ignoreCase = true)
@@ -245,7 +264,7 @@ class TriggerEngine(
 
     /** 蓝牙连接变化：connected | disconnected，device 为空表示任意设备。 */
     fun onBluetooth(state: String, deviceName: String = "", now: Long = clock()): Int = dispatch(
-        matchAndAcquire(now, CardManifest.EVENT_BLUETOOTH) { event ->
+        matchAndAcquire(now, CardManifest.EVENT_BLUETOOTH) { _, event ->
             event.type == CardManifest.EVENT_BLUETOOTH &&
                 event.state == state &&
                 (event.device.isBlank() || deviceName.contains(event.device, ignoreCase = true))
@@ -265,6 +284,7 @@ class TriggerEngine(
             val out = mutableListOf<Pair<String, Map<String, Any?>>>()
             cards.forEach { card ->
                 card.events.forEachIndexed { index, event ->
+                    if (index in card.disabledIndexes) return@forEachIndexed
                     if (event.type != CardManifest.EVENT_LOCATION) return@forEachIndexed
                     val centerLat = event.lat ?: return@forEachIndexed
                     val centerLon = event.lon ?: return@forEachIndexed
@@ -354,10 +374,14 @@ class TriggerEngine(
     private fun matchAndAcquire(
         now: Long,
         type: String,
-        predicate: (CardManifest.Event) -> Boolean,
+        predicate: (Int, CardManifest.Event) -> Boolean,
     ): List<String> = synchronized(lock) {
         cards
-            .filter { card -> card.events.any(predicate) }
+            .filter { card ->
+                card.events.indices.any { index ->
+                    index !in card.disabledIndexes && predicate(index, card.events[index])
+                }
+            }
             .filter { card -> tryAcquireRun(card.name, type, now) }
             .map { it.name }
     }
@@ -378,6 +402,7 @@ class TriggerEngine(
     private fun cooldownFor(type: String): Long = when (type) {
         CardManifest.EVENT_NOTIFICATION -> COOLDOWN_NOTIFICATION_MS
         CardManifest.EVENT_APP_LAUNCH -> COOLDOWN_APP_LAUNCH_MS
+        CardManifest.EVENT_APP_EXIT -> COOLDOWN_APP_EXIT_MS
         CardManifest.EVENT_CHARGING -> COOLDOWN_CHARGING_MS
         CardManifest.EVENT_WIFI -> COOLDOWN_WIFI_MS
         CardManifest.EVENT_NETWORK -> COOLDOWN_NETWORK_MS
@@ -395,6 +420,9 @@ class TriggerEngine(
 
         /** 前后台抖动冷却 */
         const val COOLDOWN_APP_LAUNCH_MS = 60_000L
+
+        /** 应用退出冷却（宿主已有短防抖，此处再抑制频繁切换） */
+        const val COOLDOWN_APP_EXIT_MS = 15_000L
 
         /** 充电抖动冷却 */
         const val COOLDOWN_CHARGING_MS = 5_000L
@@ -435,6 +463,7 @@ class TriggerEngine(
             level: Int? = null,
             lat: Double? = null,
             lon: Double? = null,
+            name: String = "",
         ): Map<String, Any?> = mapOf(
             ARG_EVENT to buildMap {
                 put("type", type)
@@ -448,6 +477,7 @@ class TriggerEngine(
                 if (level != null) put("level", level)
                 if (lat != null) put("lat", lat)
                 if (lon != null) put("lon", lon)
+                if (name.isNotEmpty()) put("name", name)
             }
         )
     }

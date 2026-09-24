@@ -26,6 +26,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,15 +46,20 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.automation.ApprovalCategory
+import heizige.kk.khatkit.app.automation.ApprovalPolicy
+import heizige.kk.khatkit.app.automation.AutomationBus
 import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.service.KhatKitAccessibilityService
 import heizige.kk.khatkit.app.ui.icons.bolt
+import heizige.kk.khatkit.app.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.utils.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 import heizige.kk.khromia.components.AnimatedRadioItem
+import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.kedge.components.KedgeButton
@@ -107,6 +115,7 @@ fun PermissionChecklist(
     var accessibilityEnabled by remember { mutableStateOf(KhatKitAccessibilityService.isEnabled(context)) }
     var listenerEnabled by remember { mutableStateOf(checkNotificationListener(context)) }
     var handsOff by remember { mutableStateOf(provider.handsOffMode) }
+    var showApprovalPolicy by remember { mutableStateOf(false) }
 
     fun refresh() {
         rootEnabled = provider.enableRoot
@@ -427,7 +436,7 @@ fun PermissionChecklist(
                 title = stringResource(R.string.greeting_permission_accessibility_title),
                 subtitle = stringResource(R.string.greeting_permission_accessibility_desc),
                 selected = accessibilityEnabled,
-                shape = cards.indexedShape(0, 4),
+                shape = cards.indexedShape(0, 5),
                 dangerous = true,
                 enabled = true,
                 onClick = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
@@ -440,7 +449,7 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
                 },
                 selected = rootAvailable && rootEnabled,
-                shape = cards.indexedShape(1, 4),
+                shape = cards.indexedShape(1, 5),
                 dangerous = true,
                 enabled = rootAvailable,
                 onClick = {
@@ -458,7 +467,7 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
                 },
                 selected = shizukuGranted,
-                shape = cards.indexedShape(2, 4),
+                shape = cards.indexedShape(2, 5),
                 dangerous = true,
                 enabled = shizukuAvailable,
                 onClick = {
@@ -477,7 +486,7 @@ fun PermissionChecklist(
                 subtitle = "允许自动化执行任何操作，不再弹窗询问 · " +
                     if (handsOff) "已开启" else "已关闭",
                 selected = handsOff,
-                shape = cards.indexedShape(3, 4),
+                shape = cards.indexedShape(3, 5),
                 dangerous = true,
                 enabled = true,
                 onClick = {
@@ -486,6 +495,75 @@ fun PermissionChecklist(
                     handsOff = next
                 },
             )
+            PermissionRadioItem(
+                title = "自动化审批策略",
+                subtitle = "按操作类型（运行卡片 / 界面操作 / Shell Root / 删除文件 / 应用管理）设置每次询问、允许或拒绝",
+                selected = false,
+                shape = cards.indexedShape(4, 5),
+                dangerous = true,
+                enabled = true,
+                onClick = { showApprovalPolicy = true },
+            )
+        }
+    }
+
+    if (showApprovalPolicy) {
+        ApprovalPolicySheet(onDismiss = { showApprovalPolicy = false })
+    }
+}
+
+/**
+ * 自动化审批策略面板：按 [ApprovalCategory] 列出，每项用 MD3 SegmentedButton 三选一
+ * （每次询问 / 允许 / 拒绝），选择即持久化并立即生效；放手模式仍覆盖一切为允许。
+ */
+@Composable
+private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = "自动化审批策略",
+        imageVector = verifiedUser,
+        onDismiss = onDismiss,
+    ) { _ ->
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "按操作类型设置审批方式；放手模式开启时全部放行，「记住 10 分钟」仅当前进程内生效。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ApprovalCategory.entries.forEach { category ->
+                var policy by remember(category) {
+                    mutableStateOf(AutomationBus.policyOf(category))
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = category.label,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        ApprovalPolicy.entries.forEachIndexed { index, option ->
+                            SegmentedButton(
+                                selected = policy == option,
+                                onClick = {
+                                    policy = option
+                                    AutomationBus.setPolicy(category, option)
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = ApprovalPolicy.entries.size,
+                                ),
+                            ) {
+                                Text(option.label)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

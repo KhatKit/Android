@@ -26,8 +26,10 @@ import org.koin.android.ext.android.inject
 /**
  * 事件触发前台服务：用户在主开关打开后启动。
  *
- * - 每 60s tick 一次 schedule（分钟级精度），每秒 tick 一次失败重试队列
- * - 每 ~1s 轮询无障碍 bridge 的前台包名，检测 app_launch 变化
+ * - 分钟级 schedule 由 [TriggerExactAlarmScheduler] 精确闹钟唤醒（ACTION_ALARM）；
+ *   每 60s tick 一次作为兜底（interval 模式 / 无精确闹钟权限时）
+ * - 每秒 tick 一次失败重试队列
+ * - 每 ~1s 轮询无障碍 bridge 的前台包名，检测 app_launch / app_exit（退出带去抖）
  * - Wi-Fi / 网络 / 电量 / 屏幕 / 剪贴板 / 蓝牙 / 位置由 [TriggerEventSources] 投递
  *
  * 通知由 NotificationListenerService 独立投递（不需要本服务）。
@@ -43,6 +45,9 @@ class TriggerService : Service() {
     @Volatile
     private var lastForegroundPackage: String? = null
 
+    private var pendingExitPackage: String? = null
+    private var pendingExitJob: Job? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -50,6 +55,14 @@ class TriggerService : Service() {
             ACTION_STOP -> {
                 stopSelf()
                 return START_NOT_STICKY
+            }
+
+            TriggerExactAlarmScheduler.ACTION_ALARM -> {
+                if (!controller.settings.masterEnabled) {
+                    TriggerExactAlarmScheduler.cancel(this)
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
             }
 
             null -> {
@@ -65,11 +78,19 @@ class TriggerService : Service() {
         }
         startSources()
         startLoop()
+        if (intent?.action == TriggerExactAlarmScheduler.ACTION_ALARM) {
+            // 精确闹钟唤醒：立即按当前分钟 tick 一次并重排下一次
+            runCatching { controller.engine.tickSchedule() }
+                .onFailure { Log.e(TAG, "exact alarm tick failed", it) }
+            controller.rescheduleExactAlarm()
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
         loopJob?.cancel()
+        pendingExitJob?.cancel()
+        pendingExitJob = null
         sources?.stop()
         sources = null
         serviceScope.cancel()
@@ -102,13 +123,29 @@ class TriggerService : Service() {
         }
     }
 
+    /**
+     * 前台包名变化：立即派发 app_launch；离开的包名经过 [APP_EXIT_DEBOUNCE_MS]
+     * 防抖确认后仍未回到前台，才派发 app_exit（避免切屏/系统弹层造成误报）。
+     */
     private fun pollForegroundApp() {
         val pkg = runCatching { AccessibilityBridgeHolder.current()?.currentPackage() }.getOrNull()
             ?: return
         if (pkg.isBlank() || pkg == lastForegroundPackage) return
+        val previous = lastForegroundPackage
         lastForegroundPackage = pkg
         runCatching { controller.engine.onAppLaunch(pkg) }
             .onFailure { Log.e(TAG, "onAppLaunch failed", it) }
+        if (previous.isNullOrBlank()) return
+        pendingExitPackage = previous
+        pendingExitJob?.cancel()
+        pendingExitJob = serviceScope.launch {
+            delay(APP_EXIT_DEBOUNCE_MS)
+            if (pendingExitPackage == previous && lastForegroundPackage != previous) {
+                pendingExitPackage = null
+                runCatching { controller.engine.onAppExit(previous) }
+                    .onFailure { Log.e(TAG, "onAppExit failed", it) }
+            }
+        }
     }
 
     private fun startForegroundCompat(): Boolean = try {
@@ -158,6 +195,9 @@ class TriggerService : Service() {
 
         private const val TICK_MS = 1_000L
         private const val SCHEDULE_TICKS = 60
+
+        /** 应用退出防抖：期间回到前台则取消 */
+        private const val APP_EXIT_DEBOUNCE_MS = 2_000L
 
         /** 启动前台服务；调用方应确认主开关已打开且已获得通知权限。 */
         fun start(context: Context) {

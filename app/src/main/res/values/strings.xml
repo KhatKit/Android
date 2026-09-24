@@ -446,10 +446,16 @@
   <string name="automation_overlay_channel">自动化状态看板</string>
   <string name="automation_overlay_notification_title">自动化运行中</string>
   <string name="automation_overlay_notification_text">正在执行自动化任务，可在浮窗中点击「停止」取消</string>
+  <string name="automation_approval_channel">自动化授权请求</string>
+  <string name="automation_approval_notification_title">需要自动化授权</string>
+  <string name="automation_approval_notification_text">%1$s · %2$s</string>
+  <string name="automation_approval_action_allow">允许</string>
+  <string name="automation_approval_action_deny">拒绝</string>
   <string name="trigger_notification_failed_title">卡片自动触发失败</string>
   <string name="trigger_notification_failed_text">「%1$s」运行失败：%2$s</string>
   <string name="trigger_service_notification_title">自动化触发器运行中</string>
-  <string name="trigger_service_notification_text">正在监听定时 / 通知 / 应用 / 充电 / Wi-Fi / 网络 / 电量 / 屏幕 / 剪贴板 / 蓝牙 / 位置事件</string>
+  <string name="trigger_service_notification_text">正在监听定时 / 通知 / 应用启动与退出 / 充电 / Wi-Fi / 网络 / 电量 / 屏幕 / 剪贴板 / 蓝牙 / 位置 / 快捷方式 / 磁贴事件</string>
+  <string name="trigger_tile_label">卡片触发器</string>
   <string name="permission_camera">Camera</string>
   <string name="permission_camera_desc">Camera permission is required to take photos</string>
   <string name="permission_desc_goto_setting">Some permissions have been permanently denied, please go to the app settings to manually enable them:</string>

@@ -14,6 +14,7 @@ import kotlinx.serialization.json.Json
  *
  * - events = null：沿用卡片 manifest 声明的 events
  * - events = 空列表：显式关闭该卡片的所有事件
+ * - disabledEvents：按 events 下标逐个停用事件（与 events 一同保存，下标即保存时的事件顺序）
  * - maxRetries / retryDelaySeconds：运行失败后的重试策略（0 = 保持默认不重试）
  */
 @Serializable
@@ -21,9 +22,10 @@ data class CardTriggerOverride(
     val events: List<CardManifest.Event>? = null,
     @SerialName("max_retries") val maxRetries: Int = 0,
     @SerialName("retry_delay_seconds") val retryDelaySeconds: Int = 0,
+    @SerialName("disabled_events") val disabledEvents: List<Int> = emptyList(),
 ) {
     val isEmpty: Boolean
-        get() = events == null && maxRetries <= 0 && retryDelaySeconds <= 0
+        get() = events == null && maxRetries <= 0 && retryDelaySeconds <= 0 && disabledEvents.isEmpty()
 
     companion object {
         val NONE = CardTriggerOverride()
@@ -35,6 +37,7 @@ data class CardTriggerOverride(
  *
  * - master：总开关，关闭时所有卡片都不自动运行
  * - disabledCards：按卡片关闭（默认所有声明了 events 的卡片都启用）
+ * - maxParallel：卡片运行并发上限（1..3，默认 1，由 TriggerController 队列执行）
  * - 每卡事件覆盖与重试配置见 [CardTriggerOverride]
  */
 class TriggerSettings(context: Context) {
@@ -42,6 +45,7 @@ class TriggerSettings(context: Context) {
     data class State(
         val masterEnabled: Boolean = false,
         val disabledCards: Set<String> = emptySet(),
+        val maxParallel: Int = DEFAULT_MAX_PARALLEL,
     ) {
         fun isCardEnabled(name: String): Boolean = name !in disabledCards
     }
@@ -58,6 +62,9 @@ class TriggerSettings(context: Context) {
     val state: StateFlow<State> = _state.asStateFlow()
 
     val masterEnabled: Boolean get() = _state.value.masterEnabled
+
+    /** 卡片运行并发上限（1..3）。 */
+    val maxParallel: Int get() = _state.value.maxParallel
 
     /** 读取某卡片的覆盖配置；解析失败按“无覆盖”处理。 */
     fun overrideFor(name: String): CardTriggerOverride {
@@ -92,9 +99,17 @@ class TriggerSettings(context: Context) {
 
     fun isCardEnabled(name: String): Boolean = _state.value.isCardEnabled(name)
 
+    fun setMaxParallel(value: Int) {
+        val coerced = value.coerceIn(MIN_MAX_PARALLEL, MAX_MAX_PARALLEL)
+        prefs.edit().putInt(KEY_MAX_PARALLEL, coerced).apply()
+        _state.value = _state.value.copy(maxParallel = coerced)
+    }
+
     private fun read(): State = State(
         masterEnabled = prefs.getBoolean(KEY_MASTER, false),
         disabledCards = prefs.getStringSet(KEY_DISABLED_CARDS, emptySet()).orEmpty(),
+        maxParallel = prefs.getInt(KEY_MAX_PARALLEL, DEFAULT_MAX_PARALLEL)
+            .coerceIn(MIN_MAX_PARALLEL, MAX_MAX_PARALLEL),
     )
 
     companion object {
@@ -102,5 +117,10 @@ class TriggerSettings(context: Context) {
         private const val KEY_MASTER = "master_enabled"
         private const val KEY_DISABLED_CARDS = "disabled_cards"
         private const val KEY_OVERRIDE_PREFIX = "override_"
+        private const val KEY_MAX_PARALLEL = "max_parallel"
+
+        const val MIN_MAX_PARALLEL = 1
+        const val MAX_MAX_PARALLEL = 3
+        const val DEFAULT_MAX_PARALLEL = 1
     }
 }

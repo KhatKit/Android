@@ -248,6 +248,71 @@ class CardValidatorTest {
     }
 
     @Test
+    fun appExitRequiresPackage() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "app_exit")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_APP_EXIT_PACKAGE_REQUIRED" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "app_exit", packageName = "com.tencent.mm")))
+            )
+        )
+    }
+
+    @Test
+    fun shortcutRequiresName() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "shortcut")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_SHORTCUT_NAME_REQUIRED" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "shortcut", name = "一键签到")))
+            )
+        )
+    }
+
+    @Test
+    fun tileRequiresName() {
+        val issues = CardValidator.validate(
+            manifest(events = listOf(CardManifest.Event(type = "tile")))
+        )
+        assertTrue(issues.any { it.code == "EVENT_TILE_NAME_REQUIRED" })
+        assertTrue(
+            CardValidator.isValid(
+                manifest(events = listOf(CardManifest.Event(type = "tile", name = "快速记账")))
+            )
+        )
+    }
+
+    @Test
+    fun newEventTypesJsonRoundTrip() {
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "exit_hook",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": { "bridges": ["ui"] },
+              "tags": { "domain": "system", "action": "monitor" },
+              "events": [
+                { "type": "app_exit", "package": "com.tencent.mm" },
+                { "type": "shortcut", "name": "打开便签" },
+                { "type": "tile", "name": "静音开关" }
+              ]
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        assertEquals(3, parsed.events.size)
+        assertEquals("com.tencent.mm", parsed.events[0].packageName)
+        assertEquals("打开便签", parsed.events[1].name)
+        assertEquals("静音开关", parsed.events[2].name)
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
     fun chargingRequiresKnownState() {
         val invalid = CardValidator.validate(
             manifest(events = listOf(CardManifest.Event(type = "charging", state = "plugged")))

@@ -7,9 +7,11 @@ import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,7 +34,10 @@ import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.service.CardTriggerOverride
 import heizige.kk.khatkit.app.service.KhatKitNotificationListenerService
 import heizige.kk.khatkit.app.service.TriggerController
+import heizige.kk.khatkit.app.service.TriggerExactAlarmScheduler
 import heizige.kk.khatkit.app.service.TriggerService
+import heizige.kk.khatkit.app.service.TriggerSettings
+import heizige.kk.khatkit.app.service.computeTriggerLogStats
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
@@ -93,6 +98,10 @@ fun SettingTriggersPage() {
         editingCard?.let { controller.settings.overrideFor(it.name) } ?: CardTriggerOverride.NONE
     }
     val timeFormat = remember { SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()) }
+    val logStats = remember(logEntries) { computeTriggerLogStats(logEntries) }
+    val exactAlarmAllowed = runCatching {
+        TriggerExactAlarmScheduler.canScheduleExact(context)
+    }.getOrDefault(true)
 
     LaunchedEffect(Unit) {
         controller.refreshCardsAsync()
@@ -158,13 +167,28 @@ fun SettingTriggersPage() {
                     item(
                         headlineContent = { Text("启用自动化触发器") },
                         supportingContent = {
-                            Text("卡片在定时、通知、应用启动、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置事件时自动运行")
+                            Text("卡片在定时、通知、应用启动/退出、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置、快捷方式、磁贴事件时自动运行")
                         },
                         trailingContent = {
                             OptionSwitch(
                                 checked = triggerState.masterEnabled,
                                 onCheckedChange = { applyMaster(it) },
                             )
+                        },
+                    )
+                    item(
+                        headlineContent = { Text("运行并发上限") },
+                        supportingContent = { Text("触发任务按 FIFO 排队；默认 1（串行），可调至 3") },
+                        trailingContent = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                (TriggerSettings.MIN_MAX_PARALLEL..TriggerSettings.MAX_MAX_PARALLEL).forEach { value ->
+                                    FilterChip(
+                                        selected = triggerState.maxParallel == value,
+                                        onClick = { controller.setMaxParallel(value) },
+                                        label = { Text("$value") },
+                                    )
+                                }
+                            }
                         },
                     )
                 }
@@ -192,8 +216,14 @@ fun SettingTriggersPage() {
                             headlineContent = { Text(card.name) },
                             supportingContent = {
                                 Text(
-                                    if (card.events.isEmpty()) "未配置事件，点击添加"
-                                    else card.events.joinToString("\n") { "· ${eventSummary(it)}" }
+                                    if (card.events.isEmpty()) {
+                                        "未配置事件，点击添加"
+                                    } else {
+                                        card.events.mapIndexed { index, event ->
+                                            "· ${eventSummary(event)}" +
+                                                if (index in card.disabledIndexes) "（已停用）" else ""
+                                        }.joinToString("\n")
+                                    }
                                 )
                             },
                             trailingContent = {
@@ -203,7 +233,46 @@ fun SettingTriggersPage() {
                                     onCheckedChange = { checked ->
                                         controller.settings.setCardEnabled(card.name, checked)
                                         controller.syncEngine()
+                                        controller.syncExternalBindingsAsync()
                                     },
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+
+            item("stats") {
+                if (logEntries.isNotEmpty()) {
+                    CardGroup(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        title = { Text("运行统计（最近 ${logEntries.size} 条记录）") },
+                    ) {
+                        item(
+                            headlineContent = {
+                                Text("今日运行 ${logStats.todayRuns} 次 · 成功率 ${logStats.successRate}%")
+                            },
+                            supportingContent = {
+                                Text(
+                                    buildString {
+                                        if (logStats.topCards.isNotEmpty()) {
+                                            append("最常触发：")
+                                            append(
+                                                logStats.topCards.joinToString("、") {
+                                                    "${it.first}（${it.second}）"
+                                                }
+                                            )
+                                        }
+                                        if (logStats.typeCounts.isNotEmpty()) {
+                                            if (isNotEmpty()) append("\n")
+                                            append("类型分布：")
+                                            append(
+                                                logStats.typeCounts.joinToString("、") {
+                                                    "${eventTypeLabel(it.first)} ${it.second}"
+                                                }
+                                            )
+                                        }
+                                    }
                                 )
                             },
                         )
@@ -317,6 +386,25 @@ fun SettingTriggersPage() {
                             Text("位置与蓝牙触发器需要额外权限；未授权时对应事件自动跳过")
                         },
                     )
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !exactAlarmAllowed) {
+                        item(
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(
+                                            Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                            Uri.parse("package:${context.packageName}"),
+                                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                }
+                            },
+                            leadingContent = { Icon(bolt, null) },
+                            headlineContent = { Text("精确闹钟权限（未授予）") },
+                            supportingContent = {
+                                Text("分钟级定时需要「闹钟和提醒」权限；未授予时退回每 60 秒轮询")
+                            },
+                        )
+                    }
                     item(
                         headlineContent = {
                             Text(
@@ -361,6 +449,15 @@ internal fun eventSummary(event: CardManifest.Event): String = when (event.type)
 
     CardManifest.EVENT_APP_LAUNCH ->
         "应用启动 ${event.packageName.ifBlank { "任意应用" }}"
+
+    CardManifest.EVENT_APP_EXIT ->
+        "应用退出 ${event.packageName.ifBlank { "（未填包名）" }}"
+
+    CardManifest.EVENT_SHORTCUT ->
+        "桌面快捷方式「${event.name.ifBlank { "未命名" }}」"
+
+    CardManifest.EVENT_TILE ->
+        "快捷设置磁贴「${event.name.ifBlank { "未命名" }}」"
 
     CardManifest.EVENT_CHARGING ->
         if (event.state == CardManifest.CHARGING_DISCONNECTED) "充电 · 断开电源" else "充电 · 接入电源"

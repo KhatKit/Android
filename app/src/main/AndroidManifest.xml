@@ -129,6 +129,13 @@
           android:scheme="rikkahub" />
       </intent-filter>
     </activity>
+    <!-- 卡片 shortcut 事件的落地页：仅通过桌面动态快捷方式的显式 Intent 启动 -->
+    <activity
+      android:name=".ui.activity.TriggerShortcutActivity"
+      android:excludeFromRecents="true"
+      android:exported="true"
+      android:noHistory="true"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     <activity
       android:name="com.yalantis.ucrop.UCropActivity"
       android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
@@ -152,6 +159,37 @@
       <property
         android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
         android:value="run installed card event triggers (schedule/notification/app launch/charging)" />
+    </service>
+    <!-- 快捷设置磁贴槽位：一个组件对应一个磁贴，最多 3 个 -->
+    <service
+      android:name=".service.TriggerTileService"
+      android:exported="true"
+      android:icon="@drawable/ic_trigger_tile"
+      android:label="@string/trigger_tile_label"
+      android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+      <intent-filter>
+        <action android:name="android.service.quicksettings.action.QS_TILE" />
+      </intent-filter>
+    </service>
+    <service
+      android:name=".service.TriggerTileService2"
+      android:exported="true"
+      android:icon="@drawable/ic_trigger_tile"
+      android:label="@string/trigger_tile_label"
+      android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+      <intent-filter>
+        <action android:name="android.service.quicksettings.action.QS_TILE" />
+      </intent-filter>
+    </service>
+    <service
+      android:name=".service.TriggerTileService3"
+      android:exported="true"
+      android:icon="@drawable/ic_trigger_tile"
+      android:label="@string/trigger_tile_label"
+      android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+      <intent-filter>
+        <action android:name="android.service.quicksettings.action.QS_TILE" />
+      </intent-filter>
     </service>
     <service
       android:name=".service.AutomationOverlayService"
@@ -179,6 +217,9 @@
         <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
       </intent-filter>
     </receiver>
+    <receiver
+      android:name=".automation.ApprovalActionReceiver"
+      android:exported="false" />
 
     <provider
       android:name="androidx.core.content.FileProvider"

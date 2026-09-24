@@ -29,7 +29,7 @@ object CardValidator {
     private val BRIDGE_CALL_REGEX = Regex("""\b(tool|ui|download|store|shizuku|root|accessibility)\s*[.:]""")
     private val TIME_REGEX = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
     private const val ALL_EVENT_TYPE_TEXT =
-        "schedule|notification|app_launch|charging|wifi|network|battery|screen|clipboard|bluetooth|location"
+        "schedule|notification|app_launch|app_exit|charging|wifi|network|battery|screen|clipboard|bluetooth|location|shortcut|tile"
 
     /**
      * @param manifest 解析后的卡片
@@ -102,6 +102,24 @@ object CardValidator {
 
                 CardManifest.EVENT_APP_LAUNCH -> {
                     // package 留空 = 任意应用进入前台，合法
+                }
+
+                CardManifest.EVENT_APP_EXIT -> {
+                    if (event.packageName.isBlank()) {
+                        error("EVENT_APP_EXIT_PACKAGE_REQUIRED", "$where app_exit 必须指定 package（要监听退出的应用）")
+                    }
+                }
+
+                CardManifest.EVENT_SHORTCUT -> {
+                    if (event.name.isBlank()) {
+                        error("EVENT_SHORTCUT_NAME_REQUIRED", "$where shortcut 必须指定 name（快捷方式显示名称）")
+                    }
+                }
+
+                CardManifest.EVENT_TILE -> {
+                    if (event.name.isBlank()) {
+                        error("EVENT_TILE_NAME_REQUIRED", "$where tile 必须指定 name（磁贴显示名称）")
+                    }
                 }
 
                 CardManifest.EVENT_CHARGING -> {

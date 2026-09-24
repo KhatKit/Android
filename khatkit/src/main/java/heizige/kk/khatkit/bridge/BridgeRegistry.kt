@@ -20,6 +20,12 @@ class BridgeRegistry(
     /** 宿主侧访问下载管理器（下载中心）。 */
     fun downloadBridge(): DownloadBridge? = download
 
+    /** 宿主侧 AI 设备工具：解锁屏幕时用 root shell（优先）或 Shizuku shell。 */
+    fun rootBridge(): RootBridge? = root
+
+    /** 宿主侧 AI 设备工具：无 root 时回退 Shizuku shell。 */
+    fun shizukuBridge(): ShizukuBridge? = shizuku
+
     /** 当前设备具备的能力集合。 */
     fun availableBridges(): Set<String> = buildSet {
         if (tool != null) add("tool")
