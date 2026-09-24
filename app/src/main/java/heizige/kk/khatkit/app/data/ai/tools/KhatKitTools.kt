@@ -270,7 +270,8 @@ class KhatKitToolProvider(
      * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后进入完成态。
      * AI tool / 用户手动 / 事件触发三个入口都汇聚到这里；用户已请求停止时不再开新运行。
      * 执行前通过 [AutomationBus.requestApproval] 在看板上请求用户授权（放手模式或已授权则跳过）。
-     * [AutomationBus.begin] 持有会话：卡片执行期间即使长时间没有进度更新，看板也不会误判会话结束。
+     * [AutomationBus.begin] 持有会话：卡片执行期间即使长时间没有进度更新，看板也不会误判会话结束；
+     * 授权被拒 / 取消 / 异常都会在 finally 释放持有，看板必定进入完成态并退场。
      */
     suspend fun runCardWithStatus(
         card: LoadedCard,
@@ -282,13 +283,12 @@ class KhatKitToolProvider(
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
         AutomationBus.begin()
-        AutomationBus.update("正在运行卡片：${card.manifest.name}")
-        val category = cardApprovalCategory(card)
-        if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger", category)) {
-            AutomationBus.finish()
-            return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
-        }
         return try {
+            AutomationBus.update("正在运行卡片：${card.manifest.name}")
+            val category = cardApprovalCategory(card)
+            if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger", category)) {
+                return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
+            }
             runManager.run(card, args)
         } finally {
             AutomationBus.finish()

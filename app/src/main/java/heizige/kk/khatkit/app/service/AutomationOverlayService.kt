@@ -28,6 +28,8 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -42,16 +44,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconButtonShapes
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +72,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,7 +99,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.automation.AutomationBus
 import heizige.kk.khatkit.app.ui.icons.check
 import heizige.kk.khatkit.app.ui.icons.close
-import heizige.kk.khatkit.app.ui.icons.schedule
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.KhatKitTheme
@@ -112,8 +120,8 @@ private const val ANIMATION_MS = 150
 /** 自动化空闲/结束提示后看板保持可见的时长，到时才播放退场动画并移除视图。 */
 private const val IDLE_EXIT_DELAY_MS = 3_000L
 
-/** 直接 AI 工具序列判定"会话结束"的空闲阈值：足够长，避免每个操作之间都提示已结束 */
-private const val SESSION_END_IDLE_MS = 15_000L
+/** 无显式 finish 的运行判定"会话结束"的空闲阈值：短暂无更新即收尾，保证看板不滞留 */
+private const val SESSION_END_IDLE_MS = 5_000L
 
 /** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完。 */
 private const val EXIT_SETTLE_MS = 200L
@@ -134,11 +142,12 @@ private val ToastShadowRoom = 16.dp
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
  * 仅显示当前步骤；授权请求期间显示请求文本 + 倒计时与 MD3 ButtonGroup（✓ / ✗）。
  * 一次运行结束（[AutomationBus.finish]）
- * 后先展示「自动化已结束」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast 同款退场动画
+ * 后先展示「任务完成」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast 同款退场动画
  * （[ANIMATION_MS] ms）并移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
- * 直接 AI 工具序列不调用 [AutomationBus.finish]：看板在有活动后超过一个
- * [IDLE_EXIT_DELAY_MS] 无更新即判定会话结束并走同样的完成态退场；卡片/触发运行由
- * [AutomationBus.begin] 会话持有标记保护，不会因执行期间无进度更新被误判。
+ * 直接 AI 工具序列不调用 [AutomationBus.finish]：看板在有活动后超过 [SESSION_END_IDLE_MS]
+ * 无更新即判定会话结束并走同样的完成态退场；卡片/触发运行由 [AutomationBus.begin]
+ * 会话持有标记保护，但持有超过 [AutomationBus.SESSION_HOLD_TTL_MS] 无活动（含异常路径
+ * 泄漏的陈旧持有）也会被强制收尾，保证悬浮板必定消失。
  * 运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，空闲或销毁时释放。
  *
  * 无障碍服务在线时优先走 `TYPE_ACCESSIBILITY_OVERLAY`（层级高于状态栏/通知栏），
@@ -334,7 +343,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         overlayVisible.value = true
                         when {
                             status?.finished == true && approval == null -> {
-                                // 完成态：短暂展示「自动化已结束」，立即释放常亮，到时退场并复位总线
+                                // 完成态：短暂展示「任务完成」，立即释放常亮，到时退场并复位总线
                                 releaseWakeLock()
                                 hideJob = scope.launch {
                                     delay(IDLE_EXIT_DELAY_MS)
@@ -344,23 +353,27 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                                 }
                             }
 
-                            approval == null && status != null && !AutomationBus.isSessionHeld() -> {
-                                // 直接 AI 工具序列没有显式 finish：空闲超过一个退场窗口即视为会话结束，
-                                // 标记完成后走完成态分支展示「自动化已结束」并退场。
-                                // 卡片/触发等显式运行由 begin()/finish() 的会话持有标记保护，不受此影响。
+                            approval == null && status != null -> {
+                                // 没有显式 finish 的运行：空闲 SESSION_END_IDLE_MS 即视为会话结束；
+                                // 有效会话持有先等到 TTL 过期再强制收尾，陈旧/泄漏的持有不会让看板滞留。
                                 acquireWakeLock()
                                 hideJob = scope.launch {
                                     delay(SESSION_END_IDLE_MS)
+                                    val holdRemaining = AutomationBus.sessionHoldRemainingMs()
+                                    if (holdRemaining > 0) delay(holdRemaining)
                                     val current = AutomationBus.status.value
                                     if (current == null || current.finished) return@launch
                                     if (AutomationBus.pendingApproval.value != null) return@launch
-                                    if (AutomationBus.isSessionHeld()) return@launch
                                     AutomationBus.finish()
                                 }
                             }
 
                             else -> acquireWakeLock()
                         }
+                    } else if (status?.finished == true && approval == null) {
+                        // 窗口未能挂载：完成态不会自行退场，直接复位总线并结束服务
+                        AutomationBus.clear()
+                        stopSelf()
                     }
                 } else {
                     releaseWakeLock()
@@ -673,7 +686,7 @@ private fun AutomationToast(
                     BoardContent.Finished -> {
                         // 纯文本提示，不出现任何图标/按钮
                         Text(
-                            text = "自动化已结束",
+                            text = "任务完成",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 0.5.sp,
@@ -740,10 +753,10 @@ private fun AutomationToast(
 private val ApprovalButtonSize = 32.dp
 
 /**
- * 授权操作组：官方 MD3 [ButtonGroup] + connected 形状，固定 3 项：
- * ✗（拒绝，leading）/ 时钟（记住 10 分钟，middle）/ ✓（允许，trailing）三个
- * [FilledIconButton]，颜色取自 [MaterialTheme.colorScheme]；关闭最小交互尺寸约束
- * 以保持 Toast 紧凑（按钮与图标均为小尺寸）。
+ * 授权操作组：官方 MD3 [ButtonGroup] + connected 形状，固定 2 项：
+ * ✗（拒绝，leading）/ ✓（允许，trailing）。✓ 单击即允许本次，长按弹出
+ * 「仅本次允许 / 10 分钟内自动允许」菜单；关闭最小交互尺寸约束以保持
+ * Toast 紧凑（按钮与图标均为小尺寸）。
  */
 @Composable
 private fun ApprovalButtonGroup(
@@ -752,7 +765,6 @@ private fun ApprovalButtonGroup(
     onRemember: () -> Unit,
 ) {
     val leadingShapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
-    val middleShapes = ButtonGroupDefaults.connectedMiddleButtonShapes()
     val trailingShapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
         ButtonGroup(
@@ -785,48 +797,112 @@ private fun ApprovalButtonGroup(
             )
             customItem(
                 buttonGroupContent = {
-                    ToggleButton(
-                        checked = false,
-                        onCheckedChange = { onRemember() },
-                        shapes = middleShapes,
-                        colors = ToggleButtonDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        ),
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(ApprovalButtonSize),
-                    ) {
-                        Icon(
-                            imageVector = schedule,
-                            contentDescription = "记住 10 分钟",
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                },
-                menuContent = { },
-            )
-            customItem(
-                buttonGroupContent = {
-                    ToggleButton(
-                        checked = false,
-                        onCheckedChange = { onApprove() },
+                    ApproveButton(
                         shapes = trailingShapes,
-                        colors = ToggleButtonDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(ApprovalButtonSize),
-                    ) {
-                        Icon(
-                            imageVector = check,
-                            contentDescription = "允许",
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
+                        onApprove = onApprove,
+                        onRemember = onRemember,
+                    )
                 },
                 menuContent = { },
             )
+        }
+    }
+}
+
+/**
+ * ✓ 允许按钮：外观沿用 MD3 [ToggleButton]（connected trailing 形状、primary 配色及
+ * 按压形变/涟漪），指针事件交给上层透明 [Box] 的 combinedClickable：单击允许本次，
+ * 长按弹出与 Toast 深色反色底一致的 [DropdownMenu]；两者共享 interactionSource 且
+ * combinedClickable 不附带 indication，避免双层涟漪。
+ */
+@Composable
+private fun ApproveButton(
+    shapes: ToggleButtonShapes,
+    onApprove: () -> Unit,
+    onRemember: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val menuContainerColor = MaterialTheme.colorScheme.inverseSurface.harmonizeWithPrimary()
+    val menuContentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
+    val itemColors = MenuDefaults.itemColors(
+        textColor = menuContentColor,
+        leadingIconColor = menuContentColor,
+        trailingIconColor = menuContentColor,
+    )
+
+    Box(modifier = Modifier.size(ApprovalButtonSize)) {
+        ToggleButton(
+            checked = false,
+            onCheckedChange = { },
+            shapes = shapes,
+            colors = ToggleButtonDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            contentPadding = PaddingValues(0.dp),
+            interactionSource = interactionSource,
+            modifier = Modifier
+                .size(ApprovalButtonSize)
+                .clearAndSetSemantics { },
+        ) {
+            Icon(
+                imageVector = check,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .semantics { contentDescription = "允许" }
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClickLabel = "仅本次允许",
+                    onLongClickLabel = "更多允许选项",
+                    onLongClick = { menuExpanded = true },
+                    onClick = onApprove,
+                ),
+        ) {
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                containerColor = menuContainerColor.copy(alpha = TOAST_ALPHA),
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "仅本次允许",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                        )
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onApprove()
+                    },
+                    colors = itemColors,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "10 分钟内自动允许",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                        )
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onRemember()
+                    },
+                    colors = itemColors,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }

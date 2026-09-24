@@ -68,7 +68,7 @@ enum class ApprovalPolicy(val id: String, val label: String) {
  *
  * - [update] 发布一步，自动追加到 [AutomationStatus.recent]（最多 4 条，连续重复去重）
  * - [requestCancel] 用户在看板点「停止」，长脚本可通过 `ui.isCancelled()` 轮询感知
- * - [finish] 一次运行结束，看板先展示「自动化已结束」约 3s 再自动隐藏
+ * - [finish] 一次运行结束，看板先展示「任务完成」约 3s 再自动隐藏
  * - [clear] 看板服务在完成态展示结束后复位总线；业务侧结束请调用 [finish]
  */
 object AutomationBus {
@@ -106,6 +106,12 @@ object AutomationBus {
 
     /** 「记住 10 分钟」按钮设置的有效期：期间同类请求自动放行（不跨策略拒绝）。 */
     const val APPROVAL_REMEMBER_MS = 10 * 60_000L
+
+    /**
+     * 显式运行会话持有的有效期：期间每次 [update] 都会续期，超过该时长没有任何活动
+     * 即视为泄漏/陈旧的持有，看板不再等待并强制收尾，保证悬浮板必定消失。
+     */
+    const val SESSION_HOLD_TTL_MS = 30_000L
 
     /** 通知回退的广播动作：点击通知上的「允许 / 拒绝」按钮。 */
     const val ACTION_APPROVAL_ALLOW = "heizige.kk.khatkit.app.action.APPROVAL_ALLOW"
@@ -152,6 +158,10 @@ object AutomationBus {
     @Volatile
     private var sessionHeld = false
 
+    /** [sessionHeld] 的最近一次活动时间（[begin] 或持有期间的 [update]），用于 TTL 判定。 */
+    @Volatile
+    private var sessionHeldAt = 0L
+
     @Volatile
     private var approvalDeferred: CompletableDeferred<ApprovalOutcome>? = null
     private val approvalMutex = Mutex()
@@ -166,6 +176,8 @@ object AutomationBus {
     /** 发布/更新当前步骤；重复的 label 不会刷屏历史，并结束上一次的完成态。 */
     fun update(label: String, detail: String = "") {
         if (label.isBlank()) return
+        // 持有期间的状态更新为会话续期，长任务不会因 TTL 被误判为陈旧持有
+        if (sessionHeld) sessionHeldAt = System.currentTimeMillis()
         val entry = if (detail.isBlank()) label else "$label · $detail"
         // 完成态之后的新活动视为一次全新运行：历史与停止标记都重新开始
         val prev = _status.value?.takeUnless { it.finished }
@@ -187,14 +199,23 @@ object AutomationBus {
 
     /**
      * 显式运行（卡片 / 触发）开始：在首次 [update] 前调用，运行期间看板不会把
-     * 长时间无更新误判为会话结束；[finish] / [clear] 会释放该标记。
+     * 长时间无更新误判为会话结束；持有期间每次 [update] 续期，[finish] / [clear]
+     * 释放该标记，超过 [SESSION_HOLD_TTL_MS] 无活动即视为陈旧持有。
      */
     fun begin() {
         sessionHeld = true
+        sessionHeldAt = System.currentTimeMillis()
     }
 
-    /** 是否有显式运行正在持有会话（直接 AI 设备工具序列为 false）。 */
-    fun isSessionHeld(): Boolean = sessionHeld
+    /** 是否有显式运行正在有效持有会话（直接 AI 设备工具序列为 false）。 */
+    fun isSessionHeld(): Boolean =
+        sessionHeld && System.currentTimeMillis() - sessionHeldAt < SESSION_HOLD_TTL_MS
+
+    /** 陈旧持有的剩余时长：看板空闲判定最多再等这么久即强制结束；未持有时为 0。 */
+    fun sessionHoldRemainingMs(): Long {
+        if (!sessionHeld) return 0L
+        return (sessionHeldAt + SESSION_HOLD_TTL_MS - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
 
     /** 看板「停止」按钮：请求取消当前自动化，脚本侧轮询 [isCancelRequested]。 */
     fun requestCancel() {
@@ -226,7 +247,7 @@ object AutomationBus {
      * 1. 放手模式开启 → 直接放行（覆盖一切）；
      * 2. 类别策略 allow / deny → 直接放行 / 拒绝；
      * 3. 本次运行已授权（看板 ✓）或类别处于 10 分钟记住期内 → 直接放行；
-     * 4. 无障碍悬浮窗或 SYSTEM_ALERT_WINDOW 可用 → 看板展示「✗ / 记住 10 分钟 / ✓」；
+     * 4. 无障碍悬浮窗或 SYSTEM_ALERT_WINDOW 可用 → 看板展示「✗ / ✓」，长按 ✓ 可记住 10 分钟；
      * 5. 两者都不可用 → 高优先级通知「允许 / 拒绝」，通知权限也没有时直接拒绝。
      * 60s 未响应按拒绝处理；同一时刻只允许一个请求。
      */
@@ -428,6 +449,7 @@ object AutomationBus {
      */
     fun finish() {
         sessionHeld = false
+        sessionHeldAt = 0L
         // 会话结束：临时隐藏状态复位，保证完成提示可见
         showOverlay()
         val prev = _status.value ?: return
@@ -438,6 +460,7 @@ object AutomationBus {
     /** 看板服务在完成态退场后复位总线；业务侧结束一次运行请调用 [finish]。 */
     fun clear() {
         sessionHeld = false
+        sessionHeldAt = 0L
         _status.value = null
         sessionApproved = false
         showOverlay()
