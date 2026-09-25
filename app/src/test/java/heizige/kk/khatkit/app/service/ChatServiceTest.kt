@@ -58,11 +58,11 @@ class ChatServiceTest {
     }
 
     @Test
-    fun `external web search is disabled when assistant preference is disabled`() {
+    fun `external web search stays on even when assistant preference is disabled`() {
         val assistant = Assistant(enableWebSearch = false)
         val model = Model()
 
-        assertFalse(shouldUseExternalWebSearch(assistant, model))
+        assertTrue(shouldUseExternalWebSearch(assistant, model))
     }
 
     @Test
