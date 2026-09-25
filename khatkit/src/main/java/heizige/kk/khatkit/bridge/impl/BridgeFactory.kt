@@ -6,7 +6,7 @@ import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CommandRunner
 import heizige.kk.khatkit.hub.LibResolver
-import heizige.kk.khatkit.plugin.PluginManager
+import heizige.kk.khatkit.dependency.DependencyManager
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -42,7 +42,7 @@ object BridgeFactory {
         policy: DownloadPolicy = DownloadPolicy(),
         libResolver: LibResolver? = null,
         hubBaseUrl: () -> String = { "" },
-        onPluginStatus: ((String) -> Unit)? = null,
+        onDependencyStatus: ((String) -> Unit)? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -68,8 +68,8 @@ object BridgeFactory {
             accessibility = accessibilityBridge,
         )
 
-        // 原生插件：随云端卡片下载，校验 sha256 后 DexClassLoader 加载为动态 bridge
-        val pluginManager = PluginManager(
+        // 原生依赖包：随云端卡片下载，校验 sha256 后 DexClassLoader 加载为动态 bridge
+        val dependencyManager = DependencyManager(
             context = appContext,
             hubBaseUrl = hubBaseUrl,
             fetchBytes = { url ->
@@ -79,7 +79,7 @@ object BridgeFactory {
                 }
                 response.readBytes()
             },
-            onStatus = { onPluginStatus?.invoke(it) },
+            onStatus = { onDependencyStatus?.invoke(it) },
         )
 
         val commandRunner = when {
@@ -88,6 +88,6 @@ object BridgeFactory {
             else -> null
         }
 
-        CardExecutor(registry, commandRunner, libResolver, pluginManager, onPluginStatus)
+        CardExecutor(registry, commandRunner, libResolver, dependencyManager, onDependencyStatus)
     }
 }

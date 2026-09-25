@@ -7,8 +7,8 @@ import heizige.kk.khatkit.engine.EngineKind
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
-import heizige.kk.khatkit.plugin.PluginEnsureResult
-import heizige.kk.khatkit.plugin.PluginManager
+import heizige.kk.khatkit.dependency.DependencyEnsureResult
+import heizige.kk.khatkit.dependency.DependencyManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -26,14 +26,14 @@ class CardExecutor(
     val bridges: BridgeRegistry,
     private val commandRunner: CommandRunner? = null,
     private val libResolver: LibResolver? = null,
-    private val pluginManager: PluginManager? = null,
-    private val onPluginStatus: ((String) -> Unit)? = null,
+    private val dependencyManager: DependencyManager? = null,
+    private val onDependencyStatus: ((String) -> Unit)? = null,
 ) {
     suspend fun execute(card: LoadedCard, args: Map<String, Any?>): EngineResult =
         withContext(Dispatchers.Default) {
             // 卡片/脚本/宿主任何一环出问题都收敛成 Err，绝不让异常冒泡打断整轮生成
             runCatching {
-                ensurePlugins(card.manifest)?.let { return@runCatching it }
+                ensureDependencies(card.manifest)?.let { return@runCatching it }
                 when (card.engineKind) {
                     EngineKind.COMMAND -> executeCommand(card.manifest, args)
                     EngineKind.LUA, EngineKind.JS -> executeScript(card, args)
@@ -44,23 +44,23 @@ class CardExecutor(
         }
 
     /**
-     * 执行前确保卡片声明的原生插件已下载、校验并加载为动态 bridge。
+     * 执行前确保卡片声明的原生依赖包已下载、校验并加载为动态 bridge。
      * 返回 null 表示全部就绪；失败返回带中文说明的 Err（离线/校验失败等）。
      */
-    private suspend fun ensurePlugins(manifest: CardManifest): EngineResult? {
-        val requirements = manifest.requires.plugins
+    private suspend fun ensureDependencies(manifest: CardManifest): EngineResult? {
+        val requirements = manifest.requires.dependencies
         if (requirements.isEmpty()) return null
-        val manager = pluginManager
+        val manager = dependencyManager
             ?: return EngineResult.Err(
-                "PLUGIN_UNAVAILABLE",
-                "卡片 ${manifest.name} 依赖原生插件（${requirements.joinToString { it.name }}），" +
-                    "但当前宿主不支持插件运行时；请升级 KhatKit 后重试。",
+                "DEPENDENCY_UNAVAILABLE",
+                "卡片 ${manifest.name} 依赖原生依赖包（${requirements.joinToString { it.name }}），" +
+                    "但当前宿主不支持依赖包运行时；请升级 KhatKit 后重试。",
             )
         requirements.forEach { req ->
-            onPluginStatus?.invoke("正在准备插件：${req.name} ${req.version}")
+            onDependencyStatus?.invoke("正在准备依赖包：${req.name} ${req.version}")
             when (val result = manager.ensure(req)) {
-                is PluginEnsureResult.Ok -> bridges.registerDynamic(req.name, result.bridge)
-                is PluginEnsureResult.Err -> return EngineResult.Err(result.code, result.message)
+                is DependencyEnsureResult.Ok -> bridges.registerDynamic(req.name, result.bridge)
+                is DependencyEnsureResult.Err -> return EngineResult.Err(result.code, result.message)
             }
         }
         return null

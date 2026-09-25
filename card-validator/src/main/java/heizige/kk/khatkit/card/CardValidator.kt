@@ -25,8 +25,8 @@ object CardValidator {
 
     private val NAME_REGEX = Regex("^[a-z][a-z0-9_]{1,63}$")
 
-    /** 插件名 = bridge 名，允许 camelCase（如 imageToolbox） */
-    private val PLUGIN_NAME_REGEX = Regex("^[a-z][A-Za-z0-9_]{1,63}$")
+    /** 依赖名 = bridge 名，允许 camelCase（如 imageToolbox） */
+    private val DEPENDENCY_NAME_REGEX = Regex("^[a-z][A-Za-z0-9_]{1,63}$")
     private val SEMVER_REGEX = Regex("^\\d+\\.\\d+\\.\\d+([-+].*)?$")
     private val SHA256_REGEX = Regex("^[0-9a-f]{64}$")
     private val URL_REGEX = Regex("""https?://([A-Za-z0-9.-]+)""")
@@ -236,27 +236,27 @@ object CardValidator {
             error("BRIDGE_UNKNOWN", "声明了未知 bridge：$unknown")
         }
 
-        // 原生插件依赖：名称/版本必填，sha256 必须是 64 位十六进制，url 只允许 Hub 相对路径
-        val pluginNames = mutableSetOf<String>()
-        manifest.requires.plugins.forEachIndexed { index, plugin ->
-            val where = "requires.plugins[$index]"
-            if (!PLUGIN_NAME_REGEX.matches(plugin.name)) {
-                error("PLUGIN_NAME_INVALID", "$where name 必须是小写字母开头的字母数字下划线（如 imageToolbox）：${plugin.name}")
+        // 原生依赖包：名称/版本必填，sha256 必须是 64 位十六进制，url 只允许 Hub 相对路径
+        val dependencyNames = mutableSetOf<String>()
+        manifest.requires.dependencies.forEachIndexed { index, dependency ->
+            val where = "requires.dependencies[$index]"
+            if (!DEPENDENCY_NAME_REGEX.matches(dependency.name)) {
+                error("DEPENDENCY_NAME_INVALID", "$where name 必须是小写字母开头的字母数字下划线（如 imageToolbox）：${dependency.name}")
             }
-            if (plugin.version.isBlank()) {
-                error("PLUGIN_VERSION_REQUIRED", "$where version 不能为空")
-            } else if (!SEMVER_REGEX.matches(plugin.version)) {
-                warning("PLUGIN_VERSION_NOT_SEMVER", "$where version 建议使用 SemVer：${plugin.version}")
+            if (dependency.version.isBlank()) {
+                error("DEPENDENCY_VERSION_REQUIRED", "$where version 不能为空")
+            } else if (!SEMVER_REGEX.matches(dependency.version)) {
+                warning("DEPENDENCY_VERSION_NOT_SEMVER", "$where version 建议使用 SemVer：${dependency.version}")
             }
-            if (!SHA256_REGEX.matches(plugin.sha256)) {
-                error("PLUGIN_SHA256_INVALID", "$where sha256 必须是 64 位小写十六进制：${plugin.sha256}")
+            if (!SHA256_REGEX.matches(dependency.sha256)) {
+                error("DEPENDENCY_SHA256_INVALID", "$where sha256 必须是 64 位小写十六进制：${dependency.sha256}")
             }
-            val url = plugin.url
+            val url = dependency.url
             if (!url.isNullOrBlank() && !url.startsWith("/")) {
-                error("PLUGIN_URL_INVALID", "$where url 必须是相对 Hub 的路径（以 / 开头），不允许任意外部镜像：$url")
+                error("DEPENDENCY_URL_INVALID", "$where url 必须是相对 Hub 的路径（以 / 开头），不允许任意外部镜像：$url")
             }
-            if (!pluginNames.add(plugin.name)) {
-                error("PLUGIN_DUPLICATE", "$where 重复声明插件：${plugin.name}")
+            if (!dependencyNames.add(dependency.name)) {
+                error("DEPENDENCY_DUPLICATE", "$where 重复声明依赖包：${dependency.name}")
             }
         }
 

@@ -87,5 +87,5 @@ include(":material3")
 include(":workspace")
 include(":app:baselineprofile")
 include(":oauth")
-// 原生插件模块：不随应用编译，只通过 buildPluginDex 产出 Hub 分发的 dex 插件 jar
-include(":image-toolbox-plugin")
+// 原生依赖包模块：不随应用编译，只通过 buildDependencyDex 产出 Hub 分发的 dex 依赖 jar
+include(":image-toolbox-dependency")

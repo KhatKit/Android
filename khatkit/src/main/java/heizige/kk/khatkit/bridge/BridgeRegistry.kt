@@ -18,15 +18,15 @@ class BridgeRegistry(
     private val accessibility: AccessibilityBridge? = null,
 ) {
     /**
-     * 运行期动态注册的 bridge（原生插件加载后注册，如 imageToolbox）。
-     * 插件实现不随应用编译，见 [heizige.kk.khatkit.plugin.PluginManager]。
+     * 运行期动态注册的 bridge（原生依赖包加载后注册，如 imageToolbox）。
+     * 依赖实现不随应用编译，见 [heizige.kk.khatkit.dependency.DependencyManager]。
      */
     private val dynamicBridges = java.util.concurrent.ConcurrentHashMap<String, Any>()
 
     /** 宿主侧访问下载管理器（下载中心）。 */
     fun downloadBridge(): DownloadBridge? = download
 
-    /** 注册/替换一个动态 bridge（插件名即 bridge 名）。 */
+    /** 注册/替换一个动态 bridge（依赖名即 bridge 名）。 */
     fun registerDynamic(name: String, bridge: Any) {
         dynamicBridges[name] = bridge
     }
@@ -44,9 +44,9 @@ class BridgeRegistry(
      * 当前设备具备的能力集合。
      *
      * 除编译进应用的 bridge 外，还包含：
-     *  - 运行期加载的原生插件 bridge 名；
-     *  - 常量 [CAPABILITY_PLUGIN]：表示设备支持按需下载 Dex 插件，
-     *    Hub 据此让声明了 `requires.plugins` 的卡片对 AI 可见（执行前会自动下载）。
+     *  - 运行期加载的原生依赖包 bridge 名；
+     *  - 常量 [CAPABILITY_DEPENDENCY]：表示设备支持按需下载 Dex 依赖包，
+     *    Hub 据此让声明了 `requires.dependencies` 的卡片对 AI 可见（执行前会自动下载）。
      */
     fun availableBridges(): Set<String> = buildSet {
         if (tool != null) add("tool")
@@ -57,7 +57,7 @@ class BridgeRegistry(
         if (root != null) add("root")
         if (accessibility != null) add("accessibility")
         addAll(dynamicBridges.keys)
-        add(CAPABILITY_PLUGIN)
+        add(CAPABILITY_DEPENDENCY)
     }
 
     /** 卡片所需能力是否全部具备。 */
@@ -91,7 +91,7 @@ class BridgeRegistry(
     }
 
     companion object {
-        /** 通用能力：设备支持下载并加载原生 Dex 插件（所有 KhatKit 构建均满足）。 */
-        const val CAPABILITY_PLUGIN = "plugin"
+        /** 通用能力：设备支持下载并加载原生 Dex 依赖包（所有 KhatKit 构建均满足）。 */
+        const val CAPABILITY_DEPENDENCY = "dependency"
     }
 }

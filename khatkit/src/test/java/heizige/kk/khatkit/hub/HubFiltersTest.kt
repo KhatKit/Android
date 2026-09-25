@@ -12,14 +12,14 @@ class HubFiltersTest {
         name: String,
         bridges: List<String> = emptyList(),
         privilege: String = "none",
-        plugins: List<CardManifest.PluginReq> = emptyList(),
+        dependencies: List<CardManifest.DependencyReq> = emptyList(),
     ) = CardIndexEntry(
         name = name,
         version = "1.0.0",
         privilege = privilege,
         bridges = bridges,
         url = "$name.zip",
-        plugins = plugins,
+        dependencies = dependencies,
     )
 
     @Test
@@ -43,24 +43,24 @@ class HubFiltersTest {
     }
 
     @Test
-    fun pluginCardVisibleWhenRuntimeSupportsPlugins() {
-        val plugin = CardManifest.PluginReq(
+    fun dependencyCardVisibleWhenRuntimeSupportsDependencies() {
+        val dependency = CardManifest.DependencyReq(
             name = "imageToolbox",
             version = "1.0.0",
             sha256 = "a".repeat(64),
         )
         val cards = listOf(
-            card("image_resize", bridges = listOf("tool", "imageToolbox"), plugins = listOf(plugin)),
+            card("image_resize", bridges = listOf("tool", "imageToolbox"), dependencies = listOf(dependency)),
         )
 
-        // 已加载插件：直接可见
+        // 已加载依赖包：直接可见
         assertEquals(
             1,
-            HubFilters.byCapability(cards, setOf("tool", "imageToolbox", BridgeRegistry.CAPABILITY_PLUGIN)).size,
+            HubFilters.byCapability(cards, setOf("tool", "imageToolbox", BridgeRegistry.CAPABILITY_DEPENDENCY)).size,
         )
-        // 未加载但支持插件运行时：可见（运行前自动下载）
-        assertEquals(1, HubFilters.byCapability(cards, setOf("tool", BridgeRegistry.CAPABILITY_PLUGIN)).size)
-        // 不支持插件运行时：隐藏
+        // 未加载但支持依赖包运行时：可见（运行前自动下载）
+        assertEquals(1, HubFilters.byCapability(cards, setOf("tool", BridgeRegistry.CAPABILITY_DEPENDENCY)).size)
+        // 不支持依赖包运行时：隐藏
         assertTrue(HubFilters.byCapability(cards, setOf("tool")).isEmpty())
     }
 }

@@ -12,17 +12,17 @@ object HubFilters {
      * 能力过滤：设备没有的 bridge 对应的卡片直接不可见。
      * elevated 卡片还要求设备具备 shizuku / root / accessibility。
      *
-     * 声明了 `requires.plugins` 的卡片：只要设备支持插件运行时（Capability.PLUGIN），
-     * 插件 bridge 视为「可按需获取」——执行前会自动下载并校验 sha256。
+     * 声明了 `requires.dependencies` 的卡片：只要设备支持依赖包运行时（Capability.DEPENDENCY），
+     * 依赖 bridge 视为「可按需获取」——执行前会自动下载并校验 sha256。
      */
     fun byCapability(
         cards: List<CardIndexEntry>,
         available: Set<String>,
     ): List<CardIndexEntry> = cards.filter { card ->
-        val pluginNames = card.plugins.mapTo(mutableSetOf()) { it.name }
-        val pluginsUsable = BridgeRegistry.CAPABILITY_PLUGIN in available
+        val dependencyNames = card.dependencies.mapTo(mutableSetOf()) { it.name }
+        val dependenciesUsable = BridgeRegistry.CAPABILITY_DEPENDENCY in available
         val bridgesOk = card.bridges.all { bridge ->
-            bridge in available || (pluginsUsable && bridge in pluginNames)
+            bridge in available || (dependenciesUsable && bridge in dependencyNames)
         }
         val privilegeOk = when (card.privilege) {
             "none" -> true

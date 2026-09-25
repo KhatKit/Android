@@ -724,8 +724,12 @@ end
 | `imagesToPdf(paths, output)` | string | 多图合成 A4 PDF，`output` 可空。 |
 | `pdfToImages(path, outputDir)` | string[] | PDF 逐页渲染 PNG，`outputDir` 可空（源目录）。 |
 | `pdfPageCount(path)` | number | PDF 页数。 |
+| `process(path, op, paramsJson)` | string | 单图扩展：31 种滤镜预设 + 20 种参数化滤镜 + 21 种效果 + 14 种几何版式，`op` 与 `paramsJson` 见 [image-toolbox.md](image-toolbox.md#12-单图扩展processpath-op-paramsjson)。 |
+| `compose(op, inputsJson, paramsJson)` | string | 多图合成：grid/collage/stack_h/stack_v/blend/watermark_image；`inputsJson` 为路径 JSON 数组。 |
+| `analyze(path, query, paramsJson)` | string(JSON) | 只读分析：info/histogram/dominant/palette/pick/color_at/average/exif/ascii，返回 JSON 字符串，不写文件。 |
+| `pdfEdit(op, source, paramsJson)` | string | PDF 编辑：rotate/reorder/extract/delete/nup/compress/merge（重建为位图 PDF）。 |
 
-> `compress(path, quality)` 质量压缩请直接用 `tool.compressImage`，不在 imageToolbox 里重复提供。图像工具箱卡片（`image_resize_crop` / `image_enhance` / `image_finish` / `image_pdf`）已封装全部操作与参数解析，从卡片市场下载后可直接使用；`imageToolbox` 是随卡片从 Hub 下载的原生插件（`requires.plugins`），不编译进 APK，见 [plugin-system.md](plugin-system.md)。
+> `compress(path, quality)` 质量压缩请直接用 `tool.compressImage`，不在 imageToolbox 里重复提供。图像工具箱卡片（`image_resize_crop` / `image_enhance` / `image_finish` / `image_compose` / `image_analyze` / `image_pdf`）已封装全部操作与参数解析，从卡片市场下载后可直接使用；`imageToolbox` 是随卡片从 Hub 下载的原生依赖包（`requires.dependencies`），不编译进 APK，见 [dependency-system.md](dependency-system.md)。
 
 ### 4.9 宿主侧接口速览
 

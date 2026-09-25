@@ -89,11 +89,19 @@ private data class CardToolSpec(
     val card: LoadedCard?,
 )
 
-private fun CardToolSpec.descriptionText(): String =
-    entry?.summary?.takeIf { it.isNotBlank() }
+private fun CardToolSpec.descriptionText(): String {
+    val base = entry?.summary?.takeIf { it.isNotBlank() }
         ?: entry?.description?.takeIf { it.isNotBlank() }
         ?: card?.manifest?.description?.takeIf { it.isNotBlank() }
         ?: name
+    // 明确标注来源与安装状态：云端卡片脚本可按需下载运行，vFlow 是另一个 App 的联动卡片
+    val status = when {
+        card == null -> "【云端卡片·未安装，调用时自动从 Hub 下载并运行】"
+        entry != null -> "【云端卡片·已安装】"
+        else -> "【本地内置卡片】"
+    }
+    return "$status $base"
+}
 
 private fun CardToolSpec.supportsAi(): Boolean =
     card?.manifest?.supportsAi()
@@ -276,9 +284,9 @@ class KhatKitToolProvider(
                         HubLibProvider(hub(), cache),
                     )
                 ),
-                // 原生插件从用户配置的 Hub 下载；下载/校验进度发布到自动化看板
+                // 原生依赖包从用户配置的 Hub 下载；下载/校验进度发布到自动化看板
                 hubBaseUrl = { hubBaseUrl },
-                onPluginStatus = { AutomationBus.update(it) },
+                onDependencyStatus = { AutomationBus.update(it) },
             ).also {
                 executor = it
                 bindDownloadCenter(it)
@@ -424,7 +432,9 @@ class KhatKitToolProvider(
                 add(CardToolSpec(name = entry.name, entry = entry, card = null))
             }
         }
-        val cardTools = specs.filter { it.supportsAi() }.take(TOOL_CANDIDATE_LIMIT).map { spec -> spec.toTool() }
+        // 云端卡片超过候选上限时，search_cloud_cards 工具仍能让 AI 搜索并指定卡片运行
+        val cardTools = specs.filter { it.supportsAi() }.take(TOOL_CANDIDATE_LIMIT)
+            .map { spec -> spec.toTool() } + cloudScriptsTool()
         // 无障碍可用时额外挂两个内置工具：看屏幕 + 直接动作，让纯文本模型也能驱动手机
         if (AccessibilityBridgeHolder.current() == null) {
             cardTools
@@ -447,7 +457,7 @@ class KhatKitToolProvider(
             // Hub 不可达时最多等 3 秒，失败沿用旧缓存，避免阻塞首条消息
             val fetched = runCatching {
                 withTimeoutOrNull(INDEX_FETCH_TIMEOUT_MS) {
-                    hub().search("", capabilities(), limit = TOOL_CANDIDATE_LIMIT).cards
+                    hub().search("", capabilities(), limit = INDEX_FETCH_LIMIT).cards
                 }
             }.getOrNull().orEmpty()
             if (fetched.isNotEmpty() || indexCache.isEmpty()) {
@@ -465,6 +475,12 @@ class KhatKitToolProvider(
         val installedVersion = spec.card?.manifest?.version ?: cache.installedVersions()[spec.name]
         val needsUpdate = installedVersion != null && installedVersion != entry.version
         runCatching {
+            if (installedVersion == null) {
+                AutomationBus.update("正在安装云端卡片：${spec.name}")
+            } else if (needsUpdate) {
+                AutomationBus.update("正在更新云端卡片：${spec.name} ${installedVersion} → ${entry.version}")
+            }
+            // cache.ensure 负责下载卡片包；随后执行时 CardExecutor 会自动下载 requires.dependencies
             cache.load(cache.ensure(entry, hub(), force = needsUpdate))
         }.getOrNull() ?: spec.card
     }
@@ -498,6 +514,154 @@ class KhatKitToolProvider(
                 }
             },
         )
+    }
+
+    /**
+     * 内置工具：搜索云端卡片脚本（Hub 卡片，非 vFlow）。
+     *
+     * 让模型先「找脚本」再运行：返回卡片名、说明、价格、依赖与安装状态；
+     * 卡片候选超过 [TOOL_CANDIDATE_LIMIT] 时，仍可用 run 参数指定卡片名，
+     * 自动安装（含 requires.dependencies 原生依赖）后运行。
+     */
+    private fun cloudScriptsTool(): Tool = Tool(
+        name = "khatkit__search_cloud_cards",
+        description = "云端卡片脚本（非 vFlow）——可按需安装并运行；vFlow 是另一个 App，仅通过 vflow_* 卡片联动。" +
+            "用 query 搜索云端卡片（按名称/描述/标签/用途，如：翻译、抠图、下载、PDF、快递、网盘、视频、无障碍），" +
+            "返回卡片名、中文说明、价格（免费/按次）、所需 bridge 与原生依赖包、是否已安装。" +
+            "要运行云端卡片：优先直接调用 khatkit__<卡片名>；若工具列表里没有该卡片，把卡片名填到本工具的 run 参数" +
+            "（会自动从 Hub 安装，并先下载 requires.dependencies 原生依赖包再运行），参数用 args 传 JSON 字符串。" +
+            "vFlow 工作流请改用 vflow_list_workflows / vflow_run_workflow。",
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("query", buildJsonObject {
+                        put("type", "string")
+                        put("description", "搜索关键词；留空返回全部云端卡片。")
+                    })
+                    put("run", buildJsonObject {
+                        put("type", "string")
+                        put("description", "（可选）要安装并运行的云端卡片 name；填写后忽略 query，直接安装并运行该卡片。")
+                    })
+                    put("args", buildJsonObject {
+                        put("type", "string")
+                        put("description", "（可选）运行卡片时的参数 JSON 字符串，如 {\"url\":\"https://…\"}；仅 run 时使用。")
+                    })
+                },
+            )
+        },
+        execute = { args ->
+            val params = jsonToMap(args)
+            val runName = params.str("run")?.trim().orEmpty()
+            if (runName.isNotBlank()) {
+                val entry = runCatching { searchCloudCards(runName, CLOUD_SEARCH_LIMIT) }
+                    .getOrDefault(emptyList())
+                    .firstOrNull { it.name == runName }
+                if (entry == null) {
+                    listOf(
+                        UIMessagePart.Text(
+                            """{"error":"未找到云端卡片：${runName.escape()}（可用 khatkit__search_cloud_cards 搜索）"}"""
+                        )
+                    )
+                } else {
+                    val card = resolveCard(CardToolSpec(name = entry.name, entry = entry, card = null))
+                    when {
+                        card == null -> listOf(
+                            UIMessagePart.Text(
+                                """{"error":"云端卡片安装失败：${runName.escape()}（请检查网络与 Hub 地址）"}"""
+                            )
+                        )
+
+                        !card.manifest.supportsAi() -> listOf(
+                            UIMessagePart.Text("""{"error":"卡片未启用 ai 触发：${runName.escape()}"}""")
+                        )
+
+                        else -> {
+                            val runArgs = params.str("args")?.let { raw ->
+                                runCatching { jsonToMap(json.parseToJsonElement(raw)) }.getOrNull()
+                            }.orEmpty()
+                            val result = try {
+                                runCardWithStatus(card, runArgs, trigger = "AI")
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Throwable) {
+                                EngineResult.Err("CARD_TOOL", e.message ?: e.toString())
+                            }
+                            when (result) {
+                                is EngineResult.Ok -> listOf(UIMessagePart.Text(encode(result.value)))
+                                is EngineResult.Err ->
+                                    listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
+                            }
+                        }
+                    }
+                }
+            } else {
+                val query = params.str("query").orEmpty()
+                val entries = runCatching { searchCloudCards(query, CLOUD_SEARCH_LIMIT) }
+                    .getOrDefault(emptyList())
+                val installed = cache.installedVersions()
+                val prices = runCatching { hubMarketCards().associate { it.name to it.priceCents } }
+                    .getOrDefault(emptyMap())
+                val payload = buildJsonObject {
+                    put("count", entries.size)
+                    put(
+                        "cards",
+                        JsonArray(
+                            entries.map { entry ->
+                                buildJsonObject {
+                                    put("name", entry.name)
+                                    put("version", entry.version)
+                                    put("description", entry.summary.ifBlank { entry.description })
+                                    val price = prices[entry.name] ?: 0L
+                                    put("price", if (price <= 0L) "免费" else "¥%.2f/次".format(price / 100.0))
+                                    put("bridges", JsonArray(entry.bridges.map { JsonPrimitive(it) }))
+                                    put(
+                                        "dependencies",
+                                        JsonArray(entry.dependencies.map { JsonPrimitive("${it.name} ${it.version}") }),
+                                    )
+                                    put("installed", entry.name in installed)
+                                }
+                            }
+                        )
+                    )
+                }
+                val summary = if (entries.isEmpty()) {
+                    "未找到匹配的云端卡片脚本" + (if (query.isBlank()) "" else "：$query")
+                } else {
+                    "已找到 ${entries.size} 个云端卡片脚本（非 vFlow）。运行方式：直接调用 khatkit__<name>，" +
+                        "或用本工具 run=\"name\"、args=\"{...}\" 安装并运行。"
+                }
+                listOf(UIMessagePart.Text("$summary\n$payload"))
+            }
+        },
+    )
+
+    /**
+     * 云端卡片搜索：优先走后端语义召回；失败/未命中时用本地索引按关键词兜底，
+     * 结果合并去重（服务端结果在前），保证 Hub 不可达时也能列出缓存卡片。
+     */
+    private suspend fun searchCloudCards(query: String, limit: Int): List<CardIndexEntry> {
+        val trimmed = query.trim()
+        val remote = remoteCards()
+        if (trimmed.isBlank()) return remote.take(limit)
+        val fetched = runCatching {
+            withTimeoutOrNull(INDEX_FETCH_TIMEOUT_MS) {
+                hub().search(trimmed, capabilities(), limit).cards
+            }
+        }.getOrNull().orEmpty()
+        val needle = trimmed.lowercase()
+        val fallback = remote.filter { entry ->
+            buildString {
+                append(entry.name).append(' ')
+                append(entry.description).append(' ')
+                append(entry.summary).append(' ')
+                entry.tags?.let { tags ->
+                    append(tags.domain).append(' ').append(tags.action).append(' ').append(tags.scene.orEmpty())
+                }
+            }.lowercase().contains(needle)
+        }
+        val merged = linkedMapOf<String, CardIndexEntry>()
+        (fetched + fallback).forEach { merged.putIfAbsent(it.name, it) }
+        return merged.values.take(limit)
     }
 
     /**
@@ -1353,6 +1517,12 @@ class KhatKitToolProvider(
 
         /** 喂给 AI 的候选卡片上限（设计 9.1：控制在 20 以内） */
         private const val TOOL_CANDIDATE_LIMIT = 20
+
+        /** Hub 索引拉取上限：AI 候选只暴露前 [TOOL_CANDIDATE_LIMIT] 个，search_cloud_cards 可见全部 */
+        private const val INDEX_FETCH_LIMIT = 100
+
+        /** search_cloud_cards 返回上限 */
+        private const val CLOUD_SEARCH_LIMIT = 40
 
         /** Hub 索引拉取超时：超时沿用旧缓存，不阻塞生成 */
         private const val INDEX_FETCH_TIMEOUT_MS = 3_000L

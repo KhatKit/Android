@@ -20,14 +20,14 @@ class CardValidatorTest {
         triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
         events: List<CardManifest.Event> = emptyList(),
         pricing: CardManifest.Pricing? = null,
-        plugins: List<CardManifest.PluginReq> = emptyList(),
+        dependencies: List<CardManifest.DependencyReq> = emptyList(),
     ) = CardManifest(
         name = name,
         version = "1.2.0",
         engine = engine,
         entry = CardManifest.Entry(lua = "main.lua"),
         privilege = privilege,
-        requires = CardManifest.Requires(bridges = bridges, plugins = plugins),
+        requires = CardManifest.Requires(bridges = bridges, dependencies = dependencies),
         network = CardManifest.Network(allow = network),
         parameters = JsonObject(emptyMap()),
         triggers = triggers,
@@ -724,18 +724,18 @@ class CardValidatorTest {
         assertTrue(CardValidator.isValid(parsed))
     }
 
-    // ===== requires.plugins =====
+    // ===== requires.dependencies =====
 
     private val validSha = "a".repeat(64)
 
     @Test
-    fun pluginRequirementPasses() {
+    fun dependencyRequirementPasses() {
         assertTrue(
             CardValidator.isValid(
                 manifest(
                     bridges = listOf("tool", "ui", "imageToolbox"),
-                    plugins = listOf(
-                        CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha)
+                    dependencies = listOf(
+                        CardManifest.DependencyReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha)
                     ),
                 )
             )
@@ -743,7 +743,32 @@ class CardValidatorTest {
     }
 
     @Test
-    fun pluginRequirementParsesFromJson() {
+    fun dependencyRequirementParsesFromJson() {
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "image_resize_crop",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": {
+                "bridges": ["tool", "ui", "imageToolbox"],
+                "dependencies": [
+                  { "name": "imageToolbox", "version": "1.0.0", "sha256": "$validSha" }
+                ]
+              },
+              "tags": { "domain": "media", "action": "create" }
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        assertEquals(1, parsed.requiredDependencies.size)
+        assertEquals("imageToolbox", parsed.requiredDependencies.first().name)
+        assertEquals(validSha, parsed.requiredDependencies.first().sha256)
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
+    fun legacyPluginFieldStillParsesAsDependency() {
         val parsed = CardParser.parse(
             """
             {
@@ -761,85 +786,84 @@ class CardValidatorTest {
             }
             """.trimIndent()
         ).getOrThrow()
-        assertEquals(1, parsed.requiredPlugins.size)
-        assertEquals("imageToolbox", parsed.requiredPlugins.first().name)
-        assertEquals(validSha, parsed.requiredPlugins.first().sha256)
+        assertEquals(1, parsed.requiredDependencies.size)
+        assertEquals("imageToolbox", parsed.requiredDependencies.first().name)
         assertTrue(CardValidator.isValid(parsed))
     }
 
     @Test
-    fun pluginWithoutSha256Rejected() {
+    fun dependencyWithoutSha256Rejected() {
         val issues = CardValidator.validate(
             manifest(
-                plugins = listOf(CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = ""))
+                dependencies = listOf(CardManifest.DependencyReq(name = "imageToolbox", version = "1.0.0", sha256 = ""))
             )
         )
-        assertTrue(issues.any { it.code == "PLUGIN_SHA256_INVALID" && it.severity == Severity.ERROR })
+        assertTrue(issues.any { it.code == "DEPENDENCY_SHA256_INVALID" && it.severity == Severity.ERROR })
     }
 
     @Test
-    fun pluginWithShortSha256Rejected() {
+    fun dependencyWithShortSha256Rejected() {
         val issues = CardValidator.validate(
             manifest(
-                plugins = listOf(CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = "abc123"))
+                dependencies = listOf(CardManifest.DependencyReq(name = "imageToolbox", version = "1.0.0", sha256 = "abc123"))
             )
         )
-        assertTrue(issues.any { it.code == "PLUGIN_SHA256_INVALID" })
+        assertTrue(issues.any { it.code == "DEPENDENCY_SHA256_INVALID" })
     }
 
     @Test
-    fun pluginWithoutVersionRejected() {
+    fun dependencyWithoutVersionRejected() {
         val issues = CardValidator.validate(
             manifest(
-                plugins = listOf(CardManifest.PluginReq(name = "imageToolbox", version = "", sha256 = validSha))
+                dependencies = listOf(CardManifest.DependencyReq(name = "imageToolbox", version = "", sha256 = validSha))
             )
         )
-        assertTrue(issues.any { it.code == "PLUGIN_VERSION_REQUIRED" })
+        assertTrue(issues.any { it.code == "DEPENDENCY_VERSION_REQUIRED" })
     }
 
     @Test
-    fun pluginWithInvalidNameRejected() {
+    fun dependencyWithInvalidNameRejected() {
         val issues = CardValidator.validate(
             manifest(
-                plugins = listOf(CardManifest.PluginReq(name = "Image-Toolbox", version = "1.0.0", sha256 = validSha))
+                dependencies = listOf(CardManifest.DependencyReq(name = "Image-Toolbox", version = "1.0.0", sha256 = validSha))
             )
         )
-        assertTrue(issues.any { it.code == "PLUGIN_NAME_INVALID" })
+        assertTrue(issues.any { it.code == "DEPENDENCY_NAME_INVALID" })
     }
 
     @Test
-    fun pluginWithAbsoluteUrlRejected() {
+    fun dependencyWithAbsoluteUrlRejected() {
         val issues = CardValidator.validate(
             manifest(
-                plugins = listOf(
-                    CardManifest.PluginReq(
+                dependencies = listOf(
+                    CardManifest.DependencyReq(
                         name = "imageToolbox",
                         version = "1.0.0",
-                        url = "https://evil.example.com/plugin.jar",
+                        url = "https://evil.example.com/dependency.jar",
                         sha256 = validSha,
                     )
                 )
             )
         )
-        assertTrue(issues.any { it.code == "PLUGIN_URL_INVALID" })
+        assertTrue(issues.any { it.code == "DEPENDENCY_URL_INVALID" })
     }
 
     @Test
-    fun duplicatePluginRejected() {
+    fun duplicateDependencyRejected() {
         val issues = CardValidator.validate(
             manifest(
-                plugins = listOf(
-                    CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha),
-                    CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha),
+                dependencies = listOf(
+                    CardManifest.DependencyReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha),
+                    CardManifest.DependencyReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha),
                 )
             )
         )
-        assertTrue(issues.any { it.code == "PLUGIN_DUPLICATE" })
+        assertTrue(issues.any { it.code == "DEPENDENCY_DUPLICATE" })
     }
 
     @Test
-    fun oldCardWithoutPluginsUnaffected() {
+    fun oldCardWithoutDependenciesUnaffected() {
         val issues = CardValidator.validate(manifest())
-        assertFalse(issues.any { it.code.startsWith("PLUGIN_") })
+        assertFalse(issues.any { it.code.startsWith("DEPENDENCY_") })
     }
 }

@@ -152,6 +152,22 @@ interface ImageToolboxBridge {
 
     /** PDF 页数。 */
     fun pdfPageCount(path: String): Int
+
+    /**
+     * 单图处理（依赖包扩展）：[op] 为操作名，[paramsJson] 为参数对象 JSON。
+     * 覆盖滤镜/预设/效果/几何等纯 Android SDK 可实现的 ImageToolbox 能力，
+     * 图像类 op 返回输出路径，分析类 op 返回 JSON；见 docs/image-toolbox.md。
+     */
+    fun process(path: String, op: String, paramsJson: String = "{}"): String
+
+    /** 多图合成（依赖包扩展）：[inputsJson] 为输入路径 JSON 数组，返回输出路径。 */
+    fun compose(op: String, inputsJson: String, paramsJson: String = "{}"): String
+
+    /** 只读分析（依赖包扩展）：[query] 见 docs/image-toolbox.md，返回 JSON 字符串，不写文件。 */
+    fun analyze(path: String, query: String, paramsJson: String = "{}"): String
+
+    /** PDF 编辑（依赖包扩展）：[source] 为 PDF 路径，重新渲染后写出新 PDF，返回输出路径。 */
+    fun pdfEdit(op: String, source: String, paramsJson: String = "{}"): String
 }
 
 interface UiBridge {
