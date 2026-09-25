@@ -13,7 +13,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -32,17 +32,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.api.SponsorAPI
-import heizige.kk.khatkit.app.data.model.Sponsor
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.UiState
-import heizige.kk.khatkit.app.utils.onError
-import heizige.kk.khatkit.app.utils.onLoading
-import heizige.kk.khatkit.app.utils.onSuccess
-import heizige.kk.khatkit.app.utils.openUrl
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.data.api.SponsorAPI
+import heizige.kk.khatkit.app.core.data.model.Sponsor
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.UiState
+import heizige.kk.khatkit.app.core.util.onError
+import heizige.kk.khatkit.app.core.util.onLoading
+import heizige.kk.khatkit.app.core.util.onSuccess
+import heizige.kk.khatkit.app.core.util.openUrl
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun SettingDonatePage() {

@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,23 +25,23 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.hooks.heroAnimation
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.ui.icons.arrowForward
-import heizige.kk.khatkit.app.ui.icons.code
-import heizige.kk.khatkit.app.ui.icons.construction
-import heizige.kk.khatkit.app.ui.icons.extension
-import heizige.kk.khatkit.app.ui.icons.menuBook
-import heizige.kk.khatkit.app.ui.icons.psychology
-import heizige.kk.khatkit.app.ui.icons.settings
-import heizige.kk.khatkit.app.ui.icons.sms
+import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.code
+import heizige.kk.khatkit.app.core.ui.icons.construction
+import heizige.kk.khatkit.app.core.ui.icons.extension
+import heizige.kk.khatkit.app.core.ui.icons.menuBook
+import heizige.kk.khatkit.app.core.ui.icons.psychology
+import heizige.kk.khatkit.app.core.ui.icons.settings
+import heizige.kk.khatkit.app.core.ui.icons.sms
 
 @Composable
 fun AssistantDetailPage(id: String) {

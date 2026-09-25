@@ -16,7 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,18 +27,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.webview.WEB_VIEW_BASE_URL
-import heizige.kk.khatkit.app.ui.components.webview.WebView
-import heizige.kk.khatkit.app.ui.components.webview.WebViewContentCache
-import heizige.kk.khatkit.app.ui.components.webview.rememberWebViewState
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.webview.WEB_VIEW_BASE_URL
+import heizige.kk.khatkit.app.core.ui.components.webview.WebView
+import heizige.kk.khatkit.app.core.ui.components.webview.WebViewContentCache
+import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
-import heizige.kk.khatkit.app.ui.icons.arrowForward
-import heizige.kk.khatkit.app.ui.icons.bugReport
-import heizige.kk.khatkit.app.ui.icons.moreVert
-import heizige.kk.khatkit.app.ui.icons.public
-import heizige.kk.khatkit.app.ui.icons.refresh
+import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
+import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.bugReport
+import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.public
+import heizige.kk.khatkit.app.core.ui.icons.refresh
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

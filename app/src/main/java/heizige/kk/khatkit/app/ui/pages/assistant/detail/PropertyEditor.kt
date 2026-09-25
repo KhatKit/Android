@@ -29,12 +29,12 @@ import heizige.kk.khatkit.ai.provider.CustomBody
 import heizige.kk.khatkit.ai.provider.CustomHeader
 import heizige.kk.khatkit.highlight.LocalCodeHighlighter
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.richtext.HighlightCodeVisualTransformation
-import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
-import heizige.kk.khatkit.app.ui.theme.LocalDarkMode
-import heizige.kk.khatkit.app.ui.icons.add
-import heizige.kk.khatkit.app.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.richtext.HighlightCodeVisualTransformation
+import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
+import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
+import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.core.ui.icons.delete
 
 private val jsonLenient = Json {
     ignoreUnknownKeys = true

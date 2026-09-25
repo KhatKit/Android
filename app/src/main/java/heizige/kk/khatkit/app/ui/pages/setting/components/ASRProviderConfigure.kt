@@ -13,8 +13,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.ui.FormItem
-import heizige.kk.khatkit.app.ui.components.ui.OutlinedNumberInput
+import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
+import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding

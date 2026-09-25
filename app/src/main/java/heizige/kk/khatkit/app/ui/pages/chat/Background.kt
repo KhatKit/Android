@@ -10,8 +10,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.datastore.getCurrentAssistant
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 
 @Composable
 fun AssistantBackground(setting: Settings, modifier: Modifier) {

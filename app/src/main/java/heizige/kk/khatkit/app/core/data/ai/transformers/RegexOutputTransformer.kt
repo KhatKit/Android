@@ -1,0 +1,38 @@
+package heizige.kk.khatkit.app.core.data.ai.transformers
+
+import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.ui.UIMessage
+import heizige.kk.khatkit.ai.ui.UIMessagePart
+import heizige.kk.khatkit.app.core.data.model.AssistantAffectScope
+import heizige.kk.khatkit.app.core.data.model.replaceRegexes
+
+object RegexOutputTransformer : OutputMessageTransformer {
+    override suspend fun visualTransform(
+        ctx: TransformerContext,
+        messages: List<UIMessage>,
+    ): List<UIMessage> {
+        val assistant = ctx.assistant
+        if (assistant.regexes.isEmpty()) return messages // No regexes, return original messages
+        return messages.map { message ->
+            val scope = when (message.role) {
+                MessageRole.ASSISTANT -> AssistantAffectScope.ASSISTANT
+                else -> return@map message // Skip non-assistant messages
+            }
+            message.copy(
+                parts = message.parts.map { part ->
+                    when (part) {
+                        is UIMessagePart.Text -> {
+                            part.copy(text = part.text.replaceRegexes(assistant, scope, visual = false))
+                        }
+
+                        is UIMessagePart.Reasoning -> {
+                            part.copy(reasoning = part.reasoning.replaceRegexes(assistant, scope, visual = false))
+                        }
+
+                        else -> part
+                    }
+                }
+            )
+        }
+    }
+}

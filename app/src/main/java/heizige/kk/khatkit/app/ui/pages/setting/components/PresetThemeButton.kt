@@ -32,10 +32,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
-import heizige.kk.khatkit.app.ui.theme.LocalDarkMode
-import heizige.kk.khatkit.app.ui.theme.PresetTheme
-import heizige.kk.khatkit.app.ui.theme.PresetThemes
-import heizige.kk.khatkit.app.ui.icons.check
+import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
+import heizige.kk.khatkit.app.core.ui.theme.PresetTheme
+import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
+import heizige.kk.khatkit.app.core.ui.icons.check
 
 @Composable
 fun PresetThemeButton(

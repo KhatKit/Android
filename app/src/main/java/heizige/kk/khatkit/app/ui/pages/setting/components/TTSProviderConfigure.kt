@@ -20,11 +20,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.ui.FormItem
-import heizige.kk.khatkit.app.ui.components.ui.OutlinedNumberInput
-import heizige.kk.khatkit.app.ui.components.ui.SelectTextField
-import heizige.kk.khatkit.app.ui.icons.visibility
-import heizige.kk.khatkit.app.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
+import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
+import heizige.kk.khatkit.app.core.ui.components.ui.SelectTextField
+import heizige.kk.khatkit.app.core.ui.icons.visibility
+import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
 
 @Composable

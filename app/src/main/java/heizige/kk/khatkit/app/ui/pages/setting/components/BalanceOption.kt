@@ -27,11 +27,11 @@ import heizige.kk.khatkit.ai.provider.BalanceOption
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.common.http.isJsonExprValid
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.datastore.DEFAULT_PROVIDERS
-import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
-import heizige.kk.khatkit.app.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.ui.icons.keyboardArrowUp
-import heizige.kk.khatkit.app.ui.icons.sync
+import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
+import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
+import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.sync
 
 private val ApiPathRegex = Regex("""^/[^ \t\n\r]*$""")
 

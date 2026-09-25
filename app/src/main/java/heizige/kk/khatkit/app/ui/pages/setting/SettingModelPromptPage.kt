@@ -24,17 +24,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_COMPRESS_PROMPT
-import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_OCR_PROMPT
-import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_TITLE_PROMPT
-import heizige.kk.khatkit.app.data.ai.prompts.DEFAULT_TRANSLATION_PROMPT
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.ui.components.ai.ReasoningButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.data.ai.prompts.DEFAULT_COMPRESS_PROMPT
+import heizige.kk.khatkit.app.core.data.ai.prompts.DEFAULT_OCR_PROMPT
+import heizige.kk.khatkit.app.core.data.ai.prompts.DEFAULT_TITLE_PROMPT
+import heizige.kk.khatkit.app.core.data.ai.prompts.DEFAULT_TRANSLATION_PROMPT
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import heizige.kk.khatkit.app.ui.icons.arrowForward
-import heizige.kk.khatkit.app.ui.icons.editNote
+import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.editNote
 
 @Composable
 internal fun PromptSettingsPage(settings: Settings, vm: SettingVM, contentPadding: PaddingValues) {

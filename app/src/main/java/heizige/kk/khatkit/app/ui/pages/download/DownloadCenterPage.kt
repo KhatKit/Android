@@ -25,13 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.download
-import heizige.kk.khatkit.app.ui.icons.pause
-import heizige.kk.khatkit.app.ui.icons.playArrow
-import heizige.kk.khatkit.app.ui.icons.stopCircle
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.download
+import heizige.kk.khatkit.app.core.ui.icons.pause
+import heizige.kk.khatkit.app.core.ui.icons.playArrow
+import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 

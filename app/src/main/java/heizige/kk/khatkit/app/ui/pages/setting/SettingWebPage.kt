@@ -17,7 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.OptionSwitch
@@ -47,24 +47,24 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.service.WebServerService
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionLocalNetwork
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionManager
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionNotification
-import heizige.kk.khatkit.app.ui.components.ui.permission.rememberPermissionState
-import heizige.kk.khatkit.app.ui.context.LocalSettings
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
-import heizige.kk.khatkit.web.WebServerManager
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.ui.icons.playArrow
-import heizige.kk.khatkit.app.ui.icons.stop
-import heizige.kk.khatkit.app.ui.icons.visibility
-import heizige.kk.khatkit.app.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.network.WebServerService
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionLocalNetwork
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionNotification
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
+import heizige.kk.khatkit.app.core.ui.context.LocalSettings
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.network.WebServerManager
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.icons.playArrow
+import heizige.kk.khatkit.app.core.ui.icons.stop
+import heizige.kk.khatkit.app.core.ui.icons.visibility
+import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 
 @Composable
 fun SettingWebPage() {

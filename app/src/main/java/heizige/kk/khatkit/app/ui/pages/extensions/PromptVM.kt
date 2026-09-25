@@ -8,8 +8,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
 
 @HiltViewModel
 class PromptVM @Inject constructor(

@@ -1,6 +1,6 @@
 package heizige.kk.khatkit.app.ui.pages.backup.components
 
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable

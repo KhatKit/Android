@@ -16,13 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,47 +45,47 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.data.datastore.isNotConfigured
-import heizige.kk.khatkit.app.data.files.FilesManager
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.Select
-import heizige.kk.khatkit.app.ui.components.ui.icons.DiscordIcon
-import heizige.kk.khatkit.app.ui.components.ui.icons.TencentQQIcon
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.context.Navigator
-import heizige.kk.khatkit.app.ui.hooks.rememberColorMode
-import heizige.kk.khatkit.app.ui.theme.ColorMode
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.joinQQGroup
-import heizige.kk.khatkit.app.utils.openUrl
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
+import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.Select
+import heizige.kk.khatkit.app.core.ui.icons.DiscordIcon
+import heizige.kk.khatkit.app.core.ui.icons.TencentQQIcon
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.context.Navigator
+import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
+import heizige.kk.khatkit.app.core.ui.theme.ColorMode
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.joinQQGroup
+import heizige.kk.khatkit.app.core.util.openUrl
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.components.ExpandableOptionItem
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import heizige.kk.khatkit.app.utils.writeClipboardText
+import heizige.kk.khatkit.app.core.util.writeClipboardText
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.ui.icons.addPhotoAlternate
-import heizige.kk.khatkit.app.ui.icons.autoAwesome
-import heizige.kk.khatkit.app.ui.icons.bolt
-import heizige.kk.khatkit.app.ui.icons.book2
-import heizige.kk.khatkit.app.ui.icons.campaign
-import heizige.kk.khatkit.app.ui.icons.celebration
-import heizige.kk.khatkit.app.ui.icons.database
-import heizige.kk.khatkit.app.ui.icons.dns
-import heizige.kk.khatkit.app.ui.icons.favorite
-import heizige.kk.khatkit.app.ui.icons.groups
-import heizige.kk.khatkit.app.ui.icons.inventory2
-import heizige.kk.khatkit.app.ui.icons.lightMode
-import heizige.kk.khatkit.app.ui.icons.psychology
-import heizige.kk.khatkit.app.ui.icons.search
-import heizige.kk.khatkit.app.ui.icons.settings as settingsIcon
-import heizige.kk.khatkit.app.ui.icons.share as shareIcon
-import heizige.kk.khatkit.app.ui.icons.shelves
-import heizige.kk.khatkit.app.ui.icons.travelExplore
-import heizige.kk.khatkit.app.ui.icons.warning
-import heizige.kk.khatkit.app.ui.icons.wavingHand
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
+import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
+import heizige.kk.khatkit.app.core.ui.icons.bolt
+import heizige.kk.khatkit.app.core.ui.icons.book2
+import heizige.kk.khatkit.app.core.ui.icons.campaign
+import heizige.kk.khatkit.app.core.ui.icons.celebration
+import heizige.kk.khatkit.app.core.ui.icons.database
+import heizige.kk.khatkit.app.core.ui.icons.dns
+import heizige.kk.khatkit.app.core.ui.icons.favorite
+import heizige.kk.khatkit.app.core.ui.icons.groups
+import heizige.kk.khatkit.app.core.ui.icons.inventory2
+import heizige.kk.khatkit.app.core.ui.icons.lightMode
+import heizige.kk.khatkit.app.core.ui.icons.psychology
+import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
+import heizige.kk.khatkit.app.core.ui.icons.share as shareIcon
+import heizige.kk.khatkit.app.core.ui.icons.shelves
+import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.warning
+import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 
 @Composable
 fun SettingPage(vm: SettingVM = hiltViewModel()) {
@@ -459,7 +459,7 @@ private fun QQGroupBottomSheet(onDismiss: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            val cards = heizige.kk.khatkit.app.ui.theme.listCardStyle()
+            val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
             QQ_GROUPS.forEachIndexed { index, group ->
                 KedgeOptionItem(
                     shape = cards.indexedShape(index, QQ_GROUPS.size),

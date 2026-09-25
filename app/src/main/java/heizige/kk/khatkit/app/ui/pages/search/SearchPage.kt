@@ -20,12 +20,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -49,20 +49,20 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.db.fts.MessageSearchResult
-import heizige.kk.khatkit.app.data.db.fts.MessageSearchSort
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.navigateToChatPage
-import heizige.kk.khatkit.app.utils.plus
-import heizige.kk.khatkit.app.utils.toLocalDateTime
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.navigateToChatPage
+import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.ui.icons.refresh
-import heizige.kk.khatkit.app.ui.icons.sort
+import heizige.kk.khatkit.app.core.ui.icons.refresh
+import heizige.kk.khatkit.app.core.ui.icons.sort
 
 @Composable
 fun SearchPage(vm: SearchVM = hiltViewModel()) {

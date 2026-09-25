@@ -19,9 +19,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import heizige.kk.khatkit.app.ui.icons.arrowBack
-import heizige.kk.khatkit.app.ui.icons.close
-import heizige.kk.khatkit.app.ui.icons.download
+import heizige.kk.khatkit.app.core.ui.icons.arrowBack
+import heizige.kk.khatkit.app.core.ui.icons.close
+import heizige.kk.khatkit.app.core.ui.icons.download
 import heizige.kk.khromia.components.TextTooltip
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
@@ -43,7 +43,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -88,35 +88,35 @@ import kotlinx.coroutines.launch
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.data.model.Conversation
-import heizige.kk.khatkit.app.data.model.Folder
-import heizige.kk.khatkit.app.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.ui.components.ai.AssistantPicker
-import heizige.kk.khatkit.app.ui.components.ui.BackupReminderCard
-import heizige.kk.khatkit.app.ui.components.ui.Tooltip
-import heizige.kk.khatkit.app.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.ui.components.ui.UpdateCard
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.Folder
+import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
+import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPicker
+import heizige.kk.khatkit.app.core.ui.components.ui.BackupReminderCard
+import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
+import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
+import heizige.kk.khatkit.app.core.ui.components.ui.UpdateCard
 import androidx.compose.ui.draw.clip
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.context.Navigator
-import heizige.kk.khatkit.app.ui.hooks.readBooleanPreference
-import heizige.kk.khatkit.app.ui.hooks.rememberIsPlayStoreVersion
-import heizige.kk.khatkit.app.utils.navigateToChatPage
-import heizige.kk.khatkit.app.utils.toDp
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.context.Navigator
+import heizige.kk.khatkit.app.core.ui.hooks.readBooleanPreference
+import heizige.kk.khatkit.app.core.ui.hooks.rememberIsPlayStoreVersion
+import heizige.kk.khatkit.app.core.util.navigateToChatPage
+import heizige.kk.khatkit.app.core.util.toDp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
-import heizige.kk.khatkit.app.ui.icons.createNewFolder
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.folder as folderIcon
-import heizige.kk.khatkit.app.ui.icons.groups
-import heizige.kk.khatkit.app.ui.icons.edit
-import heizige.kk.khatkit.app.ui.icons.receiptLong
-import heizige.kk.khatkit.app.ui.icons.search
-import heizige.kk.khatkit.app.ui.icons.settings as settingsIcon
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.icons.createNewFolder
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.folder as folderIcon
+import heizige.kk.khatkit.app.core.ui.icons.groups
+import heizige.kk.khatkit.app.core.ui.icons.edit
+import heizige.kk.khatkit.app.core.ui.icons.receiptLong
+import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 
 @Composable
 fun ChatDrawerContent(

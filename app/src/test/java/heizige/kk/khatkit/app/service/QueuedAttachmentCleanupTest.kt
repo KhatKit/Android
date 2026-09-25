@@ -3,8 +3,8 @@ package heizige.kk.khatkit.app.service
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.data.model.Conversation
-import heizige.kk.khatkit.app.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.MessageNode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

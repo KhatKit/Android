@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.data.db.entity.WorkspaceEntity
-import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
+import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
+import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.RootfsInstallProgress
 
 @HiltViewModel

@@ -36,14 +36,14 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.ui.UIMessage
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.data.files.FilesManager
-import heizige.kk.khatkit.app.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.utils.ImageUtils
-import heizige.kk.khatkit.app.utils.jsonPrimitiveOrNull
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.util.ImageUtils
+import heizige.kk.khatkit.app.core.util.jsonPrimitiveOrNull
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun AssistantImporter(

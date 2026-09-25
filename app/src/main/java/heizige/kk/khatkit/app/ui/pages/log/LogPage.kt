@@ -17,7 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,17 +40,17 @@ import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.common.android.LogEntry
 import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.JsonTree
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
-import heizige.kk.khatkit.app.utils.JsonInstantPretty
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.JsonTree
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
+import heizige.kk.khatkit.app.core.util.JsonInstantPretty
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import heizige.kk.khatkit.app.ui.icons.bugReport
-import heizige.kk.khatkit.app.ui.icons.contentCopy
-import heizige.kk.khatkit.app.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.bugReport
+import heizige.kk.khatkit.app.core.ui.icons.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.delete
 
 @Composable
 fun LogPage() {

@@ -12,12 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -41,18 +41,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.data.model.AssistantMemory
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.ui.hooks.EditStateContent
-import heizige.kk.khatkit.app.ui.hooks.useEditState
-import heizige.kk.khatkit.app.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
+import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
+import heizige.kk.khatkit.app.core.ui.hooks.useEditState
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.ui.icons.add
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.edit
+import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.edit
 
 @Composable
 fun AssistantMemoryPage(id: String) {

@@ -38,26 +38,26 @@ import heizige.kk.khatkit.app.service.TriggerExactAlarmScheduler
 import heizige.kk.khatkit.app.service.TriggerService
 import heizige.kk.khatkit.app.service.TriggerSettings
 import heizige.kk.khatkit.app.service.computeTriggerLogStats
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionInfo
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionManager
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionNotification
-import heizige.kk.khatkit.app.ui.components.ui.permission.rememberPermissionState
-import heizige.kk.khatkit.app.ui.icons.bolt
-import heizige.kk.khatkit.app.ui.icons.cleaningServices
-import heizige.kk.khatkit.app.ui.icons.editNote
-import heizige.kk.khatkit.app.ui.icons.notifications
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionInfo
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionNotification
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
+import heizige.kk.khatkit.app.core.ui.icons.bolt
+import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
+import heizige.kk.khatkit.app.core.ui.icons.editNote
+import heizige.kk.khatkit.app.core.ui.icons.notifications
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.trigger.TriggerCard
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,

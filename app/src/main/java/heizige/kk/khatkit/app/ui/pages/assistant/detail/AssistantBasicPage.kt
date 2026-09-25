@@ -15,7 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -41,22 +41,22 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.db.entity.WorkspaceEntity
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.ui.components.ai.ModelSelector
-import heizige.kk.khatkit.app.ui.components.ai.ReasoningButton
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.FormItem
-import heizige.kk.khatkit.app.ui.components.ui.Select
-import heizige.kk.khatkit.app.ui.components.ui.TagsInput
-import heizige.kk.khatkit.app.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.ui.hooks.heroAnimation
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.toFixed
+import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
+import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
+import heizige.kk.khatkit.app.core.ui.components.ui.Select
+import heizige.kk.khatkit.app.core.ui.components.ui.TagsInput
+import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
+import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.toFixed
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.data.model.Tag as DataTag
+import heizige.kk.khatkit.app.core.data.model.Tag as DataTag
 
 @Composable
 fun AssistantBasicPage(id: String) {

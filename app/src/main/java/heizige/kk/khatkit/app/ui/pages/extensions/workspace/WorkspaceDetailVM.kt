@@ -24,8 +24,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
-import heizige.kk.khatkit.app.data.db.entity.WorkspaceEntity
-import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
+import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
+import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.RootfsInstallProgress
 import heizige.kk.khatkit.workspace.RootfsInstallStage
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry

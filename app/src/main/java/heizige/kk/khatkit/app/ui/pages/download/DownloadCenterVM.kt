@@ -5,7 +5,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import kotlinx.coroutines.launch
 
 @HiltViewModel

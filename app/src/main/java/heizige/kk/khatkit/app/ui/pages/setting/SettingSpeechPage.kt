@@ -21,7 +21,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -49,29 +49,29 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.asr.ASRProviderSetting
-import heizige.kk.khatkit.app.data.datastore.DEFAULT_SYSTEM_TTS_ID
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.ui.components.ui.Tag
-import heizige.kk.khatkit.app.ui.components.ui.TagType
-import heizige.kk.khatkit.app.ui.context.LocalTTSState
+import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_SYSTEM_TTS_ID
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
+import heizige.kk.khatkit.app.core.ui.components.ui.Tag
+import heizige.kk.khatkit.app.core.ui.components.ui.TagType
+import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
 import heizige.kk.khatkit.app.ui.pages.setting.components.ASRProviderConfigure
 import heizige.kk.khatkit.app.ui.pages.setting.components.TTSProviderConfigure
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import heizige.kk.khatkit.app.ui.icons.add
-import heizige.kk.khatkit.app.ui.icons.build
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.dragIndicator
-import heizige.kk.khatkit.app.ui.icons.edit
-import heizige.kk.khatkit.app.ui.icons.mic
-import heizige.kk.khatkit.app.ui.icons.stopCircle
-import heizige.kk.khatkit.app.ui.icons.volumeUp
+import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.core.ui.icons.build
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.dragIndicator
+import heizige.kk.khatkit.app.core.ui.icons.edit
+import heizige.kk.khatkit.app.core.ui.icons.mic
+import heizige.kk.khatkit.app.core.ui.icons.stopCircle
+import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 
 @Composable
 fun SettingSpeechPage(vm: SettingVM = hiltViewModel()) {

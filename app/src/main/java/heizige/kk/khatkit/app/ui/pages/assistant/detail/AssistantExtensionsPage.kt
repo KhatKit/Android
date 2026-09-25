@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
@@ -24,14 +24,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.ui.components.ai.ExtensionEmptyState
-import heizige.kk.khatkit.app.ui.components.ai.LorebooksContent
-import heizige.kk.khatkit.app.ui.components.ai.ModeInjectionsContent
-import heizige.kk.khatkit.app.ui.components.ai.QuickMessagesContent
-import heizige.kk.khatkit.app.ui.components.ai.SkillsContent
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.components.ai.ExtensionEmptyState
+import heizige.kk.khatkit.app.core.ui.components.ai.LorebooksContent
+import heizige.kk.khatkit.app.core.ui.components.ai.ModeInjectionsContent
+import heizige.kk.khatkit.app.core.ui.components.ai.QuickMessagesContent
+import heizige.kk.khatkit.app.core.ui.components.ai.SkillsContent
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable

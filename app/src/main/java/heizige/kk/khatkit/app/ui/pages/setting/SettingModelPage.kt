@@ -12,7 +12,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -34,19 +34,19 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.ui.components.ai.ModelListSheet
-import heizige.kk.khatkit.app.ui.components.ai.ReasoningButton
-import heizige.kk.khatkit.app.ui.components.ai.rememberModelListState
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
+import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
+import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.ui.icons.arrowForward
-import heizige.kk.khatkit.app.ui.icons.editNote
-import heizige.kk.khatkit.app.ui.icons.neurology
+import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.editNote
+import heizige.kk.khatkit.app.core.ui.icons.neurology
 
 @Composable
 fun SettingModelPage(vm: SettingVM = hiltViewModel()) {

@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -24,17 +24,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.ai.tools.local.LocalToolOption
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionInfo
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionManager
-import heizige.kk.khatkit.app.ui.components.ui.permission.rememberPermissionState
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.hasUsageStatsPermission
-import heizige.kk.khatkit.app.utils.openUsageAccessSettings
+import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalToolOption
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionInfo
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
+import heizige.kk.khatkit.app.core.util.openUsageAccessSettings
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable

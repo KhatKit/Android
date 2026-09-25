@@ -12,11 +12,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,22 +44,22 @@ import kotlinx.coroutines.withContext
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.network.toProxyOrNull
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.data.network.toProxyOrNull
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khromia.components.OptionSwitch
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.common.http.okhttp.Request
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import heizige.kk.khatkit.app.ui.icons.arrowForward
-import heizige.kk.khatkit.app.ui.icons.visibility
-import heizige.kk.khatkit.app.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.visibility
+import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 
 private const val PROXY_TEST_URL = "https://www.google.com/generate_204"
 

@@ -20,10 +20,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.datastore.BackupReminderConfig
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.data.datastore.BackupReminderConfig
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.ui.pages.backup.BackupVM
-import heizige.kk.khatkit.app.utils.toLocalDateTime
+import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import java.time.Instant
 
 @Composable

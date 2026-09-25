@@ -23,13 +23,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -63,30 +63,30 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.Select
-import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.hooks.rememberColorMode
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.Select
+import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
 import heizige.kk.khatkit.app.ui.pages.setting.components.PresetThemeColorDots
 import heizige.kk.khatkit.app.ui.pages.setting.components.ThemeCustomColorSheet
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.ui.theme.CustomTheme
-import heizige.kk.khatkit.app.ui.theme.LocalDarkMode
-import heizige.kk.khatkit.app.ui.theme.PresetThemes
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
+import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
+import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khromia.text.OptionsText
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.ui.icons.add
-import heizige.kk.khatkit.app.ui.icons.check
-import heizige.kk.khatkit.app.ui.icons.contentCopy
-import heizige.kk.khatkit.app.ui.icons.deleteForever
-import heizige.kk.khatkit.app.ui.icons.editSquare
-import heizige.kk.khatkit.app.ui.icons.palette
-import heizige.kk.khatkit.app.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.core.ui.icons.check
+import heizige.kk.khatkit.app.core.ui.icons.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.deleteForever
+import heizige.kk.khatkit.app.core.ui.icons.editSquare
+import heizige.kk.khatkit.app.core.ui.icons.palette
+import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 
 private val themeJson = Json {
     ignoreUnknownKeys = true
@@ -131,9 +131,9 @@ fun SettingThemePage(vm: SettingVM = hiltViewModel()) {
         ) {
             item("themeMode") {
                 val selectedColorModeText = when (colorMode.value) {
-                    heizige.kk.khatkit.app.ui.theme.ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
-                    heizige.kk.khatkit.app.ui.theme.ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
-                    heizige.kk.khatkit.app.ui.theme.ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
+                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
+                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
+                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
                 }
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
@@ -143,15 +143,15 @@ fun SettingThemePage(vm: SettingVM = hiltViewModel()) {
                         supportingContent = { Text(selectedColorModeText) },
                         trailingContent = {
                             Select(
-                                options = heizige.kk.khatkit.app.ui.theme.ColorMode.entries,
+                                options = heizige.kk.khatkit.app.core.ui.theme.ColorMode.entries,
                                 selectedOption = colorMode.value,
                                 onOptionSelected = { colorMode.value = it },
                                 optionToString = { mode ->
                                     stringResource(
                                         when (mode) {
-                                            heizige.kk.khatkit.app.ui.theme.ColorMode.SYSTEM -> R.string.greeting_settings_theme_system
-                                            heizige.kk.khatkit.app.ui.theme.ColorMode.LIGHT -> R.string.greeting_settings_theme_light
-                                            heizige.kk.khatkit.app.ui.theme.ColorMode.DARK -> R.string.greeting_settings_theme_dark
+                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.SYSTEM -> R.string.greeting_settings_theme_system
+                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.LIGHT -> R.string.greeting_settings_theme_light
+                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.DARK -> R.string.greeting_settings_theme_dark
                                         }
                                     )
                                 },
@@ -350,7 +350,7 @@ private fun CustomThemeItem(
 
     KedgeOptionItem(
         modifier = Modifier.padding(horizontal = 8.dp),
-        shape = heizige.kk.khatkit.app.ui.theme.listCardStyle().indexedShape(0, 1),
+        shape = heizige.kk.khatkit.app.core.ui.theme.listCardStyle().indexedShape(0, 1),
         backgroundColor = CustomColors.listItemColors.containerColor,
         onClick = { onSelect() },
         leadingContent = {

@@ -24,7 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -44,7 +44,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,18 +67,18 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.data.ai.tools.resolveWorkspaceToolApproval
-import heizige.kk.khatkit.app.data.db.entity.WorkspaceEntity
+import heizige.kk.khatkit.app.core.data.ai.tools.resolveWorkspaceToolApproval
+import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.ImagePreviewDialog
-import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.fileSizeToString
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.ImagePreviewDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.fileSizeToString
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.workspace.RootfsInstallProgress
 import heizige.kk.khatkit.workspace.RootfsInstallStage
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry
@@ -86,16 +86,16 @@ import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.io.File
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.folder
-import heizige.kk.khatkit.app.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.ui.icons.moreVert
-import heizige.kk.khatkit.app.ui.icons.refresh
-import heizige.kk.khatkit.app.ui.icons.settings
-import heizige.kk.khatkit.app.ui.icons.share
-import heizige.kk.khatkit.app.ui.icons.terminal
-import heizige.kk.khatkit.app.ui.icons.undo
-import heizige.kk.khatkit.app.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.folder
+import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
+import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.refresh
+import heizige.kk.khatkit.app.core.ui.icons.settings
+import heizige.kk.khatkit.app.core.ui.icons.share
+import heizige.kk.khatkit.app.core.ui.icons.terminal
+import heizige.kk.khatkit.app.core.ui.icons.undo
+import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 
 @Composable
 fun WorkspaceDetailPage(id: String) {

@@ -15,7 +15,7 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
-import heizige.kk.khatkit.app.data.files.FileFolders
+import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.workspace.RootfsPatchOptions
 import heizige.kk.khatkit.workspace.RootfsPatcher
 import java.io.File

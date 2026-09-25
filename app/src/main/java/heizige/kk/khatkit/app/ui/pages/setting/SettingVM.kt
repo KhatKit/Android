@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.data.ai.mcp.McpManager
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 
 @HiltViewModel
 class SettingVM @Inject constructor(

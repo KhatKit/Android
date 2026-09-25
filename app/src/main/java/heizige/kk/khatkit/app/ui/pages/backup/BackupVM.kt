@@ -13,19 +13,19 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.data.datastore.WebDavConfig
-import heizige.kk.khatkit.app.data.files.FilesManager
-import heizige.kk.khatkit.app.data.files.saveUploadFromBytes
-import heizige.kk.khatkit.app.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.data.sync.importer.ChatboxImporter
-import heizige.kk.khatkit.app.data.sync.importer.CherryStudioProviderImporter
-import heizige.kk.khatkit.app.data.sync.webdav.WebDavBackupItem
-import heizige.kk.khatkit.app.data.sync.webdav.WebDavSync
-import heizige.kk.khatkit.app.data.sync.S3BackupItem
-import heizige.kk.khatkit.app.data.sync.S3Sync
-import heizige.kk.khatkit.app.utils.UiState
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
+import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.data.files.saveUploadFromBytes
+import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
+import heizige.kk.khatkit.app.core.data.sync.importer.ChatboxImporter
+import heizige.kk.khatkit.app.core.data.sync.importer.CherryStudioProviderImporter
+import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavBackupItem
+import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavSync
+import heizige.kk.khatkit.app.core.data.sync.S3BackupItem
+import heizige.kk.khatkit.app.core.data.sync.S3Sync
+import heizige.kk.khatkit.app.core.util.UiState
 import java.io.File
 
 private const val TAG = "BackupVM"

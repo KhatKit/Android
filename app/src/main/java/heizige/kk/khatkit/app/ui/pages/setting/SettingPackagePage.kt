@@ -28,26 +28,26 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.ai.provider.ProviderSetting
-import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.hub.HubAccountStatus
 import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.khatkit.app.ui.icons.autoAwesome
-import heizige.kk.khatkit.app.ui.icons.bolt
-import heizige.kk.khatkit.app.ui.icons.cleaningServices
-import heizige.kk.khatkit.app.ui.icons.favorite
+import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
+import heizige.kk.khatkit.app.core.ui.icons.bolt
+import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
+import heizige.kk.khatkit.app.core.ui.icons.favorite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 /** 「KhatKit 套餐网关」在服务商列表里的固定名称与 ID（重复创建时更新同一条）。 */
 private const val GATEWAY_PROVIDER_NAME = "KhatKit 套餐网关"

@@ -1,6 +1,6 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -10,8 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.model.Conversation
-import heizige.kk.khatkit.app.ui.icons.warning
+import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.ui.icons.warning
 
 // 消息节点数量警告阈值
 const val MESSAGE_NODE_WARNING_THRESHOLD = 768

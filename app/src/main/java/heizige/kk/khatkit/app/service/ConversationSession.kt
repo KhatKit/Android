@@ -13,7 +13,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.ai.ui.finishReasoning
-import heizige.kk.khatkit.app.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.Conversation
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.uuid.Uuid

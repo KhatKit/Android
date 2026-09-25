@@ -32,7 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,14 +52,14 @@ import kotlinx.coroutines.launch
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.ai.ModelSelector
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.utils.getText
+import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.util.getText
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.Locale
-import heizige.kk.khatkit.app.ui.icons.contentPaste
-import heizige.kk.khatkit.app.ui.icons.translate
+import heizige.kk.khatkit.app.core.ui.icons.contentPaste
+import heizige.kk.khatkit.app.core.ui.icons.translate
 
 @Composable
 fun TranslatorPage(vm: TranslatorVM = hiltViewModel()) {

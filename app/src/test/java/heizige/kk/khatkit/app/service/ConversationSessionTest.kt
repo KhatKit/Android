@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.Conversation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

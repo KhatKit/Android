@@ -32,17 +32,17 @@ import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ClaudePromptCacheTtl
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.datastore.DEFAULT_PROVIDERS
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
+import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.common.http.okhttp.toHttpUrlOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.reflect.KClass
-import heizige.kk.khatkit.app.ui.icons.visibility
-import heizige.kk.khatkit.app.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.icons.visibility
+import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 
 @Composable
 fun ProviderConfigure(

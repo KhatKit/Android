@@ -5,11 +5,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import heizige.kk.khatkit.ai.core.MessageRole
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.model.Conversation
-import heizige.kk.khatkit.app.ui.context.LocalTTSState
-import heizige.kk.khatkit.app.utils.extractQuotedContentAsText
-import heizige.kk.khatkit.app.utils.removeBracketedContent
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
+import heizige.kk.khatkit.app.core.util.extractQuotedContentAsText
+import heizige.kk.khatkit.app.core.util.removeBracketedContent
 
 @Composable
 fun TTSAutoPlay(vm: ChatVM, setting: Settings, conversation: Conversation) {

@@ -16,13 +16,13 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.data.datastore.getCurrentAssistant
-import heizige.kk.khatkit.app.data.db.fts.MessageSearchResult
-import heizige.kk.khatkit.app.data.db.fts.MessageSearchSort
-import heizige.kk.khatkit.app.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.ui.hooks.readStringPreference
-import heizige.kk.khatkit.app.ui.hooks.writeStringPreference
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
+import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
+import heizige.kk.khatkit.app.core.ui.hooks.readStringPreference
+import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
 import kotlin.uuid.Uuid
 
 private const val SORT_ORDER_PREF_KEY = "search_page_sort_order"

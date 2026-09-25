@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
@@ -30,18 +30,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.datastore.WebDavConfig
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.StickyHeader
-import heizige.kk.khatkit.app.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.StickyHeader
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.pages.backup.BackupVM
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import heizige.kk.khatkit.app.ui.icons.description
-import heizige.kk.khatkit.app.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.description
+import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 
 @Composable
 fun ImportExportTab(

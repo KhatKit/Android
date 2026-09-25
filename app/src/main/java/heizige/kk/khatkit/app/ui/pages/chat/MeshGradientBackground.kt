@@ -17,7 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import heizige.kk.khatkit.app.ui.theme.LocalDarkMode
+import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin

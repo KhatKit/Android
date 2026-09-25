@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
@@ -40,13 +40,13 @@ import heizige.kk.khatkit.ai.ui.StreamChunk
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.ai.ModelSelector
-import heizige.kk.khatkit.app.ui.theme.extendColors
-import heizige.kk.khatkit.app.utils.UiState
+import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
+import heizige.kk.khatkit.app.core.ui.theme.extendColors
+import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.ui.icons.error
-import heizige.kk.khatkit.app.ui.icons.link
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.icons.error
+import heizige.kk.khatkit.app.core.ui.icons.link
 
 @Composable
 fun ProviderConnectionTester(

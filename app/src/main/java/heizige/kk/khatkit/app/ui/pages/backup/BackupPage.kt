@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
@@ -25,13 +25,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.pages.backup.components.BackupDialog
 import heizige.kk.khatkit.app.ui.pages.backup.tabs.ImportExportTab
 import heizige.kk.khatkit.app.ui.pages.backup.tabs.ReminderTab
 import heizige.kk.khatkit.app.ui.pages.backup.tabs.S3Tab
 import heizige.kk.khatkit.app.ui.pages.backup.tabs.WebDavTab
-import heizige.kk.khatkit.app.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable

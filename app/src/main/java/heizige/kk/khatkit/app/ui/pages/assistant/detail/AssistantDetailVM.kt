@@ -19,18 +19,18 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.data.db.entity.WorkspaceEntity
-import heizige.kk.khatkit.app.data.files.FilesManager
-import heizige.kk.khatkit.app.data.files.SkillManager
-import heizige.kk.khatkit.app.data.files.SkillMetadata
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.data.model.AssistantMemory
-import heizige.kk.khatkit.app.data.model.Avatar
-import heizige.kk.khatkit.app.data.model.Tag
-import heizige.kk.khatkit.app.data.repository.MemoryRepository
-import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
+import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.data.files.SkillManager
+import heizige.kk.khatkit.app.core.data.files.SkillMetadata
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+import heizige.kk.khatkit.app.core.data.model.Avatar
+import heizige.kk.khatkit.app.core.data.model.Tag
+import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import kotlin.uuid.Uuid
 
 private const val TAG = "AssistantDetailVM"

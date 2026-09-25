@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.data.files.FilesManager
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.data.model.Avatar
-import heizige.kk.khatkit.app.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.Avatar
+import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
+import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 
 @HiltViewModel
 class AssistantVM @Inject constructor(

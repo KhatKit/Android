@@ -25,11 +25,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.service.TriggerController
-import heizige.kk.khatkit.app.ui.icons.adsClick
-import heizige.kk.khatkit.app.ui.icons.stopCircle
+import heizige.kk.khatkit.app.core.ui.icons.adsClick
+import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.record.RecordingCardFactory
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 /**
  * 录制操作面板：开始/停止录制、实时步数、命名并保存为 Lua 卡片。

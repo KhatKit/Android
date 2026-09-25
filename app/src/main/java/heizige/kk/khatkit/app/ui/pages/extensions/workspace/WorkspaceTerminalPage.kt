@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -57,11 +57,11 @@ import com.termux.terminal.TerminalSession
 import com.termux.view.TerminalView
 import kotlinx.coroutines.flow.flowOf
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.theme.ColorMode
-import heizige.kk.khatkit.app.ui.theme.KhatKitTheme
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.theme.ColorMode
+import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun WorkspaceTerminalPage(id: String) {

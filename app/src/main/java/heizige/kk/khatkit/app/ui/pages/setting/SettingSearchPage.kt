@@ -14,14 +14,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,15 +45,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.ui.components.ui.FormItem
-import heizige.kk.khatkit.app.ui.components.ui.OutlinedNumberInput
-import heizige.kk.khatkit.app.ui.components.ui.Tag
-import heizige.kk.khatkit.app.ui.components.ui.TagType
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
+import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
+import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
+import heizige.kk.khatkit.app.core.ui.components.ui.Tag
+import heizige.kk.khatkit.app.core.ui.components.ui.TagType
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.search.SearchCommonOptions
 import heizige.kk.khatkit.search.SearchService
 import heizige.kk.khatkit.search.SearchServiceOptions
@@ -61,10 +61,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.reflect.full.primaryConstructor
-import heizige.kk.khatkit.app.ui.icons.add
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.edit
-import heizige.kk.khatkit.app.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.edit
+import heizige.kk.khatkit.app.core.ui.icons.moreVert
 
 @Composable
 fun SettingSearchPage(vm: SettingVM = hiltViewModel()) {
@@ -366,7 +366,7 @@ fun SearchAbilityTagLine(
 
 @Composable
 private fun CommonOptions(
-    settings: heizige.kk.khatkit.app.data.datastore.Settings,
+    settings: heizige.kk.khatkit.app.core.data.datastore.Settings,
     onUpdate: (SearchCommonOptions) -> Unit
 ) {
     var commonOptions by remember(settings.searchCommonOptions) {

@@ -40,11 +40,11 @@ import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.service.CardTriggerOverride
 import heizige.kk.khatkit.app.service.TriggerController
 import heizige.kk.khatkit.app.service.TriggerTilePublisher
-import heizige.kk.khatkit.app.ui.icons.add
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.editNote
-import heizige.kk.khatkit.app.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.ui.icons.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.editNote
+import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.trigger.TriggerCard
 

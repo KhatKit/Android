@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -17,16 +17,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
-import heizige.kk.khatkit.app.ui.icons.language
-import heizige.kk.khatkit.app.ui.icons.lightMode
-import heizige.kk.khatkit.app.ui.icons.notifications
-import heizige.kk.khatkit.app.ui.icons.palette
-import heizige.kk.khatkit.app.ui.icons.settings
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.ui.icons.language
+import heizige.kk.khatkit.app.core.ui.icons.lightMode
+import heizige.kk.khatkit.app.core.ui.icons.notifications
+import heizige.kk.khatkit.app.core.ui.icons.palette
+import heizige.kk.khatkit.app.core.ui.icons.settings
 
 @Composable
 fun SettingPreferencesPage() {

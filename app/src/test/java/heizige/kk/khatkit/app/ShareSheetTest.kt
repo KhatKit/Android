@@ -3,8 +3,8 @@ package heizige.kk.khatkit.app
 import heizige.kk.khatkit.ai.provider.BalanceOption
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ProviderSetting
-import heizige.kk.khatkit.app.ui.components.ui.decodeProviderSetting
-import heizige.kk.khatkit.app.ui.components.ui.encodeForShare
+import heizige.kk.khatkit.app.core.ui.components.ui.decodeProviderSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.encodeForShare
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

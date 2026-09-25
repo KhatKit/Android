@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -20,14 +20,14 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.record.RecordCardSheet
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.icons.adsClick
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.icons.adsClick
 import heizige.kk.khatkit.uikit.KhatKitMarketContent
 import heizige.kk.khatkit.uikit.KhatKitTheme
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 /**
  * KhatKit 卡片市场（宿主壳）：顶栏/导航/Toast 由 app 提供，

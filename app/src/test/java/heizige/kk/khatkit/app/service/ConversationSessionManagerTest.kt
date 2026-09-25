@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.Conversation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotSame

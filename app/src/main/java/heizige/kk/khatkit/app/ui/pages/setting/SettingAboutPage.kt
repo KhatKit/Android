@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,18 +37,18 @@ import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.easteregg.EmojiBurstHost
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.SoundEffectPlayer
-import heizige.kk.khatkit.app.utils.openUrl
-import heizige.kk.khatkit.app.utils.plus
-import heizige.kk.khatkit.app.ui.icons.code
-import heizige.kk.khatkit.app.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.ui.icons.public
-import heizige.kk.khatkit.app.ui.icons.smartphone
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstHost
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
+import heizige.kk.khatkit.app.core.util.openUrl
+import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.ui.icons.code
+import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
+import heizige.kk.khatkit.app.core.ui.icons.public
+import heizige.kk.khatkit.app.core.ui.icons.smartphone
 
 @Composable
 fun SettingAboutPage() {

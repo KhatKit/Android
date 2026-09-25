@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import heizige.kk.khatkit.app.data.files.SkillFrontmatterParser
-import heizige.kk.khatkit.app.data.files.SkillManager
+import heizige.kk.khatkit.app.core.data.files.SkillFrontmatterParser
+import heizige.kk.khatkit.app.core.data.files.SkillManager
 import java.io.File
 
 data class SkillFile(

@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.ai.ui.isEmptyInputMessage
-import heizige.kk.khatkit.app.data.model.Conversation
-import heizige.kk.khatkit.app.data.model.localFileUrls
+import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.localFileUrls
 import kotlin.uuid.Uuid
 
 data class QueuedMessage(

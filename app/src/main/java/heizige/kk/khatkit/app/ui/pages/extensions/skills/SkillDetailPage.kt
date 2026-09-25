@@ -17,11 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import heizige.kk.khatkit.app.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -49,20 +49,20 @@ import androidx.compose.ui.util.fastForEach
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.ui.icons.add
-import heizige.kk.khatkit.app.ui.icons.chevronRight
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.description
-import heizige.kk.khatkit.app.ui.icons.editDocument
-import heizige.kk.khatkit.app.ui.icons.folder
-import heizige.kk.khatkit.app.ui.icons.folderOpen
-import heizige.kk.khatkit.app.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.core.ui.icons.chevronRight
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.description
+import heizige.kk.khatkit.app.core.ui.icons.editDocument
+import heizige.kk.khatkit.app.core.ui.icons.folder
+import heizige.kk.khatkit.app.core.ui.icons.folderOpen
+import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 
 @Composable
 fun SkillDetailPage(skillName: String) {

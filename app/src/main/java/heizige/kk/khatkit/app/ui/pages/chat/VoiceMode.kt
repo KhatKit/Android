@@ -23,21 +23,21 @@ import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.asr.providers.DashScopeASRController
 import heizige.kk.khatkit.asr.providers.VolcengineASRController
 import heizige.kk.khatkit.asr.providers.OpenAIRealtimeASRController
-import heizige.kk.khatkit.app.data.datastore.Settings
-import heizige.kk.khatkit.app.data.datastore.getCurrentChatModel
-import heizige.kk.khatkit.app.data.datastore.getSelectedASRProvider
-import heizige.kk.khatkit.app.data.datastore.getSelectedTTSProvider
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionManager
-import heizige.kk.khatkit.app.ui.components.ui.permission.PermissionRecordAudio
-import heizige.kk.khatkit.app.ui.components.ui.permission.rememberPermissionState
-import heizige.kk.khatkit.app.ui.context.LocalASRState
-import heizige.kk.khatkit.app.ui.context.LocalTTSState
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.utils.extractQuotedContentAsText
-import heizige.kk.khatkit.app.utils.removeBracketedContent
-import heizige.kk.khatkit.app.utils.stripMarkdown
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
+import heizige.kk.khatkit.app.core.data.datastore.getSelectedASRProvider
+import heizige.kk.khatkit.app.core.data.datastore.getSelectedTTSProvider
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionRecordAudio
+import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
+import heizige.kk.khatkit.app.core.ui.context.LocalASRState
+import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.util.extractQuotedContentAsText
+import heizige.kk.khatkit.app.core.util.removeBracketedContent
+import heizige.kk.khatkit.app.core.util.stripMarkdown
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 /** Lives above adaptive drawer branches, so resizing does not recreate the voice session. */
 @Composable

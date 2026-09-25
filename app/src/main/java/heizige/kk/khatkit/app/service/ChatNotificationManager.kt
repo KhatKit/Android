@@ -19,11 +19,11 @@ import heizige.kk.khatkit.app.CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID
 import heizige.kk.khatkit.app.CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.RouteActivity
-import heizige.kk.khatkit.app.data.datastore.SettingsStore
-import heizige.kk.khatkit.app.data.event.AppEvent
-import heizige.kk.khatkit.app.data.event.AppEventBus
-import heizige.kk.khatkit.app.utils.cancelNotification
-import heizige.kk.khatkit.app.utils.sendNotification
+import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.event.AppEvent
+import heizige.kk.khatkit.app.core.data.event.AppEventBus
+import heizige.kk.khatkit.app.core.util.cancelNotification
+import heizige.kk.khatkit.app.core.util.sendNotification
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
 

@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.FancySlider
@@ -42,24 +42,24 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.datastore.ChatFontFamily
-import heizige.kk.khatkit.app.data.datastore.DisplaySetting
-import heizige.kk.khatkit.app.data.files.FileFolders
-import heizige.kk.khatkit.app.data.files.FileUtils
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.richtext.MarkdownBlock
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.Select
-import heizige.kk.khatkit.app.ui.context.LocalToaster
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.ui.theme.rememberChatFontFamily
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
+import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
+import heizige.kk.khatkit.app.core.data.files.FileFolders
+import heizige.kk.khatkit.app.core.data.files.FileUtils
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.Select
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
+import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.io.File
 import kotlin.math.roundToInt
-import heizige.kk.khatkit.app.ui.icons.deleteForever
-import heizige.kk.khatkit.app.ui.icons.uploadFile
-import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.icons.deleteForever
+import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun SettingPreferencesUIPage(vm: SettingVM = hiltViewModel()) {
@@ -69,7 +69,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = hiltViewModel()) {
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val chatFontFamily = rememberChatFontFamily(displaySetting)
-    val khatKitProvider: heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider =
+    val khatKitProvider: heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider =
         rememberAppEntryPoint().khatKitToolProvider()
     var uiStyle by remember(settings) { mutableStateOf(khatKitProvider.uiStyle) }
 

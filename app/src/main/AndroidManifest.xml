@@ -75,7 +75,7 @@
     android:usesCleartextTraffic="true"
     tools:targetApi="33">
     <activity
-      android:name=".ui.activity.SafeModeActivity"
+      android:name=".core.ui.activity.SafeModeActivity"
       android:exported="false"
       android:label="@string/title_activity_safe_mode"
       android:theme="@style/Theme.KhatKit" />
@@ -145,7 +145,7 @@
       android:exported="false"
       android:foregroundServiceType="dataSync" />
     <service
-      android:name=".service.WebServerService"
+      android:name=".core.network.WebServerService"
       android:exported="false"
       android:foregroundServiceType="specialUse">
       <property

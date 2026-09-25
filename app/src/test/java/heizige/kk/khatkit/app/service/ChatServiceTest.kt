@@ -6,9 +6,9 @@ import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.CustomBody
 import heizige.kk.khatkit.ai.provider.CustomHeader
 import heizige.kk.khatkit.ai.provider.Model
-import heizige.kk.khatkit.app.data.ai.tools.shouldUseExternalWebSearch
-import heizige.kk.khatkit.app.data.model.Assistant
-import heizige.kk.khatkit.app.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.ai.tools.shouldUseExternalWebSearch
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.Conversation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals

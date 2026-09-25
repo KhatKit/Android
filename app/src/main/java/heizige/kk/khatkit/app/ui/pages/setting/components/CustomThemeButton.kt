@@ -27,9 +27,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
-import heizige.kk.khatkit.app.ui.theme.CustomTheme
-import heizige.kk.khatkit.app.ui.theme.LocalDarkMode
-import heizige.kk.khatkit.app.ui.icons.check
+import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
+import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
+import heizige.kk.khatkit.app.core.ui.icons.check
 
 @Composable
 fun CustomThemeButtonGroup(

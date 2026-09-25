@@ -11,7 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.hub.BuiltinCards

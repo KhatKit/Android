@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.Conversation
 import kotlin.uuid.Uuid
 
 /** Owns runtime sessions; loading, persistence and message dispatch belong to ChatService. */

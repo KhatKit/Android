@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.OptionSwitch
@@ -37,23 +37,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.ui.components.ui.Select
-import heizige.kk.khatkit.app.ui.hooks.rememberAmoledDarkMode
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.Select
+import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.ui.pages.setting.components.PresetThemeColorDots
 import heizige.kk.khatkit.app.ui.pages.setting.components.ThemeCustomColorSheet
-import heizige.kk.khatkit.app.ui.theme.CustomColors
-import heizige.kk.khatkit.app.ui.theme.CustomTheme
-import heizige.kk.khatkit.app.ui.theme.PresetThemes
-import heizige.kk.khatkit.app.utils.plus
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
+import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
+import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 fun SettingPreferencesThemePage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var amoledDarkMode by rememberAmoledDarkMode()
-    val colorMode = heizige.kk.khatkit.app.ui.hooks.rememberColorMode()
+    val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showCustomColor by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf(PresetThemes.first().standardLight.primary) }
@@ -79,9 +79,9 @@ fun SettingPreferencesThemePage(vm: SettingVM = hiltViewModel()) {
         ) {
             item {
                 val selectedColorModeText = when (colorMode.value) {
-                    heizige.kk.khatkit.app.ui.theme.ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
-                    heizige.kk.khatkit.app.ui.theme.ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
-                    heizige.kk.khatkit.app.ui.theme.ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
+                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
+                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
+                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
                 }
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
@@ -91,15 +91,15 @@ fun SettingPreferencesThemePage(vm: SettingVM = hiltViewModel()) {
                         supportingContent = { Text(selectedColorModeText) },
                         trailingContent = {
                             Select(
-                                options = heizige.kk.khatkit.app.ui.theme.ColorMode.entries,
+                                options = heizige.kk.khatkit.app.core.ui.theme.ColorMode.entries,
                                 selectedOption = colorMode.value,
                                 onOptionSelected = { colorMode.value = it },
                                 optionToString = { mode ->
                                     stringResource(
                                         when (mode) {
-                                            heizige.kk.khatkit.app.ui.theme.ColorMode.SYSTEM -> R.string.greeting_settings_theme_system
-                                            heizige.kk.khatkit.app.ui.theme.ColorMode.LIGHT -> R.string.greeting_settings_theme_light
-                                            heizige.kk.khatkit.app.ui.theme.ColorMode.DARK -> R.string.greeting_settings_theme_dark
+                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.SYSTEM -> R.string.greeting_settings_theme_system
+                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.LIGHT -> R.string.greeting_settings_theme_light
+                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.DARK -> R.string.greeting_settings_theme_dark
                                         }
                                     )
                                 },

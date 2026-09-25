@@ -44,18 +44,18 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.data.model.Conversation
-import heizige.kk.khatkit.app.ui.theme.extendColors
-import heizige.kk.khatkit.app.utils.toLocalString
+import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.ui.theme.extendColors
+import heizige.kk.khatkit.app.core.util.toLocalString
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.ui.icons.delete
-import heizige.kk.khatkit.app.ui.icons.folder
-import heizige.kk.khatkit.app.ui.icons.forward
-import heizige.kk.khatkit.app.ui.icons.keepOff
-import heizige.kk.khatkit.app.ui.icons.pushPin
-import heizige.kk.khatkit.app.ui.icons.refresh
+import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.folder
+import heizige.kk.khatkit.app.core.ui.icons.forward
+import heizige.kk.khatkit.app.core.ui.icons.keepOff
+import heizige.kk.khatkit.app.core.ui.icons.pushPin
+import heizige.kk.khatkit.app.core.ui.icons.refresh
 
 /**
  * Represents different types of items in the conversation list
