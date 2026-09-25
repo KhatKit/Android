@@ -63,10 +63,14 @@ image-toolbox-1.0.0.jar
   └─ CardExecutor.ensureDependencies(CardManifest)
        ├─ 命中内存缓存（name+version+sha256）→ 直接复用
        ├─ filesDir/dependencies/<name>/<version>.jar 已存在 → 校验 sha256
-       │      └─ 不匹配：删除缓存，重新下载（防止被替换的旧产物）
+       │      ├─ 不匹配：删除缓存，重新下载（防止被替换的旧产物）
+       │      └─ 匹配：复用只读产物，不重写（已加载版本不重复落盘）
        ├─ 下载（只从用户配置的 Hub；带看板进度「正在下载依赖包：…」）
        ├─ sha256 校验失败 → 中止执行，中文错误
-       └─ DexClassLoader(jar, optimizedDir=codeCacheDir/dependency-dex/<name>/<sha前12位>,
+       ├─ 落盘：write + fsync + 原子改名 → 落盘后复核 sha256 → setReadOnly
+       │      并复核 canWrite()==false；父目录收紧为「仅属主可读、不可写」
+       │      （Android 14+ 动态代码加载 W^X 要求，否则 DexClassLoader 被系统拦截）
+       └─ DexClassLoader(只读 jar, optimizedDir=codeCacheDir/dependency-dex/<name>/<sha前12位>,
               null, appClassLoader)
             ├─ 校验 jar 含 classes.dex
             ├─ 读 META-INF/khatkit-dependency.properties 的 entry（缺失用约定类名）
@@ -103,6 +107,10 @@ local methods = imageToolbox.availableMethods()          -- JSON 数组字符串
 | `DEPENDENCY_DOWNLOAD_FAILED` | 离线 / Hub 不可达 / HTTP 非 2xx |
 | `DEPENDENCY_HASH_MISMATCH` | 下载产物 sha256 与声明不一致（拒绝落盘加载） |
 | `DEPENDENCY_ARTIFACT_INVALID` | jar 缺少 classes.dex |
+| `DEPENDENCY_STORAGE_FAILED` | 应用私有目录不可写 |
+| `DEPENDENCY_READONLY_FAILED` | 产物无法置为只读（Android 14+ 要求代码文件只读） |
+| `DEPENDENCY_DEX_DIR_UNWRITABLE` | dex 优化目录（codeCacheDir）不可写 |
+| `DEPENDENCY_LOAD_BLOCKED` | 加载被系统拦截（Android 14+ W^X 动态代码加载限制）；已有内存副本时自动复用 |
 | `DEPENDENCY_LOAD_FAILED` | DexClassLoader / 入口类 / 构造器失败 |
 | `DEPENDENCY_UNAVAILABLE` | 宿主不支持依赖包运行时 |
 
@@ -120,7 +128,9 @@ local methods = imageToolbox.availableMethods()          -- JSON 数组字符串
 1. **sha256 固定**：`manifest.requires.dependencies[].sha256` 是唯一信任锚；下载后、加载前必须校验，
    不匹配直接拒绝，不做“宽松放行”。
 2. **只信配置的 Hub**：`url` 只允许相对路径，解析到用户配置的 Hub 根；不支持任意镜像/裸 IP。
-3. **私有目录**：产物只写 `filesDir/dependencies/<name>/<version>.jar`，绝不从 `/sdcard` 等共享存储加载。
+3. **私有目录 + 只读**：产物只写 `filesDir/dependencies/<name>/<version>.jar`，绝不从 `/sdcard` 等共享存储加载；
+   落盘 fsync 后 `setReadOnly()` 并复核 `canWrite()==false`，目录尽力收紧为仅属主可读不可写。
+   Android 14+ 起系统要求动态加载的代码文件只读（W^X），否则 `DexClassLoader` 会被拦截。
 4. **格式约束**：jar 必须含 `classes.dex`；入口类名来自产物内 `khatkit-dependency.properties` 或约定。
 5. **最小暴露**：依赖通过动态 bridge 暴露的方法即 `DependencyBridgeWrapper`/`KhatKitDependency` 上的公有方法；
    入口类被实例化后只能通过 bridge 调用，不共享应用进程内的任意对象。
