@@ -67,7 +67,7 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 
 @Composable
-fun SettingSearchPage(vm: SettingVM = hiltViewModel()) {
+fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val lazyListState = rememberLazyListState()

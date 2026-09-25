@@ -19,7 +19,7 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 
 @HiltViewModel
-class AssistantVM @Inject constructor(
+class AssistantViewModel @Inject constructor(
     private val settingsStore: SettingsRepository,
     private val memoryRepository: MemoryRepository,
     private val conversationRepo: ConversationRepository,

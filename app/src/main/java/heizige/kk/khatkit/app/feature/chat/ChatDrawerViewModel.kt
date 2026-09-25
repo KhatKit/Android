@@ -36,7 +36,7 @@ import java.time.ZoneId
 import kotlin.uuid.Uuid
 
 @HiltViewModel
-class ChatDrawerVM @Inject constructor(
+class ChatDrawerViewModel @Inject constructor(
     private val context: Application,
     private val settingsStore: SettingsRepository,
     conversationRepo: ConversationRepository,

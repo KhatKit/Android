@@ -66,7 +66,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 
 @Composable
 fun SkillDetailPage(skillName: String) {
-    val vm = hiltViewModel<SkillDetailVM>()
+    val vm = hiltViewModel<SkillDetailViewModel>()
     LaunchedEffect(skillName) { vm.init(skillName) }
 
     val tree by vm.tree.collectAsStateWithLifecycle()

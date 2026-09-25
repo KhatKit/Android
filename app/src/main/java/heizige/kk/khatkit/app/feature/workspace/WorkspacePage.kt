@@ -55,7 +55,7 @@ import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 
 @Composable
-fun WorkspacePage(vm: WorkspaceVM = hiltViewModel()) {
+fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
     val workspaces by vm.workspaces.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

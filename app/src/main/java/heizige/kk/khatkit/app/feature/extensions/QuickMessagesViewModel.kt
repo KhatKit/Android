@@ -14,7 +14,7 @@ import heizige.kk.khatkit.app.core.data.model.QuickMessage
 import kotlin.uuid.Uuid
 
 @HiltViewModel
-class QuickMessagesVM @Inject constructor(
+class QuickMessagesViewModel @Inject constructor(
     private val settingsStore: SettingsRepository
 ) : ViewModel() {
     val settings = settingsStore.settingsFlow

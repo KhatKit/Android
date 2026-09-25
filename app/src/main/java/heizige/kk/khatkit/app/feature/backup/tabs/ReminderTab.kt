@@ -22,12 +22,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.BackupReminderConfig
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.feature.backup.BackupVM
+import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import java.time.Instant
 
 @Composable
-fun ReminderTab(vm: BackupVM) {
+fun ReminderTab(vm: BackupViewModel) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val config = settings.backupReminderConfig
 

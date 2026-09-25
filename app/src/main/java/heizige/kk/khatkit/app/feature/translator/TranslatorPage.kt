@@ -62,7 +62,7 @@ import heizige.kk.khatkit.app.core.ui.icons.contentPaste
 import heizige.kk.khatkit.app.core.ui.icons.translate
 
 @Composable
-fun TranslatorPage(vm: TranslatorVM = hiltViewModel()) {
+fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val inputText by vm.inputText.collectAsStateWithLifecycle()
     val translatedText by vm.translatedText.collectAsStateWithLifecycle()

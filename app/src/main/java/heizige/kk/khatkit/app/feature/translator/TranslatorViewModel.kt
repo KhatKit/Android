@@ -17,10 +17,10 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import java.util.Locale
 
-private const val TAG = "TranslatorVM"
+private const val TAG = "TranslatorViewModel"
 
 @HiltViewModel
-class TranslatorVM @Inject constructor(
+class TranslatorViewModel @Inject constructor(
     private val settingsStore: SettingsRepository,
     private val translationHandler: TranslationHandler,
 ) : ViewModel() {

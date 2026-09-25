@@ -53,7 +53,7 @@ import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
 import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavBackupItem
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
-import heizige.kk.khatkit.app.feature.backup.BackupVM
+import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.fileSizeToString
 import heizige.kk.khatkit.app.core.util.onError
@@ -68,7 +68,7 @@ import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 
 @Composable
 fun WebDavTab(
-    vm: BackupVM,
+    vm: BackupViewModel,
     onShowRestartDialog: () -> Unit
 ) {
     val settings by vm.settings.collectAsStateWithLifecycle()

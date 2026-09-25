@@ -60,7 +60,7 @@ import heizige.kk.khatkit.app.core.data.model.Tag as DataTag
 
 @Composable
 fun AssistantBasicPage(id: String) {
-    val vm: AssistantDetailVM = hiltViewModel<AssistantDetailVM, AssistantDetailVM.Factory>(creationCallback = { it.create(id) })
+    val vm: AssistantDetailViewModel = hiltViewModel<AssistantDetailViewModel, AssistantDetailViewModel.Factory>(creationCallback = { it.create(id) })
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val providers by vm.providers.collectAsStateWithLifecycle()
     val tags by vm.tags.collectAsStateWithLifecycle()
@@ -101,7 +101,7 @@ internal fun AssistantBasicContent(
     tags: List<DataTag>,
     workspaces: List<WorkspaceEntity>,
     onUpdate: (Assistant) -> Unit,
-    vm: AssistantDetailVM
+    vm: AssistantDetailViewModel
 ) {
     Column(
         modifier = Modifier

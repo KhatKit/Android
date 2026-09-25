@@ -47,7 +47,7 @@ private val UPDATE_PAUSE_DAY_OPTIONS = listOf(7, 14, 21)
 private const val MILLIS_PER_DAY = 24 * 60 * 60 * 1_000L
 
 @Composable
-fun SettingPreferencesNotificationPage(vm: SettingVM = hiltViewModel()) {
+fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var showUpdatePauseDialog by remember { mutableStateOf(false) }

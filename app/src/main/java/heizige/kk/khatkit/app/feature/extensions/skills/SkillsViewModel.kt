@@ -25,7 +25,7 @@ import org.json.JSONArray
 import kotlin.collections.iterator
 
 @HiltViewModel
-class SkillsVM @Inject constructor(
+class SkillsViewModel @Inject constructor(
     private val skillManager: SkillManager,
 ) : ViewModel() {
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())

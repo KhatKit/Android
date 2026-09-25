@@ -52,10 +52,10 @@ import heizige.kk.khatkit.app.core.util.UpdateChecker
 import java.util.Locale
 import kotlin.uuid.Uuid
 
-private const val TAG = "ChatVM"
+private const val TAG = "ChatViewModel"
 
-@HiltViewModel(assistedFactory = ChatVM.Factory::class)
-class ChatVM @AssistedInject constructor(
+@HiltViewModel(assistedFactory = ChatViewModel.Factory::class)
+class ChatViewModel @AssistedInject constructor(
     @Assisted id: String,
     private val context: Application,
     private val settingsStore: SettingsRepository,
@@ -67,7 +67,7 @@ class ChatVM @AssistedInject constructor(
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
-        fun create(id: String): ChatVM
+        fun create(id: String): ChatViewModel
     }
     private val _conversationId: Uuid = Uuid.parse(id)
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)

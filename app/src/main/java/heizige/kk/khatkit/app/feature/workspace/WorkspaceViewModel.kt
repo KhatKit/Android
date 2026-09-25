@@ -17,7 +17,7 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.RootfsInstallProgress
 
 @HiltViewModel
-class WorkspaceVM @Inject constructor(
+class WorkspaceViewModel @Inject constructor(
     private val repository: WorkspaceRepository,
     private val terminalSessionManager: WorkspaceTerminalSessionManager,
 ) : ViewModel() {

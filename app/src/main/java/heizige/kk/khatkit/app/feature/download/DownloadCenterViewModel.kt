@@ -9,7 +9,7 @@ import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class DownloadCenterVM @Inject constructor(
+class DownloadCenterViewModel @Inject constructor(
     private val provider: KhatKitToolProvider,
 ) : ViewModel() {
 

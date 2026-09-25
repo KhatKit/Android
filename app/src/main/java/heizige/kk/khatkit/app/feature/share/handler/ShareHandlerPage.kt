@@ -36,7 +36,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 fun ShareHandlerPage(text: String, image: String?) {
-    val vm: ShareHandlerVM = hiltViewModel<ShareHandlerVM, ShareHandlerVM.Factory>(creationCallback = { it.create(text) })
+    val vm: ShareHandlerViewModel = hiltViewModel<ShareHandlerViewModel, ShareHandlerViewModel.Factory>(creationCallback = { it.create(text) })
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val navController = LocalNavController.current

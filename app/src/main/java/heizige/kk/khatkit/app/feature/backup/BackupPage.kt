@@ -35,7 +35,7 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
-fun BackupPage(vm: BackupVM = hiltViewModel()) {
+fun BackupPage(vm: BackupViewModel = hiltViewModel()) {
     val pagerState = rememberPagerState { 4 }
     val scope = rememberCoroutineScope()
     var showRestartDialog by remember { mutableStateOf(false) }

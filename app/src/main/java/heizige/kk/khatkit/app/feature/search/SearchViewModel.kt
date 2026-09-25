@@ -41,7 +41,7 @@ private data class SearchRequest(
 )
 
 @HiltViewModel
-class SearchVM @Inject constructor(
+class SearchViewModel @Inject constructor(
     private val context: Application,
     private val conversationRepo: ConversationRepository,
     private val settingsStore: SettingsRepository,

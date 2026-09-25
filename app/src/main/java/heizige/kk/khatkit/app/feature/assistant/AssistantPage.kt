@@ -82,7 +82,7 @@ import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
 
 @Composable
-fun AssistantPage(vm: AssistantVM = hiltViewModel()) {
+fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val createState = useEditState<Assistant> {
         vm.addAssistant(it)
@@ -278,7 +278,7 @@ fun AssistantPage(vm: AssistantVM = hiltViewModel()) {
 @Composable
 private fun AssistantTagsFilterRow(
     settings: Settings,
-    vm: AssistantVM,
+    vm: AssistantViewModel,
     selectedTagIds: Set<Uuid>,
     onUpdateSelectedTagIds: (Set<Uuid>) -> Unit
 ) {

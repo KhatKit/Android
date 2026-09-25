@@ -100,7 +100,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 @Composable
 fun WorkspaceDetailPage(id: String) {
     val navController = LocalNavController.current
-    val vm: WorkspaceDetailVM = hiltViewModel<WorkspaceDetailVM, WorkspaceDetailVM.Factory>(creationCallback = { it.create(id) })
+    val vm: WorkspaceDetailViewModel = hiltViewModel<WorkspaceDetailViewModel, WorkspaceDetailViewModel.Factory>(creationCallback = { it.create(id) })
     val state by vm.state.collectAsStateWithLifecycle()
     val installProgress by vm.installProgress.collectAsStateWithLifecycle()
     val installError by vm.installError.collectAsStateWithLifecycle()

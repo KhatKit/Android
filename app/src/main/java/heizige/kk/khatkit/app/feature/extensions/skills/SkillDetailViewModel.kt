@@ -29,7 +29,7 @@ sealed class SkillFileNode {
 }
 
 @HiltViewModel
-class SkillDetailVM @Inject constructor(
+class SkillDetailViewModel @Inject constructor(
     private val skillManager: SkillManager,
 ) : ViewModel() {
 

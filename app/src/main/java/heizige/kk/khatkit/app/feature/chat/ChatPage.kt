@@ -109,7 +109,7 @@ import heizige.kk.khatkit.app.core.ui.icons.menu
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
-    val vm: ChatVM = hiltViewModel<ChatVM, ChatVM.Factory>(creationCallback = { it.create(id.toString()) })
+    val vm: ChatViewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(creationCallback = { it.create(id.toString()) })
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
@@ -275,7 +275,7 @@ private fun ChatPageContent(
     conversation: Conversation,
     drawerState: DrawerState,
     navController: Navigator,
-    vm: ChatVM,
+    vm: ChatViewModel,
     chatListState: LazyListState,
     enableWebSearch: Boolean,
     currentChatModel: Model?,
@@ -557,7 +557,7 @@ private fun ChatFilesPickerSheet(
     setting: Settings,
     conversation: Conversation,
     assistant: Assistant,
-    vm: ChatVM,
+    vm: ChatViewModel,
     attachmentPickerActions: ChatAttachmentPickerActions,
     onStartVoiceMode: () -> Unit,
     onDismiss: () -> Unit,

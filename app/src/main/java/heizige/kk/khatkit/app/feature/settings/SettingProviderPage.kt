@@ -88,7 +88,7 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 
 @Composable
-fun SettingProviderPage(vm: SettingVM = hiltViewModel()) {
+fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

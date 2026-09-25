@@ -88,7 +88,7 @@ import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 
 @Composable
-fun SettingPage(vm: SettingVM = hiltViewModel()) {
+fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     val settings by vm.settings.collectAsStateWithLifecycle()

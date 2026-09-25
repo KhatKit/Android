@@ -41,7 +41,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 /** Lives above adaptive drawer branches, so resizing does not recreate the voice session. */
 @Composable
-fun rememberVoiceModeStarter(vm: ChatVM, settings: Settings): () -> Unit {
+fun rememberVoiceModeStarter(vm: ChatViewModel, settings: Settings): () -> Unit {
     val context = LocalContext.current.applicationContext
     val client = rememberAppEntryPoint().okHttpClient()
     val asr = LocalASRState.current

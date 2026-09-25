@@ -59,7 +59,7 @@ private val GATEWAY_PROVIDER_ID: Uuid = Uuid.parse("7e2a9c1e-6b5f-4a3d-9c8e-1f2b
  */
 @Composable
 fun SettingPackagePage(
-    vm: SettingVM = hiltViewModel(),
+    vm: SettingViewModel = hiltViewModel(),
 ) {
     val provider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -304,7 +304,7 @@ private fun formatQuota(value: Long?): String = value?.toString() ?: "未知"
  */
 private fun upsertGatewayProvider(
     settings: Settings,
-    vm: SettingVM,
+    vm: SettingViewModel,
     provider: KhatKitToolProvider,
     hubUrl: String,
 ): String {

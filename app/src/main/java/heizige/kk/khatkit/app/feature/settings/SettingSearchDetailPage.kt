@@ -66,7 +66,7 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 @Composable
 fun SettingSearchDetailPage(
     serviceId: Uuid,
-    vm: SettingVM = hiltViewModel()
+    vm: SettingViewModel = hiltViewModel()
 ) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

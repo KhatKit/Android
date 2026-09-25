@@ -37,7 +37,7 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 
 @Composable
-internal fun PromptSettingsPage(settings: Settings, vm: SettingVM, contentPadding: PaddingValues) {
+internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding + PaddingValues(horizontal = 16.dp),

@@ -114,7 +114,7 @@ import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 
 @Composable
-fun SettingMcpPage(vm: SettingVM = hiltViewModel()) {
+fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val mcpConfigs = settings.mcpServers
     val creationState = useEditState<McpServerConfig> {

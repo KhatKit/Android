@@ -32,15 +32,15 @@ import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceCommandResult
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 
-@HiltViewModel(assistedFactory = WorkspaceDetailVM.Factory::class)
-class WorkspaceDetailVM @AssistedInject constructor(
+@HiltViewModel(assistedFactory = WorkspaceDetailViewModel.Factory::class)
+class WorkspaceDetailViewModel @AssistedInject constructor(
     @Assisted private val id: String,
     private val repository: WorkspaceRepository,
     private val terminalSessionManager: WorkspaceTerminalSessionManager,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
-        fun create(id: String): WorkspaceDetailVM
+        fun create(id: String): WorkspaceDetailViewModel
     }
     private val _state = MutableStateFlow(WorkspaceDetailState())
     val state = _state.asStateFlow()

@@ -37,7 +37,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 /** 全局下载中心：KhatKit bridge 下载（含脚本创建）与更新包下载都汇总到这里。 */
 @Composable
-fun DownloadCenterPage(vm: DownloadCenterVM = hiltViewModel()) {
+fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
     val tasks by vm.tasks.collectAsStateWithLifecycle()
 
     Scaffold(

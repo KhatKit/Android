@@ -95,7 +95,7 @@ private val themeJson = Json {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingThemePage(vm: SettingVM = hiltViewModel()) {
+fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val clipboardManager = LocalClipboard.current

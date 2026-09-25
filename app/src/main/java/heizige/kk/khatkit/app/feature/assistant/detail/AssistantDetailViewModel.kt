@@ -33,10 +33,10 @@ import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import kotlin.uuid.Uuid
 
-private const val TAG = "AssistantDetailVM"
+private const val TAG = "AssistantDetailViewModel"
 
-@HiltViewModel(assistedFactory = AssistantDetailVM.Factory::class)
-class AssistantDetailVM @AssistedInject constructor(
+@HiltViewModel(assistedFactory = AssistantDetailViewModel.Factory::class)
+class AssistantDetailViewModel @AssistedInject constructor(
     @Assisted private val id: String,
     private val settingsStore: SettingsRepository,
     private val memoryRepository: MemoryRepository,
@@ -46,7 +46,7 @@ class AssistantDetailVM @AssistedInject constructor(
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
-        fun create(id: String): AssistantDetailVM
+        fun create(id: String): AssistantDetailViewModel
     }
     private val assistantId = Uuid.parse(id)
 

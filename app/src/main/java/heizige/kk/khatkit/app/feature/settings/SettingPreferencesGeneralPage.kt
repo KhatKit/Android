@@ -39,7 +39,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 
 @Composable
-fun SettingPreferencesGeneralPage(vm: SettingVM = hiltViewModel()) {
+fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var ttsPlaybackSpeed by remember(settings.defaultTTSPlaybackSpeed) {

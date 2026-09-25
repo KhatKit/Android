@@ -27,7 +27,7 @@ import kotlin.random.Random
 import kotlin.uuid.Uuid
 
 @HiltViewModel
-class DebugVM @Inject constructor(
+class DebugViewModel @Inject constructor(
     private val settingsStore: SettingsRepository,
     private val conversationRepository: ConversationRepository,
 ) : ViewModel() {

@@ -28,10 +28,10 @@ import heizige.kk.khatkit.app.core.data.sync.S3Sync
 import heizige.kk.khatkit.app.core.util.UiState
 import java.io.File
 
-private const val TAG = "BackupVM"
+private const val TAG = "BackupViewModel"
 
 @HiltViewModel
-class BackupVM @Inject constructor(
+class BackupViewModel @Inject constructor(
     private val settingsStore: SettingsRepository,
     private val webDavSync: WebDavSync,
     private val s3Sync: S3Sync,

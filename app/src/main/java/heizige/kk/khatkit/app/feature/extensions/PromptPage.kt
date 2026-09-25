@@ -102,7 +102,7 @@ import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 
 @Composable
-fun PromptPage(vm: PromptVM = hiltViewModel()) {
+fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()

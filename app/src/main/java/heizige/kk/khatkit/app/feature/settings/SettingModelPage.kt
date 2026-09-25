@@ -49,7 +49,7 @@ import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 
 @Composable
-fun SettingModelPage(vm: SettingVM = hiltViewModel()) {
+fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pagerState = rememberPagerState { 2 }
@@ -98,7 +98,7 @@ fun SettingModelPage(vm: SettingVM = hiltViewModel()) {
 }
 
 @Composable
-private fun ModelSettingsPage(settings: Settings, vm: SettingVM, contentPadding: PaddingValues) {
+private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding + PaddingValues(horizontal = 16.dp),

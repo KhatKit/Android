@@ -74,7 +74,7 @@ import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 
 @Composable
-fun SettingSpeechPage(vm: SettingVM = hiltViewModel()) {
+fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }

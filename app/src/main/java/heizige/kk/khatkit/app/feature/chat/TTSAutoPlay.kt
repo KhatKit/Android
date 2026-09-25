@@ -12,7 +12,7 @@ import heizige.kk.khatkit.app.core.util.extractQuotedContentAsText
 import heizige.kk.khatkit.app.core.util.removeBracketedContent
 
 @Composable
-fun TTSAutoPlay(vm: ChatVM, setting: Settings, conversation: Conversation) {
+fun TTSAutoPlay(vm: ChatViewModel, setting: Settings, conversation: Conversation) {
     // Auto-play TTS after generation completes
     val tts = LocalTTSState.current
     val currentConversation by rememberUpdatedState(conversation)

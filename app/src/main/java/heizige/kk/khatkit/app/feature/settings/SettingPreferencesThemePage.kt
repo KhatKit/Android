@@ -50,7 +50,7 @@ import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
-fun SettingPreferencesThemePage(vm: SettingVM = hiltViewModel()) {
+fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var amoledDarkMode by rememberAmoledDarkMode()
     val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()

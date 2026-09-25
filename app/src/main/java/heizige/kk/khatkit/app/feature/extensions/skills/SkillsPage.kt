@@ -70,7 +70,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 @Composable
 fun SkillsPage() {
     val navController = LocalNavController.current
-    val vm = hiltViewModel<SkillsVM>()
+    val vm = hiltViewModel<SkillsViewModel>()
     val skills by vm.skills.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current

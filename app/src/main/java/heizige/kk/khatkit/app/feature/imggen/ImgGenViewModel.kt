@@ -61,7 +61,7 @@ private fun GenMediaEntity.toGeneratedImage(filesManager: FilesManager): Generat
 }
 
 @HiltViewModel
-class ImgGenVM @Inject constructor(
+class ImgGenViewModel @Inject constructor(
     context: Application,
     val settingsStore: SettingsRepository,
     val providerManager: ProviderManager,
@@ -376,7 +376,7 @@ class ImgGenVM @Inject constructor(
     }
 
     companion object {
-        private const val TAG = "ImgGenVM"
+        private const val TAG = "ImgGenViewModel"
         private const val MAX_REFERENCE_IMAGES = 16
     }
 }

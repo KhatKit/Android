@@ -14,14 +14,14 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import kotlin.uuid.Uuid
 
-@HiltViewModel(assistedFactory = ShareHandlerVM.Factory::class)
-class ShareHandlerVM @AssistedInject constructor(
+@HiltViewModel(assistedFactory = ShareHandlerViewModel.Factory::class)
+class ShareHandlerViewModel @AssistedInject constructor(
     @Assisted text: String,
     private val settingsStore: SettingsRepository
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
-        fun create(text: String): ShareHandlerVM
+        fun create(text: String): ShareHandlerViewModel
     }
     val shareText = checkNotNull(text)
     val settings = settingsStore.settingsFlow

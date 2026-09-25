@@ -52,7 +52,7 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 
 @Composable
-fun QuickMessagesPage(vm: QuickMessagesVM = hiltViewModel()) {
+fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
     val settings = vm.settings.collectAsStateWithLifecycle().value
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showAddDialog by rememberSaveable { mutableStateOf(false) }

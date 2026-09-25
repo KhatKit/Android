@@ -65,7 +65,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun WorkspaceTerminalPage(id: String) {
-    val vm: WorkspaceDetailVM = hiltViewModel<WorkspaceDetailVM, WorkspaceDetailVM.Factory>(creationCallback = { it.create(id) })
+    val vm: WorkspaceDetailViewModel = hiltViewModel<WorkspaceDetailViewModel, WorkspaceDetailViewModel.Factory>(creationCallback = { it.create(id) })
     val state by vm.state.collectAsStateWithLifecycle()
     val sessionManager: WorkspaceTerminalSessionManager = rememberAppEntryPoint().workspaceTerminalSessionManager()
     val root = state.workspace?.root

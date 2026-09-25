@@ -33,7 +33,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useThrottle
-import heizige.kk.khatkit.app.feature.chat.ChatVM
+import heizige.kk.khatkit.app.feature.chat.ChatViewModel
 import heizige.kk.khatkit.app.core.util.UpdateCheckResponse
 import heizige.kk.khatkit.app.core.util.onError
 import heizige.kk.khatkit.app.core.util.onSuccess
@@ -41,7 +41,7 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.download
 
 @Composable
-fun UpdateCard(vm: ChatVM) {
+fun UpdateCard(vm: ChatViewModel) {
     val state by vm.updateState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val toaster = LocalToaster.current

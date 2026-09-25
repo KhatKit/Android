@@ -61,7 +61,7 @@ import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 
 @Composable
-fun DebugPage(vm: DebugVM = hiltViewModel()) {
+fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     Scaffold(
@@ -134,7 +134,7 @@ fun DebugPage(vm: DebugVM = hiltViewModel()) {
 }
 
 @Composable
-private fun MainPage(vm: DebugVM) {
+private fun MainPage(vm: DebugViewModel) {
     val settings = LocalSettings.current
     val conversationCount by vm.conversationCount.collectAsStateWithLifecycle()
     Column(

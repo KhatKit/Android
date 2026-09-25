@@ -132,7 +132,7 @@ import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.sync
 
 @Composable
-fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = hiltViewModel()) {
+fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return

@@ -34,7 +34,7 @@ import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.StickyHeader
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
-import heizige.kk.khatkit.app.feature.backup.BackupVM
+import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 
 @Composable
 fun ImportExportTab(
-    vm: BackupVM,
+    vm: BackupViewModel,
     onShowRestartDialog: () -> Unit
 ) {
     val toaster = LocalToaster.current

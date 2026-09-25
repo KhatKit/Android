@@ -62,7 +62,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
-fun SettingPreferencesUIPage(vm: SettingVM = hiltViewModel()) {
+fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     val context = LocalContext.current

@@ -65,7 +65,7 @@ import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
 
 @Composable
-fun SearchPage(vm: SearchVM = hiltViewModel()) {
+fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
     val focusRequester = remember { FocusRequester() }
     var showRebuildDialog by remember { mutableStateOf(false) }

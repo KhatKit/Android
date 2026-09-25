@@ -121,7 +121,7 @@ import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 @Composable
 fun ChatDrawerContent(
     navController: Navigator,
-    vm: ChatVM,
+    vm: ChatViewModel,
     settings: Settings,
     current: Conversation,
     drawerState: DrawerState? = null,
@@ -133,7 +133,7 @@ fun ChatDrawerContent(
     val repo = rememberAppEntryPoint().conversationRepository()
 
     val activity = context as ComponentActivity
-    val drawerVm: ChatDrawerVM = hiltViewModel(viewModelStoreOwner = activity)
+    val drawerVm: ChatDrawerViewModel = hiltViewModel(viewModelStoreOwner = activity)
 
     val conversations = drawerVm.conversations.collectAsLazyPagingItems()
     val folders by drawerVm.folders.collectAsStateWithLifecycle()

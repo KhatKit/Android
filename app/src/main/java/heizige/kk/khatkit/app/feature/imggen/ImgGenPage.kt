@@ -113,7 +113,7 @@ import heizige.kk.khatkit.app.core.ui.icons.tune
 @Composable
 fun ImageGenPage(
     modifier: Modifier = Modifier,
-    vm: ImgGenVM = hiltViewModel()
+    vm: ImgGenViewModel = hiltViewModel()
 ) {
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
@@ -230,7 +230,7 @@ private fun BottomBar(
 
 @Composable
 private fun ImageGenScreen(
-    vm: ImgGenVM,
+    vm: ImgGenViewModel,
 ) {
     val prompt by vm.prompt.collectAsStateWithLifecycle()
     val numberOfImages by vm.numberOfImages.collectAsStateWithLifecycle()
@@ -320,7 +320,7 @@ private fun ImageGenScreen(
 @Composable
 private fun InputBar(
     prompt: String,
-    vm: ImgGenVM,
+    vm: ImgGenViewModel,
     isGenerating: Boolean,
     referenceImages: List<String>,
     settings: Settings,
@@ -505,7 +505,7 @@ private fun ReferenceImagesRow(
 
 @Composable
 private fun ImageGalleryScreen(
-    vm: ImgGenVM,
+    vm: ImgGenViewModel,
     isActive: Boolean,
 ) {
     val generatedImages = vm.generatedImages.collectAsLazyPagingItems()
@@ -782,7 +782,7 @@ private fun ImageGalleryScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SettingsBottomSheet(
-    vm: ImgGenVM,
+    vm: ImgGenViewModel,
     numberOfImages: Int,
     size: String,
     scope: CoroutineScope,

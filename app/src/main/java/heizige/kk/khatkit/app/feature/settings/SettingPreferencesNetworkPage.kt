@@ -64,7 +64,7 @@ import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 private const val PROXY_TEST_URL = "https://www.google.com/generate_204"
 
 @Composable
-fun SettingPreferencesNetworkPage(vm: SettingVM = hiltViewModel()) {
+fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
     val httpClient = rememberAppEntryPoint().okHttpClient()
     val settings by vm.settings.collectAsStateWithLifecycle()
     var userAgent by remember(settings.networkSetting.userAgent) {
