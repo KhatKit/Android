@@ -4,7 +4,6 @@ import android.app.Application
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -16,24 +15,17 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID
-import heizige.kk.khatkit.app.CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.RouteActivity
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.event.AppEvent
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
-import heizige.kk.khatkit.app.core.util.cancelNotification
 import heizige.kk.khatkit.app.core.util.sendNotification
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
-
-// Live Update 通知节流间隔：流式输出每个chunk都会触发一次更新，
-// notify() 是 binder IPC 且系统本身会对高频更新限流，必须在应用侧节流
-private const val LIVE_UPDATE_NOTIFICATION_THROTTLE_MS = 1000L
 
 /**
  * 订阅 [AppEventBus] 上的聊天生成事件，负责后台生成相关的系统通知
- * （Live Update 进度通知和生成完成通知）。
+ * （焦点通知进度更新和生成完成通知）。
  */
 class ChatNotificationManager(
     private val context: Application,
@@ -42,7 +34,7 @@ class ChatNotificationManager(
     private val settingsStore: SettingsRepository,
 ) {
     private val isForeground = MutableStateFlow(false)
-    private val liveUpdateLastSentAt = ConcurrentHashMap<Uuid, Long>()
+    private val liveNotificationService = AILiveNotificationService(context)
 
     init {
         // ProcessLifecycleOwner 要求在主线程注册观察者
@@ -74,21 +66,35 @@ class ChatNotificationManager(
         if (!displaySetting.enableNotificationOnMessageGeneration) return
         if (!displaySetting.enableLiveUpdateNotification) return
 
-        val now = SystemClock.elapsedRealtime()
-        val lastSentAt = liveUpdateLastSentAt[event.conversationId]
-        if (lastSentAt != null && now - lastSentAt < LIVE_UPDATE_NOTIFICATION_THROTTLE_MS) return
-        liveUpdateLastSentAt[event.conversationId] = now
-
-        sendLiveUpdateNotification(event.conversationId, event.lastMessage, event.senderName)
+        // 使用新的焦点通知服务
+        val tokenCount = calculateTokenCount(event.lastMessage.parts)
+        liveNotificationService.updateGenerating(tokenCount, event.conversationId.toString())
     }
 
     private fun handleGenerationEnded(event: AppEvent.ChatGenerationEnded) {
-        cancelLiveUpdateNotification(event.conversationId)
+        // 完成焦点通知
+        liveNotificationService.completeGeneration()
 
         val contentPreview = event.contentPreview ?: return
         if (isForeground.value) return
         if (!settingsStore.settingsFlow.value.displaySetting.enableNotificationOnMessageGeneration) return
         sendGenerationDoneNotification(event.conversationId, event.senderName, contentPreview)
+    }
+
+    /**
+     * 计算消息中的 token 数量（简单估算）
+     */
+    private fun calculateTokenCount(parts: List<UIMessagePart>): Int {
+        var count = 0
+        for (part in parts) {
+            when (part) {
+                is UIMessagePart.Text -> count += part.text.length / 4
+                is UIMessagePart.Reasoning -> count += part.reasoning.length / 4
+                is UIMessagePart.Tool -> count += part.input.length / 4
+                else -> {}
+            }
+        }
+        return count
     }
 
     private fun sendGenerationDoneNotification(
@@ -107,81 +113,6 @@ class ChatNotificationManager(
             category = NotificationCompat.CATEGORY_MESSAGE
             contentIntent = getPendingIntent(context, conversationId)
         }
-    }
-
-    private fun sendLiveUpdateNotification(
-        conversationId: Uuid,
-        lastMessage: UIMessage,
-        senderName: String
-    ) {
-        // 确定当前状态
-        val (chipText, statusText, contentText) = determineNotificationContent(lastMessage.parts)
-
-        context.sendNotification(
-            channelId = CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID,
-            // 更新前台服务正在使用的同一条通知，避免重复显示生成进度。
-            notificationId = ChatGenerationForegroundService.NOTIFICATION_ID
-        ) {
-            title = senderName
-            content = contentText
-            subText = statusText
-            ongoing = true
-            onlyAlertOnce = true
-            category = NotificationCompat.CATEGORY_PROGRESS
-            useBigTextStyle = true
-            contentIntent = getPendingIntent(context, conversationId)
-            requestPromotedOngoing = true
-            shortCriticalText = chipText
-        }
-    }
-
-    private fun determineNotificationContent(parts: List<UIMessagePart>): Triple<String, String, String> {
-        // 检查最近的 part 来确定状态
-        val lastReasoning = parts.filterIsInstance<UIMessagePart.Reasoning>().lastOrNull()
-        val lastTool = parts.filterIsInstance<UIMessagePart.Tool>().lastOrNull()
-        val lastText = parts.filterIsInstance<UIMessagePart.Text>().lastOrNull()
-
-        return when {
-            // 正在执行工具
-            lastTool != null && !lastTool.isExecuted -> {
-                val toolName = lastTool.toolName.substringAfterLast("__")
-                Triple(
-                    context.getString(R.string.notification_live_update_chip_tool),
-                    context.getString(R.string.notification_live_update_tool, toolName),
-                    lastTool.input.take(100)
-                )
-            }
-            // 正在思考（Reasoning 未结束）
-            lastReasoning != null && lastReasoning.finishedAt == null -> {
-                Triple(
-                    context.getString(R.string.notification_live_update_chip_thinking),
-                    context.getString(R.string.notification_live_update_thinking),
-                    lastReasoning.reasoning.takeLast(200)
-                )
-            }
-            // 正在写回复
-            lastText != null -> {
-                Triple(
-                    context.getString(R.string.notification_live_update_chip_writing),
-                    context.getString(R.string.notification_live_update_writing),
-                    lastText.text.takeLast(200)
-                )
-            }
-            // 默认状态
-            else -> {
-                Triple(
-                    context.getString(R.string.notification_live_update_chip_writing),
-                    context.getString(R.string.notification_live_update_title),
-                    ""
-                )
-            }
-        }
-    }
-
-    private fun cancelLiveUpdateNotification(conversationId: Uuid) {
-        liveUpdateLastSentAt.remove(conversationId)
-        // 前台服务持有通知时系统会保留它；启动失败时则清理普通 ongoing 通知。
-        context.cancelNotification(ChatGenerationForegroundService.NOTIFICATION_ID)
     }
 
     private fun getPendingIntent(context: Context, conversationId: Uuid): PendingIntent {
