@@ -35,6 +35,7 @@ class ChatNotificationManager(
 ) {
     private val isForeground = MutableStateFlow(false)
     private val liveNotificationService = AILiveNotificationService(context)
+    private var currentGeneratingConversation: String? = null
 
     init {
         // ProcessLifecycleOwner 要求在主线程注册观察者
@@ -66,12 +67,23 @@ class ChatNotificationManager(
         if (!displaySetting.enableNotificationOnMessageGeneration) return
         if (!displaySetting.enableLiveUpdateNotification) return
 
-        // 使用新的焦点通知服务
+        val conversationId = event.conversationId.toString()
+
+        // 如果是新对话的第一次生成，启动通知
+        if (currentGeneratingConversation != conversationId) {
+            currentGeneratingConversation = conversationId
+            liveNotificationService.startGenerationNotification(conversationId)
+        }
+
+        // 更新生成进度
         val tokenCount = calculateTokenCount(event.lastMessage.parts)
-        liveNotificationService.updateGenerating(tokenCount, event.conversationId.toString())
+        liveNotificationService.updateGenerating(tokenCount, conversationId)
     }
 
     private fun handleGenerationEnded(event: AppEvent.ChatGenerationEnded) {
+        // 重置当前生成对话 ID
+        currentGeneratingConversation = null
+
         // 完成焦点通知
         liveNotificationService.completeGeneration()
 

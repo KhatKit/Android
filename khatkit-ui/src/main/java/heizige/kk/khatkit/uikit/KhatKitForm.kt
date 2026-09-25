@@ -4,10 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,9 +25,9 @@ import heizige.kk.kedge.components.KedgeRadioButton
 import heizige.kk.kedge.components.KedgeSlider
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.overlays.KedgeDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khromia.components.PrimaryBottomSheet
 
 /**
  * 声明式表单渲染器（设计文档 7.2）。
@@ -54,26 +54,31 @@ fun KhatKitForm(
         }
     }
 
-    KedgeDialog(
-        show = true,
-        onDismissRequest = onCancel,
+    PrimaryBottomSheet(
+        visible = true,
         title = title,
-    ) {
+        imageVector = Icons.Filled.Edit,
+        confirmText = stringResource(R.string.khatkit_form_confirm),
+        onConfirm = { onSubmit(values.toMap()) },
+        onDismiss = onCancel,
+        scrollable = true,
+    ) { dismiss ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 460.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items.forEach { item -> FormWidget(item, values) }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-        ) {
-            KedgeTextButton(onClick = onCancel) { Text(stringResource(R.string.khatkit_form_cancel)) }
-            KedgeButton(onClick = { onSubmit(values.toMap()) }) { Text(stringResource(R.string.khatkit_form_confirm)) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            ) {
+                KedgeTextButton(onClick = { dismiss() }) {
+                    Text(stringResource(R.string.khatkit_form_cancel))
+                }
+            }
         }
     }
 }
