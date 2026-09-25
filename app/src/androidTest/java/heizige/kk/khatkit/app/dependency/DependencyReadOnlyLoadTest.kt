@@ -66,18 +66,32 @@ class DependencyReadOnlyLoadTest {
     private fun sha256(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
+    private fun sign(bytes: ByteArray, privateKey: java.security.PrivateKey): String {
+        val signature = java.security.Signature.getInstance("SHA256withECDSA")
+        signature.initSign(privateKey)
+        signature.update(bytes)
+        return java.util.Base64.getEncoder().encodeToString(signature.sign())
+    }
+
     @Test
     fun downloadedArtifactIsReadOnlyAndLoadsOnDevice() = runBlocking {
         val bytes = dependencyJarBytes()
+        // 测试自带临时密钥对：把公钥注入 DependencyManager，产物用对应私钥签名
+        val pair = java.security.KeyPairGenerator.getInstance("EC").apply {
+            initialize(java.security.spec.ECGenParameterSpec("secp256r1"))
+        }.generateKeyPair()
         val req = CardManifest.DependencyReq(
             name = "wxProbe",
             version = "1.0.0",
             sha256 = sha256(bytes),
+            signature = sign(bytes, pair.private),
         )
         val manager = DependencyManager(
             context = appContext,
             hubBaseUrl = { "https://example.invalid" },
             fetchBytes = { bytes },
+            pinnedPublicKeyBase64 = java.util.Base64.getEncoder().encodeToString(pair.public.encoded),
+            pinnedFingerprintSha256 = "unused-in-this-test",
         )
         try {
             val result = manager.ensure(req)

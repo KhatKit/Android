@@ -89,6 +89,11 @@ data class CardManifest(
         val url: String? = null,
         /** 产物 sha256（64 位小写十六进制），加载前必须校验通过 */
         val sha256: String = "",
+        /**
+         * 产物字节的 ECDSA P-256 / SHA256withECDSA 分离签名（DER base64）。
+         * 客户端先校验 sha256，再用构建时固定的公钥验签；缺少签名的依赖拒绝加载。
+         */
+        val signature: String = "",
     )
 
     @Serializable

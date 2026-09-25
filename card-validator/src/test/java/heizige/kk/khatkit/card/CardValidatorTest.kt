@@ -866,4 +866,73 @@ class CardValidatorTest {
         val issues = CardValidator.validate(manifest())
         assertFalse(issues.any { it.code.startsWith("DEPENDENCY_") })
     }
+
+    // ===== 签名与多版本回滚清单 =====
+
+    @Test
+    fun multipleVersionsOfSameDependencyAllowedForRollback() {
+        val issues = CardValidator.validate(
+            manifest(
+                dependencies = listOf(
+                    CardManifest.DependencyReq(name = "imageToolbox", version = "1.1.0", sha256 = validSha),
+                    CardManifest.DependencyReq(name = "imageToolbox", version = "1.0.0", sha256 = "b".repeat(64)),
+                )
+            )
+        )
+        assertFalse("不同版本是合法回滚清单：$issues", issues.any { it.code == "DEPENDENCY_DUPLICATE" })
+    }
+
+    @Test
+    fun dependencySignatureParsesFromJson() {
+        val signature = java.util.Base64.getEncoder().encodeToString("fake-signature".toByteArray())
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "image_resize_crop",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": {
+                "bridges": ["tool", "imageToolbox"],
+                "dependencies": [
+                  { "name": "imageToolbox", "version": "1.0.0", "sha256": "$validSha", "signature": "$signature" }
+                ]
+              },
+              "tags": { "domain": "media", "action": "create" }
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        assertEquals(signature, parsed.requiredDependencies.first().signature)
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
+    fun invalidDependencySignatureRejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                dependencies = listOf(
+                    CardManifest.DependencyReq(
+                        name = "imageToolbox",
+                        version = "1.0.0",
+                        sha256 = validSha,
+                        signature = "!!!not-base64!!!",
+                    )
+                )
+            )
+        )
+        assertTrue(issues.any { it.code == "DEPENDENCY_SIGNATURE_INVALID" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun missingDependencySignatureWarnsOnly() {
+        val issues = CardValidator.validate(
+            manifest(
+                dependencies = listOf(
+                    CardManifest.DependencyReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha),
+                )
+            )
+        )
+        assertTrue(issues.any { it.code == "DEPENDENCY_SIGNATURE_MISSING" && it.severity == Severity.WARNING })
+        assertFalse(issues.any { it.severity == Severity.ERROR })
+    }
 }

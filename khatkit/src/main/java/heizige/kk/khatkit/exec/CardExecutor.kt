@@ -8,6 +8,7 @@ import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
 import heizige.kk.khatkit.dependency.DependencyEnsureResult
+import heizige.kk.khatkit.dependency.DependencyFallback
 import heizige.kk.khatkit.dependency.DependencyManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,11 +57,41 @@ class CardExecutor(
                 "卡片 ${manifest.name} 依赖原生依赖包（${requirements.joinToString { it.name }}），" +
                     "但当前宿主不支持依赖包运行时；请升级 KhatKit 后重试。",
             )
-        requirements.forEach { req ->
-            onDependencyStatus?.invoke("正在准备依赖包：${req.name} ${req.version}")
-            when (val result = manager.ensure(req)) {
-                is DependencyEnsureResult.Ok -> bridges.registerDynamic(req.name, result.bridge)
-                is DependencyEnsureResult.Err -> return EngineResult.Err(result.code, result.message)
+        // 同名依赖可声明多个版本（回滚清单）：某个版本被 Hub 撤销/下架时，按清单顺序尝试备用版本，
+        // 每个候选版本的 sha256 + ECDSA 签名都由 DependencyManager 强制校验，安全边界不变。
+        val groups = DependencyFallback.groups(requirements)
+        groups.forEach { (name, candidates) ->
+            var lastError: DependencyEnsureResult.Err? = null
+            for ((index, req) in candidates.withIndex()) {
+                onDependencyStatus?.invoke(
+                    if (index == 0) {
+                        "正在准备依赖包：${req.name} ${req.version}"
+                    } else {
+                        "原依赖版本不可用，正在尝试备用版本：${req.name} ${req.version}"
+                    },
+                )
+                when (val result = manager.ensure(req)) {
+                    is DependencyEnsureResult.Ok -> {
+                        bridges.registerDynamic(name, result.bridge)
+                        lastError = null
+                        break
+                    }
+
+                    is DependencyEnsureResult.Err -> {
+                        lastError = result
+                        onDependencyStatus?.invoke("依赖包 ${req.name} ${req.version} 不可用：${result.code}")
+                        if (!result.retryable) return EngineResult.Err(result.code, result.message)
+                    }
+                }
+            }
+            if (lastError != null) {
+                val tried = if (candidates.size > 1) {
+                    "；已尝试清单中的 ${candidates.size} 个版本 ${candidates.joinToString { it.version }}"
+                } else {
+                    "；请更新卡片或从卡片市场安装最新版本"
+                }
+                onDependencyStatus?.invoke("依赖包 ${name} 全部候选版本均不可用")
+                return EngineResult.Err(lastError.code, lastError.message + tried)
             }
         }
         return null

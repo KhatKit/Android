@@ -236,8 +236,10 @@ object CardValidator {
             error("BRIDGE_UNKNOWN", "声明了未知 bridge：$unknown")
         }
 
-        // 原生依赖包：名称/版本必填，sha256 必须是 64 位十六进制，url 只允许 Hub 相对路径
-        val dependencyNames = mutableSetOf<String>()
+        // 原生依赖包：名称/版本必填，sha256 必须是 64 位十六进制，url 只允许 Hub 相对路径。
+        // 同一依赖名允许多个版本（服务端撤销某版本时客户端按清单顺序回退），只拒绝重复的 name+version。
+        // 签名：客户端加载前强制校验；提交审核时缺签名只警告（发布流程会自动回填）。
+        val dependencyKeys = mutableSetOf<String>()
         manifest.requires.dependencies.forEachIndexed { index, dependency ->
             val where = "requires.dependencies[$index]"
             if (!DEPENDENCY_NAME_REGEX.matches(dependency.name)) {
@@ -255,8 +257,17 @@ object CardValidator {
             if (!url.isNullOrBlank() && !url.startsWith("/")) {
                 error("DEPENDENCY_URL_INVALID", "$where url 必须是相对 Hub 的路径（以 / 开头），不允许任意外部镜像：$url")
             }
-            if (!dependencyNames.add(dependency.name)) {
-                error("DEPENDENCY_DUPLICATE", "$where 重复声明依赖包：${dependency.name}")
+            val signature = dependency.signature.trim()
+            if (signature.isEmpty()) {
+                warning(
+                    "DEPENDENCY_SIGNATURE_MISSING",
+                    "$where 缺少 signature（Hub 发布时自动回填；客户端加载前会强制校验 ECDSA 签名）",
+                )
+            } else if (!isBase64(signature)) {
+                error("DEPENDENCY_SIGNATURE_INVALID", "$where signature 不是合法 base64：${dependency.signature.take(32)}…")
+            }
+            if (!dependencyKeys.add("${dependency.name}@${dependency.version}")) {
+                error("DEPENDENCY_DUPLICATE", "$where 重复声明依赖包：${dependency.name} ${dependency.version}")
             }
         }
 
@@ -351,4 +362,9 @@ object CardValidator {
     private fun MutableList<CardIssue>.warning(code: String, message: String) {
         add(CardIssue(code, message, Severity.WARNING))
     }
+
+    private fun isBase64(value: String): Boolean = runCatching {
+        java.util.Base64.getDecoder().decode(value)
+        true
+    }.getOrDefault(false)
 }

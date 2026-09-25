@@ -6,10 +6,12 @@ import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CommandRunner
 import heizige.kk.khatkit.hub.LibResolver
+import heizige.kk.khatkit.dependency.DependencyHttpException
 import heizige.kk.khatkit.dependency.DependencyManager
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readBytes
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CoroutineScope
@@ -68,18 +70,37 @@ object BridgeFactory {
             accessibility = accessibilityBridge,
         )
 
-        // 原生依赖包：随云端卡片下载，校验 sha256 后 DexClassLoader 加载为动态 bridge
+        // 原生依赖包：随云端卡片下载，校验 sha256 + ECDSA 签名后 DexClassLoader 加载为动态 bridge。
+        // 固定公钥在 PinnedDependencyKey（构建时写入），另在线核对服务端 pubkey 指纹（best-effort）。
         val dependencyManager = DependencyManager(
             context = appContext,
             hubBaseUrl = hubBaseUrl,
             fetchBytes = { url ->
                 val response = http.get(url)
                 if (!response.status.isSuccess()) {
-                    error("HTTP ${response.status.value}")
+                    val body = runCatching { response.bodyAsText() }.getOrNull()
+                    throw DependencyHttpException(response.status.value, body)
                 }
                 response.readBytes()
             },
             onStatus = { onDependencyStatus?.invoke(it) },
+            fetchPubkeyFingerprint = {
+                val hub = hubBaseUrl().trim().trimEnd('/')
+                if (hub.isBlank()) {
+                    null
+                } else {
+                    val response = http.get("$hub/api/dependencies/pubkey")
+                    if (!response.status.isSuccess()) {
+                        null
+                    } else {
+                        // 优先读响应头；旧服务端没有该头时回退解析 JSON 的 fingerprintSha256
+                        response.headers["X-KhatKit-Pubkey-Sha256"]?.trim()?.takeIf { it.isNotEmpty() }
+                            ?: runCatching { response.bodyAsText() }.getOrNull()?.let { body ->
+                                PUBKEY_FINGERPRINT_REGEX.find(body)?.groupValues?.get(1)
+                            }
+                    }
+                }
+            },
         )
 
         val commandRunner = when {
@@ -90,4 +111,6 @@ object BridgeFactory {
 
         CardExecutor(registry, commandRunner, libResolver, dependencyManager, onDependencyStatus)
     }
+
+    private val PUBKEY_FINGERPRINT_REGEX = Regex("\"fingerprintSha256\"\\s*:\\s*\"([0-9a-fA-F]{64})\"")
 }

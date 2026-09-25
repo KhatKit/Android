@@ -20,8 +20,22 @@ sealed interface DependencyEnsureResult {
         val bridge: Any,
     ) : DependencyEnsureResult
 
-    data class Err(val code: String, val message: String) : DependencyEnsureResult
+    /**
+     * 失败结果。[retryable] 表示可以尝试卡片清单声明中同一依赖的其它版本
+     * （版本撤销 / 下架 / 网络失败），签名与哈希失败一律不可重试（安全红线）。
+     */
+    data class Err(
+        val code: String,
+        val message: String,
+        val retryable: Boolean = false,
+    ) : DependencyEnsureResult
 }
+
+/** 依赖下载返回非 2xx 时抛出，携带 HTTP 状态码供上层区分 410（撤销）/ 404（下架）。 */
+class DependencyHttpException(
+    val status: Int,
+    val bodyMessage: String? = null,
+) : Exception("HTTP $status${bodyMessage?.takeIf { it.isNotBlank() }?.let { "：$it" } ?: ""}")
 
 /**
  * 原生依赖包管理器（见 docs/dependency-system.md）。
@@ -43,12 +57,29 @@ class DependencyManager(
     private val hubBaseUrl: () -> String = { "" },
     private val fetchBytes: suspend (String) -> ByteArray,
     private val onStatus: (String) -> Unit = {},
+    /** 构建时固定的签名公钥（X.509 DER base64），与服务端 /api/dependencies/pubkey 对应。 */
+    private val pinnedPublicKeyBase64: String = PinnedDependencyKey.PUBLIC_KEY_BASE64,
+    /** 构建时固定的公钥指纹（hex 小写），用于核对服务端公钥。 */
+    private val pinnedFingerprintSha256: String = PinnedDependencyKey.FINGERPRINT_SHA256,
+    /** 可选：拉取服务端公钥指纹（离线/失败时回退到本地固定公钥，不影响加载）。 */
+    private val fetchPubkeyFingerprint: (suspend () -> String?)? = null,
 ) {
     private val appContext = context.applicationContext
     private val dependenciesDir = File(appContext.filesDir, "dependencies")
     private val dexDir = File(appContext.codeCacheDir, "dependency-dex")
     private val loaded = ConcurrentHashMap<String, LoadedDependency>()
     private val mutex = Mutex()
+    private val pinnedKeyDer: ByteArray = runCatching {
+        DependencySignature.decodePublicKeyBase64(pinnedPublicKeyBase64)
+    }.getOrElse { error ->
+        Log.e(TAG, "App 内置依赖签名公钥非法：${error.message}")
+        ByteArray(0)
+    }
+    private val remoteKeyChecked = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    init {
+        Log.i(TAG, "依赖包信任锚：ECDSA P-256/SHA256withECDSA，固定公钥指纹 sha256=$pinnedFingerprintSha256")
+    }
 
     data class LoadedDependency(
         val name: String,
@@ -75,22 +106,101 @@ class DependencyManager(
                 "依赖包 ${req.name} 的 sha256 非法（必须是 64 位小写十六进制）：${req.sha256}",
             )
         }
+        val signature = req.signature.trim()
+        if (signature.isEmpty()) {
+            return DependencyEnsureResult.Err(
+                "DEPENDENCY_SIGNATURE_MISSING",
+                "依赖包 ${req.name} ${req.version} 缺少 ECDSA 签名（signature），无法确认发布者身份；" +
+                    "已拒绝加载，请更新卡片或从卡片市场重新安装",
+            )
+        }
+        if (!DependencySignature.isWellFormedBase64(signature)) {
+            return DependencyEnsureResult.Err(
+                "DEPENDENCY_SIGNATURE_INVALID",
+                "依赖包 ${req.name} ${req.version} 的签名不是合法 base64，清单可能已损坏；已拒绝加载",
+            )
+        }
+        if (pinnedKeyDer.isEmpty()) {
+            return DependencyEnsureResult.Err(
+                "DEPENDENCY_PUBKEY_INVALID",
+                "App 内置的依赖签名公钥非法（构建配置错误），拒绝加载任何依赖包；请重新安装正式版本",
+            )
+        }
         val expected = req.sha256.lowercase()
         val key = key(req.name, req.version, expected)
         loaded[key]?.let { cached ->
             return DependencyEnsureResult.Ok(cached.name, cached.version, cached.sha256, cached.bridge)
         }
 
+        ensureRemoteKeyTrusted()?.let { return it }
+
         val artifact = artifactFile(req.name, req.version)
-        if (artifact.exists() && !DependencyArtifactStore.sha256(artifact).equals(expected, ignoreCase = true)) {
-            // 缓存被篡改或损坏：删除后重新下载，避免加载到与声明不一致的产物
-            ensureWritableDir(artifact.parentFile)
-            artifact.delete()
+        if (artifact.exists()) {
+            // 缓存必须同时满足 sha256 + ECDSA 签名；任一不符即删除后重新下载
+            val cachedBytes = runCatching { artifact.readBytes() }.getOrNull()
+            val cacheOk = cachedBytes != null &&
+                DependencyArtifactStore.sha256(cachedBytes).equals(expected, ignoreCase = true) &&
+                DependencySignature.verify(cachedBytes, signature, pinnedKeyDer)
+            if (!cacheOk) {
+                Log.w(TAG, "缓存产物校验失败，删除后重新下载：name=${req.name} version=${req.version}")
+                ensureWritableDir(artifact.parentFile)
+                artifact.delete()
+            }
         }
         if (!artifact.exists() || !artifact.isFile || artifact.length() == 0L) {
             download(req, artifact)?.let { return it }
         }
+        // 落盘/复用产物在加载前做最终复核，保证 DexClassLoader 拿到的字节 = 已签名字节
+        val finalBytes = runCatching { artifact.readBytes() }.getOrNull()
+        if (
+            finalBytes == null ||
+            !DependencyArtifactStore.sha256(finalBytes).equals(expected, ignoreCase = true) ||
+            !DependencySignature.verify(finalBytes, signature, pinnedKeyDer)
+        ) {
+            ensureWritableDir(artifact.parentFile)
+            artifact.delete()
+            Log.w(TAG, "依赖包加载前复核失败：name=${req.name} version=${req.version} fingerprint=$pinnedFingerprintSha256")
+            return DependencyEnsureResult.Err(
+                "DEPENDENCY_SIGNATURE_INVALID",
+                "依赖包 ${req.name} ${req.version} 在加载前 sha256/签名复核失败（可能被篡改），已删除缓存产物并拒绝加载；" +
+                    "请重试或从卡片市场重新安装",
+            )
+        }
         return load(req, artifact, expected, key)
+    }
+
+    /**
+     * 在线核对服务端公钥指纹（best-effort）：
+     * - 服务端公钥与内置固定指纹不一致 → 拒绝加载（DEPENDENCY_PUBKEY_MISMATCH）；
+     * - 拉取失败（离线/旧服务端）→ 继续用内置固定公钥，签名校验仍是硬门槛。
+     * 每个实例只成功核对一次；失败会重置以便下次重试。
+     */
+    private suspend fun ensureRemoteKeyTrusted(): DependencyEnsureResult.Err? {
+        val fetcher = fetchPubkeyFingerprint ?: return null
+        if (!remoteKeyChecked.compareAndSet(false, true)) return null
+        val remote = try {
+            fetcher()
+        } catch (e: CancellationException) {
+            remoteKeyChecked.set(false)
+            throw e
+        } catch (e: Throwable) {
+            remoteKeyChecked.set(false)
+            Log.w(TAG, "拉取服务端签名公钥指纹失败，继续使用内置固定公钥：${e.message ?: e.javaClass.simpleName}")
+            return null
+        }
+        if (remote.isNullOrBlank()) {
+            remoteKeyChecked.set(false)
+            return null
+        }
+        Log.i(TAG, "服务端依赖签名公钥指纹 sha256=$remote，内置固定指纹 sha256=$pinnedFingerprintSha256")
+        if (!DependencySignature.matchesPinnedFingerprint(remote, pinnedFingerprintSha256)) {
+            return DependencyEnsureResult.Err(
+                "DEPENDENCY_PUBKEY_MISMATCH",
+                "服务端依赖签名公钥与 App 内置公钥不一致（服务端 $remote ≠ 内置 $pinnedFingerprintSha256），" +
+                    "可能为中间人攻击或服务端更换了发布密钥；已拒绝加载任何依赖包，请从官方渠道更新 App",
+            )
+        }
+        return null
     }
 
     private suspend fun download(
@@ -118,16 +228,33 @@ class DependencyManager(
             fetchBytes(url)
         } catch (e: CancellationException) {
             throw e
+        } catch (e: DependencyHttpException) {
+            val spec = DependencyFallback.classifyHttp(e.status)
+            val message = when (spec.code) {
+                "DEPENDENCY_REVOKED" ->
+                    "依赖包 ${req.name} ${req.version} 已被服务端撤销（revoked），为保障安全已拒绝加载；" +
+                        "请更新卡片或从卡片市场安装使用新依赖版本的卡片"
+
+                "DEPENDENCY_VERSION_UNAVAILABLE" ->
+                    "依赖包 ${req.name} ${req.version} 不存在或已下架（HTTP 404），无法下载；" +
+                        "请更新卡片或从卡片市场安装最新版本"
+
+                else ->
+                    "依赖包下载失败：${req.name} ${req.version}（HTTP ${e.status}）。请检查网络与 Hub 地址后重试"
+            }
+            return DependencyEnsureResult.Err(spec.code, message, retryable = spec.retryable)
         } catch (e: Throwable) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_DOWNLOAD_FAILED",
                 "依赖包下载失败：${req.name} ${req.version}（${e.message ?: e.javaClass.simpleName}）。请检查网络与 Hub 地址后重试",
+                retryable = true,
             )
         }
         if (bytes.isEmpty()) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_DOWNLOAD_FAILED",
                 "依赖包下载失败：${req.name} ${req.version} 返回空内容",
+                retryable = true,
             )
         }
         val actual = DependencyArtifactStore.sha256(bytes)
@@ -135,6 +262,19 @@ class DependencyManager(
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_HASH_MISMATCH",
                 "依赖包 sha256 校验失败：期望 ${req.sha256}，实际 $actual。已拒绝加载，请更新卡片或联系发布者",
+            )
+        }
+        // sha256 之后再做 ECDSA 签名校验：sha256 防传输损坏，签名防服务端/Hub 被篡改后投毒
+        if (!DependencySignature.verify(bytes, req.signature.trim(), pinnedKeyDer)) {
+            Log.w(
+                TAG,
+                "依赖包签名校验失败：name=${req.name} version=${req.version} " +
+                    "fingerprint=$pinnedFingerprintSha256",
+            )
+            return DependencyEnsureResult.Err(
+                "DEPENDENCY_SIGNATURE_INVALID",
+                "依赖包 ${req.name} ${req.version} 的 ECDSA 签名校验失败（sha256 虽匹配但签名不符，可能被篡改）；" +
+                    "已拒绝落盘与加载。固定公钥指纹 $pinnedFingerprintSha256，请从卡片市场重新安装",
             )
         }
         val parent = target.parentFile
