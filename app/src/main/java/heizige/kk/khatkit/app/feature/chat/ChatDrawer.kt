@@ -117,6 +117,7 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.receiptLong
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
+import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 
 @Composable
 fun ChatDrawerContent(
@@ -393,7 +394,7 @@ fun ChatDrawerContent(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.SpaceAround,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -418,6 +419,16 @@ fun ChatDrawerContent(
                         label = "下载中心",
                         onClick = {
                             navController.navigate(Screen.DownloadCenter)
+                        },
+                    )
+
+                    DrawerAction(
+                        icon = {
+                            Icon(verifiedUser, null)
+                        },
+                        label = "套餐",
+                        onClick = {
+                            navController.navigate(Screen.SettingPackage)
                         },
                     )
                 }
