@@ -9,6 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import heizige.kk.khatkit.ai.provider.ProviderManager
+import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
@@ -51,6 +52,7 @@ interface AppEntryPoint {
     fun emojiData(): EmojiData
     fun skillManager(): SkillManager
     fun khatKitToolProvider(): KhatKitToolProvider
+    fun hubAccountRepository(): HubAccountRepository
     fun ttsManager(): TTSManager
     fun okHttpClient(): OkHttpClient
     fun templateTransformer(): TemplateTransformer

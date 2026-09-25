@@ -13,6 +13,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -30,11 +31,13 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -81,11 +84,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
@@ -94,6 +99,7 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.Folder
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
+import heizige.kk.khatkit.hub.HubAccountInfo
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPicker
 import heizige.kk.khatkit.app.core.ui.components.ui.BackupReminderCard
 import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
@@ -118,7 +124,6 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.receiptLong
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
-import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 
 @Composable
 fun ChatDrawerContent(
@@ -133,6 +138,20 @@ fun ChatDrawerContent(
     val toaster = LocalToaster.current
     val isPlayStore = rememberIsPlayStoreVersion()
     val repo = rememberAppEntryPoint().conversationRepository()
+    val hubAccountRepository = rememberAppEntryPoint().hubAccountRepository()
+
+    var hubAccount by remember { mutableStateOf<HubAccountInfo?>(null) }
+    LaunchedEffect(Unit) {
+        hubAccount = withContext(Dispatchers.IO) { hubAccountRepository.cachedAccount() }
+    }
+    val account = hubAccount
+    val subscriptionLabel = when {
+        account == null -> "套餐"
+        !account.active -> "订阅"
+        account.toolCallsRemaining != null -> "套餐 · 剩余 ${account.toolCallsRemaining} 次"
+        account.aiTokensRemaining != null -> "套餐 · ${account.aiTokensRemaining} tokens"
+        else -> "套餐"
+    }
 
     val activity = context as ComponentActivity
     val drawerVm: ChatDrawerViewModel = hiltViewModel(viewModelStoreOwner = activity)
@@ -413,6 +432,28 @@ fun ChatDrawerContent(
                         },
                     )
 
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                        tooltip = { TextTooltip("套餐") },
+                        state = rememberTooltipState(),
+                    ) {
+                        Button(
+                            onClick = {
+                                navController.navigate(Screen.SettingPackage)
+                            },
+                            modifier = Modifier.height(32.dp),
+                            shapes = ButtonDefaults.shapes(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) {
+                            Text(
+                                text = subscriptionLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
                     Spacer(Modifier.weight(1f))
 
                     DrawerAction(
@@ -422,16 +463,6 @@ fun ChatDrawerContent(
                         label = "下载中心",
                         onClick = {
                             navController.navigate(Screen.DownloadCenter)
-                        },
-                    )
-
-                    DrawerAction(
-                        icon = {
-                            Icon(verifiedUser, null)
-                        },
-                        label = "套餐",
-                        onClick = {
-                            navController.navigate(Screen.SettingPackage)
                         },
                     )
                 }

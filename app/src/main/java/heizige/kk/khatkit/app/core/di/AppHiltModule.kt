@@ -14,6 +14,7 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
@@ -116,6 +117,12 @@ object AppHiltModule {
         eventBus = eventBus,
         settingsStore = settingsStore,
     )
+
+    @Provides
+    @Singleton
+    fun provideHubAccountRepository(
+        @ApplicationContext context: Context,
+    ): HubAccountRepository = HubAccountRepository(context)
 
     @Provides
     @Singleton
