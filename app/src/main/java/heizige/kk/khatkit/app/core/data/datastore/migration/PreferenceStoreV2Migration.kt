@@ -6,24 +6,24 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.jsonPrimitiveOrNull
 
 class PreferenceStoreV2Migration : DataMigration<Preferences> {
     override suspend fun shouldMigrate(currentData: Preferences): Boolean {
-        val version = currentData[SettingsStore.VERSION]
+        val version = currentData[SettingsRepository.VERSION]
         return version == null || version < 2
     }
 
     override suspend fun migrate(currentData: Preferences): Preferences {
         val prefs = currentData.toMutablePreferences()
 
-        prefs[SettingsStore.ASSISTANTS] = prefs[SettingsStore.ASSISTANTS]?.let { json ->
+        prefs[SettingsRepository.ASSISTANTS] = prefs[SettingsRepository.ASSISTANTS]?.let { json ->
             migrateAssistantsJson(json)
         } ?: "[]"
 
-        prefs[SettingsStore.VERSION] = 2
+        prefs[SettingsRepository.VERSION] = 2
         return prefs.toPreferences()
     }
 

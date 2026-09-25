@@ -16,7 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
 
-class ChatServiceTest {
+class ChatManagerTest {
     @Test
     fun `fork conversation inherits folder and workspace context`() {
         val source = Conversation(

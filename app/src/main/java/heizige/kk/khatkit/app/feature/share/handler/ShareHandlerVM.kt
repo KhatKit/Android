@@ -11,13 +11,13 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import kotlin.uuid.Uuid
 
 @HiltViewModel(assistedFactory = ShareHandlerVM.Factory::class)
 class ShareHandlerVM @AssistedInject constructor(
     @Assisted text: String,
-    private val settingsStore: SettingsStore
+    private val settingsStore: SettingsRepository
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {

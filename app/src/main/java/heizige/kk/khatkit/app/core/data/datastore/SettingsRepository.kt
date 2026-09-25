@@ -75,7 +75,7 @@ private val Context.settingsStore by preferencesDataStore(
 )
 
 @Singleton
-class SettingsStore @Inject constructor(
+class SettingsRepository @Inject constructor(
     @ApplicationContext context: Context,
     scope: AppScope,
     private val pebbleEngine: Lazy<PebbleEngine>,

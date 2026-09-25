@@ -23,7 +23,7 @@ import heizige.kk.khatkit.asr.providers.OpenAIRealtimeASRController
 import heizige.kk.khatkit.asr.providers.SherpaASRController
 import heizige.kk.khatkit.asr.providers.StepASRController
 import heizige.kk.khatkit.asr.providers.VolcengineASRController
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.resolveBestASRProvider
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint

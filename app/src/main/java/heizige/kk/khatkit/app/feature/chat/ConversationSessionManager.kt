@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import kotlin.uuid.Uuid
 
-/** Owns runtime sessions; loading, persistence and message dispatch belong to ChatService. */
+/** Owns runtime sessions; loading, persistence and message dispatch belong to ChatManager. */
 class ConversationSessionManager(
     private val scope: CoroutineScope,
     private val createInitialConversation: (Uuid) -> Conversation,

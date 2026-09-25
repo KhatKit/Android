@@ -5,11 +5,11 @@ import android.util.Log
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 
 class SkillManager(
     private val context: Context,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
 ) {
     companion object {
         private const val TAG = "SkillManager"

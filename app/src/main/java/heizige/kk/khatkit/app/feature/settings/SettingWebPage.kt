@@ -47,7 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.network.WebServerService
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
@@ -69,7 +69,7 @@ import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 @Composable
 fun SettingWebPage() {
     val webServerManager: WebServerManager = rememberAppEntryPoint().webServerManager()
-    val settingsStore: SettingsStore = rememberAppEntryPoint().settingsStore()
+    val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
     val settings = LocalSettings.current
     val serverState by webServerManager.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

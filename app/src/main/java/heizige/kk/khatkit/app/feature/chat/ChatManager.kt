@@ -59,7 +59,7 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.TimeReminderTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.WorkspaceReminderTransformer
 import heizige.kk.khatkit.app.core.data.event.AppEvent
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
@@ -83,7 +83,7 @@ import heizige.kk.khatkit.app.core.util.applyPlaceholders
 import java.util.Locale
 import kotlin.uuid.Uuid
 
-private const val TAG = "ChatService"
+private const val TAG = "ChatManager"
 
 internal fun backgroundTextGenerationParams(
     model: Model,
@@ -128,11 +128,11 @@ enum class ChatErrorSolution {
     CheckFastModelSettings,
 }
 
-class ChatService(
+class ChatManager(
     private val context: Application,
     private val appScope: AppScope,
     private val appEventBus: AppEventBus,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val conversationRepo: ConversationRepository,
     private val memoryRepository: MemoryRepository,
     private val generationLoop: GenerationLoop,

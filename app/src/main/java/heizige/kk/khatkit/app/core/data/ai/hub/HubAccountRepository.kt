@@ -16,7 +16,7 @@ import java.util.UUID
  * - 设备标识优先 Settings.Secure.ANDROID_ID，异常时退回持久化随机 UUID
  * - 额度缓存为普通 SharedPreferences（非敏感，用于离线展示）
  */
-class HubAccountStore(context: Context) {
+class HubAccountRepository(context: Context) {
 
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

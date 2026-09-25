@@ -7,12 +7,12 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.util.JsonInstant
 
 class PreferenceStoreV1Migration : DataMigration<Preferences> {
     override suspend fun shouldMigrate(currentData: Preferences): Boolean {
-        val version = currentData[SettingsStore.VERSION]
+        val version = currentData[SettingsRepository.VERSION]
         return version == null || version < 1
     }
 
@@ -20,10 +20,10 @@ class PreferenceStoreV1Migration : DataMigration<Preferences> {
         val prefs = currentData.toMutablePreferences()
 
         // 清理老的没有设置@SerialName的字段
-        prefs[SettingsStore.MCP_SERVERS] = migrateMcpServersJson(prefs[SettingsStore.MCP_SERVERS] ?: "[]")
+        prefs[SettingsRepository.MCP_SERVERS] = migrateMcpServersJson(prefs[SettingsRepository.MCP_SERVERS] ?: "[]")
 
         // 更新版本
-        prefs[SettingsStore.VERSION] = 1
+        prefs[SettingsRepository.VERSION] = 1
 
         return prefs.toPreferences()
     }

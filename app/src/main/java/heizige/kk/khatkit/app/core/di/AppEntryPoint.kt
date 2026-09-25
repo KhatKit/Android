@@ -13,7 +13,7 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
 import heizige.kk.khatkit.app.core.data.api.SponsorAPI
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.data.files.FilesManager
@@ -36,7 +36,7 @@ import heizige.kk.khatkit.workspace.WorkspaceManager
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface AppEntryPoint {
-    fun settingsStore(): SettingsStore
+    fun settingsStore(): SettingsRepository
     fun filesManager(): FilesManager
     fun mcpManager(): McpManager
     fun providerManager(): ProviderManager

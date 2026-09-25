@@ -12,7 +12,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.JsonObject
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import java.util.UUID
 
 /** 把 KhatKit 卡片运行时适配成 MCP tool 宿主。 */
@@ -29,7 +29,7 @@ class KhatKitMcpToolHost(private val provider: KhatKitToolProvider) : McpToolHos
  * 暴露的是本机已安装卡片，Claude Desktop / Cursor 等客户端可直接调用手机能力。
  * web 服务开启访问密码时，MCP 同样要求 `Authorization: Bearer <password>`。
  */
-fun Application.configureMcp(dispatcher: McpDispatcher, settingsStore: SettingsStore) {
+fun Application.configureMcp(dispatcher: McpDispatcher, settingsStore: SettingsRepository) {
     routing {
         post("/mcp") {
             val settings = settingsStore.settingsFlow.value

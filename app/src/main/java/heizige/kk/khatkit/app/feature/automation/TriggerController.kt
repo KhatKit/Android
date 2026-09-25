@@ -48,7 +48,7 @@ class TriggerController(
 
     val settings = TriggerSettings(appContext)
 
-    val logs = TriggerLogStore(appContext)
+    val logs = TriggerLogRepository(appContext)
 
     private val _cards = MutableStateFlow<List<TriggerCard>>(emptyList())
 

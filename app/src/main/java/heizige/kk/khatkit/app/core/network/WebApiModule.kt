@@ -20,11 +20,11 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.network.dto.ErrorResponse
 import heizige.kk.khatkit.app.core.network.dto.WebAuthTokenRequest
@@ -60,10 +60,10 @@ private const val WEB_AUTH_REALM = "rikkahub-web-api"
  */
 fun Application.configureWebApi(
     context: Context,
-    chatService: ChatService,
+    chatService: ChatManager,
     conversationRepo: ConversationRepository,
     folderRepo: FolderRepository,
-    settingsStore: SettingsStore,
+    settingsStore: SettingsRepository,
     filesManager: FilesManager
 ) {
     val jwtEnabled = settingsStore.settingsFlow.value.webServerJwtEnabled

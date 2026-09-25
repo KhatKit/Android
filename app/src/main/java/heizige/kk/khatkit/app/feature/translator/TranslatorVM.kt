@@ -14,14 +14,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import java.util.Locale
 
 private const val TAG = "TranslatorVM"
 
 @HiltViewModel
 class TranslatorVM @Inject constructor(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val translationHandler: TranslationHandler,
 ) : ViewModel() {
     val settings: StateFlow<Settings> = settingsStore.settingsFlow

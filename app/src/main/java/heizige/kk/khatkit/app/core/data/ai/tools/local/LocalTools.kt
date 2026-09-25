@@ -2,7 +2,7 @@ package heizige.kk.khatkit.app.core.data.ai.tools.local
 
 import android.content.Context
 import heizige.kk.khatkit.ai.core.Tool
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.tts.provider.TTSManager
 
@@ -10,7 +10,7 @@ class LocalTools(
     private val context: Context,
     private val eventBus: AppEventBus,
     private val ttsManager: TTSManager,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
 ) {
     val javascriptTool by lazy { buildJavascriptTool() }
 

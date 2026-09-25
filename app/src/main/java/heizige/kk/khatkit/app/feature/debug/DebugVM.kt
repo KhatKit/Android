@@ -16,7 +16,7 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_ASSISTANT_ID
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
@@ -28,7 +28,7 @@ import kotlin.uuid.Uuid
 
 @HiltViewModel
 class DebugVM @Inject constructor(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val conversationRepository: ConversationRepository,
 ) : ViewModel() {
     val settings: StateFlow<Settings> = settingsStore.settingsFlow

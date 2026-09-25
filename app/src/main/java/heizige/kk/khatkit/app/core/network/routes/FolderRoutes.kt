@@ -9,9 +9,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import kotlinx.coroutines.flow.first
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.ConflictException
 import heizige.kk.khatkit.app.core.network.NotFoundException
@@ -20,9 +20,9 @@ import heizige.kk.khatkit.app.core.network.dto.RenameFolderRequest
 import heizige.kk.khatkit.app.core.network.dto.toDto
 
 fun Route.folderRoutes(
-    chatService: ChatService,
+    chatService: ChatManager,
     folderRepo: FolderRepository,
-    settingsStore: SettingsStore,
+    settingsStore: SettingsRepository,
 ) {
     route("/folders") {
         // GET /api/folders - List folders of current assistant

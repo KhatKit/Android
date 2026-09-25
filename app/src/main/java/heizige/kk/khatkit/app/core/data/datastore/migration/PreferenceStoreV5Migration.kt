@@ -5,7 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelAbility
 import heizige.kk.khatkit.ai.provider.ProviderSetting
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.util.JsonInstant
 
 /**
@@ -14,22 +14,22 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
  */
 class PreferenceStoreV5Migration : DataMigration<Preferences> {
     override suspend fun shouldMigrate(currentData: Preferences): Boolean {
-        val version = currentData[SettingsStore.VERSION]
+        val version = currentData[SettingsRepository.VERSION]
         return version == null || version < 5
     }
 
     override suspend fun migrate(currentData: Preferences): Preferences {
         val prefs = currentData.toMutablePreferences()
-        prefs[SettingsStore.PROVIDERS]?.let { json ->
+        prefs[SettingsRepository.PROVIDERS]?.let { json ->
             runCatching {
                 JsonInstant.decodeFromString<List<ProviderSetting>>(json)
             }.getOrNull()?.let { providers ->
-                prefs[SettingsStore.PROVIDERS] = JsonInstant.encodeToString(
+                prefs[SettingsRepository.PROVIDERS] = JsonInstant.encodeToString(
                     providers.map { it.withDefaultToolAbility() }
                 )
             }
         }
-        prefs[SettingsStore.VERSION] = 5
+        prefs[SettingsRepository.VERSION] = 5
         return prefs.toPreferences()
     }
 

@@ -22,7 +22,7 @@ import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.files.SkillManager
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
@@ -31,7 +31,7 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.app.feature.chat.ChatNotificationManager
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.feature.automation.TriggerController
 import heizige.kk.khatkit.app.feature.workspace.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.AppAnalytics
@@ -64,7 +64,7 @@ object AppHiltModule {
         @ApplicationContext context: Context,
         eventBus: AppEventBus,
         ttsManager: TTSManager,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
     ): LocalTools = LocalTools(context, eventBus, ttsManager, settingsStore)
 
     @Provides
@@ -102,14 +102,14 @@ object AppHiltModule {
         appScope: AppScope,
     ): WorkspaceTerminalSessionManager = WorkspaceTerminalSessionManager(context, appScope)
 
-    // 生成通知与业务解耦：ChatService 只发事件，通知由这里消费
+    // 生成通知与业务解耦：ChatManager 只发事件，通知由这里消费
     @Provides
     @Singleton
     fun provideChatNotificationManager(
         application: Application,
         appScope: AppScope,
         eventBus: AppEventBus,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
     ): ChatNotificationManager = ChatNotificationManager(
         context = application,
         appScope = appScope,
@@ -172,7 +172,7 @@ object AppHiltModule {
         context: Application,
         appScope: AppScope,
         appEventBus: AppEventBus,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
         conversationRepo: ConversationRepository,
         memoryRepository: MemoryRepository,
         generationLoop: GenerationLoop,
@@ -187,7 +187,7 @@ object AppHiltModule {
         placeholderTransformer: PlaceholderTransformer,
         ocrTransformer: OcrTransformer,
         base64ImageToLocalFileTransformer: Base64ImageToLocalFileTransformer,
-    ): ChatService = ChatService(
+    ): ChatManager = ChatManager(
         context = context,
         appScope = appScope,
         appEventBus = appEventBus,
@@ -217,10 +217,10 @@ object AppHiltModule {
     fun provideWebServerManager(
         @ApplicationContext context: Context,
         appScope: AppScope,
-        chatService: ChatService,
+        chatService: ChatManager,
         conversationRepo: ConversationRepository,
         folderRepo: FolderRepository,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
         filesManager: FilesManager,
         mcpToolHost: McpToolHost,
     ): WebServerManager = WebServerManager(

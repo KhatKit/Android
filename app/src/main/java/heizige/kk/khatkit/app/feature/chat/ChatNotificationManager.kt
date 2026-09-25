@@ -19,7 +19,7 @@ import heizige.kk.khatkit.app.CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID
 import heizige.kk.khatkit.app.CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.RouteActivity
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.event.AppEvent
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.util.cancelNotification
@@ -39,7 +39,7 @@ class ChatNotificationManager(
     private val context: Application,
     appScope: AppScope,
     eventBus: AppEventBus,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
 ) {
     private val isForeground = MutableStateFlow(false)
     private val liveUpdateLastSentAt = ConcurrentHashMap<Uuid, Long>()

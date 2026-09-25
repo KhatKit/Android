@@ -15,10 +15,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.NotFoundException
 import heizige.kk.khatkit.app.core.network.dto.ConversationDto
@@ -45,10 +45,10 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
 fun Route.conversationRoutes(
-    chatService: ChatService,
+    chatService: ChatManager,
     conversationRepo: ConversationRepository,
     folderRepo: FolderRepository,
-    settingsStore: SettingsStore
+    settingsStore: SettingsRepository
 ) {
     route("/conversations") {
         // GET /api/conversations - List conversations of current assistant
@@ -478,8 +478,8 @@ private fun validateConversationInjectionIds(
 }
 
 private suspend fun applyInitialConversationInjections(
-    chatService: ChatService,
-    settingsStore: SettingsStore,
+    chatService: ChatManager,
+    settingsStore: SettingsRepository,
     conversationId: Uuid,
     modeInjectionIds: List<String>?,
     lorebookIds: List<String>?,

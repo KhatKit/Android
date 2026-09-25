@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
 import heizige.kk.khatkit.app.core.ui.icons.groups
@@ -63,7 +63,7 @@ import kotlin.uuid.Uuid
 @AndroidEntryPoint
 class SafeModeActivity : ComponentActivity() {
     @Inject
-    lateinit var settingsStore: SettingsStore
+    lateinit var settingsStore: SettingsRepository
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {

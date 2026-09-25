@@ -25,7 +25,7 @@ private const val TAG = "ChatGenerationFgs"
 /**
  * Keeps the app process in the foreground while one or more chat generations are active.
  *
- * Generation itself remains owned by [ChatService]. This service only provides the Android
+ * Generation itself remains owned by [ChatManager]. This service only provides the Android
  * foreground-service lifetime required for streaming to continue after the activity is hidden.
  */
 @AndroidEntryPoint
@@ -72,7 +72,7 @@ class ChatGenerationForegroundService : Service() {
     lateinit var appScope: AppScope
 
     @Inject
-    lateinit var chatService: ChatService
+    lateinit var chatService: ChatManager
 
     override fun onBind(intent: Intent?): IBinder? = null
 

@@ -24,7 +24,7 @@ import heizige.kk.khatkit.oauth.CustomTabsOAuthAuthorizationLauncher
 import heizige.kk.khatkit.oauth.OAuthHttpClient
 import heizige.kk.khatkit.oauth.OAuthLoopbackCallbackServer
 import heizige.kk.khatkit.app.AppScope
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.files.saveUploadFromBytes
@@ -41,7 +41,7 @@ import kotlin.uuid.Uuid
  * [McpSessionRegistry] 管理，OAuth 协议细节由 [McpOAuthCoordinator] 管理。
  */
 class McpManager(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val appScope: AppScope,
     private val filesManager: FilesManager,
 ) {

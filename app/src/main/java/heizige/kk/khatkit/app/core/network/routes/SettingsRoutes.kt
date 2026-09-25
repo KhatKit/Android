@@ -8,7 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.ModelType
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.NotFoundException
@@ -24,7 +24,7 @@ import heizige.kk.khatkit.app.core.network.dto.UpdateSearchServiceRequest
 import java.util.Locale
 
 fun Route.settingsRoutes(
-    settingsStore: SettingsStore
+    settingsStore: SettingsRepository
 ) {
     route("/settings") {
         post("/assistant") {

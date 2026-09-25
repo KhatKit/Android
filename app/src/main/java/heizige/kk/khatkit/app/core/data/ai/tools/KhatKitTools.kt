@@ -19,7 +19,7 @@ import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
 import heizige.kk.khatkit.app.feature.automation.AutomationBus
-import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountStore
+import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.CardParser
 import heizige.kk.khatkit.engine.EngineResult
@@ -141,7 +141,7 @@ class KhatKitToolProvider(
     private val settings = appContext.getSharedPreferences("khatkit_settings", Context.MODE_PRIVATE)
 
     /** 套餐账户存储：激活令牌走 Keystore 加密通道，额度缓存用于离线展示。 */
-    private val accountStore by lazy { HubAccountStore(appContext) }
+    private val accountStore by lazy { HubAccountRepository(appContext) }
 
     /** OCR 走 tool bridge；只有 device_screen 需要时才懒加载，避免多养一个 HttpClient。 */
     private val ocrBridge by lazy { AndroidToolBridge(appContext, HttpClient(CIO.create())) }

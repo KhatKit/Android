@@ -10,7 +10,7 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import javax.inject.Inject
@@ -24,7 +24,7 @@ import java.util.TimeZone
 
 data class PlaceholderCtx(
     val context: Context,
-    val settingsStore: SettingsStore,
+    val settingsStore: SettingsRepository,
     val model: Model,
     val assistant: Assistant,
 )
@@ -116,7 +116,7 @@ object DefaultPlaceholderProvider : PlaceholderProvider {
 
 @Singleton
 class PlaceholderTransformer @Inject constructor(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
 ) : InputMessageTransformer {
     private val defaultProvider = DefaultPlaceholderProvider
 
@@ -142,7 +142,7 @@ class PlaceholderTransformer @Inject constructor(
     private fun replacePlaceholders(
         text: String,
         ctx: TransformerContext,
-        settingsStore: SettingsStore
+        settingsStore: SettingsRepository
     ): String {
         var result = text
 

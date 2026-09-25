@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
@@ -44,7 +44,7 @@ private data class SearchRequest(
 class SearchVM @Inject constructor(
     private val context: Application,
     private val conversationRepo: ConversationRepository,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
 ) : ViewModel() {
     private val searchRequests = Channel<SearchRequest>(Channel.CONFLATED)
     private var currentAssistantId: Uuid? = null

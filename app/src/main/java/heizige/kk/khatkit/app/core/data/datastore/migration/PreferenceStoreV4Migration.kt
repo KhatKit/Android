@@ -4,7 +4,7 @@ import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.core.Preferences
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalToolOption
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_ASSISTANT_ID
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.util.JsonInstant
 
@@ -15,13 +15,13 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
  */
 class PreferenceStoreV4Migration : DataMigration<Preferences> {
     override suspend fun shouldMigrate(currentData: Preferences): Boolean {
-        val version = currentData[SettingsStore.VERSION]
+        val version = currentData[SettingsRepository.VERSION]
         return version == null || version < 4
     }
 
     override suspend fun migrate(currentData: Preferences): Preferences {
         val prefs = currentData.toMutablePreferences()
-        val assistantsJson = prefs[SettingsStore.ASSISTANTS]
+        val assistantsJson = prefs[SettingsRepository.ASSISTANTS]
         if (assistantsJson != null) {
             runCatching {
                 JsonInstant.decodeFromString<List<Assistant>>(assistantsJson)
@@ -41,10 +41,10 @@ class PreferenceStoreV4Migration : DataMigration<Preferences> {
                         assistant
                     }
                 }
-                prefs[SettingsStore.ASSISTANTS] = JsonInstant.encodeToString(migrated)
+                prefs[SettingsRepository.ASSISTANTS] = JsonInstant.encodeToString(migrated)
             }
         }
-        prefs[SettingsStore.VERSION] = 4
+        prefs[SettingsRepository.VERSION] = 4
         return prefs.toPreferences()
     }
 

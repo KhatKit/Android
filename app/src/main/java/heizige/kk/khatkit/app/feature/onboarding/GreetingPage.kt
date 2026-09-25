@@ -112,7 +112,7 @@ import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
 import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
@@ -611,7 +611,7 @@ private fun GreetingAgreementScreen(
 
 @Composable
 private fun GreetingSettingsScreen() {
-    val settingsStore: SettingsStore = rememberAppEntryPoint().settingsStore()
+    val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
     val provider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val colorMode = rememberColorMode()
@@ -820,7 +820,7 @@ private fun GreetingPermissionsScreen() {
 
 @Composable
 private fun GreetingAiSetupScreen() {
-    val settingsStore: SettingsStore = rememberAppEntryPoint().settingsStore()
+    val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
     val providerManager: ProviderManager = rememberAppEntryPoint().providerManager()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()

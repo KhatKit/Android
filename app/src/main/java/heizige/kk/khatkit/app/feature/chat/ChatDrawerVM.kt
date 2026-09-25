@@ -25,11 +25,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.model.Folder
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.core.util.toLocalString
 import java.time.LocalDate
 import java.time.ZoneId
@@ -38,10 +38,10 @@ import kotlin.uuid.Uuid
 @HiltViewModel
 class ChatDrawerVM @Inject constructor(
     private val context: Application,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     conversationRepo: ConversationRepository,
     private val folderRepo: FolderRepository,
-    private val chatService: ChatService,
+    private val chatService: ChatManager,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -184,7 +184,7 @@ class ChatDrawerVM @Inject constructor(
             return false
         }
         viewModelScope.launch {
-            // 经 ChatService 删除：会同步清空活跃 session 内存态的 folderId，避免整对象保存写回已删文件夹
+            // 经 ChatManager 删除：会同步清空活跃 session 内存态的 folderId，避免整对象保存写回已删文件夹
             chatService.deleteFolder(folderId)
             if (_selectedFolderId.value == folderId) {
                 _selectedFolderId.value = null
@@ -195,7 +195,7 @@ class ChatDrawerVM @Inject constructor(
 
     fun moveConversationToFolder(conversationId: Uuid, folderId: Uuid?) {
         viewModelScope.launch {
-            // 经 ChatService 移动：活跃会话会先同步内存态，避免后续整对象保存覆盖 folder_id
+            // 经 ChatManager 移动：活跃会话会先同步内存态，避免后续整对象保存覆盖 folder_id
             chatService.moveConversationToFolder(conversationId, folderId)
         }
     }

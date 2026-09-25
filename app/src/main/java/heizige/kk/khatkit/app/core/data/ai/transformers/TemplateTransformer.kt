@@ -6,7 +6,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.util.toLocalDate
 import heizige.kk.khatkit.app.core.util.toLocalTime
 import java.io.Reader
@@ -16,7 +16,7 @@ import kotlin.time.toJavaInstant
 
 class TemplateTransformer(
     private val engine: PebbleEngine,
-    private val settingsStore: SettingsStore
+    private val settingsStore: SettingsRepository
 ) : InputMessageTransformer {
     override suspend fun transform(
         ctx: TransformerContext,
@@ -55,7 +55,7 @@ class TemplateTransformer(
     }
 }
 
-class AssistantTemplateLoader(private val settingsStore: SettingsStore) : Loader<String> {
+class AssistantTemplateLoader(private val settingsStore: SettingsRepository) : Loader<String> {
     override fun getReader(cacheKey: String?): Reader? {
         val content = settingsStore.settingsFlow.value.assistants
             .find { it.id.toString() == cacheKey }?.messageTemplate

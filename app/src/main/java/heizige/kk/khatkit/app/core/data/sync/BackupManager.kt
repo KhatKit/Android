@@ -10,7 +10,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.migration.SettingsJsonMigrator
 import heizige.kk.khatkit.app.core.data.db.AppDatabaseFactory
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
@@ -29,7 +29,7 @@ import java.util.zip.ZipOutputStream
 class BackupManager(
     private val context: Context,
     private val database: AppDatabase,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val json: Json,
 ) {
     private val restoreMutex = Mutex()
@@ -160,10 +160,10 @@ class BackupManager(
             filesDir = context.filesDir,
         )
 
-        /** Must finish before Koin, Room, SettingsStore or any background consumers are initialized. */
+        /** Must finish before Koin, Room, SettingsRepository or any background consumers are initialized. */
         suspend fun applyPendingRestore(context: Context, json: Json): Boolean = withContext(Dispatchers.IO) {
             pendingRestore(context).apply { settingsJson ->
-                SettingsStore.restoreBeforeInitialization(context, json.decodeFromString<Settings>(settingsJson))
+                SettingsRepository.restoreBeforeInitialization(context, json.decodeFromString<Settings>(settingsJson))
             }
         }
     }

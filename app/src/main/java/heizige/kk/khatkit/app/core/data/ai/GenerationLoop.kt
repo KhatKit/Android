@@ -429,7 +429,7 @@ class GenerationLoop(
             if (stream) {
                 // 每次重试都从本次模型调用开始前的消息快照重新合并，避免将重试响应
                 // 追加到已经展示的半截回复后面。预先创建助手消息可让所有尝试复用同一 ID，
-                // ChatService 因而会覆盖当前分支，而不是创建新的候选消息。
+                // ChatManager 因而会覆盖当前分支，而不是创建新的候选消息。
                 val responseBaseMessages =
                     if (messages.lastOrNull()?.role == MessageRole.ASSISTANT) {
                         messages

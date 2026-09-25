@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.network.dto.ConversationListInvalidateEvent
 import heizige.kk.khatkit.app.core.network.dto.FolderListEvent
@@ -31,10 +31,10 @@ import kotlin.time.Duration.Companion.seconds
  * at `/api/conversations/{id}/stream`.
  */
 fun Route.eventsRoutes(
-    chatService: ChatService,
+    chatService: ChatManager,
     conversationRepo: ConversationRepository,
     folderRepo: FolderRepository,
-    settingsStore: SettingsStore,
+    settingsStore: SettingsRepository,
 ) {
     sse("/events") {
         heartbeat {

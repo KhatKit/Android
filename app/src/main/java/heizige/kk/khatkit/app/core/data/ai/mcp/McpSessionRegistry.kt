@@ -36,7 +36,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import heizige.kk.khatkit.ai.core.InputSchema
 import heizige.kk.khatkit.app.AppScope
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
@@ -94,7 +94,7 @@ internal class McpStatusStore {
  * Client 只有在 connect 与首次工具同步都成功后才对外可见。
  */
 internal class McpSessionRegistry(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val appScope: AppScope,
     private val httpClient: HttpClient,
     private val oauthCoordinator: McpOAuthCoordinator,
@@ -167,7 +167,7 @@ internal class McpSessionRegistry(
     }
 
     suspend fun addClient(configInput: McpServerConfig) {
-        // SettingsStore 是配置真源。旧任务排队后可能晚于新配置执行，不能再写回旧快照。
+        // SettingsRepository 是配置真源。旧任务排队后可能晚于新配置执行，不能再写回旧快照。
         val desiredConfig = settingsStore.settingsFlow.value.mcpServers.find { it.id == configInput.id }
         if (desiredConfig == null) {
             removeClient(configInput)

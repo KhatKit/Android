@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.files.SkillManager
@@ -38,7 +38,7 @@ private const val TAG = "AssistantDetailVM"
 @HiltViewModel(assistedFactory = AssistantDetailVM.Factory::class)
 class AssistantDetailVM @AssistedInject constructor(
     @Assisted private val id: String,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val memoryRepository: MemoryRepository,
     private val filesManager: FilesManager,
     private val skillManager: SkillManager,

@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.AppScope
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.web.startWebServer
 import java.net.ServerSocket
 
@@ -38,10 +38,10 @@ data class WebServerState(
 class WebServerManager(
     private val context: Context,
     private val appScope: AppScope,
-    private val chatService: ChatService,
+    private val chatService: ChatManager,
     private val conversationRepo: ConversationRepository,
     private val folderRepo: FolderRepository,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val filesManager: FilesManager,
     private val mcpToolHost: McpToolHost? = null,
 ) {

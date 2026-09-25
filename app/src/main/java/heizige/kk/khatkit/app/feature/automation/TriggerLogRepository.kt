@@ -63,7 +63,7 @@ fun computeTriggerLogStats(
 /**
  * 触发执行日志：环形缓冲（最多 [MAX_ENTRIES] 条），SharedPreferences JSON 持久化。
  */
-class TriggerLogStore(context: Context) {
+class TriggerLogRepository(context: Context) {
 
     private val prefs = context.applicationContext
         .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

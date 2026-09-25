@@ -15,7 +15,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.tts.model.PlaybackState
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getSelectedTTSProvider
 import heizige.kk.khatkit.app.core.util.stripMarkdown
 import heizige.kk.khatkit.tts.model.TTSResponse
@@ -122,7 +122,7 @@ interface CustomTtsState {
  */
 private class CustomTtsStateImpl(
     private val context: Context,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val ttsManager: TTSManager,
 ) : CustomTtsState {
 

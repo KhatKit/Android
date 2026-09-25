@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import heizige.kk.khatkit.common.android.appTempFolder
 import heizige.kk.khatkit.app.core.data.files.FilesManager
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.sync.BackupManager
 import heizige.kk.khatkit.app.core.data.sync.RestoreFailedException
 import heizige.kk.khatkit.app.core.util.JsonInstant
@@ -55,7 +55,7 @@ class KhatKitApp : Application() {
     lateinit var appScope: AppScope
 
     @Inject
-    lateinit var settingsStore: SettingsStore
+    lateinit var settingsStore: SettingsRepository
 
     @Inject
     lateinit var workspaceManager: WorkspaceManager

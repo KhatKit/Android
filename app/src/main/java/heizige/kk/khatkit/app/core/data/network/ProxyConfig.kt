@@ -1,6 +1,6 @@
 package heizige.kk.khatkit.app.core.data.network
 
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.PasswordAuthentication
@@ -34,7 +34,7 @@ fun String.toProxyOrNull(): Proxy? {
 }
 
 class SettingsProxyAuthenticator(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
 ) : OkHttpAuthenticator {
     override fun authenticate(route: Route?, response: Response): Request? {
         val setting = settingsStore.settingsFlow.value.networkSetting
@@ -53,7 +53,7 @@ class SettingsProxyAuthenticator(
 }
 
 class SettingsSocks5Authenticator(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
 ) : java.net.Authenticator() {
     override fun getPasswordAuthentication(): PasswordAuthentication? {
         val setting = settingsStore.settingsFlow.value.networkSetting
@@ -73,7 +73,7 @@ class SettingsSocks5Authenticator(
 }
 
 class SettingsProxySelector(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val systemProxySelector: ProxySelector? = ProxySelector.getDefault(),
 ) : ProxySelector() {
     override fun select(uri: URI): List<Proxy> {

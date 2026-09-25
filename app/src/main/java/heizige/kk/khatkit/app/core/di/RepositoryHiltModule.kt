@@ -17,7 +17,7 @@ import heizige.kk.khatkit.app.core.data.db.dao.MemoryDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.db.fts.MessageFtsManager
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.files.SkillManager
@@ -105,7 +105,7 @@ object RepositoryHiltModule {
         workspaceDAO: WorkspaceDAO,
         workspaceManager: WorkspaceManager,
         rootfsInstaller: RootfsInstaller,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
     ): WorkspaceRepository = WorkspaceRepository(workspaceDAO, workspaceManager, rootfsInstaller, settingsStore)
 
     @Provides
@@ -120,6 +120,6 @@ object RepositoryHiltModule {
     @Singleton
     fun provideSkillManager(
         @ApplicationContext context: Context,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
     ): SkillManager = SkillManager(context, settingsStore)
 }

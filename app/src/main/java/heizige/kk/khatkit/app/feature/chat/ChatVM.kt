@@ -34,7 +34,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.ai.ui.isEmptyInputMessage
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
 import heizige.kk.khatkit.app.core.data.files.FilesManager
@@ -44,7 +44,7 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.feature.chat.ChatError
-import heizige.kk.khatkit.app.feature.chat.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.UiState
@@ -58,9 +58,9 @@ private const val TAG = "ChatVM"
 class ChatVM @AssistedInject constructor(
     @Assisted id: String,
     private val context: Application,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val conversationRepo: ConversationRepository,
-    private val chatService: ChatService,
+    private val chatService: ChatManager,
     val updateChecker: UpdateChecker,
     private val analytics: AppAnalytics,
     private val filesManager: FilesManager,

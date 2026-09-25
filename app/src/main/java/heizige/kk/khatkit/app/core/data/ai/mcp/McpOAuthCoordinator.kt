@@ -14,7 +14,7 @@ import heizige.kk.khatkit.oauth.OAuthAuthorizationLauncher
 import heizige.kk.khatkit.oauth.OAuthHttpClient
 import heizige.kk.khatkit.oauth.OAuthLoopbackCallbackServer
 import heizige.kk.khatkit.app.AppScope
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
@@ -33,7 +33,7 @@ private val OAUTH_CALLBACK_TIMEOUT = 5.minutes
  * 连接生命周期由配置流的消费者管理；令牌持久化后，配置变化会自然触发连接替换。
  */
 internal class McpOAuthCoordinator(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val appScope: AppScope,
     private val oauthClient: OAuthHttpClient,
     private val discoveryClient: McpOAuthDiscoveryClient,

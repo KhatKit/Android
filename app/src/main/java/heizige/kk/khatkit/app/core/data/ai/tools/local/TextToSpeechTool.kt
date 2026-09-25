@@ -8,7 +8,7 @@ import kotlinx.serialization.json.put
 import heizige.kk.khatkit.ai.core.InputSchema
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getSelectedTTSProvider
 import heizige.kk.khatkit.app.core.data.event.AppEvent
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
@@ -17,7 +17,7 @@ import heizige.kk.khatkit.tts.provider.TTSManager
 internal fun buildTextToSpeechTool(
     eventBus: AppEventBus,
     ttsManager: TTSManager,
-    settingsStore: SettingsStore,
+    settingsStore: SettingsRepository,
 ): Tool = Tool(
     name = "text_to_speech",
     description = """

@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.WEB_SERVER_NOTIFICATION_CHANNEL_ID
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.network.WebServerManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -40,7 +40,7 @@ class WebServerService : Service() {
     lateinit var webServerManager: WebServerManager
 
     @Inject
-    lateinit var settingsStore: SettingsStore
+    lateinit var settingsStore: SettingsRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var stateObserverJob: Job? = null

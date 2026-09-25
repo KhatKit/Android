@@ -56,7 +56,7 @@ import coil3.svg.SvgDecoder
 import com.dokar.sonner.Toaster
 import com.dokar.sonner.rememberToasterState
 import kotlinx.serialization.Serializable
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.DatabaseMigrationTracker
 import heizige.kk.khatkit.app.core.data.db.MigrationState
 import heizige.kk.khatkit.app.core.data.event.AppEvent
@@ -147,7 +147,7 @@ class RouteActivity : ComponentActivity() {
     lateinit var ktorHttpClient: HttpClient
 
     @Inject
-    lateinit var settingsStore: SettingsStore
+    lateinit var settingsStore: SettingsRepository
     private var navStack: MutableList<NavKey>? = null
     private val pendingIntents = ArrayDeque<Intent>()
 

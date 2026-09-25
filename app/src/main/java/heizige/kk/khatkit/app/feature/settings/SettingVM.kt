@@ -10,12 +10,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 
 @HiltViewModel
 class SettingVM @Inject constructor(
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val mcpManager: McpManager
 ) :
     ViewModel() {

@@ -24,7 +24,7 @@ import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
 import heizige.kk.khatkit.app.core.data.api.SponsorAPI
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.sync.BackupManager
 import heizige.kk.khatkit.app.core.data.db.AppDatabaseFactory
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
@@ -60,7 +60,7 @@ object DataSourceHiltModule {
 
     @Provides
     @Singleton
-    fun provideAssistantTemplateLoader(settingsStore: SettingsStore): AssistantTemplateLoader =
+    fun provideAssistantTemplateLoader(settingsStore: SettingsRepository): AssistantTemplateLoader =
         AssistantTemplateLoader(settingsStore = settingsStore)
 
     @Provides
@@ -76,7 +76,7 @@ object DataSourceHiltModule {
     @Singleton
     fun provideTemplateTransformer(
         engine: PebbleEngine,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
     ): TemplateTransformer = TemplateTransformer(engine = engine, settingsStore = settingsStore)
 
     @Provides
@@ -114,7 +114,7 @@ object DataSourceHiltModule {
     @Provides
     @Singleton
     fun provideMcpManager(
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
         appScope: AppScope,
         filesManager: FilesManager,
     ): McpManager = McpManager(settingsStore = settingsStore, appScope = appScope, filesManager = filesManager)
@@ -140,7 +140,7 @@ object DataSourceHiltModule {
     @Singleton
     fun provideOkHttpClient(
         @ApplicationContext context: Context,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
     ): OkHttpClient {
         val acceptLang = AcceptLanguageBuilder.fromAndroid(context)
             .build()
@@ -231,7 +231,7 @@ object DataSourceHiltModule {
     fun provideBackupManager(
         @ApplicationContext context: Context,
         database: AppDatabase,
-        settingsStore: SettingsStore,
+        settingsStore: SettingsRepository,
         json: Json,
     ): BackupManager = BackupManager(
         context = context,

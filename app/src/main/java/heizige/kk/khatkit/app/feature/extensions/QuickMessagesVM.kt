@@ -9,13 +9,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.model.QuickMessage
 import kotlin.uuid.Uuid
 
 @HiltViewModel
 class QuickMessagesVM @Inject constructor(
-    private val settingsStore: SettingsStore
+    private val settingsStore: SettingsRepository
 ) : ViewModel() {
     val settings = settingsStore.settingsFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, Settings.dummy())

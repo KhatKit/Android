@@ -15,7 +15,7 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.common.cache.LruCache
 import heizige.kk.khatkit.common.cache.SingleFileCacheStore
-import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,7 +29,7 @@ private const val TAG = "OcrTransformer"
 @Singleton
 class OcrTransformer @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val settingsStore: SettingsStore,
+    private val settingsStore: SettingsRepository,
     private val providerManager: ProviderManager,
 ) : InputMessageTransformer {
     private val cache by lazy {
