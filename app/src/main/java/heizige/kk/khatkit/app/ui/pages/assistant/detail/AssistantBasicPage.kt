@@ -53,19 +53,14 @@ import heizige.kk.khatkit.app.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.ui.hooks.heroAnimation
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.toFixed
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.data.model.Tag as DataTag
 
 @Composable
 fun AssistantBasicPage(id: String) {
-    val vm: AssistantDetailVM = koinViewModel(
-        parameters = {
-            parametersOf(id)
-        }
-    )
+    val vm: AssistantDetailVM = hiltViewModel<AssistantDetailVM, AssistantDetailVM.Factory>(creationCallback = { it.create(id) })
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val providers by vm.providers.collectAsStateWithLifecycle()
     val tags by vm.tags.collectAsStateWithLifecycle()

@@ -47,7 +47,7 @@ import heizige.kk.khatkit.app.data.model.Assistant
 import heizige.kk.khatkit.app.ui.components.ui.Tag
 import heizige.kk.khatkit.app.ui.components.ui.TagType
 import heizige.kk.khatkit.app.ui.components.ui.ToggleSurface
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.dns
 import heizige.kk.khatkit.app.ui.icons.power
 import heizige.kk.khatkit.app.ui.icons.warning
@@ -270,7 +270,7 @@ fun McpPicker(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onUpdateAssistant: (Assistant) -> Unit
 ) {
-    val mcpManager = koinInject<McpManager>()
+    val mcpManager = rememberAppEntryPoint().mcpManager()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,

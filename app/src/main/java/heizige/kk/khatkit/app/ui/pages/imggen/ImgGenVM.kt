@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.imggen
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -57,7 +60,8 @@ private fun GenMediaEntity.toGeneratedImage(filesManager: FilesManager): Generat
     )
 }
 
-class ImgGenVM(
+@HiltViewModel
+class ImgGenVM @Inject constructor(
     context: Application,
     val settingsStore: SettingsStore,
     val providerManager: ProviderManager,

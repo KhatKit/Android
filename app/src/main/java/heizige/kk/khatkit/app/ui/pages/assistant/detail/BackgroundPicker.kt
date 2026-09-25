@@ -29,7 +29,7 @@ import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.files.FilesManager
 import heizige.kk.khatkit.app.ui.components.ui.FormItem
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 @Composable
 fun BackgroundPicker(
@@ -38,7 +38,7 @@ fun BackgroundPicker(
     backgroundOpacity: Float = 1.0f,
     onUpdate: (String?) -> Unit
 ) {
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     var showPickOption by remember { mutableStateOf(false) }
     var showUrlInput by remember { mutableStateOf(false) }
     var urlInput by remember { mutableStateOf("") }

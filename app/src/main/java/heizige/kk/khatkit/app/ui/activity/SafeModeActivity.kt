@@ -56,11 +56,14 @@ import heizige.kk.khatkit.app.ui.icons.groups
 import heizige.kk.khatkit.app.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.RouteActivity
 import heizige.kk.khatkit.app.utils.CrashHandler
-import org.koin.android.ext.android.inject
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlin.uuid.Uuid
 
+@AndroidEntryPoint
 class SafeModeActivity : ComponentActivity() {
-    private val settingsStore by inject<SettingsStore>()
+    @Inject
+    lateinit var settingsStore: SettingsStore
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {

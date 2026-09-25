@@ -78,7 +78,7 @@ import heizige.kk.khatkit.app.ui.components.ui.icons.HeartIcon
 import heizige.kk.khatkit.app.ui.context.LocalNavController
 import heizige.kk.khatkit.app.ui.theme.extendColors
 import heizige.kk.khatkit.app.utils.toDp
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
@@ -310,7 +310,7 @@ private fun ColumnScope.ModelList(
     onDismiss: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val settingsStore = koinInject<SettingsStore>()
+    val settingsStore = rememberAppEntryPoint().settingsStore()
     val settings = settingsStore.settingsFlow
         .collectAsStateWithLifecycle()
 

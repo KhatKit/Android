@@ -96,8 +96,8 @@ import heizige.kk.khatkit.app.ui.hooks.useEditState
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.ui.theme.extendColors
 import heizige.kk.khatkit.app.utils.writeClipboardText
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.commentsDisabled
@@ -114,7 +114,7 @@ import heizige.kk.khatkit.app.ui.icons.visibility
 import heizige.kk.khatkit.app.ui.icons.visibilityOff
 
 @Composable
-fun SettingMcpPage(vm: SettingVM = koinViewModel()) {
+fun SettingMcpPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val mcpConfigs = settings.mcpServers
     val creationState = useEditState<McpServerConfig> {
@@ -168,7 +168,7 @@ fun SettingMcpPage(vm: SettingVM = koinViewModel()) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = CustomColors.topBarColors.containerColor
     ) { innerPadding ->
-        val mcpManager = koinInject<McpManager>()
+        val mcpManager = rememberAppEntryPoint().mcpManager()
         val status by mcpManager.syncingStatus.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
         val state = rememberPullToRefreshState()
@@ -250,7 +250,7 @@ private fun McpServerItem(
     onDelete: () -> Unit,
     onEdit: (McpServerConfig) -> Unit,
 ) {
-    val mcpManager = koinInject<McpManager>()
+    val mcpManager = rememberAppEntryPoint().mcpManager()
     val status by mcpManager.getStatus(item).collectAsStateWithLifecycle(McpStatus.Idle)
     val dismissBoxState = rememberSwipeToDismissBoxState()
     val scope = rememberCoroutineScope()
@@ -843,7 +843,7 @@ private fun McpToolsConfigure(
     config: McpServerConfig,
     update: (McpServerConfig) -> Unit,
 ) {
-    val mcpManager = koinInject<McpManager>()
+    val mcpManager = rememberAppEntryPoint().mcpManager()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),

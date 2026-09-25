@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.data.db.AppDatabase
 import heizige.kk.khatkit.app.data.db.AppDatabaseFactory
+import heizige.kk.khatkit.app.di.appEntryPoint
 import heizige.kk.khatkit.app.utils.JsonInstant
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -16,7 +17,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.koin.core.context.GlobalContext
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipEntry
@@ -32,6 +32,7 @@ class BackupManagerTest {
 
     @Before fun setUp() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = app.applicationContext
         directory = Files.createTempDirectory(app.cacheDir.toPath(), "backup-manager-test-").toFile()
         context = object : ContextWrapper(app) {
             override fun getApplicationContext(): Context = this
@@ -44,7 +45,7 @@ class BackupManagerTest {
         liveDatabase = AppDatabaseFactory.create(context)
         liveDatabase.openHelper.writableDatabase.execSQL("CREATE TABLE backup_probe (text TEXT)")
         liveDatabase.openHelper.writableDatabase.execSQL("INSERT INTO backup_probe VALUES ('live')")
-        manager = BackupManager(context, liveDatabase, GlobalContext.get().get<SettingsStore>(), JsonInstant)
+        manager = BackupManager(context, liveDatabase, appEntryPoint(appContext).settingsStore(), JsonInstant)
     }
 
     @After fun tearDown() {

@@ -128,24 +128,6 @@ enum class ChatErrorSolution {
     CheckFastModelSettings,
 }
 
-private val inputTransformers by lazy {
-    listOf(
-        TimeReminderTransformer,
-        PromptInjectionTransformer,
-        PlaceholderTransformer,
-        DocumentAsPromptTransformer,
-        OcrTransformer,
-    )
-}
-
-private val outputTransformers by lazy {
-    listOf(
-        ThinkTagTransformer,
-        Base64ImageToLocalFileTransformer,
-        RegexOutputTransformer,
-    )
-}
-
 class ChatService(
     private val context: Application,
     private val appScope: AppScope,
@@ -162,7 +144,24 @@ class ChatService(
     private val filesManager: FilesManager,
     private val workspaceRepository: WorkspaceRepository,
     private val folderRepository: FolderRepository,
+    private val placeholderTransformer: PlaceholderTransformer,
+    private val ocrTransformer: OcrTransformer,
+    private val base64ImageToLocalFileTransformer: Base64ImageToLocalFileTransformer,
 ) {
+    private val inputTransformers = listOf(
+        TimeReminderTransformer,
+        PromptInjectionTransformer,
+        placeholderTransformer,
+        DocumentAsPromptTransformer,
+        ocrTransformer,
+    )
+
+    private val outputTransformers = listOf(
+        ThinkTagTransformer,
+        base64ImageToLocalFileTransformer,
+        RegexOutputTransformer,
+    )
+
     // workspace 系统提示注入 (依赖 workspaceRepository, 故在类内构造)
     private val workspaceReminderTransformer = WorkspaceReminderTransformer(workspaceRepository)
 

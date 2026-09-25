@@ -18,16 +18,21 @@ import heizige.kk.khatkit.common.cache.SingleFileCacheStore
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.data.datastore.findModelById
 import heizige.kk.khatkit.app.data.datastore.findProvider
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import java.io.File
 import kotlin.time.Duration.Companion.days
 
 private const val TAG = "OcrTransformer"
 
-object OcrTransformer : InputMessageTransformer, KoinComponent {
+@Singleton
+class OcrTransformer @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val settingsStore: SettingsStore,
+    private val providerManager: ProviderManager,
+) : InputMessageTransformer {
     private val cache by lazy {
-        val context = get<Context>()
         val json = Json { allowStructuredMapKeys = true }
         val store = SingleFileCacheStore(
             file = File(context.cacheDir, "ocr_cache.json"),
@@ -86,10 +91,10 @@ object OcrTransformer : InputMessageTransformer, KoinComponent {
             return cachedResult
         }
 
-        val settings = get<SettingsStore>().settingsFlow.value
+        val settings = settingsStore.settingsFlow.value
         val model = settings.findModelById(settings.ocrModelId) ?: return "[Image]"
         val providerSetting = model.findProvider(settings.providers) ?: return "[Image]"
-        val provider = get<ProviderManager>().getProviderByType(providerSetting)
+        val provider = providerManager.getProviderByType(providerSetting)
         val result = provider.generateText(
             providerSetting = providerSetting,
             messages = listOf(

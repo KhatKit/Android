@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.debug
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +26,8 @@ import kotlin.time.Clock
 import kotlin.random.Random
 import kotlin.uuid.Uuid
 
-class DebugVM(
+@HiltViewModel
+class DebugVM @Inject constructor(
     private val settingsStore: SettingsStore,
     private val conversationRepository: ConversationRepository,
 ) : ViewModel() {

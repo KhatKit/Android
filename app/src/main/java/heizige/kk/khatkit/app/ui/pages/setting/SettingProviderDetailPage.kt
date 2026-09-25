@@ -116,8 +116,8 @@ import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.ui.theme.extendColors
 import heizige.kk.khatkit.app.utils.UiState
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
@@ -132,7 +132,7 @@ import heizige.kk.khatkit.app.ui.icons.share
 import heizige.kk.khatkit.app.ui.icons.sync
 
 @Composable
-fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
+fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return
@@ -384,7 +384,7 @@ private fun ModelList(
     providerSetting: ProviderSetting,
     onUpdateProvider: (ProviderSetting) -> Unit
 ) {
-    val providerManager = koinInject<ProviderManager>()
+    val providerManager = rememberAppEntryPoint().providerManager()
     val modelList by produceState(emptyList(), providerSetting) {
         runCatching {
             println("loading models...")

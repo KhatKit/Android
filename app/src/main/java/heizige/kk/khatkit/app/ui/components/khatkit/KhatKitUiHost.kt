@@ -29,7 +29,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeAlertDialog
 import heizige.kk.kedge.overlays.KedgeDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 /**
  * 卡片 ui bridge 的宿主挂载点（设计文档 7.2）。
@@ -38,7 +38,8 @@ import org.koin.compose.koinInject
  * 渲染表单/确认/进度/结果卡片，交互后把值回传。渲染层在 :khatkit-ui。
  */
 @Composable
-fun KhatKitUiHost(provider: KhatKitToolProvider = koinInject()) {
+fun KhatKitUiHost() {
+    val provider = rememberAppEntryPoint().khatKitToolProvider()
     val request by provider.uiRequest.collectAsStateWithLifecycle()
     val progress by provider.uiProgress.collectAsStateWithLifecycle()
 

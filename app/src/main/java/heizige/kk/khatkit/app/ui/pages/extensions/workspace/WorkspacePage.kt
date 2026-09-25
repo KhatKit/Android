@@ -47,7 +47,7 @@ import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.ui.context.LocalNavController
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.edit
@@ -55,7 +55,7 @@ import heizige.kk.khatkit.app.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.ui.icons.moreVert
 
 @Composable
-fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
+fun WorkspacePage(vm: WorkspaceVM = hiltViewModel()) {
     val navController = LocalNavController.current
     val workspaces by vm.workspaces.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

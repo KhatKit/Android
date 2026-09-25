@@ -64,8 +64,8 @@ import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.components.ExpandableOptionItem
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.utils.writeClipboardText
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.addPhotoAlternate
 import heizige.kk.khatkit.app.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.ui.icons.bolt
@@ -88,11 +88,11 @@ import heizige.kk.khatkit.app.ui.icons.warning
 import heizige.kk.khatkit.app.ui.icons.wavingHand
 
 @Composable
-fun SettingPage(vm: SettingVM = koinViewModel()) {
+fun SettingPage(vm: SettingVM = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     val settings by vm.settings.collectAsStateWithLifecycle()
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
 
     if (settings.launchCount > 100 && (settings.launchCount - settings.sponsorAlertDismissedAt) >= 50) {
         AppAlertDialog(

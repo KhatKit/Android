@@ -44,7 +44,7 @@ import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.bolt
 import heizige.kk.khatkit.app.ui.icons.delete
@@ -52,7 +52,7 @@ import heizige.kk.khatkit.app.ui.icons.edit
 import heizige.kk.khatkit.app.ui.icons.moreVert
 
 @Composable
-fun QuickMessagesPage(vm: QuickMessagesVM = koinViewModel()) {
+fun QuickMessagesPage(vm: QuickMessagesVM = hiltViewModel()) {
     val settings = vm.settings.collectAsStateWithLifecycle().value
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showAddDialog by rememberSaveable { mutableStateOf(false) }

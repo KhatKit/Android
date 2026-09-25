@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.setting
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -10,7 +13,8 @@ import heizige.kk.khatkit.app.data.datastore.Settings
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.data.ai.mcp.McpManager
 
-class SettingVM(
+@HiltViewModel
+class SettingVM @Inject constructor(
     private val settingsStore: SettingsStore,
     private val mcpManager: McpManager
 ) :

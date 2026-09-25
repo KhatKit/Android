@@ -63,7 +63,7 @@ import heizige.kk.khatkit.app.utils.JsonInstantPretty
 import heizige.kk.khatkit.app.utils.jsonPrimitiveOrNull
 import heizige.kk.khatkit.app.utils.openUrl
 import heizige.kk.khatkit.app.utils.toLocalString
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -130,7 +130,7 @@ object MemoryToolUI : ToolUIRenderer {
 
     @Composable
     override fun Preview(context: ToolUIContext, onDismissRequest: () -> Unit) {
-        val memoryRepo: MemoryRepository = koinInject()
+        val memoryRepo: MemoryRepository = rememberAppEntryPoint().memoryRepository()
         val scope = rememberCoroutineScope()
         val memoryId = (context.content as? JsonObject)?.get("id")?.jsonPrimitiveOrNull?.intOrNull
         DefaultToolPreview(
@@ -309,7 +309,7 @@ object TextToSpeechToolUI : ToolUIRenderer {
 
     @Composable
     override fun Summary(context: ToolUIContext) {
-        val eventBus: AppEventBus = koinInject()
+        val eventBus: AppEventBus = rememberAppEntryPoint().appEventBus()
         val scope = rememberCoroutineScope()
         val text = context.arguments.getStringContent("text") ?: ""
         Row(

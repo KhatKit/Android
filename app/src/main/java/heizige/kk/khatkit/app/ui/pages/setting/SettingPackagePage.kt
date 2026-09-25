@@ -46,8 +46,8 @@ import java.util.Date
 import java.util.Locale
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 /** 「KhatKit 套餐网关」在服务商列表里的固定名称与 ID（重复创建时更新同一条）。 */
 private const val GATEWAY_PROVIDER_NAME = "KhatKit 套餐网关"
@@ -59,9 +59,9 @@ private val GATEWAY_PROVIDER_ID: Uuid = Uuid.parse("7e2a9c1e-6b5f-4a3d-9c8e-1f2b
  */
 @Composable
 fun SettingPackagePage(
-    provider: KhatKitToolProvider = koinInject(),
-    vm: SettingVM = koinViewModel(),
+    vm: SettingVM = hiltViewModel(),
 ) {
+    val provider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

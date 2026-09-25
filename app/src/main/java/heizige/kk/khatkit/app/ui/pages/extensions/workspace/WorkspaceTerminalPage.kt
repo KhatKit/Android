@@ -60,15 +60,14 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.theme.ColorMode
 import heizige.kk.khatkit.app.ui.theme.KhatKitTheme
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 @Composable
 fun WorkspaceTerminalPage(id: String) {
-    val vm: WorkspaceDetailVM = koinViewModel(parameters = { parametersOf(id) })
+    val vm: WorkspaceDetailVM = hiltViewModel<WorkspaceDetailVM, WorkspaceDetailVM.Factory>(creationCallback = { it.create(id) })
     val state by vm.state.collectAsStateWithLifecycle()
-    val sessionManager: WorkspaceTerminalSessionManager = koinInject()
+    val sessionManager: WorkspaceTerminalSessionManager = rememberAppEntryPoint().workspaceTerminalSessionManager()
     val root = state.workspace?.root
     val terminalStateFlow = remember(root, sessionManager) {
         root?.let(sessionManager::observeWorkspace) ?: flowOf(WorkspaceTerminalTabsState())

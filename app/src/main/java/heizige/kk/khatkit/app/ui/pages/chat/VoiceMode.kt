@@ -37,13 +37,13 @@ import heizige.kk.khatkit.app.utils.extractQuotedContentAsText
 import heizige.kk.khatkit.app.utils.removeBracketedContent
 import heizige.kk.khatkit.app.utils.stripMarkdown
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 /** Lives above adaptive drawer branches, so resizing does not recreate the voice session. */
 @Composable
 fun rememberVoiceModeStarter(vm: ChatVM, settings: Settings): () -> Unit {
     val context = LocalContext.current.applicationContext
-    val client = koinInject<OkHttpClient>()
+    val client = rememberAppEntryPoint().okHttpClient()
     val asr = LocalASRState.current
     val tts = LocalTTSState.current
     val toaster = LocalToaster.current

@@ -47,10 +47,10 @@ import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
-fun SettingPreferencesThemePage(vm: SettingVM = koinViewModel()) {
+fun SettingPreferencesThemePage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var amoledDarkMode by rememberAmoledDarkMode()
     val colorMode = heizige.kk.khatkit.app.ui.hooks.rememberColorMode()

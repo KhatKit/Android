@@ -61,7 +61,7 @@ import heizige.kk.khatkit.app.ui.pages.setting.components.TTSProviderConfigure
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import heizige.kk.khatkit.app.ui.icons.add
@@ -74,7 +74,7 @@ import heizige.kk.khatkit.app.ui.icons.stopCircle
 import heizige.kk.khatkit.app.ui.icons.volumeUp
 
 @Composable
-fun SettingSpeechPage(vm: SettingVM = koinViewModel()) {
+fun SettingSpeechPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }

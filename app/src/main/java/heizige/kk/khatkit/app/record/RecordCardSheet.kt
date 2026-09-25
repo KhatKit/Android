@@ -29,7 +29,7 @@ import heizige.kk.khatkit.app.ui.icons.adsClick
 import heizige.kk.khatkit.app.ui.icons.stopCircle
 import heizige.kk.khatkit.record.RecordingCardFactory
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 /**
  * 录制操作面板：开始/停止录制、实时步数、命名并保存为 Lua 卡片。
@@ -45,7 +45,7 @@ fun RecordCardSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val triggerController: TriggerController = koinInject()
+    val triggerController: TriggerController = rememberAppEntryPoint().triggerController()
     val state by KhatKitOperationRecorder.state.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf(false) }

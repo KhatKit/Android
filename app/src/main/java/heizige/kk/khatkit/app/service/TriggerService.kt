@@ -21,7 +21,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.koin.android.ext.android.inject
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * 事件触发前台服务：用户在主开关打开后启动。
@@ -34,9 +35,11 @@ import org.koin.android.ext.android.inject
  *
  * 通知由 NotificationListenerService 独立投递（不需要本服务）。
  */
+@AndroidEntryPoint
 class TriggerService : Service() {
 
-    private val controller: TriggerController by inject()
+    @Inject
+    lateinit var controller: TriggerController
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var loopJob: Job? = null

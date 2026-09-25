@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.data.files.FilesManager
 import heizige.kk.khatkit.app.ui.context.LocalToaster
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.download
 
 @Composable
@@ -34,7 +34,7 @@ fun ImagePreviewDialog(
     onDismissRequest: () -> Unit,
 ) {
     val context = LocalContext.current
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val state = rememberZoomablePagerState { images.size }
     val toaster = LocalToaster.current
     val lifecycleOwner = LocalLifecycleOwner.current

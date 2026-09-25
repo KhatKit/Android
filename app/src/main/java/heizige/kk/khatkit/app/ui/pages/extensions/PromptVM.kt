@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.extensions
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -8,7 +11,8 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.data.datastore.Settings
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 
-class PromptVM(
+@HiltViewModel
+class PromptVM @Inject constructor(
     private val settingsStore: SettingsStore
 ) : ViewModel() {
     val settings = settingsStore.settingsFlow

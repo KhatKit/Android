@@ -57,7 +57,7 @@ import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.navigateToChatPage
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.app.utils.toLocalDateTime
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
@@ -65,7 +65,7 @@ import heizige.kk.khatkit.app.ui.icons.refresh
 import heizige.kk.khatkit.app.ui.icons.sort
 
 @Composable
-fun SearchPage(vm: SearchVM = koinViewModel()) {
+fun SearchPage(vm: SearchVM = hiltViewModel()) {
     val navController = LocalNavController.current
     val focusRequester = remember { FocusRequester() }
     var showRebuildDialog by remember { mutableStateOf(false) }

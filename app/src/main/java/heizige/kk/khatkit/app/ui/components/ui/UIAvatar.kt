@@ -54,7 +54,7 @@ import heizige.kk.khatkit.app.data.files.FilesManager
 import heizige.kk.khatkit.app.data.model.Avatar
 import heizige.kk.khatkit.app.ui.components.ai.useCropLauncher
 import heizige.kk.khatkit.app.ui.hooks.rememberAvatarShape
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.io.File
 import heizige.kk.khatkit.app.ui.icons.editNote
 import heizige.kk.khatkit.app.ui.icons.palette
@@ -97,7 +97,7 @@ fun UIAvatar(
     onUpdate: ((Avatar) -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val context = LocalContext.current
     var showPickOption by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }

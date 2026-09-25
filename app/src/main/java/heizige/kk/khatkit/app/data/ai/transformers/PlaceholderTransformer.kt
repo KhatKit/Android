@@ -13,8 +13,8 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.data.model.Assistant
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
+import javax.inject.Inject
+import javax.inject.Singleton
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -114,14 +114,16 @@ object DefaultPlaceholderProvider : PlaceholderProvider {
     }
 }
 
-object PlaceholderTransformer : InputMessageTransformer, KoinComponent {
+@Singleton
+class PlaceholderTransformer @Inject constructor(
+    private val settingsStore: SettingsStore,
+) : InputMessageTransformer {
     private val defaultProvider = DefaultPlaceholderProvider
 
     override suspend fun transform(
         ctx: TransformerContext,
         messages: List<UIMessage>,
     ): List<UIMessage> {
-        val settingsStore = get<SettingsStore>()
         return messages.map {
             it.copy(
                 parts = it.parts.map { part ->

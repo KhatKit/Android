@@ -27,7 +27,8 @@ coil = "3.6.2"
 quickjs = "1.0.15"
 commonsCompress = "1.27.1"
 room = "2.8.5"
-koin-bom = "4.2.2"
+hilt = "2.60.1"
+androidx-hilt = "1.4.0"
 datastore = "1.2.1"
 serialization-json = "1.11.0"
 kotlin-coroutines-core = "1.11.0"
@@ -130,10 +131,9 @@ coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil"
 coil-cache-control = { group = "io.coil-kt.coil3", name = "coil-network-cache-control", version.ref = "coil" }
 quickjs = { module = "io.github.dokar3:quickjs-kt", version.ref = "quickjs" }
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
-koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koin-bom" }
-koin-android = { group = "io.insert-koin", name = "koin-android" }
-koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose" }
-koin-androidx-workmanager = { group = "io.insert-koin", name = "koin-androidx-workmanager" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
+androidx-hilt-lifecycle-viewmodel-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "androidx-hilt" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization-json" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlin-coroutines-core" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
@@ -207,6 +207,7 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics" }
 android-test = { id = "com.android.test", version.ref = "agp" }

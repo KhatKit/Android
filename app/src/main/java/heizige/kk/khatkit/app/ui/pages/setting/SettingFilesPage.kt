@@ -60,7 +60,7 @@ import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.fileSizeToString
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.io.File
 import java.util.concurrent.TimeUnit
 import heizige.kk.khatkit.app.ui.icons.cleaningServices
@@ -69,9 +69,8 @@ import heizige.kk.khatkit.app.ui.icons.image
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingFilesPage(
-    filesManager: FilesManager = koinInject(),
-) {
+fun SettingFilesPage() {
+    val filesManager = rememberAppEntryPoint().filesManager()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyStaggeredGridState()
     val scope = rememberCoroutineScope()

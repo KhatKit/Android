@@ -24,16 +24,11 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.model.Assistant
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.theme.CustomColors
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 fun AssistantRequestPage(id: String) {
-    val vm: AssistantDetailVM = koinViewModel(
-        parameters = {
-            parametersOf(id)
-        }
-    )
+    val vm: AssistantDetailVM = hiltViewModel<AssistantDetailVM, AssistantDetailVM.Factory>(creationCallback = { it.create(id) })
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 

@@ -14,7 +14,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.workspace.WorkspaceManager
-import org.koin.core.context.GlobalContext
+import heizige.kk.khatkit.app.di.appEntryPoint
 import java.io.File
 
 /**
@@ -34,9 +34,13 @@ import java.io.File
  */
 class WorkspaceDocumentsProvider : DocumentsProvider() {
 
-    private fun manager(): WorkspaceManager = GlobalContext.get().get()
+    // ContentProvider 无法使用 @AndroidEntryPoint，通过 EntryPoint 读取应用级单例
+    private fun entryPoint(): heizige.kk.khatkit.app.di.AppEntryPoint =
+        appEntryPoint(requireNotNull(context) { "WorkspaceDocumentsProvider not attached" })
 
-    private fun dao(): WorkspaceDAO = GlobalContext.get().get()
+    private fun manager(): WorkspaceManager = entryPoint().workspaceManager()
+
+    private fun dao(): WorkspaceDAO = entryPoint().workspaceDao()
 
     private fun allWorkspaces(): List<WorkspaceEntity> = runBlocking { dao().getAll() }
 

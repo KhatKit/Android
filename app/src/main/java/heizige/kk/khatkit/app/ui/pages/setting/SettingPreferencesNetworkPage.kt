@@ -53,8 +53,8 @@ import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.common.http.okhttp.Request
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import heizige.kk.khatkit.app.ui.icons.arrowForward
@@ -64,8 +64,8 @@ import heizige.kk.khatkit.app.ui.icons.visibilityOff
 private const val PROXY_TEST_URL = "https://www.google.com/generate_204"
 
 @Composable
-fun SettingPreferencesNetworkPage(vm: SettingVM = koinViewModel()) {
-    val httpClient = koinInject<OkHttpClient>()
+fun SettingPreferencesNetworkPage(vm: SettingVM = hiltViewModel()) {
+    val httpClient = rememberAppEntryPoint().okHttpClient()
     val settings by vm.settings.collectAsStateWithLifecycle()
     var userAgent by remember(settings.networkSetting.userAgent) {
         mutableStateOf(settings.networkSetting.userAgent)

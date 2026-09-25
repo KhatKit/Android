@@ -96,9 +96,8 @@ import heizige.kk.khatkit.app.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.ui.hooks.useEditState
 import heizige.kk.khatkit.app.utils.base64Decode
 import heizige.kk.khatkit.app.utils.navigateToChatPage
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.addComment
@@ -110,12 +109,8 @@ import heizige.kk.khatkit.app.ui.icons.menu
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
-    val vm: ChatVM = koinViewModel(
-        parameters = {
-            parametersOf(id.toString())
-        }
-    )
-    val filesManager: FilesManager = koinInject()
+    val vm: ChatVM = hiltViewModel<ChatVM, ChatVM.Factory>(creationCallback = { it.create(id.toString()) })
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
 
@@ -290,7 +285,7 @@ private fun ChatPageContent(
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
-    val workspaceRepository: WorkspaceRepository = koinInject()
+    val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     var previewMode by rememberSaveable { mutableStateOf(false) }
     var previewSearchQuery by remember { mutableStateOf("") }
     val hazeState = rememberHazeState()

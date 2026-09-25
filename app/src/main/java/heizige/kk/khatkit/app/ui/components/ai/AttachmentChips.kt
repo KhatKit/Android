@@ -36,7 +36,7 @@ import coil3.compose.AsyncImage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.data.files.FilesManager
 import heizige.kk.khatkit.app.ui.hooks.ChatInputState
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.close
 import heizige.kk.khatkit.app.ui.icons.folderCopy
 import heizige.kk.khatkit.app.ui.icons.musicNote
@@ -46,7 +46,7 @@ import heizige.kk.khatkit.app.ui.icons.videocam
 internal fun MediaFileInputRow(
     state: ChatInputState,
 ) {
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val managedFiles by filesManager.observe().collectAsState(initial = emptyList())
     val displayNameByRelativePath = remember(managedFiles) {
         managedFiles.associate { it.relativePath to it.displayName }

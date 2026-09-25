@@ -5,9 +5,8 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.data.model.AssistantAffectScope
 import heizige.kk.khatkit.app.data.model.replaceRegexes
-import org.koin.core.component.KoinComponent
 
-object RegexOutputTransformer : OutputMessageTransformer, KoinComponent {
+object RegexOutputTransformer : OutputMessageTransformer {
     override suspend fun visualTransform(
         ctx: TransformerContext,
         messages: List<UIMessage>,

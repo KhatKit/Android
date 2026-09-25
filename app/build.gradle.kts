@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
     alias(libs.plugins.baselineprofile)
 }
 
@@ -191,11 +192,10 @@ dependencies {
     implementation(libs.haze.glass)
     implementation(libs.haze.glass.material3)
 
-    // koin
-    implementation(platform(libs.koin.bom))
-    implementation(libs.koin.android)
-    implementation(libs.koin.compose)
-    implementation(libs.koin.androidx.workmanager)
+    // Hilt
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    ksp(libs.hilt.compiler)
 
     // jetbrains markdown parser
     implementation(libs.jetbrains.markdown)

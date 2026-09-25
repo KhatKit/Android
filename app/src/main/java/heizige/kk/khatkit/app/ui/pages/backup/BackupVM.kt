@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.backup
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
@@ -27,7 +30,8 @@ import java.io.File
 
 private const val TAG = "BackupVM"
 
-class BackupVM(
+@HiltViewModel
+class BackupVM @Inject constructor(
     private val settingsStore: SettingsStore,
     private val webDavSync: WebDavSync,
     private val s3Sync: S3Sync,

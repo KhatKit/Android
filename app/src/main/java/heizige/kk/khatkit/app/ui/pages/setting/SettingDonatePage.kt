@@ -42,7 +42,7 @@ import heizige.kk.khatkit.app.utils.onError
 import heizige.kk.khatkit.app.utils.onLoading
 import heizige.kk.khatkit.app.utils.onSuccess
 import heizige.kk.khatkit.app.utils.openUrl
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 @Composable
 fun SettingDonatePage() {
@@ -121,7 +121,7 @@ private fun DonateMethodsCardGroup() {
 
 @Composable
 private fun Sponsors(modifier: Modifier = Modifier) {
-    val sponsorAPI = koinInject<SponsorAPI>()
+    val sponsorAPI = rememberAppEntryPoint().sponsorApi()
     val sponsors by produceState<UiState<List<Sponsor>>>(UiState.Idle) {
         value = UiState.Loading
         runCatching {

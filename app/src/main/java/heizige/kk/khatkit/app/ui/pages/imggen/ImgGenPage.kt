@@ -95,8 +95,8 @@ import heizige.kk.khatkit.app.ui.components.ui.ImagePreviewDialog
 import heizige.kk.khatkit.app.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.utils.ImageUtils
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.io.File
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.add
@@ -113,7 +113,7 @@ import heizige.kk.khatkit.app.ui.icons.tune
 @Composable
 fun ImageGenPage(
     modifier: Modifier = Modifier,
-    vm: ImgGenVM = koinViewModel()
+    vm: ImgGenVM = hiltViewModel()
 ) {
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
@@ -510,7 +510,7 @@ private fun ImageGalleryScreen(
 ) {
     val generatedImages = vm.generatedImages.collectAsLazyPagingItems()
     val context = LocalContext.current
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current

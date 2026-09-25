@@ -32,7 +32,7 @@ import heizige.kk.khatkit.app.ui.components.ai.LorebooksContent
 import heizige.kk.khatkit.app.ui.components.ai.ModeInjectionsContent
 import heizige.kk.khatkit.app.ui.components.ai.QuickMessagesContent
 import heizige.kk.khatkit.app.ui.components.ai.SkillsContent
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 
 @Composable
@@ -47,7 +47,7 @@ fun ExtensionSelector(
     onNavigateToPrompts: () -> Unit = {},
     onNavigateToSkills: () -> Unit = {},
 ) {
-    val skillManager: SkillManager = koinInject()
+    val skillManager: SkillManager = rememberAppEntryPoint().skillManager()
     var skills by remember { mutableStateOf<List<SkillMetadata>>(emptyList()) }
 
     LaunchedEffect(Unit) {

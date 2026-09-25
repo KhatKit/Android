@@ -16,7 +16,8 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.RouteActivity
-import org.koin.android.ext.android.inject
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlin.uuid.Uuid
 
 private const val TAG = "ChatGenerationFgs"
@@ -27,6 +28,7 @@ private const val TAG = "ChatGenerationFgs"
  * Generation itself remains owned by [ChatService]. This service only provides the Android
  * foreground-service lifetime required for streaming to continue after the activity is hidden.
  */
+@AndroidEntryPoint
 class ChatGenerationForegroundService : Service() {
     companion object {
         private const val ACTION_ACQUIRE = "heizige.kk.khatkit.app.action.CHAT_GENERATION_ACQUIRE"
@@ -65,8 +67,12 @@ class ChatGenerationForegroundService : Service() {
 
     private val activeGenerations = linkedMapOf<String, String>()
     private var isForeground = false
-    private val appScope: AppScope by inject()
-    private val chatService: ChatService by inject()
+
+    @Inject
+    lateinit var appScope: AppScope
+
+    @Inject
+    lateinit var chatService: ChatService
 
     override fun onBind(intent: Intent?): IBinder? = null
 

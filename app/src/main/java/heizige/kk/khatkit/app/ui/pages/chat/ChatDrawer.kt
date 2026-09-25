@@ -105,8 +105,8 @@ import heizige.kk.khatkit.app.ui.hooks.readBooleanPreference
 import heizige.kk.khatkit.app.ui.hooks.rememberIsPlayStoreVersion
 import heizige.kk.khatkit.app.utils.navigateToChatPage
 import heizige.kk.khatkit.app.utils.toDp
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.components.ui.KedgePageTopBar
 import heizige.kk.khatkit.app.ui.icons.createNewFolder
@@ -130,10 +130,10 @@ fun ChatDrawerContent(
     val context = LocalContext.current
     val toaster = LocalToaster.current
     val isPlayStore = rememberIsPlayStoreVersion()
-    val repo = koinInject<ConversationRepository>()
+    val repo = rememberAppEntryPoint().conversationRepository()
 
     val activity = context as ComponentActivity
-    val drawerVm: ChatDrawerVM = koinViewModel(viewModelStoreOwner = activity)
+    val drawerVm: ChatDrawerVM = hiltViewModel(viewModelStoreOwner = activity)
 
     val conversations = drawerVm.conversations.collectAsLazyPagingItems()
     val folders by drawerVm.folders.collectAsStateWithLifecycle()

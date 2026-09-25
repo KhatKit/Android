@@ -38,7 +38,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.folder
 import heizige.kk.khatkit.app.ui.icons.undo
 
@@ -49,7 +49,7 @@ fun WorkspaceCwdPickerSheet(
     onSelectCwd: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val workspaceRepository: WorkspaceRepository = koinInject()
+    val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
 
     var browsePath by remember { mutableStateOf(fromAbsolutePath(currentCwd)) }
     var entries by remember { mutableStateOf<List<WorkspaceFileEntry>>(emptyList()) }

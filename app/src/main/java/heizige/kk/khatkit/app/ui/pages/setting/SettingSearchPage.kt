@@ -57,7 +57,7 @@ import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.search.SearchCommonOptions
 import heizige.kk.khatkit.search.SearchService
 import heizige.kk.khatkit.search.SearchServiceOptions
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.reflect.full.primaryConstructor
@@ -67,7 +67,7 @@ import heizige.kk.khatkit.app.ui.icons.edit
 import heizige.kk.khatkit.app.ui.icons.moreVert
 
 @Composable
-fun SettingSearchPage(vm: SettingVM = koinViewModel()) {
+fun SettingSearchPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val lazyListState = rememberLazyListState()

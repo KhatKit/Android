@@ -57,7 +57,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,
@@ -76,7 +76,7 @@ private val PermissionBluetoothConnect = PermissionInfo(
 /** 自动化触发器设置：总开关、事件卡片编辑、执行日志、通知监听/电池优化入口。 */
 @Composable
 fun SettingTriggersPage() {
-    val controller: TriggerController = koinInject()
+    val controller: TriggerController = rememberAppEntryPoint().triggerController()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

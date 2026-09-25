@@ -52,7 +52,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.utils.Emoji
 import heizige.kk.khatkit.app.utils.EmojiData
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.search
 
 @Preview
@@ -63,7 +63,7 @@ fun EmojiPicker(
     showSearch: Boolean = true,
     height: Int = 400
 ) {
-    val emojiData = koinInject<EmojiData>()
+    val emojiData = rememberAppEntryPoint().emojiData()
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryIndex by remember { mutableIntStateOf(0) }
     var showModifierPicker by remember { mutableStateOf(false) }

@@ -1,5 +1,11 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
+
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
+
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -48,8 +54,9 @@ import kotlin.uuid.Uuid
 
 private const val TAG = "ChatVM"
 
-class ChatVM(
-    id: String,
+@HiltViewModel(assistedFactory = ChatVM.Factory::class)
+class ChatVM @AssistedInject constructor(
+    @Assisted id: String,
     private val context: Application,
     private val settingsStore: SettingsStore,
     private val conversationRepo: ConversationRepository,
@@ -58,6 +65,10 @@ class ChatVM(
     private val analytics: AppAnalytics,
     private val filesManager: FilesManager,
 ) : ViewModel() {
+    @AssistedFactory
+    interface Factory {
+        fun create(id: String): ChatVM
+    }
     private val _conversationId: Uuid = Uuid.parse(id)
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)
     var chatListInitialized by mutableStateOf(false) // 聊天列表是否已经滚动到底部

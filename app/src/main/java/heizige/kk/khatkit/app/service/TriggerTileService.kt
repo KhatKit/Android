@@ -4,7 +4,8 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.card.CardManifest
-import org.koin.android.ext.android.inject
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * 快捷设置磁贴：点击运行绑定的卡片。
@@ -13,9 +14,11 @@ import org.koin.android.ext.android.inject
  * （见 [TriggerTileRegistry]），卡片与槽位的绑定在设置页里通过「添加到快捷设置」完成。
  * 磁贴名称显示绑定卡片；未绑定或卡片被停用时置为 INACTIVE。
  */
+@AndroidEntryPoint
 abstract class TriggerTileServiceBase : TileService() {
 
-    private val controller: TriggerController by inject()
+    @Inject
+    lateinit var controller: TriggerController
 
     /** 槽位下标，决定读取哪一条卡片绑定。 */
     protected abstract val slot: Int

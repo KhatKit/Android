@@ -44,7 +44,7 @@ import heizige.kk.khatkit.app.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.ui.theme.extendColors
 import heizige.kk.khatkit.app.utils.UiState
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.error
 import heizige.kk.khatkit.app.ui.icons.link
 
@@ -53,7 +53,7 @@ fun ProviderConnectionTester(
     internalProvider: ProviderSetting,
 ) {
     var showTestDialog by remember { mutableStateOf(false) }
-    val providerManager = koinInject<ProviderManager>()
+    val providerManager = rememberAppEntryPoint().providerManager()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 

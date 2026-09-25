@@ -68,7 +68,7 @@ import heizige.kk.khatkit.app.ui.context.LocalNavController
 import heizige.kk.khatkit.app.ui.context.LocalSettings
 import heizige.kk.khatkit.app.ui.hooks.ChatInputState
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.deployedCode
 import heizige.kk.khatkit.app.ui.icons.extension
@@ -108,7 +108,7 @@ internal fun FilesPicker(
     val settings = LocalSettings.current
     val provider = settings.getCurrentChatModel()?.findProvider(providers = settings.providers)
     val navController = LocalNavController.current
-    val workspaceRepository: WorkspaceRepository = koinInject()
+    val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     val workspaces by workspaceRepository.listFlow().collectAsState(initial = emptyList())
 
     Column(

@@ -87,7 +87,7 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.hooks.useEditState
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import heizige.kk.khatkit.app.ui.icons.add
@@ -102,7 +102,7 @@ import heizige.kk.khatkit.app.ui.icons.menuBook
 import heizige.kk.khatkit.app.ui.icons.uploadFile
 
 @Composable
-fun PromptPage(vm: PromptVM = koinViewModel()) {
+fun PromptPage(vm: PromptVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()

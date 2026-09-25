@@ -90,9 +90,8 @@ import heizige.kk.khatkit.app.utils.UiState
 import heizige.kk.khatkit.app.utils.insertAtCursor
 import heizige.kk.khatkit.app.utils.onError
 import heizige.kk.khatkit.app.utils.onSuccess
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.add
@@ -105,11 +104,7 @@ import heizige.kk.khatkit.app.ui.icons.sync
 
 @Composable
 fun AssistantPromptPage(id: String) {
-    val vm: AssistantDetailVM = koinViewModel(
-        parameters = {
-            parametersOf(id)
-        }
-    )
+    val vm: AssistantDetailVM = hiltViewModel<AssistantDetailVM, AssistantDetailVM.Factory>(creationCallback = { it.create(id) })
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -145,7 +140,7 @@ private fun AssistantPromptContent(
     onUpdate: (Assistant) -> Unit
 ) {
     val context = LocalContext.current
-    val templateTransformer = koinInject<TemplateTransformer>()
+    val templateTransformer = rememberAppEntryPoint().templateTransformer()
 
     Column(
         modifier = Modifier

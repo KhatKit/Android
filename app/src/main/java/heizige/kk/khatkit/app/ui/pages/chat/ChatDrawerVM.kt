@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.chat
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -32,7 +35,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.uuid.Uuid
 
-class ChatDrawerVM(
+@HiltViewModel
+class ChatDrawerVM @Inject constructor(
     private val context: Application,
     private val settingsStore: SettingsStore,
     conversationRepo: ConversationRepository,

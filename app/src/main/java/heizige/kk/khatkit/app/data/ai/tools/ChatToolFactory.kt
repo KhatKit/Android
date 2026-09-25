@@ -11,6 +11,7 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.app.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.data.datastore.Settings
+import heizige.kk.khatkit.app.data.files.FilesManager
 import heizige.kk.khatkit.app.data.files.SkillManager
 import heizige.kk.khatkit.app.data.model.Assistant
 import heizige.kk.khatkit.app.data.repository.ConversationRepository
@@ -37,6 +38,7 @@ class ChatToolFactory(
     private val mcpManager: McpManager,
     private val skillManager: SkillManager,
     private val workspaceRepository: WorkspaceRepository,
+    private val filesManager: FilesManager,
     private val khatKitToolProvider: KhatKitToolProvider? = null,
 ) {
     suspend fun createTools(
@@ -111,6 +113,6 @@ class ChatToolFactory(
             )
             return emptyList()
         }
-        return createWorkspaceTools(workspaceId, workspaceRepository, cwd)
+        return createWorkspaceTools(workspaceId, workspaceRepository, filesManager, cwd)
     }
 }

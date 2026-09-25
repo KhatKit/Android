@@ -90,7 +90,7 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.data.ai.tools.ConversationCardFactory
 import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.ui.theme.KhatKitTheme
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.utils.exportImage
 import heizige.kk.khatkit.app.utils.getActivity
 import heizige.kk.khatkit.app.utils.JsonInstantPretty
@@ -121,7 +121,7 @@ fun ChatExportSheet(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val settings = LocalSettings.current
-    val khatKitProvider: KhatKitToolProvider = koinInject()
+    val khatKitProvider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
     var imageExportOptions by remember { mutableStateOf(ImageExportOptions()) }
 
     if (visible) {

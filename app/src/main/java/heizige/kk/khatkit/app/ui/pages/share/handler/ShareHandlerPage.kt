@@ -32,12 +32,11 @@ import heizige.kk.khatkit.app.ui.context.LocalNavController
 import heizige.kk.khatkit.app.utils.base64Encode
 import heizige.kk.khatkit.app.utils.navigateToChatPage
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 fun ShareHandlerPage(text: String, image: String?) {
-    val vm: ShareHandlerVM = koinViewModel(parameters = { parametersOf(text) })
+    val vm: ShareHandlerVM = hiltViewModel<ShareHandlerVM, ShareHandlerVM.Factory>(creationCallback = { it.create(text) })
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val navController = LocalNavController.current

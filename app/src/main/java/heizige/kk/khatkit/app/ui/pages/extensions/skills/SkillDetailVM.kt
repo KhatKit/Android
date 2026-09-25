@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.extensions.skills
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +28,8 @@ sealed class SkillFileNode {
     ) : SkillFileNode()
 }
 
-class SkillDetailVM(
+@HiltViewModel
+class SkillDetailVM @Inject constructor(
     private val skillManager: SkillManager,
 ) : ViewModel() {
 

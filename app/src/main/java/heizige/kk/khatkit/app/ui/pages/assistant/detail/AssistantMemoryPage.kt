@@ -49,19 +49,14 @@ import heizige.kk.khatkit.app.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.ui.hooks.useEditState
 import heizige.kk.khatkit.app.ui.theme.CustomColors
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.edit
 
 @Composable
 fun AssistantMemoryPage(id: String) {
-    val vm: AssistantDetailVM = koinViewModel(
-        parameters = {
-            parametersOf(id)
-        }
-    )
+    val vm: AssistantDetailVM = hiltViewModel<AssistantDetailVM, AssistantDetailVM.Factory>(creationCallback = { it.create(id) })
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val memories by vm.memories.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

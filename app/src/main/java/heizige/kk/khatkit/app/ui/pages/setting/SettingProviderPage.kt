@@ -73,7 +73,7 @@ import heizige.kk.khatkit.app.ui.pages.setting.components.ProviderConfigure
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.ImageUtils
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
@@ -88,7 +88,7 @@ import heizige.kk.khatkit.app.ui.icons.search
 import heizige.kk.khatkit.app.ui.icons.uploadFile
 
 @Composable
-fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
+fun SettingProviderPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

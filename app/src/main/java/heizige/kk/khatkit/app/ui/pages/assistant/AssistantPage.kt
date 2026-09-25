@@ -68,7 +68,7 @@ import heizige.kk.khatkit.app.ui.hooks.useEditState
 import heizige.kk.khatkit.app.ui.modifier.onClick
 import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantImporter
 import heizige.kk.khatkit.app.ui.theme.CustomColors
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
@@ -82,7 +82,7 @@ import heizige.kk.khatkit.app.ui.icons.neurology
 import heizige.kk.khatkit.app.ui.icons.search
 
 @Composable
-fun AssistantPage(vm: AssistantVM = koinViewModel()) {
+fun AssistantPage(vm: AssistantVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val createState = useEditState<Assistant> {
         vm.addAssistant(it)

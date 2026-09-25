@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.search
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -37,7 +40,8 @@ private data class SearchRequest(
     val debounce: Boolean,
 )
 
-class SearchVM(
+@HiltViewModel
+class SearchVM @Inject constructor(
     private val context: Application,
     private val conversationRepo: ConversationRepository,
     private val settingsStore: SettingsStore,

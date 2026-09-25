@@ -22,9 +22,7 @@ import heizige.kk.khatkit.tts.model.TTSResponse
 import heizige.kk.khatkit.tts.provider.TTSManager
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
 import heizige.kk.khatkit.tts.controller.TtsController
-import org.koin.compose.koinInject
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 private const val TAG = "TTS"
 
@@ -35,14 +33,16 @@ private const val TAG = "TTS"
 @Composable
 fun rememberCustomTtsState(): CustomTtsState {
     val context = LocalContext.current
-    val settingsStore = koinInject<SettingsStore>()
+    val settingsStore = rememberAppEntryPoint().settingsStore()
+    val ttsManager = rememberAppEntryPoint().ttsManager()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
 
     // Remember the CustomTtsState instance across recompositions
     val ttsState = remember {
         CustomTtsStateImpl(
             context = context.applicationContext,
-            settingsStore = settingsStore
+            settingsStore = settingsStore,
+            ttsManager = ttsManager,
         )
     }
 
@@ -122,11 +122,11 @@ interface CustomTtsState {
  */
 private class CustomTtsStateImpl(
     private val context: Context,
-    private val settingsStore: SettingsStore
-) : CustomTtsState, KoinComponent {
+    private val settingsStore: SettingsStore,
+    private val ttsManager: TTSManager,
+) : CustomTtsState {
 
-    private val ttsManager by inject<TTSManager>()
-    private val controller by lazy { heizige.kk.khatkit.tts.controller.TtsController(context, ttsManager) }
+    private val controller by lazy { TtsController(context, ttsManager) }
 
     private val scope = CoroutineScope(Dispatchers.Main)
     private var currentJob: Job? = null

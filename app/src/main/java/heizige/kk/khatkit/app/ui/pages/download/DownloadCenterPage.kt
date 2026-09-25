@@ -33,11 +33,11 @@ import heizige.kk.khatkit.app.ui.icons.pause
 import heizige.kk.khatkit.app.ui.icons.playArrow
 import heizige.kk.khatkit.app.ui.icons.stopCircle
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 /** 全局下载中心：KhatKit bridge 下载（含脚本创建）与更新包下载都汇总到这里。 */
 @Composable
-fun DownloadCenterPage(vm: DownloadCenterVM = koinViewModel()) {
+fun DownloadCenterPage(vm: DownloadCenterVM = hiltViewModel()) {
     val tasks by vm.tasks.collectAsStateWithLifecycle()
 
     Scaffold(

@@ -77,7 +77,7 @@ import heizige.kk.khatkit.app.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khromia.text.OptionsText
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.add
@@ -95,7 +95,7 @@ private val themeJson = Json {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingThemePage(vm: SettingVM = koinViewModel()) {
+fun SettingThemePage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val clipboardManager = LocalClipboard.current

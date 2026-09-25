@@ -1,5 +1,11 @@
 package heizige.kk.khatkit.app.ui.pages.extensions.workspace
 
+
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
+
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -26,11 +32,16 @@ import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceCommandResult
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 
-class WorkspaceDetailVM(
-    private val id: String,
+@HiltViewModel(assistedFactory = WorkspaceDetailVM.Factory::class)
+class WorkspaceDetailVM @AssistedInject constructor(
+    @Assisted private val id: String,
     private val repository: WorkspaceRepository,
     private val terminalSessionManager: WorkspaceTerminalSessionManager,
 ) : ViewModel() {
+    @AssistedFactory
+    interface Factory {
+        fun create(id: String): WorkspaceDetailVM
+    }
     private val _state = MutableStateFlow(WorkspaceDetailState())
     val state = _state.asStateFlow()
 

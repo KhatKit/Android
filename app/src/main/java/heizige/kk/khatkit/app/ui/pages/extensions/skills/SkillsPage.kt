@@ -59,7 +59,7 @@ import heizige.kk.khatkit.app.ui.context.LocalNavController
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.ui.icons.add
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.download
@@ -70,7 +70,7 @@ import heizige.kk.khatkit.app.ui.icons.uploadFile
 @Composable
 fun SkillsPage() {
     val navController = LocalNavController.current
-    val vm = koinViewModel<SkillsVM>()
+    val vm = hiltViewModel<SkillsVM>()
     val skills by vm.skills.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current

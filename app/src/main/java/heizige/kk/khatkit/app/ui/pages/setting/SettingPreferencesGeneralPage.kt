@@ -35,11 +35,11 @@ import heizige.kk.khatkit.app.ui.components.ui.Select
 import heizige.kk.khatkit.app.ui.hooks.rememberSharedPreferenceBoolean
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 
 @Composable
-fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
+fun SettingPreferencesGeneralPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var ttsPlaybackSpeed by remember(settings.defaultTTSPlaybackSpeed) {

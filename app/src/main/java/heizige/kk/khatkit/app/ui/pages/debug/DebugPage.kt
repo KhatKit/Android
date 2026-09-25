@@ -55,13 +55,13 @@ import heizige.kk.khatkit.app.ui.components.richtext.Mermaid
 import heizige.kk.khatkit.app.ui.context.LocalSettings
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 
 @Composable
-fun DebugPage(vm: DebugVM = koinViewModel()) {
+fun DebugPage(vm: DebugVM = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     Scaffold(

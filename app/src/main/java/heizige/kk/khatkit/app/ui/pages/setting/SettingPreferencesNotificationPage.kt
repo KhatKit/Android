@@ -39,7 +39,7 @@ import heizige.kk.khatkit.app.ui.components.ui.permission.rememberPermissionStat
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.app.utils.toLocalDateTime
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
 import heizige.kk.khatkit.app.ui.icons.arrowForward
 
@@ -47,7 +47,7 @@ private val UPDATE_PAUSE_DAY_OPTIONS = listOf(7, 14, 21)
 private const val MILLIS_PER_DAY = 24 * 60 * 60 * 1_000L
 
 @Composable
-fun SettingPreferencesNotificationPage(vm: SettingVM = koinViewModel()) {
+fun SettingPreferencesNotificationPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var showUpdatePauseDialog by remember { mutableStateOf(false) }

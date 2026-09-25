@@ -1,5 +1,11 @@
 package heizige.kk.khatkit.app.ui.pages.assistant.detail
 
+
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
+
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
@@ -29,14 +35,19 @@ import kotlin.uuid.Uuid
 
 private const val TAG = "AssistantDetailVM"
 
-class AssistantDetailVM(
-    private val id: String,
+@HiltViewModel(assistedFactory = AssistantDetailVM.Factory::class)
+class AssistantDetailVM @AssistedInject constructor(
+    @Assisted private val id: String,
     private val settingsStore: SettingsStore,
     private val memoryRepository: MemoryRepository,
     private val filesManager: FilesManager,
     private val skillManager: SkillManager,
     private val workspaceRepository: WorkspaceRepository,
 ) : ViewModel() {
+    @AssistedFactory
+    interface Factory {
+        fun create(id: String): AssistantDetailVM
+    }
     private val assistantId = Uuid.parse(id)
 
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())

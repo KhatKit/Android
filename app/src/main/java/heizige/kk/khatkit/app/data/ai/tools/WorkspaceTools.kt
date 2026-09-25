@@ -17,7 +17,6 @@ import heizige.kk.khatkit.app.utils.generateUnifiedDiff
 import heizige.kk.khatkit.workspace.WorkspaceCommandResult
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceManager
-import org.koin.java.KoinJavaComponent.getKoin
 import java.io.ByteArrayOutputStream
 
 private const val SHELL_TIMEOUT_MAX_SECONDS = 600L
@@ -36,6 +35,7 @@ fun resolveWorkspaceToolApproval(name: String, overrides: Map<String, Boolean>):
 suspend fun createWorkspaceTools(
     workspaceId: String?,
     workspaceRepository: WorkspaceRepository,
+    filesManager: FilesManager,
     cwd: String? = null,
 ): List<Tool> {
     if (workspaceId.isNullOrBlank()) return emptyList()
@@ -45,7 +45,7 @@ suspend fun createWorkspaceTools(
     val shellCwd = cwd?.removePrefix("/workspace/")?.removePrefix("/workspace")
 
     return listOf(
-        createReadFileTool(workspaceId, ::needsApproval, workspaceRepository),
+        createReadFileTool(workspaceId, ::needsApproval, workspaceRepository, filesManager),
         createWriteFileTool(workspaceId, ::needsApproval, workspaceRepository),
         createEditFileTool(workspaceId, ::needsApproval, workspaceRepository),
         createShellTool(workspaceId, ::needsApproval, workspaceRepository, shellCwd),
@@ -63,6 +63,7 @@ private fun createReadFileTool(
     workspaceId: String,
     needsApproval: (String) -> Boolean,
     workspaceRepository: WorkspaceRepository,
+    filesManager: FilesManager,
 ) = Tool(
     name = "workspace_read_file",
     description = """
@@ -82,7 +83,7 @@ private fun createReadFileTool(
     execute = {
         val path = it.jsonObject.absolutePath("path")
         if (path.isImagePath()) {
-            workspaceRepository.readImageInRootfs(workspaceId, path)
+            workspaceRepository.readImageInRootfs(workspaceId, path, filesManager)
         } else {
             val text = workspaceRepository.readTextInRootfs(workspaceId, path)
             listOf(
@@ -295,10 +296,10 @@ private suspend fun WorkspaceRepository.readRootfsBuffer(
 private suspend fun WorkspaceRepository.readImageInRootfs(
     workspaceId: String,
     path: String,
+    filesManager: FilesManager,
 ): List<UIMessagePart> {
     val bytes = readRootfsBuffer(workspaceId, path).toByteArray()
 
-    val filesManager = getKoin().get<FilesManager>()
     val uris = filesManager.createChatFilesByByteArrays(listOf(bytes))
     return listOf(
         UIMessagePart.Image(url = uris.first().toString()),

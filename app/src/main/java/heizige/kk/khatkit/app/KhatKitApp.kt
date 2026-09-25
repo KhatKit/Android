@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import heizige.kk.khatkit.app.data.files.FileFolders
 import heizige.kk.khatkit.app.automation.AutomationBus
 import heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.service.ChatNotificationManager
 import java.io.File
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -27,10 +28,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import heizige.kk.khatkit.common.android.appTempFolder
-import heizige.kk.khatkit.app.di.appModule
-import heizige.kk.khatkit.app.di.dataSourceModule
-import heizige.kk.khatkit.app.di.repositoryModule
-import heizige.kk.khatkit.app.di.viewModelModule
 import heizige.kk.khatkit.app.data.files.FilesManager
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.data.sync.BackupManager
@@ -41,11 +38,10 @@ import heizige.kk.khatkit.app.utils.CrashHandler
 import heizige.kk.khatkit.app.utils.DatabaseUtil
 import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.WorkspaceManager
-import org.koin.android.ext.android.get
-import org.koin.android.ext.koin.androidContext
-import org.koin.android.ext.koin.androidLogger
-import org.koin.androidx.workmanager.koin.workManagerFactory
-import org.koin.core.context.startKoin
+import dagger.Lazy
+import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private const val TAG = "KhatKitApp"
 
@@ -53,10 +49,33 @@ const val CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID = "chat_completed"
 const val CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID = "chat_live_update"
 const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 
+@HiltAndroidApp
 class KhatKitApp : Application() {
+    @Inject
+    lateinit var appScope: AppScope
+
+    @Inject
+    lateinit var settingsStore: SettingsStore
+
+    @Inject
+    lateinit var workspaceManager: WorkspaceManager
+
+    @Inject
+    lateinit var workspaceRepository: WorkspaceRepository
+
+    @Inject
+    lateinit var filesManager: FilesManager
+
+    @Inject
+    lateinit var khatKitToolProvider: KhatKitToolProvider
+
+    // createdAtStart 语义：恢复完成后再触发实例化，保证后台生成事件不会丢失
+    @Inject
+    lateinit var chatNotificationManager: Lazy<ChatNotificationManager>
+
     override fun onCreate() {
         super.onCreate()
-        // Restore files and settings before eager Koin singletons or workers can access them.
+        // Restore files and settings before eager singletons or workers can access them.
         try {
             val restored = runBlocking(Dispatchers.IO) {
                 BackupManager.applyPendingRestore(this@KhatKitApp, JsonInstant)
@@ -68,12 +87,7 @@ class KhatKitApp : Application() {
             Log.e(TAG, "Backup restore rolled back", e)
             Toast.makeText(this, "备份恢复失败，已保留原数据。请重新导入备份。", Toast.LENGTH_LONG).show()
         }
-        startKoin {
-            androidLogger()
-            androidContext(this@KhatKitApp)
-            workManagerFactory()
-            modules(appModule, viewModelModule, dataSourceModule, repositoryModule)
-        }
+        chatNotificationManager.get()
         this.createNotificationChannel()
 
         // set cursor window size to 32MB
@@ -102,8 +116,7 @@ class KhatKitApp : Application() {
 
         // 自动化状态看板：状态出现时拉起悬浮窗服务（未授予悬浮权限时静默跳过）
         AutomationBus.install(this)
-        val khatKitTools = get<KhatKitToolProvider>()
-        AutomationBus.setHandsOffProvider { khatKitTools.handsOffMode }
+        AutomationBus.setHandsOffProvider { khatKitToolProvider.handsOffMode }
 
         // Increment launch count
         incrementLaunchCount()
@@ -112,12 +125,11 @@ class KhatKitApp : Application() {
     }
 
     private fun incrementLaunchCount() {
-        get<AppScope>().launch {
+        appScope.launch {
             runCatching {
-                val store = get<SettingsStore>()
-                val current = store.settingsFlowRaw.first()
-                store.update(current.copy(launchCount = current.launchCount + 1))
-                Log.i(TAG, "incrementLaunchCount: ${store.settingsFlowRaw.first().launchCount}")
+                val current = settingsStore.settingsFlowRaw.first()
+                settingsStore.update(current.copy(launchCount = current.launchCount + 1))
+                Log.i(TAG, "incrementLaunchCount: ${settingsStore.settingsFlowRaw.first().launchCount}")
             }.onFailure {
                 Log.e(TAG, "incrementLaunchCount failed", it)
             }
@@ -125,9 +137,9 @@ class KhatKitApp : Application() {
     }
 
     private fun cleanupWorkspaceTempDirs() {
-        get<AppScope>().launch(Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             runCatching {
-                get<WorkspaceManager>().cleanupAllTempDirs()
+                workspaceManager.cleanupAllTempDirs()
             }.onFailure {
                 Log.e(TAG, "cleanupWorkspaceTempDirs failed", it)
             }
@@ -135,9 +147,9 @@ class KhatKitApp : Application() {
     }
 
     private fun checkWorkspaceIntegrity() {
-        get<AppScope>().launch(Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             runCatching {
-                get<WorkspaceRepository>().checkIntegrity()
+                workspaceRepository.checkIntegrity()
             }.onFailure {
                 Log.e(TAG, "checkWorkspaceIntegrity failed", it)
             }
@@ -145,7 +157,7 @@ class KhatKitApp : Application() {
     }
 
     private fun deleteTempFiles() {
-        get<AppScope>().launch(Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             val dir = appTempFolder
             if (dir.exists()) {
                 dir.deleteRecursively()
@@ -154,20 +166,22 @@ class KhatKitApp : Application() {
     }
 
     private fun cleanupToolOutputs() {
-        get<AppScope>().launch(Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             runCatching {
                 val dir = File(filesDir, FileFolders.TOOL_OUTPUTS)
                 if (dir.exists()) {
                     dir.deleteRecursively()
                 }
+            }.onFailure {
+                Log.e(TAG, "cleanupToolOutputs failed", it)
             }
         }
     }
 
     private fun syncManagedFiles() {
-        get<AppScope>().launch(Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             runCatching {
-                get<FilesManager>().syncFolder()
+                filesManager.syncFolder()
             }.onFailure {
                 Log.e(TAG, "syncManagedFiles failed", it)
             }
@@ -175,10 +189,10 @@ class KhatKitApp : Application() {
     }
 
     private fun startWebServerIfEnabled() {
-        get<AppScope>().launch {
+        appScope.launch {
             runCatching {
                 delay(500)
-                val settings = get<SettingsStore>().settingsFlowRaw.first()
+                val settings = settingsStore.settingsFlowRaw.first()
                 if (settings.webServerEnabled) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                         ContextCompat.checkSelfPermission(
@@ -245,12 +259,13 @@ class KhatKitApp : Application() {
 
     override fun onTerminate() {
         super.onTerminate()
-        get<AppScope>().cancel()
+        appScope.cancel()
         stopService(Intent(this, WebServerService::class.java))
     }
 }
 
-class AppScope : CoroutineScope by CoroutineScope(
+@Singleton
+class AppScope @Inject constructor() : CoroutineScope by CoroutineScope(
     SupervisorJob()
         + Dispatchers.Main
         + CoroutineName("AppScope")

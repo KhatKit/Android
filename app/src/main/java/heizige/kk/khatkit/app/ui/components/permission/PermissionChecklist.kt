@@ -66,7 +66,7 @@ import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeStatusLevel
 import heizige.kk.kedge.components.KedgeWarningCard
 import heizige.kk.kedge.theme.KedgeColors
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -84,7 +84,7 @@ fun PermissionChecklist(
     val context = LocalContext.current
     val activity = context as? Activity
     val cards = listCardStyle()
-    val provider: KhatKitToolProvider = koinInject()
+    val provider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
 
     var rootEnabled by remember { mutableStateOf(provider.enableRoot) }
     var rootAvailable by remember { mutableStateOf(RootBridgeImpl.isAvailable()) }

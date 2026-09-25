@@ -183,7 +183,7 @@ import heizige.kk.khatkit.app.ui.icons.smartphone
 import heizige.kk.khatkit.app.ui.icons.tune
 import heizige.kk.khatkit.app.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.ui.icons.wavingHand
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -611,8 +611,8 @@ private fun GreetingAgreementScreen(
 
 @Composable
 private fun GreetingSettingsScreen() {
-    val settingsStore: SettingsStore = koinInject()
-    val provider: KhatKitToolProvider = koinInject()
+    val settingsStore: SettingsStore = rememberAppEntryPoint().settingsStore()
+    val provider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val colorMode = rememberColorMode()
     val scope = rememberCoroutineScope()
@@ -820,8 +820,8 @@ private fun GreetingPermissionsScreen() {
 
 @Composable
 private fun GreetingAiSetupScreen() {
-    val settingsStore: SettingsStore = koinInject()
-    val providerManager: ProviderManager = koinInject()
+    val settingsStore: SettingsStore = rememberAppEntryPoint().settingsStore()
+    val providerManager: ProviderManager = rememberAppEntryPoint().providerManager()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val cards = listCardStyle()

@@ -32,10 +32,10 @@ import heizige.kk.khatkit.app.ui.pages.backup.tabs.ReminderTab
 import heizige.kk.khatkit.app.ui.pages.backup.tabs.S3Tab
 import heizige.kk.khatkit.app.ui.pages.backup.tabs.WebDavTab
 import heizige.kk.khatkit.app.ui.theme.CustomColors
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
-fun BackupPage(vm: BackupVM = koinViewModel()) {
+fun BackupPage(vm: BackupVM = hiltViewModel()) {
     val pagerState = rememberPagerState { 4 }
     val scope = rememberCoroutineScope()
     var showRestartDialog by remember { mutableStateOf(false) }

@@ -43,7 +43,7 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.utils.ImageUtils
 import heizige.kk.khatkit.app.utils.jsonPrimitiveOrNull
 import heizige.kk.khatkit.app.R
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 @Composable
 fun AssistantImporter(
@@ -64,7 +64,7 @@ private fun SillyTavernImporter(
     onImport: (Assistant) -> Unit
 ) {
     val context = LocalContext.current
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     var isLoading by remember { mutableStateOf(false) }

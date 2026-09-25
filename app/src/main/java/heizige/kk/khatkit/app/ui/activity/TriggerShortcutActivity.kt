@@ -5,7 +5,8 @@ import androidx.activity.ComponentActivity
 import heizige.kk.khatkit.app.service.TriggerController
 import heizige.kk.khatkit.app.service.TriggerShortcutPublisher
 import heizige.kk.khatkit.card.CardManifest
-import org.koin.android.ext.android.inject
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * 桌面动态快捷方式的落地 Activity：读取卡片名并交给 [TriggerController] 运行。
@@ -13,9 +14,11 @@ import org.koin.android.ext.android.inject
  * 仅接受声明了 `shortcut` 事件的卡片（[TriggerController.runExternal] 内部校验），
  * 运行后立即结束，不展示界面。
  */
+@AndroidEntryPoint
 class TriggerShortcutActivity : ComponentActivity() {
 
-    private val controller: TriggerController by inject()
+    @Inject
+    lateinit var controller: TriggerController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

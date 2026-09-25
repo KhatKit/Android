@@ -60,7 +60,7 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
 import heizige.kk.khatkit.web.WebServerManager
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.ui.icons.playArrow
 import heizige.kk.khatkit.app.ui.icons.stop
 import heizige.kk.khatkit.app.ui.icons.visibility
@@ -68,8 +68,8 @@ import heizige.kk.khatkit.app.ui.icons.visibilityOff
 
 @Composable
 fun SettingWebPage() {
-    val webServerManager: WebServerManager = koinInject()
-    val settingsStore: SettingsStore = koinInject()
+    val webServerManager: WebServerManager = rememberAppEntryPoint().webServerManager()
+    val settingsStore: SettingsStore = rememberAppEntryPoint().settingsStore()
     val settings = LocalSettings.current
     val serverState by webServerManager.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

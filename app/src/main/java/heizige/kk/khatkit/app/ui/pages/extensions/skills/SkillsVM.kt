@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.extensions.skills
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -21,7 +24,8 @@ import heizige.kk.khatkit.app.data.files.SkillMetadata
 import org.json.JSONArray
 import kotlin.collections.iterator
 
-class SkillsVM(
+@HiltViewModel
+class SkillsVM @Inject constructor(
     private val skillManager: SkillManager,
 ) : ViewModel() {
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())

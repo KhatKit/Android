@@ -54,14 +54,15 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.ui.theme.rememberChatFontFamily
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.io.File
 import kotlin.math.roundToInt
 import heizige.kk.khatkit.app.ui.icons.deleteForever
 import heizige.kk.khatkit.app.ui.icons.uploadFile
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 @Composable
-fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
+fun SettingPreferencesUIPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     val context = LocalContext.current
@@ -69,7 +70,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
     val scope = rememberCoroutineScope()
     val chatFontFamily = rememberChatFontFamily(displaySetting)
     val khatKitProvider: heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider =
-        org.koin.compose.koinInject()
+        rememberAppEntryPoint().khatKitToolProvider()
     var uiStyle by remember(settings) { mutableStateOf(khatKitProvider.uiStyle) }
 
     fun updateDisplaySetting(setting: DisplaySetting) {

@@ -26,13 +26,13 @@ import heizige.kk.khatkit.asr.providers.VolcengineASRController
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.data.datastore.resolveBestASRProvider
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 @Composable
 fun rememberCustomAsrState(): CustomAsrState {
     val context = LocalContext.current
-    val settingsStore = koinInject<SettingsStore>()
-    val httpClient = koinInject<OkHttpClient>()
+    val settingsStore = rememberAppEntryPoint().settingsStore()
+    val httpClient = rememberAppEntryPoint().okHttpClient()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
 
     val asrState = remember {

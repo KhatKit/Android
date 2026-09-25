@@ -42,7 +42,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.data.model.Assistant
 import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.io.File
 import heizige.kk.khatkit.app.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.ui.icons.share
@@ -70,7 +70,7 @@ internal fun EditedFilesList(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val workspaceRepository: WorkspaceRepository = koinInject()
+    val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
 
     var selectedPath by remember { mutableStateOf<String?>(null) }
     var expanded by remember { mutableStateOf(false) }

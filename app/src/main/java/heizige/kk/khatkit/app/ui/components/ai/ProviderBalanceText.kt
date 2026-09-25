@@ -19,7 +19,7 @@ import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.utils.SimpleCache
 import heizige.kk.khatkit.app.utils.toDp
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.util.concurrent.TimeUnit
 import heizige.kk.khatkit.app.ui.icons.payments
 
@@ -39,7 +39,7 @@ fun ProviderBalanceText(
         return
     }
 
-    val providerManager = koinInject<ProviderManager>()
+    val providerManager = rememberAppEntryPoint().providerManager()
 
     val value = produceState(initialValue = "~", key1 = providerSetting.id, key2 = providerSetting.balanceOption) {
         // Check cache first

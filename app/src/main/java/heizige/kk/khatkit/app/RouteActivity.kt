@@ -133,16 +133,21 @@ import heizige.kk.khatkit.app.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.utils.CrashHandler
 import heizige.kk.khatkit.app.utils.openUsageAccessSettings
 import io.ktor.client.HttpClient
-import org.koin.android.ext.android.inject
-import org.koin.compose.koinInject
+import dagger.hilt.android.AndroidEntryPoint
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
+import javax.inject.Inject
 import kotlin.uuid.Uuid
 
 private const val TAG = "RouteActivity"
 private const val ACTION_TRANSLATE = "heizige.kk.khatkit.app.action.TRANSLATE"
 
+@AndroidEntryPoint
 class RouteActivity : ComponentActivity() {
-    private val ktorHttpClient by inject<HttpClient>()
-    private val settingsStore by inject<SettingsStore>()
+    @Inject
+    lateinit var ktorHttpClient: HttpClient
+
+    @Inject
+    lateinit var settingsStore: SettingsStore
     private var navStack: MutableList<NavKey>? = null
     private val pendingIntents = ArrayDeque<Intent>()
 
@@ -192,7 +197,7 @@ class RouteActivity : ComponentActivity() {
                         }
                         .build()
                 }
-                val khatKitProvider = koinInject<heizige.kk.khatkit.app.data.ai.tools.KhatKitToolProvider>()
+                val khatKitProvider = rememberAppEntryPoint().khatKitToolProvider()
                 val appContent: @Composable () -> Unit = {
                     AppRoutes()
                     KhatKitUiHost()
@@ -250,7 +255,7 @@ class RouteActivity : ComponentActivity() {
         val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
         val tts = rememberCustomTtsState()
         val asr = rememberCustomAsrState()
-        val eventBus = koinInject<AppEventBus>()
+        val eventBus = rememberAppEntryPoint().appEventBus()
         LaunchedEffect(tts) {
             eventBus.events.collect { event ->
                 when (event) {

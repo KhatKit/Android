@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.translator
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -16,7 +19,8 @@ import java.util.Locale
 
 private const val TAG = "TranslatorVM"
 
-class TranslatorVM(
+@HiltViewModel
+class TranslatorVM @Inject constructor(
     private val settingsStore: SettingsStore,
     private val translationHandler: TranslationHandler,
 ) : ViewModel() {

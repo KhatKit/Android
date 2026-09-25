@@ -160,7 +160,7 @@ import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults as MiuixTextFieldDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -284,7 +284,7 @@ fun ChatInput(
     val asr = LocalASRState.current
     val asrState by asr.state.collectAsState()
     val hapticFeedback = LocalHapticFeedback.current
-    val soundEffectPlayer: SoundEffectPlayer = koinInject()
+    val soundEffectPlayer: SoundEffectPlayer = rememberAppEntryPoint().soundEffectPlayer()
     LaunchedEffect(Unit) {
         soundEffectPlayer.preload(R.raw.asr_start, R.raw.asr_stop)
     }
@@ -749,7 +749,7 @@ private fun TextInputRow(
     modifier: Modifier = Modifier,
 ) {
     val settings = LocalSettings.current
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val assistant = settings.getCurrentAssistant()
     val quickMessages = remember(settings.quickMessages, assistant.quickMessageIds) {
         settings.getQuickMessagesOfAssistant(assistant)

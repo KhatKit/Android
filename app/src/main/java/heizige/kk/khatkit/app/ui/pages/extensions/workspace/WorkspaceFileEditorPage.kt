@@ -38,7 +38,7 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 /**
  * 工作区文本文件编辑/预览页.
@@ -51,7 +51,7 @@ fun WorkspaceFileEditorPage(
     area: WorkspaceStorageArea,
     path: String,
 ) {
-    val repository = koinInject<WorkspaceRepository>()
+    val repository = rememberAppEntryPoint().workspaceRepository()
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val editable = area == WorkspaceStorageArea.FILES

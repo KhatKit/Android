@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.assistant
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,7 +18,8 @@ import heizige.kk.khatkit.app.data.model.Avatar
 import heizige.kk.khatkit.app.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.data.repository.MemoryRepository
 
-class AssistantVM(
+@HiltViewModel
+class AssistantVM @Inject constructor(
     private val settingsStore: SettingsStore,
     private val memoryRepository: MemoryRepository,
     private val conversationRepo: ConversationRepository,

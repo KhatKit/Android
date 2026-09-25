@@ -42,14 +42,14 @@ import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.ui.theme.CustomColors
 import heizige.kk.khatkit.app.utils.plus
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.arrowForward
 import heizige.kk.khatkit.app.ui.icons.editNote
 import heizige.kk.khatkit.app.ui.icons.neurology
 
 @Composable
-fun SettingModelPage(vm: SettingVM = koinViewModel()) {
+fun SettingModelPage(vm: SettingVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pagerState = rememberPagerState { 2 }

@@ -20,10 +20,12 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.WEB_SERVER_NOTIFICATION_CHANNEL_ID
 import heizige.kk.khatkit.app.data.datastore.SettingsStore
 import heizige.kk.khatkit.web.WebServerManager
-import org.koin.android.ext.android.inject
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 private const val TAG = "WebServerService"
 
+@AndroidEntryPoint
 class WebServerService : Service() {
 
     companion object {
@@ -34,8 +36,11 @@ class WebServerService : Service() {
         const val NOTIFICATION_ID = 2001
     }
 
-    private val webServerManager: WebServerManager by inject()
-    private val settingsStore: SettingsStore by inject()
+    @Inject
+    lateinit var webServerManager: WebServerManager
+
+    @Inject
+    lateinit var settingsStore: SettingsStore
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var stateObserverJob: Job? = null

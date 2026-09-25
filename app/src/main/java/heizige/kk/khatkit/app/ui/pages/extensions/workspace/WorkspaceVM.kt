@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.ui.pages.extensions.workspace
 
+
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
@@ -13,7 +16,8 @@ import heizige.kk.khatkit.app.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.RootfsInstallProgress
 
-class WorkspaceVM(
+@HiltViewModel
+class WorkspaceVM @Inject constructor(
     private val repository: WorkspaceRepository,
     private val terminalSessionManager: WorkspaceTerminalSessionManager,
 ) : ViewModel() {

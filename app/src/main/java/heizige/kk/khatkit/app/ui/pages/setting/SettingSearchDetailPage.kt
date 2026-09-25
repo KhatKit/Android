@@ -58,7 +58,7 @@ import heizige.kk.khatkit.search.SearchCommonOptions
 import heizige.kk.khatkit.search.SearchResult
 import heizige.kk.khatkit.search.SearchService
 import heizige.kk.khatkit.search.SearchServiceOptions
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.playArrow
@@ -66,7 +66,7 @@ import heizige.kk.khatkit.app.ui.icons.playArrow
 @Composable
 fun SettingSearchDetailPage(
     serviceId: Uuid,
-    vm: SettingVM = koinViewModel()
+    vm: SettingVM = hiltViewModel()
 ) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

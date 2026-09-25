@@ -56,13 +56,13 @@ import heizige.kk.khatkit.app.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.utils.getText
-import org.koin.androidx.compose.koinViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.Locale
 import heizige.kk.khatkit.app.ui.icons.contentPaste
 import heizige.kk.khatkit.app.ui.icons.translate
 
 @Composable
-fun TranslatorPage(vm: TranslatorVM = koinViewModel()) {
+fun TranslatorPage(vm: TranslatorVM = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val inputText by vm.inputText.collectAsStateWithLifecycle()
     val translatedText by vm.translatedText.collectAsStateWithLifecycle()

@@ -27,7 +27,7 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.icons.adsClick
 import heizige.kk.khatkit.uikit.KhatKitMarketContent
 import heizige.kk.khatkit.uikit.KhatKitTheme
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 
 /**
  * KhatKit 卡片市场（宿主壳）：顶栏/导航/Toast 由 app 提供，
@@ -35,9 +35,8 @@ import org.koin.compose.koinInject
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KhatKitMarketPage(
-    provider: KhatKitToolProvider = koinInject(),
-) {
+fun KhatKitMarketPage() {
+    val provider = rememberAppEntryPoint().khatKitToolProvider()
     val toaster = LocalToaster.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var style by remember { mutableStateOf(provider.uiStyle) }

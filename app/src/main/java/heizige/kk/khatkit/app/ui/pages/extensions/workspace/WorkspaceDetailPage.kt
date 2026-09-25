@@ -84,8 +84,7 @@ import heizige.kk.khatkit.workspace.RootfsInstallStage
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.io.File
 import heizige.kk.khatkit.app.ui.icons.delete
 import heizige.kk.khatkit.app.ui.icons.folder
@@ -101,7 +100,7 @@ import heizige.kk.khatkit.app.ui.icons.uploadFile
 @Composable
 fun WorkspaceDetailPage(id: String) {
     val navController = LocalNavController.current
-    val vm: WorkspaceDetailVM = koinViewModel(parameters = { parametersOf(id) })
+    val vm: WorkspaceDetailVM = hiltViewModel<WorkspaceDetailVM, WorkspaceDetailVM.Factory>(creationCallback = { it.create(id) })
     val state by vm.state.collectAsStateWithLifecycle()
     val installProgress by vm.installProgress.collectAsStateWithLifecycle()
     val installError by vm.installError.collectAsStateWithLifecycle()

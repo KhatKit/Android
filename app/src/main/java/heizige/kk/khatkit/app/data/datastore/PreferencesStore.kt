@@ -53,8 +53,10 @@ import heizige.kk.khatkit.app.utils.toMutableStateFlow
 import heizige.kk.khatkit.search.SearchCommonOptions
 import heizige.kk.khatkit.search.SearchServiceOptions
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
+import dagger.Lazy
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.uuid.Uuid
 
 private const val TAG = "PreferencesStore"
@@ -72,10 +74,12 @@ private val Context.settingsStore by preferencesDataStore(
     }
 )
 
-class SettingsStore(
-    context: Context,
+@Singleton
+class SettingsStore @Inject constructor(
+    @ApplicationContext context: Context,
     scope: AppScope,
-) : KoinComponent {
+    private val pebbleEngine: Lazy<PebbleEngine>,
+) {
     companion object {
         // 版本号
         val VERSION = intPreferencesKey("data_version")
@@ -407,7 +411,7 @@ class SettingsStore(
             )
         }
         .onEach {
-            get<PebbleEngine>().templateCache.invalidateAll()
+            pebbleEngine.get().templateCache.invalidateAll()
         }
 
     val settingsFlow = settingsFlowRaw

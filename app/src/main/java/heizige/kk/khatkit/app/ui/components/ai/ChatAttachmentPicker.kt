@@ -26,7 +26,7 @@ import heizige.kk.khatkit.app.ui.context.LocalToaster
 import heizige.kk.khatkit.app.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.utils.ImageUtils
 import heizige.kk.khatkit.app.utils.isAllowedFileType
-import org.koin.compose.koinInject
+import heizige.kk.khatkit.app.di.rememberAppEntryPoint
 import java.io.File
 import kotlin.uuid.Uuid
 
@@ -47,7 +47,7 @@ internal fun rememberChatAttachmentPickerActions(
     val context = LocalContext.current
     val resources = LocalResources.current
     val toaster = LocalToaster.current
-    val filesManager: FilesManager = koinInject()
+    val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val cameraPermission = rememberPermissionState(PermissionCamera)
     PermissionManager(permissionState = cameraPermission)
 

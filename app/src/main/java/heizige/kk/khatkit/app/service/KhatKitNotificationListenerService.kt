@@ -9,7 +9,8 @@ import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import org.koin.android.ext.android.inject
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * 通知监听：把状态栏通知转成引擎事件。
@@ -28,9 +29,11 @@ import org.koin.android.ext.android.inject
  * 「回复」与「应用恰好推送了另一条同包通知」；部分应用只更新原通知而非重新发布，
  * 此时不会触发。因此该触发器只适合做尽力而为的自动化。
  */
+@AndroidEntryPoint
 class KhatKitNotificationListenerService : NotificationListenerService() {
 
-    private val controller: TriggerController by inject()
+    @Inject
+    lateinit var controller: TriggerController
 
     /** 最近一次点击「可回复」通知的登记（同包名下一跳消费一次，超时作废）。 */
     @Volatile
