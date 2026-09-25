@@ -89,6 +89,7 @@ import heizige.kk.khatkit.app.feature.assistant.detail.AssistantPromptPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantRequestPage
 import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
+import heizige.kk.khatkit.app.feature.chat.FolderDetailPage
 import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
 import heizige.kk.khatkit.app.feature.extensions.PromptPage
@@ -368,6 +369,10 @@ class RouteActivity : ComponentActivity() {
                                 )
                             }
 
+                            entry<Screen.FolderDetail> { key ->
+                                FolderDetailPage(folderId = key.folderId)
+                            }
+
                             entry<Screen.Assistant> {
                                 AssistantPage()
                             }
@@ -630,6 +635,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data class ShareHandler(val text: String, val streamUri: String? = null) : Screen
+
+    @Serializable
+    data class FolderDetail(val folderId: String) : Screen
 
     @Serializable
     data object Assistant : Screen

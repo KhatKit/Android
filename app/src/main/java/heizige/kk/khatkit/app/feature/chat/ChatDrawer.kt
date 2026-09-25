@@ -43,11 +43,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khromia.components.EditDialog
+import heizige.kk.khromia.components.EditFieldConfig
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -76,8 +79,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -115,13 +116,12 @@ import heizige.kk.khatkit.app.core.util.toDp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import heizige.kk.khatkit.app.core.ui.icons.createNewFolder
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.folder as folderIcon
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.receiptLong
+import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 
@@ -158,7 +158,6 @@ fun ChatDrawerContent(
 
     val conversations = drawerVm.conversations.collectAsLazyPagingItems()
     val folders by drawerVm.folders.collectAsStateWithLifecycle()
-    val selectedFolderId by drawerVm.selectedFolderId.collectAsStateWithLifecycle()
     val conversationListState = rememberLazyListState(
         initialFirstVisibleItemIndex = drawerVm.scrollIndex,
         initialFirstVisibleItemScrollOffset = drawerVm.scrollOffset,
@@ -340,75 +339,112 @@ fun ChatDrawerContent(
                 onClick = { navController.navigate(Screen.Backup) },
             )
 
-            FolderBar(
-                folders = folders,
-                selectedFolderId = selectedFolderId,
-                onSelect = { drawerVm.selectFolder(it) },
-                onCreate = { showCreateFolderDialog = true },
-                onRename = { folderToRename = it },
-                onDelete = { folderToDelete = it },
-            )
+            if (folders.isNotEmpty()) {
+                FolderSection(
+                    folders = folders,
+                    onClickFolder = { folder ->
+                        if (drawerState != null) {
+                            scope.launch { drawerState.close() }
+                        }
+                        navController.navigate(Screen.FolderDetail(folder.id.toString()))
+                    },
+                    onRename = { folderToRename = it },
+                    onDelete = { folderToDelete = it },
+                )
+            }
 
-            ConversationList(
-                current = current,
-                conversations = conversations,
-                conversationJobs = conversationJobs.keys,
-                listState = conversationListState,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                onClick = {
-                    navigateToChatPage(navController, it.id)
-                },
-                onRegenerateTitle = {
-                    vm.generateTitle(it, true)
-                },
-                onDelete = {
-                    scope.launch {
-                        vm.deleteConversation(it).join()
-                        conversations.refresh()
-                        if (it.id == current.id) {
-                            navigateToChatPage(navController)
+            ) {
+                ConversationList(
+                    conversations = conversations,
+                    currentId = current.id,
+                    conversationJobs = conversationJobs.keys,
+                    listState = conversationListState,
+                    contentPadding = PaddingValues(bottom = 80.dp),
+                    header = {
+                        Button(
+                            onClick = { showCreateFolderDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                                .height(46.dp),
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Icon(
+                                createNewFolder,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.chat_page_create_folder))
                         }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    onClick = {
+                        navigateToChatPage(navController, it.id)
+                    },
+                    onRegenerateTitle = {
+                        vm.generateTitle(it, true)
+                    },
+                    onDelete = {
+                        scope.launch {
+                            vm.deleteConversation(it).join()
+                            conversations.refresh()
+                            if (it.id == current.id) {
+                                navigateToChatPage(navController)
+                            }
+                        }
+                    },
+                    onPin = {
+                        vm.updatePinnedStatus(it)
+                    },
+                    onMoveToAssistant = {
+                        conversationToMove = it
+                        showMoveToAssistantSheet = true
+                    },
+                    onMoveToFolder = {
+                        conversationToMoveFolder = it
+                        showMoveToFolderSheet = true
                     }
-                },
-                onPin = {
-                    vm.updatePinnedStatus(it)
-                },
-                onMoveToAssistant = {
-                    conversationToMove = it
-                    showMoveToAssistantSheet = true
-                },
-                onMoveToFolder = {
-                    conversationToMoveFolder = it
-                    showMoveToFolderSheet = true
-                }
-            )
+                )
 
-            // 助手选择器
-            AssistantPicker(
-                settings = settings,
-                onUpdateSettings = {
-                    val updateJob = vm.updateSettings(it)
-                    scope.launch {
-                        updateJob.join()
-                        val id = if (context.readBooleanPreference("create_new_conversation_on_start", true)) {
-                            Uuid.random()
-                        } else {
-                            repo.getConversationsOfAssistant(it.assistantId)
-                                .first()
-                                .firstOrNull()
-                                ?.id ?: Uuid.random()
+                // 助手选择器（默认助手卡片：圆角胶囊 + surfaceContainerHigh 底，悬浮于会话列表之上）
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+                ) {
+                    AssistantPicker(
+                        settings = settings,
+                        onUpdateSettings = {
+                            val updateJob = vm.updateSettings(it)
+                            scope.launch {
+                                updateJob.join()
+                                val id = if (context.readBooleanPreference("create_new_conversation_on_start", true)) {
+                                    Uuid.random()
+                                } else {
+                                    repo.getConversationsOfAssistant(it.assistantId)
+                                        .first()
+                                        .firstOrNull()
+                                        ?.id ?: Uuid.random()
+                                }
+                                navigateToChatPage(navigator = navController, chatId = id)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        onClickSetting = {
+                            val currentAssistantId = settings.assistantId
+                            navController.navigate(Screen.AssistantDetail(id = currentAssistantId.toString()))
                         }
-                        navigateToChatPage(navigator = navController, chatId = id)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                onClickSetting = {
-                    val currentAssistantId = settings.assistantId
-                    navController.navigate(Screen.AssistantDetail(id = currentAssistantId.toString()))
+                    )
                 }
-            )
+            }
 
             }
 
@@ -586,34 +622,25 @@ fun ChatDrawerContent(
 
     // 新建文件夹对话框
     if (showCreateFolderDialog) {
-        var name by remember { mutableStateOf("") }
-        AppAlertDialog(
-            onDismissRequest = { showCreateFolderDialog = false },
-            title = { Text(stringResource(R.string.chat_page_create_folder)) },
-            text = {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text(stringResource(R.string.chat_page_folder_name)) }
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        drawerVm.createFolder(name)
-                        showCreateFolderDialog = false
+        val emptyNameError = stringResource(R.string.chat_page_folder_name_empty)
+        EditDialog(
+            visible = true,
+            title = stringResource(R.string.chat_page_create_folder),
+            fields = listOf(
+                EditFieldConfig(
+                    label = stringResource(R.string.chat_page_folder_name),
+                    onValidate = { input ->
+                        if (input.trim().isEmpty()) emptyNameError else null
                     },
-                    enabled = name.isNotBlank(),
-                    shapes = ButtonDefaults.shapes(),
-                ) { Text(stringResource(R.string.chat_page_save)) }
+                )
+            ),
+            confirmText = stringResource(R.string.chat_page_save),
+            dismissText = stringResource(R.string.chat_page_cancel),
+            onDismiss = { showCreateFolderDialog = false },
+            onConfirm = { values ->
+                drawerVm.createFolder(values.first())
+                showCreateFolderDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showCreateFolderDialog = false }, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.chat_page_cancel))
-                }
-            }
         )
     }
 
@@ -738,111 +765,92 @@ private fun DrawerAction(
     }
 }
 
+private val FolderRowShape = RoundedCornerShape(16.dp)
+
 @Composable
-private fun FolderBar(
+private fun FolderSection(
     folders: List<Folder>,
-    selectedFolderId: Uuid?,
-    onSelect: (Uuid?) -> Unit,
-    onCreate: () -> Unit,
+    onClickFolder: (Folder) -> Unit,
     onRename: (Folder) -> Unit,
     onDelete: (Folder) -> Unit,
 ) {
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item {
-            FolderChip(
-                label = stringResource(R.string.chat_page_folder_default),
-                selected = selectedFolderId == null,
-                onClick = { onSelect(null) },
-                onLongClick = {},
-            )
-        }
-        items(folders) { folder ->
-            var menuExpanded by remember { mutableStateOf(false) }
-            Box {
-                FolderChip(
-                    label = folder.name,
-                    icon = folderIcon,
-                    selected = selectedFolderId == folder.id,
-                    onClick = { onSelect(folder.id) },
-                    onLongClick = { menuExpanded = true },
-                )
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_page_rename)) },
-                        leadingIcon = { Icon(edit, null) },
-                        onClick = {
-                            onRename(folder)
-                            menuExpanded = false
+        if (folders.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 156.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                items(folders, key = { it.id }) { folder ->
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.animateItem()) {
+                        Surface(
+                            shape = FolderRowShape,
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(FolderRowShape)
+                                .combinedClickable(
+                                    onClick = { onClickFolder(folder) },
+                                    onLongClick = { menuExpanded = true },
+                                ),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(
+                                    folderIcon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = folder.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Icon(
+                                    chevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_page_delete)) },
-                        leadingIcon = { Icon(delete, null) },
-                        onClick = {
-                            onDelete(folder)
-                            menuExpanded = false
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.chat_page_rename)) },
+                                leadingIcon = { Icon(edit, null) },
+                                onClick = {
+                                    onRename(folder)
+                                    menuExpanded = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.chat_page_delete)) },
+                                leadingIcon = { Icon(delete, null) },
+                                onClick = {
+                                    onDelete(folder)
+                                    menuExpanded = false
+                                }
+                            )
                         }
-                    )
+                    }
                 }
             }
-        }
-        item {
-            FolderChip(
-                label = stringResource(R.string.chat_page_folder_add),
-                icon = createNewFolder,
-                selected = false,
-                onClick = onCreate,
-                onLongClick = {},
-            )
-        }
-    }
-}
-
-@Composable
-private fun FolderChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    icon: ImageVector? = null,
-) {
-    Surface(
-        shape = CircleShape,
-        color = if (selected) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
-        },
-        modifier = Modifier
-            .clip(CircleShape)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (icon != null) {
-                Icon(icon, null, modifier = Modifier.size(14.dp))
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }

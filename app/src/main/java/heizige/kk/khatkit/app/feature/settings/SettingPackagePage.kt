@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +43,8 @@ import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
 import heizige.kk.khatkit.app.core.ui.icons.favorite
+import heizige.kk.khatkit.app.core.ui.icons.openInNew
+import heizige.kk.khatkit.app.Screen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,25 +58,21 @@ private const val GATEWAY_PROVIDER_NAME = "KhatKit 套餐网关"
 private val GATEWAY_PROVIDER_ID: Uuid = Uuid.parse("7e2a9c1e-6b5f-4a3d-9c8e-1f2b3c4d5e6f")
 
 /**
- * 套餐 / 激活页：输入激活令牌调用 POST /api/activate，安全保存令牌并展示 GET /api/me 额度；
- * 同时提供「一键创建/更新网关供应商」入口（OpenAI 兼容，baseUrl = <Hub>/v1，未启用）。
+ * 套餐 / 激活页：打开 WebView 跳转到购买页面
  */
 @Composable
 fun SettingPackagePage(
     vm: SettingViewModel = hiltViewModel(),
 ) {
+    val uriHandler = LocalUriHandler.current
     val provider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val timeFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
 
-    var hubUrl by remember { mutableStateOf(provider.hubBaseUrl) }
-    var tokenInput by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<HubAccountStatus?>(null) }
     var busy by remember { mutableStateOf(false) }
-    var gatewayMessage by remember { mutableStateOf("") }
-    var gatewayMessageIsError by remember { mutableStateOf(false) }
 
     fun refresh(refreshQuota: Boolean = false) {
         scope.launch {
@@ -105,6 +104,22 @@ fun SettingPackagePage(
             contentPadding = innerPadding + PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            item("purchase") {
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    title = { Text("购买套餐") },
+                ) {
+                    item(
+                        onClick = {
+                            uriHandler.openUri("https://heizige.top/khatkit/")
+                        },
+                        leadingContent = { Icon(openInNew, null) },
+                        headlineContent = { Text("打开 KhatKit 套餐商城") },
+                        supportingContent = { Text("在浏览器中查看套餐详情、购买并获取激活令牌") },
+                    )
+                }
+            }
+
             item("status") {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
@@ -173,121 +188,10 @@ fun SettingPackagePage(
                 }
             }
 
-            item("activate") {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text("激活套餐") },
-                ) {
-                    item(
-                        headlineContent = { Text("Hub 地址") },
-                        supportingContent = {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                KedgeOutlinedTextField(
-                                    value = hubUrl,
-                                    onValueChange = { hubUrl = it },
-                                    label = "Hub 地址",
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                Text(
-                                    "默认 ${KhatKitToolProvider.DEFAULT_HUB_BASE_URL}；修改后卡片市场也会使用新地址",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                    )
-                    item(
-                        headlineContent = { Text("激活令牌") },
-                        supportingContent = {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                KedgeOutlinedTextField(
-                                    value = tokenInput,
-                                    onValueChange = { tokenInput = it },
-                                    label = "激活令牌",
-                                    singleLine = true,
-                                    visualTransformation = PasswordVisualTransformation(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                Text(
-                                    "在 KhatKitHub 购买套餐后获得的激活令牌；令牌与设备会话都会加密保存在本机",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            busy = true
-                                            val result = provider.activateHub(tokenInput, hubUrl)
-                                            status = result
-                                            if (result.activated) tokenInput = ""
-                                            busy = false
-                                        }
-                                    },
-                                    enabled = !busy && tokenInput.isNotBlank(),
-                                    shapes = ButtonDefaults.shapes(),
-                                ) {
-                                    Text(if (busy) "正在激活…" else "立即激活")
-                                }
-                            }
-                        },
-                    )
-                }
-            }
-
-            item("gateway") {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text("AI 套餐网关") },
-                ) {
-                    item(
-                        leadingContent = { Icon(autoAwesome, null) },
-                        headlineContent = { Text(GATEWAY_PROVIDER_NAME) },
-                        supportingContent = {
-                            Text(
-                                "网关是 OpenAI 兼容接口（<Hub>/v1）。激活后可一键创建供应商，" +
-                                    "API Key 使用激活令牌；默认不启用，需要时再到「服务商」中开启并添加模型。"
-                            )
-                        },
-                    )
-                    item(
-                        headlineContent = {
-                            Text(
-                                gatewayMessage.ifBlank {
-                                    "未激活时创建的网关不可用，请先激活套餐"
-                                },
-                                color = if (gatewayMessageIsError) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                            )
-                        },
-                        supportingContent = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(
-                                    onClick = {
-                                        val outcome = upsertGatewayProvider(settings, vm, provider, hubUrl)
-                                        gatewayMessage = outcome
-                                        gatewayMessageIsError = !outcome.startsWith("已")
-                                    },
-                                    enabled = !busy,
-                                    shapes = ButtonDefaults.shapes(),
-                                ) {
-                                    Text("创建 / 更新网关供应商")
-                                }
-                                TextButton(onClick = { refresh(refreshQuota = true) }, shapes = ButtonDefaults.shapes()) {
-                                    Text("刷新状态")
-                                }
-                            }
-                        },
-                    )
-                }
-            }
-
             item("tip") {
                 Text(
-                    text = "提示：未激活时所有本地卡片照常运行；只有服务端明确拒绝（令牌无效/工具次数不足）时，" +
+                    text = "提示：购买套餐后将获得激活令牌，使用令牌可在网页端激活设备。" +
+                        "未激活时所有本地卡片照常运行；只有服务端明确拒绝（令牌无效/工具次数不足）时，" +
                         "套餐卡片才会被拦截。网络异常不会阻止卡片运行。",
                     modifier = Modifier.padding(horizontal = 16.dp),
                     style = MaterialTheme.typography.bodySmall,
@@ -299,42 +203,3 @@ fun SettingPackagePage(
 }
 
 private fun formatQuota(value: Long?): String = value?.toString() ?: "未知"
-
-/**
- * 创建或更新「KhatKit 套餐网关」供应商：
- * baseUrl = <hub>/v1，apiKey = 激活令牌，enabled = false（不自动启用、不自动选中）。
- * 返回中文操作结果。
- */
-private fun upsertGatewayProvider(
-    settings: Settings,
-    vm: SettingViewModel,
-    provider: KhatKitToolProvider,
-    hubUrl: String,
-): String {
-    val token = provider.hubToken()
-    if (token.isNullOrBlank()) return "请先激活套餐：未检测到激活令牌"
-    val base = hubUrl.trim().ifBlank { KhatKitToolProvider.DEFAULT_HUB_BASE_URL }
-    val baseUrl = base.trimEnd('/') + "/v1"
-    val existing = settings.providers
-        .filterIsInstance<ProviderSetting.OpenAI>()
-        .firstOrNull { it.name == GATEWAY_PROVIDER_NAME || it.baseUrl == baseUrl }
-    val updated: ProviderSetting = existing?.copy(
-        name = GATEWAY_PROVIDER_NAME,
-        baseUrl = baseUrl,
-        apiKey = token,
-        enabled = false,
-    ) ?: ProviderSetting.OpenAI(
-        id = GATEWAY_PROVIDER_ID,
-        name = GATEWAY_PROVIDER_NAME,
-        baseUrl = baseUrl,
-        apiKey = token,
-        enabled = false,
-    )
-    val providers = if (existing == null) {
-        listOf(updated) + settings.providers
-    } else {
-        settings.providers.map { if (it.id == existing.id) updated else it }
-    }
-    vm.updateSettings(settings.copy(providers = providers))
-    return "已创建/更新「$GATEWAY_PROVIDER_NAME」（未启用）；请到「服务商」中添加模型后手动开启"
-}

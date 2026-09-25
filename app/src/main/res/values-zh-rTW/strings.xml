@@ -269,6 +269,7 @@
   <string name="chat_page_conversation_system_prompt_hint">覆蓋此對話的助理系統提示</string>
   <string name="chat_page_conversation_system_prompt_save">儲存</string>
   <string name="chat_page_delete">刪除</string>
+  <string name="chat_page_delete_conversation">刪除對話</string>
   <string name="chat_page_dismiss_error">關閉錯誤</string>
   <string name="chat_page_edit_nickname">編輯暱稱</string>
   <string name="chat_page_edit_title">編輯標題</string>
@@ -296,6 +297,7 @@
   <string name="chat_page_search_chats">搜尋聊天</string>
   <string name="chat_page_today">今天</string>
   <string name="chat_page_yesterday">昨天</string>
+  <string name="chat_page_earlier">更早</string>
   <string name="chat_size_dialog_content">目前訊息數：%1$d。這可能導致應用程式崩潰或延遲，甚至遺失此對話資料。請盡快建立新對話以繼續聊天。</string>
   <string name="chat_size_dialog_title">此對話資料過大</string>
   <string name="citations_count">%1$d 條引用</string>
@@ -1245,6 +1247,7 @@
   <string name="chat_page_remove_from_folder">從資料夾移除</string>
   <string name="chat_page_create_folder">新資料夾</string>
   <string name="chat_page_folder_name">資料夾名稱</string>
+  <string name="chat_page_folder_name_empty">資料夾名稱不能為空</string>
   <string name="chat_page_rename_folder">重新命名資料夾</string>
   <string name="chat_page_delete_folder">刪除資料夾</string>
   <string name="chat_page_rename">重新命名</string>
