@@ -27,9 +27,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.error
+import heizige.kk.khromia.components.AnimatedAlertDialog
 
 /**
  * 权限请求说明对话框
@@ -43,45 +43,30 @@ internal fun PermissionRationaleDialog(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Dialog(
+    val hasPermanentlyDenied = permanentlyDeniedPermissions.isNotEmpty()
+    AnimatedAlertDialog(
         onDismissRequest = onCancel,
-    ) {
-        Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+        modifier = modifier,
+        icon = {
+            // 标题图标
+            Icon(
+                imageVector = error,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // 标题图标
-                Icon(
-                    imageVector = error,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 标题
-                val hasPermanentlyDenied = permanentlyDeniedPermissions.isNotEmpty()
-                Text(
-                    text = stringResource(R.string.permission_diaog_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
+        },
+        title = {
+            // 标题
+            Text(
+                text = stringResource(R.string.permission_diaog_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 // 说明文字
                 Text(
                     text = if (hasPermanentlyDenied) {
@@ -109,54 +94,27 @@ internal fun PermissionRationaleDialog(
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 按钮组
-                if (hasPermanentlyDenied) {
-                    // 有永久拒绝的权限，只显示前往设置和取消按钮
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onCancel,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-
-                        Button(
-                            onClick = onProceed, // 这里会跳转到设置
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.permission_go_to_settings))
-                        }
-                    }
-                } else {
-                    // 没有永久拒绝的权限，显示正常的授权按钮
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onCancel,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-
-                        Button(
-                            onClick = onProceed,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.confirm))
-                        }
-                    }
-                }
             }
-        }
-    }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onCancel) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+        confirmButton = {
+            Button(onClick = onProceed) {
+                Text(
+                    stringResource(
+                        if (hasPermanentlyDenied) {
+                            R.string.permission_go_to_settings
+                        } else {
+                            R.string.confirm
+                        }
+                    )
+                )
+            }
+        },
+    )
 }
 
 /**
