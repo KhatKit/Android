@@ -18,8 +18,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.ui.pages.chat.VoicePhase
-import heizige.kk.khatkit.app.ui.pages.chat.VoiceSessionState
+import heizige.kk.khatkit.app.feature.chat.VoicePhase
+import heizige.kk.khatkit.app.feature.chat.VoiceSessionState
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
 
 @Composable

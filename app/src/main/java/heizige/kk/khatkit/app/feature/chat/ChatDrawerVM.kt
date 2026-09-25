@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.ui.pages.chat
+package heizige.kk.khatkit.app.feature.chat
 
 
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +29,7 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.core.data.model.Folder
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.service.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatService
 import heizige.kk.khatkit.app.core.util.toLocalString
 import java.time.LocalDate
 import java.time.ZoneId

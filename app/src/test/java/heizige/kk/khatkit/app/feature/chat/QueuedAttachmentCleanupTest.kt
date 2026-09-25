@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.service
+package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage

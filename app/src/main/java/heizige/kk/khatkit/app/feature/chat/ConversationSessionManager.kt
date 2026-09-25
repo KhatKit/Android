@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.service
+package heizige.kk.khatkit.app.feature.chat
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

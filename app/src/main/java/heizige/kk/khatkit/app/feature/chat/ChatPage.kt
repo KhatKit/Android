@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.ui.pages.chat
+package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.app.core.ui.icons.search
 import android.net.Uri
@@ -79,7 +79,7 @@ import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
-import heizige.kk.khatkit.app.service.ChatError
+import heizige.kk.khatkit.app.feature.chat.ChatError
 import heizige.kk.khatkit.app.core.ui.components.ai.ChatAttachmentPickerActions
 import heizige.kk.khatkit.app.core.ui.components.ai.ChatInput
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet

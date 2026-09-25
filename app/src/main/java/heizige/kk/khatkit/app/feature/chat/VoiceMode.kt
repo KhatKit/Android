@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.ui.pages.chat
+package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R

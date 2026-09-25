@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.service
+package heizige.kk.khatkit.app.feature.chat
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking

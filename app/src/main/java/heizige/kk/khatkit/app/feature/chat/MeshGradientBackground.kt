@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.ui.pages.chat
+package heizige.kk.khatkit.app.feature.chat
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat

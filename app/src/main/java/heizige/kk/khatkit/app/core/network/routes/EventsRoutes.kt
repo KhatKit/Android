@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.merge
 import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.service.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatService
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.network.dto.ConversationListInvalidateEvent
 import heizige.kk.khatkit.app.core.network.dto.FolderListEvent

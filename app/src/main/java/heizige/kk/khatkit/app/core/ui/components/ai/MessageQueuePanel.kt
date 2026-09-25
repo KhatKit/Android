@@ -32,8 +32,8 @@ import androidx.compose.ui.unit.dp
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.service.MessageQueueState
-import heizige.kk.khatkit.app.service.QueuedMessage
+import heizige.kk.khatkit.app.feature.chat.MessageQueueState
+import heizige.kk.khatkit.app.feature.chat.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 
 @Composable

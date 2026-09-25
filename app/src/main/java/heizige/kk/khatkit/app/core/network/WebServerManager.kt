@@ -16,7 +16,7 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.service.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatService
 import heizige.kk.khatkit.web.startWebServer
 import java.net.ServerSocket
 

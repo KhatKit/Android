@@ -38,8 +38,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.service.ChatError
-import heizige.kk.khatkit.app.service.ChatErrorSolution
+import heizige.kk.khatkit.app.feature.chat.ChatError
+import heizige.kk.khatkit.app.feature.chat.ChatErrorSolution
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.close

@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.ui.pages.chat
+package heizige.kk.khatkit.app.feature.chat
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -22,7 +22,7 @@ import kotlinx.coroutines.withTimeout
 import heizige.kk.khatkit.asr.ASRController
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.service.MessageQueuePausedException
+import heizige.kk.khatkit.app.feature.chat.MessageQueuePausedException
 
 enum class VoicePhase { Off, Connecting, Listening, Transcribing, Speaking, Error }
 

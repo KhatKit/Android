@@ -30,8 +30,8 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
 import heizige.kk.khatkit.ai.provider.ProviderManager
-import heizige.kk.khatkit.app.service.ChatNotificationManager
-import heizige.kk.khatkit.app.service.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatNotificationManager
+import heizige.kk.khatkit.app.feature.chat.ChatService
 import heizige.kk.khatkit.app.service.TriggerController
 import heizige.kk.khatkit.app.ui.pages.extensions.workspace.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.AppAnalytics

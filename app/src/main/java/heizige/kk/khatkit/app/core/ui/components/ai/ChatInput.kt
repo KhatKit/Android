@@ -139,8 +139,8 @@ import heizige.kk.khatkit.app.core.data.datastore.getQuickMessagesOfAssistant
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.QuickMessage
-import heizige.kk.khatkit.app.service.MessageQueueState
-import heizige.kk.khatkit.app.service.QueuedMessage
+import heizige.kk.khatkit.app.feature.chat.MessageQueueState
+import heizige.kk.khatkit.app.feature.chat.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionContext
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionItem
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionList
@@ -165,8 +165,8 @@ import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults as MiuixTextFieldDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.time.Duration.Companion.seconds
-import heizige.kk.khatkit.app.ui.pages.chat.VoicePhase
-import heizige.kk.khatkit.app.ui.pages.chat.VoiceSessionState
+import heizige.kk.khatkit.app.feature.chat.VoicePhase
+import heizige.kk.khatkit.app.feature.chat.VoiceSessionState
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.videocam

@@ -33,7 +33,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useThrottle
-import heizige.kk.khatkit.app.ui.pages.chat.ChatVM
+import heizige.kk.khatkit.app.feature.chat.ChatVM
 import heizige.kk.khatkit.app.core.util.UpdateCheckResponse
 import heizige.kk.khatkit.app.core.util.onError
 import heizige.kk.khatkit.app.core.util.onSuccess

@@ -141,7 +141,7 @@
       android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
     <service
-      android:name=".service.ChatGenerationForegroundService"
+      android:name=".feature.chat.ChatGenerationForegroundService"
       android:exported="false"
       android:foregroundServiceType="dataSync" />
     <service

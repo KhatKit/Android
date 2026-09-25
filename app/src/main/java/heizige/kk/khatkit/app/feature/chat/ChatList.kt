@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.ui.pages.chat
+package heizige.kk.khatkit.app.feature.chat
 
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
@@ -87,7 +87,7 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
-import heizige.kk.khatkit.app.service.ChatError
+import heizige.kk.khatkit.app.feature.chat.ChatError
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
 import heizige.kk.khatkit.app.core.ui.components.ui.ErrorCardsDisplay
 import heizige.kk.khatkit.app.core.ui.components.ui.ListSelectableItem

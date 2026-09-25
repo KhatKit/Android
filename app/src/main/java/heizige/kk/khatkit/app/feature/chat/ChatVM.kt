@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.ui.pages.chat
+package heizige.kk.khatkit.app.feature.chat
 
 
 import dagger.assisted.Assisted
@@ -43,8 +43,8 @@ import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.service.ChatError
-import heizige.kk.khatkit.app.service.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatError
+import heizige.kk.khatkit.app.feature.chat.ChatService
 import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.UiState

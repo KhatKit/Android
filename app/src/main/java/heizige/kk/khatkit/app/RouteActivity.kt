@@ -88,7 +88,7 @@ import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantMemoryPage
 import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantPromptPage
 import heizige.kk.khatkit.app.ui.pages.assistant.detail.AssistantRequestPage
 import heizige.kk.khatkit.app.ui.pages.backup.BackupPage
-import heizige.kk.khatkit.app.ui.pages.chat.ChatPage
+import heizige.kk.khatkit.app.feature.chat.ChatPage
 import heizige.kk.khatkit.app.ui.pages.debug.DebugPage
 import heizige.kk.khatkit.app.ui.pages.extensions.ExtensionsPage
 import heizige.kk.khatkit.app.ui.pages.extensions.PromptPage
