@@ -319,6 +319,10 @@ class KhatKitToolProvider(
             AutomationBus.finish()
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
+        // 兜底闸门：vFlow 未配置时即使 AI 拿到了卡片名也不运行，避免脚本 pop ui.form 配置表单
+        if (trigger == "AI" && isVflowCard(card.manifest.name) && !vflowConfigured()) {
+            return EngineResult.Err("VFLOW_NOT_CONFIGURED", VFLOW_NOT_CONFIGURED_HINT)
+        }
         AutomationBus.begin()
         try {
             val manifest = card.manifest
@@ -433,7 +437,10 @@ class KhatKitToolProvider(
             }
         }
         // 云端卡片超过候选上限时，search_cloud_cards 工具仍能让 AI 搜索并指定卡片运行
-        val cardTools = specs.filter { it.supportsAi() }.take(TOOL_CANDIDATE_LIMIT)
+        val vflowReady = vflowConfigured()
+        val cardTools = specs
+            .filter { it.supportsAi() && !(isVflowCard(it.name) && !vflowReady) }
+            .take(TOOL_CANDIDATE_LIMIT)
             .map { spec -> spec.toTool() } + cloudScriptsTool()
         // 无障碍可用时额外挂两个内置工具：看屏幕 + 直接动作，让纯文本模型也能驱动手机
         if (AccessibilityBridgeHolder.current() == null) {
@@ -443,6 +450,19 @@ class KhatKitToolProvider(
             cardTools + listOf(deviceScreenTool(supportsVision), deviceActTool())
         }
     }
+
+    /** vFlow 联动是可选能力：名字以 vflow_ 开头的卡片默认对 AI 隐藏。 */
+    private fun isVflowCard(name: String): Boolean = name.startsWith(VFLOW_CARD_PREFIX)
+
+    /**
+     * 用户是否已手动配置过 vFlow（卡片市场里显式运行 vflow_list_workflows 并填入地址/Token）。
+     * 未配置时 AI 工具列表里不含 vflow_* 卡片，运行入口也会被拒绝，
+     * 避免模型调用卡片脚本弹出「连接 vFlow」配置表单。
+     */
+    private fun vflowConfigured(): Boolean = runCatching {
+        val store = FileStoreBridge(appContext, VFLOW_LIST_CARD)
+        !store.kvGet("base_url", null).isNullOrBlank() && !store.secretGet("token").isNullOrBlank()
+    }.getOrDefault(false)
 
     /** 索引缓存：TTL 内不重复请求；请求失败时保留旧缓存。 */
     private suspend fun remoteCards(force: Boolean = false): List<CardIndexEntry> {
@@ -530,7 +550,10 @@ class KhatKitToolProvider(
             "返回卡片名、中文说明、价格（免费/按次）、所需 bridge 与原生依赖包、是否已安装。" +
             "要运行云端卡片：优先直接调用 khatkit__<卡片名>；若工具列表里没有该卡片，把卡片名填到本工具的 run 参数" +
             "（会自动从 Hub 安装，并先下载 requires.dependencies 原生依赖包再运行），参数用 args 传 JSON 字符串。" +
-            "vFlow 工作流请改用 vflow_list_workflows / vflow_run_workflow。",
+            "用户附图会以「[用户附带图片: <本机绝对路径>，类型/大小]」的文本形式出现在消息里；" +
+            "处理图片时直接把该路径作为卡片参数（如 image_resize_crop / image_enhance / zenneko_*）传给工具，" +
+            "不要反问用户要图片路径。vFlow 工作是可选联动：需用户在卡片市场手动运行 vflow_list_workflows " +
+            "完成地址/Token 配置后 AI 才能调用，未配置前不会弹出配置表单。",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -553,51 +576,57 @@ class KhatKitToolProvider(
             val params = jsonToMap(args)
             val runName = params.str("run")?.trim().orEmpty()
             if (runName.isNotBlank()) {
-                val entry = runCatching { searchCloudCards(runName, CLOUD_SEARCH_LIMIT) }
-                    .getOrDefault(emptyList())
-                    .firstOrNull { it.name == runName }
-                if (entry == null) {
-                    listOf(
-                        UIMessagePart.Text(
-                            """{"error":"未找到云端卡片：${runName.escape()}（可用 khatkit__search_cloud_cards 搜索）"}"""
-                        )
-                    )
+                if (isVflowCard(runName) && !vflowConfigured()) {
+                    listOf(UIMessagePart.Text("""{"error":"${VFLOW_NOT_CONFIGURED_HINT}"}"""))
                 } else {
-                    val card = resolveCard(CardToolSpec(name = entry.name, entry = entry, card = null))
-                    when {
-                        card == null -> listOf(
+                    val entry = runCatching { searchCloudCards(runName, CLOUD_SEARCH_LIMIT) }
+                        .getOrDefault(emptyList())
+                        .firstOrNull { it.name == runName }
+                    if (entry == null) {
+                        listOf(
                             UIMessagePart.Text(
-                                """{"error":"云端卡片安装失败：${runName.escape()}（请检查网络与 Hub 地址）"}"""
+                                """{"error":"未找到云端卡片：${runName.escape()}（可用 khatkit__search_cloud_cards 搜索）"}"""
                             )
                         )
+                    } else {
+                        val card = resolveCard(CardToolSpec(name = entry.name, entry = entry, card = null))
+                        when {
+                            card == null -> listOf(
+                                UIMessagePart.Text(
+                                    """{"error":"云端卡片安装失败：${runName.escape()}（请检查网络与 Hub 地址）"}"""
+                                )
+                            )
 
-                        !card.manifest.supportsAi() -> listOf(
-                            UIMessagePart.Text("""{"error":"卡片未启用 ai 触发：${runName.escape()}"}""")
-                        )
+                            !card.manifest.supportsAi() -> listOf(
+                                UIMessagePart.Text("""{"error":"卡片未启用 ai 触发：${runName.escape()}"}""")
+                            )
 
-                        else -> {
-                            val runArgs = params.str("args")?.let { raw ->
-                                runCatching { jsonToMap(json.parseToJsonElement(raw)) }.getOrNull()
-                            }.orEmpty()
-                            val result = try {
-                                runCardWithStatus(card, runArgs, trigger = "AI")
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Throwable) {
-                                EngineResult.Err("CARD_TOOL", e.message ?: e.toString())
-                            }
-                            when (result) {
-                                is EngineResult.Ok -> listOf(UIMessagePart.Text(encode(result.value)))
-                                is EngineResult.Err ->
-                                    listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
+                            else -> {
+                                val runArgs = params.str("args")?.let { raw ->
+                                    runCatching { jsonToMap(json.parseToJsonElement(raw)) }.getOrNull()
+                                }.orEmpty()
+                                val result = try {
+                                    runCardWithStatus(card, runArgs, trigger = "AI")
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (e: Throwable) {
+                                    EngineResult.Err("CARD_TOOL", e.message ?: e.toString())
+                                }
+                                when (result) {
+                                    is EngineResult.Ok -> listOf(UIMessagePart.Text(encode(result.value)))
+                                    is EngineResult.Err ->
+                                        listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
+                                }
                             }
                         }
                     }
                 }
             } else {
                 val query = params.str("query").orEmpty()
+                val vflowReady = vflowConfigured()
                 val entries = runCatching { searchCloudCards(query, CLOUD_SEARCH_LIMIT) }
                     .getOrDefault(emptyList())
+                    .filter { !isVflowCard(it.name) || vflowReady }
                 val installed = cache.installedVersions()
                 val prices = runCatching { hubMarketCards().associate { it.name to it.priceCents } }
                     .getOrDefault(emptyMap())
@@ -1529,6 +1558,12 @@ class KhatKitToolProvider(
 
         /** 工具授权请求限时：超时按失败开放处理，不拖慢卡片启动 */
         private const val METERING_TIMEOUT_MS = 4_000L
+
+        /** vFlow 联动卡片：用户手动运行 vflow_list_workflows 完成配置前，不对 AI 暴露、也不允许 AI 运行。 */
+        private const val VFLOW_CARD_PREFIX = "vflow_"
+        private const val VFLOW_LIST_CARD = "vflow_list_workflows"
+        private const val VFLOW_NOT_CONFIGURED_HINT =
+            "vFlow 未配置：请用户在卡片市场手动运行 vflow_list_workflows 填写地址与 Token 后，AI 才能调用 vFlow。"
     }
 }
 
