@@ -64,6 +64,28 @@ data class CardManifest(
         val libs: List<LibRequirement> = emptyList(),
         val bins: List<String> = emptyList(),
         val env: List<String> = emptyList(),
+
+        /**
+         * 原生插件依赖：插件不随应用编译，而是与云端卡片脚本一起从 Hub 下载，
+         * 校验 sha256 后由宿主 DexClassLoader 加载。见 docs/plugin-system.md。
+         */
+        val plugins: List<PluginReq> = emptyList(),
+    )
+
+    /**
+     * 原生插件需求。插件产物是含 `classes.dex` 的 jar，加载后注册成同名 bridge
+     * （如 `imageToolbox`），脚本调用方式与内置 bridge 一致。
+     */
+    @Serializable
+    data class PluginReq(
+        /** 插件名（同时是注册进 BridgeRegistry 的 bridge 名），小写下划线 */
+        val name: String,
+        /** 插件版本，SemVer */
+        val version: String,
+        /** 产物下载地址；留空时用 Hub 约定地址 /api/plugins/<name>/<version> */
+        val url: String? = null,
+        /** 产物 sha256（64 位小写十六进制），加载前必须校验通过 */
+        val sha256: String = "",
     )
 
     @Serializable
@@ -171,6 +193,9 @@ data class CardManifest(
 
     /** 卡片要求的能力集合，供能力协商过滤 */
     val requiredBridges: Set<String> get() = requires.bridges.toSet()
+
+    /** 卡片依赖的原生插件 */
+    val requiredPlugins: List<PluginReq> get() = requires.plugins
 
     /** 是否允许 AI 工具调用 */
     fun supportsAi(): Boolean = TRIGGER_AI in triggers

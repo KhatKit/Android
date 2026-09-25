@@ -1,5 +1,6 @@
-package heizige.kk.khatkit.bridge.impl
+package heizige.kk.khatkit.plugins.imageToolbox
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -15,6 +16,7 @@ import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfRenderer
 import android.media.ExifInterface
 import android.os.Build
+import android.os.Environment
 import android.os.ParcelFileDescriptor
 import heizige.kk.khatkit.bridge.ImageToolboxBridge
 import java.io.File
@@ -27,15 +29,19 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * 本地图像工具箱实现：纯 Android SDK（Bitmap / Canvas / Paint / ColorMatrix / Matrix），
+ * 本地图像工具箱插件入口：纯 Android SDK（Bitmap / Canvas / Paint / ColorMatrix / Matrix），
  * PDF 用 PdfDocument / PdfRenderer，无 javax.imageio、无网络、无云端依赖。
+ *
+ * 该实现不随应用编译，而是由 `:image-toolbox-plugin:buildPluginDex` 打成
+ * `image-toolbox-1.0.0.jar`（classes.dex + META-INF/khatkit-plugin.properties），
+ * 随云端卡片从 Hub 下载、校验 sha256 后由宿主 DexClassLoader 加载为 `imageToolbox` bridge。
  *
  * - 输入解码后先按 EXIF 转正（输出不写回 EXIF，因此重编码即丢元数据）；
  * - 输出缺省写到源文件同目录 `<名字>_<操作>.<扩展名>`，也接受显式输出路径；
- * - /sdcard 等共享存储路径沿用 [requireSharedStorageAccess] 权限校验；
+ * - /sdcard 等共享存储路径沿用宿主同款「所有文件访问」权限校验；
  * - 失败抛带中文说明的异常，引擎会编码为 `{"__error":"..."}`。
  */
-class ImageToolboxBridgeImpl : ImageToolboxBridge {
+class ImageToolboxPlugin(@Suppress("UNUSED_PARAMETER") context: Context) : ImageToolboxBridge {
 
     override fun resize(path: String, width: Int, height: Int, keepAspect: Boolean): String = transform(path) { src ->
         require(width > 0 || height > 0) { "resize 需要 width 或 height 至少一个为正数（收到 width=$width, height=$height）" }
@@ -450,6 +456,26 @@ class ImageToolboxBridgeImpl : ImageToolboxBridge {
     }
 
     // ---- 内部工具 ----
+
+    /**
+     * 共享存储权限校验（与宿主 bridge 同一文案）：应用私有目录放行，
+     * /sdcard、/storage 等未授权时抛出可操作的中文错误。
+     */
+    private fun requireSharedStorageAccess(vararg paths: String) {
+        if (isAllFilesGranted()) return
+        val blocked = paths.firstOrNull { path ->
+            path.startsWith("/sdcard") ||
+                path.startsWith("/storage") ||
+                path.startsWith("/mnt/sdcard")
+        } ?: return
+        throw SecurityException(
+            "无共享存储访问权限：$blocked\n" +
+                "请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」"
+        )
+    }
+
+    private fun isAllFilesGranted(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
 
     /** 解码为 ARGB_8888，并按 EXIF 方向转正；超大图按 2 的幂降采样，避免 OOM。 */
     private fun decode(path: String): Bitmap {

@@ -725,7 +725,7 @@ end
 | `pdfToImages(path, outputDir)` | string[] | PDF 逐页渲染 PNG，`outputDir` 可空（源目录）。 |
 | `pdfPageCount(path)` | number | PDF 页数。 |
 
-> `compress(path, quality)` 质量压缩请直接用 `tool.compressImage`，不在 imageToolbox 里重复提供。内置卡片 `local_image_toolbox` 已封装全部操作与参数解析，可直接使用。
+> `compress(path, quality)` 质量压缩请直接用 `tool.compressImage`，不在 imageToolbox 里重复提供。图像工具箱卡片（`image_resize_crop` / `image_enhance` / `image_finish` / `image_pdf`）已封装全部操作与参数解析，从卡片市场下载后可直接使用；`imageToolbox` 是随卡片从 Hub 下载的原生插件（`requires.plugins`），不编译进 APK，见 [plugin-system.md](plugin-system.md)。
 
 ### 4.9 宿主侧接口速览
 

@@ -20,13 +20,14 @@ class CardValidatorTest {
         triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
         events: List<CardManifest.Event> = emptyList(),
         pricing: CardManifest.Pricing? = null,
+        plugins: List<CardManifest.PluginReq> = emptyList(),
     ) = CardManifest(
         name = name,
         version = "1.2.0",
         engine = engine,
         entry = CardManifest.Entry(lua = "main.lua"),
         privilege = privilege,
-        requires = CardManifest.Requires(bridges = bridges),
+        requires = CardManifest.Requires(bridges = bridges, plugins = plugins),
         network = CardManifest.Network(allow = network),
         parameters = JsonObject(emptyMap()),
         triggers = triggers,
@@ -721,5 +722,124 @@ class CardValidatorTest {
         assertEquals(50, parsed.store.quotaMb)
         assertEquals(listOf("ai", "user"), parsed.triggers)
         assertTrue(CardValidator.isValid(parsed))
+    }
+
+    // ===== requires.plugins =====
+
+    private val validSha = "a".repeat(64)
+
+    @Test
+    fun pluginRequirementPasses() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(
+                    bridges = listOf("tool", "ui", "imageToolbox"),
+                    plugins = listOf(
+                        CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha)
+                    ),
+                )
+            )
+        )
+    }
+
+    @Test
+    fun pluginRequirementParsesFromJson() {
+        val parsed = CardParser.parse(
+            """
+            {
+              "name": "image_resize_crop",
+              "version": "1.0.0",
+              "engine": "lua",
+              "entry": { "lua": "main.lua" },
+              "requires": {
+                "bridges": ["tool", "ui", "imageToolbox"],
+                "plugins": [
+                  { "name": "imageToolbox", "version": "1.0.0", "sha256": "$validSha" }
+                ]
+              },
+              "tags": { "domain": "media", "action": "create" }
+            }
+            """.trimIndent()
+        ).getOrThrow()
+        assertEquals(1, parsed.requiredPlugins.size)
+        assertEquals("imageToolbox", parsed.requiredPlugins.first().name)
+        assertEquals(validSha, parsed.requiredPlugins.first().sha256)
+        assertTrue(CardValidator.isValid(parsed))
+    }
+
+    @Test
+    fun pluginWithoutSha256Rejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                plugins = listOf(CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = ""))
+            )
+        )
+        assertTrue(issues.any { it.code == "PLUGIN_SHA256_INVALID" && it.severity == Severity.ERROR })
+    }
+
+    @Test
+    fun pluginWithShortSha256Rejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                plugins = listOf(CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = "abc123"))
+            )
+        )
+        assertTrue(issues.any { it.code == "PLUGIN_SHA256_INVALID" })
+    }
+
+    @Test
+    fun pluginWithoutVersionRejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                plugins = listOf(CardManifest.PluginReq(name = "imageToolbox", version = "", sha256 = validSha))
+            )
+        )
+        assertTrue(issues.any { it.code == "PLUGIN_VERSION_REQUIRED" })
+    }
+
+    @Test
+    fun pluginWithInvalidNameRejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                plugins = listOf(CardManifest.PluginReq(name = "Image-Toolbox", version = "1.0.0", sha256 = validSha))
+            )
+        )
+        assertTrue(issues.any { it.code == "PLUGIN_NAME_INVALID" })
+    }
+
+    @Test
+    fun pluginWithAbsoluteUrlRejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                plugins = listOf(
+                    CardManifest.PluginReq(
+                        name = "imageToolbox",
+                        version = "1.0.0",
+                        url = "https://evil.example.com/plugin.jar",
+                        sha256 = validSha,
+                    )
+                )
+            )
+        )
+        assertTrue(issues.any { it.code == "PLUGIN_URL_INVALID" })
+    }
+
+    @Test
+    fun duplicatePluginRejected() {
+        val issues = CardValidator.validate(
+            manifest(
+                plugins = listOf(
+                    CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha),
+                    CardManifest.PluginReq(name = "imageToolbox", version = "1.0.0", sha256 = validSha),
+                )
+            )
+        )
+        assertTrue(issues.any { it.code == "PLUGIN_DUPLICATE" })
+    }
+
+    @Test
+    fun oldCardWithoutPluginsUnaffected() {
+        val issues = CardValidator.validate(manifest())
+        assertFalse(issues.any { it.code.startsWith("PLUGIN_") })
     }
 }

@@ -276,6 +276,9 @@ class KhatKitToolProvider(
                         HubLibProvider(hub(), cache),
                     )
                 ),
+                // 原生插件从用户配置的 Hub 下载；下载/校验进度发布到自动化看板
+                hubBaseUrl = { hubBaseUrl },
+                onPluginStatus = { AutomationBus.update(it) },
             ).also {
                 executor = it
                 bindDownloadCenter(it)

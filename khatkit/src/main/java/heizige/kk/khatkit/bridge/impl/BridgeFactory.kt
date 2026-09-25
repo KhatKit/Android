@@ -6,8 +6,12 @@ import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CommandRunner
 import heizige.kk.khatkit.hub.LibResolver
+import heizige.kk.khatkit.plugin.PluginManager
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
+import io.ktor.client.statement.readBytes
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,6 +41,8 @@ object BridgeFactory {
         enableRoot: Boolean = false,
         policy: DownloadPolicy = DownloadPolicy(),
         libResolver: LibResolver? = null,
+        hubBaseUrl: () -> String = { "" },
+        onPluginStatus: ((String) -> Unit)? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -60,7 +66,20 @@ object BridgeFactory {
             shizuku = shizukuBridge,
             root = rootBridge,
             accessibility = accessibilityBridge,
-            imageToolbox = ImageToolboxBridgeImpl(),
+        )
+
+        // 原生插件：随云端卡片下载，校验 sha256 后 DexClassLoader 加载为动态 bridge
+        val pluginManager = PluginManager(
+            context = appContext,
+            hubBaseUrl = hubBaseUrl,
+            fetchBytes = { url ->
+                val response = http.get(url)
+                if (!response.status.isSuccess()) {
+                    error("HTTP ${response.status.value}")
+                }
+                response.readBytes()
+            },
+            onStatus = { onPluginStatus?.invoke(it) },
         )
 
         val commandRunner = when {
@@ -69,6 +88,6 @@ object BridgeFactory {
             else -> null
         }
 
-        CardExecutor(registry, commandRunner, libResolver)
+        CardExecutor(registry, commandRunner, libResolver, pluginManager, onPluginStatus)
     }
 }

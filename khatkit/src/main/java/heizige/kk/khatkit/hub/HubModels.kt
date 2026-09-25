@@ -35,6 +35,11 @@ data class CardIndexEntry(
     val parameters: JsonObject = JsonObject(emptyMap()),
     /** 依赖的共享库 */
     val libs: List<CardLibRef> = emptyList(),
+    /**
+     * 依赖的原生插件（随卡片从 Hub 下载，DexClassLoader 加载）；
+     * 与 manifest.requires.plugins 一致，供能力过滤与预下载决策。
+     */
+    val plugins: List<CardManifest.PluginReq> = emptyList(),
 )
 
 @Serializable

@@ -1,15 +1,32 @@
-# 图像工具箱（本地）
+# 图像工具箱（本地处理，云端市场分发）
 
 参考 ImageToolbox（T8RIN/ImageToolbox）的常用静态图处理，**全部在设备本地完成**：
 
-- 宿主 bridge：`imageToolbox`（`heizige.kk.khatkit.bridge.ImageToolboxBridge` + `bridge/impl/ImageToolboxBridgeImpl.kt`），
-  纯 Android SDK（`Bitmap` / `Canvas` / `Paint` / `ColorMatrix` / `Matrix`，PDF 用 `PdfDocument` / `PdfRenderer`），不依赖 `javax.imageio`、无网络调用。
-- 内置 Lua 卡片：`khatkit/src/main/assets/cards/local-image-toolbox/`（manifest `local_image_toolbox`），
-  声明 `requires.bridges: ["tool", "ui", "imageToolbox"]`，网络白名单为空，AI 与用户均可触发。
+- **实现不随 APK 编译**：代码在独立模块 `image-toolbox-plugin`，由 D8 打成含
+  `classes.dex` 的 jar（`image-toolbox-1.0.0.jar`）发布到 Hub；运行时随卡片下载，
+  校验 sha256 后由 `DexClassLoader` 加载成动态 bridge `imageToolbox`。
+  纯 Android SDK（`Bitmap` / `Canvas` / `Paint` / `ColorMatrix` / `Matrix`，PDF 用 `PdfDocument` / `PdfRenderer`），
+  不依赖 `javax.imageio`、无网络调用。
+- 应用侧只保留 bridge 接口 `heizige.kk.khatkit.bridge.ImageToolboxBridge`（编译期契约）
+  与动态派发包装器 `PluginBridgeWrapper`；原 `bridge/impl/ImageToolboxBridgeImpl.kt` 已删除。
+- Lua 卡片从云端卡片 Hub（市场）下载，不打包进 APK（原 `assets/cards/local-image-toolbox/` 已移除）。
+  Hub 索引（KServer 种子）按功能拆成 4 张免费卡片，声明
+  `requires.bridges: ["tool", "ui", "imageToolbox"]`、`requires.plugins: [{ name: "imageToolbox", version: "1.0.0", sha256: ... }]`、
+  网络白名单为空、AI 与用户均可触发：
+
+  | 市场卡片 | 包含操作 |
+  |---|---|
+  | `image_resize_crop` | resize / crop / rotate / flip |
+  | `image_enhance` | grayscale / blur / sharpen / pixelate / brightness_contrast / saturation / hue / auto_contrast / invert / sepia |
+  | `image_finish` | watermark / border / round_corners / format_convert / compress / strip_metadata |
+  | `image_pdf` | images_to_pdf / pdf_to_images / pdf_page_count |
+
+- 能力协商：只要设备支持插件运行时（capability `plugin`），声明 `requires.plugins` 的卡片即可见；
+  首次运行前宿主自动下载插件（离线/校验失败会给出中文错误），详见 [plugin-system.md](plugin-system.md)。
 - 图片不出设备、结果免费，不需要 Hub 令牌；`/sdcard` 等共享存储路径仍需「所有文件访问」授权。
 
 ```
-AI / 用户 ──▶ local_image_toolbox (Lua) ──▶ imageToolbox bridge ──▶ Bitmap/Canvas 本地处理 ──▶ 新文件
+AI / 用户 ──▶ image_* 卡片（Hub 下载的 Lua） ──▶ imageToolbox（Hub 下载的 dex 插件） ──▶ Bitmap/Canvas 本地处理 ──▶ 新文件
 ```
 
 ---
