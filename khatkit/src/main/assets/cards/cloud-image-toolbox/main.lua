@@ -247,7 +247,7 @@ local result = {
   outputs = outputs,
   params = params_json,
   message = "已处理 " .. tostring(#outputs) .. "/" .. tostring(#paths) .. " 张，结果保存在下载目录",
-  cost = "本次消耗 " .. tostring(#paths) .. " 次工具调用额度",
+  cost = "全部免费，不消耗工具调用额度",
 }
 if #outputs == 1 then result.output = outputs[1] end
 if #errors > 0 then result.error = table.concat(errors, "；") end

@@ -29,3 +29,20 @@ object AllFilesAccess {
         }
     }
 }
+
+/** /sdcard、/storage 这类共享存储需要「所有文件访问」；否则直接给出可操作的报错。 */
+internal fun requireSharedStorageAccess(vararg paths: String) {
+    if (AllFilesAccess.isGranted()) return
+    val blocked = paths.firstOrNull { isSharedStorage(it) } ?: return
+    throw SecurityException(
+        "无共享存储访问权限：$blocked\n" +
+            "请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」"
+    )
+}
+
+internal fun isSharedStorage(path: String): Boolean {
+    val normalized = path.trim()
+    return normalized.startsWith("/sdcard") ||
+        normalized.startsWith("/storage") ||
+        normalized.startsWith("/mnt/sdcard")
+}

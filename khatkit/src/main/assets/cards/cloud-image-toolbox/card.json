@@ -1,7 +1,7 @@
 {
   "name": "cloud_image_toolbox",
   "version": "1.0.0",
-  "description": "云端图像工具箱：调用 KodeHead Hub 完成缩放/裁剪/旋转/翻转/灰度/模糊/锐化/像素化/亮度对比度/饱和度/色相/自动对比度/反色/复古/水印/边框/圆角/格式转换/压缩等 20 项处理，结果保存到下载目录（每次处理扣 1 次工具调用额度）",
+  "description": "云端图像工具箱：调用 KodeHead Hub 完成缩放/裁剪/旋转/翻转/灰度/模糊/锐化/像素化/亮度对比度/饱和度/色相/自动对比度/反色/复古/水印/边框/圆角/格式转换/压缩等 20 项处理，结果保存到下载目录（全部免费，不扣任何额度）",
   "author": "khatkit",
   "license": "MIT",
   "engine": "lua",
@@ -41,7 +41,7 @@
   "tags": { "domain": "media", "action": "convert", "scene": "daily" },
   "compliance": {
     "risk": "medium",
-    "note": "图片会上传到配置的 Hub 服务器处理，每次处理扣 1 次工具调用额度；请勿上传敏感或未授权图片"
+    "note": "图片会上传到配置的 Hub 服务器处理；全部免费，不扣工具调用额度；请勿上传敏感或未授权图片"
   },
   "store": { "quota_mb": 8, "secret": true }
 }

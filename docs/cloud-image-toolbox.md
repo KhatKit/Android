@@ -1,85 +1,94 @@
-# 云端图像工具箱（cloud-image-toolbox）
+# 图像工具箱（本地优先，云端可选）
 
-把 ImageToolbox（T8RIN/ImageToolbox）中**不依赖 ML / 原生库**的常用静态图处理做成云端脚本能力：
+参考 ImageToolbox（T8RIN/ImageToolbox）的常用静态图处理，现在**默认全部在设备本地完成**：
 
-- 服务端：KodeHeadServer 提供 `/api/image/*`（纯 JVM：`java.awt` + `javax.imageio`，无新增依赖）
-- 客户端：KhatKit 内置 Lua 卡片 `cloud_image_toolbox`，通过 `tool.httpMultipart` 上传图片并保存结果
+- 宿主 bridge：`imageToolbox`（`heizige.kk.khatkit.bridge.ImageToolboxBridge` + `bridge/impl/ImageToolboxBridgeImpl.kt`），
+  纯 Android SDK（`Bitmap` / `Canvas` / `Paint` / `ColorMatrix` / `Matrix`，PDF 用 `PdfDocument` / `PdfRenderer`），不依赖 `javax.imageio`、无网络调用。
+- 内置 Lua 卡片：`khatkit/src/main/assets/cards/local-image-toolbox/`（manifest `local_image_toolbox`），
+  声明 `requires.bridges: ["tool", "ui", "imageToolbox"]`，网络白名单为空，AI 与用户均可触发。
+- 图片不出设备、结果免费，不需要 Hub 令牌；`/sdcard` 等共享存储路径仍需「所有文件访问」授权。
 
 ```
-KhatKit 卡片 ──multipart(image, op, params)──▶ POST /api/image/process ──▶ ImageToolboxService ──▶ 图片字节
-      ▲                                          │
-      └────────── 结果落盘 /sdcard/Download ◀────┘  计费：每张 1 次工具调用额度
+AI / 用户 ──▶ local_image_toolbox (Lua) ──▶ imageToolbox bridge ──▶ Bitmap/Canvas 本地处理 ──▶ 新文件
 ```
 
 ---
 
-## 1. 覆盖矩阵（ImageToolbox 功能 → 服务端能力）
+## 1. 本地操作清单（全部无需云端）
 
-### 1.1 已实现（20 个操作，纯 JDK 可离线运行）
+| 卡片 op | bridge 方法 | 中文 | 关键参数 | 缺省输出 |
+|---|---|---|---|---|
+| `resize` | `imageToolbox.resize(path, width, height, keepAspect)` | 缩放 | `width/height/keep_aspect` | `<名>_resized.<源格式>` |
+| `crop` | `imageToolbox.crop(path, x, y, width, height)` | 裁剪 | `x/y/width/height` | `<名>_cropped.<源格式>` |
+| `rotate` | `imageToolbox.rotate(path, degrees)` | 任意角度旋转（自动扩画布） | `degrees` | `<名>_rotated.<源格式>` |
+| `flip` | `imageToolbox.flip(path, horizontal)` | 翻转 | `horizontal`（或 `direction`） | `<名>_flipped.<源格式>` |
+| `grayscale` | `imageToolbox.grayscale(path)` | 灰度 | - | `<名>_grayscale.<源格式>` |
+| `blur` | `imageToolbox.blur(path, radius)` | 方框模糊（三次分离卷积） | `radius` 像素 | `<名>_blurred.<源格式>` |
+| `sharpen` | `imageToolbox.sharpen(path, amount)` | 3×3 锐化卷积 | `amount` 0.1–10 | `<名>_sharpened.<源格式>` |
+| `pixelate` | `imageToolbox.pixelate(path, blockSize)` | 像素化 | `block`/`block_size` ≥2 | `<名>_pixelated.<源格式>` |
+| `brightness_contrast` | `imageToolbox.brightnessContrast(path, brightness, contrast)` | 亮度/对比度 | 两者 -100..100 | `<名>_brightness_contrast.<源格式>` |
+| `saturation` | `imageToolbox.saturation(path, factor)` | 饱和度 | 0=灰度 1=原图 | `<名>_saturated.<源格式>` |
+| `hue` | `imageToolbox.hue(path, degrees)` | 色相旋转 | `degrees` | `<名>_hue.<源格式>` |
+| `auto_contrast` | `imageToolbox.autoContrast(path)` | 自动对比度（0.5% 截断拉伸） | - | `<名>_auto_contrast.<源格式>` |
+| `invert` | `imageToolbox.invert(path)` | 反色 | - | `<名>_inverted.<源格式>` |
+| `sepia` | `imageToolbox.sepia(path)` | 复古棕褐 | - | `<名>_sepia.<源格式>` |
+| `watermark` | `imageToolbox.watermark(path, text, position, alpha, textSize, colorHex)` | 文字水印 | `text/position/alpha(0-255)/size/color` | `<名>_watermarked.<源格式>` |
+| `border` | `imageToolbox.border(path, width, colorHex)` | 纯色边框 | `width/color` | `<名>_bordered.<源格式>` |
+| `round_corners` | `imageToolbox.roundCorners(path, radius)` | 圆角 | `radius` | `<名>_rounded.png` |
+| `format_convert` | `imageToolbox.convert(path, format, quality)` | 格式转换 | `format` png/jpg/webp | `<名>_converted.<format>` |
+| `compress` | `tool.compressImage(path, quality)`（复用，不重复实现） | 质量压缩 | `quality` 1–100 | `<名>_compressed.jpg` |
+| `strip_metadata` | `imageToolbox.stripMetadata(path)` | 清除元数据 | - | `<名>_stripped.<源格式>` |
+| `images_to_pdf` | `imageToolbox.imagesToPdf(paths, output)` | 图片转 PDF（A4 居中，按序成页） | `files` 路径数组 | `<首图名>_images.pdf` |
+| `pdf_to_images` | `imageToolbox.pdfToImages(path, outputDir)` | PDF 逐页转 PNG（2× 渲染） | `output_dir`/`output` | `<PDF名>_pageN.png` |
+| `pdf_page_count` | `imageToolbox.pdfPageCount(path)` | PDF 页数 | - | 不落盘，返回数字 |
 
-| 操作名 | 中文 | 对应 ImageToolbox 功能 | 关键参数 |
-|---|---|---|---|
-| `resize` | 缩放 | Image Resizing（部分算法） | `scale/width/height/keep_aspect/method` |
-| `crop` | 裁剪 | Cropping（规则矩形） | `width/height/x/y` |
-| `rotate` | 旋转 | Rotating（任意角度，自动扩画布） | `degrees/background` |
-| `flip` | 翻转 | Flipping | `direction` |
-| `grayscale` | 灰度 | Grayscale 滤镜 | `method` |
-| `blur` | 模糊 | Box / Gaussian Blur | `type/radius` |
-| `sharpen` | 锐化 | Sharpen / Unsharp | `amount/radius` |
-| `pixelate` | 像素化 | Pixelation | `block` |
-| `brightness_contrast` | 亮度对比度 | Brightness / Contrast | `brightness/contrast` |
-| `saturation` | 饱和度 | Saturation | `amount` |
-| `hue` | 色相 | Hue | `degrees` |
-| `auto_contrast` | 自动对比度 | Equalize / Auto levels | `clip_percent` |
-| `invert` | 反色 | Color Inversion | - |
-| `sepia` | 复古棕褐 | Sepia Tone | - |
-| `watermark` | 文字水印 | Watermarking（重复文字的子集） | `text/position/size/opacity/color/margin/shadow` |
-| `border` | 边框 | Border Frame（纯色） | `width/color` |
-| `round_corners` | 圆角 | Crop with shape mask（Rounded Corners） | `radius/background` |
-| `format_convert` | 格式转换 | Format Conversion（PNG/JPEG/BMP/GIF） | `format` |
-| `compress` | 质量压缩 | Image Shrinking / Quality compressing | `quality` |
-| `strip_metadata` | 清除元数据 | EXIF deleting（重编码即丢弃） | - |
+行为约定：
 
-> 所有操作都会重编码，EXIF/ICC 元数据自然不会保留（`strip_metadata` 为显式语义）。
-> 动图只处理首帧；WebP 读写取决于服务器运行环境是否带 ImageIO WebP 插件（标准 JDK 不带，会返回不支持的格式）。
+- 所有操作解码后先按 EXIF 方向转正，再处理并重编码；输出不写回 EXIF/ICC，因此重编码即丢元数据。
+- 输出缺省写到**源文件同目录** `<名字>_<操作>.<扩展名>`；显式传 `output`（PDF 转换）/ `output_dir`（PDF 转图）可改路径。
+- 失败抛中文错误，引擎编码为 `{"__error":"..."}`；卡片汇总 `error` 字段并返回 `outputs` 数组。
+- 批量：`image` 里用换行/逗号分隔，或传 `files` 数组；`images_to_pdf` 用 `files` 数组。
+- 参数 `params` 支持 JSON 字符串（`{"width":800,"keep_aspect":true}`）或键值对（`width=800,quality=80`）。
+- 图片路径缺失时卡片弹 `ui.form` 让用户填写路径、操作与参数。
 
-### 1.2 暂不在服务端提供（需要 ML / 原生库 / 大量额外依赖）
+AI 调用示例：
 
-| ImageToolbox 能力 | 原因 | 可能的落地方式 |
-|---|---|---|
-| 背景移除、AI 放大/去噪/上色/增强、人像/深度 | 需要 ONNX/MlKit 等模型 | 独立 AI 网关或 GPU 服务 |
-| OCR（Tesseract/PaddleOCR）、文档扫描 | 原生 OCR 引擎 | 独立 OCR 服务 |
-| 绘图/擦除/标记（Pen、Spot Healing、形状） | 交互式画布 | 客户端本地能力（卡片无法承载画布） |
-| PDF 工具（合并/拆分/水印/压缩/OCR） | 需 PDFBox 等依赖 | 已有本地卡片 `pdf-merge`；服务端可后续加 PDFBox |
-| 二维码 / 条形码（13 种格式） | 需 ZXing | 加入 ZXing 依赖后可作为新 op |
-| 动图转码（GIF/APNG/WebP/JXL/AVIF） | 需动画编解码器 | 专项转码服务 |
-| 500+ 高级滤镜、3D LUT、Shader Studio | 逐像素重滤镜/着色器 | 按需挑选实现为服务端 op |
-| 拼图/马赛克拼贴/缝合/叠图/切图 | 复杂组合布局 | 后续 op（纯 JVM 可做部分） |
-| 调色板/直方图/色调曲线/波形图 | 色彩分析工具集 | 后续只读分析 op |
-| EXIF 编辑（写入经纬度、时间等） | ImageIO 不解析 EXIF | 引入 `metadata-extractor` 后支持 |
-| 代码截图、纹理/分形生成、压缩包工具 | 与图像处理正交 | 不作为图像 op |
+```json
+{ "op": "resize", "image": "/sdcard/DCIM/cat.jpg", "params": "{\"width\":1080,\"keep_aspect\":true}" }
+{ "op": "watermark", "image": "/sdcard/DCIM/cat.jpg", "params": "{\"text\":\"@heizige\",\"position\":\"bottom_right\",\"opacity\":0.6}" }
+{ "op": "images_to_pdf", "files": ["/sdcard/a.png", "/sdcard/b.png"], "output": "/sdcard/Download/album.pdf" }
+{ "op": "pdf_to_images", "image": "/sdcard/Download/album.pdf", "params": "{\"output_dir\":\"/sdcard/Download/pages\"}" }
+```
 
----
+> 云端的 20 个静态图 op 现已全部本地覆盖，**这些操作不再需要云端**；`docs` 下保留的云端 API 章节仅作为可选备用（例如把处理放到服务器批跑的部署形态）。
 
-## 2. 服务端 API
+### 1.1 仍然不在范围内的能力
 
-实现位置：`KodeHeadServer`
-
-| 文件 | 作用 |
+| ImageToolbox 能力 | 原因 |
 |---|---|
-| `src/service/ImageToolboxService.kt` | 纯 JVM 图像操作 + 编解码 + 操作目录 |
-| `src/routing/ImageToolboxRouting.kt` | `/api/image/*` 路由、multipart/JSON 解析、额度扣减 |
-| `src/model/ImageDto.kt` | 目录与响应 DTO |
-| `test/ImageToolboxServiceTest.kt` | 10 个纯 JVM 单元测试 |
-| `scripts/smoke_image.sh` | 端到端冒烟（目录/单图/批量/计费/错误码） |
+| AI 背景移除、AI 放大/去噪/上色、人像/深度 | 需要 ONNX/MlKit 等模型，超出纯 SDK 图像处理 |
+| 交互式绘图/擦除/标记（Pen、Spot Healing、形状） | 需要画布交互，卡片脚本无法承载 |
+| GIF/APNG/WebP 动画、视频转码与剪辑 | 需要动画/视频编解码器，不在静态图工具范围 |
+| OCR、二维码/条码、500+ 滤镜、拼图/3D LUT | 需要 ML Kit / ZXing / 着色器等额外依赖；OCR 另有 `tool.ocrText` |
+
+---
+
+## 2. 可选：云端 API（历史章节，保留备用）
+
+最早的实现是 KodeHeadServer 的 `/api/image/*`（纯 JVM：`java.awt` + `javax.imageio`），
+由 Lua 卡片 `cloud_image_toolbox` 通过 `tool.httpMultipart` 上传图片处理。
+
+- 覆盖操作与本地清单一致（20 个静态图 op），参数命名基本兼容；
+- 需要有效 Hub 激活令牌（处理免费、不扣工具调用额度），图片会上传服务器；
+- 适合服务器批量处理、或设备不便安装新版本的场景。
 
 ### 2.1 `GET /api/image/ops`（公开）
 
-返回操作目录：`ops[]`（含中文说明与参数 schema）、`output_formats`、`max_batch`、`max_input_mb`、`cost` 等。
+返回操作目录：`ops[]`（含中文说明与参数 schema）、`output_formats`、`max_batch`、`max_input_mb`、`free: true`、`price: 0`、`cost` 等。
 
 ### 2.2 `POST /api/image/process`
 
-鉴权：`Authorization: Bearer <激活令牌或设备会话密钥>`；每张扣 1 次工具调用额度（不足返回 402）。
+鉴权：`Authorization: Bearer <激活令牌或设备会话密钥>`（仍需有效令牌）；**全部免费，不扣减工具调用额度**。
 
 multipart 表单：
 
@@ -92,36 +101,12 @@ multipart 表单：
 | `quality` | 可选 JPEG 质量 1..100 |
 | `return` | 可选 `binary`（默认，直接返回图片）或 `json`（返回 base64） |
 
-JSON 请求体（`Content-Type: application/json`）二选一：
-
-```json
-{
-  "op": "resize",
-  "params": { "width": 800 },
-  "image_url": "https://example.com/a.jpg",
-  "format": "jpg",
-  "quality": 85
-}
-```
-
-也支持 `image_base64`（data URL 或裸 base64）与 `image_urls`（数组，多图时用 batch）。
-
-响应：
-
-- `return=binary` → 图片字节 + `X-Image-Format/Width/Height/Cost` 响应头
-- `return=json` / JSON 请求 → `{ op, format, mime, width, height, input_bytes, output_bytes, image_base64, cost }`
+响应：`return=binary` → 图片字节 + `X-Image-Format/Width/Height/Cost`（`X-Image-Cost` 恒为 `0`）；
+`return=json` → `{ op, format, mime, width, height, input_bytes, output_bytes, image_base64, free, price, cost }`。
 
 ### 2.3 `POST /api/image/batch`
 
-multipart 重复字段 `files`（最多 5 张）或 JSON `image_urls`，其余字段同 process；返回：
-
-```json
-{ "op": "pixelate", "count": 2, "ok_count": 2,
-  "items": [ { "name": "a.png", "ok": true, "image_base64": "data:image/png;base64,..." } ],
-  "cost": "2 次工具调用" }
-```
-
-单图失败不影响其它项（`ok=false` + `error`）；批量按图片数扣额度。
+multipart 重复字段 `files`（最多 5 张）或 JSON `image_urls`，其余字段同 process；单图失败不影响其它项（`ok=false` + `error`）。
 
 ### 2.4 限制与安全
 
@@ -129,43 +114,11 @@ multipart 重复字段 `files`（最多 5 张）或 JSON `image_urls`，其余�
 - `image_url` 只允许 http/https，且拒绝回环/内网/链路本地地址（SSRF 防护）
 - 处理在 `Dispatchers.Default`，编解码关闭 ImageIO 磁盘缓存
 
----
-
-## 3. 卡片用法
+### 2.5 云端卡片用法
 
 卡片：`khatkit/src/main/assets/cards/cloud-image-toolbox/`（manifest `cloud_image_toolbox`）
 
-- 触发：AI 工具调用 + 用户手动运行
-- 桥：`tool` / `ui` / `store`；网络白名单：`heizige.top`
-- 令牌：优先 `args.token`，其次卡片密钥 `store.secretGet("hub_token")`，再次共享区 `hub_token`；
-  都没有时会弹窗要求输入并加密保存（Hub 地址保存为 `hub_base`，默认 `https://heizige.top`）
-- 结果：由 `tool.httpMultipart` 自动保存到 `/sdcard/Download/zenneko_process_*.png|jpg|...`，
-  返回 `{ output, outputs[], ok_count, cost }`
-
-AI 调用示例：
-
-```json
-{ "image": "/sdcard/DCIM/cat.jpg", "op": "resize", "params": { "width": 1080 }, "format": "jpg", "quality": 85 }
-{ "image": "/sdcard/DCIM/cat.jpg", "op": "watermark", "params": { "text": "@heizige", "position": "bottom_right" } }
-{ "files": ["/sdcard/a.png", "/sdcard/b.png"], "op": "grayscale" }
-```
-
-用户手动运行：选择图片路径（`file_picker` 为路径输入框，批量可在同一字段用换行/逗号分隔），
-选择操作、参数（支持 `{"width":800}` 或 `width=800,quality=80`）、输出格式与质量。
-
-设置令牌：在「设置 → 套餐 / 激活」激活套餐后，把激活令牌粘贴到卡片弹窗即可；
-也可先运行一次任意操作触发弹窗。
-
----
-
-## 4. 如何扩展一个新 op（纯 JVM）
-
-1. `ImageToolboxService.process()` 增加分发分支；
-2. 实现 `opXxx(src, params)`（`java.awt`/`javax.imageio`，避免新依赖）；
-3. 在 `catalog()` 注册操作名、中文说明与参数 schema（UI/AI 都会读到）；
-4. `resolveOutputFormat` 如需新默认格式在此调整；
-5. 在 `test/ImageToolboxServiceTest.kt` 增加断言，运行 `./kotlin test`；
-6. 更新卡片 `OP_NAMES`（可选）与本文档矩阵；
-7. 端到端验证：`./scripts/smoke_image.sh`（需本机 PostgreSQL + 运行中的服务）。
-
-保持不变式：不引入原生依赖、所有输入都做尺寸/大小上限、错误统一抛 `ImageOpException`（路由映射为 400）。
+- 触发：AI + 用户；桥：`tool` / `ui` / `store`；网络白名单：`heizige.top`
+- 令牌：`args.token` > `store.secretGet("hub_token")` > 共享区 `hub_token`；
+  都没有时弹窗输入并加密保存（Hub 地址保存为 `hub_base`，默认 `https://heizige.top`）
+- 结果：由 `tool.httpMultipart` 自动保存到 `/sdcard/Download/zenneko_process_*.png|jpg|...`

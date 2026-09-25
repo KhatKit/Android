@@ -184,7 +184,7 @@ return { message: "Hello, " + name };
 }
 ```
 
-- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `ui` `download` `store` `shizuku` `root` `accessibility`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
+- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `ui` `download` `store` `shizuku` `root` `accessibility` `imageToolbox`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
 - `libs`：共享库声明。`name` 为库名；`lang` 为 `lua` / `js`（默认 `js`）；`version` 为 SemVer 范围（默认 `*`）。宿主解析顺序：内置层 `assets/libs/<dir>/<version>/` → Hub CDN 共享库 registry；**只解析与当前引擎同语言的库**。脚本内用 `require(name)` 使用（Lua 走 `package.preload`，JS 为 CommonJS 形态）。
 - `bins` / `env`：当前宿主版本未消费，保留字段，可留空数组。
 
@@ -698,7 +698,36 @@ if string.sub(shot, 1, 1) == "/" then
 end
 ```
 
-### 4.8 宿主侧接口速览
+### 4.8 imageToolbox（本地图像工具箱，L0）
+
+本地静态图/PDF 处理，纯 Android SDK（`Bitmap`/`Canvas`/`ColorMatrix`/`PdfDocument`/`PdfRenderer`），不联网、不上传；`/sdcard` 等共享存储路径需要「所有文件访问」。每个方法读取源文件、写出新文件到源目录（或显式输出），返回输出路径；失败返回 `{__error}`。
+
+| 方法（签名） | 返回 | 说明 |
+|---|---|---|
+| `resize(path, width, height, keepAspect)` | string | 缩放；`keepAspect=true` 时按比例适配（只给一边自动算另一边）。 |
+| `crop(path, x, y, width, height)` | string | 裁剪，区域超出图片范围时报错。 |
+| `rotate(path, degrees)` | string | 任意角度旋转，自动扩画布。 |
+| `flip(path, horizontal)` | string | 翻转，`horizontal=true` 左右。 |
+| `grayscale(path)` / `invert(path)` / `sepia(path)` | string | 灰度 / 反色 / 复古。 |
+| `blur(path, radius)` | string | 方框模糊（三次分离卷积近似高斯）。 |
+| `sharpen(path, amount)` | string | 3×3 锐化卷积。 |
+| `pixelate(path, blockSize)` | string | 像素化（`blockSize>=2`）。 |
+| `brightnessContrast(path, brightness, contrast)` | string | 亮度/对比度，各 -100..100。 |
+| `saturation(path, factor)` | string | 饱和度，0=灰度 1=原图。 |
+| `hue(path, degrees)` | string | 色相旋转。 |
+| `autoContrast(path)` | string | 自动对比度（每通道 0.5% 截断拉伸）。 |
+| `watermark(path, text, position, alpha, textSize, colorHex)` | string | 文字水印；`position` 为 top-left/top-right/bottom-left/bottom-right/center，`alpha` 0–255。 |
+| `border(path, width, colorHex)` | string | 纯色边框。 |
+| `roundCorners(path, radius)` | string | 圆角（输出默认 png 保留透明角）。 |
+| `convert(path, format, quality)` | string | 格式转换，`format` 只支持 png/jpg/webp。 |
+| `stripMetadata(path)` | string | 重编码丢弃 EXIF 等元数据。 |
+| `imagesToPdf(paths, output)` | string | 多图合成 A4 PDF，`output` 可空。 |
+| `pdfToImages(path, outputDir)` | string[] | PDF 逐页渲染 PNG，`outputDir` 可空（源目录）。 |
+| `pdfPageCount(path)` | number | PDF 页数。 |
+
+> `compress(path, quality)` 质量压缩请直接用 `tool.compressImage`，不在 imageToolbox 里重复提供。内置卡片 `local_image_toolbox` 已封装全部操作与参数解析，可直接使用。
+
+### 4.9 宿主侧接口速览
 
 | 接口 | 方法 | 说明 |
 |---|---|---|
@@ -716,7 +745,7 @@ end
 
 | 级别 | bridge | 获取方式 |
 |---|---|---|
-| L0 | `tool` `ui` `download` `store` | 无需特殊授权；`tool` 访问共享存储时需要「所有文件访问」。 |
+| L0 | `tool` `ui` `download` `store` `imageToolbox` | 无需特殊授权；`tool`/`imageToolbox` 访问共享存储时需要「所有文件访问」。 |
 | L1 | `shizuku` `accessibility` | 用户在权限面板/系统设置中开启；Shizuku 需服务在线并授权，无障碍需系统设置里勾选。 |
 | L2 | `root` | 用户显式打开「Root 提权」且 `su` 探测成功（默认禁用）。 |
 

@@ -73,6 +73,87 @@ interface ToolBridge {
     fun ocrBoxes(path: String): String
 }
 
+/**
+ * L0 —— 本地图像工具箱（纯 Android SDK，不联网、不上传）。
+ *
+ * 每个操作读取源图片/PDF，写出新文件到源目录（或显式输出路径），返回输出路径；
+ * 失败抛中文错误，引擎会转成 `{"__error":"中文说明"}` 返回脚本。
+ * `compress` 已在 [ToolBridge.compressImage]，这里不重复暴露。
+ */
+interface ImageToolboxBridge {
+    /** 缩放：keepAspect=true 时按比例适配 width×height（只给一边则另一边自动算）。 */
+    fun resize(path: String, width: Int = 0, height: Int = 0, keepAspect: Boolean = true): String
+
+    /** 裁剪：x/y 为左上角，width/height 为裁剪尺寸（须在图片范围内）。 */
+    fun crop(path: String, x: Int = 0, y: Int = 0, width: Int = 0, height: Int = 0): String
+
+    /** 任意角度旋转，自动扩画布。 */
+    fun rotate(path: String, degrees: Float = 90f): String
+
+    /** 翻转：horizontal=true 左右翻，false 上下翻。 */
+    fun flip(path: String, horizontal: Boolean = true): String
+
+    fun grayscale(path: String): String
+
+    /** 方框模糊（三次分离卷积近似高斯），radius 单位像素。 */
+    fun blur(path: String, radius: Int = 8): String
+
+    /** 3×3 锐化卷积，amount 推荐 0.1–5。 */
+    fun sharpen(path: String, amount: Float = 1f): String
+
+    /** 像素化：blockSize 为方块边长（>=2）。 */
+    fun pixelate(path: String, blockSize: Int = 12): String
+
+    /** 亮度/对比度：brightness、contrast 取 -100..100。 */
+    fun brightnessContrast(path: String, brightness: Int = 0, contrast: Int = 0): String
+
+    /** 饱和度：0=灰度，1=原图，>1 更艳（封顶 10）。 */
+    fun saturation(path: String, factor: Float = 1f): String
+
+    /** 色相旋转（-360..360 度）。 */
+    fun hue(path: String, degrees: Float = 0f): String
+
+    /** 自动对比度：按每通道 0.5% 截断拉伸。 */
+    fun autoContrast(path: String): String
+
+    fun invert(path: String): String
+    fun sepia(path: String): String
+
+    /**
+     * 文字水印。position：top-left / top-right / bottom-left / bottom-right / center；
+     * alpha 0..255；textSize<=0 时按图片宽度自适应；colorHex 如 #FFFFFF。
+     */
+    fun watermark(
+        path: String,
+        text: String,
+        position: String = "bottom-right",
+        alpha: Int = 160,
+        textSize: Int = 0,
+        colorHex: String = "#FFFFFF",
+    ): String
+
+    /** 纯色边框：width 为单边像素宽，colorHex 如 #FFFFFF。 */
+    fun border(path: String, width: Int = 16, colorHex: String = "#FFFFFF"): String
+
+    /** 圆角：radius 像素，超出短边一半时取一半；输出默认 png 以保留透明角。 */
+    fun roundCorners(path: String, radius: Int = 48): String
+
+    /** 格式转换：format 只支持 png / jpg / webp，quality 1..100（仅 jpg/webp 生效）。 */
+    fun convert(path: String, format: String, quality: Int = 90): String
+
+    /** 重编码以丢弃 EXIF 等元数据（解码+再编码，输出保持源格式）。 */
+    fun stripMetadata(path: String): String
+
+    /** 多张图片合成一个 PDF（A4 竖版居中，页序即数组顺序）。 */
+    fun imagesToPdf(paths: List<String>, output: String = ""): String
+
+    /** PDF 逐页渲染为 PNG，返回页图路径列表（输出目录缺省为 PDF 所在目录）。 */
+    fun pdfToImages(path: String, outputDir: String = ""): List<String>
+
+    /** PDF 页数。 */
+    fun pdfPageCount(path: String): Int
+}
+
 interface UiBridge {
     /** items 为组件列表，返回用户填好的值；用户取消返回 null */
     fun form(title: String, items: List<Map<String, Any?>>): Map<String, Any?>?

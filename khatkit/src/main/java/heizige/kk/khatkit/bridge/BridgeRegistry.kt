@@ -16,6 +16,7 @@ class BridgeRegistry(
     private val shizuku: ShizukuBridge? = null,
     private val root: RootBridge? = null,
     private val accessibility: AccessibilityBridge? = null,
+    private val imageToolbox: ImageToolboxBridge? = null,
 ) {
     /** 宿主侧访问下载管理器（下载中心）。 */
     fun downloadBridge(): DownloadBridge? = download
@@ -35,6 +36,7 @@ class BridgeRegistry(
         if (shizuku != null) add("shizuku")
         if (root != null) add("root")
         if (accessibility != null) add("accessibility")
+        if (imageToolbox != null) add("imageToolbox")
     }
 
     /** 卡片所需能力是否全部具备。 */
@@ -60,6 +62,7 @@ class BridgeRegistry(
                 "shizuku" -> shizuku
                 "root" -> root
                 "accessibility" -> accessibility
+                "imageToolbox" -> imageToolbox
                 else -> null
             } ?: return false
             engine.define(name, impl)

@@ -60,6 +60,7 @@ object BridgeFactory {
             shizuku = shizukuBridge,
             root = rootBridge,
             accessibility = accessibilityBridge,
+            imageToolbox = ImageToolboxBridgeImpl(),
         )
 
         val commandRunner = when {
