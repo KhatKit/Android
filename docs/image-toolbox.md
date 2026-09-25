@@ -1,6 +1,6 @@
-# 图像工具箱（本地优先，云端可选）
+# 图像工具箱（本地）
 
-参考 ImageToolbox（T8RIN/ImageToolbox）的常用静态图处理，现在**默认全部在设备本地完成**：
+参考 ImageToolbox（T8RIN/ImageToolbox）的常用静态图处理，**全部在设备本地完成**：
 
 - 宿主 bridge：`imageToolbox`（`heizige.kk.khatkit.bridge.ImageToolboxBridge` + `bridge/impl/ImageToolboxBridgeImpl.kt`），
   纯 Android SDK（`Bitmap` / `Canvas` / `Paint` / `ColorMatrix` / `Matrix`，PDF 用 `PdfDocument` / `PdfRenderer`），不依赖 `javax.imageio`、无网络调用。
@@ -14,7 +14,7 @@ AI / 用户 ──▶ local_image_toolbox (Lua) ──▶ imageToolbox bridge �
 
 ---
 
-## 1. 本地操作清单（全部无需云端）
+## 1. 本地操作清单
 
 | 卡片 op | bridge 方法 | 中文 | 关键参数 | 缺省输出 |
 |---|---|---|---|---|
@@ -60,8 +60,6 @@ AI 调用示例：
 { "op": "pdf_to_images", "image": "/sdcard/Download/album.pdf", "params": "{\"output_dir\":\"/sdcard/Download/pages\"}" }
 ```
 
-> 云端的 20 个静态图 op 现已全部本地覆盖，**这些操作不再需要云端**；`docs` 下保留的云端 API 章节仅作为可选备用（例如把处理放到服务器批跑的部署形态）。
-
 ### 1.1 仍然不在范围内的能力
 
 | ImageToolbox 能力 | 原因 |
@@ -70,55 +68,3 @@ AI 调用示例：
 | 交互式绘图/擦除/标记（Pen、Spot Healing、形状） | 需要画布交互，卡片脚本无法承载 |
 | GIF/APNG/WebP 动画、视频转码与剪辑 | 需要动画/视频编解码器，不在静态图工具范围 |
 | OCR、二维码/条码、500+ 滤镜、拼图/3D LUT | 需要 ML Kit / ZXing / 着色器等额外依赖；OCR 另有 `tool.ocrText` |
-
----
-
-## 2. 可选：云端 API（历史章节，保留备用）
-
-最早的实现是 KodeHeadServer 的 `/api/image/*`（纯 JVM：`java.awt` + `javax.imageio`），
-由 Lua 卡片 `cloud_image_toolbox` 通过 `tool.httpMultipart` 上传图片处理。
-
-- 覆盖操作与本地清单一致（20 个静态图 op），参数命名基本兼容；
-- 需要有效 Hub 激活令牌（处理免费、不扣工具调用额度），图片会上传服务器；
-- 适合服务器批量处理、或设备不便安装新版本的场景。
-
-### 2.1 `GET /api/image/ops`（公开）
-
-返回操作目录：`ops[]`（含中文说明与参数 schema）、`output_formats`、`max_batch`、`max_input_mb`、`free: true`、`price: 0`、`cost` 等。
-
-### 2.2 `POST /api/image/process`
-
-鉴权：`Authorization: Bearer <激活令牌或设备会话密钥>`（仍需有效令牌）；**全部免费，不扣减工具调用额度**。
-
-multipart 表单：
-
-| 字段 | 说明 |
-|---|---|
-| `image` | 图片文件（字段名也接受 `file`/`files`/`images`） |
-| `op` | 操作名，见目录 |
-| `params` | 参数 JSON 字符串，如 `{"width":800}` |
-| `format` | 可选输出格式 `png/jpg/bmp/gif`（默认 png；`compress` 默认 jpg） |
-| `quality` | 可选 JPEG 质量 1..100 |
-| `return` | 可选 `binary`（默认，直接返回图片）或 `json`（返回 base64） |
-
-响应：`return=binary` → 图片字节 + `X-Image-Format/Width/Height/Cost`（`X-Image-Cost` 恒为 `0`）；
-`return=json` → `{ op, format, mime, width, height, input_bytes, output_bytes, image_base64, free, price, cost }`。
-
-### 2.3 `POST /api/image/batch`
-
-multipart 重复字段 `files`（最多 5 张）或 JSON `image_urls`，其余字段同 process；单图失败不影响其它项（`ok=false` + `error`）。
-
-### 2.4 限制与安全
-
-- 单张 ≤ 32MB、边长 ≤ 12000px、像素 ≤ 40MP；一次处理 ≤ 5 张（batch）
-- `image_url` 只允许 http/https，且拒绝回环/内网/链路本地地址（SSRF 防护）
-- 处理在 `Dispatchers.Default`，编解码关闭 ImageIO 磁盘缓存
-
-### 2.5 云端卡片用法
-
-卡片：`khatkit/src/main/assets/cards/cloud-image-toolbox/`（manifest `cloud_image_toolbox`）
-
-- 触发：AI + 用户；桥：`tool` / `ui` / `store`；网络白名单：`heizige.top`
-- 令牌：`args.token` > `store.secretGet("hub_token")` > 共享区 `hub_token`；
-  都没有时弹窗输入并加密保存（Hub 地址保存为 `hub_base`，默认 `https://heizige.top`）
-- 结果：由 `tool.httpMultipart` 自动保存到 `/sdcard/Download/zenneko_process_*.png|jpg|...`
