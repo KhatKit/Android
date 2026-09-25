@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.service
+package heizige.kk.khatkit.app.feature.automation
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

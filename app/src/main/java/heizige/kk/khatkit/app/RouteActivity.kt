@@ -64,7 +64,7 @@ import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.ui.activity.SafeModeActivity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
-import heizige.kk.khatkit.app.ui.pages.khatkit.KhatKitMarketPage
+import heizige.kk.khatkit.app.feature.market.KhatKitMarketPage
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
@@ -78,7 +78,7 @@ import heizige.kk.khatkit.app.core.ui.hooks.writeBooleanPreference
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCustomAsrState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCustomTtsState
 import heizige.kk.khatkit.app.feature.assistant.AssistantPage
-import heizige.kk.khatkit.app.ui.pages.download.DownloadCenterPage
+import heizige.kk.khatkit.app.feature.download.DownloadCenterPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantBasicPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantDetailPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantExtensionsPage
@@ -87,9 +87,9 @@ import heizige.kk.khatkit.app.feature.assistant.detail.AssistantMcpPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantMemoryPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantPromptPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantRequestPage
-import heizige.kk.khatkit.app.ui.pages.backup.BackupPage
+import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
-import heizige.kk.khatkit.app.ui.pages.debug.DebugPage
+import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
 import heizige.kk.khatkit.app.feature.extensions.PromptPage
 import heizige.kk.khatkit.app.feature.extensions.QuickMessagesPage
@@ -100,10 +100,10 @@ import heizige.kk.khatkit.app.feature.workspace.WorkspaceDetailPage
 import heizige.kk.khatkit.app.feature.workspace.WorkspaceFileEditorPage
 import heizige.kk.khatkit.app.feature.workspace.WorkspaceTerminalPage
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
-import heizige.kk.khatkit.app.ui.pages.greeting.GreetingPage
-import heizige.kk.khatkit.app.ui.pages.imggen.ImageGenPage
-import heizige.kk.khatkit.app.ui.pages.log.LogPage
-import heizige.kk.khatkit.app.ui.pages.search.SearchPage
+import heizige.kk.khatkit.app.feature.onboarding.GreetingPage
+import heizige.kk.khatkit.app.feature.imggen.ImageGenPage
+import heizige.kk.khatkit.app.feature.log.LogPage
+import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesThemePage
@@ -125,9 +125,9 @@ import heizige.kk.khatkit.app.feature.settings.SettingSpeechPage
 import heizige.kk.khatkit.app.feature.settings.SettingPackagePage
 import heizige.kk.khatkit.app.feature.settings.SettingTriggersPage
 import heizige.kk.khatkit.app.feature.settings.SettingWebPage
-import heizige.kk.khatkit.app.ui.pages.share.handler.ShareHandlerPage
-import heizige.kk.khatkit.app.ui.pages.translator.TranslatorPage
-import heizige.kk.khatkit.app.ui.pages.webview.WebViewPage
+import heizige.kk.khatkit.app.feature.share.handler.ShareHandlerPage
+import heizige.kk.khatkit.app.feature.translator.TranslatorPage
+import heizige.kk.khatkit.app.feature.webview.WebViewPage
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.core.util.CrashHandler
