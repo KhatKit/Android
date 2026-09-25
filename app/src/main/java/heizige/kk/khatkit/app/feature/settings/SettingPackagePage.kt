@@ -111,7 +111,7 @@ fun SettingPackagePage(
                 ) {
                     item(
                         onClick = {
-                            uriHandler.openUri("https://heizige.top/khatkit/")
+                            uriHandler.openUri("https://heizige.top/khatkit/index.html")
                         },
                         leadingContent = { Icon(openInNew, null) },
                         headlineContent = { Text("打开 KhatKit 套餐商城") },
