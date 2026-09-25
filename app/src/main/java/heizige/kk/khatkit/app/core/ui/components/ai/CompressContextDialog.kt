@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -139,20 +140,22 @@ fun CompressContextDialog(
                 TextButton(onClick = {
                     currentJob?.cancel()
                     currentJob = null
-                }) {
+                },
+                     shapes = ButtonDefaults.shapes(),) {
                     Text(stringResource(R.string.cancel))
                 }
             } else {
                 TextButton(onClick = {
                     currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
-                }) {
+                },
+                     shapes = ButtonDefaults.shapes(),) {
                     Text(stringResource(R.string.confirm))
                 }
             }
         },
         dismissButton = {
             if (!isLoading) {
-                TextButton(onClick = onDismiss) {
+                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             }

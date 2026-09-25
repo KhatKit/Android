@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -774,7 +775,8 @@ private fun SherpaLocalASRConfiguration(
                             onClick = {
                                 store.deleteEngine()
                                 engineReady = false
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text("删除")
                         }
@@ -794,7 +796,8 @@ private fun SherpaLocalASRConfiguration(
                                     }
                                     engineDownloading = false
                                 }
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text("下载")
                         }
@@ -865,7 +868,8 @@ private fun SherpaLocalASRConfiguration(
                                         if (setting.modelId == preset.id) {
                                             onValueChange(setting.copy(modelId = ""))
                                         }
-                                    }
+                                    },
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text("删除")
                                 }
@@ -891,7 +895,8 @@ private fun SherpaLocalASRConfiguration(
                                             }
                                             downloadingId = null
                                         }
-                                    }
+                                    },
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text("下载")
                                 }

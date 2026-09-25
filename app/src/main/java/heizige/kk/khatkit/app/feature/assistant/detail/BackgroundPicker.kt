@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -69,7 +70,8 @@ fun BackgroundPicker(
             onClick = {
                 showPickOption = true
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text(
                 text = if (background != null) {
@@ -95,7 +97,8 @@ fun BackgroundPicker(
                 TextButton(
                     onClick = {
                         onUpdate(null)
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.assistant_page_remove))
                 }
@@ -128,7 +131,8 @@ fun BackgroundPicker(
                             showPickOption = false
                             imagePickerLauncher.launch("image/*")
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.assistant_page_select_from_gallery))
                     }
@@ -138,7 +142,8 @@ fun BackgroundPicker(
                             urlInput = ""
                             showUrlInput = true
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.assistant_page_enter_image_url))
                     }
@@ -148,7 +153,8 @@ fun BackgroundPicker(
                                 showPickOption = false
                                 onUpdate(null)
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.assistant_page_remove_background))
                         }
@@ -159,7 +165,8 @@ fun BackgroundPicker(
                 TextButton(
                     onClick = {
                         showPickOption = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.assistant_page_cancel))
                 }
@@ -192,7 +199,8 @@ fun BackgroundPicker(
                             onUpdate(urlInput.trim())
                             showUrlInput = false
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.assistant_page_confirm))
                 }
@@ -201,7 +209,8 @@ fun BackgroundPicker(
                 TextButton(
                     onClick = {
                         showUrlInput = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.assistant_page_cancel))
                 }

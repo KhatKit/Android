@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -20,6 +21,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -222,7 +224,7 @@ private fun WorkspaceCard(
                     )
                 }
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
+                    IconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(moreVert, contentDescription = null)
                     }
                     DropdownMenu(
@@ -290,12 +292,13 @@ private fun EditWorkspaceDialog(
             TextButton(
                 onClick = { onConfirm(trimmedName) },
                 enabled = name.isNotBlank() && !isDuplicate,
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.common_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.common_cancel))
             }
         },

@@ -13,11 +13,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -134,12 +136,13 @@ private fun AssistantMemoryContent(
                         }
                         showTimeReminderIntervalDialog = false
                     },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.assistant_page_save))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimeReminderIntervalDialog = false }) {
+                TextButton(onClick = { showTimeReminderIntervalDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.assistant_page_cancel))
                 }
             },
@@ -172,7 +175,8 @@ private fun AssistantMemoryContent(
                 TextButton(
                     onClick = {
                         memoryDialogState.confirm()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.assistant_page_save))
                 }
@@ -181,7 +185,8 @@ private fun AssistantMemoryContent(
                 TextButton(
                     onClick = {
                         memoryDialogState.dismiss()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.assistant_page_cancel))
                 }
@@ -313,7 +318,8 @@ private fun AssistantMemoryContent(
                 onClick = {
                     memoryDialogState.open(AssistantMemory(0, ""))
                 },
-                modifier = Modifier.align(Alignment.CenterEnd)
+                modifier = Modifier.align(Alignment.CenterEnd),
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = add,
@@ -386,12 +392,14 @@ private fun MemoryItem(
                 )
             }
             IconButton(
-                onClick = { onEditMemory(memory) }
+                onClick = { onEditMemory(memory) },
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(edit, null)
             }
             IconButton(
-                onClick = { onDeleteMemory(memory) }
+                onClick = { onDeleteMemory(memory) },
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     delete,

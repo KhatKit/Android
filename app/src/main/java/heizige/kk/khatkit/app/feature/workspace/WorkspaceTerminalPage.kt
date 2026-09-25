@@ -24,7 +24,9 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
@@ -119,12 +121,13 @@ fun WorkspaceTerminalPage(id: String) {
                             root?.let { sessionManager.closeTab(it, pendingCloseTab.id) }
                             pendingCloseTabId = null
                         },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.workspace_terminal_close))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { pendingCloseTabId = null }) {
+                    TextButton(onClick = { pendingCloseTabId = null }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.common_cancel))
                     }
                 },
@@ -224,6 +227,7 @@ private fun WorkspaceTerminalContent(
                                                 .semantics {
                                                     contentDescription = closeDescription
                                                 },
+                                            shapes = IconButtonDefaults.shapes(),
                                         ) {
                                             Text(text = "×", fontSize = 18.sp)
                                         }
@@ -240,6 +244,7 @@ private fun WorkspaceTerminalContent(
                     modifier = Modifier
                         .size(48.dp)
                         .semantics { contentDescription = newTabDescription },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Text(text = "+", fontSize = 24.sp)
                 }

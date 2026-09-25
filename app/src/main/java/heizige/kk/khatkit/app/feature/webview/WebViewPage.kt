@@ -13,6 +13,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -86,20 +87,22 @@ fun WebViewPage(url: String, contentId: String) {
                     BackButton()
                 },
                 actions = {
-                    IconButton(onClick = { state.reload() }) {
+                    IconButton(onClick = { state.reload() }, shapes = IconButtonDefaults.shapes()) {
                         Icon(refresh, contentDescription = "Refresh")
                     }
 
                     IconButton(
                         onClick = { state.goForward() },
-                        enabled = state.canGoForward
+                        enabled = state.canGoForward,
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(arrowForward, contentDescription = "Forward")
                     }
 
                     val urlHandler = LocalUriHandler.current
                     IconButton(
-                        onClick = { showDropdown = true }
+                        onClick = { showDropdown = true },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(moreVert, contentDescription = "More options")
 

@@ -19,10 +19,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
@@ -163,7 +165,7 @@ fun WebDavTab(
                                 } else {
                                     visibility
                                 }
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(imageVector = image, contentDescription = null)
                                 }
                             },
@@ -248,7 +250,8 @@ fun WebDavTab(
                             )
                         }
                     }
-                }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.backup_page_test_connection))
             }
@@ -256,7 +259,8 @@ fun WebDavTab(
                 onClick = {
                     vm.loadBackupFileItems()
                     showBackupFiles = true
-                }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.backup_page_restore))
             }
@@ -281,7 +285,8 @@ fun WebDavTab(
                         isBackingUp = false
                     }
                 },
-                enabled = !isBackingUp
+                enabled = !isBackingUp,
+                shapes = ButtonDefaults.shapes(),
             ) {
                 if (isBackingUp) {
                     CircularWavyProgressIndicator(
@@ -478,7 +483,8 @@ private fun WebDavBackupItemCard(
                             onClick = {
                                 onDelete(item)
                             },
-                            enabled = !isRestoring
+                            enabled = !isRestoring,
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.backup_page_delete))
                         }
@@ -486,7 +492,8 @@ private fun WebDavBackupItemCard(
                             onClick = {
                                 onRestore(item)
                             },
-                            enabled = !isRestoring
+                            enabled = !isRestoring,
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             if (isRestoring) {
                                 CircularWavyProgressIndicator(

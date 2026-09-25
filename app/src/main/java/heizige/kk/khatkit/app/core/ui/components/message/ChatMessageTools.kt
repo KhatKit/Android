@@ -14,10 +14,12 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
@@ -164,6 +166,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                     FilledTonalIconButton(
                         onClick = { showDenyDialog = true },
                         modifier = Modifier.size(28.dp),
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = close,
@@ -174,6 +177,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                     FilledTonalIconButton(
                         onClick = { onToolApproval(tool.toolCallId, true, "") },
                         modifier = Modifier.size(28.dp),
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = check,
@@ -415,6 +419,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                             }
                         },
                         modifier = Modifier.align(Alignment.End),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = check,
@@ -463,12 +468,12 @@ private fun ToolDenyReasonDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(reason) }) {
+            TextButton(onClick = { onConfirm(reason) }, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.chat_message_tool_deny))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(android.R.string.cancel))
             }
         }

@@ -18,6 +18,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -68,7 +69,8 @@ fun LogPage() {
                         onClick = {
                             Logging.clear()
                             logs = Logging.getRecentLogs()
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(delete, null)
                     }
@@ -327,7 +329,8 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                                         ClipEntry(ClipData.newPlainText("Request Body", body))
                                     )
                                 }
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(
                                 imageVector = contentCopy,

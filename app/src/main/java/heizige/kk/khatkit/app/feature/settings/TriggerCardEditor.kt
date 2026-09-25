@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -191,7 +193,7 @@ internal fun TriggerCardEditorSheet(
                 }
             }
 
-            TextButton(onClick = { showTypePicker = !showTypePicker }) {
+            TextButton(onClick = { showTypePicker = !showTypePicker }, shapes = ButtonDefaults.shapes()) {
                 Icon(add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(if (showTypePicker) "收起类型" else "添加事件")
@@ -232,6 +234,7 @@ internal fun TriggerCardEditorSheet(
                     retryDelay = "0"
                     errorText = null
                 },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text("恢复卡片默认事件")
             }
@@ -282,7 +285,7 @@ private fun EventCard(
                 checked = enabled,
                 onCheckedChange = onToggleEnabled,
             )
-            IconButton(onClick = onRemove) {
+            IconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                 Icon(delete, contentDescription = "删除事件", modifier = Modifier.size(18.dp))
             }
             Icon(
@@ -528,6 +531,7 @@ private fun EventFields(
                             label = event.name.ifBlank { cardName },
                         )
                     },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text("添加到快捷设置")
                 }

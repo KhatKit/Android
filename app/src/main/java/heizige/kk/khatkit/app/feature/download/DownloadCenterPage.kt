@@ -14,6 +14,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -168,25 +169,25 @@ private fun DownloadTaskRow(
 
                 when {
                     task.isActive -> {
-                        IconButton(onClick = onPause) {
+                        IconButton(onClick = onPause, shapes = IconButtonDefaults.shapes()) {
                             Icon(pause, contentDescription = "暂停", modifier = Modifier.size(20.dp))
                         }
-                        IconButton(onClick = onCancel) {
+                        IconButton(onClick = onCancel, shapes = IconButtonDefaults.shapes()) {
                             Icon(stopCircle, contentDescription = "取消", modifier = Modifier.size(20.dp))
                         }
                     }
 
                     task.state == "paused" || task.state == "failed" -> {
-                        IconButton(onClick = onResume) {
+                        IconButton(onClick = onResume, shapes = IconButtonDefaults.shapes()) {
                             Icon(playArrow, contentDescription = "继续", modifier = Modifier.size(20.dp))
                         }
-                        IconButton(onClick = onRemove) {
+                        IconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                             Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
                     }
 
                     else -> {
-                        IconButton(onClick = onRemove) {
+                        IconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                             Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
                     }

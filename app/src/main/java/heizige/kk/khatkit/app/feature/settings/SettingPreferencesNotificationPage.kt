@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
@@ -181,6 +182,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                                 showUpdatePauseDialog = false
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.setting_update_reminder_resume_now))
                         }
@@ -197,13 +199,14 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                             )
                         )
                         showUpdatePauseDialog = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showUpdatePauseDialog = false }) {
+                TextButton(onClick = { showUpdatePauseDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },

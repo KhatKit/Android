@@ -25,11 +25,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -185,7 +187,8 @@ fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
                         OptionsText(stringResource(R.string.setting_theme_page_custom_themes))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilledTonalButton(
-                                onClick = { showImportDialog = true }
+                                onClick = { showImportDialog = true },
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Icon(uploadFile, null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
@@ -195,7 +198,8 @@ fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
                                 onClick = {
                                     editingTheme = null
                                     showEditSheet = true
-                                }
+                                },
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Icon(add, null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
@@ -390,13 +394,13 @@ private fun CustomThemeItem(
         titleContent = { Text(theme.name.ifEmpty { "Unnamed" }) },
         trailingContent = {
             Row {
-                IconButton(onClick = onExport) {
+                IconButton(onClick = onExport, shapes = IconButtonDefaults.shapes()) {
                     Icon(contentCopy, null)
                 }
-                IconButton(onClick = onEdit) {
+                IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                     Icon(editSquare, null)
                 }
-                IconButton(onClick = onDelete) {
+                IconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         deleteForever,
                         null,
@@ -542,13 +546,14 @@ private fun ImportThemeDialog(
                         errorMessage = e.message
                     }
                 },
-                enabled = jsonText.isNotBlank()
+                enabled = jsonText.isNotBlank(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.setting_theme_page_import_theme))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(android.R.string.cancel))
             }
         }

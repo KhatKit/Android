@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
@@ -35,6 +36,7 @@ import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVertica
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.InputChip
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
@@ -259,12 +261,12 @@ private fun ModeInjectionTab(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
             leadingContent = {
-                IconButton(onClick = { importer.importFromFile() }) {
+                IconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(uploadFile, null)
                 }
             },
         ) {
-            Button(onClick = { editState.open(PromptInjection.ModeInjection()) }) {
+            Button(onClick = { editState.open(PromptInjection.ModeInjection()) }, shapes = ButtonDefaults.shapes()) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -315,7 +317,7 @@ private fun ModeInjectionCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { scope.launch { swipeState.reset() } }) {
+                IconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
                 FilledIconButton(onClick = {
@@ -323,7 +325,8 @@ private fun ModeInjectionCard(
                         onDelete()
                         swipeState.reset()
                     }
-                }) {
+                },
+                     shapes = IconButtonDefaults.shapes(),) {
                     Icon(delete, stringResource(R.string.prompt_page_delete))
                 }
             }
@@ -369,10 +372,10 @@ private fun ModeInjectionCard(
                         }
                     }
                 }
-                IconButton(onClick = { showExportDialog = true }) {
+                IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(iosShare, stringResource(R.string.export_title))
                 }
-                IconButton(onClick = onEdit) {
+                IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                     Icon(build, stringResource(R.string.prompt_page_edit))
                 }
             }
@@ -644,12 +647,12 @@ private fun LorebookTab(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
             leadingContent = {
-                IconButton(onClick = { importer.importFromFile() }) {
+                IconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(uploadFile, null)
                 }
             },
         ) {
-            Button(onClick = { editState.open(Lorebook()) }) {
+            Button(onClick = { editState.open(Lorebook()) }, shapes = ButtonDefaults.shapes()) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -700,7 +703,7 @@ private fun LorebookCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { scope.launch { swipeState.reset() } }) {
+                IconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
                 FilledIconButton(onClick = {
@@ -708,7 +711,8 @@ private fun LorebookCard(
                         onDelete()
                         swipeState.reset()
                     }
-                }) {
+                },
+                     shapes = IconButtonDefaults.shapes(),) {
                     Icon(delete, stringResource(R.string.prompt_page_delete))
                 }
             }
@@ -765,10 +769,10 @@ private fun LorebookCard(
                         }
                     }
                 }
-                IconButton(onClick = { showExportDialog = true }) {
+                IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(iosShare, stringResource(R.string.export_title))
                 }
-                IconButton(onClick = onEdit) {
+                IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                     Icon(build, stringResource(R.string.prompt_page_edit))
                 }
             }
@@ -857,7 +861,8 @@ private fun LorebookEditSheet(
                     )
                     IconButton(onClick = {
                         entryEditState.open(PromptInjection.RegexInjection())
-                    }) {
+                    },
+                         shapes = IconButtonDefaults.shapes(),) {
                         Icon(add, stringResource(R.string.prompt_page_add_entry))
                     }
                 }
@@ -928,10 +933,10 @@ private fun RegexInjectionEntryCard(
                     }
                 }
             }
-            IconButton(onClick = onEdit) {
+            IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                 Icon(build, stringResource(R.string.prompt_page_edit))
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
                 Icon(delete, stringResource(R.string.prompt_page_delete))
             }
         }
@@ -1023,7 +1028,8 @@ private fun RegexInjectionEditDialog(
                                     onClick = {
                                         onEdit(entry.copy(keywords = entry.keywords - keyword))
                                     },
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
+                                    shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     Icon(close, null, modifier = Modifier.size(12.dp))
                                 }
@@ -1049,7 +1055,8 @@ private fun RegexInjectionEditDialog(
                                 onEdit(entry.copy(keywords = entry.keywords + newKeyword.trim()))
                                 newKeyword = ""
                             }
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(add, stringResource(R.string.prompt_page_add))
                     }
@@ -1124,13 +1131,14 @@ private fun RegexInjectionEditDialog(
             val canSave = entry.keywords.isNotEmpty() || entry.constantActive
             TextButton(
                 onClick = onConfirm,
-                enabled = canSave
+                enabled = canSave,
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.prompt_page_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.prompt_page_cancel))
             }
         }

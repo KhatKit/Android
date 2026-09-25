@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
@@ -190,7 +191,8 @@ fun TagsInput(
                             showError = false
                         }
                     }
-                }, enabled = tagName.isNotBlank()
+                }, enabled = tagName.isNotBlank(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.confirm))
             }
@@ -200,7 +202,8 @@ fun TagsInput(
                     showAddDialog = false
                     tagName = ""
                     showError = false
-                }) {
+                },
+                     shapes = ButtonDefaults.shapes(),) {
                 Text(stringResource(R.string.cancel))
             }
         })

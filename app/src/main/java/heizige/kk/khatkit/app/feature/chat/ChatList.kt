@@ -41,6 +41,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -438,7 +439,8 @@ private fun ChatListNormal(
                             onClick = {
                                 selecting = false
                                 selectedItems.clear()
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(close, null)
                         }
@@ -455,7 +457,8 @@ private fun ChatListNormal(
                                 } else {
                                     selectedItems.addAll(conversation.messageNodes.map { it.id })
                                 }
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(adsClick, null)
                         }
@@ -472,7 +475,8 @@ private fun ChatListNormal(
                                 if (messages.isNotEmpty()) {
                                     showExportSheet = true
                                 }
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(check, null)
                         }

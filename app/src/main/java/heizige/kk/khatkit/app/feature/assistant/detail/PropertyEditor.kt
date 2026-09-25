@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -92,7 +94,8 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                             val updatedHeaders = headers.toMutableList()
                             updatedHeaders.removeAt(index)
                             onUpdate(updatedHeaders)
-                        }) {
+                        },
+                             shapes = IconButtonDefaults.shapes(),) {
                             Icon(
                                 delete,
                                 contentDescription = stringResource(R.string.assistant_page_delete_header)
@@ -110,7 +113,8 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                 updatedHeaders.add(CustomHeader("", ""))
                 onUpdate(updatedHeaders)
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
         ) {
             Icon(add, contentDescription = stringResource(R.string.assistant_page_add_header))
             Spacer(Modifier.width(4.dp))
@@ -197,7 +201,8 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                             val updatedBodies = customBodies.toMutableList()
                             updatedBodies.removeAt(index)
                             onUpdate(updatedBodies)
-                        }) {
+                        },
+                             shapes = IconButtonDefaults.shapes(),) {
                             Icon(
                                 delete,
                                 contentDescription = stringResource(R.string.assistant_page_delete_body)
@@ -215,7 +220,8 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                 updatedBodies.add(CustomBody("", JsonPrimitive("")))
                 onUpdate(updatedBodies)
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
         ) {
             Icon(add, contentDescription = stringResource(R.string.assistant_page_add_body))
             Spacer(Modifier.width(4.dp))

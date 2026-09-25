@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -106,6 +108,7 @@ fun WorkspaceCwdPickerSheet(
                     onClick = {
                         browsePath = browsePath.substringBeforeLast('/', missingDelimiterValue = "")
                     },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(undo, contentDescription = null)
                 }
@@ -169,7 +172,8 @@ fun WorkspaceCwdPickerSheet(
                 TextButton(onClick = {
                     onSelectCwd(null)
                     dismiss()
-                }) {
+                },
+                     shapes = ButtonDefaults.shapes(),) {
                     Text(stringResource(R.string.workspace_cwd_reset))
                 }
             }

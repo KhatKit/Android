@@ -12,7 +12,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -85,13 +87,14 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                     onClick = {
                         showRebuildDialog = false
                         vm.rebuildIndex()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRebuildDialog = false }) {
+                TextButton(onClick = { showRebuildDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -111,6 +114,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                     IconButton(
                         onClick = { showRebuildDialog = true },
                         enabled = !vm.isRebuilding,
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             refresh,
@@ -255,7 +259,7 @@ private fun SortMenuButton(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }) {
+        IconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 sort,
                 contentDescription = stringResource(R.string.search_page_sort)

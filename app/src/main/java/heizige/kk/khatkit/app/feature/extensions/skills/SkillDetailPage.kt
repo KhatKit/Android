@@ -18,10 +18,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -233,7 +235,7 @@ private fun FileItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onEdit, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = editDocument,
                     contentDescription = stringResource(R.string.edit),
@@ -241,7 +243,7 @@ private fun FileItem(
                 )
             }
             if (skillFile.relativePath != "SKILL.md") {
-                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = delete,
                         contentDescription = stringResource(R.string.delete),
@@ -334,10 +336,10 @@ private fun EditFileDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(content) }) { Text(stringResource(R.string.skill_detail_page_save)) }
+            TextButton(onClick = { onConfirm(content) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.skill_detail_page_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
@@ -388,12 +390,13 @@ private fun AddFileDialog(
             TextButton(
                 onClick = { onConfirm(fileName.trim(), content) },
                 enabled = fileName.isNotBlank() && !fileNameError,
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.skill_detail_page_create))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

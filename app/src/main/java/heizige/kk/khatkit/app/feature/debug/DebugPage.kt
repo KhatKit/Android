@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -185,7 +186,8 @@ private fun MainPage(vm: DebugViewModel) {
                 Toast.show("测试 ${counter++}")
                 Toast.show("测试 ${counter++}", isError = false)
                 Toast.show("测试 ${counter++}", isError = true)
-            }
+            },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text("toast")
         }
@@ -196,7 +198,8 @@ private fun MainPage(vm: DebugViewModel) {
                         chatModelId = Uuid.random()
                     )
                 )
-            }
+            },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text("重置Chat模型")
         }
@@ -204,7 +207,8 @@ private fun MainPage(vm: DebugViewModel) {
         Button(
             onClick = {
                 error("测试崩溃 ${Random.nextInt(0..1000)}")
-            }
+            },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text("崩溃")
         }
@@ -217,7 +221,7 @@ private fun MainPage(vm: DebugViewModel) {
                 text = "Conversation 数量: ${conversationCount?.toString() ?: "..."}",
                 modifier = Modifier.weight(1f),
             )
-            Button(onClick = { vm.refreshConversationCount() }) {
+            Button(onClick = { vm.refreshConversationCount() }, shapes = ButtonDefaults.shapes()) {
                 Text("刷新")
             }
         }
@@ -226,7 +230,8 @@ private fun MainPage(vm: DebugViewModel) {
             onClick = {
                 vm.createOversizedConversation(30)
                 Toast.show("正在创建 30MB 超大对话...")
-            }
+            },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text("创建超大对话 (30MB)")
         }
@@ -235,7 +240,8 @@ private fun MainPage(vm: DebugViewModel) {
             onClick = {
                 vm.createConversationWithMessages(1024)
                 Toast.show("正在创建 1024 条消息对话...")
-            }
+            },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text("创建 1024 个消息的聊天")
         }
@@ -262,7 +268,8 @@ private fun MainPage(vm: DebugViewModel) {
                 launchCountInput.toIntOrNull()?.let {
                     vm.updateSettings(settings.copy(launchCount = it))
                 }
-            }) {
+            },
+                 shapes = ButtonDefaults.shapes(),) {
                 Text("Set")
             }
         }
@@ -285,7 +292,8 @@ private fun MainPage(vm: DebugViewModel) {
                 dismissedAtInput.toIntOrNull()?.let {
                     vm.updateSettings(settings.copy(sponsorAlertDismissedAt = it))
                 }
-            }) {
+            },
+                 shapes = ButtonDefaults.shapes(),) {
                 Text("Set")
             }
         }

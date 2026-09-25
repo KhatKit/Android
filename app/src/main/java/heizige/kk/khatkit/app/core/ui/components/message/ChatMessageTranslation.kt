@@ -29,6 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
@@ -208,7 +209,8 @@ fun CollapsibleTranslationText(
             // 折叠/展开按钮
             IconButton(
                 onClick = { isCollapsed = !isCollapsed },
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = if (isCollapsed) keyboardArrowDown else keyboardArrowUp,

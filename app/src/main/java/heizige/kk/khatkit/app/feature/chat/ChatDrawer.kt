@@ -13,6 +13,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -234,7 +235,8 @@ fun ChatDrawerContent(
                                 onClick = {
                                     drawerVm.updateSearchKeyword("")
                                     showSearch = false
-                                }
+                                },
+                                shapes = IconButtonDefaults.shapes(),
                             ) {
                                 Icon(arrowBack, contentDescription = null)
                             }
@@ -292,7 +294,8 @@ fun ChatDrawerContent(
                                 } else {
                                     drawerVm.updateSearchKeyword("")
                                 }
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(
                                 imageVector = if (searching && hasKey) close else search,
@@ -567,11 +570,12 @@ fun ChatDrawerContent(
                         drawerVm.createFolder(name)
                         showCreateFolderDialog = false
                     },
-                    enabled = name.isNotBlank()
+                    enabled = name.isNotBlank(),
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.chat_page_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateFolderDialog = false }) {
+                TextButton(onClick = { showCreateFolderDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }
             }
@@ -598,11 +602,12 @@ fun ChatDrawerContent(
                         drawerVm.renameFolder(folder.id, name)
                         folderToRename = null
                     },
-                    enabled = name.isNotBlank()
+                    enabled = name.isNotBlank(),
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.chat_page_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { folderToRename = null }) {
+                TextButton(onClick = { folderToRename = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }
             }
@@ -624,11 +629,12 @@ fun ChatDrawerContent(
                         } else {
                             Toast.show(context.getString(R.string.chat_page_delete_folder_generating), isError = false)
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.chat_page_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { folderToDelete = null }) {
+                TextButton(onClick = { folderToDelete = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }
             }

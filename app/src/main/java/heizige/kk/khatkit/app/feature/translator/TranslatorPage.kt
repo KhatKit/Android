@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -146,7 +147,8 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                                 vm.updateInputText(it)
                             }
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(contentPaste, null)
                     Text("粘贴文本", modifier = Modifier.padding(start = 4.dp))
@@ -191,7 +193,8 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                                 )
                             )
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(contentPaste, null)
                     Text("复制翻译结果", modifier = Modifier.padding(start = 4.dp))

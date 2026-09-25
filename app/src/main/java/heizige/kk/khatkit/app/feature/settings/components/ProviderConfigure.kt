@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -222,7 +224,7 @@ private fun ProviderConfigureOpenAI(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { keyVisible = !keyVisible }) {
+            IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
@@ -319,7 +321,7 @@ private fun ProviderConfigureClaude(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { keyVisible = !keyVisible }) {
+            IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
@@ -431,7 +433,7 @@ private fun ProviderConfigureGoogle(
             maxLines = 3,
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { keyVisible = !keyVisible }) {
+                IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },
@@ -494,7 +496,8 @@ private fun ProviderConfigureGoogle(
     if (provider.vertexAI && provider.useServiceAccount) {
         OutlinedButton(
             onClick = { serviceAccountJsonLauncher.launch(arrayOf("application/json", "*/*")) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text(stringResource(R.string.setting_provider_page_import_service_account_json))
         }
@@ -517,7 +520,7 @@ private fun ProviderConfigureGoogle(
             textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
             visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { privateKeyVisible = !privateKeyVisible }) {
+                IconButton(onClick = { privateKeyVisible = !privateKeyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(if (privateKeyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },

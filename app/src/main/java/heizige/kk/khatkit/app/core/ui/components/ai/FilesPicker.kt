@@ -19,9 +19,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -257,6 +259,7 @@ internal fun FilesPicker(
                 onClick = { showCwdSheet = true },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = folder,
@@ -345,14 +348,14 @@ private fun WorkspacePickerListItem(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (boundWorkspace != null) {
-                    IconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }) {
+                    IconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = settings,
                             contentDescription = stringResource(R.string.workspace_detail),
                         )
                     }
                     if (boundWorkspace.shellStatus != WorkspaceShellStatus.DISABLED.name) {
-                        IconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }) {
+                        IconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = terminal,
                                 contentDescription = stringResource(R.string.workspace_terminal),

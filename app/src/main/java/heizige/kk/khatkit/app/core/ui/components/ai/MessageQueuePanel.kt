@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,7 +69,7 @@ internal fun MessageQueuePanel(
                             .padding(vertical = 8.dp),
                     )
                     if (state.paused) {
-                        TextButton(onClick = onResume) { Text(stringResource(R.string.chat_page_queue_resume)) }
+                        TextButton(onClick = onResume, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_queue_resume)) }
                     }
                 }
                 LazyColumn(modifier = Modifier.heightIn(max = 180.dp)) {
@@ -104,10 +105,12 @@ internal fun MessageQueuePanel(
                             TextButton(
                                 enabled = !message.isEditing,
                                 onClick = { editing = onBeginEdit(message.id) },
+                                shapes = ButtonDefaults.shapes(),
                             ) { Text(if (message.isEditing) stringResource(R.string.chat_page_queue_editing) else stringResource(R.string.edit)) }
                             TextButton(
                                 enabled = !message.isEditing,
                                 onClick = { onRemove(message.id) },
+                                shapes = ButtonDefaults.shapes(),
                             ) { Text(stringResource(R.string.chat_page_queue_remove)) }
                         }
                     }
@@ -153,10 +156,11 @@ internal fun MessageQueuePanel(
                         onFinishEdit(message.id, input.getContents())
                         editing = null
                     },
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.chat_page_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { editing = null }) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = { editing = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

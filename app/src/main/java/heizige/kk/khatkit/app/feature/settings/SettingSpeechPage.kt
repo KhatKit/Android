@@ -22,6 +22,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -275,7 +276,8 @@ private fun TTSProviderList(
                                     onDragStopped = {
                                         haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
                                     }
-                                )
+                                ),
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(
                                 imageVector = dragIndicator,
@@ -352,7 +354,8 @@ private fun ASRProviderList(
                                     onDragStopped = {
                                         haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
                                     }
-                                )
+                                ),
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(
                                 imageVector = dragIndicator,
@@ -397,7 +400,8 @@ private fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
         onClick = {
             currentProvider = TTSProviderSetting.SystemTTS()
             showBottomSheet = true
-        }
+        },
+        shapes = IconButtonDefaults.shapes(),
     ) {
         Icon(add, stringResource(R.string.setting_tts_page_add_provider_content_description))
     }
@@ -444,7 +448,8 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
 
     Box {
         IconButton(
-            onClick = { showTypeMenu = true }
+            onClick = { showTypeMenu = true },
+            shapes = IconButtonDefaults.shapes(),
         ) {
             Icon(add, stringResource(R.string.setting_asr_page_add_provider))
         }
@@ -639,7 +644,8 @@ private fun TTSProviderItem(
                             } else {
                                 tts.stop()
                             }
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = if (isSpeaking) stopCircle else volumeUp,
@@ -650,7 +656,8 @@ private fun TTSProviderItem(
                 }
 
                 IconButton(
-                    onClick = { showDropdownMenu = true }
+                    onClick = { showDropdownMenu = true },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         imageVector = build,
@@ -773,7 +780,8 @@ private fun ASRProviderItem(
                 Spacer(modifier = Modifier.weight(1f))
 
                 IconButton(
-                    onClick = { showDropdownMenu = true }
+                    onClick = { showDropdownMenu = true },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         imageVector = build,

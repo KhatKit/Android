@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -117,6 +118,7 @@ fun AssistantExtensionsPage(id: String) {
                                 TextButton(
                                     onClick = { navController.navigate(Screen.QuickMessages) },
                                     modifier = Modifier.fillMaxWidth(),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(stringResource(R.string.assistant_extensions_page_goto_extensions))
                                 }
@@ -146,6 +148,7 @@ fun AssistantExtensionsPage(id: String) {
                                 TextButton(
                                     onClick = { navController.navigate(Screen.Prompts) },
                                     modifier = Modifier.fillMaxWidth(),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(stringResource(R.string.assistant_extensions_page_goto_prompts))
                                 }
@@ -175,6 +178,7 @@ fun AssistantExtensionsPage(id: String) {
                                 TextButton(
                                     onClick = { navController.navigate(Screen.Prompts) },
                                     modifier = Modifier.fillMaxWidth(),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(stringResource(R.string.assistant_extensions_page_goto_prompts))
                                 }
@@ -204,6 +208,7 @@ fun AssistantExtensionsPage(id: String) {
                                 TextButton(
                                     onClick = { navController.navigate(Screen.Skills) },
                                     modifier = Modifier.fillMaxWidth(),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(stringResource(R.string.assistant_extensions_page_goto_extensions))
                                 }

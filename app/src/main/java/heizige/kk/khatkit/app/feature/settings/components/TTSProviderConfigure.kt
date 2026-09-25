@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -1281,7 +1282,7 @@ private fun VolcengineTTSConfiguration(
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { keyVisible = !keyVisible }) {
+                IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = if (keyVisible) visibilityOff else visibility,
                         contentDescription = if (keyVisible) "隐藏 API Key" else "显示 API Key",

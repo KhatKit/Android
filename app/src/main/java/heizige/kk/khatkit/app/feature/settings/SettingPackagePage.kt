@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -224,6 +225,7 @@ fun SettingPackagePage(
                                         }
                                     },
                                     enabled = !busy && tokenInput.isNotBlank(),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(if (busy) "正在激活…" else "立即激活")
                                 }
@@ -270,10 +272,11 @@ fun SettingPackagePage(
                                         gatewayMessageIsError = !outcome.startsWith("已")
                                     },
                                     enabled = !busy,
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text("创建 / 更新网关供应商")
                                 }
-                                TextButton(onClick = { refresh(refreshQuota = true) }) {
+                                TextButton(onClick = { refresh(refreshQuota = true) }, shapes = ButtonDefaults.shapes()) {
                                     Text("刷新状态")
                                 }
                             }

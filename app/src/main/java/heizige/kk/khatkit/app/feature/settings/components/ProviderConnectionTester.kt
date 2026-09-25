@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,7 +59,7 @@ fun ProviderConnectionTester(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    IconButton(onClick = { showTestDialog = true }) {
+    IconButton(onClick = { showTestDialog = true }, shapes = IconButtonDefaults.shapes()) {
         Icon(link, null)
     }
 
@@ -113,7 +115,7 @@ fun ProviderConnectionTester(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTestDialog = false }) {
+                TextButton(onClick = { showTestDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -212,7 +214,8 @@ fun ProviderConnectionTester(
                                 }.onFailure { toolsState = UiState.Error(it) }
                             }
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.setting_provider_page_test))
                 }

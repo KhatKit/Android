@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -85,7 +86,8 @@ fun TTSController() {
                     onClick = {
                         ttsState.stop()
                         isVisible = false
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         imageVector = close,
@@ -107,7 +109,8 @@ fun TTSController() {
                 IconButton(
                     onClick = {
                         expand = !expand
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         imageVector = if (expand) arrowBack else arrowForward,
@@ -124,7 +127,8 @@ private fun FastForwardButton(ttsState: CustomTtsState) {
     IconButton(
         onClick = {
             ttsState.fastForward(5000)
-        }
+        },
+        shapes = IconButtonDefaults.shapes(),
     ) {
         Icon(
             imageVector = forward,
@@ -153,7 +157,8 @@ private fun PlayPauseButton(
         colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
             contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-        )
+        ),
+        shapes = IconButtonDefaults.shapes(),
     ) {
         Icon(
             imageVector = if (playbackState.status == PlaybackStatus.Playing) pause else playArrow,
@@ -217,7 +222,8 @@ private fun SpeedButton(
                     ttsState.setSpeed(1.0f)
                 }
             }
-        }
+        },
+        shapes = ButtonDefaults.shapes(),
     ) {
         Text(text = "x${"%.1f".format(playbackState.speed)}")
     }

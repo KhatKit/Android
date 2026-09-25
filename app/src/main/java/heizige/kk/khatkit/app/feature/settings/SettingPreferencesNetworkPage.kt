@@ -13,10 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -217,6 +219,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         trailingIcon = {
                             IconButton(
                                 onClick = { proxyPasswordVisible = !proxyPasswordVisible },
+                                shapes = IconButtonDefaults.shapes(),
                             ) {
                                 Icon(
                                     imageVector = if (proxyPasswordVisible) {
@@ -237,6 +240,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         enabled = proxyUrlDraft.isNotEmpty() ||
                             proxyUsernameDraft.isNotEmpty() ||
                             proxyPasswordDraft.isNotEmpty(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(R.string.setting_model_page_reset_to_default))
                     }
@@ -249,6 +253,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         proxyDialogVisible = false
                     },
                     enabled = !proxyUrlInvalid,
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.common_confirm))
                 }
@@ -338,6 +343,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                 TextButton(
                                     onClick = { updateUserAgent("") },
                                     enabled = userAgent.isNotEmpty(),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(stringResource(R.string.setting_model_page_reset_to_default))
                                 }
@@ -387,6 +393,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                             TextButton(
                                 onClick = ::testProxy,
                                 enabled = proxyUrl.toProxyOrNull() != null && !proxyTesting,
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 if (proxyTesting) {
                                     CircularProgressIndicator(

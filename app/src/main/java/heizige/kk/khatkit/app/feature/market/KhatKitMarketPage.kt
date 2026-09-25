@@ -6,6 +6,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -50,7 +51,7 @@ fun KhatKitMarketPage() {
                 navigationIcon = { BackButton() },
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    IconButton(onClick = { showRecorder = true }) {
+                    IconButton(onClick = { showRecorder = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(adsClick, contentDescription = "录制操作")
                     }
                 },

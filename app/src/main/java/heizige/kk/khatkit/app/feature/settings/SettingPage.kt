@@ -18,11 +18,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -106,14 +108,16 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                 Button(onClick = {
                     vm.updateSettings(settings.copy(sponsorAlertDismissedAt = settings.launchCount))
                     navController.navigate(Screen.SettingDonate)
-                }) {
+                },
+                     shapes = ButtonDefaults.shapes(),) {
                     Text(stringResource(R.string.setting_page_sponsor_alert_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
                     vm.updateSettings(settings.copy(sponsorAlertDismissedAt = settings.launchCount))
-                }) {
+                },
+                     shapes = ButtonDefaults.shapes(),) {
                     Text(stringResource(R.string.setting_page_sponsor_alert_dismiss))
                 }
             },
@@ -321,7 +325,8 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                             ) {
                                 var showQQGroupSheet by remember { mutableStateOf(false) }
                                 IconButton(
-                                    onClick = { showQQGroupSheet = true }
+                                    onClick = { showQQGroupSheet = true },
+                                    shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     Icon(
                                         imageVector = TencentQQIcon,
@@ -337,7 +342,8 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                 IconButton(
                                     onClick = {
                                         context.openUrl("https://discord.gg/9weBqxe5c4")
-                                    }
+                                    },
+                                    shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     Icon(
                                         imageVector = DiscordIcon,
@@ -422,7 +428,8 @@ private fun ProviderConfigWarningCard(navController: Navigator) {
             TextButton(
                 onClick = {
                     navController.navigate(Screen.SettingProvider)
-                }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.setting_page_config))
             }

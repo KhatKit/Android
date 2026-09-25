@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
@@ -93,7 +94,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             modifier = Modifier.weight(1f)
                         )
                         if (!info.forceUpdate) {
-                            IconButton(onClick = { dismissed = true }) {
+                            IconButton(onClick = { dismissed = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = close,
                                     contentDescription = stringResource(R.string.update_card_close),

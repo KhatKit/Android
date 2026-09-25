@@ -22,11 +22,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -166,7 +168,7 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
+                        IconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
                             Icon(close, contentDescription = "Clear")
                         }
                     }
@@ -208,7 +210,8 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                                             onDragStopped = {
                                                 haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
                                             }
-                                        )
+                                        ),
+                                    shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     Icon(
                                         imageVector = dragIndicator,
@@ -236,7 +239,8 @@ private fun RecommendProviderButton(
     val importSuccessMessage = stringResource(R.string.setting_provider_page_import_success)
 
     IconButton(
-        onClick = { showSheet = true }
+        onClick = { showSheet = true },
+        shapes = IconButtonDefaults.shapes(),
     ) {
         Icon(autoAwesome, contentDescription = stringResource(R.string.setting_provider_page_recommend))
     }
@@ -309,7 +313,7 @@ private fun RecommendProviderItem(
                     }
                 }
             }
-            IconButton(onClick = onAdd) {
+            IconButton(onClick = onAdd, shapes = IconButtonDefaults.shapes()) {
                 Icon(add, contentDescription = stringResource(R.string.setting_provider_page_add))
             }
         }
@@ -339,7 +343,8 @@ private fun ImportProviderButton(
     IconButton(
         onClick = {
             showImportDialog = true
-        }
+        },
+        shapes = IconButtonDefaults.shapes(),
     ) {
         Icon(uploadFile, null)
     }
@@ -376,7 +381,7 @@ private fun ImportProviderButton(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            shape = MaterialTheme.shapes.large
+                            shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
                         ) {
                             Row(
                                 horizontalArrangement = Arrangement.Center,
@@ -409,7 +414,7 @@ private fun ImportProviderButton(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            shape = MaterialTheme.shapes.large
+                            shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
                         ) {
                             Row(
                                 horizontalArrangement = Arrangement.Center,
@@ -435,7 +440,7 @@ private fun ImportProviderButton(
             dismissButton = {
                 TextButton(
                     onClick = { showImportDialog = false },
-                    shape = MaterialTheme.shapes.large
+                    shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
                 ) {
                     Text(
                         text = stringResource(R.string.cancel),
@@ -532,7 +537,8 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
     IconButton(
         onClick = {
             dialogState.open(ProviderSetting.OpenAI())
-        }
+        },
+        shapes = IconButtonDefaults.shapes(),
     ) {
         Icon(add, "Add")
     }
@@ -556,7 +562,8 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
                 TextButton(
                     onClick = {
                         dialogState.confirm()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.setting_provider_page_add))
                 }
@@ -565,7 +572,8 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
                 TextButton(
                     onClick = {
                         dialogState.dismiss()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.cancel))
                 }

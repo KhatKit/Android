@@ -19,6 +19,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -146,7 +147,7 @@ fun <T> SelectTextField(
                 .fillMaxWidth()
                 .onGloballyPositioned { anchorWidth = it.size.width },
             trailingIcon = {
-                IconButton(onClick = { expanded = !expanded }) {
+                IconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
                         contentDescription = "expand"

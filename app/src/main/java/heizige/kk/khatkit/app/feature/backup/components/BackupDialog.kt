@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.feature.backup.components
 
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -18,7 +19,8 @@ fun BackupDialog() {
             Button(
                 onClick = {
                     exitProcess(0)
-                }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.backup_page_restart_app))
             }

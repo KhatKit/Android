@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,8 +56,8 @@ internal fun VoiceModeRow(
                     color = KedgeColors.onSurfaceVariant,
                 )
             }
-            if (isError) TextButton(onClick = onRetry) { Text(stringResource(R.string.chat_page_voice_retry)) }
-            TextButton(onClick = onStop) { Text(stringResource(R.string.chat_page_voice_end)) }
+            if (isError) TextButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_retry)) }
+            TextButton(onClick = onStop, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_end)) }
         }
         if (isError && !state.error.isNullOrBlank()) {
             Text(state.error, style = MaterialTheme.typography.bodySmall, color = statusColor)

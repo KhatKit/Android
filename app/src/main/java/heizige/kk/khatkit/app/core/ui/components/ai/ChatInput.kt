@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
@@ -72,6 +73,7 @@ import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -893,7 +895,8 @@ private fun TextInputRow(
                     IconButton(
                         onClick = {
                             onFullScreenChange(!isFullScreen)
-                        }) {
+                        },
+                             shapes = IconButtonDefaults.shapes(),) {
                         Icon(fullscreen, null)
                     }
                 }
@@ -1060,7 +1063,8 @@ private fun QuickMessageButton(
     IconButton(
         onClick = {
             expanded = !expanded
-        }) {
+        },
+             shapes = IconButtonDefaults.shapes(),) {
         Icon(bolt, null)
         DropdownMenu(
             expanded = expanded,
@@ -1149,7 +1153,8 @@ private fun FullScreenEditor(
                         TextButton(
                             onClick = {
                                 onDone()
-                            }) {
+                            },
+                                 shapes = ButtonDefaults.shapes(),) {
                             Text(stringResource(R.string.chat_page_save))
                         }
                     }

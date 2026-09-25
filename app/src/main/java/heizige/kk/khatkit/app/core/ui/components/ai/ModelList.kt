@@ -22,10 +22,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -207,7 +209,8 @@ internal fun ModelSelectorButton(
                 onClick = {
                     state.open()
                 },
-                modifier = modifier
+                modifier = modifier,
+                shapes = ButtonDefaults.shapes(),
             ) {
                 model?.modelId?.let {
                     AutoAIIcon(
@@ -227,6 +230,7 @@ internal fun ModelSelectorButton(
             if (allowClear && model != null) {
                 IconButton(
                     onClick = onClear,
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         imageVector = close,
@@ -240,6 +244,7 @@ internal fun ModelSelectorButton(
             onClick = {
                 state.open()
             },
+            shapes = IconButtonDefaults.shapes(),
         ) {
             CompositionLocalProvider(
                 LocalContentColor provides KedgeColors.onSurfaceVariant
@@ -517,7 +522,8 @@ private fun ColumnScope.ModelList(
                                             )
                                         }
                                     }
-                                }
+                                },
+                                shapes = IconButtonDefaults.shapes(),
                             ) {
                                 Icon(
                                     HeartIcon,
@@ -601,7 +607,8 @@ private fun ColumnScope.ModelList(
                                         }
                                     }
                                 }
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             if (favorite) {
                                 Icon(

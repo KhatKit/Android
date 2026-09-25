@@ -21,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -143,7 +144,8 @@ object MemoryToolUI : ToolUIRenderer {
                                 memoryRepo.deleteMemory(memoryId)
                                 onDismissRequest()
                             }
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = delete,
@@ -328,6 +330,7 @@ object TextToSpeechToolUI : ToolUIRenderer {
             FilledTonalIconButton(
                 onClick = { scope.launch { eventBus.emit(AppEvent.Speak(text)) } },
                 modifier = Modifier.size(28.dp),
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = refresh,

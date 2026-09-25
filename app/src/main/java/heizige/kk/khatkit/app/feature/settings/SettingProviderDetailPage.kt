@@ -29,6 +29,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
@@ -36,6 +37,7 @@ import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVertica
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
@@ -185,7 +187,8 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
                     IconButton(
                         onClick = {
                             shareSheetState.show(provider)
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(share, null)
                     }
@@ -302,6 +305,7 @@ private fun SettingProviderConfigPage(
                     onClick = {
                         showDeleteDialog = true
                     },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(delete, null)
                 }
@@ -312,6 +316,7 @@ private fun SettingProviderConfigPage(
                     internalProvider = internalProvider.resetBaseUrlToDefault()
                 },
                 enabled = !internalProvider.isUsingDefaultBaseUrl(),
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = sync,
@@ -323,7 +328,8 @@ private fun SettingProviderConfigPage(
                 onClick = {
                     val providerToSave: ProviderSetting = internalProvider
                     onEdit(providerToSave.copyProvider(name = providerToSave.name.trim()))
-                }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.setting_provider_page_save))
             }
@@ -350,7 +356,7 @@ private fun SettingProviderConfigPage(
                 Text(stringResource(R.string.setting_provider_page_delete_dialog_text))
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -359,7 +365,8 @@ private fun SettingProviderConfigPage(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.delete))
                 }
@@ -738,7 +745,8 @@ private fun AddModelButton(
         Button(
             onClick = {
                 dialogState.open(Model())
-            }
+            },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Row(
                 modifier = Modifier,
@@ -862,6 +870,7 @@ private fun ModelPicker(
                                 onAllModelDeselected(filteredModels)
                             }
                         },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(
                             if (unselectedCount > 0) stringResource(
@@ -933,7 +942,8 @@ private fun ModelPicker(
                                         } else {
                                             onModelSelected(it)
                                         }
-                                    }
+                                    },
+                                    shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     if (selectedModels.any { model -> model.modelId == it.modelId }) {
                                         Icon(close, null)
@@ -971,7 +981,8 @@ private fun ModelPicker(
         IconButton(
             onClick = {
                 showModal = true
-            }
+            },
+            shapes = IconButtonDefaults.shapes(),
         ) {
             Icon(package2, null)
         }
@@ -1196,7 +1207,8 @@ private fun ModelCard(
                         scope.launch {
                             swipeToDismissBoxState.reset()
                         }
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(close, null)
                 }
@@ -1206,7 +1218,8 @@ private fun ModelCard(
                             onDelete()
                             swipeToDismissBoxState.reset()
                         }
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         delete,
@@ -1268,7 +1281,8 @@ private fun ModelCard(
                 IconButton(
                     onClick = {
                         dialogState.open(model.copy())
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(build, "Edit")
                 }
@@ -1407,14 +1421,16 @@ private fun ProviderOverrideSettings(
                             onClick = {
                                 editingProvider = providerOverride
                                 showProviderConfig = true
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(build, contentDescription = "Edit override")
                         }
                         IconButton(
                             onClick = {
                                 onUpdateProviderOverride(null)
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(close, contentDescription = "Remove override")
                         }
@@ -1432,7 +1448,8 @@ private fun ProviderOverrideSettings(
                     )
                     showProviderConfig = true
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(add, contentDescription = null)
                 Spacer(modifier = Modifier.size(8.dp))

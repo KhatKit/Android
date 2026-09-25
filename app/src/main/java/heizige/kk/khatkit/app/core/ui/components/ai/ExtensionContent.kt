@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -195,7 +196,7 @@ private fun ManageButton(onClick: () -> Unit) {
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.End,
     ) {
-        TextButton(onClick = onClick) {
+        TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
             Icon(openInNew, contentDescription = null, modifier = Modifier.size(16.dp))
             Text(
                 text = stringResource(R.string.extension_content_manage),
@@ -225,7 +226,7 @@ fun ExtensionEmptyState(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
         )
         if (buttonText != null && onAction != null) {
-            TextButton(onClick = onAction) {
+            TextButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
                 Icon(link, contentDescription = null)
                 Text(buttonText)
             }

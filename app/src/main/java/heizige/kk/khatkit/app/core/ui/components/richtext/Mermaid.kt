@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -129,6 +130,7 @@ fun Mermaid(
                         val contentId = WebViewContentCache.store(context.cacheDir, html)
                         navController.navigate(Screen.WebView(contentId = contentId))
                     },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         visibility,
@@ -142,6 +144,7 @@ fun Mermaid(
                             null
                         )
                     },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         download,

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -230,7 +231,8 @@ fun UIAvatar(
                             showPickOption = false
                             imagePickerLauncher.launch("image/*")
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(text = stringResource(id = R.string.avatar_pick_image))
                     }
@@ -239,7 +241,8 @@ fun UIAvatar(
                             showPickOption = false
                             showEmojiPicker = true
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(text = stringResource(id = R.string.avatar_pick_emoji))
                     }
@@ -249,7 +252,8 @@ fun UIAvatar(
                             urlInput = ""
                             showUrlInput = true
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(text = stringResource(id = R.string.avatar_input_url))
                     }
@@ -258,7 +262,8 @@ fun UIAvatar(
                             showPickOption = false
                             onUpdate?.invoke(Avatar.Dummy)
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(text = stringResource(id = R.string.avatar_reset))
                     }
@@ -268,7 +273,8 @@ fun UIAvatar(
                 TextButton(
                     onClick = {
                         showPickOption = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(id = R.string.avatar_cancel))
                 }
@@ -323,7 +329,8 @@ fun UIAvatar(
                             onUpdate?.invoke(Avatar.Image(urlInput.trim()))
                             showUrlInput = false
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(id = R.string.avatar_url_confirm))
                 }
@@ -332,7 +339,8 @@ fun UIAvatar(
                 TextButton(
                     onClick = {
                         showUrlInput = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(id = R.string.avatar_cancel))
                 }
@@ -406,7 +414,8 @@ private fun PreviewUIAvatar() {
         Button(
             onClick = {
                 loading = !loading
-            }
+            },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text("Toggle Loading")
         }

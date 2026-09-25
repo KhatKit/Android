@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,6 +38,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -149,14 +151,16 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
                     IconButton(
                         onClick = {
                             showImportDialog = true
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(uploadFile, null)
                     }
                     IconButton(
                         onClick = {
                             creationState.open(McpServerConfig.StreamableHTTPServer())
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(add, null)
                     }
@@ -278,13 +282,14 @@ private fun McpServerItem(
                     onClick = {
                         context.writeClipboardText(fullText)
                         errorDetail = null
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.copy))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { errorDetail = null }) {
+                TextButton(onClick = { errorDetail = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -301,14 +306,16 @@ private fun McpServerItem(
                 FilledTonalIconButton(
                     onClick = {
                         scope.launch { dismissBoxState.reset() }
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(close, null)
                 }
                 FilledTonalIconButton(
                     onClick = {
                         onDelete()
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(delete, null)
                 }
@@ -405,6 +412,7 @@ private fun McpServerItem(
                         Button(
                             onClick = { mcpManager.startAuthorization(item, context) },
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text("OAuth 授权")
                         }
@@ -417,6 +425,7 @@ private fun McpServerItem(
                         TextButton(
                             onClick = { mcpManager.cancelAuthorization(item) },
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text("取消授权")
                         }
@@ -426,7 +435,8 @@ private fun McpServerItem(
                 IconButton(
                     onClick = {
                         onEdit(item)
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(settings, null)
                 }
@@ -775,7 +785,7 @@ private fun McpCommonOptionsConfigure(
                                 modifier = Modifier.fillMaxWidth(),
                                 visualTransformation = if (headerValueVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 trailingIcon = {
-                                    IconButton(onClick = { headerValueVisible = !headerValueVisible }) {
+                                    IconButton(onClick = { headerValueVisible = !headerValueVisible }, shapes = IconButtonDefaults.shapes()) {
                                         Icon(
                                             if (headerValueVisible) visibilityOff else visibility,
                                             contentDescription = null
@@ -799,7 +809,8 @@ private fun McpCommonOptionsConfigure(
                                     )
                                 }
                             )
-                        }) {
+                        },
+                             shapes = IconButtonDefaults.shapes(),) {
                             Icon(
                                 delete,
                                 contentDescription = stringResource(R.string.setting_mcp_page_delete_header)
@@ -824,7 +835,8 @@ private fun McpCommonOptionsConfigure(
                             }
                         )
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         add,
@@ -955,7 +967,8 @@ private fun McpToolCard(
                 // 展开/收起按钮
                 IconButton(
                     onClick = { expanded = !expanded },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         if (expanded) keyboardArrowUp else keyboardArrowDown,

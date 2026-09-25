@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -126,7 +127,7 @@ fun RecordCardSheet(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (state.recording) {
-                    Button(onClick = { KhatKitOperationRecorder.stop(context) }) {
+                    Button(onClick = { KhatKitOperationRecorder.stop(context) }, shapes = ButtonDefaults.shapes()) {
                         Icon(stopCircle, contentDescription = null)
                         Text(
                             text = "停止录制",
@@ -140,6 +141,7 @@ fun RecordCardSheet(
                                 Toast.show("无障碍服务未开启，请先在系统设置中开启 KhatKit 的无障碍服务", isError = true)
                             }
                         },
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Icon(adsClick, contentDescription = null)
                         Text(
@@ -150,7 +152,7 @@ fun RecordCardSheet(
                 }
 
                 if (!state.recording && state.steps.isNotEmpty()) {
-                    TextButton(onClick = { KhatKitOperationRecorder.discard(context) }) {
+                    TextButton(onClick = { KhatKitOperationRecorder.discard(context) }, shapes = ButtonDefaults.shapes()) {
                         Text("清空")
                     }
                 }

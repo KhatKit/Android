@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -222,7 +223,8 @@ private fun FullScreenTextEditor(
                             onClick = {
                                 state.setTextAndPlaceCursorAtEnd(editingText)
                                 onDismiss()
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.text_area_save))
                         }

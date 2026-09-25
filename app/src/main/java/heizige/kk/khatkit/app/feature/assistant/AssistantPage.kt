@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -22,6 +23,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -119,7 +121,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     IconButton(
                         onClick = {
                             createState.open(Assistant())
-                        }) {
+                        },
+                             shapes = IconButtonDefaults.shapes(),) {
                         Icon(add, stringResource(R.string.assistant_page_add))
                     }
                 },
@@ -163,7 +166,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
-                        IconButton(onClick = { searchQuery = "" }) {
+                        IconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
                             Icon(close, contentDescription = null)
                         }
                     }
@@ -475,7 +478,8 @@ private fun AssistantItem(
             }
 
             IconButton(
-                onClick = onShowActions
+                onClick = onShowActions,
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = moreVert,
@@ -577,12 +581,13 @@ private fun AssistantActionSheet(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()
-                    }) {
+                    },
+                         shapes = ButtonDefaults.shapes(),) {
                     Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },

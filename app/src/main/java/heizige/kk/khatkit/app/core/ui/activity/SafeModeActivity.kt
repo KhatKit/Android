@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,7 +107,8 @@ class SafeModeActivity : ComponentActivity() {
 
                         Button(
                             onClick = { showAssistantPicker = true },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.safe_mode_switch_assistant))
                         }
@@ -116,7 +118,8 @@ class SafeModeActivity : ComponentActivity() {
                                 startActivity(Intent(this@SafeModeActivity, RouteActivity::class.java))
                                 finish()
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text(stringResource(R.string.safe_mode_enter_app))
                         }
@@ -134,7 +137,8 @@ class SafeModeActivity : ComponentActivity() {
                                     onClick = {
                                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         cm.setPrimaryClip(ClipData.newPlainText("crash", stackTrace))
-                                    }
+                                    },
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(stringResource(R.string.safe_mode_copy))
                                 }

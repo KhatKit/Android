@@ -9,6 +9,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -59,7 +60,8 @@ fun SettingProviderBalanceOption(
             IconButton(
                 onClick = {
                     expand = !expand
-                }
+                },
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 if (expand) {
                     Icon(
@@ -105,7 +107,8 @@ fun SettingProviderBalanceOption(
                         } else {
                             onEdit(BalanceOption())
                         }
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(sync, null)
                 }

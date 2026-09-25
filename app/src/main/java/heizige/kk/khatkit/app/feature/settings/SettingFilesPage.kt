@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +28,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.AnimatedRadioButton
 import androidx.compose.material3.Scaffold
@@ -107,13 +109,14 @@ fun SettingFilesPage() {
                             }
                             pendingDelete = null
                         }
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.setting_files_page_delete_action))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
+                TextButton(onClick = { pendingDelete = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.setting_files_page_cancel_action))
                 }
             }
@@ -156,6 +159,7 @@ fun SettingFilesPage() {
                     IconButton(
                         onClick = { showCleanSheet = true },
                         enabled = files.isNotEmpty(),
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = cleaningServices,
@@ -340,7 +344,8 @@ private fun FileItem(
 
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier.align(Alignment.TopEnd)
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         delete,

@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -27,6 +28,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -270,6 +272,7 @@ private fun AssistantPromptContent(
                                 onUpdate(assistant.copy(messageTemplate = "{{ message }}"))
                             },
                             enabled = assistant.messageTemplate != "{{ message }}",
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(
                                 imageVector = sync,
@@ -448,7 +451,8 @@ private fun AssistantPromptContent(
                                             }
                                         )
                                     )
-                                }
+                                },
+                                shapes = IconButtonDefaults.shapes(),
                             ) {
                                 Icon(close, null)
                             }
@@ -490,7 +494,8 @@ private fun AssistantPromptContent(
                             )
                         )
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(add, null)
                 }
@@ -561,7 +566,8 @@ private fun AssistantPromptContent(
                             )
                         )
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(add, null)
                 }
@@ -631,7 +637,8 @@ private fun AssistantRegexCard(
                 IconButton(
                     onClick = {
                         expanded = !expanded
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
                         imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
@@ -779,7 +786,8 @@ private fun AssistantRegexCard(
                                 }
                             )
                         )
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

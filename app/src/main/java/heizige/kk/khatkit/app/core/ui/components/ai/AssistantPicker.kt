@@ -19,6 +19,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -231,7 +232,8 @@ private fun AssistantItem(
             IconButton(
                 onClick = {
                     onEdit()
-                }
+                },
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = editNote,

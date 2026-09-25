@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -86,7 +87,7 @@ fun WorkspaceFileEditorPage(
                 navigationIcon = { BackButton() },
                 actions = {
                     if (supportsPreview && !loading && loadError == null) {
-                        TextButton(onClick = { showPreview = !showPreview }) {
+                        TextButton(onClick = { showPreview = !showPreview }, shapes = ButtonDefaults.shapes()) {
                             Text(if (showPreview) "源码" else "预览")
                         }
                     }
@@ -112,6 +113,7 @@ fun WorkspaceFileEditorPage(
                                 }
                             },
                             enabled = !saving,
+                            shapes = ButtonDefaults.shapes(),
                         ) {
                             Text("Save")
                         }

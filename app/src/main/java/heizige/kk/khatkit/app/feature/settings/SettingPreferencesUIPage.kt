@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.FancySlider
@@ -299,7 +300,8 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                         trailingContent = {
                             Row {
                                 IconButton(
-                                    onClick = { fontPickerLauncher.launch(CustomFontMimeTypesUI) }
+                                    onClick = { fontPickerLauncher.launch(CustomFontMimeTypesUI) },
+                                    shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     Icon(
                                         uploadFile,
@@ -319,7 +321,8 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                                                     chatCustomFontName = "",
                                                 )
                                             )
-                                        }
+                                        },
+                                        shapes = IconButtonDefaults.shapes(),
                                     ) {
                                         Icon(
                                             deleteForever,

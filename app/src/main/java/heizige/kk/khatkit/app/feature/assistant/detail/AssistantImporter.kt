@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
@@ -128,7 +129,8 @@ private fun SillyTavernImporter(
             onClick = {
                 pngPickerLauncher.launch(arrayOf("image/png"))
             },
-            enabled = !isLoading
+            enabled = !isLoading,
+            shapes = ButtonDefaults.shapes(),
         ) {
             AutoAIIcon(name = "tavern", modifier = Modifier.padding(end = 8.dp))
             Text(text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_png))
@@ -138,7 +140,8 @@ private fun SillyTavernImporter(
             onClick = {
                 jsonPickerLauncher.launch(arrayOf("application/json"))
             },
-            enabled = !isLoading
+            enabled = !isLoading,
+            shapes = ButtonDefaults.shapes(),
         ) {
             AutoAIIcon(name = "tavern", modifier = Modifier.padding(end = 8.dp))
             Text(text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_json))

@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -22,6 +23,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -84,7 +86,8 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
                 },
                 actions = {
                     IconButton(
-                        onClick = { showAddDialog = true }
+                        onClick = { showAddDialog = true },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = add,
@@ -250,13 +253,14 @@ private fun AddProviderDialog(
                 onClick = {
                     val instance = selectedType.primaryConstructor!!.callBy(mapOf())
                     onConfirm(instance)
-                }
+                },
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.cancel))
             }
         }
@@ -302,7 +306,7 @@ private fun SearchProviderCard(
                 SearchAbilityTagLine(options = service)
             }
 
-            IconButton(onClick = { showMenu = true }) {
+            IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = moreVert,
                     contentDescription = null

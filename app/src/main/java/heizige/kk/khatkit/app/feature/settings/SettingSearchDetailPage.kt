@@ -17,6 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
@@ -98,7 +99,8 @@ fun SettingSearchDetailPage(
                                 newServices.removeAt(serviceIndex)
                                 vm.updateSettings(settings.copy(searchServices = newServices))
                                 nav.popBackStack()
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(
                                 imageVector = delete,
@@ -280,7 +282,8 @@ private fun SearchTestSection(
                             }
                         }
                     },
-                    enabled = query.isNotBlank() && !testing
+                    enabled = query.isNotBlank() && !testing,
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     if (testing) {
                         CircularProgressIndicator(

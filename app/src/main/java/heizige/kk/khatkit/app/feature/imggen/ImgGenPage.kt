@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -42,6 +43,7 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -141,7 +143,7 @@ fun ImageGenPage(
                     BackButton()
                 },
                 actions = {
-                    IconButton(onClick = vm::startNewSession) {
+                    IconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = add,
                             contentDescription = "New session"
@@ -178,12 +180,12 @@ private fun CancelDialog(
         title = { Text(stringResource(R.string.imggen_page_cancel_generation_title)) },
         text = { Text(stringResource(R.string.imggen_page_cancel_generation_message)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.imggen_page_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.imggen_page_cancel))
             }
         }
@@ -395,13 +397,15 @@ private fun InputBar(
             )
 
             IconButton(
-                onClick = onShowSettings
+                onClick = onShowSettings,
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(build, null)
             }
 
             IconButton(
-                onClick = { imagePickerLauncher.launch("image/*") }
+                onClick = { imagePickerLauncher.launch("image/*") },
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = add,
@@ -571,10 +575,11 @@ private fun ImageGalleryScreen(
                             isDeleting = false
                         }
                     }
-                }) { Text(stringResource(R.string.imggen_page_delete)) }
+                },
+                     shapes = ButtonDefaults.shapes(),) { Text(stringResource(R.string.imggen_page_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.imggen_page_cancel)) }
+                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.imggen_page_cancel)) }
             }
         )
     }
@@ -586,7 +591,7 @@ private fun ImageGalleryScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TextButton(onClick = { clearSelection() }, enabled = !isDeleting) {
+                TextButton(onClick = { clearSelection() }, enabled = !isDeleting, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.imggen_page_cancel))
                 }
                 Text(
@@ -595,7 +600,8 @@ private fun ImageGalleryScreen(
                 )
                 TextButton(
                     onClick = { showDeleteDialog = true },
-                    enabled = selectedImages.isNotEmpty() && !isDeleting
+                    enabled = selectedImages.isNotEmpty() && !isDeleting,
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.imggen_page_delete)) }
             }
         }
@@ -711,7 +717,8 @@ private fun ImageGalleryScreen(
                                                         isError = false
                                                     )
                                                 },
-                                                modifier = Modifier.size(32.dp)
+                                                modifier = Modifier.size(32.dp),
+                                                shapes = IconButtonDefaults.shapes(),
                                             ) {
                                                 Icon(
                                                     imageVector = contentCopy,
@@ -740,7 +747,8 @@ private fun ImageGalleryScreen(
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.size(32.dp)
+                                                modifier = Modifier.size(32.dp),
+                                                shapes = IconButtonDefaults.shapes(),
                                             ) {
                                                 Icon(
                                                     imageVector = save,
@@ -751,7 +759,8 @@ private fun ImageGalleryScreen(
 
                                             IconButton(
                                                 onClick = { vm.deleteImage(it) },
-                                                modifier = Modifier.size(32.dp)
+                                                modifier = Modifier.size(32.dp),
+                                                shapes = IconButtonDefaults.shapes(),
                                             ) {
                                                 Icon(
                                                     imageVector = delete,

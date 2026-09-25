@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
@@ -679,7 +681,8 @@ private fun TopBar(
                         onClick = {
                             onSearchQueryChange("")
                             onClickMenu()
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(arrowBack, contentDescription = null)
                     }
@@ -687,7 +690,8 @@ private fun TopBar(
                     IconButton(
                         onClick = {
                             scope.launch { drawerState.open() }
-                        }
+                        },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(menu, "Messages")
                     }
@@ -773,7 +777,8 @@ private fun TopBar(
             IconButton(
                 onClick = {
                     onClickMenu()
-                }
+                },
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(if (previewMode) close else search, "Chat Options")
             }
@@ -781,7 +786,8 @@ private fun TopBar(
             IconButton(
                 onClick = {
                     onNewChat()
-                }
+                },
+                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(addComment, "New Message")
             }
@@ -807,7 +813,8 @@ private fun TopBar(
                 TextButton(
                     onClick = {
                         titleState.confirm()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.chat_page_save))
                 }
@@ -816,7 +823,8 @@ private fun TopBar(
                 TextButton(
                     onClick = {
                         titleState.dismiss()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }

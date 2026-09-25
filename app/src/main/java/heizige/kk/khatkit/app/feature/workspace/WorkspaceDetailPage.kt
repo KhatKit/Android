@@ -26,12 +26,14 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -150,18 +152,18 @@ fun WorkspaceDetailPage(id: String) {
                 navigationIcon = { BackButton() },
                 actions = {
                     if (pagerState.currentPage == 1) {
-                        IconButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
+                        IconButton(onClick = { filePicker.launch(arrayOf("*/*")) }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 uploadFile,
                                 contentDescription = stringResource(R.string.workspace_detail_import_file),
                             )
                         }
                     }
-                    IconButton(onClick = { vm.refresh() }) {
+                    IconButton(onClick = { vm.refresh() }, shapes = IconButtonDefaults.shapes()) {
                         Icon(refresh, contentDescription = null)
                     }
                     if (state.workspace?.shellStatus != WorkspaceShellStatus.DISABLED.name) {
-                        IconButton(onClick = { navController.navigate(Screen.WorkspaceTerminal(id)) }) {
+                        IconButton(onClick = { navController.navigate(Screen.WorkspaceTerminal(id)) }, shapes = IconButtonDefaults.shapes()) {
                             Icon(terminal, contentDescription = null)
                         }
                     }
@@ -283,7 +285,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text("导出结果") },
             text = { Text(result, modifier = Modifier.verticalScroll(rememberScrollState())) },
             confirmButton = {
-                TextButton(onClick = vm::dismissExportResult) { Text(stringResource(R.string.common_confirm)) }
+                TextButton(onClick = vm::dismissExportResult, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.common_confirm)) }
             },
         )
     }
@@ -307,7 +309,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text(stringResource(R.string.workspace_detail_rootfs_install_failed)) },
             text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = vm::dismissInstallError) {
+                TextButton(onClick = vm::dismissInstallError, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.common_confirm))
                 }
             },
@@ -320,7 +322,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text(stringResource(R.string.workspace_detail_settings_save_failed)) },
             text = { Text(message.ifBlank { stringResource(R.string.workspace_detail_settings_save_failed) }) },
             confirmButton = {
-                TextButton(onClick = vm::dismissSettingsError) {
+                TextButton(onClick = vm::dismissSettingsError, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.common_confirm))
                 }
             },
@@ -407,6 +409,7 @@ private fun WorkspaceBasicPage(
                                 onClick = onInstallRootfs,
                                 enabled = workspace != null && !installing,
                                 modifier = Modifier.fillMaxWidth(),
+                                shapes = ButtonDefaults.shapes(),
                             ) {
                                 Icon(terminal, contentDescription = null)
                                 Text(
@@ -576,12 +579,13 @@ private fun InstallRootfsDialog(
             TextButton(
                 onClick = { onConfirm(url.trim()) },
                 enabled = url.isNotBlank(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.common_install))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.common_cancel))
             }
         },
@@ -645,13 +649,16 @@ private fun WorkspaceFilesPage(
                             selecting = false
                             selectedPaths = emptySet()
                         },
+                        shapes = ButtonDefaults.shapes(),
                     ) { Text("取消多选") }
                     TextButton(onClick = {
                         selectedPaths = if (selectedFiles.size == files.size) emptySet() else files.map { it.path }.toSet()
-                    }) { Text(if (files.isNotEmpty() && selectedFiles.size == files.size) "取消全选" else "全选") }
+                    },
+                         shapes = ButtonDefaults.shapes(),) { Text(if (files.isNotEmpty() && selectedFiles.size == files.size) "取消全选" else "全选") }
                     TextButton(
                         onClick = { onBatchExport(selectedFiles) },
                         enabled = selectedFiles.isNotEmpty() && !state.exporting,
+                        shapes = ButtonDefaults.shapes(),
                     ) { Text("导出 (${selectedFiles.size})") }
                 }
                 if (state.exporting) {
@@ -732,6 +739,7 @@ private fun WorkspacePathBar(
         IconButton(
             enabled = canGoUp,
             onClick = onGoUp,
+            shapes = IconButtonDefaults.shapes(),
         ) {
             Icon(undo, contentDescription = null)
         }
@@ -868,7 +876,7 @@ private fun WorkspaceFileCard(
                 )
             }
             if (!selecting) Box {
-                IconButton(onClick = { menuExpanded = true }) {
+                IconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
                 DropdownMenu(
