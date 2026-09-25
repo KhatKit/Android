@@ -444,8 +444,8 @@ fun ChatDrawerContent(
                             modifier = Modifier.height(32.dp),
                             shapes = ButtonDefaults.shapes(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.inverseSurface,
-                                contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                         ) {
