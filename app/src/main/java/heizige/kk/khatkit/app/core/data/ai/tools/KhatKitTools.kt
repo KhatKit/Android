@@ -17,8 +17,8 @@ import heizige.kk.khatkit.bridge.impl.AndroidToolBridge
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
-import heizige.kk.khatkit.app.automation.ApprovalCategory
-import heizige.kk.khatkit.app.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
+import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountStore
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.CardParser

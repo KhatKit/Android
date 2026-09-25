@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.core.data.model.Assistant
-import heizige.kk.khatkit.app.ui.pages.extensions.workspace.toShellStatusLabel
+import heizige.kk.khatkit.app.feature.workspace.toShellStatusLabel
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.doneAll

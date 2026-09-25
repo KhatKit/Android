@@ -21,7 +21,7 @@ import androidx.compose.ui.res.stringResource
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
-import heizige.kk.khatkit.app.record.RecordCardSheet
+import heizige.kk.khatkit.app.feature.record.RecordCardSheet
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.icons.adsClick

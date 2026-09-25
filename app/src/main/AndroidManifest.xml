@@ -116,7 +116,7 @@
         android:resource="@xml/shortcuts" />
     </activity>
     <activity
-      android:name=".ui.activity.ShortcutHandlerActivity"
+      android:name=".feature.share.ShortcutHandlerActivity"
       android:exported="true"
       android:theme="@android:style/Theme.Translucent.NoTitleBar">
       <intent-filter>
@@ -131,7 +131,7 @@
     </activity>
     <!-- 卡片 shortcut 事件的落地页：仅通过桌面动态快捷方式的显式 Intent 启动 -->
     <activity
-      android:name=".ui.activity.TriggerShortcutActivity"
+      android:name=".feature.automation.TriggerShortcutActivity"
       android:excludeFromRecents="true"
       android:exported="true"
       android:noHistory="true"
@@ -153,7 +153,7 @@
         android:value="local web server for LLM chat UI" />
     </service>
     <service
-      android:name=".service.TriggerService"
+      android:name=".feature.automation.TriggerService"
       android:exported="false"
       android:foregroundServiceType="specialUse">
       <property
@@ -162,7 +162,7 @@
     </service>
     <!-- 快捷设置磁贴槽位：一个组件对应一个磁贴，最多 3 个 -->
     <service
-      android:name=".service.TriggerTileService"
+      android:name=".feature.automation.TriggerTileService"
       android:exported="true"
       android:icon="@drawable/ic_trigger_tile"
       android:label="@string/trigger_tile_label"
@@ -172,7 +172,7 @@
       </intent-filter>
     </service>
     <service
-      android:name=".service.TriggerTileService2"
+      android:name=".feature.automation.TriggerTileService2"
       android:exported="true"
       android:icon="@drawable/ic_trigger_tile"
       android:label="@string/trigger_tile_label"
@@ -182,7 +182,7 @@
       </intent-filter>
     </service>
     <service
-      android:name=".service.TriggerTileService3"
+      android:name=".feature.automation.TriggerTileService3"
       android:exported="true"
       android:icon="@drawable/ic_trigger_tile"
       android:label="@string/trigger_tile_label"
@@ -192,7 +192,7 @@
       </intent-filter>
     </service>
     <service
-      android:name=".service.AutomationOverlayService"
+      android:name=".feature.automation.AutomationOverlayService"
       android:exported="false"
       android:foregroundServiceType="specialUse">
       <property
@@ -200,7 +200,7 @@
         android:value="floating automation status board over system UI" />
     </service>
     <service
-      android:name=".service.KhatKitNotificationListenerService"
+      android:name=".feature.automation.KhatKitNotificationListenerService"
       android:exported="true"
       android:label="@string/app_name"
       android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
@@ -209,7 +209,7 @@
       </intent-filter>
     </service>
     <receiver
-      android:name=".service.TriggerBootReceiver"
+      android:name=".feature.automation.TriggerBootReceiver"
       android:exported="false"
       android:enabled="true">
       <intent-filter>
@@ -218,10 +218,10 @@
       </intent-filter>
     </receiver>
     <receiver
-      android:name=".automation.ApprovalActionReceiver"
+      android:name=".feature.automation.ApprovalActionReceiver"
       android:exported="false" />
     <receiver
-      android:name=".record.RecorderStopReceiver"
+      android:name=".feature.record.RecorderStopReceiver"
       android:exported="false" />
 
     <provider
@@ -234,7 +234,7 @@
         android:resource="@xml/file_paths" />
     </provider>
     <provider
-      android:name=".data.provider.WorkspaceDocumentsProvider"
+      android:name=".feature.workspace.data.WorkspaceDocumentsProvider"
       android:authorities="${applicationId}.documents"
       android:exported="true"
       android:grantUriPermissions="true"
@@ -254,7 +254,7 @@
         tools:node="remove" />
     </provider>
     <service
-      android:name=".service.KhatKitAccessibilityService"
+      android:name=".feature.automation.KhatKitAccessibilityService"
       android:exported="true"
       android:label="@string/app_name"
       android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

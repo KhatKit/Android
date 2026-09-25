@@ -32,8 +32,8 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.app.feature.chat.ChatNotificationManager
 import heizige.kk.khatkit.app.feature.chat.ChatService
-import heizige.kk.khatkit.app.service.TriggerController
-import heizige.kk.khatkit.app.ui.pages.extensions.workspace.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.feature.automation.TriggerController
+import heizige.kk.khatkit.app.feature.workspace.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.AppAnalytics
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.util.NoOpAnalytics

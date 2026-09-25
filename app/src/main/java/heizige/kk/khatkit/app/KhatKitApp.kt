@@ -17,7 +17,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import heizige.kk.khatkit.app.core.data.files.FileFolders
-import heizige.kk.khatkit.app.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.feature.chat.ChatNotificationManager
 import java.io.File

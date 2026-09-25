@@ -46,11 +46,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.automation.ApprovalCategory
-import heizige.kk.khatkit.app.automation.ApprovalPolicy
-import heizige.kk.khatkit.app.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
+import heizige.kk.khatkit.app.feature.automation.ApprovalPolicy
+import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
-import heizige.kk.khatkit.app.service.KhatKitAccessibilityService
+import heizige.kk.khatkit.app.feature.automation.KhatKitAccessibilityService
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle

@@ -37,9 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import heizige.kk.khatkit.app.service.CardTriggerOverride
-import heizige.kk.khatkit.app.service.TriggerController
-import heizige.kk.khatkit.app.service.TriggerTilePublisher
+import heizige.kk.khatkit.app.feature.automation.CardTriggerOverride
+import heizige.kk.khatkit.app.feature.automation.TriggerController
+import heizige.kk.khatkit.app.feature.automation.TriggerTilePublisher
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.editNote

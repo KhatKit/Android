@@ -1,0 +1,191 @@
+package heizige.kk.khatkit.app.feature.workspace
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.webview.WebView
+import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
+import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
+import heizige.kk.khatkit.workspace.WorkspaceStorageArea
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+
+/**
+ * 工作区文本文件编辑/预览页.
+ *
+ * FILES 区文件可编辑并保存; LINUX (rootfs) 区文件仅只读预览 (readOnly), 避免误改系统文件.
+ */
+@Composable
+fun WorkspaceFileEditorPage(
+    id: String,
+    area: WorkspaceStorageArea,
+    path: String,
+) {
+    val repository = rememberAppEntryPoint().workspaceRepository()
+    val toaster = LocalToaster.current
+    val scope = rememberCoroutineScope()
+    val editable = area == WorkspaceStorageArea.FILES
+    val fileName = path.substringAfterLast('/').ifBlank { path }
+    val extension = fileName.substringAfterLast('.', "").lowercase()
+    val supportsPreview = extension in setOf("html", "htm", "svg")
+    var showPreview by rememberSaveable(id, area, path) { mutableStateOf(supportsPreview) }
+
+    val textState = rememberTextFieldState()
+    var loading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+
+    LaunchedEffect(id, area, path) {
+        loading = true
+        loadError = null
+        runCatching {
+            repository.readTextForPreview(id, area, path)
+        }.onSuccess { content ->
+            textState.setTextAndPlaceCursorAtEnd(content)
+            loading = false
+        }.onFailure {
+            loadError = it.message ?: "读取文件失败"
+            loading = false
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            KedgePageTopBar(
+                title = fileName,
+                navigationIcon = { BackButton() },
+                actions = {
+                    if (supportsPreview && !loading && loadError == null) {
+                        TextButton(onClick = { showPreview = !showPreview }) {
+                            Text(if (showPreview) "源码" else "预览")
+                        }
+                    }
+                    if (editable && !loading && loadError == null) {
+                        TextButton(
+                            onClick = {
+                                if (saving) return@TextButton
+                                saving = true
+                                scope.launch {
+                                    runCatching {
+                                        repository.writeText(
+                                            id = id,
+                                            path = path,
+                                            text = textState.text.toString(),
+                                            overwrite = true,
+                                        )
+                                    }.onSuccess {
+                                        Toast.show("已保存", isError = false)
+                                    }.onFailure {
+                                        Toast.show(it.message ?: "保存失败", isError = true)
+                                    }
+                                    saving = false
+                                }
+                            },
+                            enabled = !saving,
+                        ) {
+                            Text("Save")
+                        }
+                    }
+                },
+                colors = CustomColors.topBarColors,
+            )
+        },
+        containerColor = CustomColors.topBarColors.containerColor,
+    ) { innerPadding ->
+        when {
+            loading -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+
+            loadError != null -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+            ) {
+                Text(
+                    text = loadError ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            showPreview -> WorkspaceWebPreview(
+                content = textState.text.toString(),
+                isSvg = extension == "svg",
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            )
+
+            else -> TextField(
+                state = textState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .imePadding(),
+                readOnly = !editable,
+                lineLimits = TextFieldLineLimits.MultiLine(),
+                textStyle = LocalTextStyle.current.copy(
+                    fontFamily = JetbrainsMono,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceWebPreview(
+    content: String,
+    isSvg: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val state = rememberWebViewState(
+        data = content,
+        baseUrl = "https://workspace-preview.invalid/",
+        mimeType = if (isSvg) "image/svg+xml" else "text/html",
+        settings = {
+            allowFileAccess = false
+            allowContentAccess = false
+            builtInZoomControls = true
+            displayZoomControls = false
+            useWideViewPort = true
+            loadWithOverviewMode = true
+        },
+    )
+    WebView(state = state, modifier = modifier)
+}
