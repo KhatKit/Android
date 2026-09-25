@@ -72,6 +72,7 @@ import heizige.kk.khatkit.ai.provider.Modality
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.app.core.network.McpToolDescriptor
 import heizige.kk.khatkit.app.core.network.McpToolResult
+import heizige.kk.khatkit.app.core.util.collectLocalImagePaths
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import java.io.File
@@ -528,12 +529,26 @@ class KhatKitToolProvider(
                 } catch (e: Throwable) {
                     EngineResult.Err("CARD_TOOL", e.message ?: e.toString())
                 }
-                when (result) {
-                    is EngineResult.Ok -> listOf(UIMessagePart.Text(encode(result.value)))
-                    is EngineResult.Err -> listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
-                }
+                engineResultParts(result)
             },
         )
+    }
+
+    /**
+     * 卡片/工具结果 → 聊天消息部件：文本结果照旧保留，结果里嵌套图片路径（`outputs` 数组、
+     * map/list 或字符串）指向真实存在的本机图片时额外附带 [UIMessagePart.Image]，
+     * 与 device_screen 的多模态截图同一机制，聊天里直接渲染缩略图；文件缺失时只保留路径文本。
+     */
+    private fun engineResultParts(result: EngineResult): List<UIMessagePart> = when (result) {
+        is EngineResult.Ok -> buildList {
+            add(UIMessagePart.Text(encode(result.value)))
+            collectLocalImagePaths(result.value).forEach { path ->
+                add(UIMessagePart.Image(url = Uri.fromFile(File(path)).toString()))
+            }
+        }
+
+        is EngineResult.Err ->
+            listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
     }
 
     /**
@@ -612,11 +627,7 @@ class KhatKitToolProvider(
                                 } catch (e: Throwable) {
                                     EngineResult.Err("CARD_TOOL", e.message ?: e.toString())
                                 }
-                                when (result) {
-                                    is EngineResult.Ok -> listOf(UIMessagePart.Text(encode(result.value)))
-                                    is EngineResult.Err ->
-                                        listOf(UIMessagePart.Text("""{"error":"${result.message.escape()}"}"""))
-                                }
+                                engineResultParts(result)
                             }
                         }
                     }

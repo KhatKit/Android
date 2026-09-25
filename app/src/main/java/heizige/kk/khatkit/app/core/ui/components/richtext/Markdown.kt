@@ -94,6 +94,7 @@ import heizige.kk.khatkit.app.core.ui.components.table.DataTable
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
+import heizige.kk.khatkit.app.core.util.expandLocalImagePathLines
 import heizige.kk.khatkit.app.core.util.toDp
 import org.intellij.markdown.IElementType
 import org.intellij.markdown.MarkdownElementTypes
@@ -236,11 +237,13 @@ fun MarkdownBlock(
     style: TextStyle = LocalTextStyle.current,
     onClickCitation: (String) -> Unit = {}
 ) {
-    var (data, setData) = remember { mutableStateOf(parseMarkdown(content)) }
+    // 单独成行的本机图片路径 → Markdown 图片语法，模型回复里的结果图直接渲染
+    val renderedContent = remember(content) { expandLocalImagePathLines(content) }
+    var (data, setData) = remember { mutableStateOf(parseMarkdown(renderedContent)) }
 
     // 监听内容变化，重新解析AST树
     // 这里在后台线程解析AST树, 防止频繁更新的时候掉帧
-    val updatedContent by rememberUpdatedState(content)
+    val updatedContent by rememberUpdatedState(renderedContent)
     LaunchedEffect(Unit) {
         snapshotFlow { updatedContent }
             .distinctUntilChanged()
@@ -252,7 +255,7 @@ fun MarkdownBlock(
 
     if (data.hasHtml) {
         MarkdownNew(
-            content = content,
+            content = renderedContent,
             modifier = modifier,
             style = style,
             onClickCitation = onClickCitation,
