@@ -60,7 +60,7 @@ import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.ToggleSurface
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.ui.pages.setting.SearchAbilityTagLine
+import heizige.kk.khatkit.app.feature.settings.SearchAbilityTagLine
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.checkCircle

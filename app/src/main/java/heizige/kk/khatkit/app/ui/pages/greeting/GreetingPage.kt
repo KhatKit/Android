@@ -116,9 +116,9 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsStore
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
 import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
-import heizige.kk.khatkit.app.ui.pages.setting.components.MorphThemeModeSelector
-import heizige.kk.khatkit.app.ui.pages.setting.components.PresetThemeColorDots
-import heizige.kk.khatkit.app.ui.pages.setting.components.ThemeCustomColorSheet
+import heizige.kk.khatkit.app.feature.settings.components.MorphThemeModeSelector
+import heizige.kk.khatkit.app.feature.settings.components.PresetThemeColorDots
+import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
