@@ -1415,7 +1415,7 @@ class KhatKitToolProvider(
         changelog: String,
     ): HubActionResult = withContext(Dispatchers.IO) {
         val token = accountStore.token()
-            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐/激活」中激活套餐")
+            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐激活」中激活套餐")
         val card = loadInstalledCards().firstOrNull { it.manifest.name == name }
             ?: return@withContext HubActionResult(false, "本机未安装卡片：$name")
         val manifest = card.manifest
@@ -1445,7 +1445,7 @@ class KhatKitToolProvider(
         newVersion: String,
     ): HubActionResult = withContext(Dispatchers.IO) {
         val token = accountStore.token()
-            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐/激活」中激活套餐")
+            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐激活」中激活套餐")
         val card = loadInstalledCards().firstOrNull { it.manifest.name == name }
             ?: return@withContext HubActionResult(false, "本机未安装卡片：$name")
         val manifest = card.manifest
@@ -1481,7 +1481,7 @@ class KhatKitToolProvider(
     /** 给市场卡片投票。 */
     override suspend fun voteCard(name: String): HubActionResult = withContext(Dispatchers.IO) {
         val token = accountStore.token()
-            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐/激活」中激活套餐")
+            ?: return@withContext HubActionResult(false, "请先在「设置 → 套餐激活」中激活套餐")
         runCatching { hub().voteCard(token, name) }
             .getOrElse { HubActionResult(false, "投票失败：${it.message ?: it.javaClass.simpleName}") }
             .let { it.copy(message = it.message.ifBlank { if (it.ok) "已投票：$name" else "投票失败" }) }

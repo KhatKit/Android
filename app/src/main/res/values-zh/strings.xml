@@ -1444,7 +1444,7 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_display_page_card_gap">项间距</string>
 
   <!-- KhatKit -->
-  <string name="khatkit_market_title">KhatKit 卡片市场</string>
+  <string name="khatkit_market_title">卡片市场</string>
   <string name="khatkit_confirm">确认</string>
   <string name="khatkit_confirm_danger">确认（危险操作）</string>
   <string name="khatkit_action_cancel">取消</string>

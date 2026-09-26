@@ -90,7 +90,7 @@ fun SettingPackagePage(
     Scaffold(
         topBar = {
             KedgePageLargeTopBar(
-                title = "套餐 / 激活",
+                title = "套餐激活",
                 navigationIcon = { BackButton() },
                 scrollBehavior = scrollBehavior,
                 colors = CustomColors.topBarColors,

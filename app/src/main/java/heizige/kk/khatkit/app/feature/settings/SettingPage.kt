@@ -247,13 +247,13 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         onClick = { navController.navigate(Screen.KhatKitMarket) },
                         leadingContent = { Icon(inventory2, null) },
                         supportingContent = { Text("浏览、安装脚本卡片，让 AI 能操作手机") },
-                        headlineContent = { Text("KhatKit 卡片市场") },
+                        headlineContent = { Text("卡片市场") },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPackage) },
                         leadingContent = { Icon(favorite, null) },
                         supportingContent = { Text("激活 KhatKitHub 套餐、查看额度，并创建 AI 网关供应商") },
-                        headlineContent = { Text("套餐 / 激活") },
+                        headlineContent = { Text("套餐激活") },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingTriggers) },
