@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -44,6 +43,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
@@ -263,7 +264,6 @@ fun ConversationList(
                         onMoveToAssistant = onMoveToAssistant,
                         onMoveToFolder = onMoveToFolder,
                         onRemoveFromFolder = onRemoveFromFolder,
-                        modifier = Modifier.animateItem(),
                     )
                 }
 
@@ -357,23 +357,24 @@ private fun ConversationItem(
         confirmValueChange = { false },
     )
 
-    // 只有滑动距离达到行宽的 85% 才算“滑到底”：删除先弹确认，置顶直接执行。
+    fun currentOffset(): Float = runCatching { dismissState.requireOffset() }.getOrDefault(0f)
+
+    // 滑到行宽 85% 触发删除确认/置顶，并平滑回到起点，避免 snapTo 造成的瞬移。
     LaunchedEffect(dismissState, rowWidth) {
         if (rowWidth <= 0) return@LaunchedEffect
         val fullSwipeThreshold = rowWidth * FullSwipeFraction
-        snapshotFlow { runCatching { dismissState.requireOffset() }.getOrDefault(0f) }
+        snapshotFlow { currentOffset() }
             .collect { offset ->
                 when {
-                    offset <= -fullSwipeThreshold && onDelete != null -> {
-                        if (!showDeleteConfirm) showDeleteConfirm = true
+                    offset <= -fullSwipeThreshold && onDelete != null && !showDeleteConfirm -> {
+                        showDeleteConfirm = true
+                        scope.launch { dismissState.reset() }
                     }
 
-                    offset >= fullSwipeThreshold && onPin != null -> {
-                        if (!pinTriggered) {
-                            pinTriggered = true
-                            onPin(conversation)
-                            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
-                        }
+                    offset >= fullSwipeThreshold && onPin != null && !pinTriggered -> {
+                        pinTriggered = true
+                        onPin(conversation)
+                        scope.launch { dismissState.reset() }
                     }
 
                     abs(offset) < fullSwipeThreshold -> pinTriggered = false
@@ -403,7 +404,6 @@ private fun ConversationItem(
                     onClick = {
                         showDeleteConfirm = false
                         onDelete(conversation)
-                        scope.launch { dismissState.snapTo(SwipeToDismissBoxValue.Settled) }
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
@@ -429,42 +429,50 @@ private fun ConversationItem(
         enableDismissFromStartToEnd = onPin != null,
         enableDismissFromEndToStart = onDelete != null,
         backgroundContent = {
-            when (dismissState.dismissDirection) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(shape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Icon(
-                            imageVector = pushPin,
-                            contentDescription = stringResource(R.string.pin_chat),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(start = 16.dp),
-                        )
-                    }
-                }
+            val pinContainer = MaterialTheme.colorScheme.primaryContainer
+            val deleteContainer = MaterialTheme.colorScheme.errorContainer
+            val width = rowWidth.coerceAtLeast(1)
 
-                SwipeToDismissBoxValue.EndToStart -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(shape)
-                            .background(MaterialTheme.colorScheme.errorContainer),
-                        contentAlignment = Alignment.CenterEnd,
-                    ) {
-                        Icon(
-                            imageVector = delete,
-                            contentDescription = stringResource(R.string.chat_page_delete),
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(end = 16.dp),
-                        )
-                    }
-                }
-
-                else -> Unit
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(shape)
+                    .drawBehind {
+                        val offset = currentOffset()
+                        val progress = (abs(offset) / width).coerceIn(0f, 1f)
+                        if (progress > 0f) {
+                            drawRect(color = if (offset > 0f) pinContainer else deleteContainer)
+                        }
+                    },
+            ) {
+                Icon(
+                    imageVector = pushPin,
+                    contentDescription = stringResource(R.string.pin_chat),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 16.dp)
+                        .graphicsLayer {
+                            val progress = (currentOffset() / width).coerceIn(0f, 1f)
+                            alpha = progress
+                            scaleX = 0.7f + 0.3f * progress
+                            scaleY = 0.7f + 0.3f * progress
+                        },
+                )
+                Icon(
+                    imageVector = delete,
+                    contentDescription = stringResource(R.string.chat_page_delete),
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp)
+                        .graphicsLayer {
+                            val progress = (-currentOffset() / width).coerceIn(0f, 1f)
+                            alpha = progress
+                            scaleX = 0.7f + 0.3f * progress
+                            scaleY = 0.7f + 0.3f * progress
+                        },
+                )
             }
         },
         modifier = modifier
