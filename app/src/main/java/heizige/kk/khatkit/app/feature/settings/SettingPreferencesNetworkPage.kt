@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -198,6 +199,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         isError = proxyUrlInvalid,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
                     )
                     OutlinedTextField(
                         value = proxyUsernameDraft,
@@ -205,6 +207,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(stringResource(R.string.backup_page_username)) },
                         singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
                     )
                     OutlinedTextField(
                         value = proxyPasswordDraft,
@@ -233,6 +236,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
                     )
                     TextButton(
                         onClick = ::resetProxy,
@@ -339,6 +343,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                         )
                                     },
                                     singleLine = true,
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                                 TextButton(
                                     onClick = { updateUserAgent("") },

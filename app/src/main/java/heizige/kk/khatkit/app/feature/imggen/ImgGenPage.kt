@@ -373,7 +373,7 @@ private fun InputBar(
                 .heightIn(max = 140.dp),
             minLines = 1,
             maxLines = 5,
-            shape = MaterialTheme.shapes.large,
+            shape = RoundedCornerShape(16.dp),
             textStyle = MaterialTheme.typography.bodySmall,
         )
 
@@ -848,6 +848,7 @@ private fun SettingsBottomSheet(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall,
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
 

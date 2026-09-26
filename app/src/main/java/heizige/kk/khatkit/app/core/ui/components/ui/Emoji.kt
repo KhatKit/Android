@@ -107,8 +107,7 @@ fun EmojiPicker(
                             onSearch = { /* Handle search */ }
                         ),
                         singleLine = true,
-                        shape = RoundedCornerShape(50)
-                    )
+                        shape = RoundedCornerShape(16.dp))
                 }
 
                 // Category tabs

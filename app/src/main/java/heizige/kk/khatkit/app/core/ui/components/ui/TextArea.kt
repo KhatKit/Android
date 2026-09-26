@@ -168,7 +168,8 @@ fun TextArea(
                     maxHeightInLines = maxLines
                 ),
                 enabled = enabled,
-                readOnly = readOnly
+                readOnly = readOnly,
+                shape = RoundedCornerShape(16.dp)
             )
         }
     }

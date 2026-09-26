@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -607,7 +608,8 @@ private fun McpCommonOptionsConfigure(
                 isError = nameInvalid,
                 supportingText = if (nameInvalid) {
                     { Text(stringResource(R.string.setting_mcp_page_name_invalid)) }
-                } else null
+                } else null,
+                shape = RoundedCornerShape(16.dp)
             )
         }
 
@@ -709,7 +711,8 @@ private fun McpCommonOptionsConfigure(
                             is McpServerConfig.StreamableHTTPServer -> stringResource(R.string.setting_mcp_page_streamable_http_url_placeholder)
                         }
                     )
-                }
+                },
+                shape = RoundedCornerShape(16.dp)
             )
         }
 
@@ -759,7 +762,8 @@ private fun McpCommonOptionsConfigure(
                                 },
                                 label = { Text(stringResource(R.string.setting_mcp_page_header_name)) },
                                 modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text(stringResource(R.string.setting_mcp_page_header_name_placeholder)) }
+                                placeholder = { Text(stringResource(R.string.setting_mcp_page_header_name_placeholder)) },
+                                shape = RoundedCornerShape(16.dp)
                             )
                             Spacer(Modifier.height(8.dp))
                             OutlinedTextField(
@@ -792,7 +796,8 @@ private fun McpCommonOptionsConfigure(
                                         )
                                     }
                                 },
-                                placeholder = { Text(stringResource(R.string.setting_mcp_page_header_value_placeholder)) }
+                                placeholder = { Text(stringResource(R.string.setting_mcp_page_header_value_placeholder)) },
+                                shape = RoundedCornerShape(16.dp)
                             )
                         }
                         IconButton(onClick = {
@@ -1088,7 +1093,8 @@ private fun McpImportModal(
                     .weight(1f),
                 placeholder = { Text("{ \"mcpServers\": { ... } }") },
                 isError = errorMessage != null,
-                supportingText = errorMessage?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } }
+                supportingText = errorMessage?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } },
+                shape = RoundedCornerShape(16.dp)
             )
         }
     }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -303,7 +304,8 @@ private fun AssistantPromptContent(
                             fontSize = 12.sp,
                             fontFamily = JetbrainsMono,
                             lineHeight = 16.sp
-                        )
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     )
                 },
                 description = {
@@ -473,7 +475,8 @@ private fun AssistantPromptContent(
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            maxLines = 6
+                            maxLines = 6,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     }
                 }
@@ -665,7 +668,8 @@ private fun AssistantRegexCard(
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.assistant_page_regex_name)) }
+                    label = { Text(stringResource(R.string.assistant_page_regex_name)) },
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 OutlinedTextField(
@@ -686,6 +690,7 @@ private fun AssistantRegexCard(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.assistant_page_regex_find_regex)) },
                     placeholder = { Text("e.g., \\b\\w+@\\w+\\.\\w+\\b") },
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 OutlinedTextField(
@@ -705,7 +710,8 @@ private fun AssistantRegexCard(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.assistant_page_regex_replace_string)) },
-                    placeholder = { Text("e.g., [EMAIL]") }
+                    placeholder = { Text("e.g., [EMAIL]") },
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 Column {

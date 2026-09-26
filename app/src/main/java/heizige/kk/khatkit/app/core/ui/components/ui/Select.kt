@@ -153,7 +153,8 @@ fun <T> SelectTextField(
                         contentDescription = "expand"
                     )
                 }
-            }
+            },
+            shape = RoundedCornerShape(16.dp)
         )
 
         // 只读时整个输入框都可点击展开, 且不会抢焦点弹出输入法

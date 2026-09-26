@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -158,7 +159,8 @@ fun TagsInput(
                     placeholder = { Text(stringResource(R.string.tag_input_dialog_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    isError = showError
+                    isError = showError,
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 // 显示错误信息

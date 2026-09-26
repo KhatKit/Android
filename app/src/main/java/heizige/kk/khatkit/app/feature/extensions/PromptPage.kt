@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -423,7 +424,8 @@ private fun ModeInjectionEditSheet(
                     value = injection.name,
                     onValueChange = { onEdit(injection.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 FormItem(
@@ -443,7 +445,8 @@ private fun ModeInjectionEditSheet(
                     },
                     label = { Text(stringResource(R.string.prompt_page_priority_label)) },
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 Text(
@@ -463,7 +466,8 @@ private fun ModeInjectionEditSheet(
                         },
                         label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
                         modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
 
@@ -487,7 +491,8 @@ private fun ModeInjectionEditSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    minLines = 5
+                    minLines = 5,
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         }
@@ -829,14 +834,16 @@ private fun LorebookEditSheet(
                     value = book.name,
                     onValueChange = { onEdit(book.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 OutlinedTextField(
                     value = book.description,
                     onValueChange = { onEdit(book.copy(description = it)) },
                     label = { Text(stringResource(R.string.prompt_page_description)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 FormItem(
@@ -968,7 +975,8 @@ private fun RegexInjectionEditDialog(
                     value = entry.name,
                     onValueChange = { onEdit(entry.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 FormItem(
@@ -988,7 +996,8 @@ private fun RegexInjectionEditDialog(
                     },
                     label = { Text(stringResource(R.string.prompt_page_priority_label)) },
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 Text(
@@ -1008,7 +1017,8 @@ private fun RegexInjectionEditDialog(
                         },
                         label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
                         modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
 
@@ -1047,7 +1057,8 @@ private fun RegexInjectionEditDialog(
                         onValueChange = { newKeyword = it },
                         label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
                     )
                     IconButton(
                         onClick = {
@@ -1100,7 +1111,8 @@ private fun RegexInjectionEditDialog(
                     },
                     label = { Text(stringResource(R.string.prompt_page_scan_depth)) },
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 AnimatedVisibility(visible = entry.position.usesStandaloneMessage()) {
@@ -1123,7 +1135,8 @@ private fun RegexInjectionEditDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp),
-                    minLines = 4
+                    minLines = 4,
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         },

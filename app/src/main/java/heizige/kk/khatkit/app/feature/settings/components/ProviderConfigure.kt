@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -213,6 +214,7 @@ private fun ProviderConfigureOpenAI(
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
     )
 
     var keyVisible by remember { mutableStateOf(false) }
@@ -228,6 +230,7 @@ private fun ProviderConfigureOpenAI(
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
+        shape = RoundedCornerShape(16.dp)
     )
 
     OutlinedTextField(
@@ -236,6 +239,7 @@ private fun ProviderConfigureOpenAI(
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
         modifier = Modifier.fillMaxWidth(),
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
+        shape = RoundedCornerShape(16.dp)
     )
 
     OutlinedTextField(
@@ -252,6 +256,7 @@ private fun ProviderConfigureOpenAI(
         label = { Text(stringResource(R.string.setting_provider_page_api_path)) },
         modifier = Modifier.fillMaxWidth(),
         enabled = !provider.builtIn,
+        shape = RoundedCornerShape(16.dp)
     )
 
     Row(
@@ -310,6 +315,7 @@ private fun ProviderConfigureClaude(
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
         modifier = Modifier.fillMaxWidth(),
         maxLines = 3,
+        shape = RoundedCornerShape(16.dp)
     )
 
     var keyVisible by remember { mutableStateOf(false) }
@@ -325,6 +331,7 @@ private fun ProviderConfigureClaude(
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
+        shape = RoundedCornerShape(16.dp)
     )
 
     OutlinedTextField(
@@ -333,6 +340,7 @@ private fun ProviderConfigureClaude(
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
         modifier = Modifier.fillMaxWidth(),
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
+        shape = RoundedCornerShape(16.dp)
     )
 
     Row(
@@ -421,6 +429,7 @@ private fun ProviderConfigureGoogle(
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
     )
 
     if (!(provider.vertexAI && provider.useServiceAccount)) {
@@ -437,6 +446,7 @@ private fun ProviderConfigureGoogle(
                     Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -452,6 +462,7 @@ private fun ProviderConfigureGoogle(
             supportingText = if (!provider.baseUrl.endsWith("/v1beta")) {
                 { Text("The base URL usually ends with `/v1beta`") }
             } else null,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -507,6 +518,7 @@ private fun ProviderConfigureGoogle(
             onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_service_account_email)) },
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
 
         var privateKeyVisible by remember { mutableStateOf(false) }
@@ -524,6 +536,7 @@ private fun ProviderConfigureGoogle(
                     Icon(if (privateKeyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },
+            shape = RoundedCornerShape(16.dp)
         )
 
         OutlinedTextField(
@@ -531,6 +544,7 @@ private fun ProviderConfigureGoogle(
             onValueChange = { onEdit(provider.copy(location = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_location)) },
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
 
         OutlinedTextField(
@@ -538,6 +552,7 @@ private fun ProviderConfigureGoogle(
             onValueChange = { onEdit(provider.copy(projectId = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_project_id)) },
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }

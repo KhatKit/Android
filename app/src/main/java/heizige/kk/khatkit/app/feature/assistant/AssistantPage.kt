@@ -172,8 +172,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     }
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
+                shape = RoundedCornerShape(16.dp))
 
             // 标签过滤器
             AssistantTagsFilterRow(
@@ -381,7 +380,8 @@ private fun AssistantCreationSheet(
                                         name = it
                                     )
                                 )
-                            }, modifier = Modifier.fillMaxWidth()
+                            }, modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp)
                         )
                     }
 

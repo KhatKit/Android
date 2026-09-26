@@ -572,6 +572,7 @@ private fun InstallRootfsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.workspace_detail_download_url)) },
                     maxLines = 5,
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         },

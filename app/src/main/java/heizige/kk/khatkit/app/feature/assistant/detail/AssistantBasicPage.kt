@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -154,7 +155,8 @@ internal fun AssistantBasicContent(
                             )
                         )
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
 
@@ -304,7 +306,8 @@ internal fun AssistantBasicContent(
                         isError = temperatureValue == null || temperatureValue !in 0f..2f,
                         supportingText = {
                             Text("0 - 2")
-                        }
+                        },
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
             }
@@ -357,7 +360,8 @@ internal fun AssistantBasicContent(
                         isError = topPValue == null || topPValue !in 0f..1f,
                         supportingText = {
                             Text("0 - 1")
-                        }
+                        },
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
             }
@@ -429,7 +433,8 @@ internal fun AssistantBasicContent(
                         Text(
                             stringResource(R.string.assistant_page_context_message_limit_hint)
                         )
-                    }
+                    },
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 if (assistant.contextMessageLimit > 0) {
@@ -510,7 +515,8 @@ internal fun AssistantBasicContent(
                         } else {
                             Text(stringResource(R.string.assistant_page_max_tokens_no_token_limit))
                         }
-                    }
+                    },
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         }

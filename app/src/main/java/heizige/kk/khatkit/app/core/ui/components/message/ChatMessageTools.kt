@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -373,6 +374,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 singleLine = false,
                                 minLines = 1,
                                 maxLines = 3,
+                                shape = RoundedCornerShape(16.dp)
                             )
                         } else if (isAnswered) {
                             // Show the user's answer
@@ -464,7 +466,8 @@ private fun ToolDenyReasonDialog(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
                 minLines = 2,
-                maxLines = 4
+                maxLines = 4,
+                shape = RoundedCornerShape(16.dp)
             )
         },
         confirmButton = {

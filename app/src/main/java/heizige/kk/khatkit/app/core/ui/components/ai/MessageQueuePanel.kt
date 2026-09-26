@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -146,6 +147,7 @@ internal fun MessageQueuePanel(
                             minHeightInLines = 3,
                             maxHeightInLines = 8
                         ),
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
             },

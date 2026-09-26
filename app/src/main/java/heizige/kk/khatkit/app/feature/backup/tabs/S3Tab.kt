@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -130,7 +131,8 @@ fun S3Tab(
                             value = s3Config.endpoint,
                             onValueChange = { updateS3Config(s3Config.copy(endpoint = it.trim())) },
                             placeholder = { Text("https://s3.amazonaws.com") },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )
@@ -141,7 +143,8 @@ fun S3Tab(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.accessKeyId,
                             onValueChange = { updateS3Config(s3Config.copy(accessKeyId = it.trim())) },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )
@@ -164,7 +167,8 @@ fun S3Tab(
                                     Icon(imageVector = image, contentDescription = null)
                                 }
                             },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )
@@ -176,7 +180,8 @@ fun S3Tab(
                             value = s3Config.bucket,
                             onValueChange = { updateS3Config(s3Config.copy(bucket = it.trim())) },
                             placeholder = { Text("my-bucket") },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )
@@ -198,7 +203,8 @@ fun S3Tab(
                             value = s3Config.region,
                             onValueChange = { updateS3Config(s3Config.copy(region = it.trim())) },
                             placeholder = { Text("auto") },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )

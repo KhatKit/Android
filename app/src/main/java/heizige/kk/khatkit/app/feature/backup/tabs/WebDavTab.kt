@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -129,7 +130,8 @@ fun WebDavTab(
                             value = webDavConfig.url,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(url = it.trim())) },
                             placeholder = { Text("https://example.com/dav") },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )
@@ -146,7 +148,8 @@ fun WebDavTab(
                                     )
                                 )
                             },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )
@@ -169,7 +172,8 @@ fun WebDavTab(
                                     Icon(imageVector = image, contentDescription = null)
                                 }
                             },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )
@@ -180,7 +184,8 @@ fun WebDavTab(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.path,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(path = it.trim())) },
-                            singleLine = true
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     },
                 )

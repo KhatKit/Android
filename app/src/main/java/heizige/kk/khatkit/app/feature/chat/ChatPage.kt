@@ -807,6 +807,7 @@ private fun TopBar(
                     onValueChange = onUpdate,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {

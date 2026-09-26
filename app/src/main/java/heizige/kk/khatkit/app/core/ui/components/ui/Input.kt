@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -14,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun <T : Number> OutlinedNumberInput(
@@ -47,7 +49,8 @@ fun <T : Number> OutlinedNumberInput(
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         isError = !textFieldValue.isValidNumberInput(),
-        colors = colors
+        colors = colors,
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -83,7 +86,8 @@ fun <T : Number> NumberInput(
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         isError = !textFieldValue.isValidNumberInput(),
-        colors = colors
+        colors = colors,
+        shape = RoundedCornerShape(16.dp)
     )
 }
 

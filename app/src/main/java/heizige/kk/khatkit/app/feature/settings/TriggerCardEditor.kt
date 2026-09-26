@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -160,6 +161,7 @@ internal fun TriggerCardEditorSheet(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp)
                         )
                     }
                 }
@@ -697,6 +699,7 @@ private fun TextStateField(
         placeholder = placeholder?.let { { Text(it) } },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -725,6 +728,7 @@ private fun IntStateField(
         ),
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -746,6 +750,7 @@ private fun DoubleStateField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
     )
 }
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -66,7 +67,8 @@ fun ASRProviderConfigure(
                 },
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
             )
         }
 
@@ -78,7 +80,8 @@ fun ASRProviderConfigure(
                 value = setting.name,
                 onValueChange = { onValueChange(setting.copyProvider(name = it)) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("OpenAI Realtime") }
+                placeholder = { Text("OpenAI Realtime") },
+                shape = RoundedCornerShape(16.dp)
             )
         }
 
@@ -108,7 +111,8 @@ private fun GeminiTranscribeASRConfiguration(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("AIza...") }
+            placeholder = { Text("AIza...") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -120,7 +124,8 @@ private fun GeminiTranscribeASRConfiguration(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://generativelanguage.googleapis.com/v1beta") }
+            placeholder = { Text("https://generativelanguage.googleapis.com/v1beta") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -132,7 +137,8 @@ private fun GeminiTranscribeASRConfiguration(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("gemini-2.5-flash") }
+            placeholder = { Text("gemini-2.5-flash") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -144,7 +150,8 @@ private fun GeminiTranscribeASRConfiguration(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") }
+            placeholder = { Text("auto") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -178,7 +185,8 @@ private fun OpenAITranscribeASRConfiguration(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-...") }
+            placeholder = { Text("sk-...") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -190,7 +198,8 @@ private fun OpenAITranscribeASRConfiguration(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.openai.com/v1") }
+            placeholder = { Text("https://api.openai.com/v1") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -202,7 +211,8 @@ private fun OpenAITranscribeASRConfiguration(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("gpt-4o-transcribe") }
+            placeholder = { Text("gpt-4o-transcribe") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -214,7 +224,8 @@ private fun OpenAITranscribeASRConfiguration(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") }
+            placeholder = { Text("auto") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -248,7 +259,8 @@ private fun OpenAIRealtimeASRConfiguration(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-...") }
+            placeholder = { Text("sk-...") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -260,7 +272,8 @@ private fun OpenAIRealtimeASRConfiguration(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("wss://api.openai.com/v1/realtime?intent=transcription") }
+            placeholder = { Text("wss://api.openai.com/v1/realtime?intent=transcription") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -272,7 +285,8 @@ private fun OpenAIRealtimeASRConfiguration(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("gpt-4o-transcribe") }
+            placeholder = { Text("gpt-4o-transcribe") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -284,7 +298,8 @@ private fun OpenAIRealtimeASRConfiguration(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") }
+            placeholder = { Text("auto") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -297,7 +312,8 @@ private fun OpenAIRealtimeASRConfiguration(
             onValueChange = { onValueChange(setting.copy(prompt = it)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
-            placeholder = { Text("Optional") }
+            placeholder = { Text("Optional") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -363,7 +379,8 @@ private fun DashScopeASRConfiguration(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-...") }
+            placeholder = { Text("sk-...") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -375,7 +392,8 @@ private fun DashScopeASRConfiguration(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("wss://dashscope.aliyuncs.com/api-ws/v1/realtime") }
+            placeholder = { Text("wss://dashscope.aliyuncs.com/api-ws/v1/realtime") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -387,7 +405,8 @@ private fun DashScopeASRConfiguration(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("qwen3-asr-flash-realtime-2026-02-10") }
+            placeholder = { Text("qwen3-asr-flash-realtime-2026-02-10") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -399,7 +418,8 @@ private fun DashScopeASRConfiguration(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("zh") }
+            placeholder = { Text("zh") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -449,7 +469,8 @@ private fun VolcengineASRConfiguration(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("your-api-key") }
+            placeholder = { Text("your-api-key") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -461,7 +482,8 @@ private fun VolcengineASRConfiguration(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async") }
+            placeholder = { Text("wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -473,7 +495,8 @@ private fun VolcengineASRConfiguration(
             value = setting.resourceId,
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("volc.seedasr.sauc.duration") }
+            placeholder = { Text("volc.seedasr.sauc.duration") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -485,7 +508,8 @@ private fun VolcengineASRConfiguration(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") }
+            placeholder = { Text("auto") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
     FormItem(
@@ -517,7 +541,8 @@ private fun MiMoASRConfiguration(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-... or tp-...") }
+            placeholder = { Text("sk-... or tp-...") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -529,7 +554,8 @@ private fun MiMoASRConfiguration(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.xiaomimimo.com/v1") }
+            placeholder = { Text("https://api.xiaomimimo.com/v1") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -541,7 +567,8 @@ private fun MiMoASRConfiguration(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mimo-v2.5-asr") }
+            placeholder = { Text("mimo-v2.5-asr") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -553,7 +580,8 @@ private fun MiMoASRConfiguration(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") }
+            placeholder = { Text("auto") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -603,7 +631,8 @@ private fun StepASRConfiguration(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("your-stepfun-api-key") }
+            placeholder = { Text("your-stepfun-api-key") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -615,7 +644,8 @@ private fun StepASRConfiguration(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.stepfun.com") }
+            placeholder = { Text("https://api.stepfun.com") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -627,7 +657,8 @@ private fun StepASRConfiguration(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("stepaudio-2.5-asr") }
+            placeholder = { Text("stepaudio-2.5-asr") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -639,7 +670,8 @@ private fun StepASRConfiguration(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") }
+            placeholder = { Text("auto") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -709,7 +741,8 @@ private fun StepASRConfiguration(
                 onValueChange(setting.copy(hotwords = list))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("热词1, 热词2, 热词3") }
+            placeholder = { Text("热词1, 热词2, 热词3") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -971,6 +1004,7 @@ private fun SherpaLocalASRConfiguration(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = { Text("auto") },
+                shape = RoundedCornerShape(16.dp)
             )
         }
     }

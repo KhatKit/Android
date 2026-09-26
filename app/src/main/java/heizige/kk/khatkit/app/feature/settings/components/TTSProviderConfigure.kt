@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -157,7 +158,8 @@ fun TTSProviderConfigure(
                     onValueChange(setting.copyProvider(name = newName))
                 },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.setting_tts_page_name_placeholder)) }
+                placeholder = { Text(stringResource(R.string.setting_tts_page_name_placeholder)) },
+                shape = RoundedCornerShape(16.dp)
             )
         }
 
@@ -196,6 +198,7 @@ private fun OpenAITTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text(stringResource(R.string.setting_tts_page_api_key_placeholder_openai)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -210,7 +213,8 @@ private fun OpenAITTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -225,7 +229,8 @@ private fun OpenAITTSConfiguration(
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_model_placeholder_openai)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_model_placeholder_openai)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -268,6 +273,7 @@ private fun MiMoTTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("mimo-xxx") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -282,7 +288,8 @@ private fun MiMoTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.xiaomimimo.com/v1") }
+            placeholder = { Text("https://api.xiaomimimo.com/v1") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -297,7 +304,8 @@ private fun MiMoTTSConfiguration(
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mimo-v2-tts") }
+            placeholder = { Text("mimo-v2-tts") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -349,6 +357,7 @@ private fun MiniMaxTTSConfiguration(
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -363,7 +372,8 @@ private fun MiniMaxTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -378,7 +388,8 @@ private fun MiniMaxTTSConfiguration(
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("speech-2.8-hd") }
+            placeholder = { Text("speech-2.8-hd") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -449,6 +460,7 @@ private fun GeminiTTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text(stringResource(R.string.setting_tts_page_api_key_placeholder_gemini)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -463,7 +475,8 @@ private fun GeminiTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -478,7 +491,8 @@ private fun GeminiTTSConfiguration(
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_model_placeholder_gemini)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_model_placeholder_gemini)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -493,7 +507,8 @@ private fun GeminiTTSConfiguration(
                 onValueChange(setting.copy(voiceName = newVoiceName))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_voice_name_placeholder)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_voice_name_placeholder)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -555,6 +570,7 @@ private fun QwenTTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("sk-xxx") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -569,7 +585,8 @@ private fun QwenTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -686,6 +703,7 @@ private fun GroqTTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("gsk_xxx") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -700,7 +718,8 @@ private fun GroqTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) }
+            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -715,7 +734,8 @@ private fun GroqTTSConfiguration(
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("canopylabs/orpheus-v1-english") }
+            placeholder = { Text("canopylabs/orpheus-v1-english") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -757,6 +777,7 @@ private fun XAITTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("xai-xxx") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -771,7 +792,8 @@ private fun XAITTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.x.ai/v1") }
+            placeholder = { Text("https://api.x.ai/v1") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -860,6 +882,7 @@ private fun ElevenLabsTTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("sk_...") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -874,7 +897,8 @@ private fun ElevenLabsTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.elevenlabs.io") }
+            placeholder = { Text("https://api.elevenlabs.io") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -914,7 +938,8 @@ private fun ElevenLabsTTSConfiguration(
                 onValueChange(setting.copy(voiceId = newVoiceId))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("JBFqnCBsd6RMkjVDRZzb") }
+            placeholder = { Text("JBFqnCBsd6RMkjVDRZzb") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -966,6 +991,7 @@ private fun FishAudioTTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("https://fish.audio/app/api-keys") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -980,7 +1006,8 @@ private fun FishAudioTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.fish.audio") }
+            placeholder = { Text("https://api.fish.audio") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -1021,7 +1048,8 @@ private fun FishAudioTTSConfiguration(
                 onValueChange(setting.copy(referenceId = newReferenceId))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("802e3bc2b27e49c2995d23ef70e6ac89") }
+            placeholder = { Text("802e3bc2b27e49c2995d23ef70e6ac89") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -1073,6 +1101,7 @@ private fun StepTTSConfiguration(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("从阶跃星辰官网获取密钥") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -1087,7 +1116,8 @@ private fun StepTTSConfiguration(
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.stepfun.com") }
+            placeholder = { Text("https://api.stepfun.com") },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -1262,6 +1292,7 @@ private fun StepTTSConfiguration(
             placeholder = { Text("例如: 语气温柔, 语速偏慢") },
             minLines = 2,
             maxLines = 4,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -1291,6 +1322,7 @@ private fun VolcengineTTSConfiguration(
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
     FormItem(label = { Text(stringResource(R.string.setting_tts_page_base_url)) }) {
@@ -1300,6 +1332,7 @@ private fun VolcengineTTSConfiguration(
             placeholder = { Text("https://openspeech.bytedance.com") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
     FormItem(
@@ -1311,6 +1344,7 @@ private fun VolcengineTTSConfiguration(
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
     FormItem(
@@ -1322,6 +1356,7 @@ private fun VolcengineTTSConfiguration(
             onValueChange = { onValueChange(setting.copy(speaker = it)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
     FormItem(

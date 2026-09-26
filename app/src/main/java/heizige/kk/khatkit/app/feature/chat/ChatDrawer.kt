@@ -667,6 +667,7 @@ fun ChatDrawerContent(
                     onValueChange = { name = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {

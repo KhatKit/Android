@@ -457,6 +457,7 @@ private fun CustomThemeEditSheet(
                     label = { Text(stringResource(R.string.setting_theme_page_theme_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 Text(
@@ -533,6 +534,7 @@ private fun ImportThemeDialog(
                     maxLines = 8,
                     isError = errorMessage != null,
                     supportingText = errorMessage?.let { msg -> { Text(msg) } },
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         },
@@ -657,6 +659,7 @@ private fun ColorPickerRow(
             } else {
                 null
             },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }

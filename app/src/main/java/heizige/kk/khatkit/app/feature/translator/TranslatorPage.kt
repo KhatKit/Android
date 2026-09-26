@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
@@ -138,6 +139,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     ),
                     maxLines = 10,
                     textStyle = MaterialTheme.typography.headlineSmall,
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 FilledTonalButton(
@@ -260,7 +262,8 @@ private fun LanguageSelector(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
                     disabledBorderColor = Color.Transparent
-                )
+                ),
+                shape = RoundedCornerShape(16.dp)
             )
 
             ExposedDropdownMenu(

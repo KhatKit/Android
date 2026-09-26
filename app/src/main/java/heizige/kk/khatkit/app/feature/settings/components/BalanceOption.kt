@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -89,7 +90,8 @@ fun SettingProviderBalanceOption(
                     onValueChange = { onEdit(balanceOption.copy(apiPath = it)) },
                     label = { Text(stringResource(R.string.setting_provider_page_balance_api_path)) },
                     isError = !balanceOption.apiPath.matches(ApiPathRegex),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
                 OutlinedTextField(
                     value = balanceOption.resultPath,
@@ -97,7 +99,8 @@ fun SettingProviderBalanceOption(
                     label = { Text(stringResource(R.string.setting_provider_page_balance_json_key)) },
                     isError = !isJsonExprValid(balanceOption.resultPath),
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono)
+                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
+                    shape = RoundedCornerShape(16.dp)
                 )
                 IconButton(
                     onClick = {

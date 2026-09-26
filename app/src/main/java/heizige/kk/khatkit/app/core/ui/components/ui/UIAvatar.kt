@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.core.ui.components.ui
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -319,7 +320,8 @@ fun UIAvatar(
                     onValueChange = { urlInput = it },
                     label = { Text(stringResource(id = R.string.avatar_url_hint)) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {

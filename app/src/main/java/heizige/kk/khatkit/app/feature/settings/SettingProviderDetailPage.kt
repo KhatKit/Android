@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -586,7 +587,8 @@ private fun ModelSettingsForm(
                                     Text(stringResource(R.string.setting_provider_page_model_id_placeholder))
                                 }
                             },
-                            enabled = !isEdit
+                            enabled = !isEdit,
+                            shape = RoundedCornerShape(16.dp)
                         )
 
                         OutlinedTextField(
@@ -600,7 +602,8 @@ private fun ModelSettingsForm(
                                 if (!isEdit) {
                                     Text(stringResource(R.string.setting_provider_page_model_display_name_placeholder))
                                 }
-                            }
+                            },
+                            shape = RoundedCornerShape(16.dp)
                         )
 
                         ModelTypeSelector(
@@ -965,6 +968,7 @@ private fun ModelPicker(
                     placeholder = {
                         Text(stringResource(R.string.setting_provider_page_filter_example))
                     },
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         }

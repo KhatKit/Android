@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -73,7 +74,8 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                                     onUpdate(updatedHeaders)
                                 },
                                 label = { Text(stringResource(R.string.assistant_page_header_name)) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp)
                             )
                             OutlinedTextField(
                                 value = headerValue,
@@ -85,7 +87,8 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                                     onUpdate(updatedHeaders)
                                 },
                                 label = { Text(stringResource(R.string.assistant_page_header_value)) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp)
                             )
                         }
                     },
@@ -156,7 +159,8 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                                     onUpdate(updatedBodies)
                                 },
                                 label = { Text(stringResource(R.string.assistant_page_body_key)) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp)
                             )
                             OutlinedTextField(
                                 value = bodyValueString,
@@ -193,6 +197,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                                     darkMode = LocalDarkMode.current
                                 ),
                                 textStyle = LocalTextStyle.current.merge(fontFamily = JetbrainsMono),
+                                shape = RoundedCornerShape(16.dp)
                             )
                         }
                     },

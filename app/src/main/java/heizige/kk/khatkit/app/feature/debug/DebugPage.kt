@@ -263,6 +263,7 @@ private fun MainPage(vm: DebugViewModel) {
                 label = { Text("launchCount (current: ${settings.launchCount})") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
+                shape = RoundedCornerShape(16.dp)
             )
             Button(onClick = {
                 launchCountInput.toIntOrNull()?.let {
@@ -287,6 +288,7 @@ private fun MainPage(vm: DebugViewModel) {
                 label = { Text("sponsorAlertDismissedAt (current: ${settings.sponsorAlertDismissedAt})") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
+                shape = RoundedCornerShape(16.dp)
             )
             Button(onClick = {
                 dismissedAtInput.toIntOrNull()?.let {
@@ -304,7 +306,8 @@ private fun MainPage(vm: DebugViewModel) {
         OutlinedTextField(
             value = markdown,
             onValueChange = { markdown = it },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -264,7 +265,8 @@ private fun SearchTestSection(
                     onValueChange = { query = it },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text(stringResource(R.string.setting_page_search_test_query_hint)) },
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
 
                 IconButton(
@@ -365,7 +367,8 @@ internal fun TavilyOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -408,7 +411,8 @@ internal fun ExaOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -428,7 +432,8 @@ internal fun ZhipuOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -442,7 +447,8 @@ internal fun DoubaoOptions(
         OutlinedTextField(
             value = options.apiKey,
             onValueChange = { onUpdateOptions(options.copy(apiKey = it)) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -477,7 +483,8 @@ internal fun SearXNGOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(url = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -491,7 +498,8 @@ internal fun SearXNGOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(engines = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -505,7 +513,8 @@ internal fun SearXNGOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(language = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -519,7 +528,8 @@ internal fun SearXNGOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(username = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -533,7 +543,8 @@ internal fun SearXNGOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(password = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -553,7 +564,8 @@ internal fun SearchLinkUpOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -596,7 +608,8 @@ internal fun BraveOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -616,7 +629,8 @@ internal fun SerperOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -636,7 +650,8 @@ internal fun MetasoOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -656,7 +671,8 @@ internal fun OllamaOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -676,7 +692,8 @@ internal fun PerplexityOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -691,7 +708,8 @@ internal fun PerplexityOptions(
                 onUpdateOptions(options.copy(maxTokens = value.toIntOrNull()))
             },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -706,7 +724,8 @@ internal fun PerplexityOptions(
                 onUpdateOptions(options.copy(maxTokensPerPage = value.toIntOrNull()))
             },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -726,7 +745,8 @@ internal fun FirecrawlOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -746,7 +766,8 @@ internal fun JinaOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -763,7 +784,8 @@ internal fun JinaOptions(
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
                 Text("https://s.jina.ai/")
-            }
+            },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -780,7 +802,8 @@ internal fun JinaOptions(
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
                 Text("https://r.jina.ai/")
-            }
+            },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -800,7 +823,8 @@ internal fun BochaOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -837,7 +861,8 @@ internal fun KhatKitOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -880,7 +905,8 @@ internal fun TinyfishOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -900,7 +926,8 @@ internal fun GrokOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -914,7 +941,8 @@ internal fun GrokOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(model = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -928,7 +956,8 @@ internal fun GrokOptions(
             onValueChange = {
                 onUpdateOptions(options.copy(customUrl = it))
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -943,7 +972,8 @@ internal fun GrokOptions(
                 onUpdateOptions(options.copy(systemPrompt = it))
             },
             minLines = 3,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -964,7 +994,8 @@ internal fun CustomJsOptions(
                 onUpdateOptions(options.copy(name = it))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.search_detail_custom_search_placeholder)) }
+            placeholder = { Text(stringResource(R.string.search_detail_custom_search_placeholder)) },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -990,6 +1021,7 @@ internal fun CustomJsOptions(
                 darkMode = darkMode
             ),
             textStyle = MaterialTheme.typography.bodySmall.merge(fontFamily = JetbrainsMono),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -1022,6 +1054,7 @@ internal fun CustomJsOptions(
                 darkMode = darkMode
             ),
             textStyle = MaterialTheme.typography.bodySmall.merge(fontFamily = JetbrainsMono),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }

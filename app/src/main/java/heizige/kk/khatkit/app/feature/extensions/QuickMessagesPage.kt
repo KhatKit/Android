@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -279,6 +280,7 @@ private fun EditQuickMessageDialog(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.assistant_page_quick_message_title)) },
                     singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
                 OutlinedTextField(
                     value = quickMessageContent,
@@ -287,6 +289,7 @@ private fun EditQuickMessageDialog(
                     label = { Text(stringResource(R.string.assistant_page_quick_message_content)) },
                     minLines = 4,
                     maxLines = 8,
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         },

@@ -1021,6 +1021,7 @@ private fun GreetingAiSetupScreen() {
                         label = { Text(stringResource(R.string.greeting_ai_custom_name)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
                 OutlinedTextField(
@@ -1029,6 +1030,7 @@ private fun GreetingAiSetupScreen() {
                     label = { Text(stringResource(R.string.greeting_ai_api_key)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
                 OutlinedTextField(
                     value = draftBaseUrl,
@@ -1036,6 +1038,7 @@ private fun GreetingAiSetupScreen() {
                     label = { Text(stringResource(R.string.greeting_ai_base_url)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
                 if (showSaveButton) {
                     KedgeButton(

@@ -449,7 +449,7 @@ private fun ColumnScope.ModelList(
                     text = stringResource(R.string.model_list_search_placeholder),
                 )
             },
-            shape = RoundedCornerShape(50),
+            shape = RoundedCornerShape(16.dp),
             colors = TextFieldDefaults.colors(
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,

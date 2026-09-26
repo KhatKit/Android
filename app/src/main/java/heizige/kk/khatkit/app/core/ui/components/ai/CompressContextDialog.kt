@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -124,6 +125,7 @@ fun CompressContextDialog(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 4,
+                        shape = RoundedCornerShape(16.dp)
                     )
 
                     // Warning text

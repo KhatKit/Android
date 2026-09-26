@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -125,6 +126,7 @@ private fun AssistantMemoryContent(
                     isError = interval == null,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {
@@ -168,7 +170,8 @@ private fun AssistantMemoryContent(
                         Text(stringResource(R.string.assistant_page_manage_memory_title))
                     },
                     minLines = 2,
-                    maxLines = 8
+                    maxLines = 8,
+                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {

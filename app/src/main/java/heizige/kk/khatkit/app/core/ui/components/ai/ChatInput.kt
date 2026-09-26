@@ -954,7 +954,7 @@ private fun ChatInputTextField(
         TextField(
             state = state.textContent,
             modifier = modifier,
-            shape = MaterialTheme.shapes.largeIncreased,
+            shape = RoundedCornerShape(16.dp),
             placeholder = {
                 Text(placeholder)
             },

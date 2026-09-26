@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -147,6 +148,7 @@ private fun PromptSettingItem(
                     onValueChange = onPromptChange,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 15,
+                    shape = RoundedCornerShape(16.dp)
                 )
                 TextButton(onClick = onResetPrompt, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.setting_model_page_reset_to_default))

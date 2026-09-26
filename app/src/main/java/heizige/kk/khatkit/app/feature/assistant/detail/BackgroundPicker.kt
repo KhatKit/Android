@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -189,7 +190,8 @@ fun BackgroundPicker(
                     label = { Text(stringResource(R.string.assistant_page_image_url)) },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("https://example.com/image.jpg") },
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {
