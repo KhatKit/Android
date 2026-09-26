@@ -20,6 +20,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -71,6 +73,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ComposeView
@@ -116,7 +120,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "AutomationOverlay"
 
-/** 与 Khromia Toast（GlobalToastHost 默认 durations=150L）完全一致的动画时长。 */
+/** 看板内部内容切换（AnimatedContent/SizeTransform）的动画时长。 */
 private const val ANIMATION_MS = 150
 
 /** 自动化空闲/结束提示后看板保持可见的时长，到时才播放退场动画并移除视图。 */
@@ -125,17 +129,17 @@ private const val IDLE_EXIT_DELAY_MS = 3_000L
 /** 无显式 finish 的运行判定"会话结束"的空闲阈值：短暂无更新即收尾，保证看板不滞留 */
 private const val SESSION_END_IDLE_MS = 5_000L
 
-/** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完。 */
-private const val EXIT_SETTLE_MS = 200L
+/** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完（slideOut tween 500 为最长分量）。 */
+private const val EXIT_SETTLE_MS = 700L
 
-/** Khromia Toast 的视觉常量：0.87 透明度、胶囊形、12dp 阴影、48dp 最小高度。 */
-private const val TOAST_ALPHA = 0.87f
+/** Khromia Toast（对齐 ImageToolbox）的视觉常量：0.95 图层透明度、6dp 阴影、48dp 最小高度。 */
+private const val TOAST_ALPHA = 0.95f
 private val ToastMaxWidth = 300.dp
 private val ToastMinHeight = 48.dp
-private val ToastShadowElevation = 12.dp
+private val ToastShadowElevation = 6.dp
 
 /**
- * 阴影渲染留白：窗口只包裹看板本身，四周留 16dp 让 graphicsLayer 的 12dp 阴影
+ * 阴影渲染留白：窗口只包裹看板本身，四周留 16dp 让 graphicsLayer 的 6dp 阴影
  * 不被窗口边界裁掉（底部方向由看板自带的 Toast 边距提供空间）。
  */
 private val ToastShadowRoom = 16.dp
@@ -144,8 +148,8 @@ private val ToastShadowRoom = 16.dp
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
  * 仅显示当前步骤；授权请求期间显示请求文本 + 倒计时与 MD3 ButtonGroup（✓ / ✗）。
  * 一次运行结束（[AutomationBus.finish]）
- * 后先展示「任务完成」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast 同款退场动画
- * （[ANIMATION_MS] ms）并移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
+ * 后先展示「任务完成」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast（ImageToolbox 规格）同款
+ * 退场动画并等待 [EXIT_SETTLE_MS] 后移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
  * 直接 AI 工具序列不调用 [AutomationBus.finish]：看板在有活动后超过 [SESSION_END_IDLE_MS]
  * 无更新即判定会话结束并走同样的完成态退场；卡片/触发运行由 [AutomationBus.begin]
  * 会话持有标记保护，但持有超过 [AutomationBus.SESSION_HOLD_TTL_MS] 无活动（含异常路径
@@ -528,8 +532,10 @@ private fun AutomationStatusBoard(
             visibleState.targetState = boardVisible
         }
     }
-    // 动画参数与 Khromia Toast（GlobalToastHost）逐字一致：
-    // slide ±it/2、scale 0.5f、tween(150)（这里 it 用冻结的稳定高度）。
+    // 进入/退场与 Khromia Toast（GlobalToastHost → ImageToolbox ToastDefaults.transition）一致：
+    // fadeIn(tween(300)) + scaleIn(spring(0.65f, MediumLow), 底部中点) + slideIn(spring(StiffnessHigh))；
+    // 退场 fadeOut(tween(250)) + slideOut(tween(500)) + scaleOut(spring(MediumBouncy, MediumLow), 底部中点)，
+    // 滑动距离仍用冻结的稳定高度 slideHeightPx / 2。
     // Box 只包住看板；窗口底边已在屏幕物理底部，因此 ±it/2 的位移会一直渲染到最底端。
     Box(
         modifier = Modifier.padding(start = ToastShadowRoom, top = ToastShadowRoom, end = ToastShadowRoom),
@@ -537,23 +543,31 @@ private fun AutomationStatusBoard(
     ) {
         AnimatedVisibility(
             visibleState = visibleState,
-            enter = slideInVertically(
-                initialOffsetY = { slideHeightPx / 2 },
-                animationSpec = tween(ANIMATION_MS),
-            ) + fadeIn(
-                animationSpec = tween(ANIMATION_MS),
+            enter = fadeIn(
+                animationSpec = tween(300),
             ) + scaleIn(
-                initialScale = 0.5f,
-                animationSpec = tween(ANIMATION_MS),
+                animationSpec = spring(
+                    dampingRatio = 0.65f,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                transformOrigin = TransformOrigin(0.5f, 1f),
+            ) + slideInVertically(
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessHigh,
+                ),
+                initialOffsetY = { slideHeightPx / 2 },
             ),
-            exit = slideOutVertically(
+            exit = fadeOut(
+                animationSpec = tween(250),
+            ) + slideOutVertically(
+                animationSpec = tween(500),
                 targetOffsetY = { slideHeightPx / 2 },
-                animationSpec = tween(ANIMATION_MS),
-            ) + fadeOut(
-                animationSpec = tween(ANIMATION_MS),
             ) + scaleOut(
-                targetScale = 0.5f,
-                animationSpec = tween(ANIMATION_MS),
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                transformOrigin = TransformOrigin(0.5f, 1f),
             ),
         ) {
             if (status != null || approval != null) {
@@ -618,20 +632,20 @@ private sealed interface BoardContent {
 }
 
 /**
- * 看板容器逐项对齐 Khromia Toast 的 ToastCard：
- * - color = inverseSurface.harmonizeWithPrimary().copy(alpha = 0.87)
+ * 看板容器逐项对齐 Khromia Toast 的 ToastCard（已对齐 ImageToolbox Toast）：
+ * - color = inverseSurface.harmonizeWithPrimary()，透明度 0.95 施加在整个卡片图层
  * - contentColor = inverseOnSurface.harmonizeWithPrimary()
  * - shape = CircleShape
  * - padding(bottom = 48.dp) + systemBarsPadding()（与 Toast 相同的屏幕边距）
  * - heightIn(min = 48.dp)、widthIn(max = 300.dp)
- * - graphicsLayer { shadowElevation = 12.dp.toPx(); shape = CircleShape; clip = false }
+ * - graphicsLayer { shadowElevation = 6.dp.toPx(); shape = CircleShape; clip = false }
  * - 单行 Row：普通/完成态仅当前步骤文本；授权态为「请求文本（剩余秒数）」+
  *   右侧 MD3 ButtonGroup（允许 / 拒绝），文本 12.sp / Medium / letterSpacing 0.5.sp。
  *
  * 内容由 [AnimatedContent] 承载：尺寸变化交给 [SizeTransform] 做容器动画，子内容
  * 始终按目标尺寸测量，避免独立 animateContentSize 在 WRAP_CONTENT 悬浮窗里
  * 逐帧把高度反哺测量导致抖动；clip = false 由外层 Surface 的 shape 裁剪兜底，
- * 不会裁掉 graphicsLayer 的 12dp 阴影。
+ * 不会裁掉 graphicsLayer 的 6dp 阴影。
  */
 @Composable
 private fun AutomationToast(
@@ -652,23 +666,23 @@ private fun AutomationToast(
     val contentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
 
     Surface(
-        color = containerColor.copy(alpha = TOAST_ALPHA),
+        color = containerColor,
         contentColor = contentColor,
         shape = CircleShape,
         modifier = modifier
-            // 透明留白：给 12dp 阴影留出窗口内空间，避免被窗口边界裁剪
+            // 透明留白：给 6dp 阴影留出窗口内空间，避免被窗口边界裁剪
             .padding(horizontal = 20.dp, vertical = 20.dp)
             .padding(bottom = 48.dp)
             .systemBarsPadding()
             .heightIn(min = ToastMinHeight)
             .widthIn(max = ToastMaxWidth)
             .graphicsLayer {
-                // 关键点：通过 graphicsLayer 强制渲染阴影
-                // 这能保证在 scale 和 fade 动画过程中阴影依然存在
+                // 通过 graphicsLayer 强制渲染阴影，保证在 scale/fade 动画过程中阴影依然存在
                 shadowElevation = ToastShadowElevation.toPx()
                 shape = CircleShape
                 clip = false
-            },
+            }
+            .alpha(TOAST_ALPHA),
     ) {
         AnimatedContent(
             targetState = content,
