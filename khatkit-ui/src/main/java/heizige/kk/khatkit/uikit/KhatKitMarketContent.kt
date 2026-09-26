@@ -1,17 +1,47 @@
 package heizige.kk.khatkit.uikit
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,8 +52,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.hub.CardIndexEntry
@@ -39,14 +74,9 @@ import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import kotlinx.coroutines.launch
 
 /**
- * KhatKit 卡片市场正文（语义召回 + 安装/更新/卸载 + 密钥/设置入口）。
- *
- * Hub 账户已激活时额外提供：价格/协议/优选徽标（GET /api/cards）、
- * 「发布到 Hub」「提交改进（fork）」「投票」入口；未激活或后端不可用时只读降级。
- *
- * 只面向 [KhatKitController]，不依赖 app；外层的 Scaffold / 顶栏 / Toaster
- * 由宿主提供，进入前请用 [KhatKitTheme] 包裹。
+ * KhatKit 卡片市场 - 现代探索页面风格
  */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun KhatKitMarketContent(
     controller: KhatKitController,
@@ -67,6 +97,18 @@ fun KhatKitMarketContent(
     var hubInfo by remember { mutableStateOf<Map<String, HubCardMarketInfo>>(emptyMap()) }
     var publishTarget by remember { mutableStateOf<String?>(null) }
     var forkTarget by remember { mutableStateOf<String?>(null) }
+    var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
+
+    // 分类筛选
+    var selectedFilter by remember { mutableStateOf("all") }
+    val filterOptions = listOf(
+        "all" to "全部",
+        "installed" to "已安装",
+        "ai" to "AI 触发",
+        "user" to "用户触发",
+        "free" to "免费",
+        "preferred" to "推荐"
+    )
 
     suspend fun reloadInstalled() {
         installed = controller.installedCardVersions()
@@ -80,7 +122,6 @@ fun KhatKitMarketContent(
             reloadInstalled()
             loading = false
         }
-        // Hub 详情单独拉取，避免后端不可达时拖慢卡片列表展示
         scope.launch {
             activated = controller.hubAccountStatus(refresh = false).activated
             hubInfo = controller.hubMarketCards().associateBy { it.name }
@@ -88,6 +129,26 @@ fun KhatKitMarketContent(
     }
 
     LaunchedEffect(Unit) { refresh("") }
+
+    // 筛选卡片
+    val filteredCards = remember(cards, selectedFilter, installed, hubInfo) {
+        when (selectedFilter) {
+            "installed" -> cards.filter { it.name in installed }
+            "ai" -> cards.filter { CardManifest.TRIGGER_AI in it.triggers }
+            "user" -> cards.filter { CardManifest.TRIGGER_USER in it.triggers }
+            "free" -> cards.filter { hubInfo[it.name]?.priceCents?.let { it <= 0 } ?: true }
+            "preferred" -> cards.filter { hubInfo[it.name]?.preferred == true }
+            else -> cards
+        }
+    }
+
+    // 精选卡片（优选 + 高票数）
+    val featuredCards = remember(cards, hubInfo) {
+        cards.filter {
+            val info = hubInfo[it.name]
+            info?.preferred == true || (info?.votes ?: 0) > 5
+        }.take(5)
+    }
 
     if (showSettings) {
         KhatKitSettingsDialog(
@@ -130,15 +191,33 @@ fun KhatKitMarketContent(
         )
     }
 
+    selectedCard?.let { card ->
+        CardDetailDialog(
+            entry = card,
+            installedVersion = installed[card.name],
+            triggers = triggers[card.name] ?: card.triggers,
+            hubInfo = hubInfo[card.name],
+            activated = activated,
+            controller = controller,
+            onDismiss = { selectedCard = null },
+            onToast = onToast,
+            onSecretsClick = { secretCard = card.name },
+            onPublishClick = { publishTarget = card.name },
+            onForkClick = { forkTarget = card.name },
+            onRefreshInstalled = { scope.launch { reloadInstalled() } }
+        )
+    }
+
     val localOnly = installed.keys.filterNot { name -> cards.any { it.name == name } }
 
     Column(modifier = modifier.fillMaxSize()) {
+        // 搜索栏和设置按钮
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             KedgeOutlinedTextField(
                 value = query,
@@ -147,137 +226,414 @@ fun KhatKitMarketContent(
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
-            KedgeTextButton(onClick = { refresh(query) }) { Text(stringResource(R.string.khatkit_market_search)) }
-            KedgeTextButton(onClick = { showSettings = true }) { Text(stringResource(R.string.khatkit_market_settings)) }
+            IconButton(onClick = { refresh(query) }) {
+                Text("🔍", style = MaterialTheme.typography.titleMedium)
+            }
+            IconButton(onClick = { showSettings = true }) {
+                Text("⚙️", style = MaterialTheme.typography.titleMedium)
+            }
         }
 
         if (loading) {
-            KedgeProgressIndicator(
-                modifier = Modifier.fillMaxWidth(),
-                type = KedgeProgressIndicatorType.Linear,
-            )
-        }
-        if (!loading && cards.isEmpty()) {
-            Text(
-                text = stringResource(R.string.khatkit_market_empty),
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
 
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(bottom = 16.dp),
             modifier = Modifier.weight(1f),
         ) {
-            items(cards, key = { it.name }) { entry ->
-                val installedToast = stringResource(R.string.khatkit_market_installed, entry.name)
-                val installFailedToast = stringResource(R.string.khatkit_market_install_failed)
-                val updatedToast = stringResource(R.string.khatkit_market_updated, entry.name)
-                val updateFailedToast = stringResource(R.string.khatkit_market_update_failed)
-                val uninstalledToast = stringResource(R.string.khatkit_market_uninstalled, entry.name)
-                val uninstallFailedToast = stringResource(R.string.khatkit_market_uninstall_failed)
-                val runDoneToast = stringResource(R.string.khatkit_market_run_done, entry.name)
-                val runFailedToast = stringResource(R.string.khatkit_market_run_failed)
-                val needActivationToast = stringResource(R.string.khatkit_market_need_activation)
-                val voteDoneToast = stringResource(R.string.khatkit_market_vote_done, entry.name)
-                val voteFailedToast = stringResource(R.string.khatkit_market_vote_failed)
+            // Hero 轮播区 - 精选卡片
+            if (featuredCards.isNotEmpty() && query.isBlank()) {
+                item(key = "hero_section") {
+                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                        Text(
+                            text = "✨ 精选推荐",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
 
-                KhatKitCardItem(
-                    entry = entry,
-                    installedVersion = installed[entry.name],
-                    triggers = triggers[entry.name] ?: entry.triggers,
-                    hubInfo = hubInfo[entry.name],
-                    activated = activated,
-                    onRun = {
-                        scope.launch {
-                            val result = controller.runCard(entry.name)
-                            if (result.ok) {
-                                onToast(runDoneToast, false)
-                            } else {
-                                onToast(result.message.ifBlank { runFailedToast }, true)
-                            }
+                        val pagerState = rememberPagerState(pageCount = { featuredCards.size })
+
+                        HorizontalPager(
+                            state = pagerState,
+                            contentPadding = PaddingValues(horizontal = 32.dp),
+                            pageSpacing = 16.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { page ->
+                            FeaturedCard(
+                                entry = featuredCards[page],
+                                installedVersion = installed[featuredCards[page].name],
+                                hubInfo = hubInfo[featuredCards[page].name],
+                                onClick = { selectedCard = featuredCards[page] }
+                            )
                         }
-                    },
-                    onInstall = {
-                        scope.launch {
-                            val ok = controller.installCard(entry)
-                            onToast(if (ok) installedToast else installFailedToast, !ok)
-                            reloadInstalled()
-                        }
-                    },
-                    onUpdate = {
-                        scope.launch {
-                            val ok = controller.installCard(entry, force = true)
-                            onToast(if (ok) updatedToast else updateFailedToast, !ok)
-                            reloadInstalled()
-                        }
-                    },
-                    onUninstall = {
-                        scope.launch {
-                            val ok = controller.uninstallCard(entry.name)
-                            onToast(if (ok) uninstalledToast else uninstallFailedToast, !ok)
-                            reloadInstalled()
-                        }
-                    },
-                    onSecrets = { secretCard = entry.name },
-                    onPublish = {
-                        if (activated) publishTarget = entry.name else onToast(needActivationToast, true)
-                    },
-                    onFork = {
-                        if (activated) forkTarget = entry.name else onToast(needActivationToast, true)
-                    },
-                    onVote = {
-                        if (!activated) {
-                            onToast(needActivationToast, true)
-                        } else {
-                            scope.launch {
-                                val result = controller.voteCard(entry.name)
-                                onToast(
-                                    result.message.ifBlank {
-                                        if (result.ok) voteDoneToast else voteFailedToast
-                                    },
-                                    !result.ok,
+
+                        // 页面指示器
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            repeat(featuredCards.size) { index ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 3.dp)
+                                        .size(if (pagerState.currentPage == index) 8.dp else 6.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (pagerState.currentPage == index)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                        )
                                 )
                             }
                         }
-                    },
+                    }
+                }
+            }
+
+            // 分类筛选标签
+            item(key = "filter_chips") {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 12.dp)
+                ) {
+                    items(filterOptions) { (key, label) ->
+                        FilterChip(
+                            selected = selectedFilter == key,
+                            onClick = { selectedFilter = key },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+
+            // 卡片数量提示
+            if (!loading) {
+                item(key = "card_count") {
+                    Text(
+                        text = "共 ${filteredCards.size} 个卡片",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+
+            // 网格卡片列表
+            if (!loading && filteredCards.isEmpty() && localOnly.isEmpty()) {
+                item(key = "empty_state") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "🔍",
+                            style = MaterialTheme.typography.displayMedium
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.khatkit_market_empty),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // 卡片网格
+            items(filteredCards.chunked(2), key = { chunk -> chunk.first().name }) { chunk ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    chunk.forEach { entry ->
+                        CompactCard(
+                            entry = entry,
+                            installedVersion = installed[entry.name],
+                            triggers = triggers[entry.name] ?: entry.triggers,
+                            hubInfo = hubInfo[entry.name],
+                            onClick = { selectedCard = entry },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // 填充空位
+                    if (chunk.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+
+            // 本地卡片
+            if (localOnly.isNotEmpty()) {
+                item(key = "local_only_header") {
+                    Text(
+                        text = stringResource(R.string.khatkit_market_local_only_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+                }
+                items(localOnly.chunked(2), key = { chunk -> "local_${chunk.first()}" }) { chunk ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        chunk.forEach { name ->
+                            LocalOnlyCompactCard(
+                                name = name,
+                                version = installed[name].orEmpty(),
+                                triggers = triggers[name].orEmpty(),
+                                onClick = { publishTarget = name },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (chunk.size == 1) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 精选卡片 - Hero 区域 */
+@Composable
+private fun FeaturedCard(
+    entry: CardIndexEntry,
+    installedVersion: String?,
+    hubInfo: HubCardMarketInfo?,
+    onClick: () -> Unit
+) {
+    ElevatedCard(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // 渐变背景
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = entry.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (installedVersion != null) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text(
+                                    text = "已安装",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = entry.summary.ifBlank { entry.description },
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    hubInfo?.let { info ->
+                        if (info.preferred) {
+                            BadgeChip(text = "✨ ${stringResource(R.string.khatkit_market_preferred)}", primary = true)
+                        }
+                        if (info.votes > 0) {
+                            BadgeChip(text = "👍 ${info.votes}")
+                        }
+                        BadgeChip(
+                            text = if (info.priceCents <= 0) "免费" else "¥${formatYuan(info.priceCents)}"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 紧凑卡片 - 网格展示 */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CompactCard(
+    entry: CardIndexEntry,
+    installedVersion: String?,
+    triggers: List<String>,
+    hubInfo: HubCardMarketInfo?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(160.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = entry.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (installedVersion != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                Text(
+                    text = entry.summary.ifBlank { entry.description },
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            if (localOnly.isNotEmpty()) {
-                item(key = "__local_only_title") {
-                    Text(
-                        text = stringResource(R.string.khatkit_market_local_only_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                triggers.filter { it in CardManifest.ALL_TRIGGERS }.forEach { trigger ->
+                    SmallBadge(
+                        text = when (trigger) {
+                            CardManifest.TRIGGER_AI -> "AI"
+                            else -> "User"
+                        }
                     )
                 }
-                items(localOnly, key = { "local__$it" }) { name ->
-                    val version = installed[name].orEmpty()
-                    val runDoneToast = stringResource(R.string.khatkit_market_run_done, name)
-                    val runFailedToast = stringResource(R.string.khatkit_market_run_failed)
-                    val needActivationToast = stringResource(R.string.khatkit_market_need_activation)
-                    LocalOnlyCardItem(
-                        name = name,
-                        version = version,
-                        triggers = triggers[name].orEmpty(),
-                        onRun = {
-                            scope.launch {
-                                val result = controller.runCard(name)
-                                onToast(
-                                    if (result.ok) runDoneToast
-                                    else result.message.ifBlank { runFailedToast },
-                                    !result.ok,
-                                )
-                            }
-                        },
-                        onPublish = {
-                            if (activated) publishTarget = name else onToast(needActivationToast, true)
-                        },
-                        onFork = {
-                            if (activated) forkTarget = name else onToast(needActivationToast, true)
-                        },
+                hubInfo?.let { info ->
+                    if (info.preferred) {
+                        SmallBadge(text = "✨", primary = true)
+                    }
+                    if (info.votes > 0) {
+                        SmallBadge(text = "▲${info.votes}")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 本地卡片 - 紧凑版 */
+@Composable
+private fun LocalOnlyCompactCard(
+    name: String,
+    version: String,
+    triggers: List<String>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "v${version.ifBlank { "?" }} · 本地卡片",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                triggers.filter { it in CardManifest.ALL_TRIGGERS }.forEach { trigger ->
+                    SmallBadge(
+                        text = when (trigger) {
+                            CardManifest.TRIGGER_AI -> "AI"
+                            else -> "User"
+                        }
                     )
                 }
             }
@@ -285,174 +641,251 @@ fun KhatKitMarketContent(
     }
 }
 
+/** 小徽章 */
 @Composable
-private fun KhatKitCardItem(
+private fun SmallBadge(text: String, primary: Boolean = false) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = if (primary) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (primary) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+/** 徽章芯片 */
+@Composable
+private fun BadgeChip(text: String, primary: Boolean = false) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (primary) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (primary) FontWeight.Bold else FontWeight.Normal,
+            color = if (primary) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+        )
+    }
+}
+
+/** 卡片详情对话框 */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CardDetailDialog(
     entry: CardIndexEntry,
     installedVersion: String?,
     triggers: List<String>,
     hubInfo: HubCardMarketInfo?,
     activated: Boolean,
-    onRun: () -> Unit,
-    onInstall: () -> Unit,
-    onUpdate: () -> Unit,
-    onUninstall: () -> Unit,
-    onSecrets: () -> Unit,
-    onPublish: () -> Unit,
-    onFork: () -> Unit,
-    onVote: () -> Unit,
+    controller: KhatKitController,
+    onDismiss: () -> Unit,
+    onToast: (String, Boolean) -> Unit,
+    onSecretsClick: () -> Unit,
+    onPublishClick: () -> Unit,
+    onForkClick: () -> Unit,
+    onRefreshInstalled: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
 
-    KedgeCard(modifier = Modifier.fillMaxWidth()) {
-        Text(entry.name, style = MaterialTheme.typography.titleMedium)
-
-        if (displayTriggers.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                displayTriggers.forEach { trigger -> TriggerBadge(trigger) }
-            }
-        }
-
-        hubInfo?.let { HubInfoBadges(it) }
-
-        val description = entry.summary.ifBlank { entry.description }
-        if (description.isNotBlank()) {
-            Text(description, style = MaterialTheme.typography.bodyMedium)
-        }
-        Text(
-            text = "v${entry.version} · ${entry.engine} · ${entry.privilege} · " +
-                entry.bridges.joinToString(", ").ifBlank { "L0" },
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Row(
+    KedgeDialog(
+        show = true,
+        onDismissRequest = onDismiss,
+        title = entry.name
+    ) {
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (installedVersion != null) {
-                Text(
-                    text = stringResource(R.string.khatkit_market_installed_version, installedVersion),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f),
-                )
-                if (CardManifest.TRIGGER_USER in triggers) {
-                    KedgeTextButton(onClick = onRun) { Text(stringResource(R.string.khatkit_market_run)) }
-                }
-                if (installedVersion != entry.version) {
-                    KedgeTextButton(onClick = onUpdate) { Text(stringResource(R.string.khatkit_market_update)) }
-                }
-                KedgeTextButton(onClick = onSecrets) { Text(stringResource(R.string.khatkit_market_secrets)) }
-                KedgeTextButton(onClick = onUninstall) { Text(stringResource(R.string.khatkit_market_uninstall)) }
-            } else {
-                KedgeTextButton(onClick = onInstall) { Text(stringResource(R.string.khatkit_market_install)) }
-            }
-        }
-
-        if (installedVersion != null || hubInfo != null) {
+            // 版本和状态
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "v${entry.version}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (installedVersion != null) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = stringResource(R.string.khatkit_market_installed_version, installedVersion),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            // 描述
+            val description = entry.summary.ifBlank { entry.description }
+            if (description.isNotBlank()) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            // 标签
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                displayTriggers.forEach { trigger ->
+                    BadgeChip(
+                        text = when (trigger) {
+                            CardManifest.TRIGGER_AI -> stringResource(R.string.khatkit_trigger_ai)
+                            else -> stringResource(R.string.khatkit_trigger_user)
+                        }
+                    )
+                }
+                hubInfo?.let { info ->
+                    BadgeChip(
+                        text = if (info.priceCents <= 0) {
+                            stringResource(R.string.khatkit_market_price_free)
+                        } else {
+                            stringResource(R.string.khatkit_market_price_per_call, formatYuan(info.priceCents))
+                        },
+                        primary = info.priceCents > 0
+                    )
+                    if (info.license.isNotBlank()) {
+                        BadgeChip(text = info.license)
+                    }
+                    if (info.preferred) {
+                        BadgeChip(text = stringResource(R.string.khatkit_market_preferred), primary = true)
+                    }
+                    if (info.votes > 0) {
+                        BadgeChip(text = stringResource(R.string.khatkit_market_votes, info.votes))
+                    }
+                }
+            }
+
+            // 元信息
+            Text(
+                text = "${entry.engine} · ${entry.privilege} · ${entry.bridges.joinToString(", ").ifBlank { "L0" }}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // 操作按钮
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (installedVersion != null) {
-                    KedgeTextButton(onClick = onPublish) { Text(stringResource(R.string.khatkit_market_publish)) }
-                }
-                if (installedVersion != null) {
-                    KedgeTextButton(onClick = onFork) { Text(stringResource(R.string.khatkit_market_fork)) }
-                }
-                if (hubInfo != null) {
-                    KedgeTextButton(onClick = onVote) { Text(stringResource(R.string.khatkit_market_vote)) }
-                }
-            }
-        }
-    }
-}
-
-/** 本机已安装但不在 Hub 索引里的卡片（生成的对话卡片/本地卡片），提供运行与发布入口。 */
-@Composable
-private fun LocalOnlyCardItem(
-    name: String,
-    version: String,
-    triggers: List<String>,
-    onRun: () -> Unit,
-    onPublish: () -> Unit,
-    onFork: () -> Unit,
-) {
-    val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
-    KedgeCard(modifier = Modifier.fillMaxWidth()) {
-        Text(name, style = MaterialTheme.typography.titleMedium)
-        if (displayTriggers.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                displayTriggers.forEach { trigger -> TriggerBadge(trigger) }
-            }
-        }
-        Text(
-            text = "v${version.ifBlank { "?" }} · " +
-                stringResource(R.string.khatkit_market_local_only_badge),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End,
-        ) {
-            if (CardManifest.TRIGGER_USER in triggers) {
-                KedgeTextButton(onClick = onRun) { Text(stringResource(R.string.khatkit_market_run)) }
-            }
-            KedgeTextButton(onClick = onPublish) { Text(stringResource(R.string.khatkit_market_publish)) }
-            KedgeTextButton(onClick = onFork) { Text(stringResource(R.string.khatkit_market_fork)) }
-        }
-    }
-}
-
-/** Hub 详情徽标：价格 / 协议 / 优选 / 票数。 */
-@Composable
-private fun HubInfoBadges(info: HubCardMarketInfo) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        MarketBadge(
-            text = if (info.priceCents <= 0) {
-                stringResource(R.string.khatkit_market_price_free)
-            } else {
-                stringResource(R.string.khatkit_market_price_per_call, formatYuan(info.priceCents))
-            },
-            emphasized = info.priceCents > 0,
-        )
-        if (info.license.isNotBlank()) {
-            MarketBadge(text = info.license, emphasized = false)
-        }
-        if (info.preferred) {
-            MarketBadge(text = stringResource(R.string.khatkit_market_preferred), emphasized = true)
-        }
-        if (info.votes > 0) {
-            MarketBadge(text = stringResource(R.string.khatkit_market_votes, info.votes), emphasized = false)
-        }
-    }
-}
-
-@Composable
-private fun MarketBadge(text: String, emphasized: Boolean) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = if (emphasized) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSecondaryContainer
-        },
-        modifier = Modifier
-            .background(
-                color = if (emphasized) {
-                    MaterialTheme.colorScheme.primaryContainer
+                    if (CardManifest.TRIGGER_USER in triggers) {
+                        KedgeButton(
+                            onClick = {
+                                scope.launch {
+                                    val result = controller.runCard(entry.name)
+                                    onToast(
+                                        result.message.ifBlank {
+                                            if (result.ok) "已运行 ${entry.name}" else "运行失败"
+                                        },
+                                        !result.ok
+                                    )
+                                }
+                            }
+                        ) { Text(stringResource(R.string.khatkit_market_run)) }
+                    }
+                    if (installedVersion != entry.version) {
+                        KedgeButton(
+                            onClick = {
+                                scope.launch {
+                                    val ok = controller.installCard(entry, force = true)
+                                    onToast(
+                                        if (ok) "已更新 ${entry.name}" else "更新失败",
+                                        !ok
+                                    )
+                                    onRefreshInstalled()
+                                }
+                            }
+                        ) { Text(stringResource(R.string.khatkit_market_update)) }
+                    }
+                    KedgeTextButton(onClick = onSecretsClick) {
+                        Text(stringResource(R.string.khatkit_market_secrets))
+                    }
+                    KedgeTextButton(
+                        onClick = {
+                            scope.launch {
+                                val ok = controller.uninstallCard(entry.name)
+                                onToast(
+                                    if (ok) "已卸载 ${entry.name}" else "卸载失败",
+                                    !ok
+                                )
+                                if (ok) onDismiss()
+                                onRefreshInstalled()
+                            }
+                        }
+                    ) { Text(stringResource(R.string.khatkit_market_uninstall)) }
                 } else {
-                    MaterialTheme.colorScheme.secondaryContainer
-                },
-                shape = MaterialTheme.shapes.small,
-            )
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-    )
+                    KedgeButton(
+                        onClick = {
+                            scope.launch {
+                                val ok = controller.installCard(entry)
+                                onToast(
+                                    if (ok) "已安装 ${entry.name}" else "安装失败",
+                                    !ok
+                                )
+                                onRefreshInstalled()
+                            }
+                        }
+                    ) { Text(stringResource(R.string.khatkit_market_install)) }
+                }
+
+                if (installedVersion != null || hubInfo != null) {
+                    if (installedVersion != null) {
+                        KedgeTextButton(
+                            onClick = {
+                                if (activated) onPublishClick() else onToast("需要先激活账户", true)
+                            }
+                        ) { Text(stringResource(R.string.khatkit_market_publish)) }
+                        KedgeTextButton(
+                            onClick = {
+                                if (activated) onForkClick() else onToast("需要先激活账户", true)
+                            }
+                        ) { Text(stringResource(R.string.khatkit_market_fork)) }
+                    }
+                    if (hubInfo != null) {
+                        KedgeTextButton(
+                            onClick = {
+                                if (!activated) {
+                                    onToast("需要先激活账户", true)
+                                } else {
+                                    scope.launch {
+                                        val result = controller.voteCard(entry.name)
+                                        onToast(
+                                            result.message.ifBlank {
+                                                if (result.ok) "已投票 ${entry.name}" else "投票失败"
+                                            },
+                                            !result.ok
+                                        )
+                                    }
+                                }
+                            }
+                        ) { Text(stringResource(R.string.khatkit_market_vote)) }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** 发布到 Hub：确认开源协议 + 每次调用价格 + 更新说明。 */
@@ -661,23 +1094,4 @@ private fun formatYuan(cents: Long): String {
     } else {
         "%.2f".format(yuan).trimEnd('0').trimEnd('.')
     }
-}
-
-@Composable
-private fun TriggerBadge(trigger: String) {
-    val label = when (trigger) {
-        CardManifest.TRIGGER_AI -> stringResource(R.string.khatkit_trigger_ai)
-        else -> stringResource(R.string.khatkit_trigger_user)
-    }
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSecondaryContainer,
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = MaterialTheme.shapes.small,
-            )
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-    )
 }

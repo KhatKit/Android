@@ -12,6 +12,9 @@ private val LOCAL_IMAGE_EXTENSIONS =
 
 private const val LOCAL_IMAGE_MAX_PATH_CHARS = 500
 
+/** 递归扫描的最大深度：Map/List 自引用（cycle）时超过即停止，保证扫描一定终止。 */
+private const val LOCAL_IMAGE_SCAN_MAX_DEPTH = 32
+
 /** 工具结果单次最多附带的图片张数，避免一次渲染过多缩略图。 */
 const val LOCAL_IMAGE_RESULT_LIMIT = 8
 
@@ -39,22 +42,22 @@ fun collectLocalImagePaths(value: Any?, limit: Int = LOCAL_IMAGE_RESULT_LIMIT): 
     if (limit <= 0) return emptyList()
     val found = LinkedHashSet<String>()
 
-    fun scan(element: Any?) {
-        if (found.size >= limit) return
+    fun scan(element: Any?, depth: Int) {
+        if (found.size >= limit || depth > LOCAL_IMAGE_SCAN_MAX_DEPTH) return
         when (element) {
             null -> Unit
             is String -> localImageFileOf(element)?.let { found += it.absolutePath }
-            is JsonPrimitive -> if (element.isString) scan(element.content)
-            is JsonObject -> element.values.forEach { scan(it) }
-            is JsonArray -> element.forEach { scan(it) }
-            is Map<*, *> -> element.values.forEach { scan(it) }
-            is Iterable<*> -> element.forEach { scan(it) }
-            is Array<*> -> element.forEach { scan(it) }
+            is JsonPrimitive -> if (element.isString) scan(element.content, depth + 1)
+            is JsonObject -> element.values.forEach { scan(it, depth + 1) }
+            is JsonArray -> element.forEach { scan(it, depth + 1) }
+            is Map<*, *> -> element.values.forEach { scan(it, depth + 1) }
+            is Iterable<*> -> element.forEach { scan(it, depth + 1) }
+            is Array<*> -> element.forEach { scan(it, depth + 1) }
             else -> Unit
         }
     }
 
-    scan(value)
+    scan(value, 0)
     return found.take(limit)
 }
 

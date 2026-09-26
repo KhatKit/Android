@@ -511,7 +511,11 @@ private fun ChatListNormal(
                 ?.size?.coerceAtLeast(1) ?: 1
             val offsetFraction = (state.firstVisibleItemScrollOffset.toFloat() / firstSize)
                 .coerceIn(0f, 1f)
-            var liveProgress = ((firstIndex + offsetFraction) / liveTotal).coerceIn(0f, 1f)
+            var liveProgress = if (liveTotal > 1) {
+                ((firstIndex + offsetFraction) / (liveTotal - 1)).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
             if (!state.canScrollForward) liveProgress = 1f
             if (!state.canScrollBackward) liveProgress = 0f
 

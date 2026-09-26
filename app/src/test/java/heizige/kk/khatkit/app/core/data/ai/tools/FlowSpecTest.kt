@@ -110,4 +110,55 @@ class FlowSpecTest {
         assertEquals("abc", renderFlowValue("abc"))
         assertEquals("", renderFlowValue(null))
     }
+
+    @Test
+    fun `flow placeholder pattern is android icu compatible`() {
+        // Android 的 ICU 正则把未转义的尾部 `}` 当语法错误，JVM 却接受它；
+        // 旧写法导致 KhatKitToolsKt 静态初始化抛 PatternSyntaxException，
+        // 之后整个文件门面 NoClassDefFoundError，所有消息生成失败。
+        val pattern = FLOW_PLACEHOLDER.pattern
+        assertTrue(
+            "closing brace must be escaped for ICU: $pattern",
+            pattern.endsWith("\\}") || pattern.endsWith("[}]"),
+        )
+    }
+
+    @Test(timeout = 5_000)
+    fun `cyclic structures terminate with depth placeholder`() {
+        val cyclicMap = mutableMapOf<String, Any?>()
+        cyclicMap["self"] = cyclicMap
+        val cyclicList = mutableListOf<Any?>()
+        cyclicList.add(cyclicList)
+
+        var current: Any? = resolveFlowValue(cyclicMap, emptyList())
+        var guard = 0
+        while (current is Map<*, *> && guard < 100) {
+            current = current["self"]
+            guard++
+        }
+        assertEquals("[嵌套过深]", current)
+
+        var currentList: Any? = resolveFlowValue(cyclicList, emptyList())
+        var listGuard = 0
+        while (currentList is List<*> && listGuard < 100) {
+            currentList = currentList.firstOrNull()
+            listGuard++
+        }
+        assertEquals("[嵌套过深]", currentList)
+
+        assertTrue(renderFlowValue(cyclicMap).contains("嵌套过深"))
+        assertTrue(renderFlowValue(cyclicList).contains("嵌套过深"))
+    }
+
+    @Test(timeout = 5_000)
+    fun `resolved values are not re-resolved`() {
+        // 替换结果是「长得像占位符」的文本时也只做单趟解析，不会自引用死循环。
+        val selfReferential = listOf(mapOf("path" to "${'$'}{steps[8].path}"))
+
+        assertEquals("${'$'}{steps[8].path}", resolveFlowValue("${'$'}{steps[0].path}", selfReferential))
+        assertEquals(
+            "前一张：${'$'}{steps[8].path}",
+            resolveFlowValue("前一张：${'$'}{steps[0].path}", selfReferential),
+        )
+    }
 }

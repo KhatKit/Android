@@ -48,6 +48,17 @@ class LocalImagesTest {
         )
     }
 
+    @Test(timeout = 5_000)
+    fun `collect terminates on self referential maps and lists`() {
+        val cyclicMap = mutableMapOf<String, Any?>()
+        cyclicMap["self"] = cyclicMap
+        val cyclicList = mutableListOf<Any?>()
+        cyclicList.add(cyclicList)
+
+        assertTrue(collectLocalImagePaths(cyclicMap).isEmpty())
+        assertTrue(collectLocalImagePaths(cyclicList).isEmpty())
+    }
+
     @Test
     fun `collect deduplicates and respects limit`() {
         val files = (1..3).map { tempFolder.newFile("img$it.png") }

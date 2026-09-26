@@ -1762,6 +1762,14 @@ private const val VISION_CACHE_MAX_FILES = 40
 /** 流（Flow）步骤数上限：避免模型拼出超长流程拖垮会话。 */
 private const val FLOW_MAX_STEPS = 20
 
+/**
+ * 递归扫描/编码的最大深度：卡片结果理论上来自 JSON 是树状的，但桥对象或异常数据
+ * 一旦自引用（cycle），[fromElement] / [resolveFlowValue] / [toElement] 会无限递归。
+ * 超过上限即停止并降级为占位文本，保证任何输入都能终止。
+ */
+private const val MAX_RECURSION_DEPTH = 32
+private const val RECURSION_PLACEHOLDER = "[嵌套过深]"
+
 /** device_act 触屏 / 手势动作（执行前需确认屏幕点亮） */
 private val TOUCH_ACTIONS = setOf("click_text", "click_id", "tap", "swipe", "press", "set_text")
 
@@ -1945,7 +1953,7 @@ private fun Map<String, Any?>.long(key: String): Long? = when (val value = this[
 internal fun jsonToMap(element: JsonElement): Map<String, Any?> =
     (element as? JsonObject)?.mapValues { fromElement(it.value) } ?: emptyMap()
 
-private fun fromElement(element: JsonElement): Any? = when (element) {
+private fun fromElement(element: JsonElement, depth: Int = 0): Any? = when (element) {
     JsonNull -> null
     is JsonPrimitive -> when {
         element.isString -> element.content
@@ -1953,8 +1961,16 @@ private fun fromElement(element: JsonElement): Any? = when (element) {
         element.content.contains('.') -> element.content.toDoubleOrNull()
         else -> element.content.toLongOrNull() ?: element.content
     }
-    is JsonArray -> element.map { fromElement(it) }
-    is JsonObject -> element.mapValues { fromElement(it.value) }
+    is JsonArray -> if (depth >= MAX_RECURSION_DEPTH) {
+        RECURSION_PLACEHOLDER
+    } else {
+        element.map { fromElement(it, depth + 1) }
+    }
+    is JsonObject -> if (depth >= MAX_RECURSION_DEPTH) {
+        RECURSION_PLACEHOLDER
+    } else {
+        element.mapValues { fromElement(it.value, depth + 1) }
+    }
 }
 
 /** 流（Flow）单步定义：卡片名 + 参数 + 失败是否继续。 */
@@ -1990,24 +2006,44 @@ internal fun parseFlowSpec(stepsJson: String, stopOnError: Boolean = true, json:
 /**
  * 占位符：`${steps[i].path}`，i 为从 0 开始的步序号，path 用 `.` 分隔、支持 `outputs[0]` 下标。
  * 结果里 `result` 前缀可省略/可跳过，例如 `${steps[0].result.path}` 与 `${steps[0].path}` 等价。
+ *
+ * 注意：结尾的 `}` 必须转义成 `\}`。Android 用的 ICU 正则把未转义的 `}` 当语法错误，
+ * 一旦在静态初始化里抛 [java.util.regex.PatternSyntaxException]，整个 KhatKitToolsKt
+ * 文件门面会退化为 NoClassDefFoundError，所有消息生成都会失败；JVM 则比较宽松，
+ * 所以单测必须显式断言这个约束（见 FlowSpecTest）。
  */
-private val FLOW_PLACEHOLDER = Regex("""\$\{steps\[(\d+)\]\.([^}]+)}""")
+internal val FLOW_PLACEHOLDER = Regex("""\$\{steps\[(\d+)\]\.([^}]+)\}""")
 
 /** 递归替换参数里的占位符：字符串整值保留原类型，内嵌字符串用 [renderFlowValue] 渲染，map/list 递归。 */
 internal fun resolveFlowArgs(args: Map<String, Any?>, steps: List<Map<String, Any?>>): Map<String, Any?> =
     args.mapValues { (_, value) -> resolveFlowValue(value, steps) }
 
-/** 递归替换单个参数值的占位符。 */
-internal fun resolveFlowValue(value: Any?, steps: List<Map<String, Any?>>): Any? = when (value) {
-    is String -> resolveFlowString(value, steps)
-    is Map<*, *> -> value.entries.associate { (key, item) -> key.toString() to resolveFlowValue(item, steps) }
-    is List<*> -> value.map { resolveFlowValue(it, steps) }
+/** 递归替换单个参数值的占位符；超过 [MAX_RECURSION_DEPTH] 的嵌套（含自引用）降级为占位文本。 */
+internal fun resolveFlowValue(
+    value: Any?,
+    steps: List<Map<String, Any?>>,
+    depth: Int = 0,
+): Any? = when {
+    value is String -> resolveFlowString(value, steps)
+    value is Map<*, *> -> if (depth >= MAX_RECURSION_DEPTH) {
+        RECURSION_PLACEHOLDER
+    } else {
+        value.entries.associate { (key, item) -> key.toString() to resolveFlowValue(item, steps, depth + 1) }
+    }
+    value is List<*> -> if (depth >= MAX_RECURSION_DEPTH) {
+        RECURSION_PLACEHOLDER
+    } else {
+        value.map { resolveFlowValue(it, steps, depth + 1) }
+    }
     else -> value
 }
 
 /**
  * 字符串占位符替换：整个字符串只含一个占位符时返回解析结果的原始类型（map 不序列化）；
  * 内嵌在更长文本里时用 [renderFlowValue] 渲染，未解析到的占位符整值为 null、内嵌为空串。
+ *
+ * 只做单趟替换：替换结果里的 `${...}` 文本不会再被解析（[Regex.replace] 只扫描原串），
+ * 因此 `${steps[0].x}` 的值即使本身长得像占位符也不会自引用死循环。
  */
 internal fun resolveFlowString(text: String, steps: List<Map<String, Any?>>): Any? {
     FLOW_PLACEHOLDER.matchEntire(text)?.let { match ->
@@ -2048,7 +2084,7 @@ internal fun renderFlowValue(value: Any?): String = when (value) {
 private fun encode(value: Any?): String =
     Json.encodeToString(JsonElement.serializer(), toElement(value))
 
-private fun toElement(value: Any?): JsonElement = when (value) {
+private fun toElement(value: Any?, depth: Int = 0): JsonElement = when (value) {
     null -> JsonNull
     is JsonElement -> value
     is String -> JsonPrimitive(value)
@@ -2057,8 +2093,16 @@ private fun toElement(value: Any?): JsonElement = when (value) {
     is Long -> JsonPrimitive(value)
     is Double -> JsonPrimitive(value)
     is Float -> JsonPrimitive(value)
-    is Map<*, *> -> JsonObject(value.entries.associate { (k, v) -> k.toString() to toElement(v) })
-    is Iterable<*> -> JsonArray(value.map { toElement(it) })
+    is Map<*, *> -> if (depth >= MAX_RECURSION_DEPTH) {
+        JsonPrimitive(RECURSION_PLACEHOLDER)
+    } else {
+        JsonObject(value.entries.associate { (k, v) -> k.toString() to toElement(v, depth + 1) })
+    }
+    is Iterable<*> -> if (depth >= MAX_RECURSION_DEPTH) {
+        JsonPrimitive(RECURSION_PLACEHOLDER)
+    } else {
+        JsonArray(value.map { toElement(it, depth + 1) })
+    }
     else -> JsonPrimitive(value.toString())
 }
 
