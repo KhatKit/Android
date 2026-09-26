@@ -43,7 +43,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.foundation.layout.PaddingValues
@@ -74,6 +73,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
@@ -108,6 +108,7 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.KhatKitTheme
+import heizige.kk.khromia.components.shape.AutoCornersShape
 import heizige.kk.khromia.data.harmonizeWithPrimary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -635,10 +636,10 @@ private sealed interface BoardContent {
  * 看板容器逐项对齐 Khromia Toast 的 ToastCard（已对齐 ImageToolbox Toast）：
  * - color = inverseSurface.harmonizeWithPrimary()，透明度 0.95 施加在整个卡片图层
  * - contentColor = inverseOnSurface.harmonizeWithPrimary()
- * - shape = CircleShape
+ * - shape = AutoCornersShape(32.dp)
  * - padding(bottom = 48.dp) + systemBarsPadding()（与 Toast 相同的屏幕边距）
  * - heightIn(min = 48.dp)、widthIn(max = 300.dp)
- * - graphicsLayer { shadowElevation = 6.dp.toPx(); shape = CircleShape; clip = false }
+ * - graphicsLayer { shadowElevation = 6.dp.toPx(); shape = AutoCornersShape(32.dp); clip = false }
  * - 单行 Row：普通/完成态仅当前步骤文本；授权态为「请求文本（剩余秒数）」+
  *   右侧 MD3 ButtonGroup（允许 / 拒绝），文本 12.sp / Medium / letterSpacing 0.5.sp。
  *
@@ -664,11 +665,12 @@ private fun AutomationToast(
     }
     val containerColor = MaterialTheme.colorScheme.inverseSurface.harmonizeWithPrimary()
     val contentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
+    val boardShape = AutoCornersShape(32.dp)
 
     Surface(
         color = containerColor,
         contentColor = contentColor,
-        shape = CircleShape,
+        shape = boardShape,
         modifier = modifier
             // 透明留白：给 6dp 阴影留出窗口内空间，避免被窗口边界裁剪
             .padding(horizontal = 20.dp, vertical = 20.dp)
@@ -679,7 +681,9 @@ private fun AutomationToast(
             .graphicsLayer {
                 // 通过 graphicsLayer 强制渲染阴影，保证在 scale/fade 动画过程中阴影依然存在
                 shadowElevation = ToastShadowElevation.toPx()
-                shape = CircleShape
+                ambientShadowColor = Color.Black
+                spotShadowColor = Color.Black
+                shape = boardShape
                 clip = false
             }
             .alpha(TOAST_ALPHA),

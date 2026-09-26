@@ -1,0 +1,95 @@
+{
+  "name": "code_screenshot",
+  "version": "1.0.0",
+  "description": "生成精美的代码截图，类似 carbon.now.sh",
+  "author": "khatkit",
+  "license": "MIT",
+  "engine": "lua",
+  "entry": { "lua": "main.lua" },
+  "privilege": "elevated",
+  "requires": {
+    "bridges": ["tool", "ui", "shizuku"],
+    "libs": [],
+    "bins": ["python3"],
+    "env": []
+  },
+  "network": { "allow": ["raw.githubusercontent.com"] },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "code": {
+        "type": "string",
+        "description": "要截图的代码内容"
+      },
+      "language": {
+        "type": "string",
+        "description": "编程语言（auto/python/javascript/kotlin/java/go等）",
+        "default": "auto"
+      },
+      "theme": {
+        "type": "string",
+        "description": "代码高亮主题（monokai/dracula/github-dark/nord等）",
+        "default": "monokai"
+      },
+      "bg": {
+        "type": "string",
+        "description": "背景颜色（rgba格式）",
+        "default": "rgba(40, 44, 52, 1)"
+      },
+      "fontSize": {
+        "type": "integer",
+        "description": "字体大小",
+        "default": 14
+      },
+      "lineNumbers": {
+        "type": "boolean",
+        "description": "是否显示行号",
+        "default": false
+      },
+      "shadow": {
+        "type": "boolean",
+        "description": "是否显示阴影",
+        "default": true
+      },
+      "windowControls": {
+        "type": "boolean",
+        "description": "是否显示窗口控制按钮",
+        "default": true
+      },
+      "scale": {
+        "type": "integer",
+        "description": "导出缩放倍数（1/2/4）",
+        "default": 2
+      },
+      "output": {
+        "type": "string",
+        "description": "输出文件路径（可选，默认保存到临时目录）"
+      },
+      "preset": {
+        "type": "string",
+        "description": "预设配置（khatkit/kodeheap/presentation/docs）"
+      }
+    },
+    "required": ["code"]
+  },
+  "ui": {
+    "code": { "source": "ui", "widget": "input" },
+    "language": { "source": "ui", "widget": "select" },
+    "theme": { "source": "ui", "widget": "select" },
+    "lineNumbers": { "source": "ui", "widget": "switch" },
+    "shadow": { "source": "ui", "widget": "switch" }
+  },
+  "tags": {
+    "domain": "media",
+    "action": "create",
+    "scene": "dev"
+  },
+  "compliance": {
+    "risk": "medium",
+    "note": "通过 Shizuku 执行 python3 生成图片，需设备安装 Python 与 Pillow/pygments，脚本从 GitHub 下载"
+  },
+  "store": {
+    "quota_mb": 10,
+    "secret": false
+  }
+}

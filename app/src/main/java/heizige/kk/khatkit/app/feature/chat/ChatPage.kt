@@ -30,17 +30,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageMediumTopBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -95,6 +91,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
+import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.util.base64Decode
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
@@ -343,6 +340,10 @@ private fun ChatPageContent(
                     previewMode = previewMode,
                     searchQuery = previewSearchQuery,
                     onSearchQueryChange = { previewSearchQuery = it },
+                    onCollapseSearch = {
+                        previewMode = false
+                        previewSearchQuery = ""
+                    },
                     scrollBehavior = scrollBehavior,
                     onNewChat = {
                         navigateToChatPage(navController)
@@ -641,6 +642,7 @@ private fun TopBar(
     previewMode: Boolean,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    onCollapseSearch: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
@@ -653,6 +655,15 @@ private fun TopBar(
         onUpdateTitle(it)
     }
 
+    // 搜索（预览）展开进度：预测返回手势跟手收起
+    val searchExpand = rememberSearchExpandState(
+        expanded = previewMode,
+        onCollapse = onCollapseSearch,
+    )
+    val searchProgress = searchExpand.progress
+    val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
+    val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
+
     val topBarAssistant = settings.getCurrentAssistant()
     val topBarModel = settings.getCurrentChatModel()
     val topBarProvider = topBarModel?.findProvider(providers = settings.providers, checkOverwrite = false)
@@ -660,40 +671,31 @@ private fun TopBar(
         colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color.Transparent),
         scrollBehavior = scrollBehavior,
         navigationIcon = {
-            AnimatedContent(
-                targetState = previewMode,
-                transitionSpec = {
-                    (fadeIn(androidx.compose.animation.core.tween(220)) +
-                        slideInHorizontally(
-                            animationSpec = androidx.compose.animation.core.tween(220),
-                            initialOffsetX = { -it / 2 },
-                        )) togetherWith
-                        (fadeOut(androidx.compose.animation.core.tween(160)) +
-                            slideOutHorizontally(
-                                animationSpec = androidx.compose.animation.core.tween(160),
-                                targetOffsetX = { -it / 2 },
-                            ))
-                },
-                label = "topSearchNav",
-            ) { searching ->
-                if (searching) {
-                    IconButton(
-                        onClick = {
-                            onSearchQueryChange("")
-                            onClickMenu()
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(arrowBack, contentDescription = null)
-                    }
-                } else if (!bigScreen) {
+            Box {
+                if (!bigScreen && titleVisible) {
                     IconButton(
                         onClick = {
                             scope.launch { drawerState.open() }
                         },
+                        modifier = Modifier.graphicsLayer {
+                            alpha = 1f - searchProgress.value
+                            translationX = -searchProgress.value * 24.dp.toPx()
+                        },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(menu, "Messages")
+                    }
+                }
+                if (searchVisible) {
+                    IconButton(
+                        onClick = onCollapseSearch,
+                        modifier = Modifier.graphicsLayer {
+                            alpha = searchProgress.value
+                            translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                        },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(arrowBack, contentDescription = null)
                     }
                 }
             }
@@ -703,74 +705,79 @@ private fun TopBar(
             "${topBarAssistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${topBarModel.displayName} (${topBarProvider.name})"
         } else null,
         titleContent = {
-            AnimatedContent(
-                targetState = previewMode,
-                transitionSpec = {
-                    fadeIn(androidx.compose.animation.core.tween(220)) togetherWith
-                        fadeOut(androidx.compose.animation.core.tween(160))
-                },
-                label = "topSearchTitle",
-            ) { searching ->
-            if (searching) {
-                Box {
-                    if (searchQuery.isBlank()) {
-                        Text(
-                            text = stringResource(R.string.history_page_search),
-                            style = androidx.compose.material3.LocalTextStyle.current,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        )
-                    }
-                    androidx.compose.foundation.text.BasicTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        singleLine = true,
-                        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            } else {
-            val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
-            Surface(
-                modifier = Modifier
-                    .combinedClickable(
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                        indication = null,
-                        onClick = onModelClick,
-                        onLongClick = {
-                            if (conversation.messageNodes.isNotEmpty()) {
-                                titleState.open(conversation.title)
-                            } else {
-                                Toast.show(editTitleWarning, isError = false)
+            Box {
+                if (titleVisible) {
+                    val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
+                    Surface(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                alpha = 1f - searchProgress.value
+                                translationX = -searchProgress.value * 24.dp.toPx()
                             }
-                        },
-                    ),
-                color = Color.Transparent,
-            ) {
-                Column {
-                    val assistant = settings.getCurrentAssistant()
-                    val model = settings.getCurrentChatModel()
-                    val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
-                    Text(
-                        text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                        maxLines = 1,
-                        style = MaterialTheme.typography.titleLarge,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (model != null && provider != null) {
-                        Text(
-                            text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                            color = LocalContentColor.current.copy(0.65f),
-                            style = MaterialTheme.typography.labelMedium,
+                            .combinedClickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null,
+                                onClick = onModelClick,
+                                onLongClick = {
+                                    if (conversation.messageNodes.isNotEmpty()) {
+                                        titleState.open(conversation.title)
+                                    } else {
+                                        Toast.show(editTitleWarning, isError = false)
+                                    }
+                                },
+                            ),
+                        color = Color.Transparent,
+                    ) {
+                        Column {
+                            val assistant = settings.getCurrentAssistant()
+                            val model = settings.getCurrentChatModel()
+                            val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
+                            Text(
+                                text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+                                maxLines = 1,
+                                style = MaterialTheme.typography.titleLarge,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (model != null && provider != null) {
+                                Text(
+                                    text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
+                                    overflow = TextOverflow.Ellipsis,
+                                    maxLines = 1,
+                                    color = LocalContentColor.current.copy(0.65f),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        }
+                    }
+                }
+                if (searchVisible) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
+                            .graphicsLayer {
+                                alpha = searchProgress.value
+                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                            },
+                    ) {
+                        if (searchQuery.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.history_page_search),
+                                style = androidx.compose.material3.LocalTextStyle.current,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            )
+                        }
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            singleLine = true,
+                            textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
-            }
-            }
             }
         },
         actions = {
@@ -780,7 +787,7 @@ private fun TopBar(
                 },
                 shapes = IconButtonDefaults.shapes(),
             ) {
-                Icon(if (previewMode) close else search, "Chat Options")
+                Icon(if (searchVisible) close else search, "Chat Options")
             }
 
             IconButton(

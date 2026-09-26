@@ -1,17 +1,5 @@
 package heizige.kk.khatkit.app.feature.chat
 
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.AnimatedVisibility
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -72,6 +60,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -112,6 +102,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.readBooleanPreference
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsPlayStoreVersion
+import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.toDp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -189,12 +180,6 @@ fun ChatDrawerContent(
             searchFocus.requestFocus()
         }
     }
-    if (showSearch) {
-        BackHandler {
-            drawerVm.updateSearchKeyword("")
-            showSearch = false
-        }
-    }
 
     // 移动对话状态
     var showMoveToAssistantSheet by remember { mutableStateOf(false) }
@@ -227,52 +212,60 @@ fun ChatDrawerContent(
     // 抽屉不垫状态栏/导航栏 insets：由 TopAppBar / BottomAppBar 自己消费，
     // 这样两条 bar 的背景能画到状态栏/导航栏后面，和系统栏颜色一致。
     val sheetContent: @Composable () -> Unit = {
+        // 搜索展开进度：预测返回手势跟手收起。组合位置在 ModalDrawerSheet 内容里，
+        // 晚于抽屉自身的预测返回处理器，因此搜索展开时返回手势优先收起搜索。
+        val searchExpand = rememberSearchExpandState(
+            expanded = showSearch,
+            onCollapse = {
+                drawerVm.updateSearchKeyword("")
+                showSearch = false
+            },
+        )
+        val searchProgress = searchExpand.progress
+        val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
+        val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 navigationIcon = {
-                    AnimatedContent(
-                        targetState = showSearch,
-                        transitionSpec = {
-                            (fadeIn(androidx.compose.animation.core.tween(220)) +
-                                slideInHorizontally(
-                                    animationSpec = androidx.compose.animation.core.tween(220),
-                                    initialOffsetX = { -it / 2 },
-                                )) togetherWith
-                                (fadeOut(androidx.compose.animation.core.tween(160)) +
-                                    slideOutHorizontally(
-                                        animationSpec = androidx.compose.animation.core.tween(160),
-                                        targetOffsetX = { -it / 2 },
-                                    ))
-                        },
-                        label = "searchNav",
-                    ) { searching ->
-                        if (searching) {
-                            IconButton(
-                                onClick = {
-                                    drawerVm.updateSearchKeyword("")
-                                    showSearch = false
-                                },
-                                shapes = IconButtonDefaults.shapes(),
-                            ) {
-                                Icon(arrowBack, contentDescription = null)
-                            }
+                    if (searchVisible) {
+                        IconButton(
+                            onClick = {
+                                drawerVm.updateSearchKeyword("")
+                                showSearch = false
+                            },
+                            modifier = Modifier.graphicsLayer {
+                                alpha = searchProgress.value
+                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                            },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(arrowBack, contentDescription = null)
                         }
                     }
                 },
                 title = {
-                    AnimatedContent(
-                        targetState = showSearch,
-                        transitionSpec = {
-                            fadeIn(androidx.compose.animation.core.tween(220)) togetherWith
-                                fadeOut(androidx.compose.animation.core.tween(160))
-                        },
-                        label = "searchTitle",
-                    ) { searching ->
-                        if (searching) {
-                            Box {
+                    Box {
+                        if (titleVisible) {
+                            Text(
+                                text = "KhatKit",
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = 1f - searchProgress.value
+                                    translationX = -searchProgress.value * 24.dp.toPx()
+                                },
+                            )
+                        }
+                        if (searchVisible) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
+                                    .graphicsLayer {
+                                        alpha = searchProgress.value
+                                        translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                                    },
+                            ) {
                                 if (searchKeyword.isBlank()) {
                                     Text(
                                         text = stringResource(R.string.chat_page_search_chats),
@@ -293,34 +286,24 @@ fun ChatDrawerContent(
                                         .focusRequester(searchFocus),
                                 )
                             }
-                        } else {
-                            Text("KhatKit")
                         }
                     }
                 },
                 actions = {
-                    AnimatedContent(
-                        targetState = showSearch to searchKeyword.isNotEmpty(),
-                        transitionSpec = {
-                            (fadeIn() + scaleIn()) togetherWith (fadeOut() + scaleOut())
+                    IconButton(
+                        onClick = {
+                            if (!showSearch) {
+                                showSearch = true
+                            } else {
+                                drawerVm.updateSearchKeyword("")
+                            }
                         },
-                        label = "searchAction",
-                    ) { (searching, hasKey) ->
-                        IconButton(
-                            onClick = {
-                                if (!showSearch) {
-                                    showSearch = true
-                                } else {
-                                    drawerVm.updateSearchKeyword("")
-                                }
-                            },
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(
-                                imageVector = if (searching && hasKey) close else search,
-                                contentDescription = stringResource(R.string.chat_page_search_chats),
-                            )
-                        }
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = if (searchVisible && searchKeyword.isNotEmpty()) close else search,
+                            contentDescription = stringResource(R.string.chat_page_search_chats),
+                        )
                     }
                 },
             )
