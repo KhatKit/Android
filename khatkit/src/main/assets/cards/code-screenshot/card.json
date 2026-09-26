@@ -8,9 +8,9 @@
   "entry": { "lua": "main.lua" },
   "privilege": "elevated",
   "requires": {
-    "bridges": ["tool", "ui", "shizuku"],
+    "bridges": ["tool", "ui", "fs", "process"],
     "libs": [],
-    "bins": ["python3"],
+    "bins": ["python3", "curl"],
     "env": []
   },
   "network": { "allow": ["raw.githubusercontent.com"] },
