@@ -8,11 +8,56 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
+/**
+ * 卡片弹层的呈现选项（`ui.form` / `ui.show` 的 options 参数）。
+ *
+ * - [fullscreen]：占满屏幕宽高（无部分展开态），仍可下滑/返回关闭；
+ * - [landscape]：弹层显示期间允许横屏（宿主把 Activity 方向设为 FULL_SENSOR，关闭后还原）；
+ * - [height]：弹层高度占屏幕比例 0.1–1.0，null 用组件默认（约 0.9 上限）。
+ *
+ * 脚本传 `Map`（Lua table / JS object）即可，非法值忽略不报错。
+ */
+data class UiSheetOptions(
+    val fullscreen: Boolean = false,
+    val landscape: Boolean = false,
+    val height: Float? = null,
+) {
+    /** 需要自定义大弹层（全屏或显式高度）时为 true。 */
+    val usesLargeSheet: Boolean get() = fullscreen || height != null
+
+    companion object {
+        val DEFAULT = UiSheetOptions()
+
+        /** 高度下限：低于 10% 没意义，钳到 0.1。 */
+        const val MIN_HEIGHT = 0.1f
+
+        fun from(map: Map<String, Any?>?): UiSheetOptions {
+            if (map.isNullOrEmpty()) return DEFAULT
+            val rawHeight = (map["height"] as? Number)?.toFloat()
+            return UiSheetOptions(
+                fullscreen = map["fullscreen"].toBooleanFlag(),
+                landscape = map["landscape"].toBooleanFlag(),
+                height = rawHeight
+                    ?.takeIf { it.isFinite() && it > 0f }
+                    ?.coerceIn(MIN_HEIGHT, 1f),
+            )
+        }
+
+        private fun Any?.toBooleanFlag(): Boolean = when (this) {
+            is Boolean -> this
+            is Number -> toDouble() != 0.0
+            is String -> equals("true", ignoreCase = true) || this == "1"
+            else -> false
+        }
+    }
+}
+
 /** 一个等待宿主 UI 处理的请求。 */
 sealed interface UiRequest {
     data class Form(
         val title: String,
         val items: List<Map<String, Any?>>,
+        val options: UiSheetOptions,
         val deferred: CompletableDeferred<Map<String, Any?>?>,
     ) : UiRequest
 
@@ -23,7 +68,10 @@ sealed interface UiRequest {
         val deferred: CompletableDeferred<Boolean>,
     ) : UiRequest
 
-    data class Show(val card: Map<String, Any?>) : UiRequest
+    data class Show(
+        val card: Map<String, Any?>,
+        val options: UiSheetOptions,
+    ) : UiRequest
 }
 
 /**
@@ -47,9 +95,13 @@ class UiBridgeHost(
     private val _shown = MutableStateFlow<Map<String, Any?>?>(null)
     val shown: StateFlow<Map<String, Any?>?> = _shown.asStateFlow()
 
-    override fun form(title: String, items: List<Map<String, Any?>>): Map<String, Any?>? {
+    override fun form(
+        title: String,
+        items: List<Map<String, Any?>>,
+        options: Map<String, Any?>?,
+    ): Map<String, Any?>? {
         val deferred = CompletableDeferred<Map<String, Any?>?>()
-        _request.value = UiRequest.Form(title, items, deferred)
+        _request.value = UiRequest.Form(title, items, UiSheetOptions.from(options), deferred)
         return runBlocking { withTimeoutOrNull(timeoutMillis) { deferred.await() } }
     }
 
@@ -65,9 +117,9 @@ class UiBridgeHost(
         if (label.isNotBlank()) onAutomationStatus(label, "")
     }
 
-    override fun show(card: Map<String, Any?>) {
+    override fun show(card: Map<String, Any?>, options: Map<String, Any?>?) {
         _shown.value = card
-        _request.value = UiRequest.Show(card)
+        _request.value = UiRequest.Show(card, UiSheetOptions.from(options))
     }
 
     override fun automationStatus(label: String, detail: String) {

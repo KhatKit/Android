@@ -171,12 +171,24 @@ interface ImageToolboxBridge {
 }
 
 interface UiBridge {
-    /** items 为组件列表，返回用户填好的值；用户取消返回 null */
-    fun form(title: String, items: List<Map<String, Any?>>): Map<String, Any?>?
+    /**
+     * items 为组件列表，返回用户填好的值；用户取消返回 null。
+     *
+     * options 可选：`fullscreen`（占满屏幕）、`landscape`（弹层期间允许横屏）、
+     * `height`（高度比例 0.1–1.0）；不传或全是默认值时保持原有样式。
+     */
+    fun form(
+        title: String,
+        items: List<Map<String, Any?>>,
+        options: Map<String, Any?>? = null,
+    ): Map<String, Any?>?
+
     /** 危险操作二次确认 */
     fun confirm(title: String, message: String, danger: Boolean = false): Boolean
     fun progress(ratio: Float, label: String)
-    fun show(card: Map<String, Any?>)
+
+    /** 弹出结果卡片；options 同 [form]（fullscreen / landscape / height），不阻塞。 */
+    fun show(card: Map<String, Any?>, options: Map<String, Any?>? = null)
 
     /**
      * 发布当前自动化步骤到宿主悬浮看板（桌面等无宿主 UI 时可保持默认 no-op）。

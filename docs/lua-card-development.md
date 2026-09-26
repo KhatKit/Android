@@ -395,6 +395,7 @@ if (res && res.__error) return { error: "读取失败：" + res.__error };
 - 卡片没有全局超时；长任务请把大文件交给 `download` bridge，循环任务每步轮询 `ui.isCancelled()`。
 - 取消是**协作式**的：悬浮看板点「停止」只设置标记（`AutomationBus.requestCancel()`），脚本不轮询就不会退出；宿主无法抢占正在执行的 native 线程。
 - `ui.form` / `ui.confirm` 阻塞等待用户操作，超时 300 秒；超时视为取消/拒绝（form 返回 `nil`/`null`，confirm 返回 `false`）。
+- `ui.form` / `ui.show` 传 `options.landscape=true` 时，弹层显示期间 Activity 方向为 `FULL_SENSOR`（可横屏），关闭/超时/取消后自动还原 `UNSPECIFIED`；`options.fullscreen` 让弹层占满屏幕，仍可下滑或返回键取消。
 - `download.status(id, waitSeconds)` 的等待、`shizuku.shell`（30 秒）、`root.shell`（30 秒）有各自超时。
 - 常用骨架：
 
@@ -501,12 +502,42 @@ local saved = tool.saveBase64(img, "/sdcard/Download/copy.png")
 
 | 方法（签名） | 参数 | 返回 | 说明 |
 |---|---|---|---|
-| `form(title, items)` | title: string；items: map[] | map 或 nil | 弹出表单，阻塞等待。items 每项：`type`（组件白名单）、`id`、`label`、`default`、`min`/`max`（slider）、`options`（select/radio）、`renderer`（custom）。用户取消或 300 秒超时返回 nil。 |
+| `form(title, items, options)` | title: string；items: map[]；options: map 或 nil | map 或 nil | 弹出表单，阻塞等待。items 每项：`type`（组件白名单）、`id`、`label`、`default`、`min`/`max`（slider）、`options`（select/radio）、`renderer`（custom）。用户取消或 300 秒超时返回 nil。`options` 见下方「弹层选项」。 |
 | `confirm(title, message, danger)` | title/message: string；danger: boolean | boolean | 二次确认弹窗；danger 时按钮文案为危险样式。取消/超时返回 false。 |
 | `progress(ratio, label)` | ratio: 0.0–1.0；label: string | 无 | 显示顶部进度；label 会同步到自动化看板。 |
-| `show(card)` | card: map | 无 | 弹出结果卡片：优先渲染 `markdown` / `text` / `content`，标题取 `title`；都没有时逐行打印键值。不阻塞。 |
+| `show(card, options)` | card: map；options: map 或 nil | 无 | 弹出结果卡片：优先渲染 `markdown` / `text` / `content`，标题取 `title`；都没有时逐行打印键值。不阻塞，`options` 同 `form`。 |
 | `automationStatus(label, detail)` | label/detail: string | 无 | 发布当前自动化步骤到悬浮看板；detail 可空。连续重复 label 会去重。 |
 | `isCancelled()` | 无 | boolean | 用户在看板点过「停止」后返回 true；新一轮运行自动复位。 |
+
+弹层选项（`form` / `show` 的 `options`，Lua table / JS object）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `fullscreen` | boolean | 弹层占满屏幕宽高（无部分展开态），仍可下滑或返回键关闭。适合字段很多、需要横屏的大表单。 |
+| `landscape` | boolean | 弹层显示期间宿主把 Activity 方向切到 `FULL_SENSOR`，允许横屏；表单提交/取消后自动还原 `UNSPECIFIED`（不改变用户平时的旋转锁定）。 |
+| `height` | number | 弹层高度占屏幕比例 `0.1–1.0`（`fullscreen=true` 等价于 `height=1`）；不传沿用组件默认（最高约 0.9 屏）。 |
+
+宽屏（宽度 ≥ 600dp，如横屏手机/平板）时表单自动排成两列，`text` / `divider` / `progress` / `button` 仍独占整行；`show` 的内容最大宽度 840dp 居中。
+
+```lua
+-- 全屏 + 横屏的大表单
+local v = ui.form("批量处理", {
+  { type = "input", id = "src", label = "源目录" },
+  { type = "input", id = "dst", label = "输出目录" },
+  { type = "switch", id = "overwrite", label = "覆盖已有文件" }
+}, { fullscreen = true, landscape = true })
+if not v then return { cancelled = true } end
+
+-- 半屏结果卡片（高度 60%）
+ui.show({ title = "处理结果", markdown = "完成 12 个文件" }, { height = 0.6, landscape = true })
+```
+
+```js
+const v = ui.form("批量处理", [
+  { type: "input", id: "src", label: "源目录" }
+], { fullscreen: true, landscape: true });
+if (!v) return { cancelled: true };
+```
 
 表单组件白名单与真实渲染行为（`KhatKitForm`）：
 

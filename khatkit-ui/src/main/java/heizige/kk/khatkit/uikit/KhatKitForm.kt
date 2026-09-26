@@ -1,10 +1,14 @@
 package heizige.kk.khatkit.uikit
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -27,7 +31,16 @@ import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.ui.UiSheetOptions
+
+/** 宽度达到该值后表单排两列（横屏手机 / 平板）。 */
+private val TWO_COLUMN_WIDTH = 600.dp
+
+/** 两列布局的内容最大宽度，避免宽屏下每列过宽。 */
+private val WIDE_FORM_MAX_WIDTH = 960.dp
+
+/** 这些组件横跨整行，不参与两列排列。 */
+private val FULL_WIDTH_TYPES = setOf("text", "markdown", "divider", "progress", "button")
 
 /**
  * 声明式表单渲染器（设计文档 7.2）。
@@ -37,6 +50,7 @@ import heizige.kk.khromia.components.PrimaryBottomSheet
  * [heizige.kk.khatkit.bridge.UiWidgets.ALLOWED] 内。
  *
  * 控件全部走 Kedge，跟随 [KhatKitTheme] 切换风格。
+ * [options] 来自 `ui.form` 的第三个参数：全屏 / 横屏 / 高度；宽屏时表单自动两列。
  */
 @Composable
 fun KhatKitForm(
@@ -44,6 +58,7 @@ fun KhatKitForm(
     items: List<Map<String, Any?>>,
     onSubmit: (Map<String, Any?>) -> Unit,
     onCancel: () -> Unit,
+    options: UiSheetOptions = UiSheetOptions(),
 ) {
     val values = remember { mutableStateMapOf<String, Any?>() }
 
@@ -54,34 +69,96 @@ fun KhatKitForm(
         }
     }
 
-    PrimaryBottomSheet(
-        visible = true,
+    KhatKitSheet(
         title = title,
         imageVector = Icons.Filled.Edit,
+        options = options,
         confirmText = stringResource(R.string.khatkit_form_confirm),
         onConfirm = { onSubmit(values.toMap()) },
         onDismiss = onCancel,
-        scrollable = true,
     ) { dismiss ->
+        FormContent(items = items, values = values, onCancel = dismiss)
+    }
+}
+
+@Composable
+private fun FormContent(
+    items: List<Map<String, Any?>>,
+    values: MutableMap<String, Any?>,
+    onCancel: () -> Unit,
+) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 8.dp),
+    ) {
+        val twoColumn = maxWidth >= TWO_COLUMN_WIDTH
+        val rows = remember(items, twoColumn) {
+            if (twoColumn) groupFormRows(items) else items.map { listOf(it) }
+        }
+
         Column(
             modifier = Modifier
+                .then(if (twoColumn) Modifier.widthIn(max = WIDE_FORM_MAX_WIDTH) else Modifier)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 8.dp),
+                .align(Alignment.TopCenter),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items.forEach { item -> FormWidget(item, values) }
+            rows.forEach { row ->
+                if (row.size == 1 && isFullWidthItem(row.first())) {
+                    FormWidget(row.first(), values)
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        row.forEach { item ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                FormWidget(item, values)
+                            }
+                        }
+                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                KedgeTextButton(onClick = { dismiss() }) {
+                KedgeTextButton(onClick = onCancel) {
                     Text(stringResource(R.string.khatkit_form_cancel))
                 }
             }
         }
     }
 }
+
+/** 相邻的窄组件两两成行，整行组件独占一行（顺序保持）。 */
+private fun groupFormRows(items: List<Map<String, Any?>>): List<List<Map<String, Any?>>> {
+    val rows = mutableListOf<List<Map<String, Any?>>>()
+    var pair = mutableListOf<Map<String, Any?>>()
+    items.forEach { item ->
+        if (isFullWidthItem(item)) {
+            if (pair.isNotEmpty()) {
+                rows += pair
+                pair = mutableListOf()
+            }
+            rows += listOf(item)
+        } else {
+            pair += item
+            if (pair.size == 2) {
+                rows += pair
+                pair = mutableListOf()
+            }
+        }
+    }
+    if (pair.isNotEmpty()) rows += pair
+    return rows
+}
+
+private fun isFullWidthItem(item: Map<String, Any?>): Boolean =
+    (item["type"]?.toString() ?: "text") in FULL_WIDTH_TYPES
 
 @Composable
 private fun FormWidget(item: Map<String, Any?>, values: MutableMap<String, Any?>) {

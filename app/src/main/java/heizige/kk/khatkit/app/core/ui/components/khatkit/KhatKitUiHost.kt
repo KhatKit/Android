@@ -1,6 +1,9 @@
 package heizige.kk.khatkit.app.core.ui.components.khatkit
 
+import android.content.pm.ActivityInfo
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,7 +22,9 @@ import androidx.compose.ui.window.Popup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.ui.UiRequest
+import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.uikit.KhatKitForm
+import heizige.kk.khatkit.uikit.KhatKitSheet
 import heizige.kk.khatkit.uikit.KhatKitTheme
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
@@ -31,11 +37,17 @@ import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
+/** 结果卡片在宽屏下的内容最大宽度。 */
+private val SHOW_CONTENT_MAX_WIDTH = 840.dp
+
 /**
  * 卡片 ui bridge 的宿主挂载点（设计文档 7.2）。
  *
  * 卡片执行时（可能在聊天流里），脚本线程阻塞等待；这里在 Compose 主线程
  * 渲染表单/确认/进度/结果卡片，交互后把值回传。渲染层在 :khatkit-ui。
+ *
+ * `ui.form` / `ui.show` 的 options 支持 fullscreen / landscape / height：
+ * landscape 生效期间把 Activity 方向切到 FULL_SENSOR，弹层关闭（或请求变化）后还原 UNSPECIFIED。
  */
 @Composable
 fun KhatKitUiHost() {
@@ -43,11 +55,29 @@ fun KhatKitUiHost() {
     val request by provider.uiRequest.collectAsStateWithLifecycle()
     val progress by provider.uiProgress.collectAsStateWithLifecycle()
 
+    val landscape = when (val current = request) {
+        is UiRequest.Form -> current.options.landscape
+        is UiRequest.Show -> current.options.landscape
+        else -> false
+    }
+    val activity = LocalActivity.current
+    DisposableEffect(landscape) {
+        if (landscape) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+            onDispose {
+                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        } else {
+            onDispose { }
+        }
+    }
+
     KhatKitTheme(style = provider.uiStyle) {
         when (val current = request) {
             is UiRequest.Form -> KhatKitForm(
                 title = current.title,
                 items = current.items,
+                options = current.options,
                 onSubmit = { values -> provider.submitForm(values) },
                 onCancel = { provider.dismissUi() },
             )
@@ -69,7 +99,11 @@ fun KhatKitUiHost() {
                 )
             }
 
-            is UiRequest.Show -> ShowCardSheet(current.card) { provider.dismissUi() }
+            is UiRequest.Show -> ShowCardSheet(
+                card = current.card,
+                options = current.options,
+                onDismiss = { provider.dismissUi() },
+            )
 
             null -> Unit
         }
@@ -120,29 +154,35 @@ private fun ConfirmSheetContent(message: String, onCancel: () -> Unit) {
 }
 
 @Composable
-private fun ShowCardSheet(card: Map<String, Any?>, onDismiss: () -> Unit) {
+private fun ShowCardSheet(
+    card: Map<String, Any?>,
+    options: UiSheetOptions,
+    onDismiss: () -> Unit,
+) {
     val title = card["title"]?.toString()?.takeIf { it.isNotBlank() }
         ?: stringResource(R.string.khatkit_show_result_title)
     val content = (card["markdown"] ?: card["text"] ?: card["content"])?.toString()
 
-    PrimaryBottomSheet(
-        visible = true,
+    KhatKitSheet(
         title = title,
         imageVector = description,
+        options = options,
         dismissText = stringResource(R.string.khatkit_close),
         onDismiss = onDismiss,
-        scrollable = true,
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 8.dp),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            if (content != null) {
-                MarkdownBlock(content)
-            } else {
-                Text(card.entries.joinToString("\n") { "${it.key}: ${it.value}" })
+            Column(modifier = Modifier.widthIn(max = SHOW_CONTENT_MAX_WIDTH)) {
+                if (content != null) {
+                    MarkdownBlock(content)
+                } else {
+                    Text(card.entries.joinToString("\n") { "${it.key}: ${it.value}" })
+                }
             }
         }
     }
