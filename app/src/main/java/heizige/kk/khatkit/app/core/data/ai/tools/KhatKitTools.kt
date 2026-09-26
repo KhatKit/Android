@@ -64,6 +64,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
@@ -442,7 +443,7 @@ class KhatKitToolProvider(
         val cardTools = specs
             .filter { it.supportsAi() && !(isVflowCard(it.name) && !vflowReady) }
             .take(TOOL_CANDIDATE_LIMIT)
-            .map { spec -> spec.toTool() } + cloudScriptsTool()
+            .map { spec -> spec.toTool() } + cloudScriptsTool() + runFlowTool()
         // 无障碍可用时额外挂两个内置工具：看屏幕 + 直接动作，让纯文本模型也能驱动手机
         if (AccessibilityBridgeHolder.current() == null) {
             cardTools
@@ -674,6 +675,174 @@ class KhatKitToolProvider(
             }
         },
     )
+
+    /**
+     * 内置工具：流（Flow）——把多个卡片/内置工具操作按顺序合成一个流。
+     *
+     * steps 是 JSON 数组字符串，每步 `{"card":"<名称>","args":{...},"continue_on_error":false}`；
+     * card 支持已安装卡片、云端卡片（按需自动安装）以及内置工具 `device_screen` / `device_act`。
+     * args 支持 `${steps[i].xxx}` 占位符引用前面步骤的输出（见 [resolveFlowArgs]）。
+     * 整段流只请求一次授权（`运行流：N 步`，类别 card_run）；每一步仍走
+     * [runCardWithStatus] 中央路径，自动化看板 / 套餐计量 / 取消 / 放手模式全部生效；
+     * 流授权通过后写入会话授权，后续每步的用户授权闸门自动放行（不会重复询问）。
+     * 返回中文摘要 + 每步结果 JSON，结果里的本机图片路径会随聊天消息渲染缩略图。
+     */
+    private fun runFlowTool(): Tool = Tool(
+        name = "khatkit__run_flow",
+        description = "把多个卡片/工具操作按顺序合成一个流（Flow），只需授权一次，适合「截图→OCR→抠图→水印」等多步任务。" +
+            "steps 是 JSON 数组字符串，每步形如 {\"card\":\"卡片名\",\"args\":{...},\"continue_on_error\":false}；" +
+            "args 里可用占位符引用前面步骤的输出：\${steps[0].outputs[0].path}（第 0 步 outputs 第 0 项的 path）、" +
+            "\${steps[0].result.path}（result 可省略，等价于 \${steps[0].path}）、\${steps[0].字段名}；" +
+            "单值占位符保留原始类型，字符串内嵌时 map/list 会序列化成 JSON。" +
+            "card 支持已安装卡片、云端卡片（自动安装）与内置工具 device_screen / device_act。" +
+            "stop_on_error 默认 true（任一步失败即停止）；某步设 continue_on_error=true 可失败后继续。" +
+            "每一步都会显示在自动化看板上，最终返回中文摘要与每步结果 JSON。",
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("steps", buildJsonObject {
+                        put("type", "string")
+                        put(
+                            "description",
+                            "步骤 JSON 数组字符串，按顺序执行；示例：" +
+                                "[{\"card\":\"device_screen\",\"args\":{}}," +
+                                "{\"card\":\"image_ocr\",\"args\":{\"image\":\"\${steps[0].outputs[0].path}\"}}]",
+                        )
+                    })
+                    put("stop_on_error", buildJsonObject {
+                        put("type", "boolean")
+                        put("description", "任一步失败时是否立即停止整个流，默认 true；步骤内 continue_on_error 优先。")
+                    })
+                },
+                required = listOf("steps"),
+            )
+        },
+        execute = { args -> runFlow(jsonToMap(args)) },
+    )
+
+    private suspend fun runFlow(params: Map<String, Any?>): List<UIMessagePart> {
+        val stepsRaw = params.str("steps")
+            ?: return flowErrorParts("缺少参数：steps（JSON 数组字符串）")
+        val spec = parseFlowSpec(stepsRaw, params.bool("stop_on_error", true), json)
+            ?: return flowErrorParts("steps 解析失败：需要 JSON 数组，元素形如 {\"card\":\"卡片名\",\"args\":{...}}")
+        if (spec.steps.isEmpty()) return flowErrorParts("steps 为空：流至少需要一步")
+        if (spec.steps.size > FLOW_MAX_STEPS) {
+            return flowErrorParts("步骤过多：${spec.steps.size} 步（上限 $FLOW_MAX_STEPS）")
+        }
+        val names = spec.steps.joinToString(" → ") { it.card }
+        if (!AutomationBus.requestApproval(
+                "运行流：${spec.steps.size} 步",
+                "步骤：$names",
+                ApprovalCategory.CARD_RUN,
+            )
+        ) {
+            return flowErrorParts("用户拒绝授权，已取消流")
+        }
+
+        val stepOutputs = mutableListOf<Map<String, Any?>>()
+        val stepEntries = mutableListOf<Map<String, Any?>>()
+        var cancelled = false
+        var stoppedAt: Int? = null
+        var failed = 0
+        for ((index, step) in spec.steps.withIndex()) {
+            if (AutomationBus.isCancelRequested()) {
+                cancelled = true
+                break
+            }
+            AutomationBus.update("流步骤 ${index + 1}/${spec.steps.size}：${step.card}")
+            val resolvedArgs = resolveFlowArgs(step.args, stepOutputs)
+            val result = try {
+                runFlowStep(step.card, resolvedArgs)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                EngineResult.Err("FLOW_STEP", e.message ?: e.toString())
+            }
+            val ok = result is EngineResult.Ok
+            val value = (result as? EngineResult.Ok)?.value
+                ?: mapOf(
+                    "error" to (result as EngineResult.Err).message,
+                    "code" to result.code,
+                )
+            stepOutputs += value
+            stepEntries += mapOf("card" to step.card, "ok" to ok, "outputs" to value)
+            if (!ok) {
+                failed++
+                if (spec.stopOnError && !step.continueOnError) {
+                    stoppedAt = index
+                    break
+                }
+            }
+        }
+
+        val done = stepEntries.size
+        val summary = when {
+            cancelled -> "流已停止：用户取消了自动化（已完成 $done/${spec.steps.size} 步）"
+            stoppedAt != null -> {
+                val card = stepEntries.lastOrNull()?.get("card")
+                "流执行失败：第 ${stoppedAt + 1} 步「$card」出错，已停止" +
+                    "（成功 ${done - failed} 步 / 失败 $failed 步 / 共 ${spec.steps.size} 步）"
+            }
+            failed > 0 -> "流执行完成，但有 $failed 步失败（成功 ${done - failed} 步 / 共 ${spec.steps.size} 步）"
+            else -> "流执行完成：$done 步全部成功"
+        }
+        val output = mapOf(
+            "ok" to (failed == 0 && !cancelled && stoppedAt == null),
+            "summary" to summary,
+            "steps" to stepEntries,
+        )
+        return engineResultParts(EngineResult.Ok(output))
+    }
+
+    /** 执行流中的一步：内置工具直接调用，卡片统一收敛到 [runCardWithStatus] 中央路径。 */
+    private suspend fun runFlowStep(name: String, args: Map<String, Any?>): EngineResult {
+        val normalized = name.removePrefix("khatkit__").trim()
+        when (normalized) {
+            "device_screen" -> {
+                val capture = withContext(Dispatchers.IO) {
+                    captureDeviceScreen(
+                        includeOcr = args.bool("include_ocr", true),
+                        includeNodes = args.bool("include_nodes", true),
+                        includeImage = false,
+                    )
+                }
+                return builtinStepResult(capture.text)
+            }
+
+            "device_act" -> return builtinStepResult(deviceAct(args))
+        }
+        val card = resolveCardByName(normalized)
+            ?: return EngineResult.Err("CARD_UNAVAILABLE", "卡片未安装且 Hub 不可达：$normalized")
+        if (!card.manifest.supportsAi()) {
+            return EngineResult.Err("TRIGGER_DENIED", "卡片未启用 ai 触发：$normalized")
+        }
+        // vFlow 未配置时禁止流内运行，与 AI 直接调用保持同一闸门（trigger=flow 不走 runCardWithStatus 的 AI 闸门）
+        if (isVflowCard(card.manifest.name) && !vflowConfigured()) {
+            return EngineResult.Err("VFLOW_NOT_CONFIGURED", VFLOW_NOT_CONFIGURED_HINT)
+        }
+        return runCardWithStatus(card, args, trigger = "flow")
+    }
+
+    /** 已安装优先，其次 Hub 索引；云端卡片沿用 [resolveCard] 的按需下载/更新。 */
+    private suspend fun resolveCardByName(name: String): LoadedCard? {
+        loadInstalledCards().firstOrNull { it.manifest.name == name }?.let { return it }
+        val entry = remoteCards().firstOrNull { it.name == name } ?: return null
+        return resolveCard(CardToolSpec(name = entry.name, entry = entry, card = null))
+    }
+
+    /** 内置工具输出：JSON 对象直接采用（含 error 视为失败），纯文本包成 `{"result": ...}`。 */
+    private fun builtinStepResult(text: String): EngineResult {
+        val value = runCatching { json.parseToJsonElement(text) as? JsonObject }
+            .getOrNull()
+            ?.let { jsonToMap(it) }
+        if (value != null && value["error"] != null) {
+            return EngineResult.Err("BUILTIN_TOOL", value["error"]?.toString().orEmpty())
+        }
+        return EngineResult.Ok(value ?: mapOf("result" to text))
+    }
+
+    private fun flowErrorParts(message: String): List<UIMessagePart> =
+        listOf(UIMessagePart.Text("""{"error":"${message.escape()}"}"""))
 
     /**
      * 云端卡片搜索：优先走后端语义召回；失败/未命中时用本地索引按关键词兜底，
@@ -1590,6 +1759,9 @@ private const val VISION_DIR_NAME = "vision"
 private const val VISION_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000L
 private const val VISION_CACHE_MAX_FILES = 40
 
+/** 流（Flow）步骤数上限：避免模型拼出超长流程拖垮会话。 */
+private const val FLOW_MAX_STEPS = 20
+
 /** device_act 触屏 / 手势动作（执行前需确认屏幕点亮） */
 private val TOUCH_ACTIONS = setOf("click_text", "click_id", "tap", "swipe", "press", "set_text")
 
@@ -1770,7 +1942,7 @@ private fun Map<String, Any?>.long(key: String): Long? = when (val value = this[
     else -> null
 }
 
-private fun jsonToMap(element: JsonElement): Map<String, Any?> =
+internal fun jsonToMap(element: JsonElement): Map<String, Any?> =
     (element as? JsonObject)?.mapValues { fromElement(it.value) } ?: emptyMap()
 
 private fun fromElement(element: JsonElement): Any? = when (element) {
@@ -1783,6 +1955,94 @@ private fun fromElement(element: JsonElement): Any? = when (element) {
     }
     is JsonArray -> element.map { fromElement(it) }
     is JsonObject -> element.mapValues { fromElement(it.value) }
+}
+
+/** 流（Flow）单步定义：卡片名 + 参数 + 失败是否继续。 */
+internal data class FlowStepSpec(
+    val card: String,
+    val args: Map<String, Any?> = emptyMap(),
+    val continueOnError: Boolean = false,
+)
+
+/** 流定义：有序步骤 + 任一步失败是否停止。 */
+internal data class FlowSpec(
+    val steps: List<FlowStepSpec>,
+    val stopOnError: Boolean = true,
+)
+
+/**
+ * 解析 `khatkit__run_flow` 的 steps JSON 数组字符串；非法 JSON 返回 null，
+ * 缺少 card 的元素按无效跳过（解析结果可能为空列表，由调用方拒绝）。
+ */
+internal fun parseFlowSpec(stepsJson: String, stopOnError: Boolean = true, json: Json = Json): FlowSpec? {
+    val array = runCatching { json.parseToJsonElement(stepsJson) }.getOrNull() as? JsonArray ?: return null
+    val steps = array.mapNotNull { element ->
+        val obj = element as? JsonObject ?: return@mapNotNull null
+        val card = (obj["card"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+        if (card.isEmpty()) return@mapNotNull null
+        val args = (obj["args"] as? JsonObject)?.let { jsonToMap(it) } ?: emptyMap()
+        val continueOnError = (obj["continue_on_error"] as? JsonPrimitive)?.booleanOrNull ?: false
+        FlowStepSpec(card = card, args = args, continueOnError = continueOnError)
+    }
+    return FlowSpec(steps, stopOnError)
+}
+
+/**
+ * 占位符：`${steps[i].path}`，i 为从 0 开始的步序号，path 用 `.` 分隔、支持 `outputs[0]` 下标。
+ * 结果里 `result` 前缀可省略/可跳过，例如 `${steps[0].result.path}` 与 `${steps[0].path}` 等价。
+ */
+private val FLOW_PLACEHOLDER = Regex("""\$\{steps\[(\d+)\]\.([^}]+)}""")
+
+/** 递归替换参数里的占位符：字符串整值保留原类型，内嵌字符串用 [renderFlowValue] 渲染，map/list 递归。 */
+internal fun resolveFlowArgs(args: Map<String, Any?>, steps: List<Map<String, Any?>>): Map<String, Any?> =
+    args.mapValues { (_, value) -> resolveFlowValue(value, steps) }
+
+/** 递归替换单个参数值的占位符。 */
+internal fun resolveFlowValue(value: Any?, steps: List<Map<String, Any?>>): Any? = when (value) {
+    is String -> resolveFlowString(value, steps)
+    is Map<*, *> -> value.entries.associate { (key, item) -> key.toString() to resolveFlowValue(item, steps) }
+    is List<*> -> value.map { resolveFlowValue(it, steps) }
+    else -> value
+}
+
+/**
+ * 字符串占位符替换：整个字符串只含一个占位符时返回解析结果的原始类型（map 不序列化）；
+ * 内嵌在更长文本里时用 [renderFlowValue] 渲染，未解析到的占位符整值为 null、内嵌为空串。
+ */
+internal fun resolveFlowString(text: String, steps: List<Map<String, Any?>>): Any? {
+    FLOW_PLACEHOLDER.matchEntire(text)?.let { match ->
+        return lookupFlowPath(steps, match.groupValues[1].toIntOrNull() ?: -1, match.groupValues[2])
+    }
+    if (!text.contains("\${steps[")) return text
+    return FLOW_PLACEHOLDER.replace(text) { match ->
+        val resolved = lookupFlowPath(steps, match.groupValues[1].toIntOrNull() ?: -1, match.groupValues[2])
+        if (resolved == null) "" else renderFlowValue(resolved)
+    }
+}
+
+/** 按路径从某一步的结果 map 里取值：map 用键、list 用数字下标，任一段缺失返回 null。 */
+internal fun lookupFlowPath(steps: List<Map<String, Any?>>, stepIndex: Int, path: String): Any? {
+    val root = steps.getOrNull(stepIndex) ?: return null
+    val parts = path.replace('[', '.').replace(']', '.').split('.').filter { it.isNotBlank() }
+    if (parts.isEmpty()) return null
+    val tokens = if (parts.first() == "result") parts.drop(1) else parts
+    var current: Any? = root
+    for (token in tokens) {
+        current = when (val node = current) {
+            is Map<*, *> -> node[token]
+            is List<*> -> token.toIntOrNull()?.let { node.getOrNull(it) }
+            else -> null
+        }
+        if (current == null) return null
+    }
+    return current
+}
+
+/** 内嵌占位符渲染：字符串原样，map/list 及其他类型序列化为 JSON 文本。 */
+internal fun renderFlowValue(value: Any?): String = when (value) {
+    null -> ""
+    is String -> value
+    else -> encode(value)
 }
 
 private fun encode(value: Any?): String =
