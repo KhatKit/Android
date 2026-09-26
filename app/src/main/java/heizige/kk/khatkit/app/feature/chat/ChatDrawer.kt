@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.SolidColor
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.download
+import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khromia.components.TextTooltip
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
@@ -495,6 +496,16 @@ fun ChatDrawerContent(
                     }
 
                     Spacer(Modifier.weight(1f))
+
+                    DrawerAction(
+                        icon = {
+                            Icon(extension, null)
+                        },
+                        label = "卡片市场",
+                        onClick = {
+                            navController.navigate(Screen.KhatKitMarket)
+                        },
+                    )
 
                     DrawerAction(
                         icon = {
