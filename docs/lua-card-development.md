@@ -44,7 +44,7 @@ cards/<name>/
   README.md      可选
 ```
 
-内置卡片位于 `khatkit/src/main/assets/cards/<dir>/`；首次组装 AI 工具或刷新触发器时由 `BuiltinCards.install()` 铺到应用内部缓存（同版本跳过，版本变化整体覆盖）。第三方卡片由卡片市场从 Hub 下载，解压到应用缓存目录的 `khatkit/cards/<name>/<version>/`。
+卡片不再放在 GitHub 项目的 APK assets 中。开发/维护目录为项目外的 `~/KhatKitCards/<name>/`（服务端部署目录为 `/opt/KhatKitCards/<name>/`），由 Hub 独立分发。第三方卡片由卡片市场下载，解压到应用缓存目录的 `khatkit/cards/<name>/<version>/`。
 
 ### 1.3 最小 card.json
 
@@ -115,7 +115,7 @@ return { message: "Hello, " + name };
 
 | 入口 | 说明 |
 |---|---|
-| 内置卡片 | 打包在 APK 的 `assets/cards`，启动时自动同步；同版本跳过，版本变化覆盖本地目录。 |
+| 外部卡片 | 维护在独立 `KhatKitCards/<name>/` 目录，通过 Hub 分发；APK 不再打包卡片。 |
 | 卡片市场 | 按 Hub 索引搜索 → 「安装 / 更新 / 卸载」，下载 zip 后落缓存；可在市场里查看/撤销卡片密钥。 |
 | AI 调用 | `triggers` 含 `ai` 的卡片会以 `khatkit__<name>` 暴露给模型，AI 按 `parameters` 填参调用；云端未安装的卡片会在首次调用时按需下载。 |
 | 用户手动 | `triggers` 含 `user` 的卡片在市场卡片上有「运行」按钮；不带参数运行，缺参数时由脚本自己弹 `ui.form`。 |
@@ -126,9 +126,9 @@ return { message: "Hello, " + name };
 
 ### 1.7 推荐开发循环
 
-1. 在 `khatkit/src/main/assets/cards/<name>/` 下写 manifest + 脚本（或直接改本地缓存目录做快速迭代）。
+1. 在 `~/KhatKitCards/<name>/` 下写 `card.json` + `main.lua`/`main.js`。
 2. 用 AI 调用或市场「运行」触发，观察返回值与自动化看板。
-3. 跑静态校验：`./gradlew :card-validator:run --args="khatkit/src/main/assets/cards"`。
+3. 跑静态校验：`./gradlew :card-validator:run --args="/home/heizige/KhatKitCards"`。
 4. 发布到 Hub 时保持 `version` 递增，客户端靠版本号判断更新。
 
 ---
