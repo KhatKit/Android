@@ -89,4 +89,3 @@ include(":app:baselineprofile")
 include(":oauth")
 // 原生依赖包模块：不随应用编译，只通过 buildDependencyDex 产出 Hub 分发的 dex 依赖 jar
 include(":image-toolbox-dependency")
-include(":music-key-dependency")
