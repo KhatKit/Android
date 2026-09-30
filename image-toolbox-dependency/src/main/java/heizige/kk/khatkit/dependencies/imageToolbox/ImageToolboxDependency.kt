@@ -12,16 +12,37 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfRenderer
+import android.media.MediaMetadataRetriever
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.os.ParcelFileDescriptor
 import heizige.kk.khatkit.bridge.ImageToolboxBridge
 import java.io.File
 import java.io.FileOutputStream
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.Result
+import com.google.zxing.common.HybridBinarizer
+import com.google.zxing.RGBLuminanceSource
+import com.google.zxing.MultiFormatWriter
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
+
+private fun MediaFormat.stringOrEmpty(key: String): String =
+    if (containsKey(key)) getString(key).orEmpty() else ""
+
+private fun MediaFormat.longOrZero(key: String): Long =
+    if (containsKey(key)) runCatching { getLong(key) }.getOrDefault(0L) else 0L
+
+private fun MediaFormat.integerOrZero(key: String): Int =
+    if (containsKey(key)) runCatching { getInteger(key) }.getOrDefault(0) else 0
 
 /**
  * 本地图像工具箱依赖包入口：纯 Android SDK（Bitmap / Canvas / Paint / ColorMatrix / Matrix），
@@ -41,6 +62,141 @@ import kotlin.math.sin
  * [pdfEdit]（PDF 旋转/重排/抽取/删除/N-up/压缩/合并）。
  */
 class ImageToolboxDependency(@Suppress("UNUSED_PARAMETER") context: Context) : ImageToolboxBridge {
+
+    override fun mediaTracks(path: String): String {
+        val extractor = MediaExtractor()
+        val tracks = JSONArray()
+        try {
+            extractor.setDataSource(path)
+            for (index in 0 until extractor.trackCount) {
+                val format = extractor.getTrackFormat(index)
+                tracks.put(JSONObject().apply {
+                    put("index", index)
+                    put("mime", format.stringOrEmpty(MediaFormat.KEY_MIME))
+                    put("duration_us", format.longOrZero(MediaFormat.KEY_DURATION))
+                    put("bitrate", format.integerOrZero(MediaFormat.KEY_BIT_RATE))
+                    put("sample_rate", format.integerOrZero(MediaFormat.KEY_SAMPLE_RATE))
+                    put("channels", format.integerOrZero(MediaFormat.KEY_CHANNEL_COUNT))
+                    put("width", format.integerOrZero(MediaFormat.KEY_WIDTH))
+                    put("height", format.integerOrZero(MediaFormat.KEY_HEIGHT))
+                    put("language", format.stringOrEmpty(MediaFormat.KEY_LANGUAGE))
+                })
+            }
+        } finally {
+            extractor.release()
+        }
+        return tracks.toString()
+    }
+
+    override fun mediaInfo(path: String): String {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(path)
+            JSONObject().apply {
+                put("path", File(path).absolutePath)
+                put("mime", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE).orEmpty())
+                put("duration_ms", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L)
+                put("width", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0)
+                put("height", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0)
+                put("rotation", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0)
+                put("title", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE).orEmpty())
+                put("artist", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST).orEmpty())
+                put("album", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM).orEmpty())
+                put("bitrate", retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L)
+            }.toString()
+        } finally {
+            retriever.release()
+        }
+    }
+
+    override fun extractAudioCover(path: String, output: String): String {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(path)
+            val bytes = retriever.embeddedPicture ?: error("音频文件没有内嵌封面")
+            val target = if (output.isBlank()) File(path).let { File(it.parentFile, it.nameWithoutExtension + "_cover.jpg") } else File(output)
+            target.parentFile?.mkdirs()
+            target.writeBytes(bytes)
+            target.absolutePath
+        } finally {
+            retriever.release()
+        }
+    }
+
+    override fun extractVideoFrame(path: String, timeMs: Long, output: String): String {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(path)
+            val frame = retriever.getFrameAtTime((timeMs.coerceAtLeast(0L)) * 1000L, MediaMetadataRetriever.OPTION_CLOSEST)
+                ?: error("视频无法提取指定时间点画面")
+            val target = if (output.isBlank()) File(path).let { File(it.parentFile, it.nameWithoutExtension + "_frame.jpg") } else File(output)
+            target.parentFile?.mkdirs()
+            FileOutputStream(target).use { stream -> frame.compress(Bitmap.CompressFormat.JPEG, 92, stream) }
+            frame.recycle()
+            target.absolutePath
+        } finally {
+            retriever.release()
+        }
+    }
+
+    override fun extractVideoFrames(path: String, timesMsJson: String, outputDir: String): String {
+        val times = runCatching { JSONArray(timesMsJson) }.getOrElse { JSONArray() }
+        require(times.length() in 1..32) { "times_ms 需要 1..32 个时间点" }
+        val source = File(path)
+        val dir = if (outputDir.isBlank()) source.parentFile ?: File(".") else File(outputDir)
+        dir.mkdirs()
+        val retriever = MediaMetadataRetriever()
+        val outputs = JSONArray()
+        try {
+            retriever.setDataSource(path)
+            for (index in 0 until times.length()) {
+                val timeMs = times.optLong(index, 0L).coerceAtLeast(0L)
+                val frame = retriever.getFrameAtTime(timeMs * 1000L, MediaMetadataRetriever.OPTION_CLOSEST)
+                    ?: continue
+                val target = File(dir, source.nameWithoutExtension + "_frame_${index + 1}.jpg")
+                FileOutputStream(target).use { stream -> frame.compress(Bitmap.CompressFormat.JPEG, 92, stream) }
+                frame.recycle()
+                outputs.put(target.absolutePath)
+            }
+        } finally {
+            retriever.release()
+        }
+        require(outputs.length() > 0) { "视频无法提取任何画面" }
+        return outputs.toString()
+    }
+
+    override fun generateCode(text: String, format: String, width: Int, height: Int, output: String): String {
+        require(text.isNotBlank()) { "二维码内容不能为空" }
+        val barcode = runCatching { BarcodeFormat.valueOf(format.uppercase()) }.getOrDefault(BarcodeFormat.QR_CODE)
+        val matrix = MultiFormatWriter().encode(text, barcode, width.coerceIn(64, 4096), height.coerceIn(64, 4096))
+        val target = if (output.isBlank()) File("/data/local/tmp/khatkit_${System.currentTimeMillis()}.png") else File(output)
+        target.parentFile?.mkdirs()
+        val image = Bitmap.createBitmap(matrix.width, matrix.height, Bitmap.Config.ARGB_8888)
+        for (y in 0 until matrix.height) for (x in 0 until matrix.width) {
+            image.setPixel(x, y, if (matrix.get(x, y)) Color.BLACK else Color.WHITE)
+        }
+        FileOutputStream(target).use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        image.recycle()
+        return target.absolutePath
+    }
+
+    override fun scanCodes(path: String): String {
+        val bitmap = ToolboxIO.decode(path)
+        return try {
+            val pixels = IntArray(bitmap.width * bitmap.height)
+            bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            val source = RGBLuminanceSource(bitmap.width, bitmap.height, pixels)
+            val result = runCatching { MultiFormatReader().decode(BinaryBitmap(HybridBinarizer(source))) }.getOrNull()
+            JSONArray().apply {
+                result?.let { put(JSONObject().apply {
+                    put("text", it.text)
+                    put("format", it.barcodeFormat.name)
+                }) }
+            }.toString()
+        } finally {
+            bitmap.recycle()
+        }
+    }
 
     // ══════════════ 既有类型化 API ══════════════
 
@@ -466,6 +622,7 @@ class ImageToolboxDependency(@Suppress("UNUSED_PARAMETER") context: Context) : I
         val quality = ToolboxParams.int(params, "quality", 92)
         return try {
             val result = when {
+                normalized in ToolboxWorkflow.processOps -> ToolboxWorkflow.process(source, normalized, params)
                 ToolboxFilter.isPreset(normalized) -> ToolboxFilter.preset(source, normalized)
                 ToolboxGeometry.isGeometryOp(normalized) -> ToolboxGeometry.apply(source, normalized, params)
                 else -> ToolboxFilter.apply(source, normalized, params)
@@ -481,6 +638,9 @@ class ImageToolboxDependency(@Suppress("UNUSED_PARAMETER") context: Context) : I
         val normalized = op.trim().lowercase().replace('-', '_')
         val inputs = ToolboxParams.parseArray(inputsJson)
         require(inputs.isNotEmpty()) { "compose 需要至少一张输入图片" }
+        if (normalized in ToolboxWorkflow.multiOps) {
+            return ToolboxWorkflow.multi(normalized, inputs, ToolboxParams.parse(paramsJson))
+        }
         require(ToolboxCompose.isComposeOp(normalized)) { "不支持的合成操作：$normalized" }
         val params = ToolboxParams.parse(paramsJson)
         val target = outputFor(inputs.first(), normalized, "png", ToolboxParams.str(params, "output", ""))

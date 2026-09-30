@@ -18,7 +18,7 @@ import kotlin.math.sqrt
 internal object ToolboxCompose {
 
     fun isComposeOp(op: String): Boolean = op in setOf(
-        "grid", "collage", "stack_h", "stack_v", "side_by_side", "blend", "watermark_image",
+        "grid", "collage", "stack_h", "stack_v", "side_by_side", "blend", "watermark_image", "stitch",
     )
 
     fun apply(op: String, inputs: List<String>, p: Map<String, Any?>, target: File): String {
@@ -26,9 +26,14 @@ internal object ToolboxCompose {
         val bitmaps = inputs.map { ToolboxIO.decode(it) }
         try {
             val output = when (op) {
-                "grid", "collage" -> grid(bitmaps, p)
-                "stack_h", "side_by_side" -> stackHorizontal(bitmaps, p)
-                "stack_v" -> stackVertical(bitmaps, p)
+            "grid", "collage" -> grid(bitmaps, p)
+            "stack_h", "side_by_side" -> stackHorizontal(bitmaps, p)
+            "stack_v" -> stackVertical(bitmaps, p)
+            "stitch" -> if (ToolboxParams.str(p, "direction", "horizontal").lowercase() in setOf("vertical", "v", "down")) {
+                stackVertical(bitmaps, p)
+            } else {
+                stackHorizontal(bitmaps, p)
+            }
                 "blend" -> {
                     require(bitmaps.size >= 2) { "blend 需要两张图片（底图 + 上层图）" }
                     blend(bitmaps[0], bitmaps[1], p)

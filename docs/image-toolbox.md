@@ -1,5 +1,43 @@
 # 图像工具箱（本地处理，云端市场分发）
 
+## 1.1.0 增量
+
+## 1.2.0 增量
+
+新增云端卡片 `image_stitch`，对应上游 image-stitch 的本地静态拼接部分：
+
+```json
+{"op":"stitch","files":["/sdcard/a.png","/sdcard/b.png"],"params":"{\"direction\":\"horizontal\",\"height\":1080,\"gap\":12,\"background\":\"#FFFFFF\"}"}
+```
+
+`direction` 支持 `horizontal` / `vertical`，横向可指定 `height`，纵向可指定 `width`；`gap`、`background`、`output` 可选。OpenCV 特征对齐和边缘渐隐尚未宣称迁移。
+
+当前为 **10 张云端 Lua 卡片**，不是 ImageToolbox 全量移植。上游逐模块核对见
+[迁移清单](image-toolbox-migration.md)。新增实现仍仅在独立下载的 DEX 依赖中，APK 不增加实现代码。
+
+| 新卡片 | 操作 | 参数 |
+|---|---|---|
+| `image_split` | `split_grid` / `split_horizontal` / `split_vertical` | 单张图片；`columns/rows` 或 `count`，`output_dir`，`format/quality`；最多 256 片，不覆盖现有切片 |
+| `image_compare` | `compare` / `difference` | `files` 恰好两张同尺寸图；`threshold` 0..255；差异图可指定 `gain` 1..32、`output` |
+| `image_lut` | `lut_cube` | `lut` 本地 `.cube` 路径，`strength` 0..1；支持 2..65 阶 3D LUT、DOMAIN_MIN/MAX、三线性插值 |
+| `image_workflow` | `filter_chain` | `steps` 为 1..32 个 `{op,params}`，只写最终文件，支持预设/扩展滤镜/扩展几何/LUT，不支持嵌套或旧类型化 resize/rotate |
+
+比较返回 `changed_pixels/changed_ratio/mae_rgb/mse_rgb/psnr_rgb/identical`；RGB 零误差时
+`psnr_rgb="infinity"`。透明度参与变化像素计数，RGB 指标和差异图不包含 alpha。
+比较和切片均使用 EXIF 转正后的解码像素；超过 2400 万像素仍沿用已有降采样策略，不能用于原始文件逐字节鉴定。
+
+```json
+{"op":"split_grid","files":["/sdcard/Download/photo.png"],"params":"{\"columns\":3,\"rows\":3}"}
+{"op":"difference","files":["/sdcard/Download/a.png","/sdcard/Download/b.png"],"params":"{\"gain\":4}"}
+{"op":"lut_cube","files":["/sdcard/Download/photo.png"],"params":"{\"lut\":\"/sdcard/Download/film.cube\",\"strength\":0.7}"}
+{"op":"filter_chain","files":["/sdcard/Download/a.png","/sdcard/Download/b.png"],"params":"{\"steps\":[{\"op\":\"warm\"},{\"op\":\"gamma\",\"params\":{\"gamma\":1.2}}]}"}
+```
+
+1.1.0 同时修复 Lua 操作集合被误写成数组、默认操作固定为 resize、空参数被编码成数组的问题；
+不合法 JSON、跨卡片操作、批量共用输出路径均明确拒绝。`files` 数组里的逗号不再被当作路径分隔符。
+显式 `output` 会传给 process/compose/pdfEdit；旧类型化方法不支持该参数时明确报错，不再静默忽略。
+新依赖版本为 `image-toolbox-1.1.0.jar`，以下旧版 API 表中的 1.0.0 引用仅说明初始设计。
+
 参考 ImageToolbox（T8RIN/ImageToolbox）的常用静态图处理，**全部在设备本地完成**：
 
 - **实现不随 APK 编译**：代码在独立模块 `image-toolbox-dependency`，由 D8 打成含
@@ -201,14 +239,14 @@ AI 调用示例：
 { "op": "nup", "image": "/sdcard/Download/in.pdf", "params": "{\"pages_per_sheet\":4}" }
 ```
 
-### 1.6 仍然不在范围内的能力
+### 1.6 尚未完成的迁移能力
 
 | ImageToolbox 能力 | 原因 |
 |---|---|
 | AI 背景移除、AI 放大/去噪/上色、人像/深度 | 需要 ONNX/MlKit 等模型，超出纯 SDK 图像处理 |
 | 交互式绘图/擦除/标记（Pen、Spot Healing、形状） | 需要画布交互，卡片脚本无法承载 |
 | GIF/APNG/WebP 动画、视频转码与剪辑 | 需要动画/视频编解码器，不在静态图工具范围 |
-| 3D LUT（.cube）、500+ 复杂滤镜全家桶 | 需要着色器/LUT 文件解析，超出纯 Canvas 像素运算；已用 31 预设 + 41 滤镜/效果近似覆盖常用风格 |
+| 500+ 复杂滤镜全家桶 | 需要额外着色器/原生算法依赖；1.1.0 已支持 .cube 3D LUT，但不等于完整滤镜迁移 |
 | 二维码/条码生成与识别 | 纯 Android SDK 无 QR 编码器；识别另有 `tool` 能力，生成暂不提供 |
 | OCR、文档扫描 | 需要 ML Kit，宿主 App 已用 OCR 卡片实现，不放进依赖包 |
 | 调色板 PDF、照片马赛克、Seam Carving 等高级算法 | 算法体量与收益不匹配，暂不实现 |

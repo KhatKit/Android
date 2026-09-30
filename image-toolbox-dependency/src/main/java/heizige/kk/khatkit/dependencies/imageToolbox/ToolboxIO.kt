@@ -137,6 +137,7 @@ internal object ToolboxIO {
             File(base.parentFile, "${base.nameWithoutExtension}_$op.${ext ?: sourceExt(source)}")
         }
         requireSharedStorageAccess(target.absolutePath)
+        require(target.canonicalFile != base.canonicalFile) { "输出路径不能覆盖输入文件" }
         return target
     }
 
