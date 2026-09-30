@@ -1,6 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.webview
 
 import android.annotation.SuppressLint
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import android.graphics.Bitmap
 import android.util.Log
 import android.view.ViewGroup.LayoutParams
@@ -13,7 +15,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -197,7 +198,7 @@ fun WebView(
 
         // Loading Progress Indicator
         if (state.isLoading) {
-            LinearProgressIndicator(
+            KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
                 progress = { state.loadingProgress },
                 modifier = Modifier.fillMaxWidth()
             )
