@@ -11,6 +11,7 @@ import heizige.kk.khatkit.engine.ScriptEngine
 class BridgeRegistry(
     private val tool: ToolBridge? = null,
     private val ui: UiBridge? = null,
+    private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
     private val storeProvider: ((cardName: String, quotaMb: Int) -> StoreBridge)? = null,
     private val shizuku: ShizukuBridge? = null,
@@ -51,6 +52,7 @@ class BridgeRegistry(
     fun availableBridges(): Set<String> = buildSet {
         if (tool != null) add("tool")
         if (ui != null) add("ui")
+        if (web != null) add("web")
         if (download != null) add("download")
         if (storeProvider != null) add("store")
         if (shizuku != null) add("shizuku")
@@ -78,6 +80,7 @@ class BridgeRegistry(
             val impl: Any = when (name) {
                 "tool" -> tool
                 "ui" -> ui
+                "web" -> web
                 "download" -> download
                 "store" -> storeProvider?.invoke(cardName, storeQuotaMb)
                 "shizuku" -> shizuku

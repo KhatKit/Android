@@ -73,6 +73,25 @@ interface ToolBridge {
     fun ocrBoxes(path: String): String
 }
 
+/** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
+interface WebBridge {
+    /** 打开登录 WebView；用户点击动作后返回 JSON 结果。 */
+    fun openLogin(
+        url: String,
+        title: String = "网页登录",
+        actions: List<Map<String, Any?>> = emptyList(),
+    ): String
+
+    /** 读取指定站点已保存的 Cookie。 */
+    fun savedCookie(url: String): String
+
+    /** 返回站点 Cookie 保存状态 JSON。 */
+    fun cookieStatus(url: String): String
+
+    /** 清除指定站点 Cookie。 */
+    fun clearCookie(url: String): Boolean
+}
+
 /**
  * L0 —— 本地图像工具箱（纯 Android SDK，不联网、不上传）。
  *
@@ -171,6 +190,21 @@ interface ImageToolboxBridge {
 }
 
 interface UiBridge {
+    /** Lua 声明式操作 Sheet；返回 {event=..., values=...}，取消返回 null。 */
+    fun sheet(
+        title: String,
+        actions: List<Map<String, Any?>>,
+        options: Map<String, Any?>? = null,
+    ): Map<String, Any?>? = null
+
+    /** 打开带 WebView 的登录 Sheet；action 的 event/values 与普通 Sheet 一致。 */
+    fun webSheet(
+        title: String,
+        url: String,
+        actions: List<Map<String, Any?>>,
+        options: Map<String, Any?>? = null,
+    ): Map<String, Any?>? = null
+
     /**
      * items 为组件列表，返回用户填好的值；用户取消返回 null。
      *
