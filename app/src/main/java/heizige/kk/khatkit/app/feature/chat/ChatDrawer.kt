@@ -1,7 +1,9 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.FocusRequester
@@ -18,15 +20,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,13 +40,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khromia.components.EditDialog
 import heizige.kk.khromia.components.EditFieldConfig
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
@@ -62,14 +57,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -81,7 +69,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -130,20 +117,6 @@ import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 
-// Miuix 侧边栏皮肤：只换外观层，抽屉手势/预测返回仍走 MD3 的 ModalDrawerSheet。
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
-import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
-import top.yukonga.miuix.kmp.basic.Button as MiuixButton
-import top.yukonga.miuix.kmp.basic.TopAppBarDefaults as MiuixTopBarDefaults
-import androidx.compose.ui.graphics.Color
-
-/** Miuix 抽屉圆角：KSU 观感的 28dp 外侧圆角，内侧贴屏边。 */
-private val MiuixDrawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
-
 @Composable
 fun ChatDrawerContent(
     navController: Navigator,
@@ -158,7 +131,6 @@ fun ChatDrawerContent(
     val isPlayStore = rememberIsPlayStoreVersion()
     val repo = rememberAppEntryPoint().conversationRepository()
     val hubAccountRepository = rememberAppEntryPoint().hubAccountRepository()
-    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
 
     var hubAccount by remember { mutableStateOf<HubAccountInfo?>(null) }
     LaunchedEffect(Unit) {
@@ -251,55 +223,23 @@ fun ChatDrawerContent(
         )
         val searchProgress = searchExpand.progress
         val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
+        val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
         Column(modifier = Modifier.fillMaxSize()) {
-            if (isMiuix) {
-                // Miuix 头部：普通标题（不是 large），标题随进度 morph 成搜索框。
-                MiuixDrawerHeader(
-                    expanded = showSearch,
-                    dragProgress = searchProgress.value,
-                    dragging = searchExpand.dragging.value,
-                    keyword = searchKeyword,
-                    onKeywordChange = drawerVm::updateSearchKeyword,
-                    focusRequester = searchFocus,
-                    onExitSearch = {
-                        drawerVm.updateSearchKeyword("")
-                        showSearch = false
-                    },
-                    onToggleSearch = {
-                        if (!showSearch) {
-                            showSearch = true
-                        } else {
-                            drawerVm.updateSearchKeyword("")
-                        }
-                    },
-                )
-            } else {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 navigationIcon = {
-                    // 导航槽宽度与搜索进度同一进度：0dp→48dp，返回箭头淡入/缩放，
-                    // 避免图标出现/消失时标题区宽度突变量导致的输入框瞬移。
-                    Box(
-                        modifier = Modifier
-                            .width(48.dp * searchProgress.value)
-                            .clipToBounds(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        KedgeIconButton(
+                    if (searchVisible) {
+                        IconButton(
                             onClick = {
                                 drawerVm.updateSearchKeyword("")
                                 showSearch = false
                             },
-                            modifier = Modifier
-                                .width(48.dp)
-                                .graphicsLayer {
-                                    val progress = searchProgress.value
-                                    alpha = progress
-                                    scaleX = 0.85f + 0.15f * progress
-                                    scaleY = 0.85f + 0.15f * progress
-                                },
+                            modifier = Modifier.graphicsLayer {
+                                alpha = searchProgress.value
+                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                            },
                             shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(arrowBack, contentDescription = null)
@@ -308,23 +248,22 @@ fun ChatDrawerContent(
                 },
                 title = {
                     Box {
-                        // 标题常驻，仅由进度驱动透明度/位移；搜索框入场时不会先跳到标题位置。
-                        Text(
-                            text = "KhatKit",
-                            modifier = Modifier.graphicsLayer {
-                                val progress = searchProgress.value
-                                alpha = 1f - progress
-                                translationX = -progress * 24.dp.toPx()
-                            },
-                        )
-                        if (showSearch || searchVisible) {
+                        if (titleVisible) {
+                            Text(
+                                text = "KhatKit",
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = 1f - searchProgress.value
+                                    translationX = -searchProgress.value * 24.dp.toPx()
+                                },
+                            )
+                        }
+                        if (searchVisible) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
                                     .graphicsLayer {
-                                        val progress = searchProgress.value
-                                        alpha = progress
-                                        translationX = (1f - progress) * 24.dp.toPx()
+                                        alpha = searchProgress.value
+                                        translationX = (1f - searchProgress.value) * 24.dp.toPx()
                                     },
                             ) {
                                 if (searchKeyword.isBlank()) {
@@ -351,9 +290,7 @@ fun ChatDrawerContent(
                     }
                 },
                 actions = {
-                    // 搜索↔清除图标同槽交叉淡化（对齐 ImageToolbox：fade+scale，不换占位）。
-                    val hasKeyword = searchKeyword.isNotEmpty()
-                    KedgeIconButton(
+                    IconButton(
                         onClick = {
                             if (!showSearch) {
                                 showSearch = true
@@ -363,32 +300,13 @@ fun ChatDrawerContent(
                         },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = search,
-                                contentDescription = stringResource(R.string.chat_page_search_chats),
-                                modifier = Modifier.graphicsLayer {
-                                    val progress = searchProgress.value
-                                    alpha = 1f - progress
-                                    scaleX = 1f - 0.15f * progress
-                                    scaleY = 1f - 0.15f * progress
-                                },
-                            )
-                            Icon(
-                                imageVector = close,
-                                contentDescription = stringResource(R.string.chat_page_search_chats),
-                                modifier = Modifier.graphicsLayer {
-                                    val progress = searchProgress.value * if (hasKeyword) 1f else 0f
-                                    alpha = progress
-                                    scaleX = 0.85f + 0.15f * progress
-                                    scaleY = 0.85f + 0.15f * progress
-                                },
-                            )
-                        }
+                        Icon(
+                            imageVector = if (searchVisible && searchKeyword.isNotEmpty()) close else search,
+                            contentDescription = stringResource(R.string.chat_page_search_chats),
+                        )
                     }
                 },
             )
-            }
 
             Column(
                 modifier = Modifier
@@ -431,38 +349,21 @@ fun ChatDrawerContent(
                     listState = conversationListState,
                     contentPadding = PaddingValues(bottom = 80.dp),
                     header = {
-                        if (isMiuix) {
-                            MiuixButton(
-                                onClick = { showCreateFolderDialog = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                            ) {
-                                MiuixIcon(
-                                    createNewFolder,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                MiuixText(stringResource(R.string.chat_page_create_folder))
-                            }
-                        } else {
-                            KedgeButton(
-                                onClick = { showCreateFolderDialog = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                                    .height(46.dp),
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Icon(
-                                    createNewFolder,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(R.string.chat_page_create_folder))
-                            }
+                        Button(
+                            onClick = { showCreateFolderDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                                .height(46.dp),
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Icon(
+                                createNewFolder,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.chat_page_create_folder))
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
@@ -497,11 +398,7 @@ fun ChatDrawerContent(
                 // 助手选择器（默认助手卡片：圆角胶囊 + surfaceContainerHigh 底，悬浮于会话列表之上）
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = if (isMiuix) {
-                        MiuixTheme.colorScheme.surfaceContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    },
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
@@ -536,11 +433,7 @@ fun ChatDrawerContent(
             }
 
             BottomAppBar(
-                containerColor = if (isMiuix) {
-                    MiuixTheme.colorScheme.surfaceContainerHigh
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
-                },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -564,23 +457,15 @@ fun ChatDrawerContent(
                         tooltip = { TextTooltip("套餐") },
                         state = rememberTooltipState(),
                     ) {
-                        KedgeButton(
+                        Button(
                             onClick = {
                                 navController.navigate(Screen.SettingPackage)
                             },
                             modifier = Modifier.height(32.dp),
                             shapes = ButtonDefaults.shapes(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isMiuix) {
-                                    MiuixTheme.colorScheme.surfaceContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceContainerHigh
-                                },
-                                contentColor = if (isMiuix) {
-                                    MiuixTheme.colorScheme.onSurfaceVariantActions
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                         ) {
@@ -599,9 +484,9 @@ fun ChatDrawerContent(
                         icon = {
                             Icon(extension, null)
                         },
-                        label = "探索市场",
+                        label = "卡片市场",
                         onClick = {
-                            navController.navigate(Screen.ExploreMarket)
+                            navController.navigate(Screen.KhatKitMarket)
                         },
                     )
 
@@ -625,18 +510,6 @@ fun ChatDrawerContent(
             drawerState = drawerState,
             modifier = Modifier.width(300.dp),
             windowInsets = WindowInsets(0),
-            drawerShape = if (isMiuix) MiuixDrawerShape else DrawerDefaults.shape,
-            drawerContainerColor = if (isMiuix) {
-                MiuixTheme.colorScheme.surface
-            } else {
-                DrawerDefaults.modalContainerColor
-            },
-            drawerContentColor = if (isMiuix) {
-                MiuixTheme.colorScheme.onSurface
-            } else {
-                Color.Unspecified
-            },
-            drawerTonalElevation = if (isMiuix) 0.dp else DrawerDefaults.ModalDrawerElevation,
         ) {
             sheetContent()
         }
@@ -644,18 +517,6 @@ fun ChatDrawerContent(
         ModalDrawerSheet(
             modifier = Modifier.width(300.dp),
             windowInsets = WindowInsets(0),
-            drawerShape = if (isMiuix) MiuixDrawerShape else DrawerDefaults.shape,
-            drawerContainerColor = if (isMiuix) {
-                MiuixTheme.colorScheme.surface
-            } else {
-                DrawerDefaults.modalContainerColor
-            },
-            drawerContentColor = if (isMiuix) {
-                MiuixTheme.colorScheme.onSurface
-            } else {
-                Color.Unspecified
-            },
-            drawerTonalElevation = if (isMiuix) 0.dp else DrawerDefaults.ModalDrawerElevation,
         ) {
             sheetContent()
         }
@@ -784,7 +645,7 @@ fun ChatDrawerContent(
             onDismissRequest = { folderToRename = null },
             title = { Text(stringResource(R.string.chat_page_rename_folder)) },
             text = {
-                KedgeOutlinedTextField(
+                OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -793,7 +654,7 @@ fun ChatDrawerContent(
                 )
             },
             confirmButton = {
-                KedgeTextButton(
+                TextButton(
                     onClick = {
                         drawerVm.renameFolder(folder.id, name)
                         folderToRename = null
@@ -803,7 +664,7 @@ fun ChatDrawerContent(
                 ) { Text(stringResource(R.string.chat_page_save)) }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { folderToRename = null }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { folderToRename = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }
             }
@@ -817,7 +678,7 @@ fun ChatDrawerContent(
             title = { Text(stringResource(R.string.chat_page_delete_folder)) },
             text = { Text(stringResource(R.string.chat_page_delete_folder_confirm, folder.name)) },
             confirmButton = {
-                KedgeTextButton(
+                TextButton(
                     onClick = {
                         if (drawerVm.deleteFolder(folder.id)) {
                             folderToDelete = null
@@ -830,7 +691,7 @@ fun ChatDrawerContent(
                 ) { Text(stringResource(R.string.chat_page_delete)) }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { folderToDelete = null }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { folderToDelete = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }
             }
@@ -877,186 +738,24 @@ fun ChatDrawerContent(
     }
 }
 
-/**
- * Miuix 侧边栏头部。
- *
- * 与 MD3 版一致：标题常驻、只由进度驱动透明度/位移，搜索框入场时不会先跳到标题位置；
- * 导航槽宽度也跟同一进度（0→48dp），返回箭头淡入缩放，避免图标出现/消失时输入框瞬移。
- *
- * 高度用 Miuix `SmallTopAppBar` 的 50dp 中心高，标题字号用 `textStyles.title3`，
- * 即 Miuix 的**普通**标题而不是 large 标题。
- */
-@Composable
-private fun MiuixDrawerHeader(
-    expanded: Boolean,
-    dragProgress: Float,
-    dragging: Boolean,
-    keyword: String,
-    onKeywordChange: (String) -> Unit,
-    focusRequester: FocusRequester,
-    onExitSearch: () -> Unit,
-    onToggleSearch: () -> Unit,
-) {
-    val hasKeyword = keyword.isNotEmpty()
-    // 单一进度源：自己持有 Animatable。
-    // - expanded 变化 -> 补间到目标（点搜索/退出、以及预测返回提交后的收起）
-    // - 手势进行中 -> 直接 snap 到跟手值
-    // 之前用「dragging 时用外部值、否则用 animateFloatAsState」切两个来源，
-    // 释放瞬间两个来源不同步，收起动画会重播一遍。
-    val progress = remember { Animatable(if (expanded) 1f else 0f) }
-    LaunchedEffect(expanded) {
-        progress.animateTo(if (expanded) 1f else 0f, tween(220))
-    }
-    LaunchedEffect(dragProgress, dragging) {
-        if (dragging) progress.snapTo(dragProgress.coerceIn(0f, 1f))
-    }
-    val searchProgress = progress.value
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surface)
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
-            .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(MiuixTopBarDefaults.SmallTopAppBarCenterHeight),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // 导航槽：宽度与搜索进度同步，返回箭头淡入/缩放。
-                Box(
-                    modifier = Modifier
-                        // 原版 SmallTopAppBarLayout 的度量：导航槽 start padding 16dp，
-                        // 槽宽随搜索进度 0→48dp；标题再自带 26dp，合计起点 42dp（与原版一致）。
-                        .width(40.dp * searchProgress)
-                        .clipToBounds(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MiuixIconButton(
-                        onClick = onExitSearch,
-                        modifier = Modifier.graphicsLayer {
-                            alpha = searchProgress
-                            scaleX = 0.85f + 0.15f * searchProgress
-                            scaleY = 0.85f + 0.15f * searchProgress
-                        },
-                    ) {
-                        MiuixIcon(arrowBack, contentDescription = null)
-                    }
-                }
-
-                // 标题区：标题与搜索框同槽交叉淡化。
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        // 关闭态 26dp（原版度量，标题左右对称）；搜索态收到 8dp，
-                        // 让输入框紧贴返回箭头，不再留出大片空白。
-                        .padding(start = MiuixTopBarDefaults.TitlePadding - 18.dp * searchProgress),
-                ) {
-                    MiuixText(
-                        text = "KhatKit",
-                        color = MiuixTheme.colorScheme.onSurface,
-                        fontSize = MiuixTheme.textStyles.title3.fontSize,
-                        maxLines = 1,
-                        modifier = Modifier.graphicsLayer { alpha = 1f - searchProgress },
-                    )
-                    // 仅在真正进入搜索态时才组合：BasicTextField 首次组合会自动
-                    // 获取焦点，若常驻组合，打开抽屉就会自动弹出输入法。
-                    if (searchProgress > 0.001f)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer { alpha = searchProgress },
-                    ) {
-                        if (keyword.isBlank()) {
-                            MiuixText(
-                                text = stringResource(R.string.chat_page_search_chats),
-                                color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                fontSize = MiuixTheme.textStyles.title3.fontSize,
-                                maxLines = 1,
-                            )
-                        }
-                        BasicTextField(
-                            value = keyword,
-                            onValueChange = onKeywordChange,
-                            singleLine = true,
-                            textStyle = MiuixTheme.textStyles.title3.copy(
-                                color = MiuixTheme.colorScheme.onSurface,
-                            ),
-                            cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequester),
-                        )
-                    }
-                }
-
-                // 搜索↔清除同槽交叉淡化（不换占位）。
-                // end 用 Miuix 原版 ActionIconPadding(16dp)：实测标题左边距 26dp 时
-                // 图标右边距原本只有 9.3dp，补 16dp 后左右对称。
-                MiuixIconButton(
-                    onClick = onToggleSearch,
-                    modifier = Modifier.padding(end = MiuixTopBarDefaults.ActionIconPadding),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        MiuixIcon(
-                            imageVector = search,
-                            contentDescription = stringResource(R.string.chat_page_search_chats),
-                            modifier = Modifier.graphicsLayer {
-                                alpha = 1f - searchProgress
-                                scaleX = 1f - 0.15f * searchProgress
-                                scaleY = 1f - 0.15f * searchProgress
-                            },
-                        )
-                        MiuixIcon(
-                            imageVector = close,
-                            contentDescription = stringResource(R.string.chat_page_search_chats),
-                            modifier = Modifier.graphicsLayer {
-                                val p = searchProgress * if (hasKeyword) 1f else 0f
-                                alpha = p
-                                scaleX = 0.85f + 0.15f * p
-                                scaleY = 0.85f + 0.15f * p
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun DrawerAction(
     modifier: Modifier = Modifier,
     icon: @Composable () -> Unit,
     label: String,
     onClick: () -> Unit,
-) {    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        // 抽屉里仍复用 MD3 的 Icon 槽，这里下发 Miuix 前景色，避免图标颜色错位。
-        androidx.compose.runtime.CompositionLocalProvider(
-            androidx.compose.material3.LocalContentColor provides
-                MiuixTheme.colorScheme.onSurface,
+) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+        tooltip = { TextTooltip(label) },
+        state = rememberTooltipState(),
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = modifier,
+            shapes = IconButtonDefaults.shapes(),
         ) {
-            MiuixIconButton(onClick = onClick, modifier = modifier) { icon() }
-        }
-    } else {
-        TooltipBox(
-            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
-            tooltip = { TextTooltip(label) },
-            state = rememberTooltipState(),
-        ) {
-            KedgeIconButton(
-                onClick = onClick,
-                modifier = modifier,
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                icon()
-            }
+            icon()
         }
     }
 }
@@ -1070,8 +769,6 @@ private fun FolderSection(
     onRename: (Folder) -> Unit,
     onDelete: (Folder) -> Unit,
 ) {
-    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
-    val rowShape = if (isMiuix) RoundedCornerShape(20.dp) else FolderRowShape
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1087,15 +784,11 @@ private fun FolderSection(
                     var menuExpanded by remember { mutableStateOf(false) }
                     Box(modifier = Modifier.animateItem()) {
                         Surface(
-                            shape = rowShape,
-                            color = if (isMiuix) {
-                                MiuixTheme.colorScheme.surfaceContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceContainer
-                            },
+                            shape = FolderRowShape,
+                            color = MaterialTheme.colorScheme.surfaceContainer,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(rowShape)
+                                .clip(FolderRowShape)
                                 .combinedClickable(
                                     onClick = { onClickFolder(folder) },
                                     onLongClick = { menuExpanded = true },
@@ -1111,11 +804,7 @@ private fun FolderSection(
                                 Icon(
                                     folderIcon,
                                     contentDescription = null,
-                                    tint = if (isMiuix) {
-                                        MiuixTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.primary
-                                    },
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp),
                                 )
                                 Text(
@@ -1133,11 +822,11 @@ private fun FolderSection(
                                 )
                             }
                         }
-                        KedgeDropdownMenuSlots(
+                        DropdownMenu(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                         ) {
-                            KedgeDropdownItemSlot(
+                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.chat_page_rename)) },
                                 leadingIcon = { Icon(edit, null) },
                                 onClick = {
@@ -1145,7 +834,7 @@ private fun FolderSection(
                                     menuExpanded = false
                                 }
                             )
-                            KedgeDropdownItemSlot(
+                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.chat_page_delete)) },
                                 leadingIcon = { Icon(delete, null) },
                                 onClick = {

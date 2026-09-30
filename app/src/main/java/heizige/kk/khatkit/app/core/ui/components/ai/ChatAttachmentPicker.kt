@@ -48,20 +48,8 @@ internal fun rememberChatAttachmentPickerActions(
     val resources = LocalResources.current
     val toaster = LocalToaster.current
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
-    var showImagePicker by remember { mutableStateOf(false) }
     val cameraPermission = rememberPermissionState(PermissionCamera)
     PermissionManager(permissionState = cameraPermission)
-
-    if (showImagePicker) {
-        ImageToolboxMediaPicker(
-            onDismiss = { showImagePicker = false },
-            onConfirm = { uris ->
-                inputState.addImages(filesManager.createChatFilesByContents(uris))
-                showImagePicker = false
-                onAttachmentAdded()
-            },
-        )
-    }
 
     var cameraOutputUri by remember { mutableStateOf<Uri?>(null) }
     var cameraOutputFile by remember { mutableStateOf<File?>(null) }
@@ -199,7 +187,7 @@ internal fun rememberChatAttachmentPickerActions(
 
     return ChatAttachmentPickerActions(
         onTakePicture = onTakePicture,
-        onPickImage = { showImagePicker = true },
+        onPickImage = { imagePickerLauncher.launch("image/*") },
         onPickVideo = { videoPickerLauncher.launch("video/*") },
         onPickAudio = { audioPickerLauncher.launch("audio/*") },
         onPickFile = { filePickerLauncher.launch(arrayOf("*/*")) },

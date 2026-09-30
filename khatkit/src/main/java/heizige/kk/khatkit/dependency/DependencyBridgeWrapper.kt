@@ -37,25 +37,7 @@ class DependencyBridgeWrapper(
     }
 
     private fun toolbox(): ImageToolboxBridge = dependency as? ImageToolboxBridge
-            ?: error("依赖包 $dependencyName 未实现 ImageToolboxBridge，无法使用类型化图像方法；请改用 $dependencyName.call(...)")
-
-    override fun mediaInfo(path: String): String = toolbox().mediaInfo(path)
-
-    override fun mediaTracks(path: String): String = toolbox().mediaTracks(path)
-
-    override fun extractAudioCover(path: String, output: String): String =
-        toolbox().extractAudioCover(path, output)
-
-    override fun extractVideoFrame(path: String, timeMs: Long, output: String): String =
-        toolbox().extractVideoFrame(path, timeMs, output)
-
-    override fun extractVideoFrames(path: String, timesMsJson: String, outputDir: String): String =
-        toolbox().extractVideoFrames(path, timesMsJson, outputDir)
-
-    override fun generateCode(text: String, format: String, width: Int, height: Int, output: String): String =
-        toolbox().generateCode(text, format, width, height, output)
-
-    override fun scanCodes(path: String): String = toolbox().scanCodes(path)
+        ?: error("依赖包 $dependencyName 未实现 ImageToolboxBridge，无法使用类型化图像方法；请改用 $dependencyName.call(...)")
 
     override fun resize(path: String, width: Int, height: Int, keepAspect: Boolean): String =
         toolbox().resize(path, width, height, keepAspect)

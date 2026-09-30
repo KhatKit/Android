@@ -16,9 +16,6 @@ dependencies {
     // 仅编译期依赖宿主 bridge 接口；依赖产物 dex 不包含宿主类，
     // 运行时由应用的 classloader 通过 DexClassLoader(parent) 提供。
     compileOnly(project(":khatkit"))
-    implementation(libs.zxing.core)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
 }
 
 // ══════════════ 原生依赖包打包 ══════════════
@@ -32,7 +29,7 @@ dependencies {
 // requires.dependencies[].sha256 由服务端在种子/打包时计算，见 docs/dependency-system.md。
 
 val dependencyName = "imageToolbox"
-val dependencyVersion = "1.2.0"
+val dependencyVersion = "1.0.0"
 val dependencyEntry = "heizige.kk.khatkit.dependencies.imageToolbox.ImageToolboxDependency"
 val dependencyArtifactName = "image-toolbox-$dependencyVersion.jar"
 
@@ -111,10 +108,6 @@ val buildDependencyDex = tasks.register("buildDependencyDex") {
         )
         androidJarFile?.let { command += listOf("--lib", it.absolutePath) }
         command += classesJar.absolutePath
-        // 将独立依赖一并转入 DEX；它仍随 imageToolbox 云端包下载，不进入 APK。
-        configurations.getByName("debugRuntimeClasspath").resolve()
-            .filter { it.extension == "jar" && it.name.contains("zxing") }
-            .forEach { command += it.absolutePath }
         val process = ProcessBuilder(command).redirectErrorStream(true).start()
         val log = process.inputStream.bufferedReader().use { it.readText() }
         val exit = process.waitFor()

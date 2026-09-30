@@ -81,26 +81,6 @@ interface ToolBridge {
  * `compress` 已在 [ToolBridge.compressImage]，这里不重复暴露。
  */
 interface ImageToolboxBridge {
-    /** 读取音频/视频媒体元数据，返回 JSON。 */
-    fun mediaInfo(path: String): String
-
-    /** 读取媒体中的音视频轨道格式列表，返回 JSON 数组。 */
-    fun mediaTracks(path: String): String
-
-    /** 提取音频内嵌封面，返回本地图片路径；没有封面时抛出中文错误。 */
-    fun extractAudioCover(path: String, output: String = ""): String
-
-    /** 提取视频指定时间点的 JPEG 帧，timeMs <= 0 时取首帧。 */
-    fun extractVideoFrame(path: String, timeMs: Long = 0L, output: String = ""): String
-
-    /** 按时间点批量提取视频 JPEG 帧，返回 JSON 路径数组。 */
-    fun extractVideoFrames(path: String, timesMsJson: String = "[]", outputDir: String = ""): String
-
-    /** 生成 QR/条码图片，返回本地 PNG 路径。 */
-    fun generateCode(text: String, format: String = "QR_CODE", width: Int = 800, height: Int = 800, output: String = ""): String
-
-    /** 识别图片中的 QR/条码，返回 JSON 数组。 */
-    fun scanCodes(path: String): String
     /** 缩放：keepAspect=true 时按比例适配 width×height（只给一边则另一边自动算）。 */
     fun resize(path: String, width: Int = 0, height: Int = 0, keepAspect: Boolean = true): String
 
@@ -191,21 +171,6 @@ interface ImageToolboxBridge {
 }
 
 interface UiBridge {
-    /** Lua 声明式操作 Sheet；返回 {event=..., values=...}，取消返回 null。 */
-    fun sheet(
-        title: String,
-        actions: List<Map<String, Any?>>,
-        options: Map<String, Any?>? = null,
-    ): Map<String, Any?>? = null
-
-    /** 打开带 WebView 的登录 Sheet；action 的 event/values 与普通 Sheet 一致。 */
-    fun webSheet(
-        title: String,
-        url: String,
-        actions: List<Map<String, Any?>>,
-        options: Map<String, Any?>? = null,
-    ): Map<String, Any?>? = null
-
     /**
      * items 为组件列表，返回用户填好的值；用户取消返回 null。
      *
@@ -233,14 +198,6 @@ interface UiBridge {
 
     /** 用户是否在浮窗看板点了「停止」；长脚本可在每步之间轮询以便尽早退出。 */
     fun isCancelled(): Boolean = false
-}
-
-/** WebView 登录与按站点隔离的 Cookie 管理。Cookie 仅在显式调用后返回。 */
-interface WebBridge {
-    fun openLogin(url: String, title: String = "网页登录", actions: List<Map<String, Any?>> = emptyList()): String
-    fun savedCookie(url: String): String
-    fun cookieStatus(url: String): String
-    fun clearCookie(url: String): Boolean
 }
 
 /** 白名单组件，CI 扫描 card 时校验 type 必须在此集合内 */
