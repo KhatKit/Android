@@ -5,15 +5,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.TextButton
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,54 +46,24 @@ fun AssistantExtensionsPage(id: String) {
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState { 4 }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.assistant_extensions_page_title),
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            SecondaryTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                containerColor = Color.Transparent,
-            ) {
-                Tab(
-                    selected = pagerState.currentPage == 0,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                    text = { Text(stringResource(R.string.assistant_extensions_page_tab_quick_messages)) }
-                )
-                Tab(
-                    selected = pagerState.currentPage == 1,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                    text = { Text(stringResource(R.string.assistant_extensions_page_tab_mode_injections)) }
-                )
-                Tab(
-                    selected = pagerState.currentPage == 2,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
-                    text = { Text(stringResource(R.string.assistant_extensions_page_tab_lorebooks)) }
-                )
-                Tab(
-                    selected = pagerState.currentPage == 3,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(3) } },
-                    text = { Text(stringResource(R.string.assistant_extensions_page_tab_skills)) }
-                )
-            }
+    // Tab 页统一骨架：MD3 下 KedgePageScaffold + SecondaryTabRow（原行为），
+    // Miuix 下 Miuix Scaffold + Miuix 顶栏 + KedgeTabRow（原生 TabRow/WithContour）。
+    KedgeTabPageScaffold(
+        title = stringResource(R.string.assistant_extensions_page_title),
+        titles = listOf(
+            stringResource(R.string.assistant_extensions_page_tab_quick_messages),
+            stringResource(R.string.assistant_extensions_page_tab_mode_injections),
+            stringResource(R.string.assistant_extensions_page_tab_lorebooks),
+            stringResource(R.string.assistant_extensions_page_tab_skills),
+        ),
+        selectedTabIndex = pagerState.currentPage,
+        onTabSelected = { scope.launch { pagerState.animateScrollToPage(it) } },
+        scrollBehavior = scrollBehavior,
+    ) { pagerModifier ->
 
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = pagerModifier.fillMaxWidth(),
             ) { page ->
                 when (page) {
                     0 -> {
@@ -115,7 +85,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(quickMessageIds = newIds))
                                     },
                                 )
-                                TextButton(
+                                KedgeTextButton(
                                     onClick = { navController.navigate(Screen.QuickMessages) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),
@@ -145,7 +115,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(modeInjectionIds = newIds))
                                     },
                                 )
-                                TextButton(
+                                KedgeTextButton(
                                     onClick = { navController.navigate(Screen.Prompts) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),
@@ -175,7 +145,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(lorebookIds = newIds))
                                     },
                                 )
-                                TextButton(
+                                KedgeTextButton(
                                     onClick = { navController.navigate(Screen.Prompts) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),
@@ -205,7 +175,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(enabledSkills = newSkills))
                                     },
                                 )
-                                TextButton(
+                                KedgeTextButton(
                                     onClick = { navController.navigate(Screen.Skills) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),
@@ -217,6 +187,5 @@ fun AssistantExtensionsPage(id: String) {
                     }
                 }
             }
-        }
     }
 }

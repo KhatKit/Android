@@ -9,12 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +32,8 @@ import heizige.kk.khatkit.app.core.util.base64Encode
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.components.KedgeCard
 
 @Composable
 fun ShareHandlerPage(text: String, image: String?) {
@@ -40,20 +41,16 @@ fun ShareHandlerPage(text: String, image: String?) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val navController = LocalNavController.current
-    Scaffold(
-        topBar = {
-            KedgePageTopBar(
-                title = stringResource(R.string.share_handler_page_title)
-            )
-        }
-    ) {
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.share_handler_page_title),
+    ) { it ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = it + PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
-                Card {
+                KedgeCard {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -92,7 +89,7 @@ fun ShareHandlerPage(text: String, image: String?) {
                     tonalElevation = 4.dp,
                     shape = MaterialTheme.shapes.medium
                 ) {
-                    ListItem(
+                    KedgeListItem(
                         headlineContent = {
                             Text(
                                 text = assistant.name.ifEmpty {

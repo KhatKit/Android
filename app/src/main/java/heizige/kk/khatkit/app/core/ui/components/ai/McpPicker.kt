@@ -15,19 +15,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clip
-import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeBadge
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.kedge.components.KedgeCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,14 +84,14 @@ fun McpPickerButton(
                 contentAlignment = Alignment.Center
             ) {
                 if (loading) {
-                    CircularProgressIndicator(
+                    KedgeProgressIndicator(
                         modifier = Modifier.size(20.dp)
                     )
                 } else {
                     BadgedBox(
                         badge = {
                             if (enabledServers.isNotEmpty()) {
-                                Badge(
+                                KedgeBadge(
                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                 ) {
                                     Text(text = enabledServers.size.toString())
@@ -168,10 +168,10 @@ fun McpPickerListItem(
         it.commonOptions.enable && assistant.mcpServers.contains(it.id)
     }
 
-    ListItem(
+    KedgeListItem(
         leadingContent = {
             if (loading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                KedgeProgressIndicator(modifier = Modifier.size(24.dp))
             } else {
                 Icon(
                     imageVector = dns,
@@ -278,7 +278,7 @@ fun McpPicker(
     ) {
         items(servers.fastFilter { it.commonOptions.enable }) { server ->
             val status by mcpManager.getStatus(server).collectAsStateWithLifecycle(McpStatus.Idle)
-            Card {
+            KedgeCard {
                 Row(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -288,19 +288,19 @@ fun McpPicker(
                 ) {
                     when (status) {
                         McpStatus.Idle -> Icon(power, null)
-                        McpStatus.Connecting -> CircularProgressIndicator(
+                        McpStatus.Connecting -> KedgeProgressIndicator(
                             modifier = Modifier.size(
                                 24.dp
                             )
                         )
 
                         McpStatus.Connected -> Icon(dns, null)
-                        is McpStatus.Reconnecting -> CircularProgressIndicator(
+                        is McpStatus.Reconnecting -> KedgeProgressIndicator(
                             modifier = Modifier.size(24.dp)
                         )
                         is McpStatus.Error -> Icon(warning, null)
                         McpStatus.NeedsAuthorization -> Icon(warning, null)
-                        McpStatus.Authorizing -> CircularProgressIndicator(
+                        McpStatus.Authorizing -> KedgeProgressIndicator(
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -336,7 +336,7 @@ fun McpPicker(
                             }
                         }
                     }
-                    Switch(
+                    KedgeSwitch(
                         checked = server.id in assistant.mcpServers,
                         onCheckedChange = {
                             if (it) {

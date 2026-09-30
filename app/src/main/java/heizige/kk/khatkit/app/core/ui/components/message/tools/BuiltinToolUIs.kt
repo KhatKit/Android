@@ -16,16 +16,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -138,7 +139,7 @@ object MemoryToolUI : ToolUIRenderer {
             context = context,
             headerActions = if (action(context) in listOf(ACTION_CREATE, ACTION_EDIT) && memoryId != null) {
                 {
-                    IconButton(
+                    KedgeIconButton(
                         onClick = {
                             scope.launch {
                                 memoryRepo.deleteMemory(memoryId)
@@ -628,7 +629,7 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                         color = KedgeColors.onSurface.copy(alpha = 0.7f),
                     )
                 }
-                LinearProgressIndicator(
+                KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
                     progress = { (app.appMs().toFloat() / maxAppMs).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -729,7 +730,7 @@ private fun SearchWebPreview(
 
         if (answer != null) {
             item {
-                Card(
+                KedgeCard(
                     colors = CardDefaults.cardColors(
                         containerColor = KedgeColors.primaryContainer
                     )
@@ -783,7 +784,7 @@ private fun SearchWebPreview(
                     }
                 }
 
-                Card(
+                KedgeCard(
                     onClick = { context.openUrl(url) },
                     colors = CardDefaults.cardColors(
                         containerColor = KedgeColors.tertiaryContainer,
@@ -870,7 +871,7 @@ private fun ScrapeWebPreview(content: JsonElement) {
                     color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Card {
+                KedgeCard {
                     MarkdownBlock(
                         content = urlObject["content"]?.jsonPrimitive?.content ?: "",
                         modifier = Modifier

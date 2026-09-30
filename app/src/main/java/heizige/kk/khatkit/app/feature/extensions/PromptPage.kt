@@ -27,30 +27,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.InputChip
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,7 +82,6 @@ import heizige.kk.khatkit.app.core.data.model.Lorebook
 import heizige.kk.khatkit.app.core.data.model.PromptInjection
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.ExportDialog
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
@@ -103,6 +102,8 @@ import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.iosShare
 import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
@@ -111,15 +112,9 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                navigationIcon = { BackButton() },
-                title = stringResource(R.string.prompt_page_title),
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.prompt_page_title),
+        scrollBehavior = scrollBehavior,
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
@@ -140,8 +135,6 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
                 )
             }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
@@ -262,12 +255,12 @@ private fun ModeInjectionTab(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
             leadingContent = {
-                IconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(uploadFile, null)
                 }
             },
         ) {
-            Button(onClick = { editState.open(PromptInjection.ModeInjection()) }, shapes = ButtonDefaults.shapes()) {
+            KedgeButton(onClick = { editState.open(PromptInjection.ModeInjection()) }, shapes = ButtonDefaults.shapes()) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -318,7 +311,7 @@ private fun ModeInjectionCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
                 FilledIconButton(onClick = {
@@ -335,7 +328,7 @@ private fun ModeInjectionCard(
         enableDismissFromStartToEnd = false,
         modifier = modifier
     ) {
-        Card(
+        KedgeCard(
             colors = CardDefaults.cardColors(
                 containerColor = CustomColors.listItemColors.containerColor
             )
@@ -373,10 +366,10 @@ private fun ModeInjectionCard(
                         }
                     }
                 }
-                IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(iosShare, stringResource(R.string.export_title))
                 }
-                IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                     Icon(build, stringResource(R.string.prompt_page_edit))
                 }
             }
@@ -420,7 +413,7 @@ private fun ModeInjectionEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = injection.name,
                     onValueChange = { onEdit(injection.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -428,17 +421,17 @@ private fun ModeInjectionEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                FormItem(
+                KedgeFormRow(
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
                     tail = {
-                        Switch(
+                        KedgeSwitch(
                             checked = injection.enabled,
                             onCheckedChange = { onEdit(injection.copy(enabled = it)) }
                         )
                     }
                 )
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = injection.priority.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(injection.copy(priority = p)) }
@@ -459,7 +452,7 @@ private fun ModeInjectionEditSheet(
                 )
 
                 AnimatedVisibility(visible = injection.position == InjectionPosition.AT_DEPTH) {
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = injection.injectDepth.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(injection.copy(injectDepth = d)) }
@@ -484,7 +477,7 @@ private fun ModeInjectionEditSheet(
                     }
                 }
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = injection.content,
                     onValueChange = { onEdit(injection.copy(content = it)) },
                     label = { Text(stringResource(R.string.prompt_page_injection_content)) },
@@ -652,12 +645,12 @@ private fun LorebookTab(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
             leadingContent = {
-                IconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(uploadFile, null)
                 }
             },
         ) {
-            Button(onClick = { editState.open(Lorebook()) }, shapes = ButtonDefaults.shapes()) {
+            KedgeButton(onClick = { editState.open(Lorebook()) }, shapes = ButtonDefaults.shapes()) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -708,7 +701,7 @@ private fun LorebookCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
                 FilledIconButton(onClick = {
@@ -725,7 +718,7 @@ private fun LorebookCard(
         enableDismissFromStartToEnd = false,
         modifier = modifier
     ) {
-        Card(
+        KedgeCard(
             colors = CardDefaults.cardColors(
                 containerColor = CustomColors.listItemColors.containerColor
             )
@@ -774,10 +767,10 @@ private fun LorebookCard(
                         }
                     }
                 }
-                IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(iosShare, stringResource(R.string.export_title))
                 }
-                IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                     Icon(build, stringResource(R.string.prompt_page_edit))
                 }
             }
@@ -830,7 +823,7 @@ private fun LorebookEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = book.name,
                     onValueChange = { onEdit(book.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -838,7 +831,7 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = book.description,
                     onValueChange = { onEdit(book.copy(description = it)) },
                     label = { Text(stringResource(R.string.prompt_page_description)) },
@@ -846,10 +839,10 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                FormItem(
+                KedgeFormRow(
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
                     tail = {
-                        Switch(
+                        KedgeSwitch(
                             checked = book.enabled,
                             onCheckedChange = { onEdit(book.copy(enabled = it)) }
                         )
@@ -866,7 +859,7 @@ private fun LorebookEditSheet(
                         stringResource(R.string.prompt_page_entries_format, book.entries.size),
                         style = MaterialTheme.typography.titleSmall
                     )
-                    IconButton(onClick = {
+                    KedgeIconButton(onClick = {
                         entryEditState.open(PromptInjection.RegexInjection())
                     },
                          shapes = IconButtonDefaults.shapes(),) {
@@ -905,7 +898,7 @@ private fun RegexInjectionEntryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    KedgeCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -940,10 +933,10 @@ private fun RegexInjectionEntryCard(
                     }
                 }
             }
-            IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                 Icon(build, stringResource(R.string.prompt_page_edit))
             }
-            IconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
                 Icon(delete, stringResource(R.string.prompt_page_delete))
             }
         }
@@ -971,7 +964,7 @@ private fun RegexInjectionEditDialog(
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = entry.name,
                     onValueChange = { onEdit(entry.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -979,17 +972,17 @@ private fun RegexInjectionEditDialog(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                FormItem(
+                KedgeFormRow(
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
                     tail = {
-                        Switch(
+                        KedgeSwitch(
                             checked = entry.enabled,
                             onCheckedChange = { onEdit(entry.copy(enabled = it)) }
                         )
                     }
                 )
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = entry.priority.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(entry.copy(priority = p)) }
@@ -1010,7 +1003,7 @@ private fun RegexInjectionEditDialog(
                 )
 
                 AnimatedVisibility(visible = entry.position == InjectionPosition.AT_DEPTH) {
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = entry.injectDepth.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
@@ -1034,7 +1027,7 @@ private fun RegexInjectionEditDialog(
                             onClick = {},
                             label = { Text(keyword) },
                             trailingIcon = {
-                                IconButton(
+                                KedgeIconButton(
                                     onClick = {
                                         onEdit(entry.copy(keywords = entry.keywords - keyword))
                                     },
@@ -1052,7 +1045,7 @@ private fun RegexInjectionEditDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = newKeyword,
                         onValueChange = { newKeyword = it },
                         label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
@@ -1060,7 +1053,7 @@ private fun RegexInjectionEditDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    IconButton(
+                    KedgeIconButton(
                         onClick = {
                             if (newKeyword.isNotBlank()) {
                                 onEdit(entry.copy(keywords = entry.keywords + newKeyword.trim()))
@@ -1073,38 +1066,38 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                FormItem(
+                KedgeFormRow(
                     label = { Text(stringResource(R.string.prompt_page_use_regex)) },
                     tail = {
-                        Switch(
+                        KedgeSwitch(
                             checked = entry.useRegex,
                             onCheckedChange = { onEdit(entry.copy(useRegex = it)) }
                         )
                     }
                 )
 
-                FormItem(
+                KedgeFormRow(
                     label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
                     tail = {
-                        Switch(
+                        KedgeSwitch(
                             checked = entry.caseSensitive,
                             onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) }
                         )
                     }
                 )
 
-                FormItem(
+                KedgeFormRow(
                     label = { Text(stringResource(R.string.prompt_page_constant_active)) },
                     description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
                     tail = {
-                        Switch(
+                        KedgeSwitch(
                             checked = entry.constantActive,
                             onCheckedChange = { onEdit(entry.copy(constantActive = it)) }
                         )
                     }
                 )
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = entry.scanDepth.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { d -> onEdit(entry.copy(scanDepth = d)) }
@@ -1128,7 +1121,7 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = entry.content,
                     onValueChange = { onEdit(entry.copy(content = it)) },
                     label = { Text(stringResource(R.string.prompt_page_injection_content)) },
@@ -1142,7 +1135,7 @@ private fun RegexInjectionEditDialog(
         },
         confirmButton = {
             val canSave = entry.keywords.isNotEmpty() || entry.constantActive
-            TextButton(
+            KedgeTextButton(
                 onClick = onConfirm,
                 enabled = canSave,
                 shapes = ButtonDefaults.shapes(),
@@ -1151,7 +1144,7 @@ private fun RegexInjectionEditDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.prompt_page_cancel))
             }
         }

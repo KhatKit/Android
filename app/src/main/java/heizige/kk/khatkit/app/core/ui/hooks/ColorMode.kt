@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.hooks
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -31,6 +32,21 @@ fun rememberCurrentColorMode(): ColorMode {
     val colorModeValue by rememberSharedPreferenceString(COLOR_MODE_KEY, ColorMode.SYSTEM.name)
     return colorModeValue.toColorMode()
 }
+
+/**
+ * 把用户的「颜色模式」设置解析成实际使用的深/浅色。
+ *
+ * Kedge 的 `KedgeTheme`（也就是 Miuix 主题）只认这个布尔值，且它自己的默认值是
+ * `isSystemInDarkTheme()`——跟应用内设置无关。所以 Miuix 分支必须显式把本函数
+ * 的结果传进去，否则在应用内切「浅色」对 Miuix 完全无效。
+ */
+@Composable
+fun rememberIsDarkTheme(): Boolean =
+    when (rememberCurrentColorMode()) {
+        ColorMode.SYSTEM -> isSystemInDarkTheme()
+        ColorMode.LIGHT -> false
+        ColorMode.DARK -> true
+    }
 
 @Composable
 fun rememberAmoledDarkMode(): MutableState<Boolean> {

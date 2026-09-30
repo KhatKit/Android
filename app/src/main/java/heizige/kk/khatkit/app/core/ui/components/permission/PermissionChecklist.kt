@@ -26,9 +26,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -59,6 +56,8 @@ import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 import heizige.kk.khromia.components.AnimatedRadioItem
+import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
@@ -482,9 +481,11 @@ fun PermissionChecklist(
                 },
             )
             PermissionRadioItem(
-                title = "放手模式",
-                subtitle = "允许自动化执行任何操作，不再弹窗询问 · " +
-                    if (handsOff) "已开启" else "已关闭",
+                title = stringResource(R.string.approval_hands_off_title),
+                subtitle = stringResource(R.string.approval_hands_off_desc) +
+                    " " + stringResource(
+                        if (handsOff) R.string.approval_status_on else R.string.approval_status_off
+                    ),
                 selected = handsOff,
                 shape = cards.indexedShape(3, 5),
                 dangerous = true,
@@ -496,8 +497,8 @@ fun PermissionChecklist(
                 },
             )
             PermissionRadioItem(
-                title = "自动化审批策略",
-                subtitle = "按操作类型（运行卡片 / 界面操作 / Shell Root / 删除文件 / 应用管理）设置每次询问、允许或拒绝",
+                title = stringResource(R.string.approval_sheet_title),
+                subtitle = stringResource(R.string.approval_sheet_desc),
                 selected = false,
                 shape = cards.indexedShape(4, 5),
                 dangerous = true,
@@ -513,14 +514,14 @@ fun PermissionChecklist(
 }
 
 /**
- * 自动化审批策略面板：按 [ApprovalCategory] 列出，每项用 MD3 SegmentedButton 三选一
+ * 自动化审批策略面板：按 [ApprovalCategory] 列出，每项用 [SingleChoiceSegmentedRow] 三选一
  * （每次询问 / 允许 / 拒绝），选择即持久化并立即生效；放手模式仍覆盖一切为允许。
  */
 @Composable
 private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
     PrimaryBottomSheet(
         visible = true,
-        title = "自动化审批策略",
+        title = stringResource(R.string.approval_sheet_title),
         imageVector = verifiedUser,
         onDismiss = onDismiss,
     ) { _ ->
@@ -532,7 +533,7 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "按操作类型设置审批方式；放手模式开启时全部放行，「记住 10 分钟」仅当前进程内生效。",
+                text = stringResource(R.string.approval_sheet_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -542,26 +543,21 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = category.label,
+                        text = stringResource(category.labelRes),
                         style = MaterialTheme.typography.titleSmall,
                     )
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        ApprovalPolicy.entries.forEachIndexed { index, option ->
-                            SegmentedButton(
+                    SingleChoiceSegmentedRow(
+                        items = ApprovalPolicy.entries.map { option ->
+                            SegmentedItem(
+                                label = stringResource(option.labelRes),
                                 selected = policy == option,
                                 onClick = {
                                     policy = option
                                     AutomationBus.setPolicy(category, option)
                                 },
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = ApprovalPolicy.entries.size,
-                                ),
-                            ) {
-                                Text(option.label)
-                            }
-                        }
-                    }
+                            )
+                        },
+                    )
                 }
             }
         }

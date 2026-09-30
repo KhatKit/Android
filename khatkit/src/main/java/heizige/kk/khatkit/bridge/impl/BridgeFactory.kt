@@ -57,6 +57,7 @@ object BridgeFactory {
         val registry = BridgeRegistry(
             tool = AndroidToolBridge(appContext, http),
             ui = ui,
+            web = WebBridgeImpl(appContext, ui),
             download = DownloadManagerImpl(
                 context = appContext,
                 scope = scope,

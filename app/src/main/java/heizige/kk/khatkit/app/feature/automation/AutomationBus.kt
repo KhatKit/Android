@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.automation
 
+import androidx.annotation.StringRes
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -39,12 +40,12 @@ import java.util.concurrent.ConcurrentHashMap
  * [SHELL_ROOT] 覆盖 root / Shizuku 命令执行；[FILE_DELETE] / [APP_MANAGE] 预留给后续
  * 更细粒度的调用方（卡片脚本内部的文件 / 应用操作暂不细分）。
  */
-enum class ApprovalCategory(val id: String, val label: String) {
-    CARD_RUN("card_run", "运行卡片"),
-    UI_ACTION("ui_action", "界面操作"),
-    SHELL_ROOT("shell_root", "Shell / Root"),
-    FILE_DELETE("file_delete", "删除文件"),
-    APP_MANAGE("app_manage", "应用管理");
+enum class ApprovalCategory(val id: String, @StringRes val labelRes: Int) {
+    CARD_RUN("card_run", R.string.approval_category_card_run),
+    UI_ACTION("ui_action", R.string.approval_category_ui_action),
+    SHELL_ROOT("shell_root", R.string.approval_category_shell_root),
+    FILE_DELETE("file_delete", R.string.approval_category_file_delete),
+    APP_MANAGE("app_manage", R.string.approval_category_app_manage);
 
     companion object {
         fun fromId(id: String?): ApprovalCategory? = entries.firstOrNull { it.id == id }
@@ -52,10 +53,10 @@ enum class ApprovalCategory(val id: String, val label: String) {
 }
 
 /** 单个类别的审批策略：默认每次询问。 */
-enum class ApprovalPolicy(val id: String, val label: String) {
-    ALWAYS_ASK("always_ask", "每次询问"),
-    ALLOW("allow", "允许"),
-    DENY("deny", "拒绝");
+enum class ApprovalPolicy(val id: String, @StringRes val labelRes: Int) {
+    ALWAYS_ASK("always_ask", R.string.approval_policy_always_ask),
+    ALLOW("allow", R.string.approval_policy_allow),
+    DENY("deny", R.string.approval_policy_deny);
 
     companion object {
         fun fromId(id: String?): ApprovalPolicy? = entries.firstOrNull { it.id == id }

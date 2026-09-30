@@ -6,15 +6,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +58,7 @@ fun SettingProviderBalanceOption(
                 text = stringResource(R.string.setting_provider_page_balance_info),
                 modifier = Modifier.weight(1f),
             )
-            IconButton(
+            KedgeIconButton(
                 onClick = {
                     expand = !expand
                 },
@@ -76,7 +76,7 @@ fun SettingProviderBalanceOption(
                     )
                 }
             }
-            Checkbox(
+            KedgeCheckbox(
                 checked = balanceOption.enabled,
                 onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
             )
@@ -85,7 +85,7 @@ fun SettingProviderBalanceOption(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = balanceOption.apiPath,
                     onValueChange = { onEdit(balanceOption.copy(apiPath = it)) },
                     label = { Text(stringResource(R.string.setting_provider_page_balance_api_path)) },
@@ -93,7 +93,7 @@ fun SettingProviderBalanceOption(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = balanceOption.resultPath,
                     onValueChange = { onEdit(balanceOption.copy(resultPath = it)) },
                     label = { Text(stringResource(R.string.setting_provider_page_balance_json_key)) },
@@ -102,7 +102,7 @@ fun SettingProviderBalanceOption(
                     textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
                     shape = RoundedCornerShape(16.dp)
                 )
-                IconButton(
+                KedgeIconButton(
                     onClick = {
                         val defaultProvider = DEFAULT_PROVIDERS.find { it.id == provider.id }
                         if (defaultProvider != null) {

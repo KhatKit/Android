@@ -54,6 +54,14 @@ data class UiSheetOptions(
 
 /** 一个等待宿主 UI 处理的请求。 */
 sealed interface UiRequest {
+    data class Sheet(
+        val title: String,
+        val url: String? = null,
+        val actions: List<Map<String, Any?>>,
+        val options: UiSheetOptions,
+        val deferred: CompletableDeferred<Map<String, Any?>?>,
+    ) : UiRequest
+
     data class Form(
         val title: String,
         val items: List<Map<String, Any?>>,
@@ -105,6 +113,22 @@ class UiBridgeHost(
         return runBlocking { withTimeoutOrNull(timeoutMillis) { deferred.await() } }
     }
 
+    override fun sheet(
+        title: String,
+        actions: List<Map<String, Any?>>,
+        options: Map<String, Any?>?,
+    ): Map<String, Any?>? {
+        val deferred = CompletableDeferred<Map<String, Any?>?>()
+        _request.value = UiRequest.Sheet(title = title, actions = actions, options = UiSheetOptions.from(options), deferred = deferred)
+        return runBlocking { withTimeoutOrNull(timeoutMillis) { deferred.await() } }
+    }
+
+    override fun webSheet(title: String, url: String, actions: List<Map<String, Any?>>, options: Map<String, Any?>?): Map<String, Any?>? {
+        val deferred = CompletableDeferred<Map<String, Any?>?>()
+        _request.value = UiRequest.Sheet(title, url, actions, UiSheetOptions.from(options), deferred)
+        return runBlocking { withTimeoutOrNull(timeoutMillis) { deferred.await() } }
+    }
+
     override fun confirm(title: String, message: String, danger: Boolean): Boolean {
         val deferred = CompletableDeferred<Boolean>()
         _request.value = UiRequest.Confirm(title, message, danger, deferred)
@@ -123,6 +147,9 @@ class UiBridgeHost(
     }
 
     override fun automationStatus(label: String, detail: String) {
+        // Keep the same status visible inside KhatKit while the external overlay
+        // remains responsible for runs that continue over another app.
+        if (label.isNotBlank()) _progress.value = 1f to if (detail.isBlank()) label else "$label：$detail"
         onAutomationStatus(label, detail)
     }
 
@@ -131,6 +158,12 @@ class UiBridgeHost(
     fun submitForm(values: Map<String, Any?>?) {
         val current = _request.value as? UiRequest.Form ?: return
         current.deferred.complete(values)
+        _request.value = null
+    }
+
+    fun selectSheetAction(event: String, values: Map<String, Any?> = emptyMap()) {
+        val current = _request.value as? UiRequest.Sheet ?: return
+        current.deferred.complete(mapOf("event" to event, "values" to values))
         _request.value = null
     }
 
@@ -144,6 +177,7 @@ class UiBridgeHost(
         when (val current = _request.value) {
             is UiRequest.Form -> current.deferred.complete(null)
             is UiRequest.Confirm -> current.deferred.complete(false)
+            is UiRequest.Sheet -> current.deferred.complete(null)
             else -> Unit
         }
         _request.value = null

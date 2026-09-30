@@ -44,7 +44,7 @@ cards/<name>/
   README.md      可选
 ```
 
-卡片不再放在 GitHub 项目的 APK assets 中。开发/维护目录为项目外的 `~/KhatKitCards/<name>/`（服务端部署目录为 `/opt/KhatKitCards/<name>/`），由 Hub 独立分发。第三方卡片由卡片市场下载，解压到应用缓存目录的 `khatkit/cards/<name>/<version>/`。
+卡片不再放在 GitHub 项目的 APK assets 中。开发/维护目录为 Android 工作区的 `/home/heizige/文档/Android/KhatKitCards/<name>/`（服务端部署目录为 `/opt/KhatKitCards/<name>/`），由 Hub 独立分发。第三方卡片由卡片市场下载，解压到应用缓存目录的 `khatkit/cards/<name>/<version>/`。
 
 ### 1.3 最小 card.json
 
@@ -126,9 +126,9 @@ return { message: "Hello, " + name };
 
 ### 1.7 推荐开发循环
 
-1. 在 `~/KhatKitCards/<name>/` 下写 `card.json` + `main.lua`/`main.js`。
+1. 在 `/home/heizige/文档/Android/KhatKitCards/<name>/` 下写 `card.json` + `main.lua`/`main.js`。
 2. 用 AI 调用或市场「运行」触发，观察返回值与自动化看板。
-3. 跑静态校验：`./gradlew :card-validator:run --args="/home/heizige/KhatKitCards"`。
+3. 跑静态校验：`./gradlew :card-validator:run --args="/home/heizige/文档/Android/KhatKitCards"`。
 4. 发布到 Hub 时保持 `version` 递增，客户端靠版本号判断更新。
 
 ---

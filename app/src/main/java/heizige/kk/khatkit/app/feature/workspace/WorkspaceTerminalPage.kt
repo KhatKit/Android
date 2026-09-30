@@ -25,7 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,7 +32,8 @@ import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -116,7 +116,7 @@ fun WorkspaceTerminalPage(id: String) {
                     Text(stringResource(R.string.workspace_terminal_close_confirm_message))
                 },
                 confirmButton = {
-                    TextButton(
+                    KedgeTextButton(
                         onClick = {
                             root?.let { sessionManager.closeTab(it, pendingCloseTab.id) }
                             pendingCloseTabId = null
@@ -127,7 +127,7 @@ fun WorkspaceTerminalPage(id: String) {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { pendingCloseTabId = null }, shapes = ButtonDefaults.shapes()) {
+                    KedgeTextButton(onClick = { pendingCloseTabId = null }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.common_cancel))
                     }
                 },
@@ -220,7 +220,7 @@ private fun WorkspaceTerminalContent(
                                             R.string.workspace_terminal_close_tab,
                                             tab.number,
                                         )
-                                        IconButton(
+                                        KedgeIconButton(
                                             onClick = { onCloseTab(tab.id) },
                                             modifier = Modifier
                                                 .size(48.dp)
@@ -238,7 +238,7 @@ private fun WorkspaceTerminalContent(
                     }
                 }
                 val newTabDescription = stringResource(R.string.workspace_terminal_new_tab)
-                IconButton(
+                KedgeIconButton(
                     onClick = onCreateTab,
                     enabled = root != null && !state.isCreating,
                     modifier = Modifier

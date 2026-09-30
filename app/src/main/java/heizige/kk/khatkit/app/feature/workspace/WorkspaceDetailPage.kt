@@ -25,27 +25,27 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.kedge.components.KedgeCheckbox
+import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -98,6 +98,8 @@ import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.undo
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.components.KedgeIconButton
 
 @Composable
 fun WorkspaceDetailPage(id: String) {
@@ -145,31 +147,27 @@ fun WorkspaceDetailPage(id: String) {
         vm.goUp()
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageTopBar(
-                title = state.workspace?.name ?: stringResource(R.string.workspace_detail_title),
-                navigationIcon = { BackButton() },
-                actions = {
-                    if (pagerState.currentPage == 1) {
-                        IconButton(onClick = { filePicker.launch(arrayOf("*/*")) }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                uploadFile,
-                                contentDescription = stringResource(R.string.workspace_detail_import_file),
-                            )
-                        }
-                    }
-                    IconButton(onClick = { vm.refresh() }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(refresh, contentDescription = null)
-                    }
-                    if (state.workspace?.shellStatus != WorkspaceShellStatus.DISABLED.name) {
-                        IconButton(onClick = { navController.navigate(Screen.WorkspaceTerminal(id)) }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(terminal, contentDescription = null)
-                        }
-                    }
-                },
-                colors = CustomColors.topBarColors,
-            )
+    KedgeSettingsPageScaffold(
+        title = state.workspace?.name ?: stringResource(R.string.workspace_detail_title),
+        actions = {
+            if (pagerState.currentPage == 1) {
+                KedgeIconButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
+                    Icon(
+                        uploadFile,
+                        contentDescription = stringResource(R.string.workspace_detail_import_file),
+                    )
+                }
+            }
+            KedgeIconButton(onClick = { vm.refresh() }) {
+                Icon(refresh, contentDescription = null)
+            }
+            if (state.workspace?.shellStatus != WorkspaceShellStatus.DISABLED.name) {
+                KedgeIconButton(
+                    onClick = { navController.navigate(Screen.WorkspaceTerminal(id)) }
+                ) {
+                    Icon(terminal, contentDescription = null)
+                }
+            }
         },
         bottomBar = {
             NavigationBar {
@@ -187,7 +185,6 @@ fun WorkspaceDetailPage(id: String) {
                 )
             }
         },
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
@@ -285,7 +282,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text("导出结果") },
             text = { Text(result, modifier = Modifier.verticalScroll(rememberScrollState())) },
             confirmButton = {
-                TextButton(onClick = vm::dismissExportResult, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.common_confirm)) }
+                KedgeTextButton(onClick = vm::dismissExportResult, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.common_confirm)) }
             },
         )
     }
@@ -309,7 +306,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text(stringResource(R.string.workspace_detail_rootfs_install_failed)) },
             text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = vm::dismissInstallError, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = vm::dismissInstallError, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.common_confirm))
                 }
             },
@@ -322,7 +319,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text(stringResource(R.string.workspace_detail_settings_save_failed)) },
             text = { Text(message.ifBlank { stringResource(R.string.workspace_detail_settings_save_failed) }) },
             confirmButton = {
-                TextButton(onClick = vm::dismissSettingsError, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = vm::dismissSettingsError, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.common_confirm))
                 }
             },
@@ -405,7 +402,7 @@ private fun WorkspaceBasicPage(
                             modifier = Modifier.padding(top = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Button(
+                            KedgeButton(
                                 onClick = onInstallRootfs,
                                 enabled = workspace != null && !installing,
                                 modifier = Modifier.fillMaxWidth(),
@@ -440,7 +437,7 @@ private fun WorkspaceBasicPage(
                 item(
                     headlineContent = { Text(stringResource(R.string.workspace_detail_compatibility_mode)) },
                     trailingContent = {
-                        Switch(
+                        KedgeSwitch(
                             checked = workspace?.shellCompatibilityMode ?: false,
                             onCheckedChange = onShellCompatibilityModeChange,
                             enabled = workspace != null,
@@ -490,7 +487,7 @@ private fun WorkspaceToolApprovalCard(
                     )
                 },
                 trailingContent = {
-                    Switch(
+                    KedgeSwitch(
                         checked = resolveWorkspaceToolApproval(toolName, overrides),
                         onCheckedChange = { onToolApprovalChange(toolName, it) },
                         enabled = workspace != null,
@@ -519,12 +516,12 @@ private fun RootfsProgress(progress: RootfsInstallProgress) {
             (progress.bytesRead.toFloat() / it).coerceIn(0f, 1f)
         }
         if (fraction != null && progress.stage == RootfsInstallStage.DOWNLOADING) {
-            LinearProgressIndicator(
+            KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
                 progress = { fraction },
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
         }
         Text(
             text = when (progress.stage) {
@@ -566,7 +563,7 @@ private fun InstallRootfsDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = url,
                     onValueChange = { url = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -577,7 +574,7 @@ private fun InstallRootfsDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = { onConfirm(url.trim()) },
                 enabled = url.isNotBlank(),
                 shapes = ButtonDefaults.shapes(),
@@ -586,7 +583,7 @@ private fun InstallRootfsDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.common_cancel))
             }
         },
@@ -645,25 +642,25 @@ private fun WorkspaceFilesPage(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TextButton(
+                    KedgeTextButton(
                         onClick = {
                             selecting = false
                             selectedPaths = emptySet()
                         },
                         shapes = ButtonDefaults.shapes(),
                     ) { Text("取消多选") }
-                    TextButton(onClick = {
+                    KedgeTextButton(onClick = {
                         selectedPaths = if (selectedFiles.size == files.size) emptySet() else files.map { it.path }.toSet()
                     },
                          shapes = ButtonDefaults.shapes(),) { Text(if (files.isNotEmpty() && selectedFiles.size == files.size) "取消全选" else "全选") }
-                    TextButton(
+                    KedgeTextButton(
                         onClick = { onBatchExport(selectedFiles) },
                         enabled = selectedFiles.isNotEmpty() && !state.exporting,
                         shapes = ButtonDefaults.shapes(),
                     ) { Text("导出 (${selectedFiles.size})") }
                 }
                 if (state.exporting) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
                     Text("正在导出 ${state.exportCompleted}/${state.exportTotal}")
                 }
             }
@@ -737,7 +734,7 @@ private fun WorkspacePathBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(
+        KedgeIconButton(
             enabled = canGoUp,
             onClick = onGoUp,
             shapes = IconButtonDefaults.shapes(),
@@ -788,7 +785,7 @@ private fun WorkspaceFileCard(
         }
     }
 
-    Card(
+    KedgeCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -805,7 +802,7 @@ private fun WorkspaceFileCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (selecting && !entry.isDirectory) {
-                Checkbox(checked = selected, onCheckedChange = { onToggleSelection() })
+                KedgeCheckbox(checked = selected, onCheckedChange = { onToggleSelection() })
             }
             if (isImage) {
                 val context = LocalContext.current
@@ -877,15 +874,15 @@ private fun WorkspaceFileCard(
                 )
             }
             if (!selecting) Box {
-                IconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
-                DropdownMenu(
+                KedgeDropdownMenuSlots(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     if (!entry.isDirectory) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.common_export)) },
                             leadingIcon = {
                                 Icon(
@@ -898,7 +895,7 @@ private fun WorkspaceFileCard(
                                 onExport()
                             },
                         )
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.common_share)) },
                             leadingIcon = {
                                 Icon(
@@ -912,7 +909,7 @@ private fun WorkspaceFileCard(
                             },
                         )
                     }
-                    DropdownMenuItem(
+                    KedgeDropdownItemSlot(
                         text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(
@@ -957,7 +954,7 @@ private fun EmptyDirectoryState() {
 
 @Composable
 private fun ErrorCard(message: String) {
-    Card(
+    KedgeCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

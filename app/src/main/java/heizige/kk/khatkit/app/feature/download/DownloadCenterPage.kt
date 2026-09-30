@@ -10,15 +10,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,19 +36,15 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 /** 全局下载中心：KhatKit bridge 下载（含脚本创建）与更新包下载都汇总到这里。 */
 @Composable
 fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
     val tasks by vm.tasks.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            KedgePageTopBar(
-                title = "下载中心",
-                navigationIcon = { BackButton() },
-            )
-        }
+    KedgeSettingsPageScaffold(
+        title = "下载中心",
     ) { innerPadding ->
         if (tasks.isEmpty()) {
             Column(
@@ -104,7 +101,7 @@ private fun DownloadTaskRow(
     onCancel: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    Card(
+    KedgeCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -169,25 +166,25 @@ private fun DownloadTaskRow(
 
                 when {
                     task.isActive -> {
-                        IconButton(onClick = onPause, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = onPause, shapes = IconButtonDefaults.shapes()) {
                             Icon(pause, contentDescription = "暂停", modifier = Modifier.size(20.dp))
                         }
-                        IconButton(onClick = onCancel, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = onCancel, shapes = IconButtonDefaults.shapes()) {
                             Icon(stopCircle, contentDescription = "取消", modifier = Modifier.size(20.dp))
                         }
                     }
 
                     task.state == "paused" || task.state == "failed" -> {
-                        IconButton(onClick = onResume, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = onResume, shapes = IconButtonDefaults.shapes()) {
                             Icon(playArrow, contentDescription = "继续", modifier = Modifier.size(20.dp))
                         }
-                        IconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                             Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
                     }
 
                     else -> {
-                        IconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                             Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
                     }
@@ -196,12 +193,12 @@ private fun DownloadTaskRow(
 
             if (task.isActive || task.state == "paused") {
                 if (task.total > 0) {
-                    LinearProgressIndicator(
+                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
                         progress = { task.progress },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
                 }
             }
 

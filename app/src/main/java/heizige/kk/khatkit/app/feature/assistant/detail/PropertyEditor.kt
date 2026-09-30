@@ -8,14 +8,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +66,7 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            OutlinedTextField(
+                            KedgeOutlinedTextFieldWithSlots(
                                 value = headerName,
                                 onValueChange = {
                                     headerName = it
@@ -77,7 +78,7 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp)
                             )
-                            OutlinedTextField(
+                            KedgeOutlinedTextFieldWithSlots(
                                 value = headerValue,
                                 onValueChange = {
                                     headerValue = it
@@ -93,7 +94,7 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                         }
                     },
                     trailingContent = {
-                        IconButton(onClick = {
+                        KedgeIconButton(onClick = {
                             val updatedHeaders = headers.toMutableList()
                             updatedHeaders.removeAt(index)
                             onUpdate(updatedHeaders)
@@ -110,7 +111,7 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
             }
         }
 
-        Button(
+        KedgeButton(
             onClick = {
                 val updatedHeaders = headers.toMutableList()
                 updatedHeaders.add(CustomHeader("", ""))
@@ -150,7 +151,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            OutlinedTextField(
+                            KedgeOutlinedTextFieldWithSlots(
                                 value = bodyKey,
                                 onValueChange = {
                                     bodyKey = it
@@ -162,7 +163,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp)
                             )
-                            OutlinedTextField(
+                            KedgeOutlinedTextFieldWithSlots(
                                 value = bodyValueString,
                                 onValueChange = { newString ->
                                     bodyValueString = newString
@@ -202,7 +203,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                         }
                     },
                     trailingContent = {
-                        IconButton(onClick = {
+                        KedgeIconButton(onClick = {
                             val updatedBodies = customBodies.toMutableList()
                             updatedBodies.removeAt(index)
                             onUpdate(updatedBodies)
@@ -219,7 +220,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
             }
         }
 
-        Button(
+        KedgeButton(
             onClick = {
                 val updatedBodies = customBodies.toMutableList()
                 updatedBodies.add(CustomBody("", JsonPrimitive("")))

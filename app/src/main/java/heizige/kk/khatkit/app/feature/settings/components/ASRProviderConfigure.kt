@@ -7,27 +7,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import heizige.kk.kedge.components.KedgeTextField
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import heizige.kk.khatkit.asr.sherpa.SherpaModelStore
 import heizige.kk.khatkit.asr.sherpa.SherpaModels
 import kotlinx.coroutines.launch
+import heizige.kk.khromia.components.AnimatedRadioButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 
 @Composable
 fun ASRProviderConfigure(
@@ -50,11 +50,11 @@ fun ASRProviderConfigure(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier.verticalScroll(rememberScrollState())
     ) {
-        FormItem(
+        KedgeFormRow(
             label = { Text(stringResource(R.string.setting_asr_configure_provider_type)) },
             description = { Text(stringResource(R.string.setting_asr_configure_provider_type_desc)) }
         ) {
-            OutlinedTextField(
+            KedgeTextField(
                 value = when (setting) {
                     is ASRProviderSetting.OpenAIRealtime -> "OpenAI Realtime"
                     is ASRProviderSetting.DashScope -> "DashScope"
@@ -72,15 +72,15 @@ fun ASRProviderConfigure(
             )
         }
 
-        FormItem(
+        KedgeFormRow(
             label = { Text(stringResource(R.string.setting_asr_configure_name)) },
             description = { Text(stringResource(R.string.setting_asr_configure_name_desc)) }
         ) {
-            OutlinedTextField(
+            KedgeTextField(
                 value = setting.name,
                 onValueChange = { onValueChange(setting.copyProvider(name = it)) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("OpenAI Realtime") },
+                placeholder = "OpenAI Realtime",
                 shape = RoundedCornerShape(16.dp)
             )
         }
@@ -103,59 +103,59 @@ private fun GeminiTranscribeASRConfiguration(
     setting: ASRProviderSetting.GeminiTranscribe,
     onValueChange: (ASRProviderSetting) -> Unit
 ) {
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_gemini_api_key_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("AIza...") },
+            placeholder = "AIza...",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_gemini_base_url_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://generativelanguage.googleapis.com/v1beta") },
+            placeholder = "https://generativelanguage.googleapis.com/v1beta",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("gemini-2.5-flash") },
+            placeholder = "gemini-2.5-flash",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") },
+            placeholder = "auto",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_sample_rate)) },
         description = { Text(stringResource(R.string.setting_asr_configure_sample_rate_desc)) }
     ) {
@@ -177,59 +177,59 @@ private fun OpenAITranscribeASRConfiguration(
     setting: ASRProviderSetting.OpenAITranscribe,
     onValueChange: (ASRProviderSetting) -> Unit
 ) {
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_api_key_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-...") },
+            placeholder = "sk-...",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_transcribe_base_url_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.openai.com/v1") },
+            placeholder = "https://api.openai.com/v1",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("gpt-4o-transcribe") },
+            placeholder = "gpt-4o-transcribe",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") },
+            placeholder = "auto",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_sample_rate)) },
         description = { Text(stringResource(R.string.setting_asr_configure_sample_rate_desc)) }
     ) {
@@ -251,73 +251,73 @@ private fun OpenAIRealtimeASRConfiguration(
     setting: ASRProviderSetting.OpenAIRealtime,
     onValueChange: (ASRProviderSetting) -> Unit
 ) {
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_api_key_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-...") },
+            placeholder = "sk-...",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_websocket_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_websocket_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("wss://api.openai.com/v1/realtime?intent=transcription") },
+            placeholder = "wss://api.openai.com/v1/realtime?intent=transcription",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("gpt-4o-transcribe") },
+            placeholder = "gpt-4o-transcribe",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") },
+            placeholder = "auto",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_prompt)) },
         description = { Text(stringResource(R.string.setting_asr_configure_prompt_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.prompt,
             onValueChange = { onValueChange(setting.copy(prompt = it)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
-            placeholder = { Text("Optional") },
+            placeholder = "Optional",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_vad_threshold)) },
         description = { Text(stringResource(R.string.setting_asr_configure_vad_desc)) }
     ) {
@@ -333,7 +333,7 @@ private fun OpenAIRealtimeASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_prefix_padding)) },
         description = { Text(stringResource(R.string.setting_asr_configure_prefix_padding_desc)) }
     ) {
@@ -349,7 +349,7 @@ private fun OpenAIRealtimeASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_silence_duration)) },
         description = { Text(stringResource(R.string.setting_asr_configure_silence_duration_desc)) }
     ) {
@@ -371,59 +371,59 @@ private fun DashScopeASRConfiguration(
     setting: ASRProviderSetting.DashScope,
     onValueChange: (ASRProviderSetting) -> Unit
 ) {
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_dashscope_api_key_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-...") },
+            placeholder = "sk-...",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_websocket_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_dashscope_websocket_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("wss://dashscope.aliyuncs.com/api-ws/v1/realtime") },
+            placeholder = "wss://dashscope.aliyuncs.com/api-ws/v1/realtime",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("qwen3-asr-flash-realtime-2026-02-10") },
+            placeholder = "qwen3-asr-flash-realtime-2026-02-10",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("zh") },
+            placeholder = "zh",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_vad_threshold)) },
         description = { Text(stringResource(R.string.setting_asr_configure_dashscope_vad_desc)) }
     ) {
@@ -439,7 +439,7 @@ private fun DashScopeASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_silence_duration)) },
         description = { Text(stringResource(R.string.setting_asr_configure_silence_duration_desc)) }
     ) {
@@ -461,58 +461,58 @@ private fun VolcengineASRConfiguration(
     setting: ASRProviderSetting.Volcengine,
     onValueChange: (ASRProviderSetting) -> Unit
 ) {
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_volcengine_api_key_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("your-api-key") },
+            placeholder = "your-api-key",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_websocket_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_volcengine_websocket_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async") },
+            placeholder = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_resource_id)) },
         description = { Text(stringResource(R.string.setting_asr_configure_resource_id_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.resourceId,
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("volc.seedasr.sauc.duration") },
+            placeholder = "volc.seedasr.sauc.duration",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_code_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") },
+            placeholder = "auto",
             shape = RoundedCornerShape(16.dp)
         )
     }
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_page_asr_silence_duration)) },
         description = { Text(stringResource(R.string.setting_page_asr_silence_duration_desc)) },
     ) {
@@ -533,59 +533,59 @@ private fun MiMoASRConfiguration(
     setting: ASRProviderSetting.MiMo,
     onValueChange: (ASRProviderSetting) -> Unit
 ) {
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_api_key_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-... or tp-...") },
+            placeholder = "sk-... or tp-...",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_base_url_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.xiaomimimo.com/v1") },
+            placeholder = "https://api.xiaomimimo.com/v1",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_model_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mimo-v2.5-asr") },
+            placeholder = "mimo-v2.5-asr",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_language_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") },
+            placeholder = "auto",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_sample_rate)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_sample_rate_desc)) }
     ) {
@@ -601,7 +601,7 @@ private fun MiMoASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_segment_duration)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_segment_desc)) }
     ) {
@@ -623,59 +623,59 @@ private fun StepASRConfiguration(
     setting: ASRProviderSetting.Step,
     onValueChange: (ASRProviderSetting) -> Unit
 ) {
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_api_key_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("your-stepfun-api-key") },
+            placeholder = "your-stepfun-api-key",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_base_url_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.stepfun.com") },
+            placeholder = "https://api.stepfun.com",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_model_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("stepaudio-2.5-asr") },
+            placeholder = "stepaudio-2.5-asr",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_language_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("auto") },
+            placeholder = "auto",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_sample_rate)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_sample_rate_desc)) }
     ) {
@@ -691,7 +691,7 @@ private fun StepASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_segment_duration)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_segment_desc)) }
     ) {
@@ -707,7 +707,7 @@ private fun StepASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_step_itn)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_itn_desc)) }
     ) {
@@ -717,7 +717,7 @@ private fun StepASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_step_timestamp)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_timestamp_desc)) }
     ) {
@@ -727,11 +727,11 @@ private fun StepASRConfiguration(
         )
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_step_hotwords)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_hotwords_desc)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             // 用逗号分隔展示, 输入时按逗号 split 回 List
             value = setting.hotwords.joinToString(","),
             onValueChange = { text ->
@@ -741,7 +741,7 @@ private fun StepASRConfiguration(
                 onValueChange(setting.copy(hotwords = list))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("热词1, 热词2, 热词3") },
+            placeholder = "热词1, 热词2, 热词3",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -770,11 +770,11 @@ private fun SherpaLocalASRConfiguration(
     var engineProgress by remember { mutableFloatStateOf(0f) }
     var engineError by remember { mutableStateOf<String?>(null) }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("识别引擎") },
         description = { Text("原生库不进安装包，首次使用需要下载一次；之后完全离线") },
     ) {
-        Card(
+        KedgeCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
@@ -799,12 +799,12 @@ private fun SherpaLocalASRConfiguration(
                         )
                     }
                     when {
-                        engineDownloading -> CircularProgressIndicator(
+                        engineDownloading -> KedgeProgressIndicator(
                             progress = { engineProgress },
                             modifier = Modifier.size(24.dp),
                         )
 
-                        engineReady -> TextButton(
+                        engineReady -> KedgeTextButton(
                             onClick = {
                                 store.deleteEngine()
                                 engineReady = false
@@ -814,7 +814,7 @@ private fun SherpaLocalASRConfiguration(
                             Text("删除")
                         }
 
-                        else -> TextButton(
+                        else -> KedgeTextButton(
                             onClick = {
                                 engineError = null
                                 scope.launch {
@@ -837,7 +837,7 @@ private fun SherpaLocalASRConfiguration(
                     }
                 }
                 if (engineDownloading) {
-                    LinearProgressIndicator(
+                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
                         progress = { engineProgress },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -853,7 +853,7 @@ private fun SherpaLocalASRConfiguration(
         }
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("本地模型") },
         description = { Text("下载后保存在应用内部存储，识别全程离线、不上传音频") },
     ) {
@@ -861,7 +861,7 @@ private fun SherpaLocalASRConfiguration(
             SherpaModels.PRESETS.forEach { preset ->
                 val isDownloaded = preset.id in downloadedIds
                 val isSelected = setting.modelId == preset.id
-                Card(
+                KedgeCard(
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected) {
                             MaterialTheme.colorScheme.primaryContainer
@@ -889,12 +889,12 @@ private fun SherpaLocalASRConfiguration(
                                 )
                             }
                             when {
-                                downloadingId == preset.id -> CircularProgressIndicator(
+                                downloadingId == preset.id -> KedgeProgressIndicator(
                                     progress = { progress },
                                     modifier = Modifier.size(24.dp),
                                 )
 
-                                isDownloaded -> TextButton(
+                                isDownloaded -> KedgeTextButton(
                                     onClick = {
                                         store.delete(preset.id)
                                         downloadedIds = downloadedIds - preset.id
@@ -907,7 +907,7 @@ private fun SherpaLocalASRConfiguration(
                                     Text("删除")
                                 }
 
-                                else -> TextButton(
+                                else -> KedgeTextButton(
                                     onClick = {
                                         errorMessage = null
                                         scope.launch {
@@ -937,7 +937,7 @@ private fun SherpaLocalASRConfiguration(
                         }
 
                         if (downloadingId == preset.id) {
-                            LinearProgressIndicator(
+                            KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
                                 progress = { progress },
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -948,7 +948,7 @@ private fun SherpaLocalASRConfiguration(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                RadioButton(
+                                AnimatedRadioButton(
                                     selected = isSelected,
                                     onClick = {
                                         onValueChange(
@@ -979,7 +979,7 @@ private fun SherpaLocalASRConfiguration(
         }
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("线程数") },
         description = { Text("识别占用的 CPU 线程，越大越快但更耗电") },
     ) {
@@ -994,16 +994,16 @@ private fun SherpaLocalASRConfiguration(
     }
 
     if (setting.modelType == "whisper") {
-        FormItem(
+        KedgeFormRow(
             label = { Text("识别语言") },
             description = { Text("auto 自动检测；也可填 zh / en 等") },
         ) {
-            OutlinedTextField(
+            KedgeTextField(
                 value = setting.language,
                 onValueChange = { onValueChange(setting.copy(language = it)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("auto") },
+                placeholder = "auto",
                 shape = RoundedCornerShape(16.dp)
             )
         }

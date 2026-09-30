@@ -18,18 +18,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -173,7 +173,7 @@ private fun AssistantPickerSheet(
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     items(settings.assistantTags, key = { tag -> tag.id }) { tag ->
-                        FilterChip(
+                        KedgeFilterChip(
                             onClick = {
                                 selectedTagIds = if (tag.id in selectedTagIds) {
                                     selectedTagIds - tag.id
@@ -197,7 +197,7 @@ private fun AssistantPickerSheet(
             ) {
                 items(filteredAssistants, key = { it.id }) { assistant ->
                     val checked = assistant.id == currentAssistant.id
-                    Card(
+                    KedgeCard(
                         onClick = {
                             onAssistantSelected(assistant)
                             dismiss()
@@ -239,7 +239,7 @@ private fun AssistantItem(
     defaultAssistantName: String,
     onEdit: () -> Unit
 ) {
-    ListItem(
+    KedgeListItem(
         headlineContent = {
             Text(
                 text = assistant.name.ifEmpty { defaultAssistantName },
@@ -255,7 +255,7 @@ private fun AssistantItem(
             )
         },
         trailingContent = {
-            IconButton(
+            KedgeIconButton(
                 onClick = {
                     onEdit()
                 },

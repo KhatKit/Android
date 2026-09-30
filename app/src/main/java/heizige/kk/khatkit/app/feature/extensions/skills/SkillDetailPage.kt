@@ -22,16 +22,17 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -66,6 +67,8 @@ import heizige.kk.khatkit.app.core.ui.icons.editDocument
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.folderOpen
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun SkillDetailPage(skillName: String) {
@@ -91,28 +94,20 @@ fun SkillDetailPage(skillName: String) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = skillName,
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
+    KedgeSettingsPageScaffold(
+        title = skillName,
+        scrollBehavior = scrollBehavior,
         floatingActionButton = {
             AnimatedVisibility(
                 visible = fabVisible,
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut(),
             ) {
-                FloatingActionButton(onClick = { showAddDialog = true }) {
+                KedgeFloatingActionButton(onClick = { showAddDialog = true }) {
                     Icon(add, contentDescription = null)
                 }
             }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -236,7 +231,7 @@ private fun FileItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            IconButton(onClick = onEdit, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = onEdit, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = editDocument,
                     contentDescription = stringResource(R.string.edit),
@@ -244,7 +239,7 @@ private fun FileItem(
                 )
             }
             if (skillFile.relativePath != "SKILL.md") {
-                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = onDelete, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = delete,
                         contentDescription = stringResource(R.string.delete),
@@ -326,7 +321,7 @@ private fun EditFileDialog(
         onDismissRequest = onDismiss,
         title = { Text(skillFile.relativePath, fontFamily = FontFamily.Monospace) },
         text = {
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.skill_detail_page_content)) },
@@ -338,10 +333,10 @@ private fun EditFileDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(content) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.skill_detail_page_save)) }
+            KedgeTextButton(onClick = { onConfirm(content) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.skill_detail_page_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
@@ -360,7 +355,7 @@ private fun AddFileDialog(
         title = { Text(stringResource(R.string.skill_detail_page_new_file)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = fileName,
                     onValueChange = { fileName = it },
                     label = { Text(stringResource(R.string.skill_detail_page_file_name)) },
@@ -378,7 +373,7 @@ private fun AddFileDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text(stringResource(R.string.skill_detail_page_content)) },
@@ -391,7 +386,7 @@ private fun AddFileDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = { onConfirm(fileName.trim(), content) },
                 enabled = fileName.isNotBlank() && !fileNameError,
                 shapes = ButtonDefaults.shapes(),
@@ -400,7 +395,7 @@ private fun AddFileDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

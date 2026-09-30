@@ -22,23 +22,22 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -89,6 +88,7 @@ import heizige.kk.khatkit.app.core.ui.icons.image
 import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
@@ -114,42 +114,32 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.setting_provider_page_title),
-                navigationIcon = {
-                    BackButton()
-                },
-                actions = {
-                    RecommendProviderButton { provider ->
-                        vm.updateSettings(
-                            settings.copy(
-                                providers = listOf(provider.copyProvider(Uuid.random())) + settings.providers
-                            )
-                        )
-                    }
-                    ImportProviderButton {
-                        vm.updateSettings(
-                            settings.copy(
-                                providers = listOf(it.copyProvider(Uuid.random())) + settings.providers
-                            )
-                        )
-                    }
-                    AddButton {
-                        vm.updateSettings(
-                            settings.copy(
-                                providers = listOf(it) + settings.providers
-                            )
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.setting_provider_page_title),
+        scrollBehavior = scrollBehavior,
+        actions = {
+            RecommendProviderButton { provider ->
+                vm.updateSettings(
+                    settings.copy(
+                        providers = listOf(provider.copyProvider(Uuid.random())) + settings.providers
+                    )
+                )
+            }
+            ImportProviderButton {
+                vm.updateSettings(
+                    settings.copy(
+                        providers = listOf(it.copyProvider(Uuid.random())) + settings.providers
+                    )
+                )
+            }
+            AddButton {
+                vm.updateSettings(
+                    settings.copy(
+                        providers = listOf(it) + settings.providers
+                    )
+                )
+            }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -157,7 +147,7 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                 .padding(top = innerPadding.calculateTopPadding())
         ) {
             // Search bar
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier
@@ -169,7 +159,7 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
                             Icon(close, contentDescription = "Clear")
                         }
                     }
@@ -201,7 +191,7 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                             provider = provider,
                             dragHandle = {
                                 val haptic = LocalHapticFeedback.current
-                                IconButton(
+                                KedgeIconButton(
                                     onClick = {},
                                     modifier = Modifier
                                         .longPressDraggableHandle(
@@ -239,7 +229,7 @@ private fun RecommendProviderButton(
     var showSheet by remember { mutableStateOf(false) }
     val importSuccessMessage = stringResource(R.string.setting_provider_page_import_success)
 
-    IconButton(
+    KedgeIconButton(
         onClick = { showSheet = true },
         shapes = IconButtonDefaults.shapes(),
     ) {
@@ -282,7 +272,7 @@ private fun RecommendProviderItem(
     provider: ProviderSetting,
     onAdd: () -> Unit
 ) {
-    Card(
+    KedgeCard(
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
         )
@@ -314,7 +304,7 @@ private fun RecommendProviderItem(
                     }
                 }
             }
-            IconButton(onClick = onAdd, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = onAdd, shapes = IconButtonDefaults.shapes()) {
                 Icon(add, contentDescription = stringResource(R.string.setting_provider_page_add))
             }
         }
@@ -341,7 +331,7 @@ private fun ImportProviderButton(
         }
     }
 
-    IconButton(
+    KedgeIconButton(
         onClick = {
             showImportDialog = true
         },
@@ -374,7 +364,7 @@ private fun ImportProviderButton(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // 主要操作：扫描二维码
-                        Button(
+                        KedgeButton(
                             onClick = {
                                 showImportDialog = false
                                 scanQrCodeLauncher.launch(null)
@@ -403,7 +393,7 @@ private fun ImportProviderButton(
                         }
 
                         // 次要操作：从相册选择
-                        OutlinedButton(
+                        KedgeButton(
                             onClick = {
                                 showImportDialog = false
                                 pickImageLauncher.launch(
@@ -439,7 +429,7 @@ private fun ImportProviderButton(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = { showImportDialog = false },
                     shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
                 ) {
@@ -535,7 +525,7 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
         onAdd(it.copyProvider(name = it.name.trim()))
     }
 
-    IconButton(
+    KedgeIconButton(
         onClick = {
             dialogState.open(ProviderSetting.OpenAI())
         },
@@ -560,7 +550,7 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
                 }
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         dialogState.confirm()
                     },
@@ -570,7 +560,7 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
                 }
             },
             dismissButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         dialogState.dismiss()
                     },
@@ -590,7 +580,7 @@ private fun ProviderItem(
     dragHandle: @Composable () -> Unit,
     onClick: () -> Unit
 ) {
-    Card(
+    KedgeCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (provider.enabled) {

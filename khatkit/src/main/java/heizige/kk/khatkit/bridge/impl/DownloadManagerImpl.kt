@@ -31,6 +31,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
+import java.io.RandomAccessFile
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import java.util.UUID
 
 /**
@@ -56,6 +61,7 @@ class DownloadManagerImpl(
         val name: String,
         val target: String,
         val headers: Map<String, String> = emptyMap(),
+        val threads: Int = 1,
         val state: String = STATE_QUEUED,
         val bytes: Long = 0,
         val total: Long = -1,
@@ -67,6 +73,7 @@ class DownloadManagerImpl(
         val name: String,
         val target: String,
         val headers: Map<String, String>,
+        val threads: Int = 1,
         @Volatile var state: String = STATE_QUEUED,
         @Volatile var bytes: Long = 0,
         @Volatile var total: Long = -1,
@@ -131,6 +138,7 @@ class DownloadManagerImpl(
                     name = name.replace('/', '_'),
                     target = File(rootDir, "files/${name.replace('/', '_')}").absolutePath,
                     headers = headers,
+                    threads = (task["threads"]?.toString()?.toIntOrNull() ?: 1).coerceIn(1, 32),
                 )
                 record.bytes = File(record.target + ".part").takeIf { it.exists() }?.length() ?: 0
                 tasks[record.id] = record
@@ -245,6 +253,11 @@ class DownloadManagerImpl(
             record.state = STATE_RUNNING
             persist()
 
+            if (record.threads > 1) {
+                parallelDownload(record)
+                return
+            }
+
             var offset = if (part.exists()) part.length() else 0L
             record.bytes = offset
             http.prepareGet(record.url) {
@@ -307,6 +320,71 @@ class DownloadManagerImpl(
         }
     }
 
+    /** YunX 风格 Range 分片下载；每片独立落盘，重启后已完成分片直接复用。 */
+    private suspend fun parallelDownload(record: Record) = coroutineScope {
+        val probe = http.prepareGet(record.url) {
+            record.headers.forEach { (key, value) -> header(key, value) }
+            header(HttpHeaders.UserAgent, userAgent)
+            header(HttpHeaders.Range, "bytes=0-0")
+        }.execute { response ->
+            if (response.status != HttpStatusCode.PartialContent) {
+                error("服务端不支持 Range 分片（HTTP ${response.status.value}），已改用普通下载")
+            }
+            parseRangeTotal(response) ?: error("无法确定文件大小")
+        }
+        require(probe > 0) { "文件大小无效" }
+        record.total = probe
+        val chunkCount = minOf(record.threads * 8, 128).coerceAtLeast(record.threads)
+        val chunkSize = (probe + chunkCount - 1) / chunkCount
+        val next = AtomicInteger(0)
+        val parts = Array(chunkCount) { index ->
+            val start = index * chunkSize
+            val end = minOf(probe - 1, start + chunkSize - 1)
+            File("${record.target}.part.$index") to (start to end)
+        }
+        fun completedBytes(): Long = parts.sumOf { (file, range) ->
+            file.takeIf { it.length() == range.second - range.first + 1 }?.length() ?: 0L
+        }
+        (0 until record.threads).map {
+            async(Dispatchers.IO) {
+                while (true) {
+                    val index = next.getAndIncrement()
+                    if (index >= parts.size) break
+                    val (file, range) = parts[index]
+                    val expected = range.second - range.first + 1
+                    if (file.length() == expected) continue
+                    file.parentFile?.mkdirs()
+                    http.prepareGet(record.url) {
+                        record.headers.forEach { (key, value) -> header(key, value) }
+                        header(HttpHeaders.UserAgent, userAgent)
+                        header(HttpHeaders.Range, "bytes=${range.first}-${range.second}")
+                    }.execute { response ->
+                        require(response.status == HttpStatusCode.PartialContent) { "分片 $index 未返回 206" }
+                        FileOutputStream(file, false).use { output ->
+                            response.bodyAsChannel().toInputStream().use { input -> input.copyTo(output, 64 * 1024) }
+                        }
+                    }
+                    require(file.length() == expected) { "分片 $index 长度不完整" }
+                    record.bytes = completedBytes().coerceAtMost(probe)
+                    refreshNotification()
+                }
+            }
+        }.awaitAll()
+        val part = File("${record.target}.part")
+        FileOutputStream(part, false).use { output ->
+            parts.forEach { (file, range) ->
+                require(file.length() == range.second - range.first + 1) { "分片文件缺失" }
+                file.inputStream().use { it.copyTo(output, 64 * 1024) }
+            }
+        }
+        parts.forEach { it.first.delete() }
+        val target = File(record.target)
+        require(part.renameTo(target)) { "无法合并分片文件" }
+        record.bytes = probe
+        record.speedBps = 0
+        record.state = STATE_DONE
+    }
+
     private fun parseRangeTotal(response: HttpResponse): Long? {
         val contentRange = response.headers[HttpHeaders.ContentRange] ?: return null
         return contentRange.substringAfterLast('/', "").trim().toLongOrNull()
@@ -321,6 +399,7 @@ class DownloadManagerImpl(
                     name = record.name,
                     target = record.target,
                     headers = record.headers,
+                    threads = record.threads,
                     state = record.state,
                     bytes = record.bytes,
                     total = record.total,
@@ -350,6 +429,7 @@ class DownloadManagerImpl(
                     name = persisted.name,
                     target = persisted.target,
                     headers = persisted.headers,
+                    threads = persisted.threads.coerceIn(1, 32),
                     // 进程重启后 running 任务视为可续传的 paused
                     state = if (persisted.state == STATE_RUNNING) STATE_PAUSED else persisted.state,
                     bytes = persisted.bytes,

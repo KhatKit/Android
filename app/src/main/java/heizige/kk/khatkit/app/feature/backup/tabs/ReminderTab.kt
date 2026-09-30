@@ -11,8 +11,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -48,7 +48,7 @@ fun ReminderTab(vm: BackupViewModel) {
         ) {
             item(
                 trailingContent = {
-                    Switch(
+                    KedgeSwitch(
                         checked = config.enabled,
                         onCheckedChange = { updateConfig(config.copy(enabled = it)) },
                     )

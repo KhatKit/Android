@@ -48,9 +48,16 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
+    // Miuix 走双文件（KernelSU SettingsMaterial/SettingsMiuix 架构）
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingPreferencesThemePageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     var amoledDarkMode by rememberAmoledDarkMode()
     val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()
@@ -70,7 +77,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

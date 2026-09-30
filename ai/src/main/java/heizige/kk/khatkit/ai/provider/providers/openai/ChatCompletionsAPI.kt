@@ -237,7 +237,10 @@ class ChatCompletionsAPI(
                     messages = messages,
                     includeHistoryReasoning = providerSetting.includeHistoryReasoning,
                     includeOpenRouterReasoningDetails = isOpenRouter,
-                    supportInputModalities = params.model.inputModalities,
+                    supportInputModalities = (params.model.inputModalities +
+                        if (messages.any { message -> message.parts.any { it is UIMessagePart.Image } }) {
+                            listOf(Modality.IMAGE)
+                        } else emptyList()).distinct(),
                 )
             )
 

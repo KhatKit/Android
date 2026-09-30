@@ -40,11 +40,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -435,7 +435,7 @@ private fun ChatListNormal(
                             Text("Clear selection")
                         }
                     ) {
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {
                                 selecting = false
                                 selectedItems.clear()
@@ -450,7 +450,7 @@ private fun ChatListNormal(
                             Text("Select all")
                         }
                     ) {
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {
                                 if (selectedItems.isNotEmpty()) {
                                     selectedItems.clear()

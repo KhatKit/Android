@@ -19,6 +19,7 @@ interface KhatKitController {
     val uiProgress: StateFlow<Pair<Float, String>?>
 
     fun submitForm(values: Map<String, Any?>?)
+    fun selectSheetAction(event: String, values: Map<String, Any?> = emptyMap())
     fun answerConfirm(confirmed: Boolean)
     fun dismissUi()
 
@@ -40,6 +41,9 @@ interface KhatKitController {
     var enableRoot: Boolean
     var downloadConcurrency: Int
     var uiStyle: KhatKitUiStyle
+
+    /** Miuix 风格的全局模糊开关（顶栏/底栏毛玻璃），照搬 KernelSU 的 enableBlur。 */
+    var enableBlur: Boolean
 
     /** 是否接收 beta 更新通道（KodeHeadServer 的 KhatKit 独立更新通道）。 */
     var receiveBeta: Boolean

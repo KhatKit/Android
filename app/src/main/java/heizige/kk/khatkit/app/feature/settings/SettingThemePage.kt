@@ -24,22 +24,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.FancySlider
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -89,6 +88,7 @@ import heizige.kk.khatkit.app.core.ui.icons.deleteForever
 import heizige.kk.khatkit.app.core.ui.icons.editSquare
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 private val themeJson = Json {
     ignoreUnknownKeys = true
@@ -114,17 +114,9 @@ fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
     var showCustomColor by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf(PresetThemes.first().standardLight.primary) }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.setting_page_theme_setting),
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.setting_page_theme_setting),
+        scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -186,7 +178,7 @@ fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
                     ) {
                         OptionsText(stringResource(R.string.setting_theme_page_custom_themes))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilledTonalButton(
+                            KedgeButton(
                                 onClick = { showImportDialog = true },
                                 shapes = ButtonDefaults.shapes(),
                             ) {
@@ -194,7 +186,7 @@ fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
                                 Spacer(Modifier.width(4.dp))
                                 Text(stringResource(R.string.setting_theme_page_import_theme))
                             }
-                            FilledTonalButton(
+                            KedgeButton(
                                 onClick = {
                                     editingTheme = null
                                     showEditSheet = true
@@ -394,13 +386,13 @@ private fun CustomThemeItem(
         titleContent = { Text(theme.name.ifEmpty { "Unnamed" }) },
         trailingContent = {
             Row {
-                IconButton(onClick = onExport, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = onExport, shapes = IconButtonDefaults.shapes()) {
                     Icon(contentCopy, null)
                 }
-                IconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                     Icon(editSquare, null)
                 }
-                IconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         deleteForever,
                         null,
@@ -451,7 +443,7 @@ private fun CustomThemeEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = currentTheme.name,
                     onValueChange = { currentTheme = currentTheme.copy(name = it) },
                     label = { Text(stringResource(R.string.setting_theme_page_theme_name)) },
@@ -522,7 +514,7 @@ private fun ImportThemeDialog(
         title = { Text(stringResource(R.string.setting_theme_page_import_theme)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = jsonText,
                     onValueChange = {
                         jsonText = it
@@ -539,7 +531,7 @@ private fun ImportThemeDialog(
             }
         },
         confirmButton = {
-            Button(
+            KedgeButton(
                 onClick = {
                     try {
                         val theme = themeJson.decodeFromString<CustomTheme>(jsonText)
@@ -555,7 +547,7 @@ private fun ImportThemeDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(android.R.string.cancel))
             }
         }
@@ -636,7 +628,7 @@ private fun ColorPickerRow(
             }
         }
 
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = hslCode,
             onValueChange = { value ->
                 hslCode = value

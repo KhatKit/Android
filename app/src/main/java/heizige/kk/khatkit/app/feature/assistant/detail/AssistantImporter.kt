@@ -9,11 +9,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -125,7 +124,7 @@ private fun SillyTavernImporter(
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedButton(
+        KedgeButton(
             onClick = {
                 pngPickerLauncher.launch(arrayOf("image/png"))
             },
@@ -136,7 +135,7 @@ private fun SillyTavernImporter(
             Text(text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_png))
         }
 
-        OutlinedButton(
+        KedgeButton(
             onClick = {
                 jsonPickerLauncher.launch(arrayOf("application/json"))
             },

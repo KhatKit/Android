@@ -13,13 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -265,7 +265,7 @@ fun ChatMessageActionsSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Select and Copy
-            Card(
+            KedgeCard(
                 onClick = {
                     dismiss()
                     onSelectAndCopy()
@@ -296,7 +296,7 @@ fun ChatMessageActionsSheet(
                 .any { it.text.isNotBlank() }
 
             if (hasTextContent) {
-                Card(
+                KedgeCard(
                     onClick = {
                         dismiss()
                         onWebViewPreview()
@@ -324,7 +324,7 @@ fun ChatMessageActionsSheet(
             }
 
             // Edit
-            Card(
+            KedgeCard(
                 onClick = {
                     dismiss()
                     onEdit()
@@ -351,7 +351,7 @@ fun ChatMessageActionsSheet(
             }
 
             // Share
-            Card(
+            KedgeCard(
                 onClick = {
                     dismiss()
                     onShare()
@@ -378,7 +378,7 @@ fun ChatMessageActionsSheet(
             }
 
             // Create a Fork
-            Card(
+            KedgeCard(
                 onClick = {
                     dismiss()
                     onFork()
@@ -405,7 +405,7 @@ fun ChatMessageActionsSheet(
             }
 
             // Delete
-            Card(
+            KedgeCard(
                 onClick = {
                     dismiss()
                     onDelete()

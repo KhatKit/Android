@@ -23,20 +23,20 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -205,7 +205,7 @@ internal fun ModelSelectorButton(
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(
+            KedgeTextButton(
                 onClick = {
                     state.open()
                 },
@@ -228,7 +228,7 @@ internal fun ModelSelectorButton(
                 )
             }
             if (allowClear && model != null) {
-                IconButton(
+                KedgeIconButton(
                     onClick = onClear,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -240,7 +240,7 @@ internal fun ModelSelectorButton(
             }
         }
     } else {
-        IconButton(
+        KedgeIconButton(
             onClick = {
                 state.open()
             },
@@ -440,7 +440,7 @@ private fun ColumnScope.ModelList(
             .fillMaxWidth()
             .padding(horizontal = 8.dp),
     ) {
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = searchKeywords,
             onValueChange = { searchKeywords = it },
             modifier = Modifier.fillMaxWidth(),
@@ -513,7 +513,7 @@ private fun ColumnScope.ModelList(
                             onDismiss()
                         },
                         tail = {
-                            IconButton(
+                            KedgeIconButton(
                                 onClick = {
                                     coroutineScope.launch {
                                         settingsStore.update { settings ->
@@ -591,7 +591,7 @@ private fun ColumnScope.ModelList(
                         onDismiss()
                     },
                     tail = {
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {
                                 coroutineScope.launch {
                                     settingsStore.update { settings ->
@@ -694,7 +694,7 @@ private fun ModelItem(
 ) {
     val navController = LocalNavController.current
     val interactionSource = remember { MutableInteractionSource() }
-    Card(
+    KedgeCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (select) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,

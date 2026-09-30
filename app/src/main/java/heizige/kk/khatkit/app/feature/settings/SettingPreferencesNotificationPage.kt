@@ -13,13 +13,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,14 +40,22 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import java.time.Instant
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 
-private val UPDATE_PAUSE_DAY_OPTIONS = listOf(7, 14, 21)
-private const val MILLIS_PER_DAY = 24 * 60 * 60 * 1_000L
+internal val UPDATE_PAUSE_DAY_OPTIONS = listOf(7, 14, 21)
+internal const val MILLIS_PER_DAY = 24 * 60 * 60 * 1_000L
 
 @Composable
 fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingPreferencesNotificationPageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var showUpdatePauseDialog by remember { mutableStateOf(false) }
@@ -82,7 +89,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -116,33 +123,27 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                             Icon(arrowForward, contentDescription = null)
                         },
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_notification_message_generated)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_notification_message_generated_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.enableNotificationOnMessageGeneration,
-                                onCheckedChange = {
-                                    if (it && !permissionState.allPermissionsGranted) {
-                                        permissionState.requestPermissions()
-                                    }
-                                    updateDisplaySetting(displaySetting.copy(enableNotificationOnMessageGeneration = it))
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_notification_message_generated,
+                            R.string.setting_display_page_notification_message_generated_desc,
+                            checked = displaySetting.enableNotificationOnMessageGeneration,
+                            onCheckedChange = {
+                                if (it && !permissionState.allPermissionsGranted) {
+                                    permissionState.requestPermissions()
                                 }
-                            )
-                        },
+                                updateDisplaySetting(displaySetting.copy(enableNotificationOnMessageGeneration = it))
+                            },
+                        )
                     )
                     if (displaySetting.enableNotificationOnMessageGeneration) {
-                        item(
-                            headlineContent = { Text(stringResource(R.string.setting_display_page_live_update_notification)) },
-                            supportingContent = { Text(stringResource(R.string.setting_display_page_live_update_notification_desc)) },
-                            trailingContent = {
-                                OptionSwitch(
-                                    checked = displaySetting.enableLiveUpdateNotification,
-                                    onCheckedChange = {
-                                        updateDisplaySetting(displaySetting.copy(enableLiveUpdateNotification = it))
-                                    }
-                                )
-                            },
+                        settingItem(
+                            SwitchSetting(
+                                R.string.setting_display_page_live_update_notification,
+                                R.string.setting_display_page_live_update_notification_desc,
+                                checked = displaySetting.enableLiveUpdateNotification,
+                                onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLiveUpdateNotification = it)) },
+                            )
                         )
                     }
                 }
@@ -159,22 +160,17 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(stringResource(R.string.setting_update_reminder_pause_description))
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        UPDATE_PAUSE_DAY_OPTIONS.forEachIndexed { index, days ->
-                            SegmentedButton(
+                    SingleChoiceSegmentedRow(
+                        items = UPDATE_PAUSE_DAY_OPTIONS.map { days ->
+                            SegmentedItem(
+                                label = stringResource(R.string.setting_update_reminder_pause_days, days),
                                 selected = selectedUpdatePauseDays == days,
                                 onClick = { selectedUpdatePauseDays = days },
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = UPDATE_PAUSE_DAY_OPTIONS.size,
-                                ),
-                            ) {
-                                Text(stringResource(R.string.setting_update_reminder_pause_days, days))
-                            }
-                        }
-                    }
+                            )
+                        },
+                    )
                     if (!updateChecksEnabled) {
-                        TextButton(
+                        KedgeTextButton(
                             onClick = {
                                 updateDisplaySetting(
                                     displaySetting.copy(updateCheckDisabledUntilEpochMillis = 0L)
@@ -190,7 +186,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         updateDisplaySetting(
                             displaySetting.copy(
@@ -206,7 +202,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showUpdatePauseDialog = false }, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { showUpdatePauseDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },

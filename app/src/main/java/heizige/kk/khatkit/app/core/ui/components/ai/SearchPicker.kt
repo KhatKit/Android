@@ -28,16 +28,16 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -240,7 +240,7 @@ private fun SearchPicker(
         ) {
             Spacer(modifier = Modifier.weight(1f))
 
-            IconButton(
+            KedgeIconButton(
                 onClick = {
                     onDismiss()
                     navBackStack.navigate(Screen.SettingSearch)
@@ -298,7 +298,7 @@ private fun SearchPicker(
             ) {
                 if (isLocalSearchSelected) {
                     val currentService = settings.searchServices.getOrNull(settings.searchServiceSelected)
-                    TextButton(onClick = onSelectProvider, shapes = ButtonDefaults.shapes()) {
+                    KedgeTextButton(onClick = onSelectProvider, shapes = ButtonDefaults.shapes()) {
                         Text(
                             text = buildString {
                                 append(stringResource(R.string.search_picker_select_provider))
@@ -316,7 +316,7 @@ private fun SearchPicker(
                         )
                     }
                 }
-                TextButton(
+                KedgeTextButton(
                     onClick = { onUpdateSearchMode(SearchMode.OFF) },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -354,7 +354,7 @@ private fun SearchModeCard(
             MaterialTheme.colorScheme.surfaceContainerHigh
         }
     )
-    Card(
+    KedgeCard(
         onClick = onClick,
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -439,7 +439,7 @@ private fun SearchProviderPicker(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(arrowBack, contentDescription = null)
             }
             Text(
@@ -471,7 +471,7 @@ private fun SearchProviderPicker(
                         MaterialTheme.colorScheme.onSurface
                     }
                 )
-                Card(
+                KedgeCard(
                     colors = CardDefaults.cardColors(
                         containerColor = containerColor.value,
                         contentColor = textColor.value,

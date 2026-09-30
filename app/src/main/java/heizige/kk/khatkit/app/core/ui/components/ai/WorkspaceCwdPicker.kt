@@ -13,14 +13,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -103,7 +103,7 @@ fun WorkspaceCwdPickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                IconButton(
+                KedgeIconButton(
                     enabled = browsePath.isNotBlank(),
                     onClick = {
                         browsePath = browsePath.substringBeforeLast('/', missingDelimiterValue = "")
@@ -131,7 +131,7 @@ fun WorkspaceCwdPickerSheet(
             ) {
                 val dirs = entries.filter { it.isDirectory }
                 items(dirs, key = { it.path }) { entry ->
-                    ListItem(
+                    KedgeListItem(
                         headlineContent = {
                             Text(
                                 text = entry.name,
@@ -169,7 +169,7 @@ fun WorkspaceCwdPickerSheet(
             HorizontalDivider()
 
             if (currentCwd != null) {
-                TextButton(onClick = {
+                KedgeTextButton(onClick = {
                     onSelectCwd(null)
                     dismiss()
                 },

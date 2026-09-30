@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,7 +65,7 @@ private fun FormItemPreview() {
     FormItem(
         label = { Text("Label") },
         content = {
-            OutlinedTextField(
+            KedgeOutlinedTextField(
                 value = "",
                 onValueChange = {},
                 shape = RoundedCornerShape(16.dp)
@@ -75,7 +75,7 @@ private fun FormItemPreview() {
             Text("Description")
         },
         tail = {
-            Switch(
+            KedgeSwitch(
                 checked = true,
                 onCheckedChange = {}
             )

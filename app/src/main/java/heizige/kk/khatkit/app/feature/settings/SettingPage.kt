@@ -17,19 +17,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +51,8 @@ import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.icons.DiscordIcon
 import heizige.kk.khatkit.app.core.ui.icons.TencentQQIcon
@@ -91,6 +93,10 @@ import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 
 @Composable
 fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingPageMiuix(vm)
+        return
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -105,7 +111,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
             title = { Text(stringResource(R.string.setting_page_sponsor_alert_title)) },
             text = { Text(stringResource(R.string.setting_page_sponsor_alert_desc)) },
             confirmButton = {
-                Button(onClick = {
+                KedgeButton(onClick = {
                     vm.updateSettings(settings.copy(sponsorAlertDismissedAt = settings.launchCount))
                     navController.navigate(Screen.SettingDonate)
                 },
@@ -114,7 +120,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
+                KedgeTextButton(onClick = {
                     vm.updateSettings(settings.copy(sponsorAlertDismissedAt = settings.launchCount))
                 },
                      shapes = ButtonDefaults.shapes(),) {
@@ -136,7 +142,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -244,10 +250,10 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_mcp)) },
                     )
                     item(
-                        onClick = { navController.navigate(Screen.KhatKitMarket) },
+                        onClick = { navController.navigate(Screen.ExploreMarket) },
                         leadingContent = { Icon(inventory2, null) },
-                        supportingContent = { Text("浏览、安装脚本卡片，让 AI 能操作手机") },
-                        headlineContent = { Text("卡片市场") },
+                        supportingContent = { Text("一站式浏览工具、技能、MCP、模型能力与脚本卡片") },
+                        headlineContent = { Text("探索市场") },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPackage) },
@@ -324,7 +330,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 var showQQGroupSheet by remember { mutableStateOf(false) }
-                                IconButton(
+                                KedgeIconButton(
                                     onClick = { showQQGroupSheet = true },
                                     shapes = IconButtonDefaults.shapes(),
                                 ) {
@@ -339,7 +345,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                         onDismiss = { showQQGroupSheet = false }
                                     )
                                 }
-                                IconButton(
+                                KedgeIconButton(
                                     onClick = {
                                         context.openUrl("https://discord.gg/9weBqxe5c4")
                                     },
@@ -402,8 +408,8 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun ProviderConfigWarningCard(navController: Navigator) {
-    Card(
+internal fun ProviderConfigWarningCard(navController: Navigator) {
+    KedgeCard(
         modifier = Modifier.padding(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer
@@ -425,7 +431,7 @@ private fun ProviderConfigWarningCard(navController: Navigator) {
                 supportingContent = { Text(stringResource(R.string.setting_page_config_api_desc)) },
             )
 
-            TextButton(
+            KedgeTextButton(
                 onClick = {
                     navController.navigate(Screen.SettingProvider)
                 },
@@ -452,7 +458,7 @@ private val QQ_GROUPS = listOf(
 )
 
 @Composable
-private fun QQGroupBottomSheet(onDismiss: () -> Unit) {
+internal fun QQGroupBottomSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     PrimaryBottomSheet(
         visible = true,

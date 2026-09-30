@@ -18,22 +18,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +70,7 @@ import heizige.kk.khatkit.app.core.ui.icons.download
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun SkillsPage() {
@@ -95,22 +97,9 @@ fun SkillsPage() {
         }
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.skills_page_title),
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showImportSheet = true }) {
-                Icon(add, contentDescription = null)
-            }
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.skills_page_title),
+        scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -239,7 +228,7 @@ private fun SkillCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(
+    KedgeCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
@@ -281,17 +270,17 @@ private fun SkillCard(
                 }
             }
             Box {
-                IconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = moreVert,
                         contentDescription = stringResource(R.string.skills_page_more_actions),
                     )
                 }
-                DropdownMenu(
+                KedgeDropdownMenuSlots(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
-                    DropdownMenuItem(
+                    KedgeDropdownItemSlot(
                         text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(
@@ -364,7 +353,7 @@ private fun SkillImportSheetItem(
     text: String,
     onClick: () -> Unit,
 ) {
-    ListItem(
+    KedgeListItem(
         leadingContent = icon,
         headlineContent = { Text(text) },
         modifier = Modifier
@@ -389,7 +378,7 @@ private fun AddSkillDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.skills_page_add_title)) },
         text = {
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.skills_page_skill_content_label)) },
@@ -416,7 +405,7 @@ private fun AddSkillDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = { onConfirm(name, content) },
                 enabled = name.isNotBlank() && !nameError,
                 shapes = ButtonDefaults.shapes(),
@@ -425,7 +414,7 @@ private fun AddSkillDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
@@ -448,7 +437,7 @@ private fun ImportSkillDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text(stringResource(R.string.skills_page_repo_url_label)) },
@@ -465,7 +454,7 @@ private fun ImportSkillDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Text(
                             stringResource(R.string.skills_page_downloading),
                             style = MaterialTheme.typography.bodySmall
@@ -475,7 +464,7 @@ private fun ImportSkillDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = {
                     loading = true
                     onConfirm(url)
@@ -487,7 +476,7 @@ private fun ImportSkillDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !loading, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            KedgeTextButton(onClick = onDismiss, enabled = !loading, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

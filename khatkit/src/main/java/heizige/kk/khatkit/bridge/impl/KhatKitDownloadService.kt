@@ -1,11 +1,13 @@
 package heizige.kk.khatkit.bridge.impl
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -53,7 +55,14 @@ class KhatKitDownloadService : Service() {
         fun update(context: Context) {
             runCatching {
                 ensureChannel(context)
-                NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, buildNotification(context))
+                // API 33+ 用户可能已拒绝通知权限，此时静默跳过（前台服务通知本身不受此限制）。
+                if (ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, buildNotification(context))
+                }
             }
         }
 

@@ -19,22 +19,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -125,7 +125,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_webdav_server_address)) },
                     supportingContent = {
-                        OutlinedTextField(
+                        KedgeOutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.url,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(url = it.trim())) },
@@ -138,7 +138,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_username)) },
                     supportingContent = {
-                        OutlinedTextField(
+                        KedgeOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.username,
                             onValueChange = {
@@ -157,7 +157,7 @@ fun WebDavTab(
                     headlineContent = { Text(stringResource(R.string.backup_page_password)) },
                     supportingContent = {
                         var passwordVisible by remember { mutableStateOf(false) }
-                        OutlinedTextField(
+                        KedgeOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.password,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(password = it.trim())) },
@@ -168,7 +168,7 @@ fun WebDavTab(
                                 } else {
                                     visibility
                                 }
-                                IconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
+                                KedgeIconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(imageVector = image, contentDescription = null)
                                 }
                             },
@@ -180,7 +180,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_path)) },
                     supportingContent = {
-                        OutlinedTextField(
+                        KedgeOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.path,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(path = it.trim())) },
@@ -235,7 +235,7 @@ fun WebDavTab(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
         ) {
-            OutlinedButton(
+            KedgeButton(
                 onClick = {
                     scope.launch {
                         try {
@@ -260,7 +260,7 @@ fun WebDavTab(
             ) {
                 Text(stringResource(R.string.backup_page_test_connection))
             }
-            OutlinedButton(
+            KedgeButton(
                 onClick = {
                     vm.loadBackupFileItems()
                     showBackupFiles = true
@@ -269,7 +269,7 @@ fun WebDavTab(
             ) {
                 Text(stringResource(R.string.backup_page_restore))
             }
-            Button(
+            KedgeButton(
                 onClick = {
                     scope.launch {
                         isBackingUp = true
@@ -484,7 +484,7 @@ private fun WebDavBackupItemCard(
                         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(
+                        KedgeTextButton(
                             onClick = {
                                 onDelete(item)
                             },
@@ -493,7 +493,7 @@ private fun WebDavBackupItemCard(
                         ) {
                             Text(stringResource(R.string.backup_page_delete))
                         }
-                        Button(
+                        KedgeButton(
                             onClick = {
                                 onRestore(item)
                             },

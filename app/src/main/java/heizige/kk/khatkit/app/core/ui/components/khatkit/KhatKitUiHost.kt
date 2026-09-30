@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +33,8 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.icons.checkCircle
 import heizige.kk.khatkit.app.core.ui.icons.description
 import heizige.kk.khatkit.app.core.ui.icons.warning
+import heizige.kk.khatkit.app.core.ui.components.webview.WebView
+import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -56,6 +60,7 @@ fun KhatKitUiHost() {
     val progress by provider.uiProgress.collectAsStateWithLifecycle()
 
     val landscape = when (val current = request) {
+        is UiRequest.Sheet -> current.options.landscape
         is UiRequest.Form -> current.options.landscape
         is UiRequest.Show -> current.options.landscape
         else -> false
@@ -72,8 +77,18 @@ fun KhatKitUiHost() {
         }
     }
 
-    KhatKitTheme(style = provider.uiStyle) {
+    KhatKitTheme(
+        style = provider.uiStyle,
+        darkTheme = heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme(),
+    ) {
         when (val current = request) {
+            is UiRequest.Sheet -> ActionSheet(
+                title = current.title,
+                url = current.url,
+                actions = current.actions,
+                onAction = { event, values -> provider.selectSheetAction(event, values) },
+                onDismiss = { provider.dismissUi() },
+            )
             is UiRequest.Form -> KhatKitForm(
                 title = current.title,
                 items = current.items,
@@ -109,10 +124,11 @@ fun KhatKitUiHost() {
         }
 
         progress?.let { (ratio, label) ->
-            Popup(alignment = Alignment.TopCenter) {
+            Popup(alignment = Alignment.BottomCenter) {
                 KedgeSurface(
                     modifier = Modifier
-                        .padding(top = 48.dp)
+                        .systemBarsPadding()
+                        .padding(bottom = 48.dp)
                         .widthIn(max = 320.dp),
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
@@ -123,6 +139,47 @@ fun KhatKitUiHost() {
                                 .fillMaxWidth()
                                 .padding(top = 6.dp),
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionSheet(
+    title: String,
+    url: String?,
+    actions: List<Map<String, Any?>>,
+    onAction: (String, Map<String, Any?>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    PrimaryBottomSheet(
+        visible = true,
+        title = title,
+        imageVector = description,
+        onDismiss = onDismiss,
+        scrollable = true,
+    ) { _ ->
+        val webState = if (!url.isNullOrBlank()) rememberWebViewState(url = url) else null
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            webState?.let { state ->
+                WebView(state = state, modifier = Modifier.fillMaxWidth().height(480.dp))
+            }
+            actions.forEach { action ->
+                val event = action["event"]?.toString()?.ifBlank { action["id"]?.toString().orEmpty() }.orEmpty()
+                val label = action["label"]?.toString()?.ifBlank { event }.orEmpty()
+                if (event.isNotBlank() && label.isNotBlank()) {
+                    KedgeTextButton(
+                        onClick = {
+                            onAction(event, webState?.currentUrl?.let { mapOf("currentUrl" to it) } ?: emptyMap())
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(label)
                     }
                 }
             }

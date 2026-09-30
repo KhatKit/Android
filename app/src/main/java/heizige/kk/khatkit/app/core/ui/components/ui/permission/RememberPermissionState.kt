@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.permission
 
 import androidx.activity.ComponentActivity
+import heizige.kk.kedge.components.KedgeButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -36,7 +37,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
  * )
  *
  * // 请求权限
- * Button(onClick = { permissionState.requestPermissions() }) {
+ * KedgeButton(onClick = { permissionState.requestPermissions() }) {
  *     Text("请求权限")
  * }
  *

@@ -12,18 +12,19 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -97,7 +98,7 @@ fun <T> Select(
             shape = RoundedCornerShape(20.dp),
         ) {
             options.fastForEach { option ->
-                DropdownMenuItem(
+                KedgeDropdownItemSlot(
                     onClick = {
                         onOptionSelected(option)
                         expanded = false
@@ -138,7 +139,7 @@ fun <T> SelectTextField(
     val density = LocalDensity.current
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = value,
             onValueChange = onValueChange,
             readOnly = readOnly,
@@ -147,7 +148,7 @@ fun <T> SelectTextField(
                 .fillMaxWidth()
                 .onGloballyPositioned { anchorWidth = it.size.width },
             trailingIcon = {
-                IconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
                         contentDescription = "expand"
@@ -169,7 +170,7 @@ fun <T> SelectTextField(
             )
         }
 
-        DropdownMenu(
+        KedgeDropdownMenuSlots(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier
@@ -177,7 +178,7 @@ fun <T> SelectTextField(
                 .heightIn(max = 240.dp)
         ) {
             options.fastForEach { option ->
-                DropdownMenuItem(
+                KedgeDropdownItemSlot(
                     text = { Text(text = optionToString(option), maxLines = 1) },
                     onClick = {
                         expanded = false

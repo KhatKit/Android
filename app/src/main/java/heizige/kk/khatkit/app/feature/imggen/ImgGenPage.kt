@@ -36,22 +36,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeCheckbox
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -92,7 +93,6 @@ import heizige.kk.khatkit.app.core.data.files.FileUtils
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.ImagePreviewDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
@@ -111,6 +111,12 @@ import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.photo
 import heizige.kk.khatkit.app.core.ui.icons.save
 import heizige.kk.khatkit.app.core.ui.icons.tune
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 
 @Composable
 fun ImageGenPage(
@@ -135,19 +141,27 @@ fun ImageGenPage(
         )
     }
 
-    Scaffold(
-        topBar = {
+    KedgePageScaffold(
+       topBar = {
             KedgePageTopBar(
                 title = stringResource(R.string.imggen_page_title),
                 navigationIcon = {
                     BackButton()
                 },
                 actions = {
-                    IconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
-                        Icon(
-                            imageVector = add,
-                            contentDescription = "New session"
-                        )
+                    // 顶栏按钮统一用 Miuix IconButton（MD3 下 KedgePageTopBar 会自行分支，
+                    // 这里显式给 Miuix 分支原生控件）
+                    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                        MiuixIconButton(onClick = vm::startNewSession) {
+                            MiuixIcon(imageVector = add, contentDescription = "New session")
+                        }
+                    } else {
+                        KedgeIconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
+                            Icon(
+                                imageVector = add,
+                                contentDescription = "New session"
+                            )
+                        }
                     }
                 }
             )
@@ -155,6 +169,8 @@ fun ImageGenPage(
         bottomBar = {
             BottomBar(pagerState, scope)
         },
+    
+        md3ScrollBehavior = null,
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
@@ -180,12 +196,12 @@ private fun CancelDialog(
         title = { Text(stringResource(R.string.imggen_page_cancel_generation_title)) },
         text = { Text(stringResource(R.string.imggen_page_cancel_generation_message)) },
         confirmButton = {
-            TextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.imggen_page_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.imggen_page_cancel))
             }
         }
@@ -364,7 +380,7 @@ private fun InputBar(
             )
         }
 
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = prompt,
             onValueChange = vm::updatePrompt,
             placeholder = { Text(stringResource(R.string.imggen_page_prompt_placeholder)) },
@@ -396,14 +412,14 @@ private fun InputBar(
                 }
             )
 
-            IconButton(
+            KedgeIconButton(
                 onClick = onShowSettings,
                 shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(build, null)
             }
 
-            IconButton(
+            KedgeIconButton(
                 onClick = { imagePickerLauncher.launch("image/*") },
                 shapes = IconButtonDefaults.shapes(),
             ) {
@@ -553,7 +569,7 @@ private fun ImageGalleryScreen(
             title = { Text(stringResource(R.string.imggen_page_delete_images_title)) },
             text = { Text(stringResource(R.string.imggen_page_delete_images_message, selectedImages.size)) },
             confirmButton = {
-                TextButton(onClick = {
+                KedgeTextButton(onClick = {
                     showDeleteDialog = false
                     isDeleting = true
                     val images = selectedImages.values.toList()
@@ -579,7 +595,7 @@ private fun ImageGalleryScreen(
                      shapes = ButtonDefaults.shapes(),) { Text(stringResource(R.string.imggen_page_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.imggen_page_cancel)) }
+                KedgeTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.imggen_page_cancel)) }
             }
         )
     }
@@ -591,14 +607,14 @@ private fun ImageGalleryScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TextButton(onClick = { clearSelection() }, enabled = !isDeleting, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { clearSelection() }, enabled = !isDeleting, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.imggen_page_cancel))
                 }
                 Text(
                     if (isDeleting) stringResource(R.string.imggen_page_deleting)
                     else stringResource(R.string.imggen_page_selected_count, selectedImages.size)
                 )
-                TextButton(
+                KedgeTextButton(
                     onClick = { showDeleteDialog = true },
                     enabled = selectedImages.isNotEmpty() && !isDeleting,
                     shapes = ButtonDefaults.shapes(),
@@ -651,7 +667,7 @@ private fun ImageGalleryScreen(
                         image?.let {
                             var showPreview by remember { mutableStateOf(false) }
 
-                            Card(
+                            KedgeCard(
                                 modifier = Modifier.fillMaxWidth().combinedClickable(
                                     onClick = {
                                         if (selectionMode) toggleSelection(it) else showPreview = true
@@ -679,7 +695,7 @@ private fun ImageGalleryScreen(
                                             contentScale = ContentScale.Crop
                                         )
                                         if (selectionMode) {
-                                            Checkbox(
+                                            KedgeCheckbox(
                                                 checked = it.id in selectedImages,
                                                 onCheckedChange = { _ -> toggleSelection(it) },
                                                 enabled = !isDeleting,
@@ -709,7 +725,7 @@ private fun ImageGalleryScreen(
                                         }
 
                                         if (!selectionMode) Row {
-                                            IconButton(
+                                            KedgeIconButton(
                                                 onClick = {
                                                     clipboardManager.setText(AnnotatedString(it.prompt))
                                                     Toast.show(
@@ -727,7 +743,7 @@ private fun ImageGalleryScreen(
                                                 )
                                             }
 
-                                            IconButton(
+                                            KedgeIconButton(
                                                 onClick = {
                                                     scope.launch {
                                                         try {
@@ -757,7 +773,7 @@ private fun ImageGalleryScreen(
                                                 )
                                             }
 
-                                            IconButton(
+                                            KedgeIconButton(
                                                 onClick = { vm.deleteImage(it) },
                                                 modifier = Modifier.size(32.dp),
                                                 shapes = IconButtonDefaults.shapes(),
@@ -811,7 +827,7 @@ private fun SettingsBottomSheet(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            FormItem(
+            KedgeFormRow(
                 label = { Text(stringResource(R.string.imggen_page_generation_count)) },
                 description = { Text(stringResource(R.string.imggen_page_generation_count_desc)) }
             ) {
@@ -822,7 +838,7 @@ private fun SettingsBottomSheet(
                 )
             }
 
-            FormItem(
+            KedgeFormRow(
                 label = { Text("Image Size") }
             ) {
                 FlowRow(
@@ -830,7 +846,7 @@ private fun SettingsBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     ImageGenSize.entries.forEach { sizeOption ->
-                        FilterChip(
+                        KedgeFilterChip(
                             selected = size == sizeOption.value,
                             onClick = { vm.updateSize(sizeOption.value) },
                             label = { Text(sizeOption.value) }
@@ -840,7 +856,7 @@ private fun SettingsBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = size,
                     onValueChange = vm::updateSize,
                     label = { Text("Custom size") },

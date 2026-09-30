@@ -15,16 +15,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +53,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.common.http.okhttp.Request
@@ -68,6 +70,10 @@ private const val PROXY_TEST_URL = "https://www.google.com/generate_204"
 
 @Composable
 fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingPreferencesNetworkPageMiuix(vm)
+        return
+    }
     val httpClient = rememberAppEntryPoint().okHttpClient()
     val settings by vm.settings.collectAsStateWithLifecycle()
     var userAgent by remember(settings.networkSetting.userAgent) {
@@ -177,7 +183,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = proxyUrlDraft,
                         onValueChange = { proxyUrlDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -201,7 +207,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = proxyUsernameDraft,
                         onValueChange = { proxyUsernameDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -209,7 +215,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = proxyPasswordDraft,
                         onValueChange = { proxyPasswordDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -220,7 +226,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                             PasswordVisualTransformation()
                         },
                         trailingIcon = {
-                            IconButton(
+                            KedgeIconButton(
                                 onClick = { proxyPasswordVisible = !proxyPasswordVisible },
                                 shapes = IconButtonDefaults.shapes(),
                             ) {
@@ -238,7 +244,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    TextButton(
+                    KedgeTextButton(
                         onClick = ::resetProxy,
                         modifier = Modifier.align(Alignment.End),
                         enabled = proxyUrlDraft.isNotEmpty() ||
@@ -251,7 +257,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         saveProxy()
                         proxyDialogVisible = false
@@ -275,7 +281,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier
@@ -326,7 +332,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                 horizontalAlignment = Alignment.End,
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                OutlinedTextField(
+                                KedgeOutlinedTextFieldWithSlots(
                                     value = userAgent,
                                     onValueChange = ::updateUserAgent,
                                     modifier = Modifier.fillMaxWidth(),
@@ -345,7 +351,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                     singleLine = true,
                                     shape = RoundedCornerShape(16.dp)
                                 )
-                                TextButton(
+                                KedgeTextButton(
                                     onClick = { updateUserAgent("") },
                                     enabled = userAgent.isNotEmpty(),
                                     shapes = ButtonDefaults.shapes(),
@@ -395,13 +401,13 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                             Text(stringResource(R.string.setting_provider_page_test_connection))
                         },
                         trailingContent = {
-                            TextButton(
+                            KedgeTextButton(
                                 onClick = ::testProxy,
                                 enabled = proxyUrl.toProxyOrNull() != null && !proxyTesting,
                                 shapes = ButtonDefaults.shapes(),
                             ) {
                                 if (proxyTesting) {
-                                    CircularProgressIndicator(
+                                    KedgeProgressIndicator(
                                         modifier = Modifier.size(18.dp),
                                         strokeWidth = 2.dp,
                                     )

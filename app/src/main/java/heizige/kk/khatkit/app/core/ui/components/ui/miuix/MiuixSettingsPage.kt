@@ -1,0 +1,152 @@
+package heizige.kk.khatkit.app.core.ui.components.ui.miuix
+
+import androidx.compose.foundation.layout.ColumnScope
+import heizige.kk.kedge.components.KedgeCard
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurColors
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.kedge.adaptive.KedgeBlurSurface
+import heizige.kk.kedge.adaptive.KedgeBlurredBar
+import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
+import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
+
+/**
+ * Miuix 风格的设置页骨架，照搬 KernelSU `SettingsMiuix.kt` 的结构：
+ * [MiuixScrollBehavior] 驱动的顶栏、可选毛玻璃、12dp 水平边距、12dp 分组间距、
+ * 关闭 overscrollEffect（改用 Miuix 的 overScrollVertical）。
+ *
+ * @param bottomInnerPadding 列表底部额外留白（避开底部输入栏等）。
+ * @param content 列表内容，按 KernelSU 的写法在 `item {}` 里放一整页。
+ */
+@Composable
+fun MiuixSettingsPage(
+    title: String,
+    modifier: Modifier = Modifier,
+    bottomInnerPadding: Dp = 0.dp,
+    enableBlur: Boolean = true,
+    navigationIcon: (@Composable () -> Unit)? = null,
+    bottomBar: (@Composable () -> Unit)? = null,
+    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+    /** 外部持有的列表状态：需要驱动视差/折叠动画的页面传入（如关于页的大 logo 头图）。 */
+    lazyListState: LazyListState? = null,
+    content: LazyListScope.() -> Unit,
+) {
+    // 0.9.3 里 MiuixScrollBehavior 是 @Composable 工厂函数（默认参数全走 remember），不是类。
+    val scrollBehavior = MiuixScrollBehavior()
+    // backdrop 每屏一个，只录制下面的列表内容；顶栏是它的兄弟节点（KSU 原版结构）。
+    // 绝不能把顶栏也包进 KedgeBlurSurface，那样顶栏会采样到含自己的图层而崩。
+    val backdrop = rememberKedgeBlurBackdrop(enableBlur && LocalKedgeEnableBlur.current)
+
+    Scaffold(
+        topBar = {
+            KedgeBlurredBar(backdrop = backdrop) {
+                TopAppBar(
+                    color = if (backdrop != null) {
+                        Color.Transparent
+                    } else {
+                        MiuixTheme.colorScheme.surface
+                    },
+                    title = title,
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = navigationIcon ?: {},
+                    actions = actions,
+                )
+            }
+        },
+        bottomBar = { bottomBar?.invoke() },
+        // 必须保留 Miuix 默认的 MiuixPopupHost()：OverlayDropdownPreference /
+        // Spinner 等弹层通过 LocalPopupStates 注册，再由这个 host 实际渲染。
+        // 传空 lambda 会让下拉、选择器全部点不动（KernelSU 能传空是因为它的
+        // Scaffold 版本自带 host，Miuix 0.9.3 这里必须显式保留默认值）。
+        contentWindowInsets = WindowInsets.systemBars
+            .add(WindowInsets.displayCutout)
+            .only(WindowInsetsSides.Horizontal),
+    ) { innerPadding ->
+        // Box 必须 fillMaxSize：否则 Miuix Scaffold 给的是松散约束，
+        // 里面的 LazyColumn 拿不到确定高度，滚不动。
+        KedgeBlurSurface(backdrop = backdrop, modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = lazyListState ?: rememberLazyListState(),
+                modifier = Modifier
+                    // fillMaxSize 而不是 fillMaxHeight：Miuix Scaffold 的 content 槽
+                    // 给的是松散高度约束，只 fillMaxHeight 时 LazyColumn 高度为 0，
+                    // 列表无法滚动。必须同时 fillMaxWidth + 撑满可用高度。
+                    .fillMaxSize()
+                    .scrollEndHaptic()
+                    .overScrollVertical()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .padding(horizontal = MiuixPageMetrics.HorizontalPadding),
+                contentPadding = innerPadding.plus(
+                    PaddingValues(bottom = bottomInnerPadding)
+                ),
+                overscrollEffect = null,
+                content = content,
+            )
+        }
+    }
+}
+
+/**
+ * Miuix 分组卡片 + 12dp 上间距，写法与 KernelSU 的 `SettingsMiuix.kt` 一致。
+ *
+ * 每个分组是列表里的一个 item，卡片内部直接放 miuix-preference 的各项
+ * （`SwitchPreference` / `ArrowPreference` / `OverlayDropdownPreference` …）。
+ */
+fun LazyListScope.miuixGroup(
+    modifier: Modifier = Modifier,
+    key: Any? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    item(key = key) {
+        KedgeCard(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(top = MiuixPageMetrics.GroupSpacing),
+            // 分组卡片本身**不再加内边距**：里面的 ArrowPreference / SwitchPreference
+            // 等组件自己就带 BasicComponentDefaults.InsideMargin(16dp)。这里再给
+            // KedgeCard 的默认 16dp 的话，单项内边距会叠成 32dp，看着比 KernelSU 松。
+            contentPadding = PaddingValues(0.dp),
+            content = content,
+        )
+    }
+}
+
+/** Miuix 设置页的间距刻度，与 KernelSU 保持一致。 */
+object MiuixPageMetrics {
+    /** 列表水平边距。 */
+    val HorizontalPadding = 12.dp
+
+    /** 分组卡片之间的上间距。 */
+    val GroupSpacing = 12.dp
+}

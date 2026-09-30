@@ -22,10 +22,6 @@
 
     <application>
         <service
-            android:name="heizige.kk.khatkit.bridge.impl.KhatKitUserService"
-            android:exported="false" />
-
-        <service
             android:name="heizige.kk.khatkit.bridge.impl.KhatKitDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />

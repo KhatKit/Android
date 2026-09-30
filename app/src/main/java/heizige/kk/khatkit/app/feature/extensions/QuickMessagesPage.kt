@@ -14,20 +14,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +53,8 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
@@ -62,22 +64,14 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
     var editTarget by remember { mutableStateOf<QuickMessage?>(null) }
     var deleteTarget by remember { mutableStateOf<QuickMessage?>(null) }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.assistant_page_quick_messages),
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.assistant_page_quick_messages),
+        scrollBehavior = scrollBehavior,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            KedgeFloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(add, contentDescription = null)
             }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -175,7 +169,7 @@ private fun QuickMessageCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(
+    KedgeCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {
@@ -212,17 +206,17 @@ private fun QuickMessageCard(
                 )
             }
             Box {
-                IconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = moreVert,
                         contentDescription = stringResource(R.string.skills_page_more_actions),
                     )
                 }
-                DropdownMenu(
+                KedgeDropdownMenuSlots(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
-                    DropdownMenuItem(
+                    KedgeDropdownItemSlot(
                         text = { Text(stringResource(R.string.edit)) },
                         leadingIcon = {
                             Icon(
@@ -235,7 +229,7 @@ private fun QuickMessageCard(
                             onEdit()
                         },
                     )
-                    DropdownMenuItem(
+                    KedgeDropdownItemSlot(
                         text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(
@@ -274,7 +268,7 @@ private fun EditQuickMessageDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = quickMessageTitle,
                     onValueChange = { quickMessageTitle = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -282,7 +276,7 @@ private fun EditQuickMessageDialog(
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp)
                 )
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = quickMessageContent,
                     onValueChange = { quickMessageContent = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -294,7 +288,7 @@ private fun EditQuickMessageDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = { onConfirm(quickMessageTitle.trim(), quickMessageContent.trim()) },
                 enabled = quickMessageTitle.isNotBlank() && quickMessageContent.isNotBlank(),
                 shapes = ButtonDefaults.shapes(),
@@ -303,7 +297,7 @@ private fun EditQuickMessageDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.cancel))
             }
         },

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -16,23 +17,23 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageMediumTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -42,8 +43,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -99,12 +102,19 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.addComment
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.extension
-import heizige.kk.khatkit.app.core.ui.icons.formatListBulleted
 import heizige.kk.khatkit.app.core.ui.icons.menu
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
@@ -321,16 +331,29 @@ private fun ChatPageContent(
 
     TTSAutoPlay(vm = vm, setting = setting, conversation = conversation)
 
-    // 滚动消息列表时折叠/展开 MediumTopAppBar
+    // 滚动消息列表时折叠/展开顶栏。
+    //
+    // Miuix 下由 KedgePageScaffold 建立**唯一**一个 Miuix 折叠行为，同时接上
+    // nestedScroll 并通过 LocalKedgePageScrollBehavior 下发给顶栏（顶栏读同一个
+    // 实例才能折叠大标题）。这里不要再自己 remember 一个，否则会出现多个实例、
+    // 顶栏观察的那个没人喂滚动。
+    // MD3 仍是页面自己接 scrollBehavior 的 nestedScroll。
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val activeNestedScroll = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        Modifier
+    } else {
+        Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+    }
 
     Surface(
         color = heizige.kk.kedge.theme.KedgeColors.background,
         modifier = Modifier.fillMaxSize()
     ) {
         AssistantBackground(setting = setting, modifier = Modifier.hazeSource(hazeState))
-        Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // 用 KedgePageScaffold：Miuix 下自动建立 backdrop 并只包住内容槽，
+        // 顶栏作为兄弟节点采样（KernelSU MainActivity.kt:306 同构）。
+        KedgePageScaffold(
+            modifier = activeNestedScroll,
             topBar = {
                 TopBar(
                     settings = setting,
@@ -470,7 +493,7 @@ private fun ChatPageContent(
                 )
             },
             containerColor = Color.Transparent,
-        ) { innerPadding ->
+    ) { innerPadding ->
             ChatList(
                 innerPadding = innerPadding,
                 conversation = conversation,
@@ -664,46 +687,118 @@ private fun TopBar(
     val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
     val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
 
-    val topBarAssistant = settings.getCurrentAssistant()
+    // 顶栏副标题只显示当前模型名（助手名 + 提供商名在顶栏里太挤，已去掉）。
     val topBarModel = settings.getCurrentChatModel()
-    val topBarProvider = topBarModel?.findProvider(providers = settings.providers, checkOverwrite = false)
-    KedgePageMediumTopBar(
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        // Miuix：照搬 KernelSU HomeMiuix 的顶栏 —— 原版 TopAppBar 默认
+        // largeTitle = title，即真正的大标题栏，滚动时折叠成小标题。
+        // 搜索态把输入框放进 bottomContent（title 让位），避免与折叠标题打架。
+        KedgeMiuixMorphingTitleBar(
+            // 标题 morph 成搜索输入框，与 MD3 版行为一致（点标题/点搜索图标进入）。
+            title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+            expanded = previewMode,
+            keyword = searchQuery,
+            onKeywordChange = onSearchQueryChange,
+            dragProgress = searchProgress.value,
+            onExitSearch = onCollapseSearch,
+            placeholder = stringResource(R.string.history_page_search),
+            subtitle = topBarModel?.displayName,
+            navigationIcon = {
+                if (bigScreen) {
+                    BackButton(
+                        onClick = onCollapseSearch,
+                    )
+                } else {
+                    MiuixIconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        MiuixIcon(menu, contentDescription = "Messages")
+                    }
+                }
+            },
+            actions = {
+                // 搜索图标切「聊天内容预览搜索」(previewMode)；与 MD3 版一致，
+                // 带搜索↔关闭同槽交叉淡化。选模型走标题点击，不在此处。
+                MiuixIconButton(onClick = onClickMenu) {
+                    Box(contentAlignment = Alignment.Center) {
+                        MiuixIcon(
+                            imageVector = search,
+                            contentDescription = "Chat Options",
+                            modifier = Modifier.graphicsLayer {
+                                val progress = searchProgress.value
+                                alpha = 1f - progress
+                                scaleX = 1f - 0.15f * progress
+                                scaleY = 1f - 0.15f * progress
+                            },
+                        )
+                        MiuixIcon(
+                            imageVector = close,
+                            contentDescription = "Chat Options",
+                            modifier = Modifier.graphicsLayer {
+                                val progress = searchProgress.value
+                                alpha = progress
+                                scaleX = 0.85f + 0.15f * progress
+                                scaleY = 0.85f + 0.15f * progress
+                            },
+                        )
+                    }
+                }
+                MiuixIconButton(onClick = onNewChat) {
+                    MiuixIcon(addComment, contentDescription = "New Message")
+                }
+            },
+        )
+        return
+    }
+
+    KedgePageLargeTopBar(
         colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color.Transparent),
         scrollBehavior = scrollBehavior,
         navigationIcon = {
-            Box {
-                if (!bigScreen && titleVisible) {
-                    IconButton(
+            // 导航槽宽度与搜索进度同步（大屏 0→48dp，小屏菜单常驻保持 48dp），
+            // 菜单↔返回图标交叉淡化，避免占位突变导致标题/搜索框跳动。
+            Box(
+                modifier = Modifier
+                    .width(if (bigScreen) 48.dp * searchProgress.value else 48.dp)
+                    .clipToBounds(),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!bigScreen) {
+                    KedgeIconButton(
                         onClick = {
                             scope.launch { drawerState.open() }
                         },
-                        modifier = Modifier.graphicsLayer {
-                            alpha = 1f - searchProgress.value
-                            translationX = -searchProgress.value * 24.dp.toPx()
-                        },
+                        enabled = searchProgress.value < 0.5f,
+                        modifier = Modifier
+                            .width(48.dp)
+                            .graphicsLayer {
+                                val progress = searchProgress.value
+                                alpha = 1f - progress
+                                scaleX = 1f - 0.15f * progress
+                                scaleY = 1f - 0.15f * progress
+                            },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(menu, "Messages")
                     }
                 }
-                if (searchVisible) {
-                    IconButton(
-                        onClick = onCollapseSearch,
-                        modifier = Modifier.graphicsLayer {
-                            alpha = searchProgress.value
-                            translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                KedgeIconButton(
+                    onClick = onCollapseSearch,
+                    enabled = searchProgress.value >= 0.5f,
+                    modifier = Modifier
+                        .width(48.dp)
+                        .graphicsLayer {
+                            val progress = searchProgress.value
+                            alpha = progress
+                            scaleX = 0.85f + 0.15f * progress
+                            scaleY = 0.85f + 0.15f * progress
                         },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(arrowBack, contentDescription = null)
-                    }
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    Icon(arrowBack, contentDescription = null)
                 }
             }
         },
         title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-        subtitle = if (topBarModel != null && topBarProvider != null) {
-            "${topBarAssistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${topBarModel.displayName} (${topBarProvider.name})"
-        } else null,
+        subtitle = topBarModel?.displayName,
         titleContent = {
             Box {
                 if (titleVisible) {
@@ -750,7 +845,7 @@ private fun TopBar(
                         }
                     }
                 }
-                if (searchVisible) {
+                if (previewMode || searchVisible) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
@@ -781,16 +876,38 @@ private fun TopBar(
             }
         },
         actions = {
-            IconButton(
+            KedgeIconButton(
                 onClick = {
                     onClickMenu()
                 },
                 shapes = IconButtonDefaults.shapes(),
             ) {
-                Icon(if (searchVisible) close else search, "Chat Options")
+                // 搜索↔关闭图标同槽交叉淡化，不再整体切换 imageVector。
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        search,
+                        contentDescription = "Chat Options",
+                        modifier = Modifier.graphicsLayer {
+                            val progress = searchProgress.value
+                            alpha = 1f - progress
+                            scaleX = 1f - 0.15f * progress
+                            scaleY = 1f - 0.15f * progress
+                        },
+                    )
+                    Icon(
+                        close,
+                        contentDescription = "Chat Options",
+                        modifier = Modifier.graphicsLayer {
+                            val progress = searchProgress.value
+                            alpha = progress
+                            scaleX = 0.85f + 0.15f * progress
+                            scaleY = 0.85f + 0.15f * progress
+                        },
+                    )
+                }
             }
 
-            IconButton(
+            KedgeIconButton(
                 onClick = {
                     onNewChat()
                 },
@@ -809,7 +926,7 @@ private fun TopBar(
                 Text(stringResource(R.string.chat_page_edit_title))
             },
             text = {
-                OutlinedTextField(
+                KedgeOutlinedTextField(
                     value = title,
                     onValueChange = onUpdate,
                     modifier = Modifier.fillMaxWidth(),
@@ -818,7 +935,7 @@ private fun TopBar(
                 )
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         titleState.confirm()
                     },
@@ -828,7 +945,7 @@ private fun TopBar(
                 }
             },
             dismissButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         titleState.dismiss()
                     },

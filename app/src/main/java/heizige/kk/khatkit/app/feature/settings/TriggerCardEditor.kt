@@ -15,17 +15,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -134,7 +134,7 @@ internal fun TriggerCardEditorSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // ------------------------------------------------------------------ 重试配置
-            Card(
+            KedgeCard(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
@@ -153,7 +153,7 @@ internal fun TriggerCardEditorSheet(
                         onSelect = { maxRetries = it.toIntOrNull() ?: 0 },
                     )
                     if (maxRetries > 0) {
-                        OutlinedTextField(
+                        KedgeOutlinedTextFieldWithSlots(
                             value = retryDelay,
                             onValueChange = { retryDelay = it.filter { c -> c.isDigit() }.take(4) },
                             label = { Text("重试间隔（秒）") },
@@ -195,7 +195,7 @@ internal fun TriggerCardEditorSheet(
                 }
             }
 
-            TextButton(onClick = { showTypePicker = !showTypePicker }, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = { showTypePicker = !showTypePicker }, shapes = ButtonDefaults.shapes()) {
                 Icon(add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(if (showTypePicker) "收起类型" else "添加事件")
@@ -206,7 +206,7 @@ internal fun TriggerCardEditorSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ALL_EVENT_TYPES.forEach { type ->
-                        FilterChip(
+                        KedgeFilterChip(
                             selected = false,
                             onClick = {
                                 events.add(defaultEventFor(type))
@@ -227,7 +227,7 @@ internal fun TriggerCardEditorSheet(
                 )
             }
 
-            TextButton(
+            KedgeTextButton(
                 onClick = {
                     events.clear()
                     events.addAll(card.baseEvents)
@@ -255,7 +255,7 @@ private fun EventCard(
     onChange: (CardManifest.Event) -> Unit,
     onRemove: () -> Unit,
 ) {
-    Card(
+    KedgeCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -283,11 +283,11 @@ private fun EventCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(
+            KedgeSwitch(
                 checked = enabled,
                 onCheckedChange = onToggleEnabled,
             )
-            IconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                 Icon(delete, contentDescription = "删除事件", modifier = Modifier.size(18.dp))
             }
             Icon(
@@ -525,7 +525,7 @@ private fun EventFields(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 val context = LocalContext.current
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         TriggerTilePublisher.requestAdd(
                             context = context,
@@ -675,7 +675,7 @@ private fun ChipSelector(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             options.forEach { (value, text) ->
-                FilterChip(
+                KedgeFilterChip(
                     selected = value == selected,
                     onClick = { onSelect(value) },
                     label = { Text(text) },
@@ -692,7 +692,7 @@ private fun TextStateField(
     onValueChange: (String) -> Unit,
     placeholder: String? = null,
 ) {
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -711,7 +711,7 @@ private fun IntStateField(
     allowNegative: Boolean = false,
 ) {
     var text by remember { mutableStateOf(value.toString()) }
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = text,
         onValueChange = { raw ->
             val filtered = buildString {
@@ -739,7 +739,7 @@ private fun DoubleStateField(
     onValueChange: (Double?) -> Unit,
 ) {
     var text by remember { mutableStateOf(value?.toString().orEmpty()) }
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = text,
         onValueChange = { raw ->
             val filtered = raw.filter { it.isDigit() || it == '.' || it == '-' }

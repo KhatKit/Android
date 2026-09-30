@@ -9,13 +9,12 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +40,8 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.components.KedgeTextButton
 
 /**
  * 工作区文本文件编辑/预览页.
@@ -81,49 +82,41 @@ fun WorkspaceFileEditorPage(
         }
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageTopBar(
-                title = fileName,
-                navigationIcon = { BackButton() },
-                actions = {
-                    if (supportsPreview && !loading && loadError == null) {
-                        TextButton(onClick = { showPreview = !showPreview }, shapes = ButtonDefaults.shapes()) {
-                            Text(if (showPreview) "源码" else "预览")
+    KedgeSettingsPageScaffold(
+        title = fileName,
+        actions = {
+            if (supportsPreview && !loading && loadError == null) {
+                KedgeTextButton(onClick = { showPreview = !showPreview }) {
+                    Text(if (showPreview) "源码" else "预览")
+                }
+            }
+            if (editable && !loading && loadError == null) {
+                KedgeTextButton(
+                    enabled = !saving,
+                    onClick = {
+                        if (saving) return@KedgeTextButton
+                        saving = true
+                        scope.launch {
+                            runCatching {
+                                repository.writeText(
+                                    id = id,
+                                    path = path,
+                                    text = textState.text.toString(),
+                                    overwrite = true,
+                                )
+                            }.onSuccess {
+                                Toast.show("已保存", isError = false)
+                            }.onFailure {
+                                Toast.show(it.message ?: "保存失败", isError = true)
+                            }
+                            saving = false
                         }
-                    }
-                    if (editable && !loading && loadError == null) {
-                        TextButton(
-                            onClick = {
-                                if (saving) return@TextButton
-                                saving = true
-                                scope.launch {
-                                    runCatching {
-                                        repository.writeText(
-                                            id = id,
-                                            path = path,
-                                            text = textState.text.toString(),
-                                            overwrite = true,
-                                        )
-                                    }.onSuccess {
-                                        Toast.show("已保存", isError = false)
-                                    }.onFailure {
-                                        Toast.show(it.message ?: "保存失败", isError = true)
-                                    }
-                                    saving = false
-                                }
-                            },
-                            enabled = !saving,
-                            shapes = ButtonDefaults.shapes(),
-                        ) {
-                            Text("Save")
-                        }
-                    }
-                },
-                colors = CustomColors.topBarColors,
-            )
+                    },
+                ) {
+                    Text("Save")
+                }
+            }
         },
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         when {
             loading -> Box(
@@ -132,7 +125,7 @@ fun WorkspaceFileEditorPage(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                KedgeProgressIndicator()
             }
 
             loadError != null -> Box(

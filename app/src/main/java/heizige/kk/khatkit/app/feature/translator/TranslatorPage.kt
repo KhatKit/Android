@@ -18,22 +18,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +63,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.Locale
 import heizige.kk.khatkit.app.core.ui.icons.contentPaste
 import heizige.kk.khatkit.app.core.ui.icons.translate
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
@@ -81,26 +83,8 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageTopBar(
-                title = stringResource(R.string.translator_page_title),
-                navigationIcon = {
-                    BackButton()
-                },
-                actions = {
-                    ModelSelector(
-                        modelId = settings.translateModeId,
-                        onSelect = {
-                            vm.updateSettings(settings.copy(translateModeId = it.id))
-                        },
-                        providers = settings.providers,
-                        type = ModelType.CHAT,
-                        onlyIcon = true,
-                    )
-                }
-            )
-        },
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.translator_page_title),
         bottomBar = {
             BottomBar(
                 translating = translating,
@@ -115,7 +99,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                 },
                 targetLanguage = targetLanguage
             )
-        }
+        },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -127,7 +111,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
         ) {
             // 输入区域
             Column {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = inputText,
                     onValueChange = { vm.updateInputText(it) },
                     modifier = Modifier.fillMaxWidth(),
@@ -142,7 +126,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                FilledTonalButton(
+                KedgeButton(
                     onClick = {
                         scope.launch {
                             clipboard.getClipEntry()?.clipData?.getText()?.let {
@@ -184,7 +168,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
             }
 
             AnimatedVisibility(translatedText.isNotBlank()) {
-                FilledTonalButton(
+                KedgeButton(
                     onClick = {
                         scope.launch {
                             clipboard.setClipEntry(
@@ -250,7 +234,7 @@ private fun LanguageSelector(
             expanded = expanded,
             onExpandedChange = { expanded = it }
         ) {
-            OutlinedTextField(
+            KedgeOutlinedTextField(
                 value = getLanguageDisplayName(targetLanguage),
                 onValueChange = {},
                 readOnly = true,
@@ -271,7 +255,7 @@ private fun LanguageSelector(
                 onDismissRequest = { expanded = false }
             ) {
                 Locales.forEach { language ->
-                    DropdownMenuItem(
+                    KedgeDropdownItemSlot(
                         text = { Text(getLanguageDisplayName(language)) },
                         onClick = {
                             onLanguageSelected(language)

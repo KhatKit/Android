@@ -40,6 +40,8 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -50,13 +52,17 @@ import heizige.kk.khatkit.app.core.ui.icons.neurology
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingModelPageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.setting_model_page_title),

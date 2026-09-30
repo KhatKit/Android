@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -118,7 +118,7 @@ fun RecordCardSheet(
                 )
             }
 
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("卡片名称（如：每日签到）") },
@@ -129,7 +129,7 @@ fun RecordCardSheet(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (state.recording) {
-                    Button(onClick = { KhatKitOperationRecorder.stop(context) }, shapes = ButtonDefaults.shapes()) {
+                    KedgeButton(onClick = { KhatKitOperationRecorder.stop(context) }, shapes = ButtonDefaults.shapes()) {
                         Icon(stopCircle, contentDescription = null)
                         Text(
                             text = "停止录制",
@@ -137,7 +137,7 @@ fun RecordCardSheet(
                         )
                     }
                 } else {
-                    Button(
+                    KedgeButton(
                         onClick = {
                             if (!KhatKitOperationRecorder.start(context)) {
                                 Toast.show("无障碍服务未开启，请先在系统设置中开启 KhatKit 的无障碍服务", isError = true)
@@ -154,7 +154,7 @@ fun RecordCardSheet(
                 }
 
                 if (!state.recording && state.steps.isNotEmpty()) {
-                    TextButton(onClick = { KhatKitOperationRecorder.discard(context) }, shapes = ButtonDefaults.shapes()) {
+                    KedgeTextButton(onClick = { KhatKitOperationRecorder.discard(context) }, shapes = ButtonDefaults.shapes()) {
                         Text("清空")
                     }
                 }

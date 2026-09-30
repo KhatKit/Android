@@ -26,13 +26,58 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.book4
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.folder
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun ExtensionsPage() {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
 
-    Scaffold(
+    // Miuix 直接用 MiuixSettingsPage 骨架：整页只有一组入口，无需 MD3 的
+    // Scaffold + CardGroup 两层。
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        MiuixSettingsPage(
+            title = stringResource(R.string.extensions_page_title),
+            navigationIcon = { BackButton() },
+        ) {
+            miuixGroup {
+                PreferenceArrow(
+                    title = stringResource(R.string.assistant_page_quick_messages),
+                    summary = stringResource(R.string.extensions_page_quick_messages_desc),
+                    icon = bolt,
+                    onClick = { navController.navigate(Screen.QuickMessages) },
+                )
+                PreferenceArrow(
+                    title = stringResource(R.string.extensions_page_prompts),
+                    summary = stringResource(R.string.extensions_page_prompts_desc),
+                    icon = book4,
+                    onClick = { navController.navigate(Screen.Prompts) },
+                )
+                PreferenceArrow(
+                    title = stringResource(R.string.extensions_page_agent_skills),
+                    summary = stringResource(R.string.extensions_page_agent_skills_desc),
+                    icon = extension,
+                    onClick = { navController.navigate(Screen.Skills) },
+                )
+                PreferenceArrow(
+                    title = stringResource(R.string.extensions_page_workspace),
+                    summary = stringResource(R.string.extensions_page_workspace_desc),
+                    icon = folder,
+                    onClick = { navController.navigate(Screen.Workspaces) },
+                )
+            }
+        }
+        return
+    }
+
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    KedgePageScaffold(
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.extensions_page_title),
@@ -42,7 +87,8 @@ fun ExtensionsPage() {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor,
+        md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

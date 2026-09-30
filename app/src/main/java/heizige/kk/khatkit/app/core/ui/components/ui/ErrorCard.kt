@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -178,7 +178,7 @@ fun ErrorCard(
                     )
                 }
             }
-            IconButton(
+            KedgeIconButton(
                 onClick = {
                     scope.launch {
                         clipboard.setClipEntry(
@@ -198,7 +198,7 @@ fun ErrorCard(
                     modifier = Modifier.size(18.dp),
                 )
             }
-            IconButton(
+            KedgeIconButton(
                 onClick = onDismiss,
                 modifier = Modifier.size(32.dp),
                 shapes = IconButtonDefaults.shapes(),

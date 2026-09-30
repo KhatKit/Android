@@ -43,7 +43,6 @@ fun KhatKitSecretsDialog(
     onToast: (String, Boolean) -> Unit = { _, _ -> },
 ) {
     var secrets by remember(cardName) { mutableStateOf(controller.listCardSecrets(cardName)) }
-    val context = LocalContext.current
 
     PrimaryBottomSheet(
         visible = true,
@@ -57,6 +56,8 @@ fun KhatKitSecretsDialog(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 secrets.forEach { key ->
+                    // 在组合期取值，配置变化时才会跟着更新。
+                    val revokeMessage = stringResource(R.string.khatkit_secrets_revoked, key)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -67,7 +68,7 @@ fun KhatKitSecretsDialog(
                             onClick = {
                                 controller.removeCardSecret(cardName, key)
                                 secrets = controller.listCardSecrets(cardName)
-                                onToast(context.getString(R.string.khatkit_secrets_revoked, key), false)
+                                onToast(revokeMessage, false)
                             },
                         ) {
                             Text(stringResource(R.string.khatkit_secrets_revoke))

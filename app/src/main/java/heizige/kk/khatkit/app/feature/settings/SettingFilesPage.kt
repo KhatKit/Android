@@ -21,20 +21,20 @@ import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridS
 import androidx.compose.foundation.rememberScrollState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.AnimatedRadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,6 +60,8 @@ import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.fileSizeToString
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -72,6 +74,10 @@ import heizige.kk.khatkit.app.core.ui.icons.image
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingFilesPage() {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingFilesPageMiuix()
+        return
+    }
     val filesManager = rememberAppEntryPoint().filesManager()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyStaggeredGridState()
@@ -98,7 +104,7 @@ fun SettingFilesPage() {
             title = { Text(stringResource(R.string.setting_files_page_delete_file_title)) },
             text = { Text(target.displayName) },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         scope.launch {
                             val ok = filesManager.delete(target.id, deleteFromDisk = true)
@@ -116,7 +122,7 @@ fun SettingFilesPage() {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { pendingDelete = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.setting_files_page_cancel_action))
                 }
             }
@@ -156,7 +162,7 @@ fun SettingFilesPage() {
                 title = stringResource(R.string.setting_files_page_title),
                 navigationIcon = { BackButton() },
                 actions = {
-                    IconButton(
+                    KedgeIconButton(
                         onClick = { showCleanSheet = true },
                         enabled = files.isNotEmpty(),
                         shapes = IconButtonDefaults.shapes(),
@@ -172,7 +178,7 @@ fun SettingFilesPage() {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
         Column(
@@ -225,7 +231,7 @@ fun SettingFilesPage() {
     }
 }
 
-private enum class CleanRange(val days: Int?) {
+internal enum class CleanRange(val days: Int?) {
     DAYS_7(7),
     DAYS_14(14),
     DAYS_30(30),
@@ -233,7 +239,7 @@ private enum class CleanRange(val days: Int?) {
 }
 
 @Composable
-private fun CleanFilesSheet(
+internal fun CleanFilesSheet(
     selectedRange: CleanRange,
     onRangeSelected: (CleanRange) -> Unit,
 ) {
@@ -289,7 +295,7 @@ private fun FolderRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         folders.forEach { folder ->
-            FilterChip(
+            KedgeFilterChip(
                 selected = selectedFolder == folder,
                 onClick = { onFolderSelected(folder) },
                 label = { Text(folderDisplayName(folder)) }
@@ -299,18 +305,18 @@ private fun FolderRow(
 }
 
 @Composable
-private fun folderDisplayName(folder: String): String = when (folder) {
+internal fun folderDisplayName(folder: String): String = when (folder) {
     FileFolders.UPLOAD -> stringResource(R.string.setting_files_page_folder_upload)
     else -> folder
 }
 
 @Composable
-private fun FileItem(
+internal fun FileItem(
     file: ManagedFileEntity,
     fileOnDisk: File,
     onDelete: () -> Unit,
 ) {
-    Card(
+    KedgeCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CustomColors.listItemColors.containerColor)
     ) {
@@ -342,7 +348,7 @@ private fun FileItem(
                     }
                 }
 
-                IconButton(
+                KedgeIconButton(
                     onClick = onDelete,
                     modifier = Modifier.align(Alignment.TopEnd),
                     shapes = IconButtonDefaults.shapes(),

@@ -18,8 +18,15 @@ data class ListCardStyle(
     val largeCorner: Dp = 20.dp,
     val smallCorner: Dp = 4.dp,
     val gap: Dp = 2.dp,
+    /**
+     * Miuix 模式下每项都是独立圆角卡片（不分组）。
+     * 见 `Theme.kt`：Miuix 用 largeCorner=20dp / gap=12dp / 每项同圆角。
+     */
+    val independentItems: Boolean = false,
 ) {
     fun groupItemShape(isFirst: Boolean, isLast: Boolean): RoundedCornerShape = when {
+        independentItems -> RoundedCornerShape(largeCorner)
+        else -> when {
         isFirst && isLast -> RoundedCornerShape(largeCorner)
         isFirst -> RoundedCornerShape(
             topStart = largeCorner,
@@ -36,6 +43,7 @@ data class ListCardStyle(
         )
 
         else -> RoundedCornerShape(smallCorner)
+        }
     }
 
     fun indexedShape(index: Int, count: Int): RoundedCornerShape =

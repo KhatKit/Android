@@ -16,20 +16,20 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -152,7 +152,7 @@ fun ChatExportSheet(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ListItem(
+                    KedgeListItem(
                         headlineContent = {
                             Text(stringResource(id = R.string.chat_page_export_markdown))
                         },
@@ -171,7 +171,7 @@ fun ChatExportSheet(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
-                        ListItem(
+                        KedgeListItem(
                             headlineContent = {
                                 Text(stringResource(id = R.string.chat_page_export_image))
                             },
@@ -185,10 +185,10 @@ fun ChatExportSheet(
 
                         HorizontalDivider()
 
-                        ListItem(
+                        KedgeListItem(
                             headlineContent = { Text(stringResource(R.string.chat_page_export_image_expand_reasoning)) },
                             trailingContent = {
-                                Switch(
+                                KedgeSwitch(
                                     checked = imageExportOptions.expandReasoning,
                                     onCheckedChange = {
                                         imageExportOptions = imageExportOptions.copy(expandReasoning = it)
@@ -203,7 +203,7 @@ fun ChatExportSheet(
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            Button(
+                            KedgeButton(
                                 onClick = {
                                     scope.launch {
                                         runCatching {
@@ -253,7 +253,7 @@ fun ChatExportSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    ListItem(
+                    KedgeListItem(
                         headlineContent = { Text("存为卡片") },
                         supportingContent = { Text("把选中的对话保存成本地卡片，运行后用卡片展示内容") },
                         leadingContent = { Icon(insertDriveFile, contentDescription = null) },
@@ -609,7 +609,7 @@ private fun ExportedChatMessage(
                                 if (part.text.isNotBlank()) {
                                     ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
                                         if (message.role == MessageRole.USER) {
-                                            Card(
+                                            KedgeCard(
                                                 shape = MaterialTheme.shapes.medium,
                                             ) {
                                                 MarkdownBlock(
@@ -619,7 +619,7 @@ private fun ExportedChatMessage(
                                             }
                                         } else {
                                             if (settings.displaySetting.showAssistantBubble) {
-                                                Card(
+                                                KedgeCard(
                                                     shape = MaterialTheme.shapes.medium,
                                                     colors = CardDefaults.cardColors(
                                                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,

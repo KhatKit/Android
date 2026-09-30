@@ -19,15 +19,16 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,75 +61,28 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
 
 @Composable
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    Scaffold(
-        topBar = {
-            KedgePageTopBar(
-                title = "Debug Mode",
-                navigationIcon = {
-                    BackButton()
-                }
-            )
-        }
-    ) { contentPadding ->
-        val state = rememberPagerState { 3 }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(contentPadding)
-        ) {
-            SecondaryTabRow(
-                selectedTabIndex = state.currentPage,
-            ) {
-                Tab(
-                    selected = state.currentPage == 0,
-                    onClick = {
-                        scope.launch {
-                            state.animateScrollToPage(0)
-                        }
-                    },
-                    text = {
-                        Text("Main")
-                    }
-                )
-                Tab(
-                    selected = state.currentPage == 1,
-                    onClick = {
-                        scope.launch {
-                            state.animateScrollToPage(1)
-                        }
-                    },
-                    text = {
-                        Text("Colors")
-                    }
-                )
-                Tab(
-                    selected = state.currentPage == 2,
-                    onClick = {
-                        scope.launch {
-                            state.animateScrollToPage(2)
-                        }
-                    },
-                    text = {
-                        Text("Logging")
-                    }
-                )
-            }
-            HorizontalPager(
-                state = state,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) { page ->
-                when (page) {
-                    0 -> MainPage(vm)
-                    1 -> ColorsPage()
-                    2 -> Box {}
-                }
+    val state = rememberPagerState { 3 }
+    // Tab 页统一骨架：MD3 下保持 SecondaryTabRow，Miuix 下换原生 TabRow。
+    KedgeTabPageScaffold(
+        title = "Debug Mode",
+        titles = listOf("Main", "Colors", "Logging"),
+        selectedTabIndex = state.currentPage,
+        onTabSelected = { scope.launch { state.animateScrollToPage(it) } },
+    ) { pagerModifier ->
+        HorizontalPager(
+            state = state,
+            modifier = pagerModifier.fillMaxWidth(),
+        ) { page ->
+            when (page) {
+                0 -> MainPage(vm)
+                1 -> ColorsPage()
+                2 -> Box {}
             }
         }
     }
@@ -181,7 +135,7 @@ private fun MainPage(vm: DebugViewModel) {
             mutableIntStateOf(0)
         }
         val toaster = LocalToaster.current
-        Button(
+        KedgeButton(
             onClick = {
                 Toast.show("测试 ${counter++}")
                 Toast.show("测试 ${counter++}", isError = false)
@@ -191,7 +145,7 @@ private fun MainPage(vm: DebugViewModel) {
         ) {
             Text("toast")
         }
-        Button(
+        KedgeButton(
             onClick = {
                 vm.updateSettings(
                     settings.copy(
@@ -204,7 +158,7 @@ private fun MainPage(vm: DebugViewModel) {
             Text("重置Chat模型")
         }
 
-        Button(
+        KedgeButton(
             onClick = {
                 error("测试崩溃 ${Random.nextInt(0..1000)}")
             },
@@ -221,12 +175,12 @@ private fun MainPage(vm: DebugViewModel) {
                 text = "Conversation 数量: ${conversationCount?.toString() ?: "..."}",
                 modifier = Modifier.weight(1f),
             )
-            Button(onClick = { vm.refreshConversationCount() }, shapes = ButtonDefaults.shapes()) {
+            KedgeButton(onClick = { vm.refreshConversationCount() }, shapes = ButtonDefaults.shapes()) {
                 Text("刷新")
             }
         }
 
-        Button(
+        KedgeButton(
             onClick = {
                 vm.createOversizedConversation(30)
                 Toast.show("正在创建 30MB 超大对话...")
@@ -236,7 +190,7 @@ private fun MainPage(vm: DebugViewModel) {
             Text("创建超大对话 (30MB)")
         }
 
-        Button(
+        KedgeButton(
             onClick = {
                 vm.createConversationWithMessages(1024)
                 Toast.show("正在创建 1024 条消息对话...")
@@ -257,7 +211,7 @@ private fun MainPage(vm: DebugViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = launchCountInput,
                 onValueChange = { launchCountInput = it },
                 label = { Text("launchCount (current: ${settings.launchCount})") },
@@ -265,7 +219,7 @@ private fun MainPage(vm: DebugViewModel) {
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp)
             )
-            Button(onClick = {
+            KedgeButton(onClick = {
                 launchCountInput.toIntOrNull()?.let {
                     vm.updateSettings(settings.copy(launchCount = it))
                 }
@@ -282,7 +236,7 @@ private fun MainPage(vm: DebugViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = dismissedAtInput,
                 onValueChange = { dismissedAtInput = it },
                 label = { Text("sponsorAlertDismissedAt (current: ${settings.sponsorAlertDismissedAt})") },
@@ -290,7 +244,7 @@ private fun MainPage(vm: DebugViewModel) {
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp)
             )
-            Button(onClick = {
+            KedgeButton(onClick = {
                 dismissedAtInput.toIntOrNull()?.let {
                     vm.updateSettings(settings.copy(sponsorAlertDismissedAt = it))
                 }
@@ -303,7 +257,7 @@ private fun MainPage(vm: DebugViewModel) {
         var markdown by remember { mutableStateOf("") }
         MarkdownBlock(markdown, modifier = Modifier.fillMaxWidth())
         MathBlock(markdown)
-        OutlinedTextField(
+        KedgeOutlinedTextField(
             value = markdown,
             onValueChange = { markdown = it },
             modifier = Modifier.fillMaxWidth(),

@@ -15,15 +15,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.FancySlider
 import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +58,8 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import java.io.File
 import kotlin.math.roundToInt
 import heizige.kk.khatkit.app.core.ui.icons.deleteForever
@@ -64,6 +68,10 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingPreferencesUIPageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     val context = LocalContext.current
@@ -72,7 +80,8 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
     val chatFontFamily = rememberChatFontFamily(displaySetting)
     val khatKitProvider: heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider =
         rememberAppEntryPoint().khatKitToolProvider()
-    var uiStyle by remember(settings) { mutableStateOf(khatKitProvider.uiStyle) }
+    // 直接观察 provider 的 state，不要 remember 缓存，否则别处切换风格后这里不同步。
+    val uiStyle = khatKitProvider.uiStyle
 
     fun updateDisplaySetting(setting: DisplaySetting) {
         displaySetting = setting
@@ -119,7 +128,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -131,29 +140,21 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     modifier = Modifier.padding(horizontal = 8.dp),
                     title = { Text(stringResource(R.string.setting_page_message_display_settings)) },
                 ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_user_avatar_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_user_avatar_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showUserAvatar,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showUserAvatar = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_user_avatar_title,
+                            R.string.setting_display_page_show_user_avatar_desc,
+                            checked = displaySetting.showUserAvatar,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_assistant_bubble_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_assistant_bubble_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showAssistantBubble,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showAssistantBubble = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_assistant_bubble_title,
+                            R.string.setting_display_page_show_assistant_bubble_desc,
+                            checked = displaySetting.showAssistantBubble,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
+                        )
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_bubble_opacity_title)) },
@@ -176,89 +177,61 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                             }
                         }
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_chat_list_model_icon_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_chat_list_model_icon_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showModelIcon,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showModelIcon = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_chat_list_model_icon_title,
+                            R.string.setting_display_page_chat_list_model_icon_desc,
+                            checked = displaySetting.showModelIcon,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_model_name_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_model_name_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showModelName,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showModelName = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_model_name_title,
+                            R.string.setting_display_page_show_model_name_desc,
+                            checked = displaySetting.showModelName,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelName = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_datetime_in_message_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_datetime_in_message_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showDateTimeInMessage,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_datetime_in_message_title,
+                            R.string.setting_display_page_show_datetime_in_message_desc,
+                            checked = displaySetting.showDateTimeInMessage,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_token_usage_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_token_usage_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showTokenUsage,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showTokenUsage = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_token_usage_title,
+                            R.string.setting_display_page_show_token_usage_desc,
+                            checked = displaySetting.showTokenUsage,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_thinking_content_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_thinking_content_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showThinkingContent,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showThinkingContent = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_thinking_content_title,
+                            R.string.setting_display_page_show_thinking_content_desc,
+                            checked = displaySetting.showThinkingContent,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_auto_collapse_thinking_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_auto_collapse_thinking_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.autoCloseThinking,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(autoCloseThinking = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_auto_collapse_thinking_title,
+                            R.string.setting_display_page_auto_collapse_thinking_desc,
+                            checked = displaySetting.autoCloseThinking,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_enable_latex_rendering_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_enable_latex_rendering_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.enableLatexRendering,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(enableLatexRendering = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_enable_latex_rendering_title,
+                            R.string.setting_display_page_enable_latex_rendering_desc,
+                            checked = displaySetting.enableLatexRendering,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLatexRendering = it)) },
+                        )
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_chat_font_family_title)) },
@@ -299,7 +272,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                         },
                         trailingContent = {
                             Row {
-                                IconButton(
+                                KedgeIconButton(
                                     onClick = { fontPickerLauncher.launch(CustomFontMimeTypesUI) },
                                     shapes = IconButtonDefaults.shapes(),
                                 ) {
@@ -311,7 +284,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                                     )
                                 }
                                 if (displaySetting.chatCustomFontPath.isNotBlank()) {
-                                    IconButton(
+                                    KedgeIconButton(
                                         onClick = {
                                             deleteCustomChatFontInternal(context, displaySetting.chatCustomFontPath)
                                             updateDisplaySetting(
@@ -374,41 +347,46 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     modifier = Modifier.padding(horizontal = 8.dp),
                     title = { Text(stringResource(R.string.setting_page_code_display_settings)) },
                 ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_wrap_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_wrap_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.codeBlockAutoWrap,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(codeBlockAutoWrap = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_code_block_auto_wrap_title,
+                            R.string.setting_display_page_code_block_auto_wrap_desc,
+                            checked = displaySetting.codeBlockAutoWrap,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoWrap = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_collapse_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_code_block_auto_collapse_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.codeBlockAutoCollapse,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(codeBlockAutoCollapse = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_code_block_auto_collapse_title,
+                            R.string.setting_display_page_code_block_auto_collapse_desc,
+                            checked = displaySetting.codeBlockAutoCollapse,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoCollapse = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_line_numbers_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_line_numbers_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showLineNumbers,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showLineNumbers = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_line_numbers_title,
+                            R.string.setting_display_page_show_line_numbers_desc,
+                            checked = displaySetting.showLineNumbers,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showLineNumbers = it)) },
+                        )
+                    )
+                }
+            }
+
+            item {
+                // 毛玻璃开关：与 Miuix 版共用 provider，MD3 风格下也可见可改
+                // （MD3 顶栏不做模糊，但保留该设置便于切到 Miuix 时直接生效）。
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) {
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_page_blur_title,
+                            R.string.setting_page_blur_desc,
+                            checked = khatKitProvider.enableBlur,
+                            onCheckedChange = { khatKitProvider.enableBlur = it },
+                        )
                     )
                 }
             }
@@ -429,10 +407,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                                     onClick = null,
                                 )
                             },
-                            onClick = {
-                                khatKitProvider.uiStyle = style
-                                uiStyle = style
-                            },
+                            onClick = { khatKitProvider.uiStyle = style },
                         )
                     }
                 }

@@ -20,24 +20,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeCheckbox
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -82,7 +83,6 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TextArea
@@ -104,6 +104,14 @@ import heizige.kk.khatkit.app.core.ui.icons.dragHandle
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.sync
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun AssistantPromptPage(id: String) {
@@ -112,7 +120,26 @@ fun AssistantPromptPage(id: String) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        KedgeSettingsPageScaffold(
+            title = stringResource(R.string.assistant_page_tab_prompt),
+            navigationIcon = { BackButton() },
+        ) { innerPadding ->
+            AssistantPromptContent(
+                // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
+                // 旧写法硬编码 PaddingValues(horizontal = 16.dp)（因为 MiuixSettingsPage
+                // 自己用 LazyColumn 的 contentPadding 处理了顶栏），改成内容直接透传后
+                // 顶部就是 0，content 直接压在 TopAppBar 下面。
+                innerPadding = innerPadding,
+                assistant = assistant,
+                settings = settings,
+                onUpdate = { vm.update(it) },
+            )
+        }
+        return
+    }
+
+    KedgePageScaffold(
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.assistant_page_tab_prompt),
@@ -124,7 +151,9 @@ fun AssistantPromptPage(id: String) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
+    
+        md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantPromptContent(
             innerPadding = innerPadding,
@@ -154,11 +183,9 @@ private fun AssistantPromptContent(
             .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
+        KedgeFormCard {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(MiuixFormMetrics.InnerPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val systemPromptValue = rememberTextFieldState(
@@ -205,10 +232,8 @@ private fun AssistantPromptContent(
             }
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt))
@@ -217,7 +242,7 @@ private fun AssistantPromptContent(
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt_desc))
                 },
                 tail = {
-                    Switch(
+                    KedgeSwitch(
                         checked = assistant.allowConversationSystemPrompt,
                         onCheckedChange = {
                             onUpdate(
@@ -231,10 +256,8 @@ private fun AssistantPromptContent(
             )
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection))
@@ -243,7 +266,7 @@ private fun AssistantPromptContent(
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection_desc))
                 },
                 tail = {
-                    Switch(
+                    KedgeSwitch(
                         checked = assistant.allowConversationPromptInjection,
                         onCheckedChange = {
                             onUpdate(
@@ -257,10 +280,8 @@ private fun AssistantPromptContent(
             )
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Row(
@@ -268,7 +289,7 @@ private fun AssistantPromptContent(
                     ) {
                         Text(stringResource(R.string.assistant_page_message_template))
                         Spacer(Modifier.weight(1f))
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {
                                 onUpdate(assistant.copy(messageTemplate = "{{ message }}"))
                             },
@@ -284,7 +305,7 @@ private fun AssistantPromptContent(
                 },
                 content = {
                     val missingMessage = "{{ message }}" !in assistant.messageTemplate
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = assistant.messageTemplate,
                         onValueChange = {
                             onUpdate(
@@ -400,10 +421,8 @@ private fun AssistantPromptContent(
             }
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_preset_messages))
@@ -413,8 +432,8 @@ private fun AssistantPromptContent(
                 }
             )
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(16.dp)
+                verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+                modifier = Modifier.padding(MiuixFormMetrics.InnerPadding)
             ) {
                 assistant.presetMessages.fastForEachIndexed { index, presetMessage ->
                     Column(
@@ -444,7 +463,7 @@ private fun AssistantPromptContent(
                                 modifier = Modifier.width(160.dp)
                             )
                             Spacer(modifier = Modifier.weight(1f))
-                            IconButton(
+                            KedgeIconButton(
                                 onClick = {
                                     onUpdate(
                                         assistant.copy(
@@ -459,7 +478,7 @@ private fun AssistantPromptContent(
                                 Icon(close, null)
                             }
                         }
-                        OutlinedTextField(
+                        KedgeOutlinedTextFieldWithSlots(
                             value = presetMessage.toText(),
                             onValueChange = { text ->
                                 onUpdate(
@@ -480,7 +499,7 @@ private fun AssistantPromptContent(
                         )
                     }
                 }
-                Button(
+                KedgeButton(
                     onClick = {
                         val lastRole = assistant.presetMessages.lastOrNull()?.role ?: MessageRole.ASSISTANT
                         val nextRole = when (lastRole) {
@@ -505,10 +524,8 @@ private fun AssistantPromptContent(
             }
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_regex_title))
@@ -518,7 +535,7 @@ private fun AssistantPromptContent(
                 }
             )
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
                 modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 val haptic = LocalHapticFeedback.current
@@ -530,7 +547,7 @@ private fun AssistantPromptContent(
                         }
                         onUpdate(assistant.copy(regexes = regexes))
                     },
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
                 ) { index, regex, isDragging ->
                     key(regex.id) {
                         ReorderableItem(
@@ -559,7 +576,7 @@ private fun AssistantPromptContent(
                         }
                     }
                 }
-                Button(
+                KedgeButton(
                     onClick = {
                         onUpdate(
                             assistant.copy(
@@ -620,7 +637,7 @@ private fun AssistantRegexCard(
                         .weight(1f)
                         .widthIn(max = 200.dp)
                 )
-                Switch(
+                KedgeSwitch(
                     checked = regex.enabled,
                     onCheckedChange = { enabled ->
                         onUpdate(
@@ -637,7 +654,7 @@ private fun AssistantRegexCard(
                     },
                     modifier = Modifier.padding(start = 8.dp)
                 )
-                IconButton(
+                KedgeIconButton(
                     onClick = {
                         expanded = !expanded
                     },
@@ -652,7 +669,7 @@ private fun AssistantRegexCard(
 
             if (expanded) {
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = regex.name,
                     onValueChange = { name ->
                         onUpdate(
@@ -672,7 +689,7 @@ private fun AssistantRegexCard(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = regex.findRegex,
                     onValueChange = { findRegex ->
                         onUpdate(
@@ -693,7 +710,7 @@ private fun AssistantRegexCard(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = regex.replaceString,
                     onValueChange = { replaceString ->
                         onUpdate(
@@ -720,14 +737,14 @@ private fun AssistantRegexCard(
                         style = MaterialTheme.typography.labelMedium
                     )
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing)
                     ) {
                         AssistantAffectScope.entries.forEach { scope ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Checkbox(
+                                KedgeCheckbox(
                                     checked = scope in regex.affectingScope,
                                     onCheckedChange = { checked ->
                                         val newScopes = if (checked) {
@@ -761,7 +778,7 @@ private fun AssistantRegexCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Checkbox(
+                    KedgeCheckbox(
                         checked = regex.visualOnly,
                         onCheckedChange = { visualOnly ->
                             onUpdate(
@@ -783,7 +800,7 @@ private fun AssistantRegexCard(
                     )
                 }
 
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         onUpdate(
                             assistant.copy(

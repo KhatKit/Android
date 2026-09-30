@@ -1,9 +1,9 @@
 package heizige.kk.khatkit.app.feature.backup.components
 
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
@@ -16,7 +16,7 @@ fun BackupDialog() {
         title = { Text(stringResource(R.string.backup_page_restart_app)) },
         text = { Text(stringResource(R.string.backup_page_restart_desc)) },
         confirmButton = {
-            Button(
+            KedgeButton(
                 onClick = {
                     exitProcess(0)
                 },

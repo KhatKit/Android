@@ -13,17 +13,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.kedge.components.KedgeSlider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +47,6 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.TagsInput
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
@@ -58,6 +57,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.data.model.Tag as DataTag
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun AssistantBasicPage(id: String) {
@@ -68,7 +76,29 @@ fun AssistantBasicPage(id: String) {
     val workspaces by vm.workspaces.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        KedgeSettingsPageScaffold(
+            title = stringResource(R.string.assistant_page_tab_basic),
+            navigationIcon = { BackButton() },
+        ) { innerPadding ->
+            AssistantBasicContent(
+                // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
+                // 旧写法硬编码 PaddingValues(horizontal = 16.dp)（因为 MiuixSettingsPage
+                // 自己用 LazyColumn 的 contentPadding 处理了顶栏），改成内容直接透传后
+                // 顶部就是 0，content 直接压在 TopAppBar 下面。
+                innerPadding = innerPadding,
+                assistant = assistant,
+                providers = providers,
+                tags = tags,
+                workspaces = workspaces,
+                onUpdate = { vm.update(it) },
+                vm = vm,
+            )
+        }
+        return
+    }
+
+    KedgePageScaffold(
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.assistant_page_tab_basic),
@@ -80,7 +110,9 @@ fun AssistantBasicPage(id: String) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
+    
+        md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantBasicContent(
             innerPadding = innerPadding,
@@ -111,13 +143,13 @@ internal fun AssistantBasicContent(
             .padding(horizontal = 16.dp)
             .padding(innerPadding)
             .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             UIAvatar(
@@ -136,17 +168,15 @@ internal fun AssistantBasicContent(
             )
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 label = {
                     Text(stringResource(R.string.assistant_page_name))
                 },
                 modifier = Modifier.padding(8.dp),
 
                 ) {
-                OutlinedTextField(
+                KedgeOutlinedTextField(
                     value = assistant.name,
                     onValueChange = {
                         onUpdate(
@@ -160,9 +190,9 @@ internal fun AssistantBasicContent(
                 )
             }
 
-            HorizontalDivider()
+            KedgeFormDivider()
 
-            FormItem(
+            KedgeFormRow(
                 label = {
                     Text(stringResource(R.string.assistant_page_tags))
                 },
@@ -177,9 +207,9 @@ internal fun AssistantBasicContent(
                 )
             }
 
-            HorizontalDivider()
+            KedgeFormDivider()
 
-            FormItem(
+            KedgeFormRow(
                 label = {
                     Text(stringResource(R.string.assistant_page_workspace))
                 },
@@ -206,9 +236,9 @@ internal fun AssistantBasicContent(
                 )
             }
 
-            HorizontalDivider()
+            KedgeFormDivider()
 
-            FormItem(
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar))
@@ -217,7 +247,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar_desc))
                 },
                 tail = {
-                    Switch(
+                    KedgeSwitch(
                         checked = assistant.useAssistantAvatar,
                         onCheckedChange = {
                             onUpdate(
@@ -231,10 +261,8 @@ internal fun AssistantBasicContent(
             )
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_chat_model))
@@ -257,8 +285,8 @@ internal fun AssistantBasicContent(
                     )
                 }
             )
-            HorizontalDivider()
-            FormItem(
+            KedgeFormDivider()
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_temperature))
@@ -271,7 +299,7 @@ internal fun AssistantBasicContent(
                     )
                 },
                 tail = {
-                    Switch(
+                    KedgeSwitch(
                         checked = assistant.temperature != null,
                         onCheckedChange = { enabled ->
                             onUpdate(
@@ -288,7 +316,7 @@ internal fun AssistantBasicContent(
                         mutableStateOf(assistant.temperature.toString())
                     }
                     val temperatureValue = temperatureInput.toFloatOrNull()
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = temperatureInput,
                         onValueChange = { value ->
                             temperatureInput = value
@@ -311,8 +339,8 @@ internal fun AssistantBasicContent(
                     )
                 }
             }
-            HorizontalDivider()
-            FormItem(
+            KedgeFormDivider()
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_top_p))
@@ -325,7 +353,7 @@ internal fun AssistantBasicContent(
                     )
                 },
                 tail = {
-                    Switch(
+                    KedgeSwitch(
                         checked = assistant.topP != null,
                         onCheckedChange = { enabled ->
                             onUpdate(
@@ -342,7 +370,7 @@ internal fun AssistantBasicContent(
                         mutableStateOf(topP.toString())
                     }
                     val topPValue = topPInput.toFloatOrNull()
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = topPInput,
                         onValueChange = { value ->
                             topPInput = value
@@ -365,8 +393,8 @@ internal fun AssistantBasicContent(
                     )
                 }
             }
-            HorizontalDivider()
-            FormItem(
+            KedgeFormDivider()
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_context_message_limit))
@@ -401,7 +429,7 @@ internal fun AssistantBasicContent(
                     }
                 }
 
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = contextMessageLimitInput,
                     onValueChange = { input ->
                         if (input.all(Char::isDigit) &&
@@ -445,8 +473,8 @@ internal fun AssistantBasicContent(
                     )
                 }
             }
-            HorizontalDivider()
-            FormItem(
+            KedgeFormDivider()
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_stream_output))
@@ -455,7 +483,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_stream_output_desc))
                 },
                 tail = {
-                    Switch(
+                    KedgeSwitch(
                         checked = assistant.streamOutput,
                         onCheckedChange = {
                             onUpdate(
@@ -467,8 +495,8 @@ internal fun AssistantBasicContent(
                     )
                 }
             )
-            HorizontalDivider()
-            FormItem(
+            KedgeFormDivider()
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_thinking_budget))
@@ -481,8 +509,8 @@ internal fun AssistantBasicContent(
                     }
                 )
             }
-            HorizontalDivider()
-            FormItem(
+            KedgeFormDivider()
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_max_tokens))
@@ -491,7 +519,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_max_tokens_desc))
                 }
             ) {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = assistant.maxTokens?.toString() ?: "",
                     onValueChange = { text ->
                         val tokens = if (text.isBlank()) {
@@ -521,10 +549,8 @@ internal fun AssistantBasicContent(
             }
         }
 
-        Card(
-            colors = CustomColors.cardColorsOnSurfaceContainer
-        ) {
-            FormItem(
+        KedgeFormCard {
+            KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_gradient_background))
@@ -533,7 +559,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_gradient_background_desc))
                 },
                 tail = {
-                    Switch(
+                    KedgeSwitch(
                         checked = assistant.useGradientBackground,
                         onCheckedChange = {
                             onUpdate(
@@ -547,7 +573,7 @@ internal fun AssistantBasicContent(
             )
 
             if (!assistant.useGradientBackground) {
-                HorizontalDivider()
+                KedgeFormDivider()
 
                 BackgroundPicker(
                     modifier = Modifier.padding(8.dp),
@@ -565,8 +591,8 @@ internal fun AssistantBasicContent(
 
             if (!assistant.useGradientBackground && assistant.background != null) {
                 val backgroundOpacity = assistant.backgroundOpacity.coerceIn(0f, 1f)
-                HorizontalDivider()
-                FormItem(
+                KedgeFormDivider()
+                KedgeFormRow(
                     modifier = Modifier.padding(8.dp),
                     label = {
                         Text(stringResource(R.string.assistant_page_background_opacity))
@@ -575,7 +601,7 @@ internal fun AssistantBasicContent(
                         Text(stringResource(R.string.assistant_page_background_opacity_desc))
                     }
                 ) {
-                    Slider(
+                    KedgeSlider(
                         value = backgroundOpacity,
                         onValueChange = {
                             onUpdate(

@@ -9,15 +9,15 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +47,7 @@ fun UpdateCard(vm: ChatViewModel) {
     val context = LocalContext.current
     val toaster = LocalToaster.current
     state.onError {
-        Card {
+        KedgeCard {
             Column(
                 modifier = Modifier
                     .padding(8.dp)
@@ -71,7 +71,7 @@ fun UpdateCard(vm: ChatViewModel) {
         var showDetail by remember { mutableStateOf(false) }
         var dismissed by remember { mutableStateOf(false) }
         if (info.hasUpdate && (!dismissed || info.forceUpdate)) {
-            Card(
+            KedgeCard(
                 onClick = {
                     showDetail = true
                 }
@@ -94,7 +94,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             modifier = Modifier.weight(1f)
                         )
                         if (!info.forceUpdate) {
-                            IconButton(onClick = { dismissed = true }, shapes = IconButtonDefaults.shapes()) {
+                            KedgeIconButton(onClick = { dismissed = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = close,
                                     contentDescription = stringResource(R.string.update_card_close),
@@ -146,7 +146,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             downloadHandler(info)
                         },
                     ) {
-                        ListItem(
+                        KedgeListItem(
                             headlineContent = {
                                 Text(
                                     text = "KhatKit-${info.latestVersion}.apk",

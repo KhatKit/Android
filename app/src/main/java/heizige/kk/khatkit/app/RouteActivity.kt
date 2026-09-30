@@ -23,9 +23,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -64,7 +64,7 @@ import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.ui.activity.SafeModeActivity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
-import heizige.kk.khatkit.app.feature.market.KhatKitMarketPage
+import heizige.kk.khatkit.app.feature.explore.ExploreMarketPage
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
@@ -107,6 +107,7 @@ import heizige.kk.khatkit.app.feature.log.LogPage
 import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesPage
+import heizige.kk.khatkit.app.feature.settings.SettingPermissionsPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesThemePage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNotificationPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesGeneralPage
@@ -199,13 +200,25 @@ class RouteActivity : ComponentActivity() {
                         .build()
                 }
                 val khatKitProvider = rememberAppEntryPoint().khatKitToolProvider()
+                // Miuix 主题只认这个深浅色，必须取应用内「颜色模式」的解析结果，
+                // 否则切浅色对 Miuix 不生效（KedgeTheme 默认按系统深浅色走）。
+                val khatKitDarkTheme = heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme()
                 val appContent: @Composable () -> Unit = {
                     AppRoutes()
                     KhatKitUiHost()
                 }
                 if (khatKitProvider.uiStyle == heizige.kk.khatkit.uikit.KhatKitUiStyle.MIUIX) {
-                    heizige.kk.khatkit.uikit.KhatKitTheme(style = khatKitProvider.uiStyle) {
-                        appContent()
+                    heizige.kk.khatkit.uikit.KhatKitTheme(
+                        style = khatKitProvider.uiStyle,
+                        darkTheme = khatKitDarkTheme,
+                    ) {
+                        // 根部建立一次毛玻璃层（照搬 KernelSU），全 app 顶栏共用，
+                        // 因此每个页面无需各自接线。开关由 khatKitProvider.enableBlur 控制。
+                        heizige.kk.kedge.adaptive.ProvideKedgeBlur(
+                            enabled = khatKitProvider.enableBlur
+                        ) {
+                            appContent()
+                        }
                     }
                 } else {
                     appContent()
@@ -449,6 +462,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingPreferencesGeneralPage()
                             }
 
+                            entry<Screen.SettingPermissions> {
+                                SettingPermissionsPage()
+                            }
+
                             entry<Screen.SettingPreferencesUI> {
                                 SettingPreferencesUIPage()
                             }
@@ -491,8 +508,8 @@ class RouteActivity : ComponentActivity() {
                                 SettingMcpPage()
                             }
 
-                            entry<Screen.KhatKitMarket> {
-                                KhatKitMarketPage()
+                            entry<Screen.ExploreMarket> {
+                                ExploreMarketPage()
                             }
 
                             entry<Screen.SettingDonate> {
@@ -600,7 +617,7 @@ class RouteActivity : ComponentActivity() {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                CircularProgressIndicator()
+                                KedgeProgressIndicator()
                                 Text(
                                     text = stringResource(R.string.db_migrating),
                                     style = MaterialTheme.typography.bodyLarge
@@ -700,6 +717,9 @@ sealed interface Screen : NavKey {
     data object SettingPreferencesUI : Screen
 
     @Serializable
+    data object SettingPermissions : Screen
+
+    @Serializable
     data object SettingPreferencesNetwork : Screen
 
     @Serializable
@@ -727,7 +747,7 @@ sealed interface Screen : NavKey {
     data object SettingMcp : Screen
 
     @Serializable
-    data object KhatKitMarket : Screen
+    data object ExploreMarket : Screen
 
     @Serializable
     data object SettingDonate : Screen

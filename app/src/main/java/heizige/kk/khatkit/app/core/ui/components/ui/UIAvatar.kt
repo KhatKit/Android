@@ -17,16 +17,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -227,7 +227,7 @@ fun UIAvatar(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
+                    KedgeButton(
                         onClick = {
                             showPickOption = false
                             imagePickerLauncher.launch("image/*")
@@ -237,7 +237,7 @@ fun UIAvatar(
                     ) {
                         Text(text = stringResource(id = R.string.avatar_pick_image))
                     }
-                    Button(
+                    KedgeButton(
                         onClick = {
                             showPickOption = false
                             showEmojiPicker = true
@@ -247,7 +247,7 @@ fun UIAvatar(
                     ) {
                         Text(text = stringResource(id = R.string.avatar_pick_emoji))
                     }
-                    Button(
+                    KedgeButton(
                         onClick = {
                             showPickOption = false
                             urlInput = ""
@@ -258,7 +258,7 @@ fun UIAvatar(
                     ) {
                         Text(text = stringResource(id = R.string.avatar_input_url))
                     }
-                    Button(
+                    KedgeButton(
                         onClick = {
                             showPickOption = false
                             onUpdate?.invoke(Avatar.Dummy)
@@ -271,7 +271,7 @@ fun UIAvatar(
                 }
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         showPickOption = false
                     },
@@ -315,7 +315,7 @@ fun UIAvatar(
                 Text(text = stringResource(id = R.string.avatar_url_dialog_title))
             },
             text = {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = urlInput,
                     onValueChange = { urlInput = it },
                     label = { Text(stringResource(id = R.string.avatar_url_hint)) },
@@ -325,7 +325,7 @@ fun UIAvatar(
                 )
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         if (urlInput.isNotBlank()) {
                             onUpdate?.invoke(Avatar.Image(urlInput.trim()))
@@ -338,7 +338,7 @@ fun UIAvatar(
                 }
             },
             dismissButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         showUrlInput = false
                     },
@@ -413,7 +413,7 @@ private fun PreviewUIAvatar() {
             loading = loading,
         )
 
-        Button(
+        KedgeButton(
             onClick = {
                 loading = !loading
             },

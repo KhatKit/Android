@@ -21,6 +21,7 @@ import heizige.kk.khatkit.app.core.ui.components.ai.McpPicker
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun AssistantMcpPage(id: String) {
@@ -29,19 +30,9 @@ fun AssistantMcpPage(id: String) {
     val mcpServerConfigs by vm.mcpServerConfigs.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.assistant_page_tab_mcp),
-                navigationIcon = {
-                    BackButton()
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.assistant_page_tab_mcp),
+        scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
         McpPicker(

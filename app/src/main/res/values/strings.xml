@@ -8,6 +8,12 @@
   <string name="about_page_website">Website</string>
   <string name="add">Add</string>
   <string name="app_name">KhatKit</string>
+  <string name="explore_market_title">Explore Market</string>
+  <string name="explore_market_subtitle">External cards · Tools · Skills · MCP · Model capabilities</string>
+  <string name="explore_market_external_cards">External Script Cards</string>
+  <string name="explore_market_source_badge">REMOTE CATALOG</string>
+  <string name="explore_market_overview">Discover and install tools maintained outside the APK.</string>
+  <string name="explore_market_card_count">%1$d available · %2$d installed</string>
   <string name="asr_button_content_description">Speech Recognition</string>
   <string name="asr_button_stop">Stop</string>
   <string name="assistant_detail_basic_desc">Configure name, avatar, model, and parameters</string>
@@ -857,6 +863,8 @@
   <string name="setting_page_display_setting_desc">Manage display settings</string>
   <string name="setting_page_preferences">Preferences</string>
   <string name="setting_page_preferences_desc">Theme, notifications, UI and general settings</string>
+  <string name="setting_page_permissions">Permissions</string>
+  <string name="setting_page_permissions_desc">Notifications, location, accessibility and other grants</string>
   <string name="setting_page_preferences_theme">Theme</string>
   <string name="setting_page_preferences_theme_desc">Dynamic color, theme, AMOLED dark mode</string>
   <string name="setting_page_preferences_notification">Notifications</string>
@@ -1485,4 +1493,43 @@
   <string name="setting_display_page_background_effect_type">Background effect type</string>
   <string name="setting_display_page_background_effect_blur">Blur</string>
   <string name="setting_display_page_background_effect_glass">Glass</string>
+
+  <!-- 自动化审批策略 -->
+  <string name="approval_category_card_run">Run card</string>
+  <string name="approval_category_ui_action">UI action</string>
+  <string name="approval_category_shell_root">Shell / Root</string>
+  <string name="approval_category_file_delete">Delete file</string>
+  <string name="approval_category_app_manage">App management</string>
+  <string name="approval_policy_always_ask">Ask every time</string>
+  <string name="approval_policy_allow">Allow</string>
+  <string name="approval_policy_deny">Deny</string>
+  <string name="approval_sheet_title">Automation approval policy</string>
+  <string name="approval_sheet_desc">Set how each operation type is approved. While hands-off mode is on everything is allowed; “remember for 10 minutes” only lasts for the current process.</string>
+  <string name="approval_hands_off_title">Hands-off mode</string>
+  <string name="approval_hands_off_desc">Let automation run any operation without asking ·</string>
+  <string name="approval_status_on">On</string>
+  <string name="approval_status_off">Off</string>
+
+  <string name="setting_page_blur_title">Blur</string>
+  <string name="setting_page_blur_desc">Frosted blur on top bars</string>
+  <!-- 套餐与激活页（SettingsPackagePage）-->
+  <string name="setting_package_page_title">Plans &amp; activation</string>
+  <string name="setting_package_page_mall">Open KhatKit plan store</string>
+  <string name="setting_package_page_mall_desc">View plans and get an activation token in the browser</string>
+  <string name="setting_package_page_inactive">Not activated</string>
+  <string name="setting_package_page_active">Activated</string>
+  <string name="setting_package_page_active_with_plan">Activated: %1$s</string>
+  <string name="setting_package_page_device">Device: %1$s</string>
+  <string name="setting_package_page_device_id">Device ID: %1$s</string>
+  <string name="setting_package_page_loading">Loading</string>
+  <string name="setting_package_page_unknown">Unknown</string>
+  <string name="setting_package_page_ai_quota">AI tokens left</string>
+  <string name="setting_package_page_tool_quota">Tool calls left</string>
+  <string name="setting_package_page_expires">Plan expires</string>
+  <string name="setting_package_page_refreshing">Refreshing…</string>
+  <string name="setting_package_page_refresh">Refresh quota</string>
+  <string name="setting_package_page_refresh_desc">Calls GET /api/me for the latest quota and expiry</string>
+  <string name="setting_package_page_clear">Clear activation on this device</string>
+  <string name="setting_package_page_clear_desc">Only removes the locally stored token; the server account is untouched</string>
+  <string name="setting_package_page_tip">Note: buying a plan gives you an activation token. Use it on the web to activate this device. Unactivated plans still run local cards; cards are only blocked when the server explicitly rejects (invalid token / insufficient tool quota). Network errors never block cards.</string>
 </resources>

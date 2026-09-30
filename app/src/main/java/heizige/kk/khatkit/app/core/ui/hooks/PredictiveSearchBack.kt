@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.CancellationException
 
@@ -30,6 +31,9 @@ fun rememberSearchExpandState(
     animationSpec: FiniteAnimationSpec<Float> = tween(durationMillis = 220),
 ): SearchExpandState {
     val progress = remember { Animatable(if (expanded) 1f else 0f) }
+    // 手势是否正在进行。调用方据此判断该跟手 [progress] 还是用自己补间，
+    // 否则手势进度归零的一帧会误判为「没在拖动」而闪回。
+    val dragging = remember { mutableStateOf(false) }
 
     LaunchedEffect(expanded) {
         progress.animateTo(if (expanded) 1f else 0f, animationSpec)
@@ -37,6 +41,7 @@ fun rememberSearchExpandState(
 
     PredictiveBackHandler(enabled = expanded) { backEvents ->
         try {
+            dragging.value = true
             backEvents.collect { event ->
                 // 手势进度 0→1 == 收起进度 0→1，展开进度即 1 - progress
                 progress.snapTo((1f - event.progress).coerceIn(0f, 1f))
@@ -48,14 +53,23 @@ fun rememberSearchExpandState(
             // 手势取消：弹回展开态
             progress.animateTo(1f, animationSpec)
             throw e
+        } finally {
+            dragging.value = false
         }
     }
 
-    return remember(progress) { SearchExpandState(progress.asState()) }
+    return remember(progress) { SearchExpandState(progress.asState(), dragging) }
 }
 
-/** [rememberSearchExpandState] 返回的进度容器，读取 [progress] 可驱动逐帧动画。 */
+/**
+ * [rememberSearchExpandState] 返回的进度容器。
+ *
+ * @param progress 0f（标题态）→ 1f（搜索态）的展开进度。
+ * @param dragging 预测性返回手势是否正在进行；为 true 时应直接使用 [progress]，
+ *   否则手势收尾那一帧容易与自身补间打架，表现为「收起动画播两遍」。
+ */
 @Stable
 class SearchExpandState internal constructor(
     val progress: State<Float>,
+    val dragging: State<Boolean>,
 )

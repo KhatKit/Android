@@ -19,23 +19,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Switch
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -126,7 +126,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_endpoint)) },
                     supportingContent = {
-                        OutlinedTextField(
+                        KedgeOutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.endpoint,
                             onValueChange = { updateS3Config(s3Config.copy(endpoint = it.trim())) },
@@ -139,7 +139,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_access_key_id)) },
                     supportingContent = {
-                        OutlinedTextField(
+                        KedgeOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.accessKeyId,
                             onValueChange = { updateS3Config(s3Config.copy(accessKeyId = it.trim())) },
@@ -152,7 +152,7 @@ fun S3Tab(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_secret_access_key)) },
                     supportingContent = {
                         var passwordVisible by remember { mutableStateOf(false) }
-                        OutlinedTextField(
+                        KedgeOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.secretAccessKey,
                             onValueChange = { updateS3Config(s3Config.copy(secretAccessKey = it.trim())) },
@@ -163,7 +163,7 @@ fun S3Tab(
                                 } else {
                                     visibility
                                 }
-                                IconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
+                                KedgeIconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(imageVector = image, contentDescription = null)
                                 }
                             },
@@ -175,7 +175,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_bucket)) },
                     supportingContent = {
-                        OutlinedTextField(
+                        KedgeOutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.bucket,
                             onValueChange = { updateS3Config(s3Config.copy(bucket = it.trim())) },
@@ -189,7 +189,7 @@ fun S3Tab(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_path_style)) },
                     supportingContent = { Text(stringResource(R.string.backup_page_s3_path_style_desc)) },
                     trailingContent = {
-                        Switch(
+                        KedgeSwitch(
                             checked = s3Config.pathStyle,
                             onCheckedChange = { updateS3Config(s3Config.copy(pathStyle = it)) },
                         )
@@ -198,7 +198,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_region)) },
                     supportingContent = {
-                        OutlinedTextField(
+                        KedgeOutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.region,
                             onValueChange = { updateS3Config(s3Config.copy(region = it.trim())) },
@@ -254,7 +254,7 @@ fun S3Tab(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
         ) {
-            OutlinedButton(
+            KedgeButton(
                 onClick = {
                     scope.launch {
                         try {
@@ -279,7 +279,7 @@ fun S3Tab(
             ) {
                 Text(stringResource(R.string.backup_page_test_connection))
             }
-            OutlinedButton(
+            KedgeButton(
                 onClick = {
                     vm.loadS3BackupFileItems()
                     showBackupFiles = true
@@ -289,7 +289,7 @@ fun S3Tab(
                 Text(stringResource(R.string.backup_page_restore))
             }
 
-            Button(
+            KedgeButton(
                 onClick = {
                     scope.launch {
                         isBackingUp = true
@@ -504,7 +504,7 @@ private fun S3BackupItemCard(
                         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(
+                        KedgeTextButton(
                             onClick = {
                                 onDelete(item)
                             },
@@ -513,7 +513,7 @@ private fun S3BackupItemCard(
                         ) {
                             Text(stringResource(R.string.backup_page_delete))
                         }
-                        Button(
+                        KedgeButton(
                             onClick = {
                                 onRestore(item)
                             },

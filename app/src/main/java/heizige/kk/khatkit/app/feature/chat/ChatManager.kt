@@ -441,6 +441,16 @@ class ChatManager(
     private fun preprocessUserInputParts(parts: List<UIMessagePart>, assistant: Assistant): List<UIMessagePart> {
         return parts.map { part ->
             when (part) {
+                is UIMessagePart.Image -> {
+                    // 旧会话/第三方导入可能仍保存 content://，模型编码器只能读取本地文件；
+                    // 发送前复制到应用私有上传目录，避免图片在 UI 可见但请求体为空。
+                    val url = part.url
+                    if (url.startsWith("content://")) {
+                        filesManager.createChatFilesByContents(listOf(url.toUri())).firstOrNull()
+                            ?.let { part.copy(url = it.toString()) }
+                            ?: part
+                    } else part
+                }
                 is UIMessagePart.Text -> {
                     part.copy(
                         text = part.text.replaceRegexes(

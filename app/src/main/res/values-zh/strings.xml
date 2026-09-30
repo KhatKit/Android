@@ -8,6 +8,12 @@
   <string name="about_page_website">官网</string>
   <string name="add">添加</string>
   <string name="app_name">KhatKit</string>
+  <string name="explore_market_title">探索市场</string>
+  <string name="explore_market_subtitle">外部卡片 · 工具 · 技能 · MCP · 模型能力</string>
+  <string name="explore_market_external_cards">外部脚本卡片</string>
+  <string name="explore_market_source_badge">云端目录</string>
+  <string name="explore_market_overview">发现并安装独立于 APK 维护的工具卡片。</string>
+  <string name="explore_market_card_count">可用 %1$d 张 · 已安装 %2$d 张</string>
   <string name="asr_button_content_description">语音识别</string>
   <string name="asr_button_stop">停止</string>
   <string name="assistant_detail_basic_desc">配置名称、头像、模型和参数</string>
@@ -1130,6 +1136,8 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_theme_page_delete_theme_message">确定要删除此主题吗？</string>
   <string name="setting_page_preferences">偏好设置</string>
   <string name="setting_page_preferences_desc">主题、通知、界面和常规设置</string>
+  <string name="setting_page_permissions">权限</string>
+  <string name="setting_page_permissions_desc">通知、定位、无障碍等授权状态</string>
   <string name="setting_page_preferences_theme">主题</string>
   <string name="setting_page_preferences_theme_desc">动态配色、主题、AMOLED深色模式</string>
   <string name="setting_page_preferences_notification">通知</string>
@@ -1472,4 +1480,43 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_display_page_background_effect_type">背景效果类型</string>
   <string name="setting_display_page_background_effect_blur">模糊</string>
   <string name="setting_display_page_background_effect_glass">玻璃</string>
+
+  <!-- 自动化审批策略 -->
+  <string name="approval_category_card_run">运行卡片</string>
+  <string name="approval_category_ui_action">界面操作</string>
+  <string name="approval_category_shell_root">Shell / Root</string>
+  <string name="approval_category_file_delete">删除文件</string>
+  <string name="approval_category_app_manage">应用管理</string>
+  <string name="approval_policy_always_ask">每次询问</string>
+  <string name="approval_policy_allow">允许</string>
+  <string name="approval_policy_deny">拒绝</string>
+  <string name="approval_sheet_title">自动化审批策略</string>
+  <string name="approval_sheet_desc">按操作类型设置审批方式；放手模式开启时全部放行，「记住 10 分钟」仅当前进程内生效。</string>
+  <string name="approval_hands_off_title">放手模式</string>
+  <string name="approval_hands_off_desc">允许自动化执行任何操作，不再弹窗询问 ·</string>
+  <string name="approval_status_on">已开启</string>
+  <string name="approval_status_off">已关闭</string>
+
+  <string name="setting_page_blur_title">毛玻璃</string>
+  <string name="setting_page_blur_desc">顶栏毛玻璃效果</string>
+  <!-- 套餐与激活页（SettingsPackagePage）-->
+  <string name="setting_package_page_title">套餐与激活</string>
+  <string name="setting_package_page_mall">打开 KhatKit 套餐商城</string>
+  <string name="setting_package_page_mall_desc">在浏览器中查看套餐详情、购买并获取激活令牌</string>
+  <string name="setting_package_page_inactive">未激活</string>
+  <string name="setting_package_page_active">已激活</string>
+  <string name="setting_package_page_active_with_plan">已激活：%1$s</string>
+  <string name="setting_package_page_device">设备：%1$s</string>
+  <string name="setting_package_page_device_id">设备标识：%1$s</string>
+  <string name="setting_package_page_loading">读取中</string>
+  <string name="setting_package_page_unknown">未知</string>
+  <string name="setting_package_page_ai_quota">AI 令牌剩余</string>
+  <string name="setting_package_page_tool_quota">工具调用剩余</string>
+  <string name="setting_package_page_expires">套餐到期时间</string>
+  <string name="setting_package_page_refreshing">正在刷新…</string>
+  <string name="setting_package_page_refresh">刷新额度</string>
+  <string name="setting_package_page_refresh_desc">调用 GET /api/me 拉取最新额度与到期时间</string>
+  <string name="setting_package_page_clear">清除本机激活信息</string>
+  <string name="setting_package_page_clear_desc">仅清除本机保存的令牌，不影响服务端账户</string>
+  <string name="setting_package_page_tip">提示：购买套餐后将获得激活令牌，使用令牌可在网页端激活设备。未激活时所有本地卡片照常运行；只有服务端明确拒绝（令牌无效/工具次数不足）时，套餐卡片才会被拦截。网络异常不会阻止卡片运行。</string>
 </resources>

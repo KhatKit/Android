@@ -14,6 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeStyle
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,11 +51,24 @@ fun Tag(
         TagType.INFO -> MaterialTheme.extendColors.blue8
         else -> MaterialTheme.colorScheme.onTertiaryContainer
     }
-    ProvideTextStyle(MaterialTheme.typography.labelSmall.copy(color = textColor)) {
+    // Miuix 下这套 MD3 的 labelSmall + tertiaryContainer 观感不对：换成 Miuix 的
+    // 表面色层级与文字样式，形状保持胶囊（Miuix 也是胶囊）。
+    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+    val finalBackground = if (isMiuix) MiuixTheme.colorScheme.surfaceContainer else background
+    val finalTextColor = if (isMiuix) MiuixTheme.colorScheme.onSurfaceVariantSummary else textColor
+    val finalTextStyle = if (isMiuix) {
+        MiuixTheme.textStyles.footnote1.copy(color = finalTextColor)
+    } else {
+        MaterialTheme.typography.labelSmall.copy(color = textColor)
+    }
+    val hPad = if (isMiuix) 10.dp else 6.dp
+    val vPad = if (isMiuix) 4.dp else 1.dp
+
+    ProvideTextStyle(finalTextStyle) {
         Row(
             modifier = modifier
                 .clip(RoundedCornerShape(50))
-                .background(background)
+                .background(finalBackground)
                 .let {
                     if (onClick != null) {
                         it.clickable { onClick() }
@@ -60,7 +76,7 @@ fun Tag(
                         it
                     }
                 }
-                .padding(horizontal = 6.dp, vertical = 1.dp),
+                .padding(horizontal = hPad, vertical = vPad),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             children()

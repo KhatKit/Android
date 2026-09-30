@@ -11,12 +11,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -114,7 +114,7 @@ fun CompressContextDialog(
                     )
 
                     // Additional context input
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = additionalPrompt,
                         onValueChange = { additionalPrompt = it },
                         label = {
@@ -139,7 +139,7 @@ fun CompressContextDialog(
         },
         confirmButton = {
             if (isLoading) {
-                TextButton(onClick = {
+                KedgeTextButton(onClick = {
                     currentJob?.cancel()
                     currentJob = null
                 },
@@ -147,7 +147,7 @@ fun CompressContextDialog(
                     Text(stringResource(R.string.cancel))
                 }
             } else {
-                TextButton(onClick = {
+                KedgeTextButton(onClick = {
                     currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
                 },
                      shapes = ButtonDefaults.shapes(),) {
@@ -157,7 +157,7 @@ fun CompressContextDialog(
         },
         dismissButton = {
             if (!isLoading) {
-                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             }

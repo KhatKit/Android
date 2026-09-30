@@ -16,6 +16,9 @@ private val supportedTypes = setOf(
     "image/png",
     "image/gif",
     "image/webp",
+    "image/heic",
+    "image/heif",
+    "image/avif",
 )
 
 data class EncodedImage(

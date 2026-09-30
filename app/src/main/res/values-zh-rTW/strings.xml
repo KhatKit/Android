@@ -1079,6 +1079,8 @@
   <string name="setting_display_page_custom_font_title">自訂字型</string>
   <string name="setting_page_preferences">偏好設定</string>
   <string name="setting_page_preferences_desc">主題、通知、介面與一般設定</string>
+  <string name="setting_page_permissions">權限</string>
+  <string name="setting_page_permissions_desc">通知、定位、無障礙等授權狀態</string>
   <string name="setting_page_preferences_theme">主題</string>
   <string name="setting_page_preferences_theme_desc">動態色彩、主題、AMOLED 深色模式</string>
   <string name="setting_page_preferences_notification">通知</string>
@@ -1362,4 +1364,43 @@
   <string name="setting_display_page_background_effect_type">背景效果類型</string>
   <string name="setting_display_page_background_effect_blur">模糊</string>
   <string name="setting_display_page_background_effect_glass">玻璃</string>
+
+  <!-- 自动化审批策略 -->
+  <string name="approval_category_card_run">執行卡片</string>
+  <string name="approval_category_ui_action">介面操作</string>
+  <string name="approval_category_shell_root">Shell / Root</string>
+  <string name="approval_category_file_delete">刪除檔案</string>
+  <string name="approval_category_app_manage">應用程式管理</string>
+  <string name="approval_policy_always_ask">每次詢問</string>
+  <string name="approval_policy_allow">允許</string>
+  <string name="approval_policy_deny">拒絕</string>
+  <string name="approval_sheet_title">自動化審批策略</string>
+  <string name="approval_sheet_desc">依操作類型設定審批方式；放手模式開啟時全部放行，「記住 10 分鐘」僅於目前程序內生效。</string>
+  <string name="approval_hands_off_title">放手模式</string>
+  <string name="approval_hands_off_desc">允許自動化執行任何操作，不再彈窗詢問 ·</string>
+  <string name="approval_status_on">已開啟</string>
+  <string name="approval_status_off">已關閉</string>
+
+  <string name="setting_page_blur_title">毛玻璃</string>
+  <string name="setting_page_blur_desc">頂欄毛玻璃效果</string>
+  <!-- 套餐与激活页（SettingsPackagePage）-->
+  <string name="setting_package_page_title">方案與啟用</string>
+  <string name="setting_package_page_mall">開啟 KhatKit 方案商城</string>
+  <string name="setting_package_page_mall_desc">在瀏覽器中檢視方案詳情、購買並取得啟用權杖</string>
+  <string name="setting_package_page_inactive">未啟用</string>
+  <string name="setting_package_page_active">已啟用</string>
+  <string name="setting_package_page_active_with_plan">已啟用：%1$s</string>
+  <string name="setting_package_page_device">裝置：%1$s</string>
+  <string name="setting_package_page_device_id">裝置識別碼：%1$s</string>
+  <string name="setting_package_page_loading">讀取中</string>
+  <string name="setting_package_page_unknown">未知</string>
+  <string name="setting_package_page_ai_quota">AI 權杖剩餘</string>
+  <string name="setting_package_page_tool_quota">工具呼叫剩餘</string>
+  <string name="setting_package_page_expires">方案到期時間</string>
+  <string name="setting_package_page_refreshing">正在重新整理…</string>
+  <string name="setting_package_page_refresh">重新整理額度</string>
+  <string name="setting_package_page_refresh_desc">呼叫 GET /api/me 取得最新額度與到期時間</string>
+  <string name="setting_package_page_clear">清除本機啟用資訊</string>
+  <string name="setting_package_page_clear_desc">僅清除本機儲存的權杖，不影響伺服器端帳戶</string>
+  <string name="setting_package_page_tip">提示：購買方案後將獲得啟用權杖，使用權杖可在網頁端啟用裝置。未啟用時所有本機卡片照常執行；只有伺服器端明確拒絕（權杖無效／工具次數不足）時，方案卡片才會被攔截。網路異常不會阻止卡片執行。</string>
 </resources>

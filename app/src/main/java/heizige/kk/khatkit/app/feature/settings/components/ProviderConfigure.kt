@@ -9,16 +9,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchRow
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,19 +58,15 @@ fun ProviderConfigure(
         modifier = modifier
     ) {
         if (!provider.builtIn) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                ProviderSetting.Types.forEachIndexed { index, type ->
-                    SegmentedButton(
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = ProviderSetting.Types.size
-                        ),
-                        label = { Text(type.simpleName ?: "") },
+            SingleChoiceSegmentedRow(
+                items = ProviderSetting.Types.map { type ->
+                    SegmentedItem(
+                        label = type.simpleName ?: "",
                         selected = provider::class == type,
-                        onClick = { onEdit(provider.convertTo(type)) }
+                        onClick = { onEdit(provider.convertTo(type)) },
                     )
-                }
-            }
+                },
+            )
         }
 
         when (provider) {
@@ -209,7 +205,7 @@ private fun ProviderConfigureOpenAI(
 
     provider.description()
 
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
@@ -218,7 +214,7 @@ private fun ProviderConfigureOpenAI(
     )
 
     var keyVisible by remember { mutableStateOf(false) }
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = provider.apiKey,
         onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
@@ -226,14 +222,14 @@ private fun ProviderConfigureOpenAI(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
         shape = RoundedCornerShape(16.dp)
     )
 
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = provider.baseUrl,
         onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
@@ -242,7 +238,7 @@ private fun ProviderConfigureOpenAI(
         shape = RoundedCornerShape(16.dp)
     )
 
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = if (provider.useResponseApi) provider.responsesPath else provider.chatCompletionsPath,
         onValueChange = {
             onEdit(
@@ -259,47 +255,29 @@ private fun ProviderConfigureOpenAI(
         shape = RoundedCornerShape(16.dp)
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_enable))
-        OptionSwitch(
-            checked = provider.enabled,
-            onCheckedChange = { onEdit(provider.copy(enabled = it)) }
-        )
-    }
+    SwitchRow(
+        R.string.setting_provider_page_enable,
+        checked = provider.enabled,
+        onCheckedChange = { onEdit(provider.copy(enabled = it)) },
+    )
 
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_response_api))
-        OptionSwitch(
-            checked = provider.useResponseApi,
-            onCheckedChange = {
-                onEdit(provider.copy(useResponseApi = it))
-                if (it && provider.baseUrl.toHttpUrlOrNull()?.host != "api.openai.com") {
-                    Toast.show(message = responseAPIWarning, isError = false)
-                }
+    SwitchRow(
+        R.string.setting_provider_page_response_api,
+        checked = provider.useResponseApi,
+        onCheckedChange = {
+            onEdit(provider.copy(useResponseApi = it))
+            if (it && provider.baseUrl.toHttpUrlOrNull()?.host != "api.openai.com") {
+                Toast.show(message = responseAPIWarning, isError = false)
             }
-        )
-    }
+        },
+    )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_include_history_reasoning))
-        OptionSwitch(
-            checked = provider.includeHistoryReasoning,
-            onCheckedChange = { onEdit(provider.copy(includeHistoryReasoning = it)) }
-        )
-    }
+    SwitchRow(
+        R.string.setting_provider_page_include_history_reasoning,
+        checked = provider.includeHistoryReasoning,
+        onCheckedChange = { onEdit(provider.copy(includeHistoryReasoning = it)) },
+    )
 }
 
 @Composable
@@ -309,7 +287,7 @@ private fun ProviderConfigureClaude(
 ) {
     provider.description()
 
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
@@ -319,7 +297,7 @@ private fun ProviderConfigureClaude(
     )
 
     var keyVisible by remember { mutableStateOf(false) }
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = provider.apiKey,
         onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
@@ -327,14 +305,14 @@ private fun ProviderConfigureClaude(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
         shape = RoundedCornerShape(16.dp)
     )
 
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = provider.baseUrl,
         onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
@@ -343,52 +321,32 @@ private fun ProviderConfigureClaude(
         shape = RoundedCornerShape(16.dp)
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_enable))
-        OptionSwitch(
-            checked = provider.enabled,
-            onCheckedChange = { onEdit(provider.copy(enabled = it)) }
-        )
-    }
+    SwitchRow(
+        R.string.setting_provider_page_enable,
+        checked = provider.enabled,
+        onCheckedChange = { onEdit(provider.copy(enabled = it)) },
+    )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_claude_prompt_caching))
-        OptionSwitch(
-            checked = provider.promptCaching,
-            onCheckedChange = { onEdit(provider.copy(promptCaching = it)) }
-        )
-    }
+    SwitchRow(
+        R.string.setting_provider_page_claude_prompt_caching,
+        checked = provider.promptCaching,
+        onCheckedChange = { onEdit(provider.copy(promptCaching = it)) },
+    )
 
     if (provider.promptCaching) {
         Text(stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl))
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            ClaudePromptCacheTtl.entries.forEachIndexed { index, ttl ->
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = ClaudePromptCacheTtl.entries.size
-                    ),
-                    label = {
-                        Text(
-                            when (ttl) {
-                                ClaudePromptCacheTtl.FIVE_MINUTES -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_5m)
-                                ClaudePromptCacheTtl.ONE_HOUR -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_1h)
-                            }
-                        )
+        SingleChoiceSegmentedRow(
+            items = ClaudePromptCacheTtl.entries.map { ttl ->
+                SegmentedItem(
+                    label = when (ttl) {
+                        ClaudePromptCacheTtl.FIVE_MINUTES -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_5m)
+                        ClaudePromptCacheTtl.ONE_HOUR -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_1h)
                     },
                     selected = provider.promptCacheTtl == ttl,
-                    onClick = { onEdit(provider.copy(promptCacheTtl = ttl)) }
+                    onClick = { onEdit(provider.copy(promptCacheTtl = ttl)) },
                 )
-            }
-        }
+            },
+        )
     }
 }
 
@@ -424,7 +382,7 @@ private fun ProviderConfigureGoogle(
 
     provider.description()
 
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
@@ -434,7 +392,7 @@ private fun ProviderConfigureGoogle(
 
     if (!(provider.vertexAI && provider.useServiceAccount)) {
         var keyVisible by remember { mutableStateOf(false) }
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = provider.apiKey,
             onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
@@ -442,7 +400,7 @@ private fun ProviderConfigureGoogle(
             maxLines = 3,
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },
@@ -451,7 +409,7 @@ private fun ProviderConfigureGoogle(
     }
 
     if (!provider.vertexAI) {
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = provider.baseUrl,
             onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
@@ -466,46 +424,28 @@ private fun ProviderConfigureGoogle(
         )
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_enable))
-        OptionSwitch(
-            checked = provider.enabled,
-            onCheckedChange = { onEdit(provider.copy(enabled = it)) }
-        )
-    }
+    SwitchRow(
+        R.string.setting_provider_page_enable,
+        checked = provider.enabled,
+        onCheckedChange = { onEdit(provider.copy(enabled = it)) },
+    )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_vertex_ai))
-        OptionSwitch(
-            checked = provider.vertexAI,
-            onCheckedChange = { onEdit(provider.copy(vertexAI = it)) }
-        )
-    }
+    SwitchRow(
+        R.string.setting_provider_page_vertex_ai,
+        checked = provider.vertexAI,
+        onCheckedChange = { onEdit(provider.copy(vertexAI = it)) },
+    )
 
     if (provider.vertexAI) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(stringResource(R.string.setting_provider_page_use_service_account))
-            OptionSwitch(
-                checked = provider.useServiceAccount,
-                onCheckedChange = { onEdit(provider.copy(useServiceAccount = it)) }
-            )
-        }
+        SwitchRow(
+            R.string.setting_provider_page_use_service_account,
+            checked = provider.useServiceAccount,
+            onCheckedChange = { onEdit(provider.copy(useServiceAccount = it)) },
+        )
     }
 
     if (provider.vertexAI && provider.useServiceAccount) {
-        OutlinedButton(
+        KedgeButton(
             onClick = { serviceAccountJsonLauncher.launch(arrayOf("application/json", "*/*")) },
             modifier = Modifier.fillMaxWidth(),
             shapes = ButtonDefaults.shapes(),
@@ -513,7 +453,7 @@ private fun ProviderConfigureGoogle(
             Text(stringResource(R.string.setting_provider_page_import_service_account_json))
         }
 
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = provider.serviceAccountEmail,
             onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_service_account_email)) },
@@ -522,7 +462,7 @@ private fun ProviderConfigureGoogle(
         )
 
         var privateKeyVisible by remember { mutableStateOf(false) }
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = provider.privateKey,
             onValueChange = { onEdit(provider.copy(privateKey = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_private_key)) },
@@ -532,14 +472,14 @@ private fun ProviderConfigureGoogle(
             textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
             visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { privateKeyVisible = !privateKeyVisible }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { privateKeyVisible = !privateKeyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(if (privateKeyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },
             shape = RoundedCornerShape(16.dp)
         )
 
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = provider.location,
             onValueChange = { onEdit(provider.copy(location = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_location)) },
@@ -547,7 +487,7 @@ private fun ProviderConfigureGoogle(
             shape = RoundedCornerShape(16.dp)
         )
 
-        OutlinedTextField(
+        KedgeOutlinedTextFieldWithSlots(
             value = provider.projectId,
             onValueChange = { onEdit(provider.copy(projectId = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_project_id)) },

@@ -10,11 +10,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,7 +84,7 @@ internal fun WorkspaceSelectSheet(
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // 管理工作区
-            ListItem(
+            KedgeListItem(
                 leadingContent = {
                     Icon(deployedCode, contentDescription = null)
                 },
@@ -114,7 +114,7 @@ private fun WorkspaceSelectRow(
     onClick: () -> Unit,
     status: String? = null,
 ) {
-    ListItem(
+    KedgeListItem(
         leadingContent = {
             Icon(deployedCode, contentDescription = null)
         },

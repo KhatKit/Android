@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +39,7 @@ fun BackupReminderCard(
 
     if (!isDue || dismissed) return
 
-    Card(onClick = onClick) {
+    KedgeCard(onClick = onClick) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -70,7 +70,7 @@ fun BackupReminderCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconButton(
+            KedgeIconButton(
                 onClick = { dismissed = true },
                 modifier = Modifier.size(32.dp),
                 shapes = IconButtonDefaults.shapes(),

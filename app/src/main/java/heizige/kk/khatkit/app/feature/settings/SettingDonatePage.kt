@@ -36,6 +36,8 @@ import heizige.kk.khatkit.app.core.data.api.SponsorAPI
 import heizige.kk.khatkit.app.core.data.model.Sponsor
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.onError
@@ -46,6 +48,10 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun SettingDonatePage() {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingDonatePageMiuix()
+        return
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -60,7 +66,7 @@ fun SettingDonatePage() {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
     ) { paddings ->
         Column(
             modifier = Modifier
@@ -120,7 +126,7 @@ private fun DonateMethodsCardGroup() {
 }
 
 @Composable
-private fun Sponsors(modifier: Modifier = Modifier) {
+internal fun Sponsors(modifier: Modifier = Modifier) {
     val sponsorAPI = rememberAppEntryPoint().sponsorApi()
     val sponsors by produceState<UiState<List<Sponsor>>>(UiState.Idle) {
         value = UiState.Loading

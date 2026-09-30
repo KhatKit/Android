@@ -1079,6 +1079,8 @@
   <string name="setting_display_page_custom_font_title">Пользовательский шрифт</string>
   <string name="setting_page_preferences">Настройки</string>
   <string name="setting_page_preferences_desc">Тема, уведомления, интерфейс и общие настройки</string>
+  <string name="setting_page_permissions">Разрешения</string>
+  <string name="setting_page_permissions_desc">Уведомления, доступ к местоположению, специальные возможности и другие разрешения</string>
   <string name="setting_page_preferences_theme">Тема</string>
   <string name="setting_page_preferences_theme_desc">Динамические цвета, тема, тёмный режим AMOLED</string>
   <string name="setting_page_preferences_notification">Уведомления</string>
@@ -1361,4 +1363,43 @@
   <string name="setting_display_page_background_effect_type">Тип фонового эффекта</string>
   <string name="setting_display_page_background_effect_blur">Размытие</string>
   <string name="setting_display_page_background_effect_glass">Стекло</string>
+
+  <!-- 自动化审批策略 -->
+  <string name="approval_category_card_run">Запуск карточек</string>
+  <string name="approval_category_ui_action">Действия в интерфейсе</string>
+  <string name="approval_category_shell_root">Shell / Root</string>
+  <string name="approval_category_file_delete">Удаление файлов</string>
+  <string name="approval_category_app_manage">Управление приложениями</string>
+  <string name="approval_policy_always_ask">Спрашивать каждый раз</string>
+  <string name="approval_policy_allow">Разрешить</string>
+  <string name="approval_policy_deny">Запретить</string>
+  <string name="approval_sheet_title">Политика подтверждений автоматизации</string>
+  <string name="approval_sheet_desc">Настройте способ подтверждения для каждого типа операций. В режиме «без вопросов» всё разрешено, а «запомнить на 10 минут» действует только в текущем процессе.</string>
+  <string name="approval_hands_off_title">Режим без вопросов</string>
+  <string name="approval_hands_off_desc">Разрешить любые автоматические действия без запроса ·</string>
+  <string name="approval_status_on">Вкл.</string>
+  <string name="approval_status_off">Выкл.</string>
+
+  <string name="setting_page_blur_title">Размытие</string>
+  <string name="setting_page_blur_desc">Размытие верхней панели</string>
+  <!-- 套餐与激活页（SettingsPackagePage）-->
+  <string name="setting_package_page_title">Тарифы и активация</string>
+  <string name="setting_package_page_mall">Открыть магазин тарифов KhatKit</string>
+  <string name="setting_package_page_mall_desc">Посмотреть тарифы и получить токен активации в браузере</string>
+  <string name="setting_package_page_inactive">Не активировано</string>
+  <string name="setting_package_page_active">Активировано</string>
+  <string name="setting_package_page_active_with_plan">Активировано: %1$s</string>
+  <string name="setting_package_page_device">Устройство: %1$s</string>
+  <string name="setting_package_page_device_id">ID устройства: %1$s</string>
+  <string name="setting_package_page_loading">Загрузка</string>
+  <string name="setting_package_page_unknown">Неизвестно</string>
+  <string name="setting_package_page_ai_quota">Остаток AI-токенов</string>
+  <string name="setting_package_page_tool_quota">Остаток вызовов инструментов</string>
+  <string name="setting_package_page_expires">Тариф действует до</string>
+  <string name="setting_package_page_refreshing">Обновление…</string>
+  <string name="setting_package_page_refresh">Обновить остаток</string>
+  <string name="setting_package_page_refresh_desc">Запрашивает GET /api/me для актуальных данных</string>
+  <string name="setting_package_page_clear">Очистить активацию на этом устройстве</string>
+  <string name="setting_package_page_clear_desc">Удаляет только локальный токен, аккаунт на сервере не затрагивается</string>
+  <string name="setting_package_page_tip">Примечание: покупка тарифа даёт токен активации. Используйте его на сайте для активации устройства. Без активации локальные карточки работают как обычно; карточки тарифа блокируются только при явном отказе сервера (недействительный токен или нехватка вызовов). Сетевые ошибки не блокируют карточки.</string>
 </resources>

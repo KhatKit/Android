@@ -42,6 +42,11 @@ import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.sms
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun AssistantDetailPage(id: String) {
@@ -50,21 +55,11 @@ fun AssistantDetailPage(id: String) {
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = assistant.name.ifBlank {
-                            stringResource(R.string.assistant_page_default_assistant)
-                        },
-                navigationIcon = {
-                    BackButton()
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
+    KedgeSettingsPageScaffold(
+        title = assistant.name.ifBlank {
+            stringResource(R.string.assistant_page_default_assistant)
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -79,58 +74,115 @@ fun AssistantDetailPage(id: String) {
             }
 
             item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantBasic(id)) },
-                        leadingContent = { Icon(settings, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_basic_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_basic)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantPrompt(id)) },
-                        leadingContent = { Icon(sms, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_prompt_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_prompt)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantInjections(id)) },
-                        leadingContent = { Icon(extension, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_extensions_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_extensions)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantMemory(id)) },
-                        leadingContent = { Icon(psychology, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_memory_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_memory)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantRequest(id)) },
-                        leadingContent = { Icon(code, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_request_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_request)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantMcp(id)) },
-                        leadingContent = { Icon(construction, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_mcp_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_mcp)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantLocalTool(id)) },
-                        leadingContent = { Icon(menuBook, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_local_tools_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_local_tools)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
+                // Miuix 下直接用设置页那套（miuixGroup 的卡片 + 库里的
+                // ArrowPreference），这样两项的圆角、内边距、字号、箭头全部一致；
+                // 走 CardGroup/KedgeOptionItem 的话即使调到数值接近，箭头形状和
+                // 文字层级还是会和设置页对不上。
+                if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                    KedgeCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        // 内边距由里面的 ArrowPreference 自己带（16dp），这里不再加
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_tab_basic),
+                            summary = stringResource(R.string.assistant_detail_basic_desc),
+                            icon = settings,
+                            onClick = { navController.navigate(Screen.AssistantBasic(id)) },
+                        )
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_tab_prompt),
+                            summary = stringResource(R.string.assistant_detail_prompt_desc),
+                            icon = sms,
+                            onClick = { navController.navigate(Screen.AssistantPrompt(id)) },
+                        )
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_tab_extensions),
+                            summary = stringResource(R.string.assistant_detail_extensions_desc),
+                            icon = extension,
+                            onClick = { navController.navigate(Screen.AssistantInjections(id)) },
+                        )
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_tab_memory),
+                            summary = stringResource(R.string.assistant_detail_memory_desc),
+                            icon = psychology,
+                            onClick = { navController.navigate(Screen.AssistantMemory(id)) },
+                        )
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_tab_request),
+                            summary = stringResource(R.string.assistant_detail_request_desc),
+                            icon = code,
+                            onClick = { navController.navigate(Screen.AssistantRequest(id)) },
+                        )
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_tab_mcp),
+                            summary = stringResource(R.string.assistant_detail_mcp_desc),
+                            icon = construction,
+                            onClick = { navController.navigate(Screen.AssistantMcp(id)) },
+                        )
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_tab_local_tools),
+                            summary = stringResource(R.string.assistant_detail_local_tools_desc),
+                            icon = menuBook,
+                            onClick = { navController.navigate(Screen.AssistantLocalTool(id)) },
+                        )
+                    }
+                } else {
+                    CardGroup(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    ) {
+                        item(
+                            onClick = { navController.navigate(Screen.AssistantBasic(id)) },
+                            leadingContent = { Icon(settings, null) },
+                            supportingContent = { Text(stringResource(R.string.assistant_detail_basic_desc)) },
+                            headlineContent = { Text(stringResource(R.string.assistant_page_tab_basic)) },
+                            trailingContent = { Icon(arrowForward, null) },
+                        )
+                        item(
+                            onClick = { navController.navigate(Screen.AssistantPrompt(id)) },
+                            leadingContent = { Icon(sms, null) },
+                            supportingContent = { Text(stringResource(R.string.assistant_detail_prompt_desc)) },
+                            headlineContent = { Text(stringResource(R.string.assistant_page_tab_prompt)) },
+                            trailingContent = { Icon(arrowForward, null) },
+                        )
+                        item(
+                            onClick = { navController.navigate(Screen.AssistantInjections(id)) },
+                            leadingContent = { Icon(extension, null) },
+                            supportingContent = { Text(stringResource(R.string.assistant_detail_extensions_desc)) },
+                            headlineContent = { Text(stringResource(R.string.assistant_page_tab_extensions)) },
+                            trailingContent = { Icon(arrowForward, null) },
+                        )
+                        item(
+                            onClick = { navController.navigate(Screen.AssistantMemory(id)) },
+                            leadingContent = { Icon(psychology, null) },
+                            supportingContent = { Text(stringResource(R.string.assistant_detail_memory_desc)) },
+                            headlineContent = { Text(stringResource(R.string.assistant_page_tab_memory)) },
+                            trailingContent = { Icon(arrowForward, null) },
+                        )
+                        item(
+                            onClick = { navController.navigate(Screen.AssistantRequest(id)) },
+                            leadingContent = { Icon(code, null) },
+                            supportingContent = { Text(stringResource(R.string.assistant_detail_request_desc)) },
+                            headlineContent = { Text(stringResource(R.string.assistant_page_tab_request)) },
+                            trailingContent = { Icon(arrowForward, null) },
+                        )
+                        item(
+                            onClick = { navController.navigate(Screen.AssistantMcp(id)) },
+                            leadingContent = { Icon(construction, null) },
+                            supportingContent = { Text(stringResource(R.string.assistant_detail_mcp_desc)) },
+                            headlineContent = { Text(stringResource(R.string.assistant_page_tab_mcp)) },
+                            trailingContent = { Icon(arrowForward, null) },
+                        )
+                        item(
+                            onClick = { navController.navigate(Screen.AssistantLocalTool(id)) },
+                            leadingContent = { Icon(menuBook, null) },
+                            supportingContent = { Text(stringResource(R.string.assistant_detail_local_tools_desc)) },
+                            headlineContent = { Text(stringResource(R.string.assistant_page_tab_local_tools)) },
+                            trailingContent = { Icon(arrowForward, null) },
+                        )
+                    }
                 }
             }
         }

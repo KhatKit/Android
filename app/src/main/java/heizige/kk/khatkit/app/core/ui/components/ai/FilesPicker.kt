@@ -22,16 +22,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -190,7 +190,7 @@ internal fun FilesPicker(
             assistant.quickMessageIds.size +
                 modeAndLorebookCount +
                 assistant.enabledSkills.size
-        ListItem(
+        KedgeListItem(
             leadingContent = {
                 Icon(
                     imageVector = inventory2,
@@ -220,7 +220,7 @@ internal fun FilesPicker(
         )
 
         // Compress History Button
-        ListItem(
+        KedgeListItem(
             leadingContent = {
                 Icon(
                     imageVector = package2,
@@ -255,7 +255,7 @@ internal fun FilesPicker(
         }
         if (boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name) {
             var showCwdSheet by remember { mutableStateOf(false) }
-            TextButton(
+            KedgeTextButton(
                 onClick = { showCwdSheet = true },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
@@ -326,7 +326,7 @@ private fun WorkspacePickerListItem(
         workspaces.find { it.id == assistant.workspaceId?.toString() }
     }
 
-    ListItem(
+    KedgeListItem(
         leadingContent = {
             Icon(
                 imageVector = deployedCode,
@@ -348,14 +348,14 @@ private fun WorkspacePickerListItem(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (boundWorkspace != null) {
-                    IconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
+                    KedgeIconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = settings,
                             contentDescription = stringResource(R.string.workspace_detail),
                         )
                     }
                     if (boundWorkspace.shellStatus != WorkspaceShellStatus.DISABLED.name) {
-                        IconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = terminal,
                                 contentDescription = stringResource(R.string.workspace_terminal),

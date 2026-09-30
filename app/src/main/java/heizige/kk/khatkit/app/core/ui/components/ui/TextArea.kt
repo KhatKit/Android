@@ -24,9 +24,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -220,7 +221,7 @@ private fun FullScreenTextEditor(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row {
-                        TextButton(
+                        KedgeTextButton(
                             onClick = {
                                 state.setTextAndPlaceCursorAtEnd(editingText)
                                 onDismiss()
@@ -230,7 +231,7 @@ private fun FullScreenTextEditor(
                             Text(stringResource(R.string.text_area_save))
                         }
                     }
-                    TextField(
+                    KedgeTextFieldWithSlots(
                         value = editingText,
                         onValueChange = { editingText = it },
                         modifier = Modifier

@@ -10,13 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,8 +29,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 
 @Composable
 fun BackgroundPicker(
@@ -58,7 +57,7 @@ fun BackgroundPicker(
 
     val previewOpacity = backgroundOpacity.coerceIn(0f, 1f)
 
-    FormItem(
+    KedgeFormRow(
         modifier = modifier,
         label = {
             Text(stringResource(R.string.assistant_page_chat_background))
@@ -67,7 +66,7 @@ fun BackgroundPicker(
             Text(stringResource(R.string.assistant_page_chat_background_desc))
         }
     ) {
-        Button(
+        KedgeButton(
             onClick = {
                 showPickOption = true
             },
@@ -95,7 +94,7 @@ fun BackgroundPicker(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         onUpdate(null)
                     },
@@ -127,7 +126,7 @@ fun BackgroundPicker(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
+                    KedgeButton(
                         onClick = {
                             showPickOption = false
                             imagePickerLauncher.launch("image/*")
@@ -137,7 +136,7 @@ fun BackgroundPicker(
                     ) {
                         Text(stringResource(R.string.assistant_page_select_from_gallery))
                     }
-                    Button(
+                    KedgeButton(
                         onClick = {
                             showPickOption = false
                             urlInput = ""
@@ -149,7 +148,7 @@ fun BackgroundPicker(
                         Text(stringResource(R.string.assistant_page_enter_image_url))
                     }
                     if (background != null) {
-                        Button(
+                        KedgeButton(
                             onClick = {
                                 showPickOption = false
                                 onUpdate(null)
@@ -163,7 +162,7 @@ fun BackgroundPicker(
                 }
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         showPickOption = false
                     },
@@ -184,7 +183,7 @@ fun BackgroundPicker(
                 Text(stringResource(R.string.assistant_page_enter_image_url))
             },
             text = {
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = urlInput,
                     onValueChange = { urlInput = it },
                     label = { Text(stringResource(R.string.assistant_page_image_url)) },
@@ -195,7 +194,7 @@ fun BackgroundPicker(
                 )
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         if (urlInput.isNotBlank()) {
                             onUpdate(urlInput.trim())
@@ -208,7 +207,7 @@ fun BackgroundPicker(
                 }
             },
             dismissButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         showUrlInput = false
                     },

@@ -22,6 +22,8 @@ import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.CardParser
+import heizige.kk.khatkit.dependency.DependencyCache
+import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CardRunManager
@@ -69,12 +71,14 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import heizige.kk.khatkit.ai.core.InputSchema
+import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.provider.Modality
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.app.core.network.McpToolDescriptor
 import heizige.kk.khatkit.app.core.network.McpToolResult
 import heizige.kk.khatkit.app.core.util.collectLocalImagePaths
 import heizige.kk.khatkit.ai.core.Tool
+import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import java.io.File
 import java.io.FileOutputStream
@@ -175,6 +179,10 @@ class KhatKitToolProvider(
     override val uiRequest = uiHost.request
     override val uiProgress = uiHost.progress
 
+    override fun selectSheetAction(event: String, values: Map<String, Any?>) {
+        uiHost.selectSheetAction(event, values)
+    }
+
     /** 卡片 Hub 地址（设置页可改）。 */
     override var hubBaseUrl: String
         get() = settings.getString(KEY_HUB_URL, DEFAULT_HUB_BASE_URL)
@@ -205,6 +213,21 @@ class KhatKitToolProvider(
         set(value) {
             uiStyleState.value = value
             settings.edit().putString(KEY_UI_STYLE, value.name).apply()
+        }
+
+    /**
+     * Miuix 全局毛玻璃开关，默认开（KernelSU 默认关，这里跟随 KhatKit 的观感取向）。
+     *
+     * 必须用 [mutableStateOf] 承载：根部 `RouteActivity` 在 composable 里读它来决定是否
+     * 下发模糊开关，写在 SharedPreferences 上不会触发重组，表现为「开关关不掉」。
+     */
+    private val enableBlurState = mutableStateOf(settings.getBoolean(KEY_ENABLE_BLUR, true))
+
+    override var enableBlur: Boolean
+        get() = enableBlurState.value
+        set(value) {
+            enableBlurState.value = value
+            settings.edit().putBoolean(KEY_ENABLE_BLUR, value).apply()
         }
 
     /** 放手模式：高权限/高风险卡片不再逐条审批，全部交给 AI。 */
@@ -422,6 +445,9 @@ class KhatKitToolProvider(
         // 云端优先：索引里有什么，AI 就能看到什么；真正被调用时才下载。
         // 硬过滤（设计 9.1）：设备不具备的 bridge 对应卡片直接不可见。
         val remote = HubFilters.byCapability(remoteCards(), capabilities())
+        // 云端版本是唯一可信来源：已安装卡片只要版本号不同就立即覆盖本地版本，
+        // 这样工具描述、参数和实际执行脚本在同一轮生成中保持一致。
+        syncInstalledCardUpdates(remote)
         val installed = loadInstalledCards()
         val installedNames = installed.mapTo(mutableSetOf()) { it.manifest.name }
         val specs = buildList {
@@ -490,6 +516,25 @@ class KhatKitToolProvider(
         }
     }
 
+    /**
+     * 启动/刷新工具列表时同步已安装卡片。
+     * 不依赖本地版本高低，只要云端版本与本地不同就以云端为准覆盖。
+     */
+    private suspend fun syncInstalledCardUpdates(remote: List<CardIndexEntry>) {
+        val installed = cache.installedVersions()
+        if (installed.isEmpty() || remote.isEmpty()) return
+        remote.asSequence()
+            .filter { entry -> installed[entry.name]?.let { it != entry.version } == true }
+            .forEach { entry ->
+                runCatching {
+                    AutomationBus.update("正在同步云端工具：${entry.name} → ${entry.version}")
+                    cache.ensure(entry, hub(), force = true)
+                }.onFailure { error ->
+                    Log.w(TAG, "云端工具更新失败：${entry.name}", error)
+                }
+            }
+    }
+
     /** 用到时才下载：没下过→下载一次；有新版→更新一次；否则直接读本地缓存。 */
     private suspend fun resolveCard(spec: CardToolSpec): LoadedCard? = withContext(Dispatchers.IO) {
         val entry = spec.entry ?: remoteCards().firstOrNull { it.name == spec.name }
@@ -513,8 +558,14 @@ class KhatKitToolProvider(
             name = "khatkit__$name",
             description = descriptionText(),
             parameters = { inputSchema() },
+            systemPrompt = { _, messages ->
+                attachedImageToolPrompt(messages)
+            },
             execute = { args ->
-                val arguments = jsonToMap(args)
+                // 脚本据此区分 AI 已明确给出完整参数的调用与用户手动打开的配置页。
+                val arguments = jsonToMap(args).toMutableMap().apply {
+                    put("__khatkit_trigger", "AI")
+                }
                 // 任何异常都收敛成 error 文本，不能让卡片问题打断整轮生成。
                 val result = try {
                     val card = resolveCard(this)
@@ -1261,6 +1312,26 @@ class KhatKitToolProvider(
         }
     }
 
+    /** 将当前用户消息中的图片附件作为工具参数上下文直接提供给模型。 */
+    private fun attachedImageToolPrompt(messages: List<UIMessage>): String {
+        val user = messages.lastOrNull { it.role == MessageRole.USER } ?: return ""
+        val paths = user.parts.filterIsInstance<UIMessagePart.Image>()
+            .mapNotNull { image ->
+                when {
+                    image.url.startsWith("file://") -> image.url.removePrefix("file://")
+                    image.url.startsWith("/") -> image.url
+                    else -> null
+                }
+            }
+            .filter { it.startsWith("/") }
+        if (paths.isEmpty()) return ""
+        return buildString {
+            appendLine("当前用户消息附带了本地图片。不要向用户索要路径，也不要使用 content://、file:// 或相对路径。")
+            appendLine("调用图片处理工具时，涉及输入图片的 path/input/source/image 参数必须使用下面的绝对路径：")
+            paths.forEachIndexed { index, path -> appendLine("image_${index + 1}=$path") }
+        }
+    }
+
     /** wake 动作：调用工具 bridge 点亮屏幕，返回唤醒结果与最新屏幕状态。 */
     private suspend fun wakeScreenAction(): String {
         val result = runCatching { ocrBridge.wakeScreen() }
@@ -1413,6 +1484,18 @@ class KhatKitToolProvider(
     /** 已安装卡片 name -> version，市场页据此显示"更新"。 */
     override suspend fun installedCardVersions(): Map<String, String> = withContext(Dispatchers.IO) {
         cache.installedVersions()
+    }
+
+    suspend fun dependencyCacheEntries(): List<DependencyCacheEntry> = withContext(Dispatchers.IO) {
+        DependencyCache.list(appContext)
+    }
+
+    suspend fun deleteDependency(name: String, version: String): Boolean = withContext(Dispatchers.IO) {
+        DependencyCache.delete(appContext, name, version)
+    }
+
+    suspend fun clearDependencyCache(): Int = withContext(Dispatchers.IO) {
+        DependencyCache.clear(appContext)
     }
 
     /** 已安装卡片的触发方式（name -> triggers），市场页据此显示徽标与运行入口。 */
@@ -1716,6 +1799,7 @@ class KhatKitToolProvider(
         private const val KEY_DOWNLOAD_CONCURRENCY = "download_concurrency"
         private const val KEY_UI_STYLE = "ui_style"
         private const val KEY_RECEIVE_BETA = "receive_beta"
+        private const val KEY_ENABLE_BLUR = "enable_blur"
         private const val KEY_HANDS_OFF = "hands_off_mode"
 
         /** 日志 TAG（套餐计量 / 上报降级）。 */

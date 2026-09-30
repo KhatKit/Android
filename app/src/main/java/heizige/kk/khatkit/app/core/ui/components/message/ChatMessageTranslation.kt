@@ -23,16 +23,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,7 +109,7 @@ fun LanguageSelectionDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(languages) { language ->
-                    Card(
+                    KedgeCard(
                         onClick = {
                             onLanguageSelected(language)
                             dismiss()
@@ -137,7 +137,7 @@ fun LanguageSelectionDialog(
                 }
 
                 item {
-                    Card(
+                    KedgeCard(
                         onClick = {
                             onClearTranslation()
                             dismiss()
@@ -207,7 +207,7 @@ fun CollapsibleTranslationText(
             }
 
             // 折叠/展开按钮
-            IconButton(
+            KedgeIconButton(
                 onClick = { isCollapsed = !isCollapsed },
                 modifier = Modifier.size(32.dp),
                 shapes = IconButtonDefaults.shapes(),
@@ -229,7 +229,7 @@ fun CollapsibleTranslationText(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            Card(
+            KedgeCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
@@ -250,7 +250,7 @@ fun CollapsibleTranslationText(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CircularProgressIndicator(
+                        KedgeProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
                             color = KedgeColors.primary

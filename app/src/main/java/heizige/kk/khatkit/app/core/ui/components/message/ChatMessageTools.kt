@@ -16,17 +16,18 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -338,7 +339,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 ) {
                                     q.options.forEach { option ->
                                         val selectedOptions = multiAnswers[q.id] ?: emptySet()
-                                        FilterChip(
+                                        KedgeFilterChip(
                                             selected = if (q.selectionType == "multi") {
                                                 option in selectedOptions
                                             } else {
@@ -366,7 +367,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 }
                             }
 
-                            OutlinedTextField(
+                            KedgeOutlinedTextField(
                                 value = answers[q.id] ?: "",
                                 onValueChange = { answers[q.id] = it },
                                 modifier = Modifier.fillMaxWidth(),
@@ -396,7 +397,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
 
                 // Submit button
                 if (isPending && onToolAnswer != null) {
-                    FilledTonalButton(
+                    KedgeButton(
                         onClick = {
                             val answerPayload = buildJsonObject {
                                 put("answers", buildJsonObject {
@@ -459,7 +460,7 @@ private fun ToolDenyReasonDialog(
             Text(stringResource(R.string.chat_message_tool_deny_dialog_title))
         },
         text = {
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = reason,
                 onValueChange = { reason = it },
                 label = { Text(stringResource(R.string.chat_message_tool_deny_dialog_hint)) },
@@ -471,12 +472,12 @@ private fun ToolDenyReasonDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(reason) }, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = { onConfirm(reason) }, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.chat_message_tool_deny))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(android.R.string.cancel))
             }
         }

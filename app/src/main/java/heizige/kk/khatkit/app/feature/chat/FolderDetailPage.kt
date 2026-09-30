@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -24,6 +22,13 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 
 /**
  * 文件夹二级页：顶栏显示文件夹名，左侧为返回箭头；内容为该文件夹下的会话列表。
@@ -39,24 +44,32 @@ fun FolderDetailPage(
     val folder by vm.folder.collectAsStateWithLifecycle()
     val conversations = vm.conversations.collectAsLazyPagingItems()
 
-    Scaffold(
+    // 用 KedgePageScaffold + KedgePageTopBar：Miuix 下自动换成 Miuix 顶栏
+    // （大标题 + 毛玻璃），此前这里是裸 MD3 TopAppBar，Miuix 风格完全没生效。
+    KedgePageScaffold(
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            KedgePageTopBar(
+                title = folder?.name.orEmpty(),
                 navigationIcon = {
-                    IconButton(
-                        onClick = { navController.popBackStack() },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(arrowBack, contentDescription = stringResource(R.string.back))
+                    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                        MiuixIconButton(onClick = { navController.popBackStack() }) {
+                            MiuixIcon(arrowBack, contentDescription = stringResource(R.string.back))
+                        }
+                    } else {
+                        KedgeIconButton(
+                            onClick = { navController.popBackStack() },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(arrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 },
-                title = { Text(folder?.name.orEmpty()) },
+                colors = CustomColors.topBarColors,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = CustomColors.pageContainerColor,
+    
+        md3ScrollBehavior = null,
     ) { padding ->
         Column(
             modifier = Modifier

@@ -14,19 +14,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +68,8 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.icons.stop
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeExtendedFloatingActionButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun SettingWebPage() {
@@ -128,19 +131,13 @@ fun SettingWebPage() {
         Toast.show(copiedText)
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.setting_page_web_server),
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.setting_page_web_server),
+        scrollBehavior = scrollBehavior,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            KedgeExtendedFloatingActionButton(
                 onClick = {
-                    if (serverState.isLoading) return@ExtendedFloatingActionButton
+                    if (serverState.isLoading) return@KedgeExtendedFloatingActionButton
                     if (!serverState.isRunning) {
                         if (permissionState.allPermissionsGranted) {
                             startWebServer()
@@ -160,7 +157,7 @@ fun SettingWebPage() {
                 },
                 icon = {
                     if (serverState.isLoading) {
-                        CircularProgressIndicator(
+                        KedgeProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 3.dp,
                         )
@@ -187,8 +184,6 @@ fun SettingWebPage() {
                 },
             )
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -205,7 +200,7 @@ fun SettingWebPage() {
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_port)) },
                         supportingContent = { Text(stringResource(R.string.setting_page_web_server_port_desc)) },
                         trailingContent = {
-                            TextField(
+                            KedgeTextField(
                                 value = portText,
                                 onValueChange = { value ->
                                     portText = value.filter { it.isDigit() }
@@ -231,46 +226,41 @@ fun SettingWebPage() {
                             )
                         },
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_page_web_server_localhost_only)) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_web_server_localhost_only_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = settings.webServerLocalhostOnly,
-                                onCheckedChange = { checked ->
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_page_web_server_localhost_only,
+                            R.string.setting_page_web_server_localhost_only_desc,
+                            checked = settings.webServerLocalhostOnly,
+                            onCheckedChange = { checked ->
                                     scope.launch {
                                         settingsStore.update {
                                             it.copy(webServerLocalhostOnly = checked)
                                         }
                                     }
-                                },
-                                // 运行中不允许切换 需重启服务生效
-                                enabled = !serverState.isRunning,
-                            )
-                        },
+                            },
+                            enabled = !serverState.isRunning,
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_page_web_server_jwt_enable)) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_web_server_jwt_enable_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = settings.webServerJwtEnabled,
-                                onCheckedChange = { checked ->
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_page_web_server_jwt_enable,
+                            R.string.setting_page_web_server_jwt_enable_desc,
+                            checked = settings.webServerJwtEnabled,
+                            onCheckedChange = { checked ->
                                     scope.launch {
                                         settingsStore.update {
                                             it.copy(webServerJwtEnabled = checked)
                                         }
                                     }
-                                },
-                                enabled = settings.webServerJwtEnabled || accessPasswordText.isNotBlank(),
-                            )
-                        },
+                            },
+                            enabled = settings.webServerJwtEnabled || accessPasswordText.isNotBlank(),
+                        )
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_password)) },
                         supportingContent = { Text(stringResource(R.string.setting_page_web_server_password_desc)) },
                         trailingContent = {
-                            TextField(
+                            KedgeTextField(
                                 value = accessPasswordText,
                                 onValueChange = { value ->
                                     accessPasswordText = value
@@ -290,7 +280,7 @@ fun SettingWebPage() {
                                     PasswordVisualTransformation()
                                 },
                                 trailingIcon = {
-                                    IconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
+                                    KedgeIconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
                                         Icon(
                                             imageVector = if (passwordVisible) visibilityOff else visibility,
                                             contentDescription = null

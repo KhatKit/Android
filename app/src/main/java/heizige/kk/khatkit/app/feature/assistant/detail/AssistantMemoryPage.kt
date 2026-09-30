@@ -15,19 +15,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -47,7 +47,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
@@ -56,6 +55,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun AssistantMemoryPage(id: String) {
@@ -64,7 +71,29 @@ fun AssistantMemoryPage(id: String) {
     val memories by vm.memories.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        KedgeSettingsPageScaffold(
+            title = stringResource(R.string.assistant_page_tab_memory),
+            navigationIcon = { BackButton() },
+        ) { innerPadding ->
+            AssistantMemoryContent(
+                // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
+                // 旧写法硬编码 PaddingValues(horizontal = 16.dp)（因为 MiuixSettingsPage
+                // 自己用 LazyColumn 的 contentPadding 处理了顶栏），改成内容直接透传后
+                // 顶部就是 0，content 直接压在 TopAppBar 下面。
+                innerPadding = innerPadding,
+                assistant = assistant,
+                memories = memories,
+                onUpdateAssistant = { vm.update(it) },
+                onDeleteMemory = { vm.deleteMemory(it) },
+                onAddMemory = { vm.addMemory(it) },
+                onUpdateMemory = { vm.updateMemory(it) },
+            )
+        }
+        return
+    }
+
+    KedgePageScaffold(
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.assistant_page_tab_memory),
@@ -76,7 +105,9 @@ fun AssistantMemoryPage(id: String) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
+    
+        md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantMemoryContent(
             innerPadding = innerPadding,
@@ -118,7 +149,7 @@ private fun AssistantMemoryContent(
             onDismissRequest = { showTimeReminderIntervalDialog = false },
             title = { Text(stringResource(R.string.assistant_page_time_reminder_interval)) },
             text = {
-                TextField(
+                KedgeTextFieldWithSlots(
                     value = timeReminderIntervalInput,
                     onValueChange = { timeReminderIntervalInput = it },
                     label = { Text(stringResource(R.string.assistant_page_time_reminder_interval_label)) },
@@ -130,7 +161,7 @@ private fun AssistantMemoryContent(
                 )
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     enabled = interval != null,
                     onClick = {
                         interval?.let {
@@ -144,7 +175,7 @@ private fun AssistantMemoryContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimeReminderIntervalDialog = false }, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { showTimeReminderIntervalDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.assistant_page_cancel))
                 }
             },
@@ -161,7 +192,7 @@ private fun AssistantMemoryContent(
                 Text(stringResource(R.string.assistant_page_manage_memory_title))
             },
             text = {
-                TextField(
+                KedgeTextFieldWithSlots(
                     value = memory.content,
                     onValueChange = {
                         update(memory.copy(content = it))
@@ -175,7 +206,7 @@ private fun AssistantMemoryContent(
                 )
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         memoryDialogState.confirm()
                     },
@@ -185,7 +216,7 @@ private fun AssistantMemoryContent(
                 }
             },
             dismissButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         memoryDialogState.dismiss()
                     },
@@ -206,99 +237,56 @@ private fun AssistantMemoryContent(
             .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        CardGroup {
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_memory)) },
-                supportingContent = {
-                    Text(
-                        text = stringResource(R.string.assistant_page_memory_desc),
-                    )
+        KedgeFormCard {
+            PreferenceSwitch(
+                title = stringResource(R.string.assistant_page_memory),
+                summary = stringResource(R.string.assistant_page_memory_desc),
+                checked = assistant.enableMemory,
+                onCheckedChange = {
+                    onUpdateAssistant(assistant.copy(enableMemory = it))
                 },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.enableMemory,
-                        onCheckedChange = {
-                            onUpdateAssistant(
-                                assistant.copy(
-                                    enableMemory = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_global_memory)) },
-                supportingContent = {
-                    Text(
-                        text = stringResource(R.string.assistant_page_global_memory_desc),
-                    )
+            PreferenceSwitch(
+                title = stringResource(R.string.assistant_page_global_memory),
+                summary = stringResource(R.string.assistant_page_global_memory_desc),
+                checked = assistant.useGlobalMemory,
+                onCheckedChange = {
+                    onUpdateAssistant(assistant.copy(useGlobalMemory = it))
                 },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.useGlobalMemory,
-                        onCheckedChange = {
-                            onUpdateAssistant(
-                                assistant.copy(
-                                    useGlobalMemory = it
-                                )
-                            )
-                        },
-                        enabled = assistant.enableMemory
-                    )
-                }
+                enabled = assistant.enableMemory,
             )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_recent_chats)) },
-                supportingContent = {
-                    Text(
-                        text = stringResource(R.string.assistant_page_recent_chats_desc),
-                    )
+            PreferenceSwitch(
+                title = stringResource(R.string.assistant_page_recent_chats),
+                summary = stringResource(R.string.assistant_page_recent_chats_desc),
+                checked = assistant.enableRecentChatsReference,
+                onCheckedChange = {
+                    onUpdateAssistant(assistant.copy(enableRecentChatsReference = it))
                 },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.enableRecentChatsReference,
-                        onCheckedChange = {
-                            onUpdateAssistant(
-                                assistant.copy(
-                                    enableRecentChatsReference = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
         }
 
-        CardGroup {
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_time_reminder)) },
-                supportingContent = {
-                    Text(
-                        text = stringResource(R.string.assistant_page_time_reminder_desc),
-                    )
+        KedgeFormCard {
+            PreferenceSwitch(
+                title = stringResource(R.string.assistant_page_time_reminder),
+                summary = stringResource(R.string.assistant_page_time_reminder_desc),
+                checked = assistant.enableTimeReminder,
+                onCheckedChange = {
+                    onUpdateAssistant(assistant.copy(enableTimeReminder = it))
                 },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.enableTimeReminder,
-                        onCheckedChange = {
-                            onUpdateAssistant(
-                                assistant.copy(
-                                    enableTimeReminder = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
             if (assistant.enableTimeReminder) {
-                item(
-                    headlineContent = { Text(stringResource(R.string.assistant_page_time_reminder_interval)) },
-                    supportingContent = { Text(stringResource(R.string.assistant_page_time_reminder_interval_desc)) },
-                    trailingContent = { Text(stringResource(R.string.assistant_page_time_reminder_interval_value, assistant.timeReminderIntervalMinutes)) },
+                PreferenceArrow(
+                    title = stringResource(R.string.assistant_page_time_reminder_interval),
+                    summary = stringResource(R.string.assistant_page_time_reminder_interval_desc),
                     onClick = {
                         timeReminderIntervalInput = assistant.timeReminderIntervalMinutes.toString()
                         showTimeReminderIntervalDialog = true
+                    },
+                    endAction = {
+                        Text(stringResource(
+                            R.string.assistant_page_time_reminder_interval_value,
+                            assistant.timeReminderIntervalMinutes,
+                        ))
                     },
                 )
             }
@@ -317,7 +305,7 @@ private fun AssistantMemoryContent(
                     .align(Alignment.CenterStart)
             )
 
-            IconButton(
+            KedgeIconButton(
                 onClick = {
                     memoryDialogState.open(AssistantMemory(0, ""))
                 },
@@ -372,7 +360,7 @@ private fun MemoryItem(
     onEditMemory: (AssistantMemory) -> Unit,
     onDeleteMemory: (AssistantMemory) -> Unit
 ) {
-    Card(
+    KedgeCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer
     ) {
@@ -394,13 +382,13 @@ private fun MemoryItem(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconButton(
+            KedgeIconButton(
                 onClick = { onEditMemory(memory) },
                 shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(edit, null)
             }
-            IconButton(
+            KedgeIconButton(
                 onClick = { onDeleteMemory(memory) },
                 shapes = IconButtonDefaults.shapes(),
             ) {

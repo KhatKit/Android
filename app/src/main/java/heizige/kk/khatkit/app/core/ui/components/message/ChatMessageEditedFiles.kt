@@ -14,12 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -154,9 +154,9 @@ internal fun EditedFilesList(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Card(
+                KedgeCard(
                     onClick = {
-                        val p = selectedPath ?: return@Card
+                        val p = selectedPath ?: return@KedgeCard
                         exportLauncher.launch(p.substringAfterLast('/'))
                     },
                     shape = MaterialTheme.shapes.medium,
@@ -179,9 +179,9 @@ internal fun EditedFilesList(
                         )
                     }
                 }
-                Card(
+                KedgeCard(
                     onClick = {
-                        val p = selectedPath ?: return@Card
+                        val p = selectedPath ?: return@KedgeCard
                         dismiss()
                         scope.launch {
                             runCatching {

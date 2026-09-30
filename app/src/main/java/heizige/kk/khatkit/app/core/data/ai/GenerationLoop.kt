@@ -20,6 +20,7 @@ import kotlinx.serialization.json.buildJsonObject
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.provider.Model
+import heizige.kk.khatkit.ai.provider.Modality
 import heizige.kk.khatkit.ai.provider.Provider
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
@@ -106,16 +107,21 @@ class GenerationLoop(
 
             // Skip generation if we have approved/denied tool calls to handle
             if (pendingTools.isEmpty()) {
-                val baseMessages = messages
                 for ((chainIndex, candidate) in failoverChain.withIndex()) {
                     val (candidateProvider, candidateModel) = candidate
+                    val messagesForCandidate =
+                        if (candidateModel.inputModalities.contains(Modality.IMAGE)) {
+                            messages
+                        } else {
+                            messages.withLocalImagePathHints()
+                        }
                     try {
                         generateInternal(
                             assistant = assistant,
                             settings = settings,
-                            messages = baseMessages,
+                            messages = messagesForCandidate,
                             onUpdateMessages = {
-                                messages = it.transforms(
+                                messages = it.withoutLocalImagePathHints().transforms(
                                     transformers = outputTransformers,
                                     context = context,
                                     model = model,
@@ -165,7 +171,7 @@ class GenerationLoop(
                                 "切换下一个 (${chainIndex + 1}/${failoverChain.lastIndex + 1})",
                             error,
                         )
-                        messages = baseMessages
+                        messages = messagesForCandidate.withoutLocalImagePathHints()
                     }
                 }
                 messages = messages.visualTransforms(
@@ -592,4 +598,35 @@ class GenerationLoop(
         ) + nonTextParts
     }
 
+}
+
+/**
+ * 文本模型无法消费 image_url，但本地工具卡仍需要知道附件文件。
+ * 将路径作为生成上下文中的合成文本注入，不写回会话数据库，也不改变聊天气泡。
+ */
+private fun List<UIMessage>.withLocalImagePathHints(): List<UIMessage> {
+    val index = indexOfLast { it.role == MessageRole.USER }
+    if (index < 0) return this
+    val message = this[index]
+    val paths = message.parts.filterIsInstance<UIMessagePart.Image>().mapNotNull { image ->
+        when {
+            image.url.startsWith("file://") -> image.url.removePrefix("file://")
+            image.url.startsWith("/") -> image.url
+            else -> null
+        }
+    }
+    if (paths.isEmpty()) return this
+    val hint = "[本地图片附件，供图像工具调用，不需要向用户索要路径]\n" +
+        paths.mapIndexed { i, path -> "image_${i + 1}=$path" }.joinToString("\n")
+    val already = message.parts.filterIsInstance<UIMessagePart.Text>().any { it.text.contains("[本地图片附件") }
+    if (already) return this
+    return toMutableList().also { it[index] = message.copy(parts = message.parts + UIMessagePart.Text(hint)) }
+}
+
+private fun List<UIMessage>.withoutLocalImagePathHints(): List<UIMessage> = map { message ->
+    message.copy(
+        parts = message.parts.filterNot { part ->
+            part is UIMessagePart.Text && part.text.startsWith("[本地图片附件，供图像工具调用")
+        }
+    )
 }

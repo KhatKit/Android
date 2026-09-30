@@ -33,6 +33,8 @@ import heizige.kk.khatkit.app.feature.backup.tabs.S3Tab
 import heizige.kk.khatkit.app.feature.backup.tabs.WebDavTab
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 
 @Composable
 fun BackupPage(vm: BackupViewModel = hiltViewModel()) {
@@ -41,57 +43,22 @@ fun BackupPage(vm: BackupViewModel = hiltViewModel()) {
     var showRestartDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.backup_page_title),
-                navigationIcon = {
-                    BackButton()
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
-    ) { contentPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(contentPadding)
-        ) {
-            SecondaryScrollableTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                containerColor = CustomColors.topBarColors.containerColor,
-                edgePadding = 4.dp,
-            ) {
-                Tab(
-                    selected = pagerState.currentPage == 0,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                    text = { Text(stringResource(R.string.backup_page_import_export)) }
-                )
-                Tab(
-                    selected = pagerState.currentPage == 1,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                    text = { Text(stringResource(R.string.backup_page_webdav_backup)) }
-                )
-                Tab(
-                    selected = pagerState.currentPage == 2,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
-                    text = { Text(stringResource(R.string.backup_page_s3_backup)) }
-                )
-                Tab(
-                    selected = pagerState.currentPage == 3,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(3) } },
-                    text = { Text(stringResource(R.string.backup_page_reminder)) }
-                )
-            }
-
+    KedgeTabPageScaffold(
+        title = stringResource(R.string.backup_page_title),
+        titles = listOf(
+            stringResource(R.string.backup_page_import_export),
+            stringResource(R.string.backup_page_webdav_backup),
+            stringResource(R.string.backup_page_s3_backup),
+            stringResource(R.string.backup_page_reminder),
+        ),
+        selectedTabIndex = pagerState.currentPage,
+        onTabSelected = { scope.launch { pagerState.animateScrollToPage(it) } },
+        scrollableTab = true,
+        scrollBehavior = scrollBehavior,
+    ) { pagerModifier ->
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                modifier = pagerModifier.fillMaxWidth()
             ) { page ->
                 when (page) {
                     0 -> {
@@ -120,7 +87,6 @@ fun BackupPage(vm: BackupViewModel = hiltViewModel()) {
                     }
                 }
             }
-        }
     }
 
     if (showRestartDialog) {

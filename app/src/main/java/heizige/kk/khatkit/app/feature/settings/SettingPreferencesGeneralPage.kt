@@ -12,6 +12,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.FancySlider
 import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -36,10 +38,16 @@ import heizige.kk.khatkit.app.core.ui.hooks.rememberSharedPreferenceBoolean
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlin.math.roundToInt
 
 @Composable
 fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingPreferencesGeneralPageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var ttsPlaybackSpeed by remember(settings.defaultTTSPlaybackSpeed) {
@@ -65,7 +73,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -90,55 +98,39 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             )
                         },
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_send_on_enter_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_send_on_enter_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.sendOnEnter,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(sendOnEnter = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_send_on_enter_title,
+                            R.string.setting_display_page_send_on_enter_desc,
+                            checked = displaySetting.sendOnEnter,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(sendOnEnter = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_message_jumper_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_message_jumper_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.showMessageJumper,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(showMessageJumper = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_show_message_jumper_title,
+                            R.string.setting_display_page_show_message_jumper_desc,
+                            checked = displaySetting.showMessageJumper,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showMessageJumper = it)) },
+                        )
                     )
                     if (displaySetting.showMessageJumper) {
-                        item(
-                            headlineContent = { Text(stringResource(R.string.setting_display_page_message_jumper_position_title)) },
-                            supportingContent = { Text(stringResource(R.string.setting_display_page_message_jumper_position_desc)) },
-                            trailingContent = {
-                                OptionSwitch(
-                                    checked = displaySetting.messageJumperOnLeft,
-                                    onCheckedChange = {
-                                        updateDisplaySetting(displaySetting.copy(messageJumperOnLeft = it))
-                                    }
-                                )
-                            },
+                        settingItem(
+                            SwitchSetting(
+                                R.string.setting_display_page_message_jumper_position_title,
+                                R.string.setting_display_page_message_jumper_position_desc,
+                                checked = displaySetting.messageJumperOnLeft,
+                                onCheckedChange = { updateDisplaySetting(displaySetting.copy(messageJumperOnLeft = it)) },
+                            )
                         )
                     }
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_enable_auto_scroll_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_enable_auto_scroll_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.enableAutoScroll,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(enableAutoScroll = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_enable_auto_scroll_title,
+                            R.string.setting_display_page_enable_auto_scroll_desc,
+                            checked = displaySetting.enableAutoScroll,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableAutoScroll = it)) },
+                        )
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_use_app_icon_style_loading_indicator_title)) },
@@ -154,17 +146,13 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             )
                         },
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_background_effect_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_background_effect_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.enableBlurEffect,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(enableBlurEffect = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_background_effect_title,
+                            R.string.setting_display_page_background_effect_desc,
+                            checked = displaySetting.enableBlurEffect,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableBlurEffect = it)) },
+                        )
                     )
                     if (displaySetting.enableBlurEffect) {
                         item(
@@ -187,41 +175,29 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             },
                         )
                     }
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.enableMessageGenerationHapticEffect,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(enableMessageGenerationHapticEffect = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_enable_message_generation_haptic_effect_title,
+                            R.string.setting_display_page_enable_message_generation_haptic_effect_desc,
+                            checked = displaySetting.enableMessageGenerationHapticEffect,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableMessageGenerationHapticEffect = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_skip_crop_image_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_skip_crop_image_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.skipCropImage,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(skipCropImage = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_skip_crop_image_title,
+                            R.string.setting_display_page_skip_crop_image_desc,
+                            checked = displaySetting.skipCropImage,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(skipCropImage = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_paste_long_text_as_file_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_paste_long_text_as_file_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.pasteLongTextAsFile,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(pasteLongTextAsFile = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_paste_long_text_as_file_title,
+                            R.string.setting_display_page_paste_long_text_as_file_desc,
+                            checked = displaySetting.pasteLongTextAsFile,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(pasteLongTextAsFile = it)) },
+                        )
                     )
                     if (displaySetting.pasteLongTextAsFile) {
                         item(
@@ -245,17 +221,13 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             },
                         )
                     }
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_volume_key_scroll_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_volume_key_scroll_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.enableVolumeKeyScroll,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(enableVolumeKeyScroll = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_volume_key_scroll_title,
+                            R.string.setting_display_page_volume_key_scroll_desc,
+                            checked = displaySetting.enableVolumeKeyScroll,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableVolumeKeyScroll = it)) },
+                        )
                     )
                     if (displaySetting.enableVolumeKeyScroll) {
                         item(
@@ -319,41 +291,29 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             }
                         },
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.ttsOnlyReadQuoted,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(ttsOnlyReadQuoted = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_tts_only_read_quoted_title,
+                            R.string.setting_display_page_tts_only_read_quoted_desc,
+                            checked = displaySetting.ttsOnlyReadQuoted,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadQuoted = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_tts_read_outside_brackets_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_tts_read_outside_brackets_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.ttsOnlyReadOutsideBrackets,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(ttsOnlyReadOutsideBrackets = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_tts_read_outside_brackets_title,
+                            R.string.setting_display_page_tts_read_outside_brackets_desc,
+                            checked = displaySetting.ttsOnlyReadOutsideBrackets,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadOutsideBrackets = it)) },
+                        )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_auto_play_tts_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_auto_play_tts_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.autoPlayTTSAfterGeneration,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(autoPlayTTSAfterGeneration = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_auto_play_tts_title,
+                            R.string.setting_display_page_auto_play_tts_desc,
+                            checked = displaySetting.autoPlayTTSAfterGeneration,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoPlayTTSAfterGeneration = it)) },
+                        )
                     )
                 }
             }

@@ -8,15 +8,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +40,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bugReport
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.public
 import heizige.kk.khatkit.app.core.ui.icons.refresh
+import heizige.kk.kedge.adaptive.KedgePageScaffold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,8 +79,8 @@ fun WebViewPage(url: String, contentId: String) {
         state.goBack()
     }
 
-    Scaffold(
-        topBar = {
+    KedgePageScaffold(
+       topBar = {
             KedgePageTopBar(
                 title = state.pageTitle?.takeIf { it.isNotEmpty() } ?: state.currentUrl
                         ?: "",
@@ -87,11 +88,11 @@ fun WebViewPage(url: String, contentId: String) {
                     BackButton()
                 },
                 actions = {
-                    IconButton(onClick = { state.reload() }, shapes = IconButtonDefaults.shapes()) {
+                    KedgeIconButton(onClick = { state.reload() }, shapes = IconButtonDefaults.shapes()) {
                         Icon(refresh, contentDescription = "Refresh")
                     }
 
-                    IconButton(
+                    KedgeIconButton(
                         onClick = { state.goForward() },
                         enabled = state.canGoForward,
                         shapes = IconButtonDefaults.shapes(),
@@ -100,17 +101,17 @@ fun WebViewPage(url: String, contentId: String) {
                     }
 
                     val urlHandler = LocalUriHandler.current
-                    IconButton(
+                    KedgeIconButton(
                         onClick = { showDropdown = true },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(moreVert, contentDescription = "More options")
 
-                        DropdownMenu(
+                        KedgeDropdownMenuSlots(
                             expanded = showDropdown,
                             onDismissRequest = { showDropdown = false }
                         ) {
-                            DropdownMenuItem(
+                            KedgeDropdownItemSlot(
                                 text = { Text("Open in Browser") },
                                 leadingIcon = { Icon(public, contentDescription = null) },
                                 onClick = {
@@ -122,7 +123,7 @@ fun WebViewPage(url: String, contentId: String) {
                                     }
                                 }
                             )
-                            DropdownMenuItem(
+                            KedgeDropdownItemSlot(
                                 text = { Text("Console Logs") },
                                 leadingIcon = { Icon(bugReport, contentDescription = null) },
                                 onClick = {
@@ -134,7 +135,9 @@ fun WebViewPage(url: String, contentId: String) {
                     }
                 }
             )
-        }
+        },
+    
+        md3ScrollBehavior = null,
     ) {
         WebView(
             state = state,

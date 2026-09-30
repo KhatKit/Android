@@ -59,23 +59,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -1015,7 +1011,7 @@ private fun GreetingAiSetupScreen() {
                             )
                         }
                     }
-                    OutlinedTextField(
+                    KedgeOutlinedTextFieldWithSlots(
                         value = draftName,
                         onValueChange = { draftName = it },
                         label = { Text(stringResource(R.string.greeting_ai_custom_name)) },
@@ -1024,7 +1020,7 @@ private fun GreetingAiSetupScreen() {
                         shape = RoundedCornerShape(16.dp)
                     )
                 }
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = draftKey,
                     onValueChange = { draftKey = it },
                     label = { Text(stringResource(R.string.greeting_ai_api_key)) },
@@ -1032,7 +1028,7 @@ private fun GreetingAiSetupScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = draftBaseUrl,
                     onValueChange = { draftBaseUrl = it },
                     label = { Text(stringResource(R.string.greeting_ai_base_url)) },

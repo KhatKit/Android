@@ -12,15 +12,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,12 +97,12 @@ internal fun PermissionRationaleDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
+            KedgeButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.cancel))
             }
         },
         confirmButton = {
-            Button(onClick = onProceed, shapes = ButtonDefaults.shapes()) {
+            KedgeButton(onClick = onProceed, shapes = ButtonDefaults.shapes()) {
                 Text(
                     stringResource(
                         if (hasPermanentlyDenied) {
@@ -127,7 +126,7 @@ private fun PermissionItem(
     modifier: Modifier = Modifier,
     isPermanentlyDenied: Boolean = false,
 ) {
-    Card(
+    KedgeCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
@@ -153,7 +152,7 @@ private fun PermissionItem(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     if (permissionInfo.required) {
-                        Card(
+                        KedgeCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer
                             ),
@@ -169,7 +168,7 @@ private fun PermissionItem(
                     }
 
                     if (isPermanentlyDenied) {
-                        Card(
+                        KedgeCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                             ),

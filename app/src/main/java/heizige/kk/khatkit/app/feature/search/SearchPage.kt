@@ -15,24 +15,24 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.kedge.components.KedgeRadioButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,6 +65,8 @@ import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.components.KedgeIconButton
 
 @Composable
 fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
@@ -83,7 +85,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
             title = { Text(stringResource(R.string.search_page_rebuild_index)) },
             text = { Text(stringResource(R.string.search_page_rebuild_index_desc)) },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         showRebuildDialog = false
                         vm.rebuildIndex()
@@ -94,47 +96,38 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRebuildDialog = false }, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { showRebuildDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             }
         )
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                navigationIcon = { BackButton() },
-                title = stringResource(R.string.search_page_title),
-                actions = {
-                    SortMenuButton(
-                        current = vm.sortOrder,
-                        onSortChange = { vm.onSortChange(it) },
-                    )
-                    IconButton(
-                        onClick = { showRebuildDialog = true },
-                        enabled = !vm.isRebuilding,
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            refresh,
-                            contentDescription = stringResource(R.string.search_page_rebuild_button)
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.search_page_title),
+        scrollBehavior = scrollBehavior,
+        actions = {
+            SortMenuButton(
+                current = vm.sortOrder,
+                onSortChange = { vm.onSortChange(it) },
             )
+            KedgeIconButton(
+                onClick = { showRebuildDialog = true },
+                enabled = !vm.isRebuilding,
+            ) {
+                Icon(
+                    refresh,
+                    contentDescription = stringResource(R.string.search_page_rebuild_button)
+                )
+            }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { contentPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(contentPadding)
         ) {
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = vm.searchQuery,
                 onValueChange = { vm.onQueryChange(it) },
                 modifier = Modifier
@@ -179,7 +172,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
 
             Box(modifier = Modifier.weight(1f)) {
                 if (vm.isLoading || vm.isRebuilding) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
                 }
 
                 when {
@@ -259,18 +252,18 @@ private fun SortMenuButton(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
+        KedgeIconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 sort,
                 contentDescription = stringResource(R.string.search_page_sort)
             )
         }
-        DropdownMenu(
+        KedgeDropdownMenuSlots(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
             MessageSearchSort.entries.forEach { sort ->
-                DropdownMenuItem(
+                KedgeDropdownItemSlot(
                     text = {
                         Text(
                             stringResource(
@@ -283,7 +276,7 @@ private fun SortMenuButton(
                         )
                     },
                     leadingIcon = {
-                        RadioButton(
+                        KedgeRadioButton(
                             selected = sort == current,
                             onClick = null,
                         )

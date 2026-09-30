@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -125,7 +125,7 @@ fun Mermaid(
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                IconButton(
+                KedgeIconButton(
                     onClick = {
                         val contentId = WebViewContentCache.store(context.cacheDir, html)
                         navController.navigate(Screen.WebView(contentId = contentId))
@@ -137,7 +137,7 @@ fun Mermaid(
                         contentDescription = "Preview"
                     )
                 }
-                IconButton(
+                KedgeIconButton(
                     onClick = {
                         webViewState.webView?.evaluateJavascript(
                             "exportSvgToPng();",

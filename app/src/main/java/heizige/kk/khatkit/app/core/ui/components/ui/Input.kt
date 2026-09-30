@@ -2,12 +2,12 @@ package heizige.kk.khatkit.app.core.ui.components.ui
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +26,7 @@ fun <T : Number> OutlinedNumberInput(
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
 ) {
     var textFieldValue by remember(value) { mutableStateOf(value.toString()) }
-    OutlinedTextField(
+    KedgeOutlinedTextFieldWithSlots(
         modifier = modifier,
         value = textFieldValue,
         onValueChange = { newValue ->
@@ -63,7 +63,7 @@ fun <T : Number> NumberInput(
     colors: TextFieldColors = TextFieldDefaults.colors()
 ) {
     var textFieldValue by remember(value) { mutableStateOf(value.toString()) }
-    TextField(
+    KedgeTextFieldWithSlots(
         modifier = modifier,
         value = textFieldValue,
         onValueChange = { newValue ->

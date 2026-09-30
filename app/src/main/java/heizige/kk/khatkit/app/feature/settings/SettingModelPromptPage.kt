@@ -13,9 +13,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,43 +46,50 @@ internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, conten
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            PromptSettingItem(
-                title = stringResource(R.string.setting_model_page_prompt_translation),
-                promptDescription = stringResource(R.string.setting_model_page_translate_prompt_vars),
-                promptValue = settings.translatePrompt,
-                onPromptChange = { vm.updateSettings(settings.copy(translatePrompt = it)) },
-                onResetPrompt = { vm.updateSettings(settings.copy(translatePrompt = DEFAULT_TRANSLATION_PROMPT)) },
-                reasoningLevel = ReasoningLevel.fromBudgetTokens(settings.translateThinkingBudget),
-                onUpdateReasoningLevel = { vm.updateSettings(settings.copy(translateThinkingBudget = it.budgetTokens)) },
-            )
+            PromptSettingsContent(settings = settings, onUpdate = vm::updateSettings)
         }
-        item {
-            PromptSettingItem(
-                title = stringResource(R.string.setting_model_page_prompt_title),
-                promptDescription = stringResource(R.string.setting_model_page_suggestion_prompt_vars),
-                promptValue = settings.titlePrompt,
-                onPromptChange = { vm.updateSettings(settings.copy(titlePrompt = it)) },
-                onResetPrompt = { vm.updateSettings(settings.copy(titlePrompt = DEFAULT_TITLE_PROMPT)) },
-            )
-        }
-        item {
-            PromptSettingItem(
-                title = stringResource(R.string.setting_model_page_prompt_ocr),
-                promptDescription = stringResource(R.string.setting_model_page_ocr_prompt_vars),
-                promptValue = settings.ocrPrompt,
-                onPromptChange = { vm.updateSettings(settings.copy(ocrPrompt = it)) },
-                onResetPrompt = { vm.updateSettings(settings.copy(ocrPrompt = DEFAULT_OCR_PROMPT)) },
-            )
-        }
-        item {
-            PromptSettingItem(
-                title = stringResource(R.string.setting_model_page_prompt_compress),
-                promptDescription = stringResource(R.string.setting_model_page_compress_prompt_vars),
-                promptValue = settings.compressPrompt,
-                onPromptChange = { vm.updateSettings(settings.copy(compressPrompt = it)) },
-                onResetPrompt = { vm.updateSettings(settings.copy(compressPrompt = DEFAULT_COMPRESS_PROMPT)) },
-            )
-        }
+    }
+}
+
+/**
+ * 提示词设置项集合：MD3 与 Miuix 两份页面共用，避免两处各写一遍导致漏项或数值漂移。
+ */
+@Composable
+internal fun PromptSettingsContent(
+    settings: Settings,
+    onUpdate: (Settings) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        PromptSettingItem(
+            title = stringResource(R.string.setting_model_page_prompt_translation),
+            promptDescription = stringResource(R.string.setting_model_page_translate_prompt_vars),
+            promptValue = settings.translatePrompt,
+            onPromptChange = { onUpdate(settings.copy(translatePrompt = it)) },
+            onResetPrompt = { onUpdate(settings.copy(translatePrompt = DEFAULT_TRANSLATION_PROMPT)) },
+            reasoningLevel = ReasoningLevel.fromBudgetTokens(settings.translateThinkingBudget),
+            onUpdateReasoningLevel = { onUpdate(settings.copy(translateThinkingBudget = it.budgetTokens)) },
+        )
+        PromptSettingItem(
+            title = stringResource(R.string.setting_model_page_prompt_title),
+            promptDescription = stringResource(R.string.setting_model_page_suggestion_prompt_vars),
+            promptValue = settings.titlePrompt,
+            onPromptChange = { onUpdate(settings.copy(titlePrompt = it)) },
+            onResetPrompt = { onUpdate(settings.copy(titlePrompt = DEFAULT_TITLE_PROMPT)) },
+        )
+        PromptSettingItem(
+            title = stringResource(R.string.setting_model_page_prompt_ocr),
+            promptDescription = stringResource(R.string.setting_model_page_ocr_prompt_vars),
+            promptValue = settings.ocrPrompt,
+            onPromptChange = { onUpdate(settings.copy(ocrPrompt = it)) },
+            onResetPrompt = { onUpdate(settings.copy(ocrPrompt = DEFAULT_OCR_PROMPT)) },
+        )
+        PromptSettingItem(
+            title = stringResource(R.string.setting_model_page_prompt_compress),
+            promptDescription = stringResource(R.string.setting_model_page_compress_prompt_vars),
+            promptValue = settings.compressPrompt,
+            onPromptChange = { onUpdate(settings.copy(compressPrompt = it)) },
+            onResetPrompt = { onUpdate(settings.copy(compressPrompt = DEFAULT_COMPRESS_PROMPT)) },
+        )
     }
 }
 
@@ -143,14 +150,14 @@ private fun PromptSettingItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
+                KedgeOutlinedTextField(
                     value = promptValue,
                     onValueChange = onPromptChange,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 15,
                     shape = RoundedCornerShape(16.dp)
                 )
-                TextButton(onClick = onResetPrompt, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = onResetPrompt, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.setting_model_page_reset_to_default))
                 }
             }

@@ -15,12 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
@@ -32,6 +28,10 @@ import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,9 +73,15 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.mic
 import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingSpeechPageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }
@@ -132,7 +138,7 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
             }
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
     ) { innerPadding ->
         when (selectedPage) {
             0 -> Column(modifier = Modifier.padding(innerPadding)) {
@@ -232,7 +238,7 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun TTSProviderList(
+internal fun TTSProviderList(
     settings: Settings,
     onUpdateSettings: (Settings) -> Unit,
     onEdit: (TTSProviderSetting) -> Unit,
@@ -266,7 +272,7 @@ private fun TTSProviderList(
                     provider = provider,
                     dragHandle = {
                         val haptic = LocalHapticFeedback.current
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {},
                             modifier = Modifier
                                 .longPressDraggableHandle(
@@ -310,7 +316,7 @@ private fun TTSProviderList(
 }
 
 @Composable
-private fun ASRProviderList(
+internal fun ASRProviderList(
     settings: Settings,
     onUpdateSettings: (Settings) -> Unit,
     onEdit: (ASRProviderSetting) -> Unit,
@@ -344,7 +350,7 @@ private fun ASRProviderList(
                     provider = provider,
                     dragHandle = {
                         val haptic = LocalHapticFeedback.current
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {},
                             modifier = Modifier
                                 .longPressDraggableHandle(
@@ -392,11 +398,11 @@ private fun ASRProviderList(
 }
 
 @Composable
-private fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
+internal fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
     var showBottomSheet by remember { mutableStateOf(false) }
     var currentProvider: TTSProviderSetting by remember { mutableStateOf(TTSProviderSetting.SystemTTS()) }
 
-    IconButton(
+    KedgeIconButton(
         onClick = {
             currentProvider = TTSProviderSetting.SystemTTS()
             showBottomSheet = true
@@ -441,23 +447,23 @@ private fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
 }
 
 @Composable
-private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
+internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
     var showBottomSheet by remember { mutableStateOf(false) }
     var showTypeMenu by remember { mutableStateOf(false) }
     var currentProvider: ASRProviderSetting by remember { mutableStateOf(ASRProviderSetting.OpenAIRealtime()) }
 
     Box {
-        IconButton(
+        KedgeIconButton(
             onClick = { showTypeMenu = true },
             shapes = IconButtonDefaults.shapes(),
         ) {
             Icon(add, stringResource(R.string.setting_asr_page_add_provider))
         }
-        DropdownMenu(
+        KedgeDropdownMenuSlots(
             expanded = showTypeMenu,
             onDismissRequest = { showTypeMenu = false }
         ) {
-            DropdownMenuItem(
+            KedgeDropdownItemSlot(
                 text = { Text("OpenAI Realtime") },
                 onClick = {
                     currentProvider = ASRProviderSetting.OpenAIRealtime()
@@ -465,7 +471,7 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            DropdownMenuItem(
+            KedgeDropdownItemSlot(
                 text = { Text("DashScope") },
                 onClick = {
                     currentProvider = ASRProviderSetting.DashScope()
@@ -473,7 +479,7 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            DropdownMenuItem(
+            KedgeDropdownItemSlot(
                 text = { Text("Volcengine") },
                 onClick = {
                     currentProvider = ASRProviderSetting.Volcengine()
@@ -481,7 +487,7 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            DropdownMenuItem(
+            KedgeDropdownItemSlot(
                 text = { Text("MiMo") },
                 onClick = {
                     currentProvider = ASRProviderSetting.MiMo()
@@ -489,7 +495,7 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            DropdownMenuItem(
+            KedgeDropdownItemSlot(
                 text = { Text("Step") },
                 onClick = {
                     currentProvider = ASRProviderSetting.Step()
@@ -497,7 +503,7 @@ private fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            DropdownMenuItem(
+            KedgeDropdownItemSlot(
                 text = { Text("本地识别 (sherpa-onnx)") },
                 onClick = {
                     currentProvider = ASRProviderSetting.SherpaLocal()
@@ -557,7 +563,7 @@ private fun TTSProviderItem(
     val isSpeaking by tts.isSpeaking.collectAsState()
     val isAvailable by tts.isAvailable.collectAsState()
 
-    Card(
+    KedgeCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
@@ -637,7 +643,7 @@ private fun TTSProviderItem(
                 // TTS测试播放按钮
                 if (isSelected && isAvailable) {
                     val testText = stringResource(R.string.setting_tts_page_test_text)
-                    IconButton(
+                    KedgeIconButton(
                         onClick = {
                             if (!isSpeaking) {
                                 tts.speak(testText)
@@ -655,7 +661,7 @@ private fun TTSProviderItem(
                     }
                 }
 
-                IconButton(
+                KedgeIconButton(
                     onClick = { showDropdownMenu = true },
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -663,11 +669,11 @@ private fun TTSProviderItem(
                         imageVector = build,
                         contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
                     )
-                    DropdownMenu(
+                    KedgeDropdownMenuSlots(
                         expanded = showDropdownMenu,
                         onDismissRequest = { showDropdownMenu = false }
                     ) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.edit)) },
                             onClick = {
                                 showDropdownMenu = false
@@ -677,7 +683,7 @@ private fun TTSProviderItem(
                                 Icon(edit, contentDescription = null)
                             }
                         )
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.delete)) },
                             onClick = {
                                 showDropdownMenu = false
@@ -707,7 +713,7 @@ private fun ASRProviderItem(
 ) {
     var showDropdownMenu by remember { mutableStateOf(false) }
 
-    Card(
+    KedgeCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
@@ -779,7 +785,7 @@ private fun ASRProviderItem(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                IconButton(
+                KedgeIconButton(
                     onClick = { showDropdownMenu = true },
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -787,11 +793,11 @@ private fun ASRProviderItem(
                         imageVector = build,
                         contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
                     )
-                    DropdownMenu(
+                    KedgeDropdownMenuSlots(
                         expanded = showDropdownMenu,
                         onDismissRequest = { showDropdownMenu = false }
                     ) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.edit)) },
                             onClick = {
                                 showDropdownMenu = false
@@ -801,7 +807,7 @@ private fun ASRProviderItem(
                                 Icon(edit, contentDescription = null)
                             }
                         )
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.delete)) },
                             onClick = {
                                 showDropdownMenu = false

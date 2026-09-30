@@ -40,6 +40,8 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstHost
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
@@ -52,6 +54,10 @@ import heizige.kk.khatkit.app.core.ui.icons.smartphone
 
 @Composable
 fun SettingAboutPage() {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingAboutPageMiuix()
+        return
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
     val navController = LocalNavController.current
@@ -87,7 +93,7 @@ fun SettingAboutPage() {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
+        containerColor = CustomColors.pageContainerColor,
     ) { innerPadding ->
         EmojiBurstHost(
             modifier = Modifier.fillMaxSize(),

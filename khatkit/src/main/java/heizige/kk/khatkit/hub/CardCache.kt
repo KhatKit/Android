@@ -38,12 +38,20 @@ class CardCache(private val rootDir: File) {
     ): File = withContext(Dispatchers.IO) {
         val dir = cardDir(entry.name, entry.version)
         if (!force && File(dir, "card.json").exists()) return@withContext dir
-        if (force && dir.exists()) dir.deleteRecursively()
 
         val downloadDir = File(rootDir, "downloads").apply { mkdirs() }
         val zip = hub.downloadCard(entry, downloadDir)
-        unzip(zip, dir)
-        zip.delete()
+        val stagingDir = File(rootDir, "staging/${entry.name}-${entry.version}-${System.nanoTime()}")
+        try {
+            unzip(zip, stagingDir)
+            require(File(stagingDir, "card.json").isFile) { "卡片包缺少 card.json：${entry.name}" }
+            dir.parentFile?.mkdirs()
+            if (dir.exists()) require(dir.deleteRecursively()) { "无法替换卡片缓存：${entry.name}" }
+            require(stagingDir.renameTo(dir)) { "无法提交卡片缓存：${entry.name}" }
+        } finally {
+            zip.delete()
+            stagingDir.deleteRecursively()
+        }
         // 同一卡片只保留当前版本，避免旧版本被重复加载成重复 tool
         dir.parentFile?.listFiles()?.forEach { sibling ->
             if (sibling.isDirectory && sibling.name != dir.name) sibling.deleteRecursively()

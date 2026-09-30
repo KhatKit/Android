@@ -11,12 +11,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,12 +44,12 @@ fun ModeInjectionsContent(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(modeInjections) { injection ->
-            ListItem(
+            KedgeListItem(
                 headlineContent = {
                     Text(injection.name.ifBlank { stringResource(R.string.extension_content_unnamed) })
                 },
                 trailingContent = {
-                    Switch(
+                    KedgeSwitch(
                         checked = selectedIds.contains(injection.id),
                         onCheckedChange = { checked -> onToggle(injection.id, checked) }
                     )
@@ -78,7 +78,7 @@ fun LorebooksContent(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(lorebooks) { lorebook ->
-            ListItem(
+            KedgeListItem(
                 headlineContent = {
                     Text(lorebook.name.ifBlank { stringResource(R.string.extension_content_unnamed_lorebook) })
                 },
@@ -92,7 +92,7 @@ fun LorebooksContent(
                     }
                 } else null,
                 trailingContent = {
-                    Switch(
+                    KedgeSwitch(
                         checked = selectedIds.contains(lorebook.id),
                         onCheckedChange = { checked -> onToggle(lorebook.id, checked) }
                     )
@@ -121,7 +121,7 @@ fun SkillsContent(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(skills, key = { it.skillDir.absolutePath }) { skill ->
-            ListItem(
+            KedgeListItem(
                 headlineContent = { Text(skill.name) },
                 supportingContent = if (skill.description.isNotBlank()) {
                     {
@@ -133,7 +133,7 @@ fun SkillsContent(
                     }
                 } else null,
                 trailingContent = {
-                    Switch(
+                    KedgeSwitch(
                         checked = enabledSkills.contains(skill.name),
                         onCheckedChange = { checked -> onToggle(skill.name, checked) }
                     )
@@ -162,7 +162,7 @@ fun QuickMessagesContent(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(quickMessages, key = { it.id }) { quickMessage ->
-            ListItem(
+            KedgeListItem(
                 headlineContent = {
                     Text(quickMessage.title.ifBlank { stringResource(R.string.extension_content_unnamed) })
                 },
@@ -177,7 +177,7 @@ fun QuickMessagesContent(
                     }
                 } else null,
                 trailingContent = {
-                    Switch(
+                    KedgeSwitch(
                         checked = selectedIds.contains(quickMessage.id),
                         onCheckedChange = { checked -> onToggle(quickMessage.id, checked) }
                     )
@@ -196,7 +196,7 @@ private fun ManageButton(onClick: () -> Unit) {
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.End,
     ) {
-        TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
+        KedgeTextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
             Icon(openInNew, contentDescription = null, modifier = Modifier.size(16.dp))
             Text(
                 text = stringResource(R.string.extension_content_manage),
@@ -226,7 +226,7 @@ fun ExtensionEmptyState(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
         )
         if (buttonText != null && onAction != null) {
-            TextButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
                 Icon(link, contentDescription = null)
                 Text(buttonText)
             }

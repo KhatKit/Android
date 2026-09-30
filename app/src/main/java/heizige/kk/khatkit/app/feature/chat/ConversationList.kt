@@ -23,14 +23,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -400,7 +400,7 @@ private fun ConversationItem(
                 )
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         showDeleteConfirm = false
                         onDelete(conversation)
@@ -414,7 +414,7 @@ private fun ConversationItem(
                 }
             },
             dismissButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = { resetSwipe() },
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -559,7 +559,7 @@ private fun ConversationItem(
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     if (onPin != null) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = {
                                 Text(
                                     if (conversation.isPinned) stringResource(R.string.unpin_chat) else stringResource(R.string.pin_chat)
@@ -579,7 +579,7 @@ private fun ConversationItem(
                     }
 
                     if (onRegenerateTitle != null) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = {
                                 Text(stringResource(id = R.string.chat_page_regenerate_title))
                             },
@@ -594,7 +594,7 @@ private fun ConversationItem(
                     }
 
                     if (onMoveToAssistant != null) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = {
                                 Text(stringResource(R.string.chat_page_move_to_assistant))
                             },
@@ -609,7 +609,7 @@ private fun ConversationItem(
                     }
 
                     if (onMoveToFolder != null) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = {
                                 Text(stringResource(R.string.chat_page_move_to_folder))
                             },
@@ -624,7 +624,7 @@ private fun ConversationItem(
                     }
 
                     if (onRemoveFromFolder != null) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = {
                                 Text(stringResource(R.string.chat_page_remove_from_folder))
                             },
@@ -639,7 +639,7 @@ private fun ConversationItem(
                     }
 
                     if (onDelete != null) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = {
                                 Text(stringResource(id = R.string.chat_page_delete))
                             },

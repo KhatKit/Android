@@ -16,10 +16,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -149,7 +149,7 @@ fun TagsInput(
                 }
 
                 // 输入新标签名称
-                OutlinedTextField(
+                KedgeOutlinedTextFieldWithSlots(
                     value = tagName,
                     onValueChange = {
                         tagName = it
@@ -174,7 +174,7 @@ fun TagsInput(
                 }
             }
         }, confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = {
                     if (tagName.isNotBlank()) {
                         val trimmedName = tagName.trim()
@@ -199,7 +199,7 @@ fun TagsInput(
                 Text(stringResource(R.string.confirm))
             }
         }, dismissButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = {
                     showAddDialog = false
                     tagName = ""

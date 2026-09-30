@@ -15,20 +15,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +56,8 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
 fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
@@ -66,22 +68,14 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
     var editTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.workspace_page_title),
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.workspace_page_title),
+        scrollBehavior = scrollBehavior,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            KedgeFloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(add, contentDescription = null)
             }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -183,7 +177,7 @@ private fun WorkspaceCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(
+    KedgeCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
@@ -225,14 +219,14 @@ private fun WorkspaceCard(
                     )
                 }
                 Box {
-                    IconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                    KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(moreVert, contentDescription = null)
                     }
-                    DropdownMenu(
+                    KedgeDropdownMenuSlots(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                     ) {
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.common_rename)) },
                             leadingIcon = { Icon(edit, contentDescription = null) },
                             onClick = {
@@ -240,7 +234,7 @@ private fun WorkspaceCard(
                                 onRename()
                             },
                         )
-                        DropdownMenuItem(
+                        KedgeDropdownItemSlot(
                             text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                             leadingIcon = {
                                 Icon(
@@ -277,7 +271,7 @@ private fun EditWorkspaceDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
+            KedgeOutlinedTextFieldWithSlots(
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -291,7 +285,7 @@ private fun EditWorkspaceDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = { onConfirm(trimmedName) },
                 enabled = name.isNotBlank() && !isDuplicate,
                 shapes = ButtonDefaults.shapes(),
@@ -300,7 +294,7 @@ private fun EditWorkspaceDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.common_cancel))
             }
         },

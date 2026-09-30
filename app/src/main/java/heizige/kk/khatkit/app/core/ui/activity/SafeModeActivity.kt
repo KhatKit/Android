@@ -23,18 +23,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -105,7 +104,7 @@ class SafeModeActivity : ComponentActivity() {
                             style = MaterialTheme.typography.bodyLarge,
                         )
 
-                        Button(
+                        KedgeButton(
                             onClick = { showAssistantPicker = true },
                             modifier = Modifier.fillMaxWidth(),
                             shapes = ButtonDefaults.shapes(),
@@ -113,7 +112,7 @@ class SafeModeActivity : ComponentActivity() {
                             Text(stringResource(R.string.safe_mode_switch_assistant))
                         }
 
-                        OutlinedButton(
+                        KedgeButton(
                             onClick = {
                                 startActivity(Intent(this@SafeModeActivity, RouteActivity::class.java))
                                 finish()
@@ -133,7 +132,7 @@ class SafeModeActivity : ComponentActivity() {
                                     text = stringResource(R.string.safe_mode_crash_report),
                                     style = MaterialTheme.typography.titleSmall,
                                 )
-                                OutlinedButton(
+                                KedgeButton(
                                     onClick = {
                                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         cm.setPrimaryClip(ClipData.newPlainText("crash", stackTrace))
@@ -143,7 +142,7 @@ class SafeModeActivity : ComponentActivity() {
                                     Text(stringResource(R.string.safe_mode_copy))
                                 }
                             }
-                            Card(
+                            KedgeCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f),
@@ -216,7 +215,7 @@ private fun AssistantPickerSheet(
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     items(settings.assistantTags, key = { it.id }) { tag ->
-                        FilterChip(
+                        KedgeFilterChip(
                             onClick = {
                                 selectedTagIds = if (tag.id in selectedTagIds) {
                                     selectedTagIds - tag.id
@@ -238,7 +237,7 @@ private fun AssistantPickerSheet(
             ) {
                 items(filteredAssistants, key = { it.id }) { assistant ->
                     val checked = assistant.id == settings.assistantId
-                    Card(
+                    KedgeCard(
                         onClick = {
                             onAssistantSelected(assistant.id)
                             dismiss()

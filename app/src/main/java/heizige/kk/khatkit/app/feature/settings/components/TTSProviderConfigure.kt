@@ -7,27 +7,27 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import heizige.kk.kedge.components.KedgeTextField
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.core.ui.components.ui.SelectTextField
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 
 @Composable
 fun TTSProviderConfigure(
@@ -42,7 +42,7 @@ fun TTSProviderConfigure(
         // Provider type selector
         val providers = remember { TTSProviderSetting.Types }
 
-        FormItem(
+        KedgeFormRow(
             label = { Text(stringResource(R.string.setting_tts_page_provider_type)) },
             description = { Text(stringResource(R.string.setting_tts_page_provider_type_description)) },
         ) {
@@ -148,17 +148,17 @@ fun TTSProviderConfigure(
         }
 
         // Name
-        FormItem(
+        KedgeFormRow(
             label = { Text(stringResource(R.string.setting_tts_page_name)) },
             description = { Text(stringResource(R.string.setting_tts_page_name_description)) }
         ) {
-            OutlinedTextField(
+            KedgeTextField(
                 value = setting.name,
                 onValueChange = { newName ->
                     onValueChange(setting.copyProvider(name = newName))
                 },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.setting_tts_page_name_placeholder)) },
+                placeholder = stringResource(R.string.setting_tts_page_name_placeholder),
                 shape = RoundedCornerShape(16.dp)
             )
         }
@@ -187,49 +187,49 @@ private fun OpenAITTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_api_key_placeholder_openai)) },
+            placeholder = stringResource(R.string.setting_tts_page_api_key_placeholder_openai),
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Model
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_model_placeholder_openai)) },
+            placeholder = stringResource(R.string.setting_tts_page_model_placeholder_openai),
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -237,7 +237,7 @@ private fun OpenAITTSConfiguration(
     // Voice
     val voices = listOf("alloy", "echo", "fable", "onyx", "nova", "shimmer")
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
@@ -262,49 +262,49 @@ private fun MiMoTTSConfiguration(
 ) {
     // MiMo 配置均为自由输入 默认值只是占位
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mimo-xxx") },
+            placeholder = "mimo-xxx",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.xiaomimimo.com/v1") },
+            placeholder = "https://api.xiaomimimo.com/v1",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Model
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mimo-v2-tts") },
+            placeholder = "mimo-v2-tts",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -322,7 +322,7 @@ private fun MiMoTTSConfiguration(
         "Dean"
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
@@ -347,11 +347,11 @@ private fun MiniMaxTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -362,33 +362,33 @@ private fun MiniMaxTTSConfiguration(
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Model
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("speech-2.8-hd") },
+            placeholder = "speech-2.8-hd",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -408,7 +408,7 @@ private fun MiniMaxTTSConfiguration(
         "cartoon_pig"
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_id)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_id_description)) }
     ) {
@@ -426,7 +426,7 @@ private fun MiniMaxTTSConfiguration(
     }
 
     // Speed
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_speed)) },
         description = { Text(stringResource(R.string.setting_tts_page_speed_description)) }
     ) {
@@ -449,65 +449,65 @@ private fun GeminiTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_api_key_placeholder_gemini)) },
+            placeholder = stringResource(R.string.setting_tts_page_api_key_placeholder_gemini),
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Model
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_model_placeholder_gemini)) },
+            placeholder = stringResource(R.string.setting_tts_page_model_placeholder_gemini),
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Voice Name
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_name)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_name_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.voiceName,
             onValueChange = { newVoiceName ->
                 onValueChange(setting.copy(voiceName = newVoiceName))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_voice_name_placeholder)) },
+            placeholder = stringResource(R.string.setting_tts_page_voice_name_placeholder),
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -519,7 +519,7 @@ private fun SystemTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // Speech Rate
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_speech_rate)) },
         description = { Text(stringResource(R.string.setting_tts_page_speech_rate_description)) }
     ) {
@@ -536,7 +536,7 @@ private fun SystemTTSConfiguration(
     }
 
     // Pitch
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_pitch)) },
         description = { Text(stringResource(R.string.setting_tts_page_pitch_description)) }
     ) {
@@ -559,33 +559,33 @@ private fun QwenTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk-xxx") },
+            placeholder = "sk-xxx",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -596,7 +596,7 @@ private fun QwenTTSConfiguration(
         "qwen-audio-3.0-tts-plus",
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
@@ -632,7 +632,7 @@ private fun QwenTTSConfiguration(
         else -> emptyList()
     }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
@@ -652,7 +652,7 @@ private fun QwenTTSConfiguration(
     // Audio Format
     val formats = listOf("wav", "mp3", "pcm", "opus")
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("Audio Format") },
         description = { Text("Audio encoding returned by Qwen TTS") }
     ) {
@@ -670,7 +670,7 @@ private fun QwenTTSConfiguration(
     // Sample Rate
     val sampleRates = listOf(8000, 16000, 22050, 24000, 44100, 48000)
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("Sample Rate") },
         description = { Text("Audio sample rate in Hz") }
     ) {
@@ -692,49 +692,49 @@ private fun GroqTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("gsk_xxx") },
+            placeholder = "gsk_xxx",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.setting_tts_page_base_url_placeholder)) },
+            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Model
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("canopylabs/orpheus-v1-english") },
+            placeholder = "canopylabs/orpheus-v1-english",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -742,7 +742,7 @@ private fun GroqTTSConfiguration(
     // Voice
     val voices = listOf("austin", "natalie", "kailin")
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
@@ -766,33 +766,33 @@ private fun XAITTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("xai-xxx") },
+            placeholder = "xai-xxx",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.x.ai/v1") },
+            placeholder = "https://api.x.ai/v1",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -806,7 +806,7 @@ private fun XAITTSConfiguration(
         "leo" to "Leo"
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
@@ -847,7 +847,7 @@ private fun XAITTSConfiguration(
         "bn" to "Bengali"
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("Language") },
     ) {
         SelectTextField(
@@ -871,33 +871,33 @@ private fun ElevenLabsTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("sk_...") },
+            placeholder = "sk_...",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.elevenlabs.io") },
+            placeholder = "https://api.elevenlabs.io",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -909,7 +909,7 @@ private fun ElevenLabsTTSConfiguration(
         "eleven_flash_v2_5" to "Eleven Flash v2.5"
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
@@ -928,23 +928,23 @@ private fun ElevenLabsTTSConfiguration(
     }
 
     // Voice ID
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.voiceId,
             onValueChange = { newVoiceId ->
                 onValueChange(setting.copy(voiceId = newVoiceId))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("JBFqnCBsd6RMkjVDRZzb") },
+            placeholder = "JBFqnCBsd6RMkjVDRZzb",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Stability
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_stability)) },
         description = { Text(stringResource(R.string.setting_tts_page_stability_description)) }
     ) {
@@ -959,7 +959,7 @@ private fun ElevenLabsTTSConfiguration(
     }
 
     // Similarity Boost
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_similarity_boost)) },
         description = { Text(stringResource(R.string.setting_tts_page_similarity_boost_description)) }
     ) {
@@ -980,33 +980,33 @@ private fun FishAudioTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://fish.audio/app/api-keys") },
+            placeholder = "https://fish.audio/app/api-keys",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.fish.audio") },
+            placeholder = "https://api.fish.audio",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -1019,7 +1019,7 @@ private fun FishAudioTTSConfiguration(
         "s1" to "S1"
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
@@ -1038,23 +1038,23 @@ private fun FishAudioTTSConfiguration(
     }
 
     // Voice ID (reference_id)
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_id)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_id_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.referenceId,
             onValueChange = { newReferenceId ->
                 onValueChange(setting.copy(referenceId = newReferenceId))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("802e3bc2b27e49c2995d23ef70e6ac89") },
+            placeholder = "802e3bc2b27e49c2995d23ef70e6ac89",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Temperature
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_temperature)) },
         description = { Text(stringResource(R.string.setting_tts_page_temperature_description)) }
     ) {
@@ -1069,7 +1069,7 @@ private fun FishAudioTTSConfiguration(
     }
 
     // Speed
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_speed)) },
         description = { Text(stringResource(R.string.setting_tts_page_fish_audio_speed_description)) }
     ) {
@@ -1090,33 +1090,33 @@ private fun StepTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // API Key
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text("从阶跃星辰官网获取密钥: platform.stepfun.com/interface-key") }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("从阶跃星辰官网获取密钥") },
+            placeholder = "从阶跃星辰官网获取密钥",
             shape = RoundedCornerShape(16.dp)
         )
     }
 
     // Base URL
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
         description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("https://api.stepfun.com") },
+            placeholder = "https://api.stepfun.com",
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -1129,7 +1129,7 @@ private fun StepTTSConfiguration(
         "step-tts-2" to "step-tts-2 (上一代)",
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
         description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
@@ -1184,7 +1184,7 @@ private fun StepTTSConfiguration(
         "qingniandaxuesheng" to "青年大学生 (qingniandaxuesheng)",
     )
 
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
         description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
@@ -1205,7 +1205,7 @@ private fun StepTTSConfiguration(
     // Response Format
     val formats = listOf("mp3", "wav", "pcm", "opus", "flac")
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("Response Format") },
         description = { Text("音频编码格式 (注意 StepFun API 字段名为 camelCase)") }
     ) {
@@ -1223,7 +1223,7 @@ private fun StepTTSConfiguration(
     }
 
     // Speed
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_speed)) },
         description = { Text("语速 (0.5 - 2.0, 1.0 为正常)") }
     ) {
@@ -1240,7 +1240,7 @@ private fun StepTTSConfiguration(
     }
 
     // Volume
-    FormItem(
+    KedgeFormRow(
         label = { Text("Volume") },
         description = { Text("音量 (0.1 - 2.0, 1.0 为正常)") }
     ) {
@@ -1259,7 +1259,7 @@ private fun StepTTSConfiguration(
     // Sample Rate
     val sampleRates = listOf(8000, 16000, 22050, 24000)
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("Sample Rate") },
         description = { Text("采样率 (Hz)") }
     ) {
@@ -1276,11 +1276,11 @@ private fun StepTTSConfiguration(
     }
 
     // Instruction (仅 stepaudio-2.5-tts 生效)
-    FormItem(
+    KedgeFormRow(
         label = { Text("Instruction") },
         description = { Text("全局语境指令, 仅 stepaudio-2.5-tts 生效 (≤200 字符, 留空不下发)") }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.instruction,
             onValueChange = { newInstruction ->
                 // 服务端上限 200 字符, 客户端做一层保护
@@ -1289,7 +1289,7 @@ private fun StepTTSConfiguration(
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("例如: 语气温柔, 语速偏慢") },
+            placeholder = "例如: 语气温柔, 语速偏慢",
             minLines = 2,
             maxLines = 4,
             shape = RoundedCornerShape(16.dp)
@@ -1304,16 +1304,16 @@ private fun VolcengineTTSConfiguration(
 ) {
     var keyVisible by remember(setting.id) { mutableStateOf(false) }
 
-    FormItem(
+    KedgeFormRow(
         label = { Text("API Key") },
         description = { Text("请填写豆包语音控制台的 API Key，不是火山方舟控制台的 API Key。") }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
+                KedgeIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = if (keyVisible) visibilityOff else visibility,
                         contentDescription = if (keyVisible) "隐藏 API Key" else "显示 API Key",
@@ -1325,21 +1325,21 @@ private fun VolcengineTTSConfiguration(
             shape = RoundedCornerShape(16.dp)
         )
     }
-    FormItem(label = { Text(stringResource(R.string.setting_tts_page_base_url)) }) {
-        OutlinedTextField(
+    KedgeFormRow(label = { Text(stringResource(R.string.setting_tts_page_base_url)) }) {
+        KedgeTextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
-            placeholder = { Text("https://openspeech.bytedance.com") },
+            placeholder = "https://openspeech.bytedance.com",
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp)
         )
     }
-    FormItem(
+    KedgeFormRow(
         label = { Text("资源 ID") },
         description = { Text("需与已开通的服务和音色匹配，默认 seed-tts-2.0。") }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.resourceId,
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
             singleLine = true,
@@ -1347,11 +1347,11 @@ private fun VolcengineTTSConfiguration(
             shape = RoundedCornerShape(16.dp)
         )
     }
-    FormItem(
+    KedgeFormRow(
         label = { Text("音色 ID") },
         description = { Text("填写控制台中的音色 ID，默认使用 VV 音色。") }
     ) {
-        OutlinedTextField(
+        KedgeTextField(
             value = setting.speaker,
             onValueChange = { onValueChange(setting.copy(speaker = it)) },
             singleLine = true,
@@ -1359,7 +1359,7 @@ private fun VolcengineTTSConfiguration(
             shape = RoundedCornerShape(16.dp)
         )
     }
-    FormItem(
+    KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_speed)) },
         description = { Text("范围 -50～100，0 为正常语速，-50 为半速，100 为两倍速。") }
     ) {

@@ -16,24 +16,25 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +59,6 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
@@ -82,6 +82,14 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -110,7 +118,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
         }
     }
 
-    Scaffold(
+    KedgePageScaffold(
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.assistant_page_title),
@@ -118,12 +126,17 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     BackButton()
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            createState.open(Assistant())
-                        },
-                             shapes = IconButtonDefaults.shapes(),) {
-                        Icon(add, stringResource(R.string.assistant_page_add))
+                    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                        MiuixIconButton(onClick = { createState.open(Assistant()) }) {
+                            MiuixIcon(add, contentDescription = stringResource(R.string.assistant_page_add))
+                        }
+                    } else {
+                        KedgeIconButton(
+                            onClick = { createState.open(Assistant()) },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(add, stringResource(R.string.assistant_page_add))
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -131,8 +144,10 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
-    ) {
+        containerColor = CustomColors.pageContainerColor,
+    
+        md3ScrollBehavior = scrollBehavior,
+    ) { it ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -153,8 +168,28 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             }
             val haptic = LocalHapticFeedback.current
 
-            // 搜索框
-            OutlinedTextField(
+            // 搜索框：Miuix 下用 KedgeTextField（双风格组件，内部按 style 分支）
+            if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                KedgeTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    placeholder = stringResource(R.string.assistant_page_search_placeholder),
+                    leadingIcon = {
+                        MiuixIcon(search, contentDescription = null)
+                    },
+                    trailingIcon = if (searchQuery.isNotBlank()) {
+                        {
+                            MiuixIconButton(onClick = { searchQuery = "" }) {
+                                MiuixIcon(close, contentDescription = null)
+                            }
+                        }
+                    } else null,
+                    singleLine = true,
+                )
+            } else KedgeOutlinedTextFieldWithSlots(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier
@@ -166,7 +201,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
-                        IconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
+                        KedgeIconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
                             Icon(close, contentDescription = null)
                         }
                     }
@@ -233,6 +268,15 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 }
 
                 item(key = "new_assistant") {
+                    // 双风格：Miuix 走 PreferenceArrow（miuix-preference 原生行），
+                    // MD3 保持原 Surface。
+                    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                        PreferenceArrow(
+                            title = stringResource(R.string.assistant_page_new),
+                            icon = add,
+                            onClick = { createState.open(Assistant()) },
+                        )
+                    } else {
                     Surface(
                         onClick = { createState.open(Assistant()) },
                         modifier = Modifier.fillMaxWidth(),
@@ -252,6 +296,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                 style = MaterialTheme.typography.titleMedium,
                             )
                         }
+                    }
                     }
                 }
             }
@@ -307,7 +352,7 @@ private fun AssistantTagsFilterRow(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        FilterChip(
+                        KedgeFilterChip(
                             onClick = {
                                 onUpdateSelectedTagIds(
                                     if (tag.id in selectedTagIds) {
@@ -368,12 +413,12 @@ private fun AssistantCreationSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    FormItem(
+                    KedgeFormRow(
                         label = {
                             Text(stringResource(R.string.assistant_page_name))
                         },
                     ) {
-                        OutlinedTextField(
+                        KedgeOutlinedTextField(
                             value = assistant.name, onValueChange = {
                                 update(
                                     assistant.copy(
@@ -407,9 +452,15 @@ private fun AssistantItem(
     onEdit: () -> Unit,
     onShowActions: () -> Unit,
 ) {
-    Card(
+    KedgeCard(
         modifier = modifier.fillMaxWidth(),
         onClick = onEdit,
+        shape = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+            // Miuix 列表卡统一 20dp 圆角（对齐 KSU SettingsMiuix 的卡片）
+            RoundedCornerShape(20.dp)
+        } else {
+            CardDefaults.shape
+        },
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
         )
@@ -477,7 +528,7 @@ private fun AssistantItem(
                 }
             }
 
-            IconButton(
+            KedgeIconButton(
                 onClick = onShowActions,
                 shapes = IconButtonDefaults.shapes(),
             ) {
@@ -532,7 +583,7 @@ private fun AssistantActionSheet(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // 克隆选项
-            ListItem(
+            KedgeListItem(
                 headlineContent = { Text(stringResource(R.string.assistant_page_clone)) },
                 leadingContent = {
                     Icon(
@@ -550,7 +601,7 @@ private fun AssistantActionSheet(
 
             // 删除选项（仅非默认助手显示）
             if (assistant.id !in DEFAULT_ASSISTANTS_IDS) {
-                ListItem(
+                KedgeListItem(
                     headlineContent = {
                         Text(
                             stringResource(R.string.assistant_page_delete),
@@ -577,7 +628,7 @@ private fun AssistantActionSheet(
             title = { Text(stringResource(R.string.assistant_page_delete)) },
             text = { Text(stringResource(R.string.assistant_page_delete_dialog_text)) },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()
@@ -587,7 +638,7 @@ private fun AssistantActionSheet(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },

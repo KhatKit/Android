@@ -9,6 +9,9 @@ import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 data class ExtendColors(
     val red1: Color,
@@ -172,20 +175,53 @@ fun darkExtendColors(): ExtendColors = ExtendColors(
 object CustomColors {
     var black = false
 
+    /**
+     * 页面底色。Miuix 下用不透明的 [MiuixTheme.colorScheme.surface]：
+     * 顶栏色是半透明的（surface@0.87，供毛玻璃透出内容），若拿它当页面底色，
+     * 整页会透出下层背景导致正文比顶栏暗，看起来像顶栏/背景配色反了。
+     */
+    val pageContainerColor: Color
+        @Composable get() = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+            MiuixTheme.colorScheme.surface
+        } else {
+            @Suppress("UNUSED_EXPRESSION") topBarColors.containerColor
+        }
+
     val topBarColors: TopAppBarColors
         @Composable get() {
+            // Miuix 风格：顶栏与页面背景同为 Miuix surface（对齐 KernelSU：
+            // 顶栏和背景不区分色，只有卡片用 surfaceContainer）。
+            // 之前给顶栏加 0.87 透明度会让顶栏比背景更亮/更暗，看着像配色反了。
+            if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                val miuixSurface = MiuixTheme.colorScheme.surface
+                return TopAppBarDefaults.topAppBarColors(
+                    containerColor = miuixSurface,
+                    scrolledContainerColor = miuixSurface,
+                )
+            }
             return if (!LocalDarkMode.current) TopAppBarDefaults.topAppBarColors(
                 containerColor = colorScheme.surfaceContainer,
                 scrolledContainerColor = colorScheme.surfaceContainer
             ) else TopAppBarDefaults.topAppBarColors()
         }
 
+    // 以下三个在 Miuix 风格下取 Miuix 的表面色，否则深色 Miuix 主题下
+    // MD3 的 surfaceBright/surfaceContainer 会明显偏灰、与 Miuix 卡片不搭。
+    private val isMiuix: Boolean
+        @Composable get() = LocalKedgeStyle.current == KedgeStyle.Miuix
+
     val cardColors: CardColors
-        @Composable get() = CardDefaults.cardColors(containerColor = colorScheme.surfaceContainer)
+        @Composable get() = CardDefaults.cardColors(
+            containerColor = if (isMiuix) MiuixTheme.colorScheme.surfaceContainer else colorScheme.surfaceContainer
+        )
 
     val cardColorsOnSurfaceContainer: CardColors
-        @Composable get() = CardDefaults.cardColors(containerColor = colorScheme.surfaceBright)
+        @Composable get() = CardDefaults.cardColors(
+            containerColor = if (isMiuix) MiuixTheme.colorScheme.surfaceContainer else colorScheme.surfaceBright
+        )
 
     val listItemColors: ListItemColors
-        @Composable get() = ListItemDefaults.colors(containerColor = colorScheme.surfaceBright)
+        @Composable get() = ListItemDefaults.colors(
+            containerColor = if (isMiuix) MiuixTheme.colorScheme.surfaceContainer else colorScheme.surfaceBright
+        )
 }

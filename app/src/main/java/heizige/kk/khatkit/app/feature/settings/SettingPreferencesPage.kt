@@ -27,9 +27,17 @@ import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.settings
+import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun SettingPreferencesPage() {
+    // Miuix 走双文件（照搬 KernelSU 的 SettingsMaterial/SettingsMiuix 架构）
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingPreferencesPageMiuix()
+        return
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
 
@@ -45,7 +53,7 @@ fun SettingPreferencesPage() {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -85,6 +93,12 @@ fun SettingPreferencesPage() {
                         leadingContent = { Icon(language, null) },
                         headlineContent = { Text(stringResource(R.string.setting_page_preferences_network)) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_network_desc)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPermissions) },
+                        leadingContent = { Icon(verifiedUser, null) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_permissions)) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_permissions_desc)) },
                     )
                 }
             }

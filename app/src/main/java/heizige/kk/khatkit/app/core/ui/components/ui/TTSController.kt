@@ -6,15 +6,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -82,7 +82,7 @@ fun TTSController() {
             ) {
                 PlayPauseButton(playbackState = playbackState, ttsState = ttsState)
 
-                IconButton(
+                KedgeIconButton(
                     onClick = {
                         ttsState.stop()
                         isVisible = false
@@ -106,7 +106,7 @@ fun TTSController() {
                     }
                 }
 
-                IconButton(
+                KedgeIconButton(
                     onClick = {
                         expand = !expand
                     },
@@ -124,7 +124,7 @@ fun TTSController() {
 
 @Composable
 private fun FastForwardButton(ttsState: CustomTtsState) {
-    IconButton(
+    KedgeIconButton(
         onClick = {
             ttsState.fastForward(5000)
         },
@@ -165,7 +165,7 @@ private fun PlayPauseButton(
             contentDescription = null,
         )
         if (playbackState.status == PlaybackStatus.Playing || playbackState.status == PlaybackStatus.Buffering || playbackState.status == PlaybackStatus.Paused) {
-            CircularProgressIndicator(
+            KedgeProgressIndicator(
                 progress = {
                     if (playbackState.status == PlaybackStatus.Playing) {
                         playbackState.positionMs.toFloat() / playbackState.durationMs
@@ -177,7 +177,7 @@ private fun PlayPauseButton(
                 strokeWidth = 2.dp,
                 trackColor = Color.Transparent
             )
-            CircularProgressIndicator(
+            KedgeProgressIndicator(
                 progress = {
                     if (playbackState.status == PlaybackStatus.Playing) {
                         playbackState.currentChunkIndex.toFloat() / playbackState.totalChunks
@@ -199,7 +199,7 @@ private fun SpeedButton(
     playbackState: PlaybackState,
     ttsState: CustomTtsState
 ) {
-    TextButton(
+    KedgeTextButton(
         onClick = {
             when (playbackState.speed) {
                 0.8f -> {

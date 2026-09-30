@@ -13,17 +13,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.Switch
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +50,9 @@ import java.util.Locale
 import heizige.kk.khatkit.app.core.ui.icons.bugReport
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
+import heizige.kk.kedge.components.KedgeIconButton
 
 @Composable
 fun LogPage() {
@@ -59,28 +60,19 @@ fun LogPage() {
     var requestLoggingEnabled by remember { mutableStateOf(Logging.isRequestLoggingEnabled()) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = "Logs",
-                navigationIcon = { BackButton() },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            Logging.clear()
-                            logs = Logging.getRecentLogs()
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(delete, null)
-                    }
+    KedgeSettingsPageScaffold(
+        title = "Logs",
+        scrollBehavior = scrollBehavior,
+        actions = {
+            KedgeIconButton(
+                onClick = {
+                    Logging.clear()
+                    logs = Logging.getRecentLogs()
                 },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
+            ) {
+                Icon(delete, null)
+            }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
     ) { contentPadding ->
         UnifiedLogList(
             logs = logs,
@@ -148,7 +140,7 @@ private fun RequestLoggingSwitchCard(
     enabled: Boolean,
     onEnabledChange: (Boolean) -> Unit
 ) {
-    Card(
+    KedgeCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {
@@ -170,7 +162,7 @@ private fun RequestLoggingSwitchCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Switch(
+            KedgeSwitch(
                 checked = enabled,
                 onCheckedChange = onEnabledChange
             )
@@ -182,7 +174,7 @@ private fun RequestLoggingSwitchCard(
 private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
-    Card(
+    KedgeCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
@@ -294,7 +286,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
 
             if (log.requestHeaders.isNotEmpty()) {
                 item {
-                    HorizontalDivider()
+                    KedgeFormDivider()
                     Text(
                         text = "Request Headers",
                         style = MaterialTheme.typography.titleSmall,
@@ -311,7 +303,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
 
             log.requestBody?.let { body ->
                 item {
-                    HorizontalDivider()
+                    KedgeFormDivider()
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -322,7 +314,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
                         )
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {
                                 scope.launch {
                                     clipboard.setClipEntry(
@@ -359,7 +351,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
 
             if (log.responseHeaders.isNotEmpty()) {
                 item {
-                    HorizontalDivider()
+                    KedgeFormDivider()
                     Text(
                         text = "Response Headers",
                         style = MaterialTheme.typography.titleSmall,
@@ -413,7 +405,7 @@ private fun HeaderItem(key: String, value: String) {
 private fun TextLogCard(log: LogEntry.TextLog) {
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
-    Card(
+    KedgeCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

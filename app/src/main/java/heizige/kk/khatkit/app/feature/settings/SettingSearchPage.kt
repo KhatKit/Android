@@ -16,19 +16,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,11 +49,12 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.search.SearchCommonOptions
@@ -67,9 +68,14 @@ import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 
 @Composable
 fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingSearchPageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val lazyListState = rememberLazyListState()
@@ -85,7 +91,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
                     BackButton()
                 },
                 actions = {
-                    IconButton(
+                    KedgeIconButton(
                         onClick = { showAddDialog = true },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -100,7 +106,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor
+        containerColor = CustomColors.pageContainerColor
     ) {
         val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
             val fromIndex = from.index
@@ -193,7 +199,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun AddProviderDialog(
+internal fun AddProviderDialog(
     onDismiss: () -> Unit,
     onConfirm: (SearchServiceOptions) -> Unit
 ) {
@@ -213,7 +219,7 @@ private fun AddProviderDialog(
                 items(SearchServiceOptions.TYPES.keys.toList()) { type ->
                     val name = SearchServiceOptions.TYPES[type] ?: "Unknown"
                     val isSelected = selectedType == type
-                    Card(
+                    KedgeCard(
                         onClick = { selectedType = type },
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) {
@@ -249,7 +255,7 @@ private fun AddProviderDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            KedgeTextButton(
                 onClick = {
                     val instance = selectedType.primaryConstructor!!.callBy(mapOf())
                     onConfirm(instance)
@@ -260,7 +266,7 @@ private fun AddProviderDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.cancel))
             }
         }
@@ -268,7 +274,7 @@ private fun AddProviderDialog(
 }
 
 @Composable
-private fun SearchProviderCard(
+internal fun SearchProviderCard(
     service: SearchServiceOptions,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -277,7 +283,7 @@ private fun SearchProviderCard(
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    Card(
+    KedgeCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
@@ -306,16 +312,16 @@ private fun SearchProviderCard(
                 SearchAbilityTagLine(options = service)
             }
 
-            IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
+            KedgeIconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = moreVert,
                     contentDescription = null
                 )
-                DropdownMenu(
+                KedgeDropdownMenuSlots(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
-                    DropdownMenuItem(
+                    KedgeDropdownItemSlot(
                         text = { Text(stringResource(R.string.edit)) },
                         onClick = {
                             showMenu = false
@@ -325,7 +331,7 @@ private fun SearchProviderCard(
                             Icon(edit, contentDescription = null)
                         }
                     )
-                    DropdownMenuItem(
+                    KedgeDropdownItemSlot(
                         text = { Text(stringResource(R.string.delete)) },
                         onClick = {
                             showMenu = false
@@ -369,14 +375,14 @@ fun SearchAbilityTagLine(
 }
 
 @Composable
-private fun CommonOptions(
+internal fun CommonOptions(
     settings: heizige.kk.khatkit.app.core.data.datastore.Settings,
     onUpdate: (SearchCommonOptions) -> Unit
 ) {
     var commonOptions by remember(settings.searchCommonOptions) {
         mutableStateOf(settings.searchCommonOptions)
     }
-    Card(
+    KedgeCard(
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
         )
@@ -392,7 +398,7 @@ private fun CommonOptions(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            FormItem(
+            KedgeFormRow(
                 label = {
                     Text(stringResource(R.string.setting_page_search_result_size))
                 }

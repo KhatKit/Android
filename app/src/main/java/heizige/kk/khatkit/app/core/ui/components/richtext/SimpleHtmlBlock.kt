@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -625,7 +626,7 @@ private fun RenderProgress(
         Modifier.fillMaxWidth()
     }
 
-    LinearProgressIndicator(
+    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
         progress = { progress },
         modifier = widthModifier,
     )

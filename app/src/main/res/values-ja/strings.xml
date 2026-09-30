@@ -1079,6 +1079,8 @@ mDNSアドレス: .localホスト名を使用し、IPを知らなくても同じ
   <string name="setting_display_page_custom_font_title">カスタムフォント</string>
   <string name="setting_page_preferences">設定</string>
   <string name="setting_page_preferences_desc">テーマ、通知、UI、全般設定</string>
+  <string name="setting_page_permissions">権限</string>
+  <string name="setting_page_permissions_desc">通知、位置情報、アクセシビリティなどの許可状態</string>
   <string name="setting_page_preferences_theme">テーマ</string>
   <string name="setting_page_preferences_theme_desc">ダイナミックカラー、テーマ、AMOLEDダークモード</string>
   <string name="setting_page_preferences_notification">通知</string>
@@ -1361,4 +1363,43 @@ mDNSアドレス: .localホスト名を使用し、IPを知らなくても同じ
   <string name="setting_display_page_background_effect_type">背景効果の種類</string>
   <string name="setting_display_page_background_effect_blur">ぼかし</string>
   <string name="setting_display_page_background_effect_glass">ガラス</string>
+
+  <!-- 自动化审批策略 -->
+  <string name="approval_category_card_run">カード実行</string>
+  <string name="approval_category_ui_action">UI 操作</string>
+  <string name="approval_category_shell_root">Shell / Root</string>
+  <string name="approval_category_file_delete">ファイル削除</string>
+  <string name="approval_category_app_manage">アプリ管理</string>
+  <string name="approval_policy_always_ask">毎回確認</string>
+  <string name="approval_policy_allow">許可</string>
+  <string name="approval_policy_deny">拒否</string>
+  <string name="approval_sheet_title">自動化承認ポリシー</string>
+  <string name="approval_sheet_desc">操作の種類ごとに承認方法を選択します。ハンズオフモードがオンの場合はすべて許可されます。「10 分間記憶」は現在のプロセスのみ有効です。</string>
+  <string name="approval_hands_off_title">ハンズオフモード</string>
+  <string name="approval_hands_off_desc">確認なしで自動操作を許可 ·</string>
+  <string name="approval_status_on">オン</string>
+  <string name="approval_status_off">オフ</string>
+
+  <string name="setting_page_blur_title">ぼかし</string>
+  <string name="setting_page_blur_desc">トップバーのぼかし効果</string>
+  <!-- 套餐与激活页（SettingsPackagePage）-->
+  <string name="setting_package_page_title">プランと有効化</string>
+  <string name="setting_package_page_mall">KhatKit プランストアを開く</string>
+  <string name="setting_package_page_mall_desc">ブラウザでプラン詳細を確認し、購入して有効化トークンを取得</string>
+  <string name="setting_package_page_inactive">未有効化</string>
+  <string name="setting_package_page_active">有効化済み</string>
+  <string name="setting_package_page_active_with_plan">有効化済み：%1$s</string>
+  <string name="setting_package_page_device">デバイス：%1$s</string>
+  <string name="setting_package_page_device_id">デバイス ID：%1$s</string>
+  <string name="setting_package_page_loading">読み込み中</string>
+  <string name="setting_package_page_unknown">不明</string>
+  <string name="setting_package_page_ai_quota">AI トークン残量</string>
+  <string name="setting_package_page_tool_quota">ツール呼び出し残量</string>
+  <string name="setting_package_page_expires">プラン有効期限</string>
+  <string name="setting_package_page_refreshing">更新中…</string>
+  <string name="setting_package_page_refresh">残量を更新</string>
+  <string name="setting_package_page_refresh_desc">GET /api/me で最新の残量と有効期限を取得</string>
+  <string name="setting_package_page_clear">この端末の有効化情報を消去</string>
+  <string name="setting_package_page_clear_desc">端末に保存されたトークンのみ削除します。サーバー側のアカウントには影響しません</string>
+  <string name="setting_package_page_tip">注意：プランを購入すると有効化トークンが発行されます。ウェブでトークンを使って端末を有効化してください。未有効化でもローカルカードは動作します。サーバーが明示的に拒否した場合（トークン無効／ツール回数不足）のみ、プランカードは停止します。ネットワークエラーでカードが停止することはありません。</string>
 </resources>
