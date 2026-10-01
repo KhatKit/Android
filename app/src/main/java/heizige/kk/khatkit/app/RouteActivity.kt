@@ -131,6 +131,8 @@ import heizige.kk.khatkit.app.feature.settings.SettingWebPage
 import heizige.kk.khatkit.app.feature.share.handler.ShareHandlerPage
 import heizige.kk.khatkit.app.feature.translator.TranslatorPage
 import heizige.kk.khatkit.app.feature.webview.WebViewPage
+import heizige.kk.khatkit.app.feature.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.AutomationInAppHost
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.core.util.CrashHandler
@@ -207,6 +209,7 @@ class RouteActivity : ComponentActivity() {
                 val appContent: @Composable () -> Unit = {
                     AppRoutes()
                     KhatKitUiHost()
+                    AutomationInAppHost()
                 }
                 if (khatKitProvider.uiStyle == heizige.kk.khatkit.uikit.KhatKitUiStyle.MIUIX) {
                     heizige.kk.khatkit.uikit.KhatKitTheme(
@@ -227,6 +230,16 @@ class RouteActivity : ComponentActivity() {
                 heizige.kk.khromia.components.GlobalToastHost()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        AutomationBus.setAppInForeground(true)
+    }
+
+    override fun onPause() {
+        AutomationBus.setAppInForeground(false)
+        super.onPause()
     }
 
     private fun disableNavigationBarContrast() {

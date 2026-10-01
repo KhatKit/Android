@@ -131,6 +131,20 @@ object AutomationBus {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    /** 当前宿主 Activity 是否在前台；前台由 Compose Host 显示提示，后台才启悬浮窗。 */
+    private val _appInForeground = MutableStateFlow(false)
+    val appInForeground: StateFlow<Boolean> = _appInForeground.asStateFlow()
+
+    fun setAppInForeground(value: Boolean) {
+        _appInForeground.value = value
+        if (value) {
+            // 前台时不需要继续持有悬浮看板；服务观察到状态后会自行退场。
+            appContext?.let { AutomationOverlayService.stop(it) }
+        } else if (_status.value != null || _pendingApproval.value != null) {
+            appContext?.let { AutomationOverlayService.start(it) }
+        }
+    }
+
     private val _status = MutableStateFlow<AutomationStatus?>(null)
     val status: StateFlow<AutomationStatus?> = _status.asStateFlow()
 
@@ -483,8 +497,8 @@ object AutomationBus {
             combine(status, pendingApproval) { status, approval -> status != null || approval != null }
                 .distinctUntilChanged()
                 .collect { active ->
-                    if (active) AutomationOverlayService.start(applicationContext)
-                }
+                if (active && !_appInForeground.value) AutomationOverlayService.start(applicationContext)
+            }
         }
     }
 }

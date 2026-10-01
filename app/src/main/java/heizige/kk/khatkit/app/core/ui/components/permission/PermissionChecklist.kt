@@ -70,6 +70,8 @@ import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeRadioButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -550,7 +552,7 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
                         text = stringResource(category.labelRes),
                         style = MaterialTheme.typography.titleSmall,
                     )
-                    SingleChoiceSegmentedRow(
+                    KedgeSingleChoiceSegmentedRow(
                         items = ApprovalPolicy.entries.map { option ->
                             SegmentedItem(
                                 label = stringResource(option.labelRes),

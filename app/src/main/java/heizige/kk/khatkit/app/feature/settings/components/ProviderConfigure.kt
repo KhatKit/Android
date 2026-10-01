@@ -46,6 +46,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.reflect.KClass
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 
 @Composable
 fun ProviderConfigure(
@@ -58,7 +60,7 @@ fun ProviderConfigure(
         modifier = modifier
     ) {
         if (!provider.builtIn) {
-            SingleChoiceSegmentedRow(
+            KedgeSingleChoiceSegmentedRow(
                 items = ProviderSetting.Types.map { type ->
                     SegmentedItem(
                         label = type.simpleName ?: "",
@@ -335,7 +337,7 @@ private fun ProviderConfigureClaude(
 
     if (provider.promptCaching) {
         Text(stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl))
-        SingleChoiceSegmentedRow(
+        KedgeSingleChoiceSegmentedRow(
             items = ClaudePromptCacheTtl.entries.map { ttl ->
                 SegmentedItem(
                     label = when (ttl) {

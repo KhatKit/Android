@@ -257,10 +257,10 @@ fun ChatDrawerContent(
         val navBarBottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
         KedgeOverlayScaffold(
             backdrop = backdrop,
-            // 栏高 = 内容高 + 窗口 insets。之前只写 64.dp（= TopAppBar 内容高），
-            // 没算状态栏/导航栏 inset，列表首项会被顶栏盖住、末项被底栏盖住。
-            contentInsetTop = DrawerTopBarHeight + statusBarTop,
-            contentInsetBottom = DrawerBottomBarHeight + navBarBottom,
+            // 不用 contentInset 内缩：那样列表与顶栏之间会留一道死间隙，滚不上去。
+            // 改成内容用 Spacer / padding 顶开栏高，列表照样能一路滚到栏下面。
+            contentInsetTop = 0.dp,
+            contentInsetBottom = 0.dp,
             topBar = {
                 KedgeBlurredBar(backdrop = backdrop) {
             TopAppBar(
@@ -432,9 +432,13 @@ fun ChatDrawerContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(8.dp),
+                    // 只留横向内边距；上下由下面的顶栏 Spacer 与列表底部 padding 负责
+                    .padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+            // 顶栏占位。减 8.dp 是因为 spacedBy 会在 Spacer 和下一个子项之间
+            // 再加一段 8.dp 间距。
+            Spacer(Modifier.height(DrawerTopBarHeight + statusBarTop - 8.dp))
             if (updateChecksEnabled && !isPlayStore) {
                 UpdateCard(vm)
             }
@@ -461,7 +465,9 @@ fun ChatDrawerContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    // 底栏浮在内容之上，列表要多留出这段才能滚到底栏上方
+                    .padding(bottom = DrawerBottomBarHeight + navBarBottom),
             ) {
                 ConversationList(
                     conversations = conversations,

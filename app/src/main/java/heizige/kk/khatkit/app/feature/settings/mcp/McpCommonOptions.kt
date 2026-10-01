@@ -111,6 +111,8 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 
 @Composable
 internal fun McpCommonOptionsConfigure(
@@ -218,7 +220,7 @@ internal fun McpCommonOptionsConfigure(
                 is McpServerConfig.SseTransportServer -> 1
             }
 
-            SingleChoiceSegmentedRow(
+            KedgeSingleChoiceSegmentedRow(
                 items = transportTypes.mapIndexed { index, type ->
                     SegmentedItem(
                         label = type,

@@ -193,7 +193,7 @@ fun KhatKitUiHost() {
  * 操作 Sheet（`ui.sheet` 与卡片网页登录 `web.openLogin` 共用）。
  *
  * - [headerActions] / [overflowActions] 由脚本在 action 里用 `icon` + `placement` 声明，
- *   渲染成弹层右上角的图标按钮与溢出菜单（网页登录的「登录并保存 Cookie」走这里）；
+ *   渲染成 BottomSheet 最上方拖柄所在行右侧的图标按钮与溢出菜单（网页登录的「登录并保存 Cookie」走这里）；
  * - [contentActions] 仍是内容区底部的文字按钮，保持历史行为；
  * - [options] 里的 `desktop` / `user_agent` 决定网页渲染方式（桌面模式），
  *   宿主不内置任何 UA；点击动作时把当前 WebView URL 一起回传，顶栏保存按钮据此

@@ -131,6 +131,8 @@ import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 
 
 @Composable
@@ -319,7 +321,7 @@ internal fun ModelTypeSelector(
         stringResource(R.string.setting_provider_page_model_type),
         style = MaterialTheme.typography.titleSmall
     )
-    SingleChoiceSegmentedRow(
+    KedgeSingleChoiceSegmentedRow(
         items = ModelType.entries.map { type ->
             SegmentedItem(
                 label = stringResource(
@@ -349,7 +351,7 @@ internal fun ModelModalitySelector(
             stringResource(R.string.setting_provider_page_input_modality),
             style = MaterialTheme.typography.titleSmall
         )
-        MultiChoiceSegmentedRow(
+        KedgeMultiChoiceSegmentedRow(
             items = Modality.entries.map { modality ->
                 SegmentedItem(
                     label = stringResource(
@@ -376,7 +378,7 @@ internal fun ModelModalitySelector(
             stringResource(R.string.setting_provider_page_output_modality),
             style = MaterialTheme.typography.titleSmall
         )
-        MultiChoiceSegmentedRow(
+        KedgeMultiChoiceSegmentedRow(
             items = Modality.entries.map { modality ->
                 SegmentedItem(
                     label = stringResource(
@@ -410,7 +412,7 @@ fun ModalAbilitySelector(
         stringResource(R.string.setting_provider_page_abilities),
         style = MaterialTheme.typography.titleSmall
     )
-    MultiChoiceSegmentedRow(
+    KedgeMultiChoiceSegmentedRow(
         items = ModelAbility.entries.map { ability ->
             SegmentedItem(
                 label = stringResource(

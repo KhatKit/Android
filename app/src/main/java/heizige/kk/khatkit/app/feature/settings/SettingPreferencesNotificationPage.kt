@@ -46,6 +46,8 @@ import java.time.Instant
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 
 internal val UPDATE_PAUSE_DAY_OPTIONS = listOf(7, 14, 21)
 internal const val MILLIS_PER_DAY = 24 * 60 * 60 * 1_000L
@@ -160,7 +162,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(stringResource(R.string.setting_update_reminder_pause_description))
-                    SingleChoiceSegmentedRow(
+                    KedgeSingleChoiceSegmentedRow(
                         items = UPDATE_PAUSE_DAY_OPTIONS.map { days ->
                             SegmentedItem(
                                 label = stringResource(R.string.setting_update_reminder_pause_days, days),

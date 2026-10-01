@@ -31,6 +31,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -272,6 +273,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         onApprove = { AutomationBus.approve() },
                         onDeny = { AutomationBus.deny() },
                         onRemember = { AutomationBus.approveAndRemember() },
+                        onDismiss = { AutomationBus.hideOverlayTemporarily() },
                     )
                 }
             }
@@ -489,6 +491,15 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             }.onFailure { Log.e(TAG, "start failed", it) }
         }
 
+        /** 应用回到前台时移除后台悬浮看板，状态仍保留在 AutomationBus。 */
+        fun stop(context: Context) {
+            runCatching {
+                context.applicationContext.stopService(
+                    Intent(context.applicationContext, AutomationOverlayService::class.java),
+                )
+            }.onFailure { Log.w(TAG, "stop failed", it) }
+        }
+
         /** 幂等创建低重要性通知渠道；startForeground 前必须先有渠道。 */
         fun ensureChannel(context: Context) {
             val manager = context.applicationContext
@@ -514,6 +525,7 @@ private fun AutomationStatusBoard(
     onApprove: () -> Unit,
     onDeny: () -> Unit,
     onRemember: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
     val boardVisible = visible && !hidden && (status != null || approval != null)
 
@@ -578,6 +590,7 @@ private fun AutomationStatusBoard(
                     onApprove = onApprove,
                     onDeny = onDeny,
                     onRemember = onRemember,
+                    onDismiss = onDismiss,
                     modifier = Modifier.onSizeChanged { size ->
                         measuredHeightPx = size.height
                         if (slideHeightPx == 0) slideHeightPx = size.height
@@ -655,6 +668,7 @@ private fun AutomationToast(
     onApprove: () -> Unit,
     onDeny: () -> Unit,
     onRemember: () -> Unit,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val finished = status?.finished == true && approval == null
@@ -672,6 +686,7 @@ private fun AutomationToast(
         contentColor = contentColor,
         shape = boardShape,
         modifier = modifier
+            .clickable(onClick = onDismiss)
             // 透明留白：给 6dp 阴影留出窗口内空间，避免被窗口边界裁剪
             .padding(horizontal = 20.dp, vertical = 20.dp)
             .padding(bottom = 48.dp)

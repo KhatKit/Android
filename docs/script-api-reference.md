@@ -79,7 +79,7 @@
 | `ui.confirm(title, message, danger)` | boolean | 二次确认；`danger` 为真时按钮是危险样式。取消 / 超时返回 false。 |
 | `ui.progress(ratio, label)` | 无 | 顶部进度条，`ratio` 0.0–1.0，`label` 为空则只更新进度。 |
 | `ui.show(card, options)` | 无 | 结果卡片，优先渲染 `markdown` / `text` / `content`，标题取 `title`；不阻塞。 |
-| `ui.automationStatus(label, detail)` | 无 | 发布当前步骤到悬浮看板；连续重复 `label` 由宿主去重。 |
+| `ui.automationStatus(label, detail)` | 无 | 发布当前步骤。应用前台显示为应用内 Toast，应用退后台后切换为悬浮看板；连续重复 `label` 由宿主去重。点击提示卡片可隐藏提示，不会取消脚本。 |
 | `ui.isCancelled()` | boolean | 用户在看板点过「停止」后为 true；长脚本在每步之间轮询。 |
 | `ui.webSheet(title, url, actions, options)` | table / nil | **宿主专用**：`web.openLogin` 的宿主实现，脚本请调 `web.openLogin`。 |
 
@@ -180,9 +180,9 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 | `id` | string | 动作标识。 |
 | `label` | string | 按钮文案 / 图标按钮的无障碍描述；缺省回落读 `event`。 |
 | `icon` | string | 图标名：`key` / `vpn_key` / `save` / `info` / `delete` / `refresh` / `more` / `close`。认不出来时该动作退回内容区文字按钮。 |
-| `placement` | string | `content`（默认，内容区文字按钮）/ `top`（弹层右上角图标按钮）/ `overflow`（右上角溢出菜单）。`top` 缺 `icon` 时退回 `content`。 |
+| `placement` | string | `content`（默认，内容区文字按钮）/ `top`（BottomSheet 拖柄所在顶行右侧图标按钮）/ `overflow`（顶行右侧溢出菜单）。`top` 缺 `icon` 时退回 `content`。 |
 
-弹层只要有 `top` 或 `overflow` 动作，就切成「标题在上」布局：图标按钮与溢出菜单在标题右侧，底部只留关闭按钮；这两类动作不会同时出现在内容区。表单弹层（`ui.form`）没有顶栏动作。
+弹层只要有 `top` 或 `overflow` 动作，就切成「拖柄顶行 + 标题」布局：图标按钮与溢出菜单在拖柄所在顶行右侧，底部只留关闭按钮；这两类动作不会同时出现在内容区。表单弹层（`ui.form`）没有顶栏动作。
 
 ## 10. web.openLogin 结果
 

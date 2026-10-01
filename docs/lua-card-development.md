@@ -533,9 +533,9 @@ Sheet 动作（`ui.sheet` 与 `web.openLogin` 的 actions，共用一套字段�
 | `id` | string | 动作标识，`event` 缺省时使用。 |
 | `label` | string | 按钮文案 / 图标按钮的无障碍描述（tooltip）。缺省时回落读 `event`。 |
 | `icon` | string | 图标名。`placement="top"` 时必填，缺省则退回内容区文字按钮。 |
-| `placement` | string | `content`（默认，内容区文字按钮）/ `top`（弹层右上角图标按钮）/ `overflow`（右上角溢出菜单）。 |
+| `placement` | string | `content`（默认，内容区文字按钮）/ `top`（BottomSheet 拖柄所在顶行右侧的图标按钮）/ `overflow`（顶行右侧溢出菜单）。 |
 
-- 有 `placement="top"` 或 `overflow` 的动作时，弹层改为「标题在上」布局：图标按钮与溢出菜单入口在标题行右侧，底部只留关闭按钮；两种动作都不会再出现在内容区。
+- 有 `placement="top"` 或 `overflow` 的动作时，弹层改为「拖柄顶行 + 标题」布局：图标按钮与溢出菜单入口在拖柄所在顶行右侧，底部只留关闭按钮；两种动作都不会再出现在内容区。
 - 常用图标名：`key` / `vpn_key`（钥匙）、`save`、`info`、`delete`、`refresh`、`more`、`close`。`icon` 认不出来时该动作退回内容区文字按钮，不会出现空按钮。
 - 表单弹层（`ui.form`）没有顶栏动作，只有 `ui.sheet` / `web.openLogin` 支持。
 
@@ -821,7 +821,8 @@ web.openLogin(login_url, "云盘登录", actions, {
 弹层行为：
 
 - **渲染方式由脚本声明**：宿主不内置任何浏览器 User-Agent，脚本不传 options 时 WebView 完全用默认设置；传了才生效，且只作用于该登录弹层（应用内其他 WebView 页面不受影响）。
-- **顶栏 Cookie 操作**：`placement="top"` 的图标按钮在弹层右上角（推荐 `icon = "key"`、`label = "登录并保存 Cookie"`），状态/清除类动作建议放 `placement="overflow"`。
+- **顶栏 Cookie 操作**：`placement="top"` 的图标按钮显示在 BottomSheet 最上方拖柄所在行的右侧（推荐 `icon = "key"`、`label = "登录并保存 Cookie"`）。同一行支持多个 IconButton，卡片可声明多个 `placement="top"` 动作；状态/清除类动作建议放 `placement="overflow"`。
+- **保存不需要无障碍权限**：Cookie 由 WebView 读取并由宿主加密保存，用户只需在网页中完成登录后点击保存图标，不依赖无障碍服务或自动点击。
 - **按当前页面域名保存**：点击保存时读取的是 WebView **当前 URL** 对应的 Cookie，并按它的 host 单独加密保存；登录域与下载域不同则各存各的，不会互相套用。
 - **失败与取消**：
   - 当前页面没有 Cookie → `{saved:false, host, reason}`，不误报成功；
@@ -892,6 +893,8 @@ return { ready = true }
 - 无悬浮窗权限且无障碍离线时看板静默跳过；此时审批弹不出来，卡片会被 `CARD_DENIED` 拒绝（除非开启放手模式或已在本次运行中授权过）。
 - 点「停止」调用 `AutomationBus.requestCancel()`，脚本通过 `ui.isCancelled()` 感知；看板按钮变为「正在停止」。取消不会强杀脚本，需要脚本配合轮询。
 - 「放手模式」在权限面板开启，语义是：高权限/高风险卡片不再逐条确认，全部交给 AI 执行。开启后审批一律放行。
+
+提示位置自动切换：KhatKit 在应用前台时把自动化步骤显示为应用内底部 Toast 卡片；应用退到后台或切换到其他应用后，才启动悬浮看板服务继续显示。两种提示共用同一条 `AutomationBus` 状态，不会重复显示。点击应用内或悬浮的提示卡片可提前隐藏当前提示，自动化任务本身不会因此被强制终止；需要停止任务时使用看板的「停止」按钮。
 
 ### 5.3 事件触发的开启与配置
 

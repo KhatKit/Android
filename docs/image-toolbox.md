@@ -34,6 +34,25 @@ AI / 用户 ──▶ image_* 卡片（Hub 下载的 Lua） ──▶ imageToolb
 
 ## 1. 本地操作清单
 
+## 1.0 图片选择器迁移状态
+
+ImageToolbox 的完整图片选择器不是一个单独的 `ActivityResultContracts` 调用，而是由
+`feature/media-picker` 的媒体查询、相册分组、权限页、搜索、拖拽多选、长按预览、选择确认栏和
+全屏图片预览共同组成。迁移时应保留这些层次，不能用系统文件选择器替代，否则无法得到同样的
+MD3 网格和交互：
+
+- `MediaPickerRootContentEmbeddable`
+- `MediaPickerHavePermissions` / `ManageExternalStorageWarning`
+- `MediaPickerGrid` / `MediaPickerGridWithOverlays`
+- `MediaStickyHeader` / `MediaExtensionHeader` / `MediaSizeFooter`
+- `MediaImagePager` / `MediaImage`
+- `MediaPickerComponent`、`AndroidMediaRetriever`、`MediaQuery`、`MediaObserver`
+
+当前 KhatKit 聊天附件仍使用系统 `GetMultipleContents`，这只能提供系统 picker，**不等于完整迁移**。
+完整迁移需要把上述 UI 与媒体查询放入 KhatKit 的图片选择器模块，并通过统一回调返回 `List<Uri>`；
+同时按 Android 版本处理 `READ_MEDIA_IMAGES`、旧版存储权限和“所有文件访问”警告。此项不应塞进 Lua
+卡片或 imageToolbox 依赖包，应该是宿主 APK 的独立 UI 模块。
+
 ### 1.1 既有类型化方法（向后兼容）
 
 | 卡片 op | bridge 方法 | 中文 | 关键参数 | 缺省输出 |

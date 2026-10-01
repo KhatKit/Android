@@ -62,7 +62,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
- * 弹层右上角的一个动作（`ui.sheet` / `web.openLogin` 的 action）。
+ * BottomSheet 拖柄顶行右侧的一个动作（`ui.sheet` / `web.openLogin` 的 action）。
  *
  * 脚本只声明 `icon` 名与 `event`，宿主把它解析成 [imageVector] 后传进来；
  * [label] 用作无障碍描述与 tooltip，[event] 是点击后回传卡片的事件名。
@@ -79,8 +79,8 @@ data class KhatKitSheetAction(
  * - 默认（无 fullscreen / height）：与旧版一致，走 Khromia [PrimaryBottomSheet]；
  * - `fullscreen` / `height`：铺满窗口的大弹层，高度取满屏或屏幕比例，宽度铺满，
  *   保留拖动把手、下滑关闭、返回键取消，内容区滚动、底部操作栏固定；
- * - [headerActions] / [overflowActions] 非空时改为「标题栏在上」布局：
- *   标题右侧是图标按钮与溢出菜单（卡片网页登录的 Cookie 保存按钮就走这里），
+ * - [headerActions] / [overflowActions] 非空时改为「拖柄顶行 + 标题」布局：
+ *   拖柄所在顶行右侧是图标按钮与溢出菜单（卡片网页登录的 Cookie 保存按钮就走这里），
  *   底部只留关闭按钮。
  */
 @Composable
@@ -145,7 +145,7 @@ fun KhatKitSheet(
     )
 }
 
-/** 标题在上的弹层：拖动把手 + 标题/图标按钮行在上，底部只留关闭按钮。 */
+/** 拖柄顶行 + 标题的弹层：动作位于拖柄右侧，底部只留关闭按钮。 */
 @Composable
 private fun TopBarSheet(
     title: String,
@@ -309,16 +309,60 @@ private fun SheetTopBar(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp),
-            contentAlignment = Alignment.Center,
+                .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 4.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .height(4.dp)
-                    .width(64.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f)),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .height(4.dp)
+                            .width(64.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f)),
+                    )
+                }
+                if (overflowIcon != null && overflowActions.isNotEmpty()) {
+                    var expanded by remember { mutableStateOf(false) }
+                    KedgeIconButton(
+                        onClick = { expanded = true },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = overflowIcon,
+                            contentDescription = stringResource(R.string.khatkit_sheet_more_actions),
+                        )
+                    }
+                    KedgeDropdownMenuSlots(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                    ) {
+                        overflowActions.forEach { action ->
+                            KedgeDropdownItemSlot(
+                                text = { Text(action.label) },
+                                leadingIcon = { Icon(action.imageVector, contentDescription = null) },
+                                onClick = {
+                                    expanded = false
+                                    onAction(action)
+                                },
+                            )
+                        }
+                    }
+                }
+                headerActions.forEach { action ->
+                    KedgeIconButton(
+                        onClick = { onAction(action) },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(action.imageVector, contentDescription = action.label)
+                    }
+                }
+            }
         }
         Row(
             modifier = Modifier
@@ -333,41 +377,6 @@ private fun SheetTopBar(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            if (overflowIcon != null && overflowActions.isNotEmpty()) {
-                var expanded by remember { mutableStateOf(false) }
-                KedgeIconButton(
-                    onClick = { expanded = true },
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        imageVector = overflowIcon,
-                        contentDescription = stringResource(R.string.khatkit_sheet_more_actions),
-                    )
-                }
-                KedgeDropdownMenuSlots(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    overflowActions.forEach { action ->
-                        KedgeDropdownItemSlot(
-                            text = { Text(action.label) },
-                            leadingIcon = { Icon(action.imageVector, contentDescription = null) },
-                            onClick = {
-                                expanded = false
-                                onAction(action)
-                            },
-                        )
-                    }
-                }
-            }
-            headerActions.forEach { action ->
-                KedgeIconButton(
-                    onClick = { onAction(action) },
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(action.imageVector, contentDescription = action.label)
-                }
-            }
         }
     }
 }

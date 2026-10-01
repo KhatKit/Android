@@ -67,7 +67,7 @@ data class UiSheetOptions(
 /**
  * Sheet 动作的摆放位置（action 表单字段 `placement`）。
  *
- * - [TOP]：渲染成弹层右上角的图标按钮（需要 `icon`，无图标时退回 [CONTENT]）；
+ * - [TOP]：渲染成 BottomSheet 拖柄所在顶行右侧的图标按钮（需要 `icon`，无图标时退回 [CONTENT]）；
  * - [OVERFLOW]：收进右上角的溢出菜单；
  * - [CONTENT]：内容区底部的文字按钮（历史行为，未声明 `placement` 时的默认）。
  */
@@ -134,7 +134,7 @@ sealed interface UiRequest {
     ) : UiRequest {
         private val parsedActions: List<SheetAction> = SheetAction.parse(actions)
 
-        /** 右上角图标按钮（脚本用 `placement="top"` + `icon` 声明）。 */
+        /** 拖柄顶行右侧图标按钮（脚本用 `placement="top"` + `icon` 声明）。 */
         val topBarActions: List<SheetAction>
             get() = parsedActions.filter { it.placement == SheetActionPlacement.TOP }
 
