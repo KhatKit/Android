@@ -31,7 +31,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import heizige.kk.khromia.components.FancySlider
+import heizige.kk.kedge.components.KedgeSlider
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -594,7 +594,7 @@ private fun ColorPickerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("H", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
-                    FancySlider(
+                    KedgeSlider(
                         value = hue,
                         onValueChange = {
                             updateColor(it, saturation, lightness)
@@ -605,7 +605,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("S", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
-                    FancySlider(
+                    KedgeSlider(
                         value = saturation,
                         onValueChange = {
                             updateColor(hue, it, lightness)
@@ -616,7 +616,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("L", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
-                    FancySlider(
+                    KedgeSlider(
                         value = lightness,
                         onValueChange = {
                             updateColor(hue, saturation, it)

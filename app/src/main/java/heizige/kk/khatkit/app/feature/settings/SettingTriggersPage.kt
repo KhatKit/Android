@@ -30,7 +30,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.khatkit.app.feature.automation.CardTriggerOverride
 import heizige.kk.khatkit.app.feature.automation.KhatKitNotificationListenerService
 import heizige.kk.khatkit.app.feature.automation.TriggerController
@@ -163,7 +163,7 @@ fun SettingTriggersPage() {
                             Text("卡片在定时、通知/点击/回复、应用启动/退出/安装/卸载、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置、快捷方式、磁贴事件时自动运行")
                         },
                         trailingContent = {
-                            OptionSwitch(
+                            KedgeSwitch(
                                 checked = triggerState.masterEnabled,
                                 onCheckedChange = { applyMaster(it) },
                             )
@@ -220,7 +220,7 @@ fun SettingTriggersPage() {
                                 )
                             },
                             trailingContent = {
-                                OptionSwitch(
+                                KedgeSwitch(
                                     checked = cardEnabled,
                                     enabled = triggerState.masterEnabled,
                                     onCheckedChange = { checked ->

@@ -15,6 +15,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khromia.components.FancySlider
 import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.kedge.components.KedgeSlider
 
 /**
  * 设置项的声明式描述。
@@ -126,7 +128,7 @@ fun SwitchRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(stringResource(titleRes))
-        OptionSwitch(
+        KedgeSwitch(
             checked = checked,
             enabled = enabled,
             onCheckedChange = onCheckedChange,
@@ -152,7 +154,7 @@ fun SliderRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(stringResource(titleRes))
-        FancySlider(
+        KedgeSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
@@ -171,7 +173,7 @@ private fun CardGroupScope.setItem(item: SettingItem) {
         trailingContent = when (item) {
             is SwitchSetting -> {
                 {
-                    OptionSwitch(
+                    KedgeSwitch(
                         checked = item.checked,
                         enabled = item.enabled,
                         onCheckedChange = item.onCheckedChange,
@@ -186,7 +188,7 @@ private fun CardGroupScope.setItem(item: SettingItem) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        FancySlider(
+                        KedgeSlider(
                             value = item.value,
                             onValueChange = item.onValueChange,
                             valueRange = item.valueRange,
