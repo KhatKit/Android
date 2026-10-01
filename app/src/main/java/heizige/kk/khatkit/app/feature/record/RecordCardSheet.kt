@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.feature.automation.TriggerController
 import heizige.kk.khatkit.app.core.ui.icons.adsClick

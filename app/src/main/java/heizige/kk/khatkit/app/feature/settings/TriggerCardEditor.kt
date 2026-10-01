@@ -39,7 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.feature.automation.CardTriggerOverride
 import heizige.kk.khatkit.app.feature.automation.TriggerController
 import heizige.kk.khatkit.app.feature.automation.TriggerTilePublisher

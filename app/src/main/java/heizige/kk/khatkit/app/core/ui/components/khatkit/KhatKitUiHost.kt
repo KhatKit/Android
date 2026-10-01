@@ -51,7 +51,7 @@ import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 /** 结果卡片在宽屏下的内容最大宽度。 */

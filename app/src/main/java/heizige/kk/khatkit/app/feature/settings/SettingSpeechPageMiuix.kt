@@ -25,7 +25,7 @@ import heizige.kk.khatkit.app.core.ui.icons.mic
 import heizige.kk.khatkit.app.feature.settings.components.ASRProviderConfigure
 import heizige.kk.khatkit.app.feature.settings.components.TTSProviderConfigure
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 

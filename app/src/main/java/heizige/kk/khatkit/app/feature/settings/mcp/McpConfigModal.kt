@@ -38,11 +38,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -83,7 +81,7 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpTool
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khromia.components.OptionSwitch
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.hooks.EditState
@@ -109,6 +107,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.app.feature.settings.mcp.McpCommonOptionsConfigure
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 
 @Composable
 internal fun McpServerConfigModal(state: EditState<McpServerConfig>) {
@@ -137,33 +136,19 @@ internal fun McpServerConfigModal(state: EditState<McpServerConfig>) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SecondaryTabRow(
+                // 之前是 MD3 SecondaryTabRow，Miuix 下会漏出 MD3 页签。
+                // KedgeTabRow 在 Miuix 分支走原生 TabRow / WithContour，
+                // MD3Exp 分支保持 SecondaryTabRow，行为不变。
+                KedgeTabRow(
+                    titles = listOf(
+                        stringResource(R.string.setting_mcp_page_basic_settings),
+                        stringResource(R.string.setting_mcp_page_tools),
+                    ),
                     selectedTabIndex = pagerState.currentPage,
-                    containerColor = Color.Transparent
-                ) {
-                    Tab(
-                        selected = pagerState.currentPage == 0,
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(0)
-                            }
-                        },
-                        text = {
-                            Text(stringResource(R.string.setting_mcp_page_basic_settings))
-                        }
-                    )
-                    Tab(
-                        selected = pagerState.currentPage == 1,
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(1)
-                            }
-                        },
-                        text = {
-                            Text(stringResource(R.string.setting_mcp_page_tools))
-                        }
-                    )
-                }
+                    onTabSelected = { page ->
+                        scope.launch { pagerState.animateScrollToPage(page) }
+                    },
+                )
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier

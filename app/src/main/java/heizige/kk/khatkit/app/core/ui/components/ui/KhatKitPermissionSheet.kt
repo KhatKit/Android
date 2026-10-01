@@ -23,7 +23,7 @@ import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 
 /**
  * 权限面板：只展示各项权限的授予状态，外加一个「放手模式」开关。

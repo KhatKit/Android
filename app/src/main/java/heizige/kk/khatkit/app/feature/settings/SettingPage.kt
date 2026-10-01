@@ -66,7 +66,7 @@ import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.components.ExpandableOptionItem
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.util.writeClipboardText
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint

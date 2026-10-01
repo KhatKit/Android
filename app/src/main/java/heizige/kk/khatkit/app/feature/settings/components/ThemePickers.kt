@@ -56,7 +56,7 @@ import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.MorphPolygonShape
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSwitch
