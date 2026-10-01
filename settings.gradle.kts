@@ -54,6 +54,21 @@ dependencyResolutionManagement {
 }
 
 // 本地 UI 组件库以 composite build 接入（存在同级目录时用源码构建）
+//
+// 注意：`heizige.kk:kedge` 与 `heizige.kk:khromia` 目前**没有发布到任何制品仓库**
+// （GitHub Packages 上不存在这两个包，mavenLocal 里也没有），所以下面的
+// includeBuild 不是"可选优化"而是**硬性前提**：同级目录没有 Kedge/Khromia 时，
+// 构建会退化到 libs.versions.toml 里的坐标然后拉取失败，报错很难定位。
+// 克隆本仓库时请把 Kedge、Khromia 放在同级目录：
+//
+//     <workspace>/
+//       KhatKit/     <- 本仓库
+//       Kedge/
+//       Khromia/
+//
+// Miuix 迁移引用的 KedgeListItem / KedgeFilterChip / KedgeDropdownMenuSlots /
+// KedgeFloatingActionButton / KedgeBlur / MiuixMaterialBridge 等组件只存在于源码，
+// 没有任何已发布的制品包含它们。
 val localKedge = file("../Kedge")
 val localKhromia = file("../Khromia")
 if (localKedge.exists()) {
