@@ -250,9 +250,9 @@ fun ChatDrawerContent(
         val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
         KedgeOverlayScaffold(
             backdrop = backdrop,
-            // 让首尾会话项不被顶栏/底栏盖住
-            contentInsetTop = 64.dp,
-            contentInsetBottom = 64.dp,
+            // 不传 inset：由 KedgeOverlayScaffold 按实测栏高内缩内容。
+            // 之前写死 64.dp，比真实栏高（含状态栏/导航栏 insets）小，
+            // 导致"新建文件夹"这类首项被顶栏盖住。
             topBar = {
                 KedgeBlurredBar(backdrop = backdrop) {
             TopAppBar(

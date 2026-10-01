@@ -61,7 +61,10 @@ internal class WebBridgeImpl(
     )
 
     private fun saveCookie(url: String): String {
-        val cookie = CookieManager.getInstance().getCookie(url).orEmpty()
+        val manager = CookieManager.getInstance()
+        // 登录后的 Cookie 可能仍在 WebView 异步写入队列中，先 flush 再读取。
+        manager.flush()
+        val cookie = manager.getCookie(url).orEmpty()
         if (cookie.isBlank()) return notSaved(url, "当前页面没有 Cookie，请先在页面内完成登录")
         val host = key(url)
         store.set(host, cookie)
