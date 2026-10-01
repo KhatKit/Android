@@ -37,6 +37,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixItemSpacing
 
 /**
  * 搜索服务列表页的 Miuix 风格版。
@@ -99,6 +100,9 @@ fun SettingSearchPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                     },
                     canDelete = settings.searchServices.size > 1,
                     modifier = Modifier
+                        // SearchProviderCard 自己是 KedgeCard，不走 miuixGroup，
+                        // 间距在这里补（对齐 KSU 每个分组 Card 的 padding(top = 12.dp)）
+                        .miuixItemSpacing()
                         .scale(if (isDragging) 0.95f else 1f)
                         .animateItem()
                         .longPressDraggableHandle(

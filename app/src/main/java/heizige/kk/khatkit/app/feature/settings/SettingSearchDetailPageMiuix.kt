@@ -28,6 +28,7 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixItemSpacing
 
 /**
  * 搜索服务详情页的 Miuix 风格版。
@@ -74,7 +75,11 @@ fun SettingSearchDetailPageMiuix(
         },
     ) {
         item {
-            KedgeCard(modifier = Modifier.fillMaxWidth()) {
+            KedgeCard(
+                // KSU 每个分组 Card 都带 padding(top = 12.dp)；这页的卡片自己画，
+                // 不走 miuixGroup，间距在这里补。
+                modifier = Modifier.fillMaxWidth().miuixItemSpacing(),
+            ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -90,6 +95,7 @@ fun SettingSearchDetailPageMiuix(
         }
 
         item {
+            Modifier.miuixItemSpacing()
             SearchTestSection(
                 options = options,
                 commonOptions = settings.searchCommonOptions,

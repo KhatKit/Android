@@ -187,3 +187,16 @@ object MiuixPageMetrics {
     /** 分组卡片之间的上间距。 */
     val GroupSpacing = 12.dp
 }
+
+/**
+ * 给「裸」列表项（自己画卡片、没有 [miuixGroup] 包裹的那种）补上 Miuix 的组间距。
+ *
+ * [miuixGroup] 自带 12dp 上间距，但 MCP / 文件 / 搜索这几页的卡片是 item 自己画的
+ * （`McpServerItem` / `FileItem` / `SearchProviderCard` 内部直接 `KedgeCard`），
+ * 不走分组包裹，于是列表里项与项之间**完全贴在一起** —— Miuix 的观感要求每项都是
+ * 独立圆角卡片，之间留 12dp。
+ *
+ * 用法：`Modifier.miuixItemSpacing()`，给每个 item 的 modifier 加上即可。
+ */
+fun Modifier.miuixItemSpacing(): Modifier =
+    this.padding(top = MiuixPageMetrics.GroupSpacing)

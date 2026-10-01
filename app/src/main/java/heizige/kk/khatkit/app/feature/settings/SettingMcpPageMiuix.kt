@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.ui.Modifier
+
 import androidx.compose.runtime.Composable
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.getValue
@@ -22,6 +24,7 @@ import heizige.kk.khatkit.app.feature.settings.mcp.McpImportModal
 import heizige.kk.khatkit.app.feature.settings.mcp.McpServerConfigModal
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixItemSpacing
 
 /**
  * MCP 服务器页的 Miuix 风格版。
@@ -74,6 +77,10 @@ fun SettingMcpPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             val mcpConfig = mcpConfigs[index]
             McpServerItem(
                 item = mcpConfig,
+                // McpServerItem 自己就是一张 KedgeCard（不走 miuixGroup 分组包裹），
+                // 所以间距得在这里补 —— KSU 的 SettingsMiuix 是每个分组 Card 带
+                // padding(top = 12.dp)，这里同理。
+                modifier = Modifier.miuixItemSpacing(),
                 onEdit = { editState.open(mcpConfig) },
                 onDelete = {
                     vm.updateSettings(

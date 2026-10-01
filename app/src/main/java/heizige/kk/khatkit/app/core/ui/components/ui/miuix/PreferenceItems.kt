@@ -29,7 +29,11 @@ import top.yukonga.miuix.kmp.basic.Text
  * 免得每个页面重复写 KernelSU 那套 `startAction = { Icon(..., Modifier.padding(end = 6.dp)) }`。
  */
 
-/** 前置图标，样式对齐 KernelSU：禁用时用 disabledOnSecondaryVariant 着色。 */
+/**
+ * 前置图标，样式对齐 KernelSU（`SettingsMiuix.kt` 里每个 startAction 都是
+ * `Icon(..., Modifier.padding(end = 6.dp), tint = colorScheme.onBackground)`）：
+ * 24dp 尺寸、右侧 6dp 间距、禁用时用 disabledOnSecondaryVariant 着色。
+ */
 @Composable
 fun PreferenceIcon(
     imageVector: ImageVector,
@@ -45,7 +49,7 @@ fun PreferenceIcon(
         } else {
             MiuixTheme.colorScheme.disabledOnSecondaryVariant
         },
-        modifier = modifier.size(24.dp),
+        modifier = modifier.size(24.dp).padding(end = 6.dp),
     )
 }
 
