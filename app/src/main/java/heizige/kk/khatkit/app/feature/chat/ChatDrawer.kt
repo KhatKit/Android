@@ -221,6 +221,7 @@ fun ChatDrawerContent(
     val sheetContent: @Composable () -> Unit = {
         // 顶栏/底栏叠在内容之上，毛玻璃才有东西可透（见 KedgeOverlayScaffold）。
         val backdrop = rememberKedgeBlurBackdrop(LocalKedgeEnableBlur.current)
+
         // 搜索展开进度：预测返回手势跟手收起。组合位置在 ModalDrawerSheet 内容里，
         // 晚于抽屉自身的预测返回处理器，因此搜索展开时返回手势优先收起搜索。
         val searchExpand = rememberSearchExpandState(
@@ -240,13 +241,10 @@ fun ChatDrawerContent(
             contentInsetBottom = 64.dp,
             topBar = {
                 KedgeBlurredBar(backdrop = backdrop) {
-                    TopAppBar(
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = KedgeOverlayBarColor(
-                                backdrop = backdrop,
-                                fallback = MaterialTheme.colorScheme.surfaceContainer,
-                            ),
-                        ),
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
                 navigationIcon = {
                     if (searchVisible) {
                         IconButton(
@@ -324,7 +322,70 @@ fun ChatDrawerContent(
                         )
                     }
                 },
+            )
+                }
+            },
+            bottomBar = {
+                KedgeBlurredBar(backdrop = backdrop) {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                ) {
+                    DrawerAction(
+                        icon = {
+                            Icon(settingsIcon, null)
+                        },
+                        label = stringResource(R.string.settings),
+                        onClick = {
+                            navController.navigate(Screen.Setting)
+                        },
                     )
+
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                        tooltip = { TextTooltip("套餐") },
+                        state = rememberTooltipState(),
+                    ) {
+                        Button(
+                            onClick = {
+                                navController.navigate(Screen.SettingPackage)
+                            },
+                            modifier = Modifier.height(32.dp),
+                            shapes = ButtonDefaults.shapes(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) {
+                            Text(
+                                text = subscriptionLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.weight(1f))
+
+                    DrawerAction(
+                        icon = {
+                            Icon(download, null)
+                        },
+                        label = "下载中心",
+                        onClick = {
+                            navController.navigate(Screen.DownloadCenter)
+                        },
+                    )
+                }
+            }
                 }
             },
         ) {
@@ -450,66 +511,6 @@ fun ChatDrawerContent(
                 }
             }
 
-            }
-
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                ) {
-                    DrawerAction(
-                        icon = {
-                            Icon(settingsIcon, null)
-                        },
-                        label = stringResource(R.string.settings),
-                        onClick = {
-                            navController.navigate(Screen.Setting)
-                        },
-                    )
-
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
-                        tooltip = { TextTooltip("套餐") },
-                        state = rememberTooltipState(),
-                    ) {
-                        Button(
-                            onClick = {
-                                navController.navigate(Screen.SettingPackage)
-                            },
-                            modifier = Modifier.height(32.dp),
-                            shapes = ButtonDefaults.shapes(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                        ) {
-                            Text(
-                                text = subscriptionLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.weight(1f))
-
-                    DrawerAction(
-                        icon = {
-                            Icon(download, null)
-                        },
-                        label = "下载中心",
-                        onClick = {
-                            navController.navigate(Screen.DownloadCenter)
-                        },
-                    )
-                }
             }
         }
     }
