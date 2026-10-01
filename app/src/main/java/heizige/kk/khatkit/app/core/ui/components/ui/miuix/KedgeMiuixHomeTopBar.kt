@@ -18,6 +18,10 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /**
  * KSU 首页同款大标题栏。
  *
+ * 目前全仓无调用方（设置页用的是 `MiuixSettingsPage` 内联的 Scaffold+TopAppBar）。
+ * 保留它是因为它是「KSU 大标题栏 + 毛玻璃」的标准样板：后续若要做首页或把
+ * `MiuixSettingsPage` 的顶栏抽出来，直接用它即可，别再手写一份。
+ *
  * 照搬 KernelSU `ui/screen/home/HomeMiuix.kt` 的 `TopBar`：直接用 Miuix 原版
  * `TopAppBar`，**不传 `largeTitle`** —— 默认 `largeTitle = title`，因此得到
  * 真正的大标题栏（`title1` 字号），滚动时大标题折叠为小标题。
