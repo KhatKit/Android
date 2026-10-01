@@ -65,6 +65,7 @@ import heizige.kk.khatkit.app.core.ui.activity.SafeModeActivity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
 import heizige.kk.khatkit.app.feature.explore.ExploreMarketPage
+import heizige.kk.khatkit.app.feature.market.KhatKitMarketPage
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
@@ -508,6 +509,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingMcpPage()
                             }
 
+                            entry<Screen.KhatKitMarket> {
+                                KhatKitMarketPage()
+                            }
+
                             entry<Screen.ExploreMarket> {
                                 ExploreMarketPage()
                             }
@@ -747,6 +752,8 @@ sealed interface Screen : NavKey {
     data object SettingMcp : Screen
 
     @Serializable
+    data object KhatKitMarket : Screen
+
     data object ExploreMarket : Screen
 
     @Serializable
