@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -48,7 +49,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstHost
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.kedge.adaptive.KedgeSmallTopBar
 import heizige.kk.khatkit.app.core.ui.effect.BgEffectBackground
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
@@ -122,32 +123,39 @@ fun SettingAboutPage() {
     val logoProgress = stage(0.00f, 0.55f)
     val nameProgress = stage(0.18f, 0.78f)
     val versionProgress = stage(0.38f, 1.00f)
+    // 顶栏标题延后淡入：起始全透明（只剩返回按钮），滚过 35% 后才开始显现
+    // （与 Miuix 版同一曲线，保持两种风格一致）。
+    val titleAlpha = ((animatedProgress - 0.35f) / 0.65f).coerceIn(0f, 1f)
 
     val websiteUrl = stringResource(R.string.about_page_url_website)
     val githubUrl = stringResource(R.string.about_page_url_github)
     val licenseUrl = stringResource(R.string.about_page_url_license)
 
     var logoCenterPx by remember { mutableStateOf(Offset.Zero) }
+    // 流光放在 Scaffold **外层**：Scaffold 的 containerColor 不透明，
+    // 放在 content 槽里会被它整块盖住（KSU / 词幕都是把效果背景放在最外层）。
+    BgEffectBackground(
+        dynamicBackground = true,
+        modifier = Modifier.fillMaxSize(),
+        alpha = { 1f - animatedProgress },
+    ) {
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
-            KedgePageLargeTopBar(
+            // 小标题栏（KSU AboutMiuix 用 SmallTopAppBar）：没有折叠大标题，
+            // 标题不会同时出现在两个位置。
+            KedgeSmallTopBar(
                 title = stringResource(R.string.about_page_title),
                 navigationIcon = {
                     BackButton()
                 },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
+                titleAlpha = titleAlpha,
+                barColorAlpha = animatedProgress,
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor,
     ) { innerPadding ->
-        BgEffectBackground(
-            dynamicBackground = true,
-            modifier = Modifier.fillMaxSize(),
-            alpha = { 1f - animatedProgress },
-        ) {
-            EmojiBurstHost(
+        EmojiBurstHost(
                 modifier = Modifier.fillMaxSize(),
                 emojiOptions = emojiOptions,
                 burstCount = 12
@@ -264,6 +272,6 @@ fun SettingAboutPage() {
                     }
                 }
             }
-        }
+    }
     }
 }

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurColors
@@ -58,6 +59,22 @@ fun MiuixSettingsPage(
     navigationIcon: (@Composable () -> Unit)? = null,
     bottomBar: (@Composable () -> Unit)? = null,
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+    /** Scaffold 的底色。传 [Color.Transparent] 可让下层背景（如关于页的流光）透出来。 */
+    containerColor: Color = MiuixTheme.colorScheme.surface,
+    /** 标题透明度。对应 KernelSU `AboutMiuix.kt` 的 `titleColor` 随滚动淡入：0=标题隐藏。 */
+    titleAlpha: Float = 1f,
+    /**
+     * 用小标题栏（无折叠大标题）。对应 KernelSU `AboutMiuix.kt` 的 `SmallTopAppBar`：
+     * Miuix 的 [TopAppBar] 默认 `largeTitle = title`，同一行标题会被画两次，
+     * 关于页需要只保留一个位置，故走 SmallTopAppBar。
+     */
+    smallTitleBar: Boolean = false,
+    /**
+     * 顶栏底色透明度。对应 lyricon `AboutScreen.kt:118` 的
+     * `color = colorScheme.surface.copy(alpha = scrollProgress)`：起始顶栏完全透明
+     * （只见返回按钮），随滚动渐显。不为 null 时会覆盖 [enableBlur] 的底色决策。
+     */
+    barColorAlpha: Float? = null,
     /** 外部持有的列表状态：需要驱动视差/折叠动画的页面传入（如关于页的大 logo 头图）。 */
     lazyListState: LazyListState? = null,
     content: LazyListScope.() -> Unit,
@@ -70,21 +87,41 @@ fun MiuixSettingsPage(
 
     Scaffold(
         topBar = {
-            KedgeBlurredBar(backdrop = backdrop) {
-                TopAppBar(
-                    color = if (backdrop != null) {
-                        Color.Transparent
-                    } else {
-                        MiuixTheme.colorScheme.surface
-                    },
+            // barColorAlpha != null 时（关于页）不套毛玻璃：页面底层本身就是流光，
+            // 再叠一层 surface 0.87 的模糊会把底色压成近似纯色。
+            // 做法对齐 lyricon `AboutScreen.kt`：顶栏直接用带 alpha 的纯色。
+            val bar: @Composable () -> Unit = {
+                val barColor = if (barColorAlpha != null) {
+                    MiuixTheme.colorScheme.surface.copy(alpha = barColorAlpha.coerceIn(0f, 1f))
+                } else if (backdrop != null) {
+                    Color.Transparent
+                } else {
+                    MiuixTheme.colorScheme.surface
+                }
+                val titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = titleAlpha)
+                if (smallTitleBar) {
+                    SmallTopAppBar(
+                        title = title,
+                        titleColor = titleColor,
+                        color = barColor,
+                        scrollBehavior = scrollBehavior,
+                        navigationIcon = navigationIcon ?: {},
+                        actions = actions,
+                    )
+                } else TopAppBar(
+                    color = barColor,
                     title = title,
+                    // 标题随滚动淡入：起始完全透明，只留返回按钮（KSU 行为）
+                    titleColor = titleColor,
                     scrollBehavior = scrollBehavior,
                     navigationIcon = navigationIcon ?: {},
                     actions = actions,
                 )
             }
+            if (barColorAlpha != null) bar() else KedgeBlurredBar(backdrop = backdrop) { bar() }
         },
         bottomBar = { bottomBar?.invoke() },
+        containerColor = containerColor,
         // 必须保留 Miuix 默认的 MiuixPopupHost()：OverlayDropdownPreference /
         // Spinner 等弹层通过 LocalPopupStates 注册，再由这个 host 实际渲染。
         // 传空 lambda 会让下拉、选择器全部点不动（KernelSU 能传空是因为它的

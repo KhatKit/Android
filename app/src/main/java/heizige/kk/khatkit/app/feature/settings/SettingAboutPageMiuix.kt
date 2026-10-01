@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -100,6 +101,9 @@ fun SettingAboutPageMiuix() {
     val logoProgress = stage(0.00f, 0.55f)
     val nameProgress = stage(0.18f, 0.78f)
     val versionProgress = stage(0.38f, 1.00f)
+    // 顶栏标题延后淡入：起始全透明（只剩返回按钮），滚过 35% 后才开始显现。
+    // 与 KernelSU AboutMiuix.kt 的 titleColor 曲线一致。
+    val titleAlpha = ((animatedProgress - 0.35f) / 0.65f).coerceIn(0f, 1f)
 
     // 流光背景铺满整屏，滚过头图后随进度淡出
     BgEffectBackground(
@@ -111,6 +115,12 @@ fun SettingAboutPageMiuix() {
             title = stringResource(R.string.about_page_title),
             navigationIcon = { BackButton() },
             lazyListState = listState,
+            // 让底层流光背景透出来（默认 surface 不透明会盖住 Canvas）
+            containerColor = Color.Transparent,
+            titleAlpha = titleAlpha,
+            smallTitleBar = true,
+            // 顶栏底色随滚动淡入；非 null 时不套毛玻璃（底层就是流光）
+            barColorAlpha = animatedProgress,
         ) {
         item(key = "about_hero") {
             Box(

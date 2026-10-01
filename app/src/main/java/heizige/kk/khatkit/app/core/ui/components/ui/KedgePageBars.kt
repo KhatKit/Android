@@ -11,6 +11,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import heizige.kk.kedge.adaptive.KedgeLargeTopAppBar
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -32,7 +33,10 @@ fun KedgePageLargeTopBar(
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
     titleContent: (@Composable () -> Unit)? = null,
     subtitle: String? = null,
+    /** 标题整体透明度。0=标题隐藏（仅留返回按钮），随滚动淡入即 KSU 的 About 页行为。 */
+    titleAlpha: Float = 1f,
 ) {
+    val alpha = titleAlpha.coerceIn(0f, 1f)
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
         KedgeLargeTopAppBar(
             title = title,
@@ -41,6 +45,7 @@ fun KedgePageLargeTopBar(
             navigationIcon = navigationIcon,
             actions = actions,
             titleContent = titleContent,
+            titleAlpha = alpha,
             // Miuix 下必须用 KedgePageScaffold 下发的那个行为（KedgeLargeTopAppBar
             // 内部会回退到 LocalKedgePageScrollBehavior）。传进来的 MD3 behavior
             // 在 Miuix 下不可用；以前这里自己 remember 一个，等于顶栏观察的是
@@ -49,7 +54,14 @@ fun KedgePageLargeTopBar(
         )
     } else {
         LargeFlexibleTopAppBar(
-            title = titleContent ?: { Text(title) },
+            // 用 graphicsLayer 而不是 colors，才能压住 LargeFlexibleTopAppBar
+            // 内部自绘的大标题 + 收起后的小标题（两者同一 slot）。
+            title = titleContent ?: {
+                Text(
+                    text = title,
+                    modifier = Modifier.graphicsLayer { this.alpha = alpha },
+                )
+            },
             modifier = modifier,
             // 调用方传了 titleContent 时，副标题由 titleContent 自行渲染
             // （ChatPage 的 titleContent 内含「助手/模型/提供商」一行）。
