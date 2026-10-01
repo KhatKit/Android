@@ -184,7 +184,7 @@ return { message: "Hello, " + name };
 }
 ```
 
-- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `ui` `download` `store` `shizuku` `root` `accessibility` `imageToolbox`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
+- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `ui` `web` `download` `store` `shizuku` `root` `accessibility` `imageToolbox`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
 - `libs`：共享库声明。`name` 为库名；`lang` 为 `lua` / `js`（默认 `js`）；`version` 为 SemVer 范围（默认 `*`）。宿主解析顺序：内置层 `assets/libs/<dir>/<version>/` → Hub CDN 共享库 registry；**只解析与当前引擎同语言的库**。脚本内用 `require(name)` 使用（Lua 走 `package.preload`，JS 为 CommonJS 形态）。
 - `bins` / `env`：当前宿主版本未消费，保留字段，可留空数组。
 
@@ -503,6 +503,7 @@ local saved = tool.saveBase64(img, "/sdcard/Download/copy.png")
 | 方法（签名） | 参数 | 返回 | 说明 |
 |---|---|---|---|
 | `form(title, items, options)` | title: string；items: map[]；options: map 或 nil | map 或 nil | 弹出表单，阻塞等待。items 每项：`type`（组件白名单）、`id`、`label`、`default`、`min`/`max`（slider）、`options`（select/radio）、`renderer`（custom）。用户取消或 300 秒超时返回 nil。`options` 见下方「弹层选项」。 |
+| `sheet(title, actions, options)` | title: string；actions: map[]；options: map 或 nil | map 或 nil | 声明式操作弹层，阻塞等待。actions 每项声明 `event`（回传的事件名）、`label`、`icon`、`placement`，摆放位置见下方「Sheet 动作」。用户取消或超时返回 nil。 |
 | `confirm(title, message, danger)` | title/message: string；danger: boolean | boolean | 二次确认弹窗；danger 时按钮文案为危险样式。取消/超时返回 false。 |
 | `progress(ratio, label)` | ratio: 0.0–1.0；label: string | 无 | 显示顶部进度；label 会同步到自动化看板。 |
 | `show(card, options)` | card: map；options: map 或 nil | 无 | 弹出结果卡片：优先渲染 `markdown` / `text` / `content`，标题取 `title`；都没有时逐行打印键值。不阻塞，`options` 同 `form`。 |
@@ -518,6 +519,30 @@ local saved = tool.saveBase64(img, "/sdcard/Download/copy.png")
 | `height` | number | 弹层高度占屏幕比例 `0.1–1.0`（`fullscreen=true` 等价于 `height=1`）；不传沿用组件默认（最高约 0.9 屏）。 |
 
 宽屏（宽度 ≥ 600dp，如横屏手机/平板）时表单自动排成两列，`text` / `divider` / `progress` / `button` 仍独占整行；`show` 的内容最大宽度 840dp 居中。
+
+Sheet 动作（`ui.sheet` 与 `web.openLogin` 的 actions，共用一套字段）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `event` | string | 点击后回传给脚本的事件名（`result.event`）。缺省时回落读 `id`。 |
+| `id` | string | 动作标识，`event` 缺省时使用。 |
+| `label` | string | 按钮文案 / 图标按钮的无障碍描述（tooltip）。缺省时回落读 `event`。 |
+| `icon` | string | 图标名。`placement="top"` 时必填，缺省则退回内容区文字按钮。 |
+| `placement` | string | `content`（默认，内容区文字按钮）/ `top`（弹层右上角图标按钮）/ `overflow`（右上角溢出菜单）。 |
+
+- 有 `placement="top"` 或 `overflow` 的动作时，弹层改为「标题在上」布局：图标按钮与溢出菜单入口在标题行右侧，底部只留关闭按钮；两种动作都不会再出现在内容区。
+- 常用图标名：`key` / `vpn_key`（钥匙）、`save`、`info`、`delete`、`refresh`、`more`、`close`。`icon` 认不出来时该动作退回内容区文字按钮，不会出现空按钮。
+- 表单弹层（`ui.form`）没有顶栏动作，只有 `ui.sheet` / `web.openLogin` 支持。
+
+```lua
+local r = ui.sheet("导出", {
+  { event = "export_now", label = "立即导出", icon = "save", placement = "top" },
+  { event = "clear_cache", label = "清除缓存", icon = "delete", placement = "overflow" },
+  { event = "cancel_all", label = "全部取消" },
+})
+if not r then return { cancelled = true } end
+return { picked = r.event }
+```
 
 ```lua
 -- 全屏 + 横屏的大表单
@@ -762,7 +787,47 @@ end
 
 > `compress(path, quality)` 质量压缩请直接用 `tool.compressImage`，不在 imageToolbox 里重复提供。图像工具箱卡片（`image_resize_crop` / `image_enhance` / `image_finish` / `image_compose` / `image_analyze` / `image_pdf`）已封装全部操作与参数解析，从卡片市场下载后可直接使用；`imageToolbox` 是随卡片从 Hub 下载的原生依赖包（`requires.dependencies`），不编译进 APK，见 [dependency-system.md](dependency-system.md)。
 
-### 4.9 宿主侧接口速览
+### 4.9 web（网页登录与站点 Cookie，L0）
+
+WebView 登录弹层 + 按站点隔离的站点 Cookie。**Cookie 只加密保存在本机（`SecretStore`），不上传服务端，也绝不返回给脚本内容。**
+
+| 方法（签名） | 参数 | 返回 | 说明 |
+|---|---|---|---|
+| `openLogin(url, title, actions)` | url: string（http/https）；title: string；actions: map[] | map | 弹出网页登录弹层并阻塞等待。actions 字段见上方「Sheet 动作」。返回 `{event, values}`；`event` 为 `save_cookie` / `cookie_status` / `clear_cookie`，`values.currentUrl` 是点击时的当前页面地址（登录后常已跳到别的域名）。 |
+| `savedCookie(url)` | url: string | string | 读取该 **host** 已保存的 Cookie，没有则返回空串。 |
+| `cookieStatus(url)` | url: string | map | `{host, saved, length}`，只给状态与长度，不含内容。 |
+| `clearCookie(url)` | url: string | boolean | 清除该 host 的已保存 Cookie。 |
+
+弹层行为：
+
+- **桌面模式**：登录 WebView 使用桌面浏览器 User-Agent（不含 `Android` / `Mobile` 标识），并启用宽视口 + overview + JavaScript + DOM storage，避免云盘站点按 UA 下发手机版页面。这个设置只作用于登录弹层，应用内其他 WebView 页面不受影响。
+- **顶栏 Cookie 操作**：`placement="top"` 的图标按钮在弹层右上角（推荐 `icon = "key"`、`label = "登录并保存 Cookie"`），状态/清除类动作建议放 `placement="overflow"`。
+- **按当前页面域名保存**：点击保存时读取的是 WebView **当前 URL** 对应的 Cookie，并按它的 host 单独加密保存；登录域与下载域不同则各存各的，不会互相套用。
+- **失败与取消**：
+  - 当前页面没有 Cookie → `{saved:false, host, reason}`，不误报成功；
+  - 用户关闭弹层 → `{event:"cancelled", cancelled:true, state:"login_cancelled"}`；
+  - UI 不可用 → `{error:"UI 不可用", state:"login_unavailable"}`。
+
+```lua
+-- 登录域与下载域不同的典型场景：直链域名上还没有 Cookie
+local url = args.url
+local login = args.login_url or url
+local cookie = web.savedCookie(url)
+if cookie == "" then
+  local r = web.openLogin(login, "云盘登录", {
+    { event = "save_cookie", label = "登录并保存 Cookie", icon = "key", placement = "top" },
+    { event = "cookie_status", label = "检查 Cookie 状态", icon = "info", placement = "overflow" },
+  }) or {}
+  cookie = web.savedCookie(url)          -- 只认下载域自己的 Cookie
+  if cookie == "" then
+    if r.cancelled then return { state = "login_cancelled" } end
+    return { state = "login_required", error = r.reason or "未获取到 Cookie" }
+  end
+end
+return { ready = true }
+```
+
+### 4.10 宿主侧接口速览
 
 | 接口 | 方法 | 说明 |
 |---|---|---|
@@ -780,7 +845,7 @@ end
 
 | 级别 | bridge | 获取方式 |
 |---|---|---|
-| L0 | `tool` `ui` `download` `store` `imageToolbox` | 无需特殊授权；`tool`/`imageToolbox` 访问共享存储时需要「所有文件访问」。 |
+| L0 | `tool` `ui` `web` `download` `store` `imageToolbox` | 无需特殊授权；`tool`/`imageToolbox` 访问共享存储时需要「所有文件访问」。 |
 | L1 | `shizuku` `accessibility` | 用户在权限面板/系统设置中开启；Shizuku 需服务在线并授权，无障碍需系统设置里勾选。 |
 | L2 | `root` | 用户显式打开「Root 提权」且 `su` 探测成功（默认禁用）。 |
 
