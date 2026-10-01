@@ -62,6 +62,7 @@ import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
@@ -200,7 +201,7 @@ private fun MainPage(vm: DebugViewModel) {
             Text("创建 1024 个消息的聊天")
         }
 
-        HorizontalDivider()
+        KedgeHorizontalDivider()
 
         Text("Launch Stats", style = MaterialTheme.typography.labelMedium)
 

@@ -109,6 +109,7 @@ import kotlin.time.Clock
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 private val flavour by lazy {
     GFMFlavourDescriptor(
@@ -510,7 +511,7 @@ private fun MarkdownNode(
         }
 
         MarkdownTokenTypes.HORIZONTAL_RULE -> {
-            HorizontalDivider(
+            KedgeHorizontalDivider(
                 modifier = Modifier.padding(vertical = 16.dp),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                 thickness = 0.5.dp

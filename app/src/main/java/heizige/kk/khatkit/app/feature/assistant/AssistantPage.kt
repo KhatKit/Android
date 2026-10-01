@@ -90,6 +90,7 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -580,7 +581,7 @@ private fun AssistantActionSheet(
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            KedgeHorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // 克隆选项
             KedgeListItem(

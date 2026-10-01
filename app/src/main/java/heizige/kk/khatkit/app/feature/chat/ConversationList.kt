@@ -75,6 +75,7 @@ import java.time.ZoneId
 import kotlin.math.abs
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 
 /**
  * 会话列表按时间分组后的条目类型。
@@ -553,10 +554,9 @@ private fun ConversationItem(
                             }
                     )
                 }
-                DropdownMenu(
+                KedgeDropdownMenuSlots(
                     expanded = showDropdownMenu,
                     onDismissRequest = { showDropdownMenu = false },
-                    shape = RoundedCornerShape(12.dp),
                 ) {
                     if (onPin != null) {
                         KedgeDropdownItemSlot(

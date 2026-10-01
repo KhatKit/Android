@@ -51,6 +51,7 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.translate
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun LanguageSelectionDialog(
@@ -177,7 +178,7 @@ fun CollapsibleTranslationText(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        HorizontalDivider(
+        KedgeHorizontalDivider(
             modifier = Modifier.padding(vertical = 8.dp),
             color = KedgeColors.outline.copy(alpha = 0.3f)
         )

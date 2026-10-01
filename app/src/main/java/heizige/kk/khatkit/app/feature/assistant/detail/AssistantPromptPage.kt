@@ -608,7 +608,7 @@ private fun AssistantRegexCard(
     var expanded by remember {
         mutableStateOf(false)
     }
-    ElevatedCard(
+    KedgeCard(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(

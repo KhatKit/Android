@@ -24,6 +24,7 @@ import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 /**
  * 权限面板：只展示各项权限的授予状态，外加一个「放手模式」开关。
@@ -84,7 +85,7 @@ fun KhatKitPermissionSheet(
                 deniedText = "不可用",
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            KedgeHorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             Row(
                 modifier = Modifier
