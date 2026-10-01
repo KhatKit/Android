@@ -43,6 +43,7 @@ import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.undo
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun WorkspaceCwdPickerSheet(
@@ -122,7 +123,7 @@ fun WorkspaceCwdPickerSheet(
                 )
             }
 
-            HorizontalDivider()
+            KedgeHorizontalDivider()
 
             LazyColumn(
                 modifier = Modifier
@@ -166,7 +167,7 @@ fun WorkspaceCwdPickerSheet(
                 }
             }
 
-            HorizontalDivider()
+            KedgeHorizontalDivider()
 
             if (currentCwd != null) {
                 KedgeTextButton(onClick = {

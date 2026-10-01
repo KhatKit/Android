@@ -39,6 +39,7 @@ import heizige.kk.khatkit.asr.sherpa.SherpaModels
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.components.AnimatedRadioButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.kedge.components.KedgeSwitch
 
 @Composable
 fun ASRProviderConfigure(
@@ -711,7 +712,7 @@ private fun StepASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_step_itn)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_itn_desc)) }
     ) {
-        androidx.compose.material3.Switch(
+        KedgeSwitch(
             checked = setting.enableItn,
             onCheckedChange = { onValueChange(setting.copy(enableItn = it)) }
         )
@@ -721,7 +722,7 @@ private fun StepASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_step_timestamp)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_timestamp_desc)) }
     ) {
-        androidx.compose.material3.Switch(
+        KedgeSwitch(
             checked = setting.enableTimestamp,
             onCheckedChange = { onValueChange(setting.copy(enableTimestamp = it)) }
         )
