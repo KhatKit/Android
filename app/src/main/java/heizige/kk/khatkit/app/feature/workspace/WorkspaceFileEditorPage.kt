@@ -42,6 +42,7 @@ import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.components.KedgeTextFieldWithState
 
 /**
  * 工作区文本文件编辑/预览页.
@@ -146,7 +147,7 @@ fun WorkspaceFileEditorPage(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
 
-            else -> TextField(
+            else -> KedgeTextFieldWithState(
                 state = textState,
                 modifier = Modifier
                     .fillMaxSize()

@@ -180,6 +180,7 @@ import heizige.kk.khatkit.app.core.ui.icons.tune
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -217,6 +218,13 @@ fun GreetingPage(onFinish: () -> Unit) {
     )
 
     Scaffold(
+        // 顶栏/底栏已经按 isMiuixStyle() 分流；Scaffold 自身的底色默认取 MD3 的
+        // background，Miuix 下会漏出 MD3 配色，所以这里显式给 Miuix 的 surface。
+        containerColor = if (isMiuixStyle()) {
+            MiuixTheme.colorScheme.surface
+        } else {
+            MaterialTheme.colorScheme.background
+        },
         topBar = {
             AnimatedVisibility(
                 visible = step != GreetingStep.Welcome,
