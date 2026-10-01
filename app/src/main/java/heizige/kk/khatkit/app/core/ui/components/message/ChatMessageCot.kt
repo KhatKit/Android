@@ -26,6 +26,9 @@ sealed interface ThinkingStep {
 sealed interface MessagePartBlock {
     data class ThinkingBlock(val steps: List<ThinkingStep>) : MessagePartBlock
     data class ContentBlock(val part: UIMessagePart, val index: Int) : MessagePartBlock
+
+    /** 成功执行的 chart_display 工具调用，在正文中以图表卡片展示 */
+    data class ChartBlock(val tool: UIMessagePart.Tool, val index: Int) : MessagePartBlock
 }
 
 /**

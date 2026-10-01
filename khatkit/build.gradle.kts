@@ -36,8 +36,11 @@ dependencies {
     // Compose 已迁至 :khatkit-ui（多风格 UI 组件库）
     implementation(libs.androidx.core.ktx)
 
-    // Bridge implementations: PDF merge + Shizuku (L1)
-    implementation(libs.pdfbox.android)
+    // Bridge implementations: Shizuku (L1)
+    //
+    // PDF 能力已剥离到 imageToolbox 依赖包（见 docs/dependency-system.md）：卡片声明
+    // requires.dependencies 后由宿主下载 dex 包加载，APK 不再内置 pdfbox。
+    // 代价是 PDF 编辑改为 PdfRenderer 光栅化重建（文字不可选中），且无法合并加密 PDF。
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
 

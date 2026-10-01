@@ -24,6 +24,8 @@ import heizige.kk.khatkit.app.core.data.db.migrations.Migration_16_17
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_22_23
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_8_9
 import heizige.kk.khatkit.app.core.util.JsonInstant
+import heizige.kk.khatkit.app.core.data.db.dao.FavoriteDAO
+import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
 
 @Database(
     entities = [
@@ -34,8 +36,9 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
         ManagedFileEntity::class,
         WorkspaceEntity::class,
         FolderEntity::class,
+        FavoriteEntity::class,
     ],
-    version = 26,
+    version = 27,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -56,6 +59,7 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
         AutoMigration(from = 22, to = 23, spec = Migration_22_23::class),
         AutoMigration(from = 23, to = 24),
         AutoMigration(from = 24, to = 25),
+        AutoMigration(from = 26, to = 27),
     ]
 )
 @TypeConverters(TokenUsageConverter::class)
@@ -73,6 +77,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workspaceDao(): WorkspaceDAO
 
     abstract fun folderDao(): FolderDAO
+
+    abstract fun favoriteDao(): FavoriteDAO
 }
 
 object TokenUsageConverter {

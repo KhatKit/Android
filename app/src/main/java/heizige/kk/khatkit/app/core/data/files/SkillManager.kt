@@ -210,6 +210,8 @@ data class SkillMetadata(
     val description: String,
     val compatibility: String? = null,
     val skillDir: File,
+    /** 内置技能（随包分发，用户不可见也不可编辑） */
+    val builtin: Boolean = false,
 ) {
     val skillFile: File get() = skillDir.resolve("SKILL.md")
 }

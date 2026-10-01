@@ -55,8 +55,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.g00fy2.quickie.QRResult
-import io.github.g00fy2.quickie.ScanQRCode
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ProviderSetting
@@ -85,7 +83,6 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.dragIndicator
 import heizige.kk.khatkit.app.core.ui.icons.image
-import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -319,10 +316,6 @@ private fun ImportProviderButton(
     val context = LocalContext.current
     var showImportDialog by remember { mutableStateOf(false) }
 
-    val scanQrCodeLauncher = rememberLauncherForActivityResult(ScanQRCode()) { result ->
-        handleQRResult(result, onAdd, toaster, context)
-    }
-
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -363,36 +356,8 @@ private fun ImportProviderButton(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // 主要操作：扫描二维码
-                        KedgeButton(
-                            onClick = {
-                                showImportDialog = false
-                                scanQrCodeLauncher.launch(null)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    imageVector = photoCamera,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = stringResource(R.string.setting_provider_page_scan_qr_code),
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                            }
-                        }
-
-                        // 次要操作：从相册选择
+                        // 从相册选择（扫码导入已随 libbarhopper 一并移除，
+                        // 供应商配置仍可从图片或手动填写导入）
                         KedgeButton(
                             onClick = {
                                 showImportDialog = false
@@ -439,49 +404,6 @@ private fun ImportProviderButton(
                     )
                 }
             }
-        )
-    }
-}
-
-private fun handleQRResult(
-    result: QRResult,
-    onAdd: (ProviderSetting) -> Unit,
-    toaster: com.dokar.sonner.ToasterState,
-    context: android.content.Context
-) {
-    runCatching {
-        when (result) {
-            is QRResult.QRError -> {
-                Toast.show(
-                    context.getString(
-                        R.string.setting_provider_page_scan_error,
-                        result
-                    ), isError = true
-                )
-            }
-
-            QRResult.QRMissingPermission -> {
-                Toast.show(
-                    context.getString(R.string.setting_provider_page_no_permission),
-                    isError = true
-                )
-            }
-
-            is QRResult.QRSuccess -> {
-                val setting = decodeProviderSetting(result.content.rawValue ?: "")
-                onAdd(setting)
-                Toast.show(
-                    context.getString(R.string.setting_provider_page_import_success),
-                    isError = false
-                )
-            }
-
-            QRResult.QRUserCanceled -> {}
-        }
-    }.onFailure { error ->
-        Toast.show(
-            context.getString(R.string.setting_provider_page_qr_decode_failed, error.message ?: ""),
-            isError = true
         )
     }
 }

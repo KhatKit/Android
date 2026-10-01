@@ -31,6 +31,14 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // androidx 的 alpha/beta 构件阿里云镜像经常只同步 .pom 不带 .aar，
+        // Gradle 命中残缺响应后不会再回退到下一个仓库，直接走官方源更稳。
+        google {
+            content {
+                includeGroupByRegex("androidx\\..*")
+                includeGroupByRegex("com\\.google\\.android\\..*")
+            }
+        }
         // 国内镜像优先（直连 Maven Central 会 403）
         maven("https://maven.aliyun.com/repository/public")
         maven("https://maven.aliyun.com/repository/google")

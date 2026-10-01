@@ -7,12 +7,9 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.cio.CIOApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.http.content.singlePageApplication
-import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
-import io.ktor.server.routing.routing
 import io.ktor.server.sse.SSE
 
 fun startWebServer(
@@ -31,13 +28,6 @@ fun startWebServer(
         }
         install(SSE)
         install(DefaultHeaders)
-        routing {
-            staticResources("/", "static") {
-                default("index.html")
-                enableAutoHeadResponse()
-                singlePageApplication()
-            }
-        }
         module()
     })
 }

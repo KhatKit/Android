@@ -49,6 +49,7 @@ import heizige.kk.khatkit.common.http.okhttp.logging.HttpLoggingInterceptor
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import heizige.kk.khatkit.app.core.data.db.dao.FavoriteDAO
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -106,6 +107,9 @@ object DataSourceHiltModule {
     @Provides
     @Singleton
     fun provideFolderDao(database: AppDatabase): FolderDAO = database.folderDao()
+
+    @Provides
+    fun provideFavoriteDao(database: AppDatabase): FavoriteDAO = database.favoriteDao()
 
     @Provides
     @Singleton

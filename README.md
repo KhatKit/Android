@@ -12,7 +12,7 @@
 - 👋 **首次启动引导**：危险权限（Root / Shizuku / 无障碍）、AI 服务商配置、主题与配色一气呵成
 - ♿ **无障碍自动化**：真实 `AccessibilityService`，支持查找节点、点击、输入、滚动与手势，能力暴露给卡片
 - 📦 **工作区**：基于 proot 的 Linux 沙箱，可执行命令、读写文件
-- 🖥️ 内置 Web 访问、MCP、Markdown 渲染（代码高亮 / LaTeX / 表格 / Mermaid）
+- 🖥️ 内置 Web API 与 MCP 服务（供 vFlow / 卡片自动化 / 外部客户端调用）、Markdown 渲染（代码高亮 / LaTeX / 表格 / Mermaid）
 - 🪾 消息分支、搜索（Exa / Tavily / Zhipu / Brave 等）、TTS / ASR、AI 翻译、自定义请求头与请求体、快捷消息
 - ⬆️ **应用更新**：走 KodeHeadServer 的 KhatKit 独立更新通道（stable / beta / force_min）
 - 📝 **更新日志**：见 [CHANGELOG.md](CHANGELOG.md)

@@ -293,6 +293,9 @@ private fun MessagePartsBlock(
     val groupedParts = remember(parts) { parts.groupMessageParts() }
     groupedParts.fastForEach { block ->
         when (block) {
+            is MessagePartBlock.ChartBlock -> {
+                // chart_display 的图表卡片渲染在 ChatMessageServerToolStep 里统一处理
+            }
             is MessagePartBlock.ThinkingBlock -> {
                 if (block.steps.isNotEmpty()) {
                     val isReasoningOnlyBlock = block.steps.fastAll { it is ThinkingStep.ReasoningStep }

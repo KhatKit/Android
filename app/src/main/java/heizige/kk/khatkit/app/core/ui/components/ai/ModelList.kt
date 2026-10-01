@@ -95,6 +95,7 @@ import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.title
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -845,7 +846,7 @@ fun ModelAbilityTag(model: Model) {
                     type = TagType.INFO
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.deepthink),
+                        painter = rememberVectorPainter(psychology),
                         contentDescription = null,
                         modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp()),
                     )

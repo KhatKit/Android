@@ -24,8 +24,9 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 - **material3**: Material color utility extensions used by the app UI
 - **search**: Search functionality SDK for multiple providers (Exa, Tavily, Zhipu, Bing, Brave, SearXNG, and others)
 - **speech**: Speech module for TTS and ASR implementations
-- **web**: Embedded web server module that provides Ktor server startup function and hosts static frontend build files (
-  built from web-ui/ React project)
+- **web**: Embedded web server module that provides Ktor server startup function. Hosts the JSON API (`/api/**`)
+  and the MCP endpoint (`/mcp`) used by external clients (vFlow, card automation, Claude Desktop / Cursor).
+  Does **not** bundle any web frontend.
 - **workspace**: Sandboxed per-workspace file system and shell execution environment exposed to the AI as tools.
 
 ## Concepts

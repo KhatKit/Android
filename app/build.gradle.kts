@@ -25,8 +25,8 @@ android {
         applicationId = "heizige.kk.khatkit"
         minSdk = 26
         targetSdk = 37
-        versionCode = 189
-        versionName = "2.5.4"
+        versionCode = 190
+        versionName = "2.5.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -154,6 +154,10 @@ configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configu
 dependencies {
     implementation(libs.quickjs)
     implementation(libs.androidx.core.ktx)
+    // UCropActivity 的父类是 AppCompatActivity，必须带上 appcompat
+    implementation(libs.androidx.appcompat)
+    // ImageUtils 读 EXIF 方向，UCrop 也不直接暴露它，靠显式声明避免依赖树变化时断掉
+    implementation("androidx.exifinterface:exifinterface:1.4.1")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.work.runtime.ktx)
@@ -229,13 +233,9 @@ dependencies {
     // YAML front matter
     implementation(libs.snakeyaml)
 
-    // zxing
+    // zxing (二维码生成 + 从图片解码；实时扫码的
+    // libbarhopper 已移除，供应商配置改从图片或手动导入)
     implementation(libs.zxing.core)
-
-    // quickie (qrcode scanner)
-    implementation(libs.quickie.bundled)
-    implementation(libs.barcode.scanning)
-    implementation(libs.androidx.camera.core)
 
     // Room
     implementation(libs.androidx.room.runtime)

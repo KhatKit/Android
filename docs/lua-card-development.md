@@ -463,7 +463,7 @@ end
 | `readBase64(path)` | path: string | string | 读本地文件为 `data:<mime>;base64,...`，供 JSON 接口上传图片。 |
 | `saveBase64(data, outputPath)` | data: data URL / 裸 base64；outputPath: string | string | 解码写入 `outputPath`，返回文件路径。 |
 | `compressImage(path, quality)` | path: string；quality: 1–100 | string | 压缩为同目录 `<名字>_compressed.jpg`，返回新路径。 |
-| `mergePdf(paths, output)` | paths: string[]；output: string | string | 用 PDFBox 合并，返回输出路径。 |
+| ~~`mergePdf(paths, output)`~~ | — | — | **已移除**：PDFBox 不再进 APK。改用依赖包 `imageToolbox.pdfEdit("merge", src, params)`（见 `docs/dependency-system.md`），卡片需声明 `requires.dependencies`。 |
 | `openDir(path)` | path: string | 无 | 调系统文件管理器打开目录（失败静默）。 |
 | `listFiles(path)` | path: string | string | 返回 JSON 数组：`[{"name","path","is_dir","size","modified"}]`，按名字排序。 |
 | `copyPath(src, dst)` | src/dst: string | 无 | 递归复制并覆盖。 |

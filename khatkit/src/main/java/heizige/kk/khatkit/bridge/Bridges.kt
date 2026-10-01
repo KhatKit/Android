@@ -42,7 +42,9 @@ interface ToolBridge {
     /** 把 data URL / 裸 base64 解码写入 outputPath，返回文件路径。 */
     fun saveBase64(data: String, outputPath: String): String
     fun compressImage(path: String, quality: Int): String
-    fun mergePdf(paths: List<String>, output: String): String
+
+    // mergePdf 已移除：PDF 能力剥离到 imageToolbox 依赖包（见 docs/dependency-system.md），
+    // 卡片改用 imageToolbox.pdfEdit(op = "merge")。
     fun openDir(path: String)
     fun listFiles(path: String): String
     fun copyPath(src: String, dst: String)

@@ -13,8 +13,6 @@ import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
-import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
-import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
 import heizige.kk.khatkit.bridge.ToolBridge
 import org.json.JSONArray
 import org.json.JSONObject
@@ -50,10 +48,6 @@ class AndroidToolBridge(
     private val context: Context,
     private val httpClient: HttpClient,
 ) : ToolBridge {
-
-    init {
-        runCatching { PDFBoxResourceLoader.init(context.applicationContext) }
-    }
 
     override fun readText(path: String): String {
         requireSharedStorageAccess(path)
@@ -191,18 +185,6 @@ class AndroidToolBridge(
             bitmap.recycle()
         }
         return output.absolutePath
-    }
-
-    override fun mergePdf(paths: List<String>, output: String): String {
-        require(paths.isNotEmpty()) { "没有待合并的 PDF" }
-        requireSharedStorageAccess(*paths.toTypedArray(), output)
-        paths.forEach { require(File(it).exists()) { "PDF 不存在：$it" } }
-        val merger = PDFMergerUtility()
-        paths.forEach { merger.addSource(File(it)) }
-        File(output).parentFile?.mkdirs()
-        merger.destinationFileName = output
-        merger.mergeDocuments(null)
-        return output
     }
 
     override fun listFiles(path: String): String {

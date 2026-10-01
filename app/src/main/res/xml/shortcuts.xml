@@ -22,4 +22,14 @@
             android:action="heizige.kk.khatkit.app.action.TRANSLATE"
             android:targetClass="heizige.kk.khatkit.app.RouteActivity" />
     </shortcut>
+    <shortcut
+        android:shortcutId="image_gen"
+        android:enabled="true"
+        android:icon="@drawable/ic_image_generation"
+        android:shortcutShortLabel="@string/imggen_page_title"
+        android:shortcutLongLabel="@string/imggen_page_title">
+        <intent
+            android:action="heizige.kk.khatkit.app.action.IMAGE_GEN"
+            android:targetClass="heizige.kk.khatkit.app.RouteActivity" />
+    </shortcut>
 </shortcuts>
