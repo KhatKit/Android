@@ -124,6 +124,10 @@ import heizige.kk.kedge.adaptive.KedgeBlurredBar
 import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
 import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
 import heizige.kk.khatkit.app.core.ui.icons.extension
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeButtonVariant
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ChatDrawerContent(
@@ -244,11 +248,13 @@ fun ChatDrawerContent(
                 KedgeBlurredBar(backdrop = backdrop) {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    // 有 backdrop 时透明，让 KedgeBlurredBar 的模糊透出来；
+                    // 没有 backdrop 时退回 surface，避免出现无底的栏。
+                    containerColor = KedgeOverlayBarColor(backdrop, MiuixTheme.colorScheme.surface),
                 ),
                 navigationIcon = {
                     if (searchVisible) {
-                        IconButton(
+                        KedgeIconButton(
                             onClick = {
                                 drawerVm.updateSearchKeyword("")
                                 showSearch = false
@@ -257,7 +263,6 @@ fun ChatDrawerContent(
                                 alpha = searchProgress.value
                                 translationX = (1f - searchProgress.value) * 24.dp.toPx()
                             },
-                            shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(arrowBack, contentDescription = null)
                         }
@@ -307,7 +312,7 @@ fun ChatDrawerContent(
                     }
                 },
                 actions = {
-                    IconButton(
+                    KedgeIconButton(
                         onClick = {
                             if (!showSearch) {
                                 showSearch = true
@@ -315,7 +320,6 @@ fun ChatDrawerContent(
                                 drawerVm.updateSearchKeyword("")
                             }
                         },
-                        shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
                             imageVector = if (searchVisible && searchKeyword.isNotEmpty()) close else search,
@@ -328,9 +332,6 @@ fun ChatDrawerContent(
             },
             bottomBar = {
                 KedgeBlurredBar(backdrop = backdrop) {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -353,21 +354,17 @@ fun ChatDrawerContent(
                         tooltip = { TextTooltip("套餐") },
                         state = rememberTooltipState(),
                     ) {
-                        Button(
+                        KedgeButton(
                             onClick = {
                                 navController.navigate(Screen.SettingPackage)
                             },
                             modifier = Modifier.height(32.dp),
-                            shapes = ButtonDefaults.shapes(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
+                            variant = KedgeButtonVariant.Secondary,
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                         ) {
                             Text(
                                 text = subscriptionLabel,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = KedgeTextStyles.footnoteSmall(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -396,7 +393,6 @@ fun ChatDrawerContent(
                         },
                     )
                 }
-            }
                 }
             },
         ) {
@@ -783,10 +779,9 @@ private fun DrawerAction(
         tooltip = { TextTooltip(label) },
         state = rememberTooltipState(),
     ) {
-        IconButton(
+        KedgeIconButton(
             onClick = onClick,
             modifier = modifier,
-            shapes = IconButtonDefaults.shapes(),
         ) {
             icon()
         }
