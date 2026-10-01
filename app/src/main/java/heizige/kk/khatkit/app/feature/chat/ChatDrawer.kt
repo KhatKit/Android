@@ -118,14 +118,6 @@ import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeButtonVariant
-import heizige.kk.kedge.adaptive.KedgeOverlayScaffold
-import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
-import heizige.kk.kedge.adaptive.KedgeBlurredBar
-import heizige.kk.kedge.adaptive.KedgeBlurSurface
-import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
-import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
 
 @Composable
 fun ChatDrawerContent(
@@ -222,9 +214,6 @@ fun ChatDrawerContent(
     // 抽屉不垫状态栏/导航栏 insets：由 TopAppBar / BottomAppBar 自己消费，
     // 这样两条 bar 的背景能画到状态栏/导航栏后面，和系统栏颜色一致。
     val sheetContent: @Composable () -> Unit = {
-        // 顶栏/底栏叠在内容之上，毛玻璃才有东西可透（见 KedgeOverlayScaffold）。
-        val backdrop = rememberKedgeBlurBackdrop(LocalKedgeEnableBlur.current)
-
         // 搜索展开进度：预测返回手势跟手收起。组合位置在 ModalDrawerSheet 内容里，
         // 晚于抽屉自身的预测返回处理器，因此搜索展开时返回手势优先收起搜索。
         val searchExpand = rememberSearchExpandState(
@@ -237,19 +226,10 @@ fun ChatDrawerContent(
         val searchProgress = searchExpand.progress
         val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
         val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
-        KedgeOverlayScaffold(
-            backdrop = backdrop,
-            // 让首尾会话项不被顶栏/底栏盖住
-            contentInsetTop = 64.dp,
-            contentInsetBottom = 64.dp,
-            topBar = {
-            KedgeBlurredBar(backdrop = backdrop) {
+        Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = KedgeOverlayBarColor(
-                        backdrop = backdrop,
-                        fallback = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 navigationIcon = {
                     if (searchVisible) {
@@ -329,11 +309,10 @@ fun ChatDrawerContent(
                     }
                 },
             )
-            }   // KedgeBlurredBar
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -372,17 +351,13 @@ fun ChatDrawerContent(
                     listState = conversationListState,
                     contentPadding = PaddingValues(bottom = 80.dp),
                     header = {
-                        KedgeButton(
+                        Button(
                             onClick = { showCreateFolderDialog = true },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
                                 .height(46.dp),
                             shapes = ButtonDefaults.shapes(),
-                            // Miuix Primary 是蓝色实心，参考图要的是低调底色块
-                            variant = KedgeButtonVariant.Secondary,
-                            // Miuix 默认是胶囊，这里要 KSU 那种 16dp 圆角矩形块
-                            miuixCornerRadius = 16.dp,
                         ) {
                             Icon(
                                 createNewFolder,
@@ -459,14 +434,8 @@ fun ChatDrawerContent(
 
             }
 
-            },
-            bottomBar = {
             BottomAppBar(
-                // 有毛玻璃时必须透明，否则模糊透不出来
-                containerColor = KedgeOverlayBarColor(
-                    backdrop = backdrop,
-                    fallback = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

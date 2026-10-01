@@ -25,6 +25,11 @@ android {
 
 tasks.withType<Test>().configureEach {
     System.getenv("KHATKIT_NATIVE_LIB")?.let { systemProperty("khatkit.native.path", it) }
+    // BridgeApiDocTest 校验 docs/script-api-reference.md，把 docs 目录登记为输入：
+    // 文档或接口代码变了就重跑，防止接口清单悄悄漂移。
+    inputs.dir(layout.projectDirectory.dir("../docs"))
+        .withPropertyName("docsDir")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {

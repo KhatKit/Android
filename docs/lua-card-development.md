@@ -1,9 +1,12 @@
 # KhatKit 卡片脚本开发文档
 
-本文档是 KhatKit 卡片开发的唯一权威说明，覆盖 manifest 规范、脚本运行时、全部 bridge API、触发器与自动化审批、安全合规与常见问题。内容以仓库当前代码为准（`card-validator`、`:khatkit`、`:khatkit-core`、`:app`）。
+本文档是 KhatKit 卡片开发的权威说明，覆盖 manifest 规范、脚本运行时、bridge 用法、触发器与自动化审批、安全合规与常见问题。内容以仓库当前代码为准（`card-validator`、`:khatkit`、`:khatkit-core`、`:app`）。
+
+**接口清单以 [`script-api-reference.md`](script-api-reference.md) 为准**：那里列全了宿主提供的每个 bridge / 每个方法（签名、返回、脚本是否可调），并由 `BridgeApiDocTest` 双向校验，改了代码不改文档就会测试失败。本文的第 4 节讲「怎么用」，接口有没有、签名是什么去查那份清单。
 
 配套阅读（可选，不作为必读依赖）：
 
+- `docs/script-api-reference.md`：脚本可用宿主接口清单（权威索引，测试强制同步）
 - `docs/triggers.md`：事件触发的最小说明（本文第 2.9、5 节已完整覆盖）
 - `docs/zenneko-cards.md`：内置极客猫平台卡片的接口清单（本文第 4 节给出写法）
 
@@ -443,6 +446,8 @@ end
 ---
 
 ## 4. Bridge API 参考
+
+本节讲每个 bridge 的用法与坑；**接口全量清单（每个方法一行）见 [`script-api-reference.md`](script-api-reference.md)**。
 
 通用规则：
 
