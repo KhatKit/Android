@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -56,50 +55,43 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.keepOff
 import heizige.kk.khatkit.app.core.ui.icons.pushPin
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.overlays.rememberKedgeSnackbarHostState
+import heizige.kk.kedge.overlays.KedgeSnackbarHost
+import heizige.kk.kedge.overlays.KedgeSnackbarResult
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = rememberKedgeSnackbarHostState()
     var showDeleteAllDialog by remember { mutableStateOf(false) }
 
     val conversations by vm.conversations.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(stringResource(R.string.history_page_title))
-                },
-                navigationIcon = {
-                    BackButton()
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            navController.navigate(Screen.MessageSearch)
-                        }
-                    ) {
-                        Icon(
-                            travelExplore,
-                            contentDescription = stringResource(R.string.history_page_search_messages)
-                        )
+    Box {
+        KedgeSettingsPageScaffold(
+            title = stringResource(R.string.history_page_title),
+            actions = {
+                KedgeIconButton(
+                    onClick = {
+                        navController.navigate(Screen.MessageSearch)
                     }
-                    IconButton(
-                        onClick = {
-                            showDeleteAllDialog = true
-                        }
-                    ) {
-                        Icon(delete, contentDescription = stringResource(R.string.history_page_delete_all))
-                    }
+                ) {
+                    Icon(
+                        travelExplore,
+                        contentDescription = stringResource(R.string.history_page_search_messages)
+                    )
                 }
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
-    ) { contentPadding ->
+                KedgeIconButton(onClick = { showDeleteAllDialog = true }) {
+                    Icon(delete, contentDescription = stringResource(R.string.history_page_delete_all))
+                }
+            },
+        ) { contentPadding ->
         val snackMessageDeleted = stringResource(R.string.history_page_conversation_deleted)
         val snackMessageUndo = stringResource(R.string.history_page_undo)
         LazyColumn(
@@ -122,7 +114,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
                                 actionLabel = snackMessageUndo,
                                 withDismissAction = true,
                             )
-                            if (result == SnackbarResult.ActionPerformed) {
+                            if (result == KedgeSnackbarResult.ActionPerformed) {
                                 vm.restoreConversation(fullConversation)
                             }
                         }
@@ -136,25 +128,26 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
         }
     }
 
+        KedgeSnackbarHost(state = snackbarHostState)
+    }
+
     if (showDeleteAllDialog) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showDeleteAllDialog = false },
             title = { Text(stringResource(R.string.history_page_delete_all_conversations)) },
             text = { Text(stringResource(R.string.history_page_delete_all_confirmation)) },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         vm.deleteAllConversations()
                         showDeleteAllDialog = false
-                    }
+                    },
                 ) {
                     Text(stringResource(R.string.history_page_delete))
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteAllDialog = false }
-                ) {
+                KedgeTextButton(onClick = { showDeleteAllDialog = false }) {
                     Text(stringResource(R.string.history_page_cancel))
                 }
             }
@@ -251,7 +244,7 @@ private fun ConversationItem(
                             .trim(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                     )
                 }
             },
@@ -259,7 +252,7 @@ private fun ConversationItem(
                 Text(conversation.createAt.toLocalDateTime())
             },
             trailingContent = {
-                IconButton(
+                KedgeIconButton(
                     onClick = onTogglePin
                 ) {
                     Icon(

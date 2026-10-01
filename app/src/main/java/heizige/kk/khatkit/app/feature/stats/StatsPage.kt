@@ -50,6 +50,10 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.chat
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun StatsPage(vm: StatsVM = hiltViewModel()) {
@@ -57,17 +61,9 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            LargeFlexibleTopAppBar(
-                title = { Text(stringResource(R.string.stats_page_title)) },
-                navigationIcon = { BackButton() },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
-        containerColor = CustomColors.topBarColors.containerColor,
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.stats_page_title),
+        scrollBehavior = scrollBehavior,
     ) { padding ->
         if (stats.isLoading) {
             Box(
@@ -76,7 +72,7 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                KedgeProgressIndicator(modifier = Modifier.size(24.dp))
             }
         } else {
             LazyColumn(
@@ -103,15 +99,14 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
 
 @Composable
 private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>, modifier: Modifier = Modifier) {
-    Card(
+    KedgeCard(
         modifier = modifier.fillMaxWidth(),
-        colors = CustomColors.cardColorsOnSurfaceContainer,
-    ) {
+        ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.stats_page_heatmap_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.stats_page_heatmap_title), style = KedgeTextStyles.title())
 
             ChatHeatmap(conversationsPerDay = conversationsPerDay)
 
@@ -122,7 +117,7 @@ private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>, modifier: Modi
             ) {
                 Text(
                     text = stringResource(R.string.stats_page_heatmap_less),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.width(2.dp))
@@ -132,7 +127,7 @@ private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>, modifier: Modi
                 Spacer(Modifier.width(2.dp))
                 Text(
                     text = stringResource(R.string.stats_page_heatmap_more),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -186,7 +181,7 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                     if (label.isNotEmpty()) {
                         Text(
                             text = label,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.7,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -221,7 +216,7 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                                     labelDate.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
                                 },
                                 modifier = Modifier.wrapContentWidth(unbounded = true),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = KedgeTextStyles.footnoteSmall(),
                                 fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.75,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 softWrap = false,
@@ -336,7 +331,7 @@ private fun StatCard(
     label: String,
     value: String,
 ) {
-    Card(modifier = modifier, colors = CustomColors.cardColorsOnSurfaceContainer) {
+    KedgeCard(modifier = modifier, colors = CustomColors.cardColorsOnSurfaceContainer) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -353,7 +348,7 @@ private fun StatCard(
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
