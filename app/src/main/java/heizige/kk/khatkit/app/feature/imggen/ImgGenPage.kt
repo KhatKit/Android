@@ -117,6 +117,8 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.kedge.adaptive.KedgeBottomBar
+import heizige.kk.kedge.adaptive.KedgeNavItem
 
 @Composable
 fun ImageGenPage(
@@ -213,37 +215,22 @@ private fun BottomBar(
     pagerState: PagerState,
     scope: CoroutineScope
 ) {
-    NavigationBar {
-        NavigationBarItem(
-            selected = 0 == pagerState.currentPage,
-            label = {
-                Text(stringResource(R.string.imggen_page_title))
-            },
-            icon = {
-                Icon(palette, null)
-            },
-            onClick = {
-                scope.launch {
-                    pagerState.animateScrollToPage(0)
-                }
-            }
-        )
-
-        NavigationBarItem(
-            selected = 1 == pagerState.currentPage,
-            label = {
-                Text(stringResource(R.string.imggen_page_gallery))
-            },
-            icon = {
-                Icon(photo, null)
-            },
-            onClick = {
-                scope.launch {
-                    pagerState.animateScrollToPage(1)
-                }
-            }
-        )
-    }
+    KedgeBottomBar(
+        items = listOf(
+            KedgeNavItem(
+                selected = 0 == pagerState.currentPage,
+                icon = palette,
+                label = stringResource(R.string.imggen_page_title),
+                onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+            ),
+            KedgeNavItem(
+                selected = 1 == pagerState.currentPage,
+                icon = photo,
+                label = stringResource(R.string.imggen_page_gallery),
+                onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+            ),
+        ),
+    )
 }
 
 @Composable

@@ -104,6 +104,8 @@ import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.kedge.adaptive.KedgeBottomBar
+import heizige.kk.kedge.adaptive.KedgeNavItem
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
@@ -116,24 +118,22 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
         title = stringResource(R.string.prompt_page_title),
         scrollBehavior = scrollBehavior,
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = pagerState.currentPage == 0,
-                    label = { Text(stringResource(R.string.prompt_page_mode_injection_tab)) },
-                    icon = { Icon(autoFixHigh, null) },
-                    onClick = {
-                        scope.launch { pagerState.animateScrollToPage(0) }
-                    }
-                )
-                NavigationBarItem(
-                    selected = pagerState.currentPage == 1,
-                    label = { Text(stringResource(R.string.prompt_page_lorebook_tab)) },
-                    icon = { Icon(book2, null) },
-                    onClick = {
-                        scope.launch { pagerState.animateScrollToPage(1) }
-                    }
-                )
-            }
+            KedgeBottomBar(
+                items = listOf(
+                    KedgeNavItem(
+                        selected = pagerState.currentPage == 0,
+                        icon = autoFixHigh,
+                        label = stringResource(R.string.prompt_page_mode_injection_tab),
+                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                    ),
+                    KedgeNavItem(
+                        selected = pagerState.currentPage == 1,
+                        icon = book2,
+                        label = stringResource(R.string.prompt_page_lorebook_tab),
+                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                    ),
+                ),
+            )
         },
     ) { innerPadding ->
         HorizontalPager(

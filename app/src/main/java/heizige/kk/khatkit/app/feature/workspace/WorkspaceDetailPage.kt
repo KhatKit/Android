@@ -100,6 +100,8 @@ import heizige.kk.khatkit.app.core.ui.icons.undo
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.adaptive.KedgeBottomBar
+import heizige.kk.kedge.adaptive.KedgeNavItem
 
 @Composable
 fun WorkspaceDetailPage(id: String) {
@@ -170,20 +172,22 @@ fun WorkspaceDetailPage(id: String) {
             }
         },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = pagerState.currentPage == 0,
-                    label = { Text(stringResource(R.string.workspace_detail_tab_basic)) },
-                    icon = { Icon(settings, contentDescription = null) },
-                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                )
-                NavigationBarItem(
-                    selected = pagerState.currentPage == 1,
-                    label = { Text(stringResource(R.string.workspace_detail_tab_files)) },
-                    icon = { Icon(insertDriveFile, contentDescription = null) },
-                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                )
-            }
+            KedgeBottomBar(
+                items = listOf(
+                    KedgeNavItem(
+                        selected = pagerState.currentPage == 0,
+                        icon = settings,
+                        label = stringResource(R.string.workspace_detail_tab_basic),
+                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                    ),
+                    KedgeNavItem(
+                        selected = pagerState.currentPage == 1,
+                        icon = insertDriveFile,
+                        label = stringResource(R.string.workspace_detail_tab_files),
+                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                    ),
+                ),
+            )
         },
     ) { innerPadding ->
         HorizontalPager(
