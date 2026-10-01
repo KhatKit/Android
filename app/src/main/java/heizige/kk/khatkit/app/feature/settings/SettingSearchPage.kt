@@ -69,6 +69,7 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
@@ -242,7 +243,7 @@ internal fun AddProviderDialog(
                             )
                             Text(
                                 text = name,
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = KedgeTextStyles.body(),
                                 color = if (isSelected) {
                                     MaterialTheme.colorScheme.onPrimaryContainer
                                 } else {
@@ -307,7 +308,7 @@ internal fun SearchProviderCard(
             ) {
                 Text(
                     text = service.displayName,
-                    style = MaterialTheme.typography.titleMedium
+                    style = KedgeTextStyles.title()
                 )
                 SearchAbilityTagLine(options = service)
             }
@@ -395,7 +396,7 @@ internal fun CommonOptions(
         ) {
             Text(
                 text = stringResource(R.string.setting_page_search_common_options),
-                style = MaterialTheme.typography.titleMedium
+                style = KedgeTextStyles.title()
             )
 
             KedgeFormRow(

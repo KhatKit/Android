@@ -129,6 +129,7 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.feature.settings.provider.ModelList
 import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) {
@@ -295,7 +296,7 @@ internal fun SettingProviderConfigPage(
                 balanceOption = internalProvider.balanceOption,
                 onEdit = { internalProvider = internalProvider.copyProvider(balanceOption = it) }
             )
-            ProviderBalanceText(providerSetting = provider, style = MaterialTheme.typography.labelSmall)
+            ProviderBalanceText(providerSetting = provider, style = KedgeTextStyles.footnoteSmall())
         }
 
         Row(

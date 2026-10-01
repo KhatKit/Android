@@ -45,6 +45,7 @@ import heizige.kk.khatkit.app.core.util.onLoading
 import heizige.kk.khatkit.app.core.util.onSuccess
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SettingDonatePage() {
@@ -79,7 +80,7 @@ fun SettingDonatePage() {
 
             Text(
                 text = stringResource(R.string.donate_page_sponsor_list),
-                style = MaterialTheme.typography.titleSmall,
+                style = KedgeTextStyles.title(),
                 color = MaterialTheme.colorScheme.primary,
             )
 
@@ -162,7 +163,7 @@ internal fun Sponsors(modifier: Modifier = Modifier) {
                         )
                         Text(
                             text = it.userName,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             maxLines = 1,
                         )
                     }

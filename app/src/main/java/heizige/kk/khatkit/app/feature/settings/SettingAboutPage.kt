@@ -63,6 +63,7 @@ import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 关于页（Kedge MD3Exp）。
@@ -211,7 +212,7 @@ fun SettingAboutPage() {
                                 )
                                 Text(
                                     text = stringResource(R.string.app_name),
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    style = KedgeTextStyles.displayTitle(),
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier
@@ -230,7 +231,7 @@ fun SettingAboutPage() {
                                         BuildConfig.VERSION_NAME,
                                         BuildConfig.VERSION_CODE,
                                     ),
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = KedgeTextStyles.body(),
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier

@@ -49,6 +49,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
@@ -191,7 +192,7 @@ private fun ModelSettingItem(
                         Text(
                             text = state.currentModel?.displayName
                                 ?: stringResource(R.string.model_list_select_model),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -218,7 +219,7 @@ private fun ModelSettingItem(
         }
         Text(
             text = description,
-            style = MaterialTheme.typography.bodySmall,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
         )

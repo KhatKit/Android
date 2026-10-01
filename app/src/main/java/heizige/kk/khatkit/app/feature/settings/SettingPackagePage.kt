@@ -51,6 +51,7 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 「KhatKit 套餐网关」在服务商列表里的固定名称与 ID（重复创建时更新同一条）。 */
 private const val GATEWAY_PROVIDER_NAME = "KhatKit 套餐网关"
@@ -197,7 +198,7 @@ fun SettingPackagePage(
                         "未激活时所有本地卡片照常运行；只有服务端明确拒绝（令牌无效/工具次数不足）时，" +
                         "套餐卡片才会被拦截。网络异常不会阻止卡片运行。",
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

@@ -59,6 +59,7 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,
@@ -402,7 +403,7 @@ fun SettingTriggersPage() {
                         headlineContent = {
                             Text(
                                 text = "触发器服务是常驻前台服务，会显示一条低优先级通知；关闭总开关即可停止。",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },

@@ -37,6 +37,7 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues) {
@@ -147,7 +148,7 @@ private fun PromptSettingItem(
             ) {
                 Text(
                     text = promptDescription,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 KedgeOutlinedTextField(
