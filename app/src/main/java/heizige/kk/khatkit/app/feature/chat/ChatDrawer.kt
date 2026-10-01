@@ -115,6 +115,9 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun ChatDrawerContent(
@@ -493,12 +496,22 @@ fun ChatDrawerContent(
         }
     }
 
+    // 抽屉底色不能依赖 ModalDrawerSheet 的默认值：material3 1.5.0-alpha29 改了
+    // DrawerDefaults 的容器色，MD3Exp 下会漏出灰紫底，和下面的白底分组卡片对不上。
+    // 这里显式给色：Miuix 用 surface（页面底色），MD3Exp 用 surfaceContainerLow。
+    val drawerContainerColor = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        MiuixTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
     // 有 drawerState 时用带预测返回的 ModalDrawerSheet（返回手势跟手关闭抽屉）
     if (drawerState != null) {
         ModalDrawerSheet(
             drawerState = drawerState,
             modifier = Modifier.width(300.dp),
             windowInsets = WindowInsets(0),
+            drawerContainerColor = drawerContainerColor,
         ) {
             sheetContent()
         }
@@ -506,6 +519,7 @@ fun ChatDrawerContent(
         ModalDrawerSheet(
             modifier = Modifier.width(300.dp),
             windowInsets = WindowInsets(0),
+            drawerContainerColor = drawerContainerColor,
         ) {
             sheetContent()
         }

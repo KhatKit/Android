@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,17 +33,14 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceInfo
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
-import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.effect.BgEffectBackground
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.public
-import heizige.kk.khatkit.app.core.ui.icons.smartphone
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.util.openUrl
 import top.yukonga.miuix.kmp.basic.Text
@@ -64,13 +62,16 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 @Composable
 fun SettingAboutPageMiuix() {
     val context = LocalContext.current
-    val navController = LocalNavController.current
     val soundOptions = remember { listOf(R.raw.bingbingbing, R.raw.gangguan) }
     val soundEffectPlayer = remember(context) { SoundEffectPlayer(context) }
     DisposableEffect(soundEffectPlayer) {
         soundEffectPlayer.preload(*soundOptions.toIntArray())
         onDispose { soundEffectPlayer.release() }
     }
+
+    val websiteUrl = stringResource(R.string.about_page_url_website)
+    val githubUrl = stringResource(R.string.about_page_url_github)
+    val licenseUrl = stringResource(R.string.about_page_url_license)
 
     val listState = rememberLazyListState()
 
@@ -100,11 +101,17 @@ fun SettingAboutPageMiuix() {
     val nameProgress = stage(0.18f, 0.78f)
     val versionProgress = stage(0.38f, 1.00f)
 
-    MiuixSettingsPage(
-        title = stringResource(R.string.about_page_title),
-        navigationIcon = { BackButton() },
-        lazyListState = listState,
+    // 流光背景铺满整屏，滚过头图后随进度淡出
+    BgEffectBackground(
+        dynamicBackground = true,
+        modifier = Modifier.fillMaxSize(),
+        alpha = { 1f - animatedProgress },
     ) {
+        MiuixSettingsPage(
+            title = stringResource(R.string.about_page_title),
+            navigationIcon = { BackButton() },
+            lazyListState = listState,
+        ) {
         item(key = "about_hero") {
             Box(
                 modifier = Modifier
@@ -150,7 +157,11 @@ fun SettingAboutPageMiuix() {
                             },
                     )
                     Text(
-                        text = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                        text = stringResource(
+                            R.string.about_page_version_format,
+                            BuildConfig.VERSION_NAME,
+                            BuildConfig.VERSION_CODE,
+                        ),
                         color = colorScheme.onBackground,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center,
@@ -168,40 +179,26 @@ fun SettingAboutPageMiuix() {
             }
         }
 
-        miuixGroup(key = "about_device") {
-            PreferenceInfo(
-                title = stringResource(R.string.about_page_version),
-                summary = "${BuildConfig.VERSION_NAME} / ${BuildConfig.VERSION_CODE}",
-                icon = code,
-                onLongClick = { navController.navigate(Screen.Debug) },
-            )
-            PreferenceInfo(
-                title = stringResource(R.string.about_page_system),
-                summary = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} / " +
-                    "Android ${android.os.Build.VERSION.RELEASE} / SDK ${android.os.Build.VERSION.SDK_INT}",
-                icon = smartphone,
-            )
-        }
-
         miuixGroup(key = "about_links") {
             PreferenceArrow(
                 title = stringResource(R.string.about_page_website),
-                summary = "https://rikka-ai.com",
+                summary = websiteUrl,
                 icon = public,
-                onClick = { context.openUrl("https://rikka-ai.com/") },
+                onClick = { context.openUrl("$websiteUrl/") },
             )
             PreferenceArrow(
                 title = stringResource(R.string.about_page_github),
-                summary = "https://github.com/rikkahub/rikkahub",
+                summary = githubUrl,
                 icon = code,
-                onClick = { context.openUrl("https://github.com/rikkahub/rikkahub") },
+                onClick = { context.openUrl(githubUrl) },
             )
             PreferenceArrow(
                 title = stringResource(R.string.about_page_license),
-                summary = "https://github.com/rikkahub/rikkahub/blob/master/LICENSE",
+                summary = licenseUrl,
                 icon = insertDriveFile,
-                onClick = { context.openUrl("https://github.com/rikkahub/rikkahub/blob/master/LICENSE") },
+                onClick = { context.openUrl(licenseUrl) },
             )
+        }
         }
     }
 }

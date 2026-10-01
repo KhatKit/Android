@@ -6,6 +6,10 @@
   <string name="about_page_title">정보</string>
   <string name="about_page_version">버전</string>
   <string name="about_page_website">웹사이트</string>
+  <string name="about_page_version_format">%1$s (%2$s)</string>
+  <string name="about_page_url_website">https://rikka-ai.com</string>
+  <string name="about_page_url_github">https://github.com/rikkahub/rikkahub</string>
+  <string name="about_page_url_license">https://github.com/rikkahub/rikkahub/blob/master/LICENSE</string>
   <string name="add">추가</string>
   <string name="app_name">KhatKit</string>
   <string name="asr_button_content_description">음성 인식</string>

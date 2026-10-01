@@ -6,6 +6,10 @@
   <string name="about_page_title">关于</string>
   <string name="about_page_version">版本</string>
   <string name="about_page_website">官网</string>
+  <string name="about_page_version_format">%1$s (%2$s)</string>
+  <string name="about_page_url_website">https://rikka-ai.com</string>
+  <string name="about_page_url_github">https://github.com/rikkahub/rikkahub</string>
+  <string name="about_page_url_license">https://github.com/rikkahub/rikkahub/blob/master/LICENSE</string>
   <string name="add">添加</string>
   <string name="app_name">KhatKit</string>
   <string name="explore_market_title">探索市场</string>

@@ -6,6 +6,10 @@
   <string name="about_page_title">حول</string>
   <string name="about_page_version">الإصدار</string>
   <string name="about_page_website">الموقع الإلكتروني</string>
+  <string name="about_page_version_format">%1$s (%2$s)</string>
+  <string name="about_page_url_website">https://rikka-ai.com</string>
+  <string name="about_page_url_github">https://github.com/rikkahub/rikkahub</string>
+  <string name="about_page_url_license">https://github.com/rikkahub/rikkahub/blob/master/LICENSE</string>
   <string name="add">إضافة</string>
   <string name="app_name">RikkaHub</string>
   <string name="asr_button_content_description">التعرف على الكلام</string>
@@ -259,8 +263,6 @@
   <string name="chat_input_file_read_failed">فشل قراءة الملف: %s</string>
   <string name="chat_input_placeholder">الدردشة مع الذكاء الاصطناعي</string>
   <string name="chat_input_unsupported_file_type">نوع الملف غير مدعوم: %s</string>
-  <string name="chat_message_add_favorite">إضافة إلى المفضلة</string>
-  <string name="chat_message_remove_favorite">إزالة من المفضلة</string>
   <string name="chat_message_tool_approve">موافقة</string>
   <string name="chat_message_tool_ask_questions">اطرح %d أسئلة</string>
   <string name="chat_message_tool_calendar_create">إنشاء حدث: %1$s</string>
