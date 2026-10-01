@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -60,6 +63,10 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
  * - KSU 给文字叠了 `textureBlur(DstIn)` 做「化掉」的过渡；本头图已处在
  *   [MiuixSettingsPage] 的模糊层内部，再叠一层纹理模糊会重复采样，故只用透明度+缩放+位移。
  */
+/** 列表末尾留白：视口比例，保证内容再少也能滑够。移植自 lyricon AboutScreen.kt。 */
+private const val BOTTOM_SCROLL_SPACE_FRACTION = 0.72f
+private val BOTTOM_SCROLL_SPACE_MIN = 160.dp
+
 @Composable
 fun SettingAboutPageMiuix() {
     val context = LocalContext.current
@@ -207,6 +214,20 @@ fun SettingAboutPageMiuix() {
                 summary = licenseUrl,
                 icon = insertDriveFile,
                 onClick = { context.openUrl(licenseUrl) },
+            )
+        }
+
+        // 列表末尾留白，保证内容再少也能继续下滑、让顶部 Logo 完整收起。
+        // 没有它时本页内容高不足一屏，firstVisibleItemScrollOffset 恒为 0，
+        // scrollProgress 永远是 0，顶栏与流光都不会随滚动淡入。
+        // 按视口比例而非固定值：长屏手机与平板视口差异很大。
+        // 移植自 lyricon AboutScreen.kt（BOTTOM_SCROLL_SPACE_FRACTION = 0.72f）。
+        item(key = "about_bottom_space") {
+            Spacer(
+                Modifier
+                    .fillParentMaxHeight(BOTTOM_SCROLL_SPACE_FRACTION)
+                    .heightIn(min = BOTTOM_SCROLL_SPACE_MIN)
+                    .navigationBarsPadding()
             )
         }
         }

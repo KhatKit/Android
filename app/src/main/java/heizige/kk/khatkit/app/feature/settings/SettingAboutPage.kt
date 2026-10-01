@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -269,6 +272,18 @@ fun SettingAboutPage() {
                                 headlineContent = { Text(stringResource(R.string.about_page_license)) },
                             )
                         }
+                    }
+
+                    // 列表末尾留白，保证内容再少也能滑够、头图能完整收起。
+                    // 没有它时本页内容不足一屏，滚动偏移恒为 0，顶栏与流光
+                    // 永远不会淡入。与 Miuix 版同源（lyricon AboutScreen.kt）。
+                    item(key = "about_bottom_space") {
+                        Spacer(
+                            Modifier
+                                .fillParentMaxHeight(0.72f)
+                                .heightIn(min = 160.dp)
+                                .navigationBarsPadding()
+                        )
                     }
                 }
             }
