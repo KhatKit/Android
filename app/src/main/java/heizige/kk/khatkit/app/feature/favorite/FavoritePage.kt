@@ -48,36 +48,28 @@ import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
 import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.overlays.rememberKedgeSnackbarHostState
+import heizige.kk.kedge.overlays.KedgeSnackbarHost
+import heizige.kk.kedge.overlays.KedgeSnackbarResult
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = rememberKedgeSnackbarHostState()
     val favorites = vm.nodeFavorites.collectAsStateWithLifecycle().value
     val favoriteRemovedText = stringResource(R.string.favorite_page_removed)
     val undoText = stringResource(R.string.history_page_undo)
 
-    Scaffold(
-        topBar = {
-            LargeFlexibleTopAppBar(
-                navigationIcon = {
-                    BackButton()
-                },
-                title = {
-                    Text(stringResource(R.string.favorite_page_title))
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.topBarColors.containerColor,
-    ) { innerPadding ->
+    Box {
+        KedgeSettingsPageScaffold(
+            title = stringResource(R.string.favorite_page_title),
+            scrollBehavior = scrollBehavior,
+        ) { innerPadding ->
         if (favorites.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -90,7 +82,7 @@ fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                 )
             }
-            return@Scaffold
+            return@KedgeSettingsPageScaffold
         }
 
         LazyColumn(
@@ -111,7 +103,7 @@ fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
                                 actionLabel = undoText,
                                 withDismissAction = true,
                             )
-                            if (result == SnackbarResult.ActionPerformed) {
+                            if (result == KedgeSnackbarResult.ActionPerformed) {
                                 vm.restoreFavorite(entity)
                             }
                         }
@@ -123,6 +115,9 @@ fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
                 )
             }
         }
+    }
+
+        KedgeSnackbarHost(state = snackbarHostState)
     }
 }
 
@@ -181,11 +176,10 @@ private fun FavoriteCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    KedgeCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        colors = CustomColors.cardColorsOnSurfaceContainer,
-    ) {
+        ) {
         SelectionContainer {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -195,20 +189,20 @@ private fun FavoriteCard(
                     text = item.conversationTitle.ifBlank { stringResource(R.string.favorite_page_untitled_conversation) },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                 )
                 val dateText = Instant.ofEpochMilli(item.createdAt).toLocalDateTime()
                 Text(
                     text = item.preview,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                 )
                 Text(
                     text = dateText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
