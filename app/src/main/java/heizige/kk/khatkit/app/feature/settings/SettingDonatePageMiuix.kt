@@ -57,10 +57,12 @@ fun SettingDonatePageMiuix() {
                 summary = stringResource(R.string.donate_page_afdian_desc),
                 onClick = { context.openUrl("https://afdian.com/a/reovo") },
                 startAction = {
+                    // 品牌标识不能用 PreferenceIcon（那是矢量图 + 固定 24dp），
+                    // 这里保留 28dp 的 logo 尺寸，但补上 KSU 的图标右间距 6dp。
                     Icon(
                         painter = painterResource(R.drawable.afdian),
                         contentDescription = null,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(28.dp).padding(end = 6.dp),
                     )
                 },
             )

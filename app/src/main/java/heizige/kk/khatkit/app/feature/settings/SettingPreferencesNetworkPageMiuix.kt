@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceIcon
 
 /**
  * 网络偏好页的 Miuix 风格版。
@@ -179,11 +181,9 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                     proxyDialogVisible = true
                 },
                 startAction = {
-                    Icon(
-                        imageVector = arrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                    )
+                    // 与 KSU 一致：startAction 用 PreferenceIcon（24dp + 右 6dp 间距 +
+                    // 禁用态着色），而不是裸 Icon。
+                    PreferenceIcon(imageVector = arrowForward)
                 },
             )
             PreferenceArrow(
