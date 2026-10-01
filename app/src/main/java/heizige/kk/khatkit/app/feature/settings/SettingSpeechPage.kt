@@ -76,6 +76,8 @@ import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.adaptive.KedgeBottomBar
+import heizige.kk.kedge.adaptive.KedgeNavItem
 
 @Composable
 fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
@@ -121,22 +123,22 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = CustomColors.cardColorsOnSurfaceContainer.containerColor
-            ) {
-                NavigationBarItem(
-                    selected = selectedPage == 0,
-                    onClick = { selectedPage = 0 },
-                    icon = { Icon(volumeUp, contentDescription = null) },
-                    label = { Text(stringResource(R.string.speech_tab_tts)) }
-                )
-                NavigationBarItem(
-                    selected = selectedPage == 1,
-                    onClick = { selectedPage = 1 },
-                    icon = { Icon(mic, contentDescription = null) },
-                    label = { Text(stringResource(R.string.speech_tab_asr)) }
-                )
-            }
+            KedgeBottomBar(
+                items = listOf(
+                    KedgeNavItem(
+                        selected = selectedPage == 0,
+                        icon = volumeUp,
+                        label = stringResource(R.string.speech_tab_tts),
+                        onClick = { selectedPage = 0 },
+                    ),
+                    KedgeNavItem(
+                        selected = selectedPage == 1,
+                        icon = mic,
+                        label = stringResource(R.string.speech_tab_asr),
+                        onClick = { selectedPage = 1 },
+                    ),
+                ),
+            )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = CustomColors.pageContainerColor,

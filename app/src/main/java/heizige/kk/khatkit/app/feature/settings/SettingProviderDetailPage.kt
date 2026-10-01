@@ -130,6 +130,8 @@ import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.feature.settings.provider.ModelList
 import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.adaptive.KedgeBottomBar
+import heizige.kk.kedge.adaptive.KedgeNavItem
 
 @Composable
 fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) {
@@ -204,30 +206,22 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = CustomColors.cardColorsOnSurfaceContainer.containerColor
-            ) {
-                NavigationBarItem(
-                    selected = pager.currentPage == 0,
-                    label = { Text(stringResource(id = R.string.setting_provider_page_configuration)) },
-                    icon = { Icon(build, null) },
-                    onClick = {
-                        scope.launch {
-                            pager.animateScrollToPage(0)
-                        }
-                    }
-                )
-                NavigationBarItem(
-                    selected = pager.currentPage == 1,
-                    label = { Text(stringResource(id = R.string.setting_provider_page_models)) },
-                    icon = { Icon(package2, null) },
-                    onClick = {
-                        scope.launch {
-                            pager.animateScrollToPage(1)
-                        }
-                    }
-                )
-            }
+            KedgeBottomBar(
+                items = listOf(
+                    KedgeNavItem(
+                        selected = pager.currentPage == 0,
+                        icon = build,
+                        label = stringResource(id = R.string.setting_provider_page_configuration),
+                        onClick = { scope.launch { pager.animateScrollToPage(0) } },
+                    ),
+                    KedgeNavItem(
+                        selected = pager.currentPage == 1,
+                        icon = package2,
+                        label = stringResource(id = R.string.setting_provider_page_models),
+                        onClick = { scope.launch { pager.animateScrollToPage(1) } },
+                    ),
+                ),
+            )
         },
     
         md3ScrollBehavior = null,

@@ -50,6 +50,8 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.adaptive.KedgeBottomBar
+import heizige.kk.kedge.adaptive.KedgeNavItem
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
@@ -73,22 +75,22 @@ fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
             )
         },
         bottomBar = {
-            BottomAppBar(
-                containerColor = CustomColors.cardColorsOnSurfaceContainer.containerColor
-            ) {
-                NavigationBarItem(
-                    selected = pagerState.currentPage == 0,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                    icon = { Icon(neurology, null) },
-                    label = { Text(stringResource(R.string.setting_model_page_tab_model)) }
-                )
-                NavigationBarItem(
-                    selected = pagerState.currentPage == 1,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                    icon = { Icon(editNote, null) },
-                    label = { Text(stringResource(R.string.setting_model_page_tab_prompt)) }
-                )
-            }
+            KedgeBottomBar(
+                items = listOf(
+                    KedgeNavItem(
+                        selected = pagerState.currentPage == 0,
+                        icon = neurology,
+                        label = stringResource(R.string.setting_model_page_tab_model),
+                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                    ),
+                    KedgeNavItem(
+                        selected = pagerState.currentPage == 1,
+                        icon = editNote,
+                        label = stringResource(R.string.setting_model_page_tab_prompt),
+                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                    ),
+                ),
+            )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { contentPadding ->
