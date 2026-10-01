@@ -17,7 +17,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
@@ -40,6 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun <T> Select(
@@ -58,15 +61,11 @@ fun <T> Select(
         label = "selectArrowRotation",
     )
 
-    ExposedDropdownMenuBox(
-        modifier = modifier,
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        Surface(
-            tonalElevation = 4.dp,
+    // 展开项本来就用 Kedge 的下拉项，只有外层的锚点与菜单容器还是 MD3 的。
+    val anchor: @Composable (Modifier) -> Unit = { anchorModifier ->
+        KedgeSurface(
+            modifier = anchorModifier,
             shape = RoundedCornerShape(50),
-            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         ) {
             Row(
                 modifier = Modifier
@@ -79,7 +78,7 @@ fun <T> Select(
                 leading()
                 Text(
                     text = optionToString(selectedOption),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = KedgeTextStyles.body(),
                     modifier = Modifier.weight(1f)
                 )
                 trailing()
@@ -90,25 +89,63 @@ fun <T> Select(
                 )
             }
         }
-        ExposedDropdownMenu(
+    }
+
+    val menuItems: @Composable () -> Unit = {
+        options.fastForEach { option ->
+            KedgeDropdownItemSlot(
+                onClick = {
+                    onOptionSelected(option)
+                    expanded = false
+                },
+                text = {
+                    Text(text = optionToString(option), maxLines = 1)
+                },
+                leadingIcon = optionLeading?.let {
+                    { it(option) }
+                }
+            )
+        }
+    }
+
+    when (LocalKedgeStyle.current) {
+        // MD3Exp 保持原来的 ExposedDropdownMenuBox 定位行为。
+        KedgeStyle.MD3Exp -> ExposedDropdownMenuBox(
+            modifier = modifier,
             expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-            },
-            shape = RoundedCornerShape(20.dp),
+            onExpandedChange = { expanded = it }
         ) {
-            options.fastForEach { option ->
-                KedgeDropdownItemSlot(
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    },
-                    text = {
-                        Text(text = optionToString(option), maxLines = 1)
-                    },
-                    leadingIcon = optionLeading?.let {
-                        { it(option) }
-                    }
+            anchor(Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable))
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                shape = RoundedCornerShape(20.dp),
+            ) {
+                menuItems()
+            }
+        }
+
+        // Miuix：改用基于锚点宽度的弹出菜单，容器与菜单都是 Miuix 形态。
+        KedgeStyle.Miuix -> {
+            var anchorWidth by remember { mutableIntStateOf(0) }
+            val density = LocalDensity.current
+            Box(modifier = modifier) {
+                anchor(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { expanded = !expanded }
+                        .onGloballyPositioned { anchorWidth = it.size.width }
+                )
+                KedgeDropdownMenuSlots(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier
+                        .width(with(density) { anchorWidth.toDp() })
+                        .heightIn(max = 240.dp),
+                    content = menuItems,
                 )
             }
         }

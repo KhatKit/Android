@@ -1,5 +1,8 @@
 # 图像工具箱（本地处理，云端市场分发）
 
+上游参考实现：[`T8RIN/ImageToolbox`](https://github.com/T8RIN/ImageToolbox)。本项目只复用其交互与视觉
+规范，不把上游 APK 或整仓库塞入 KhatKit；动态图像处理依赖仍由独立依赖包提供。
+
 参考 ImageToolbox（T8RIN/ImageToolbox）的常用静态图处理，**全部在设备本地完成**：
 
 - **实现不随 APK 编译**：代码在独立模块 `image-toolbox-dependency`，由 D8 打成含
@@ -231,3 +234,6 @@ AI 调用示例：
 | 二维码/条码生成与识别 | 纯 Android SDK 无 QR 编码器；识别另有 `tool` 能力，生成暂不提供 |
 | OCR、文档扫描 | 需要 ML Kit，宿主 App 已用 OCR 卡片实现，不放进依赖包 |
 | 调色板 PDF、照片马赛克、Seam Carving 等高级算法 | 算法体量与收益不匹配，暂不实现 |
+迁移验收标准：打开聊天附件图片入口后必须显示 ImageToolbox 风格的媒体网格，而不是系统文件管理器；
+支持相册分组、搜索、单选/多选、拖拽连续选择、长按预览、选择确认栏、权限缺失页和全屏预览，并返回
+可读的 `content://` `Uri` 列表给聊天附件管线。

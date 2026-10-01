@@ -894,7 +894,7 @@ return { ready = true }
 - 点「停止」调用 `AutomationBus.requestCancel()`，脚本通过 `ui.isCancelled()` 感知；看板按钮变为「正在停止」。取消不会强杀脚本，需要脚本配合轮询。
 - 「放手模式」在权限面板开启，语义是：高权限/高风险卡片不再逐条确认，全部交给 AI 执行。开启后审批一律放行。
 
-提示位置自动切换：KhatKit 在应用前台时把自动化步骤显示为应用内底部 Toast 卡片；应用退到后台或切换到其他应用后，才启动悬浮看板服务继续显示。两种提示共用同一条 `AutomationBus` 状态，不会重复显示。点击应用内或悬浮的提示卡片可提前隐藏当前提示，自动化任务本身不会因此被强制终止；需要停止任务时使用看板的「停止」按钮。
+提示位置自动切换：KhatKit 在应用前台时把自动化步骤显示为应用内底部 Toast 卡片；应用退到后台或切换到其他应用后，才启动悬浮看板服务继续显示。两种提示共用同一条 `AutomationBus` 状态，不会重复显示。Toast 动画与 Khromia/ImageToolbox 风格一致：进入为 `fadeIn(300ms) + scaleIn(spring, bottom-center) + slideInVertically(spring, half-height)`，退出为 `fadeOut(250ms) + scaleOut(spring, bottom-center) + slideOutVertically(500ms, half-height)`。点击应用内或悬浮的提示卡片可提前隐藏当前提示，自动化任务本身不会因此被强制终止；需要停止任务时使用看板的「停止」按钮。
 
 ### 5.3 事件触发的开启与配置
 
