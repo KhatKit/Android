@@ -128,6 +128,10 @@ import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 
 @Composable
 fun ChatDrawerContent(
@@ -674,26 +678,24 @@ fun ChatDrawerContent(
             onDismissRequest = { folderToRename = null },
             title = { Text(stringResource(R.string.chat_page_rename_folder)) },
             text = {
-                OutlinedTextField(
+                KedgeTextField(
                     value = name,
                     onValueChange = { name = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         drawerVm.renameFolder(folder.id, name)
                         folderToRename = null
                     },
                     enabled = name.isNotBlank(),
-                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.chat_page_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { folderToRename = null }, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { folderToRename = null }) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }
             }
@@ -707,7 +709,7 @@ fun ChatDrawerContent(
             title = { Text(stringResource(R.string.chat_page_delete_folder)) },
             text = { Text(stringResource(R.string.chat_page_delete_folder_confirm, folder.name)) },
             confirmButton = {
-                TextButton(
+                KedgeTextButton(
                     onClick = {
                         if (drawerVm.deleteFolder(folder.id)) {
                             folderToDelete = null
@@ -716,11 +718,10 @@ fun ChatDrawerContent(
                             Toast.show(context.getString(R.string.chat_page_delete_folder_generating), isError = false)
                         }
                     },
-                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.chat_page_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { folderToDelete = null }, shapes = ButtonDefaults.shapes()) {
+                KedgeTextButton(onClick = { folderToDelete = null }) {
                     Text(stringResource(R.string.chat_page_cancel))
                 }
             }
@@ -850,11 +851,11 @@ private fun FolderSection(
                                 )
                             }
                         }
-                        DropdownMenu(
+                        KedgeDropdownMenuSlots(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                         ) {
-                            DropdownMenuItem(
+                            KedgeDropdownItemSlot(
                                 text = { Text(stringResource(R.string.chat_page_rename)) },
                                 leadingIcon = { Icon(edit, null) },
                                 onClick = {
@@ -862,7 +863,7 @@ private fun FolderSection(
                                     menuExpanded = false
                                 }
                             )
-                            DropdownMenuItem(
+                            KedgeDropdownItemSlot(
                                 text = { Text(stringResource(R.string.chat_page_delete)) },
                                 leadingIcon = { Icon(delete, null) },
                                 onClick = {
