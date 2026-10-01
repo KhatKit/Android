@@ -27,6 +27,36 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 private const val TAG = "WebView"
 
+/**
+ * 桌面浏览器 User-Agent：带 Windows 平台标识，且不含 `Android` / `Mobile` 标识。
+ *
+ * 卡片网页登录专用——云盘等站点按 UA 分发移动版页面，WebView 默认 UA 会命中
+ * `wv` + `Version/4.0` 的手机版分支，导致扫码/验证码登录流程不可用。
+ */
+const val DESKTOP_USER_AGENT: String =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/131.0.0.0 Safari/537.36"
+
+/**
+ * 把 WebView 切到桌面渲染模式：桌面 UA + 宽视口 + overview + JS/DOM storage。
+ *
+ * 只在卡片网页登录 Sheet 显式调用，其他页面保持各自原有设置。
+ */
+@SuppressLint("SetJavaScriptEnabled")
+fun WebSettings.applyDesktopMode() {
+    userAgentString = DESKTOP_USER_AGENT
+    // 宽视口 + overview：桌面站点按桌面布局渲染并整体缩放到屏幕宽度。
+    useWideViewPort = true
+    loadWithOverviewMode = true
+    javaScriptEnabled = true
+    domStorageEnabled = true
+    setSupportZoom(true)
+    builtInZoomControls = true
+    displayZoomControls = false
+    // 登录页会读自己的 UA 做二次判断，这里保证不会命中移动端标识。
+    setSupportMultipleWindows(false)
+}
+
 internal class MyWebChromeClient(private val state: WebViewState) : WebChromeClient() {
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
         state.loadingProgress = newProgress / 100f

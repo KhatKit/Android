@@ -52,6 +52,63 @@ data class UiSheetOptions(
     }
 }
 
+/**
+ * Sheet 动作的摆放位置（action 表单字段 `placement`）。
+ *
+ * - [TOP]：渲染成弹层右上角的图标按钮（需要 `icon`，无图标时退回 [CONTENT]）；
+ * - [OVERFLOW]：收进右上角的溢出菜单；
+ * - [CONTENT]：内容区底部的文字按钮（历史行为，未声明 `placement` 时的默认）。
+ */
+enum class SheetActionPlacement {
+    TOP,
+    OVERFLOW,
+    CONTENT;
+
+    companion object {
+        fun from(raw: String?): SheetActionPlacement = when (raw?.trim()?.lowercase()) {
+            "top", "header", "icon" -> TOP
+            "overflow", "menu" -> OVERFLOW
+            else -> CONTENT
+        }
+    }
+}
+
+/** 归一化后的 Sheet 动作：事件名 + 展示标签 + 图标名 + 摆放位置。 */
+data class SheetAction(
+    val event: String,
+    val label: String,
+    val icon: String,
+    val placement: SheetActionPlacement,
+) {
+    /** 能否作为顶栏图标按钮：事件与标签齐全且声明了图标名。 */
+    val topBarIcon: Boolean get() = event.isNotBlank() && label.isNotBlank() && icon.isNotBlank()
+
+    /** 图标名已知时宿主才能解析出 ImageVector，其余退回默认图标。 */
+    val hasIcon: Boolean get() = icon.isNotBlank()
+
+    companion object {
+        /** 解析脚本传入的 action 表单；事件缺失时回落到 `id`，都为空则整条忽略。 */
+        fun parse(actions: List<Map<String, Any?>>): List<SheetAction> = actions.mapNotNull { action ->
+            val event = action["event"]?.toString()?.trim().orEmpty()
+                .ifBlank { action["id"]?.toString()?.trim().orEmpty() }
+            val label = action["label"]?.toString()?.trim().orEmpty().ifBlank { event }
+            if (event.isBlank()) return@mapNotNull null
+            val icon = action["icon"]?.toString()?.trim().orEmpty()
+            val placement = SheetActionPlacement.from(action["placement"]?.toString())
+            SheetAction(
+                event = event,
+                label = label,
+                icon = icon,
+                placement = if (placement == SheetActionPlacement.TOP && icon.isBlank()) {
+                    SheetActionPlacement.CONTENT
+                } else {
+                    placement
+                },
+            )
+        }
+    }
+}
+
 /** 一个等待宿主 UI 处理的请求。 */
 sealed interface UiRequest {
     data class Sheet(
@@ -60,7 +117,26 @@ sealed interface UiRequest {
         val actions: List<Map<String, Any?>>,
         val options: UiSheetOptions,
         val deferred: CompletableDeferred<Map<String, Any?>?>,
-    ) : UiRequest
+        /** true 表示卡片网页登录（`web.openLogin`），宿主据此启用桌面模式与 Cookie 顶栏动作。 */
+        val isWeb: Boolean = false,
+    ) : UiRequest {
+        private val parsedActions: List<SheetAction> = SheetAction.parse(actions)
+
+        /** 右上角图标按钮（脚本用 `placement="top"` + `icon` 声明）。 */
+        val topBarActions: List<SheetAction>
+            get() = parsedActions.filter { it.placement == SheetActionPlacement.TOP }
+
+        /** 右上角溢出菜单项（脚本用 `placement="overflow"` 声明）。 */
+        val overflowActions: List<SheetAction>
+            get() = parsedActions.filter { it.placement == SheetActionPlacement.OVERFLOW }
+
+        /** 内容区文字按钮；顶栏动作不再重复出现在这里。 */
+        val contentActions: List<SheetAction>
+            get() = parsedActions.filter { it.placement == SheetActionPlacement.CONTENT }
+
+        /** 网页登录 Sheet 才需要 Cookie 顶栏动作（普通表单 Sheet 没有这个概念）。 */
+        val showTopBar: Boolean get() = topBarActions.isNotEmpty() || overflowActions.isNotEmpty()
+    }
 
     data class Form(
         val title: String,
@@ -125,7 +201,14 @@ class UiBridgeHost(
 
     override fun webSheet(title: String, url: String, actions: List<Map<String, Any?>>, options: Map<String, Any?>?): Map<String, Any?>? {
         val deferred = CompletableDeferred<Map<String, Any?>?>()
-        _request.value = UiRequest.Sheet(title, url, actions, UiSheetOptions.from(options), deferred)
+        _request.value = UiRequest.Sheet(
+            title = title,
+            url = url,
+            actions = actions,
+            options = UiSheetOptions.from(options),
+            deferred = deferred,
+            isWeb = true,
+        )
         return runBlocking { withTimeoutOrNull(timeoutMillis) { deferred.await() } }
     }
 

@@ -31,6 +31,7 @@
   <string name="khatkit_secrets_revoked">已撤销 %1$s</string>
   <string name="khatkit_secrets_revoke">撤销</string>
   <string name="khatkit_close">关闭</string>
+  <string name="khatkit_sheet_more_actions">更多操作</string>
   <string name="khatkit_settings_title">KhatKit 设置</string>
   <string name="khatkit_settings_hub_url">卡片 Hub 地址</string>
   <string name="khatkit_settings_enable_root">启用 root（L2，高风险）</string>

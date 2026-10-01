@@ -31,6 +31,7 @@
   <string name="khatkit_secrets_revoked">Revoked %1$s</string>
   <string name="khatkit_secrets_revoke">Revoke</string>
   <string name="khatkit_close">Close</string>
+  <string name="khatkit_sheet_more_actions">More actions</string>
   <string name="khatkit_settings_title">KhatKit Settings</string>
   <string name="khatkit_settings_hub_url">Card Hub URL</string>
   <string name="khatkit_settings_enable_root">Enable root (L2, high risk)</string>
