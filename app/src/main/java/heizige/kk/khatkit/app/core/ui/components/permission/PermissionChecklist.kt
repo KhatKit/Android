@@ -66,6 +66,10 @@ import heizige.kk.kedge.components.KedgeStatusLevel
 import heizige.kk.kedge.components.KedgeWarningCard
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.kedge.components.KedgeRadioButton
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -583,13 +587,32 @@ private fun PermissionActionItem(
         stringResource(R.string.greeting_permission_status_not_granted) +
             " · " + stringResource(item.actionLabelRes)
     }
-    AnimatedRadioItem(
-        text = stringResource(item.titleRes),
-        subtitle = stringResource(item.descRes) + " · " + statusLabel,
-        isSelected = item.granted,
-        onClick = { if (!item.granted) item.onAction?.invoke() },
-        shape = shape,
-    )
+    val subtitle = stringResource(item.descRes) + " · " + statusLabel
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        // Miuix 下用设置页同款 OptionItem：白底圆角块 + Miuix 字阶，
+        // 勾选态靠右上角的 KedgeRadioButton 表示（KSU 的权限页就是这个形态）。
+        KedgeOptionItem(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { if (!item.granted) item.onAction?.invoke() },
+            shape = shape,
+            titleContent = { Text(stringResource(item.titleRes)) },
+            supportingContent = { Text(subtitle) },
+            trailingContent = {
+                KedgeRadioButton(
+                    selected = item.granted,
+                    onClick = { if (!item.granted) item.onAction?.invoke() },
+                )
+            },
+        )
+    } else {
+        AnimatedRadioItem(
+            text = stringResource(item.titleRes),
+            subtitle = subtitle,
+            isSelected = item.granted,
+            onClick = { if (!item.granted) item.onAction?.invoke() },
+            shape = shape,
+        )
+    }
 }
 
 @Composable
@@ -603,19 +626,36 @@ private fun PermissionRadioItem(
     dangerous: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
-    AnimatedRadioItem(
-        text = title,
-        subtitle = subtitle,
-        isSelected = selected,
-        onClick = { if (enabled) onClick() },
-        selectedBackground = if (dangerous) colors.errorContainer.copy(alpha = 0.54f)
-        else colors.primaryContainer.copy(alpha = 0.54f),
-        unselectedBackground = colors.surfaceVariant.copy(alpha = if (enabled) 0.26f else 0.12f),
-        checkIconTint = if (dangerous) colors.error else colors.primary,
-        textColor = if (enabled) colors.onSurface else colors.onSurface.copy(alpha = 0.38f),
-        shape = shape,
-        modifier = Modifier.alpha(if (enabled) 1f else 0.6f),
-    )
+    val alpha = if (enabled) 1f else 0.6f
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        KedgeOptionItem(
+            modifier = Modifier.fillMaxWidth().alpha(alpha),
+            onClick = { if (enabled) onClick() },
+            shape = shape,
+            titleContent = { Text(title) },
+            supportingContent = { Text(subtitle) },
+            trailingContent = {
+                KedgeRadioButton(
+                    selected = selected,
+                    onClick = { if (enabled) onClick() },
+                )
+            },
+        )
+    } else {
+        AnimatedRadioItem(
+            text = title,
+            subtitle = subtitle,
+            isSelected = selected,
+            onClick = { if (enabled) onClick() },
+            selectedBackground = if (dangerous) colors.errorContainer.copy(alpha = 0.54f)
+            else colors.primaryContainer.copy(alpha = 0.54f),
+            unselectedBackground = colors.surfaceVariant.copy(alpha = if (enabled) 0.26f else 0.12f),
+            checkIconTint = if (dangerous) colors.error else colors.primary,
+            textColor = if (enabled) colors.onSurface else colors.onSurface.copy(alpha = 0.38f),
+            shape = shape,
+            modifier = Modifier.alpha(alpha),
+        )
+    }
 }
 
 private fun hasPermission(context: Context, permission: String): Boolean =
