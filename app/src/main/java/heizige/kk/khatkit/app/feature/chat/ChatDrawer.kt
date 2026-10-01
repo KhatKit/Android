@@ -133,6 +133,9 @@ import heizige.kk.kedge.components.KedgeTextField
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.statusBars
 
 @Composable
 fun ChatDrawerContent(
@@ -248,11 +251,16 @@ fun ChatDrawerContent(
         val searchProgress = searchExpand.progress
         val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
         val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
+        val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        // 这个 Compose 版本里 WindowInsets.navigationBars 解析不到，用 systemBars
+        // 的底部值减去状态栏顶部值得到导航栏高度（竖屏下等价）。
+        val navBarBottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
         KedgeOverlayScaffold(
             backdrop = backdrop,
-            // 不传 inset：由 KedgeOverlayScaffold 按实测栏高内缩内容。
-            // 之前写死 64.dp，比真实栏高（含状态栏/导航栏 insets）小，
-            // 导致"新建文件夹"这类首项被顶栏盖住。
+            // 栏高 = 内容高 + 窗口 insets。之前只写 64.dp（= TopAppBar 内容高），
+            // 没算状态栏/导航栏 inset，列表首项会被顶栏盖住、末项被底栏盖住。
+            contentInsetTop = DrawerTopBarHeight + statusBarTop,
+            contentInsetBottom = DrawerBottomBarHeight + navBarBottom,
             topBar = {
                 KedgeBlurredBar(backdrop = backdrop) {
             TopAppBar(
@@ -809,6 +817,12 @@ private fun DrawerAction(
         }
     }
 }
+
+// 抽屉底栏高度：KedgeIconButton 48.dp + 上下各 8.dp 内边距
+// 抽屉顶栏高度：MD3 TopAppBar 内容高 64.dp（不含状态栏 inset）
+private val DrawerTopBarHeight = 64.dp
+
+private val DrawerBottomBarHeight = 64.dp
 
 private val FolderRowShape = RoundedCornerShape(16.dp)
 
