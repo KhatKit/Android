@@ -9,11 +9,16 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * 卡片弹层的呈现选项（`ui.form` / `ui.show` 的 options 参数）。
+ * 卡片弹层的呈现选项（`ui.form` / `ui.show` / `ui.sheet` / `web.openLogin` 的 options 参数）。
  *
  * - [fullscreen]：占满屏幕宽高（无部分展开态），仍可下滑/返回关闭；
  * - [landscape]：弹层显示期间允许横屏（宿主把 Activity 方向设为 FULL_SENSOR，关闭后还原）；
- * - [height]：弹层高度占屏幕比例 0.1–1.0，null 用组件默认（约 0.9 上限）。
+ * - [height]：弹层高度占屏幕比例 0.1–1.0，null 用组件默认（约 0.9 上限）；
+ * - [desktop]：仅网页登录 Sheet 认，按桌面布局渲染（宽视口 + overview + 缩放）；
+ * - [userAgent]：仅网页登录 Sheet 认，自定义 User-Agent 字符串。
+ *
+ * 宿主**不内置任何浏览器 UA**：桌面模式要生效，脚本需自己声明 [userAgent]
+ * （如 `web.openLogin(url, title, actions, { desktop = true, user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) …" })`）。
  *
  * 脚本传 `Map`（Lua table / JS object）即可，非法值忽略不报错。
  */
@@ -21,9 +26,14 @@ data class UiSheetOptions(
     val fullscreen: Boolean = false,
     val landscape: Boolean = false,
     val height: Float? = null,
+    val desktop: Boolean = false,
+    val userAgent: String? = null,
 ) {
     /** 需要自定义大弹层（全屏或显式高度）时为 true。 */
     val usesLargeSheet: Boolean get() = fullscreen || height != null
+
+    /** 脚本是否声明了网页渲染开关；有则宿主才去改 WebView 设置。 */
+    val hasWebSettings: Boolean get() = desktop || !userAgent.isNullOrBlank()
 
     companion object {
         val DEFAULT = UiSheetOptions()
@@ -40,6 +50,8 @@ data class UiSheetOptions(
                 height = rawHeight
                     ?.takeIf { it.isFinite() && it > 0f }
                     ?.coerceIn(MIN_HEIGHT, 1f),
+                desktop = map["desktop"].toBooleanFlag(),
+                userAgent = (map["user_agent"] ?: map["userAgent"])?.toString()?.trim()?.ifBlank { null },
             )
         }
 

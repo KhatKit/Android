@@ -77,11 +77,20 @@ interface ToolBridge {
 
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
-    /** 打开登录 WebView；用户点击动作后返回 JSON 结果。 */
+    /**
+     * 打开登录 WebView；用户点击动作后返回 JSON 结果。
+     *
+     * [options] 由脚本声明渲染方式，宿主不内置任何浏览器 UA：
+     * - `desktop`：按桌面布局渲染（宽视口 + overview + 缩放）；
+     * - `user_agent`：自定义 User-Agent。
+     *
+     * 想要电脑版页面，脚本需同时给出不含移动端标识的 `user_agent`。
+     */
     fun openLogin(
         url: String,
         title: String = "网页登录",
         actions: List<Map<String, Any?>> = emptyList(),
+        options: Map<String, Any?>? = null,
     ): String
 
     /** 读取指定站点已保存的 Cookie。 */

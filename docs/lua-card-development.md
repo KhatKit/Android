@@ -793,14 +793,29 @@ WebView 登录弹层 + 按站点隔离的站点 Cookie。**Cookie 只加密保�
 
 | 方法（签名） | 参数 | 返回 | 说明 |
 |---|---|---|---|
-| `openLogin(url, title, actions)` | url: string（http/https）；title: string；actions: map[] | map | 弹出网页登录弹层并阻塞等待。actions 字段见上方「Sheet 动作」。返回 `{event, values}`；`event` 为 `save_cookie` / `cookie_status` / `clear_cookie`，`values.currentUrl` 是点击时的当前页面地址（登录后常已跳到别的域名）。 |
+| `openLogin(url, title, actions, options)` | url: string（http/https）；title: string；actions: map[]；options: map 或 nil | map | 弹出网页登录弹层并阻塞等待。actions 字段见上方「Sheet 动作」，options 见下方「网页渲染选项」。返回 `{event, values}`；`event` 为 `save_cookie` / `cookie_status` / `clear_cookie`，`values.currentUrl` 是点击时的当前页面地址（登录后常已跳到别的域名）。 |
 | `savedCookie(url)` | url: string | string | 读取该 **host** 已保存的 Cookie，没有则返回空串。 |
 | `cookieStatus(url)` | url: string | map | `{host, saved, length}`，只给状态与长度，不含内容。 |
 | `clearCookie(url)` | url: string | boolean | 清除该 host 的已保存 Cookie。 |
 
+网页渲染选项（`openLogin` 的 `options`；宿主不内置 UA，桌面模式要生效必须自己传 `user_agent`）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `desktop` | boolean | 按桌面布局渲染：宽视口 + overview（页面整体缩放到屏幕宽度）+ 缩放，并显式打开 JavaScript 与 DOM storage。 |
+| `user_agent` | string | 自定义 User-Agent。要拿电脑版页面就传一个不含 `Android` / `Mobile` 标识的桌面 UA，例如 `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36`。 |
+
+```lua
+web.openLogin(login_url, "云盘登录", actions, {
+  desktop = true,
+  -- 必须不含 Android / Mobile，否则站点仍会下发手机版页面
+  user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+})
+```
+
 弹层行为：
 
-- **桌面模式**：登录 WebView 使用桌面浏览器 User-Agent（不含 `Android` / `Mobile` 标识），并启用宽视口 + overview + JavaScript + DOM storage，避免云盘站点按 UA 下发手机版页面。这个设置只作用于登录弹层，应用内其他 WebView 页面不受影响。
+- **渲染方式由脚本声明**：宿主不内置任何浏览器 User-Agent，脚本不传 options 时 WebView 完全用默认设置；传了才生效，且只作用于该登录弹层（应用内其他 WebView 页面不受影响）。
 - **顶栏 Cookie 操作**：`placement="top"` 的图标按钮在弹层右上角（推荐 `icon = "key"`、`label = "登录并保存 Cookie"`），状态/清除类动作建议放 `placement="overflow"`。
 - **按当前页面域名保存**：点击保存时读取的是 WebView **当前 URL** 对应的 Cookie，并按它的 host 单独加密保存；登录域与下载域不同则各存各的，不会互相套用。
 - **失败与取消**：

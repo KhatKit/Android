@@ -13,12 +13,17 @@ internal class WebBridgeImpl(
 ) : WebBridge {
     private val store = SecretStore(context.applicationContext, "__web_cookie_store")
 
-    override fun openLogin(url: String, title: String, actions: List<Map<String, Any?>>): String {
+    override fun openLogin(
+        url: String,
+        title: String,
+        actions: List<Map<String, Any?>>,
+        options: Map<String, Any?>?,
+    ): String {
         require(url.startsWith("http://") || url.startsWith("https://")) { "仅支持 http/https 登录地址" }
-        val safeActions = if (actions.isEmpty()) listOf(defaultSaveAction()) else actions
+        val safeActions = actions.orEmpty().ifEmpty { listOf(defaultSaveAction()) }
         val host = ui ?: return unavailable()
         // 用户关闭弹层时 webSheet 返回 null：明确回传取消态，脚本据此不启动下载。
-        val result = host.webSheet(title, url, safeActions) ?: return cancelled()
+        val result = host.webSheet(title, url, safeActions, options) ?: return cancelled()
         val event = result["event"]?.toString().orEmpty().ifBlank { return cancelled() }
         val values = result["values"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
         // 顶栏按钮回传当前 WebView URL（登录后可能已跳到别的域名），只按它的 host 存 Cookie。

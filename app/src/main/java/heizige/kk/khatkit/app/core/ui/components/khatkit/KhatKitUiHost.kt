@@ -46,7 +46,7 @@ import heizige.kk.khatkit.app.core.ui.icons.save
 import heizige.kk.khatkit.app.core.ui.icons.vpnKey
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.core.ui.components.webview.WebView
-import heizige.kk.khatkit.app.core.ui.components.webview.applyDesktopMode
+import heizige.kk.khatkit.app.core.ui.components.webview.applyScriptWebOptions
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextButton
@@ -195,8 +195,9 @@ fun KhatKitUiHost() {
  * - [headerActions] / [overflowActions] 由脚本在 action 里用 `icon` + `placement` 声明，
  *   渲染成弹层右上角的图标按钮与溢出菜单（网页登录的「登录并保存 Cookie」走这里）；
  * - [contentActions] 仍是内容区底部的文字按钮，保持历史行为；
- * - [isWeb] 为 true 时 WebView 走桌面模式（桌面 UA + 宽视口 + overview），
- *   并把当前 WebView URL 一起回传，顶栏保存按钮据此按当前域名存 Cookie。
+ * - [options] 里的 `desktop` / `user_agent` 决定网页渲染方式（桌面模式），
+ *   宿主不内置任何 UA；点击动作时把当前 WebView URL 一起回传，顶栏保存按钮据此
+ *   按当前域名存 Cookie。
  */
 @Composable
 private fun ActionSheet(
@@ -231,7 +232,10 @@ private fun ActionSheet(
         val webState = if (!url.isNullOrBlank()) {
             rememberWebViewState(
                 url = url,
-                settings = { if (isWeb) applyDesktopMode() },
+                // 只对网页登录 Sheet 应用脚本声明的渲染开关，宿主不内置 UA
+                settings = {
+                    if (isWeb) applyScriptWebOptions(options.desktop, options.userAgent)
+                },
             )
         } else {
             null
