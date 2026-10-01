@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -254,7 +255,16 @@ fun ChatDrawerContent(
                 colors = TopAppBarDefaults.topAppBarColors(
                     // 有 backdrop 时透明，让 KedgeBlurredBar 的模糊透出来；
                     // 没有 backdrop 时退回 surface，避免出现无底的栏。
-                    containerColor = KedgeOverlayBarColor(backdrop, MiuixTheme.colorScheme.surface),
+                    containerColor = KedgeOverlayBarColor(
+                        backdrop = backdrop,
+                        // MD3Exp 下没有 MiuixTheme，取它会拿到全 0 的透明色，
+                        // 所以退回 MD3 的 surface。
+                        fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                            MiuixTheme.colorScheme.surface
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                    ),
                 ),
                 navigationIcon = {
                     if (searchVisible) {
@@ -335,13 +345,20 @@ fun ChatDrawerContent(
                 }
             },
             bottomBar = {
-                KedgeBlurredBar(backdrop = backdrop) {
+                // KedgeOverlayScaffold 内部是普通 Box，顶/底栏各自负责对齐；
+                // 不写 align 的话底栏会被摆在 Box 的左上角（表现为"浮在天上"）。
+                KedgeBlurredBar(
+                    backdrop = backdrop,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
+                        // 原 MD3 BottomAppBar 自带 windowInsets，去掉外壳后要自己补
+                        .navigationBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
                 ) {
                     DrawerAction(
                         icon = {
