@@ -177,6 +177,7 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun ChatInput(
@@ -424,7 +425,7 @@ fun ChatInput(
                             onStop = onStopVoiceMode,
                             onRetry = { onStartVoiceMode?.invoke() },
                         )
-                        androidx.compose.material3.HorizontalDivider(
+                        KedgeHorizontalDivider(
                             color = KedgeColors.outlineVariant.copy(alpha = 0.5f),
                         )
                     }

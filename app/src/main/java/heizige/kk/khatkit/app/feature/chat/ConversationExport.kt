@@ -114,6 +114,7 @@ import heizige.kk.khatkit.ai.util.encodeBase64
 import heizige.kk.khatkit.ai.ui.isEmptyUIMessage
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.message.groupMessageParts
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun ChatExportSheet(
@@ -146,13 +147,13 @@ fun ChatExportSheet(
             ) {
                 Text(text = stringResource(id = R.string.chat_page_export_format))
 
-                OutlinedCard(
+                KedgeCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ListItem(
+                    KedgeListItem(
                         headlineContent = { Text(stringResource(R.string.chat_page_export_include_reasoning)) },
                         trailingContent = {
-                            Switch(
+                            KedgeSwitch(
                                 checked = exportOptions.includeReasoning,
                                 onCheckedChange = {
                                     exportOptions = exportOptions.copy(includeReasoning = it)
@@ -164,7 +165,7 @@ fun ChatExportSheet(
 
                 val markdownSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Markdown")
-                OutlinedCard(
+                KedgeCard(
                     onClick = {
                         exportToMarkdown(context, conversation, selectedMessages, exportOptions)
                         KhromiaToast.show(markdownSuccessMessage)
@@ -187,7 +188,7 @@ fun ChatExportSheet(
 
                 val imageSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Image")
-                OutlinedCard(
+                KedgeCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
@@ -203,12 +204,12 @@ fun ChatExportSheet(
                             }
                         )
 
-                        HorizontalDivider()
+                        KedgeHorizontalDivider()
 
                         KedgeListItem(
                             headlineContent = { Text(stringResource(R.string.chat_page_export_image_expand_reasoning)) },
                             trailingContent = {
-                                Switch(
+                                KedgeSwitch(
                                     checked = exportOptions.expandReasoning,
                                     enabled = exportOptions.includeReasoning,
                                     onCheckedChange = {
@@ -259,7 +260,7 @@ fun ChatExportSheet(
                     }
                 }
 
-                OutlinedCard(
+                KedgeCard(
                     onClick = {
                         scope.launch {
                             val title = conversation.title.ifBlank { "对话存档" }
