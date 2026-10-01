@@ -68,6 +68,7 @@ import heizige.kk.khatkit.app.core.ui.icons.settingsBackupRestore
 import heizige.kk.khatkit.app.core.ui.icons.upload
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun WebDavTab(
@@ -228,7 +229,7 @@ fun WebDavTab(
             }
         }
 
-        HorizontalDivider()
+        KedgeHorizontalDivider()
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()

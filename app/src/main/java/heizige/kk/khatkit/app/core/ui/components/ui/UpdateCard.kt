@@ -140,7 +140,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             .verticalScroll(rememberScrollState()),
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    OutlinedCard(
+                    KedgeCard(
                         onClick = {
                             dismiss()
                             downloadHandler(info)

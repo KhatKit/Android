@@ -69,6 +69,7 @@ import heizige.kk.khatkit.app.core.ui.icons.settingsBackupRestore
 import heizige.kk.khatkit.app.core.ui.icons.upload
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun S3Tab(
@@ -247,7 +248,7 @@ fun S3Tab(
             }
         }
 
-        HorizontalDivider()
+        KedgeHorizontalDivider()
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()

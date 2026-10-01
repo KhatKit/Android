@@ -393,7 +393,7 @@ internal fun ProviderOverrideSettings(
         )
 
         if (providerOverride != null) {
-            OutlinedCard(
+            KedgeCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
