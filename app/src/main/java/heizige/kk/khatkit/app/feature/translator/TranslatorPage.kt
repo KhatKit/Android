@@ -65,6 +65,17 @@ import heizige.kk.khatkit.app.core.ui.icons.contentPaste
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.platform.LocalDensity
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeStyle
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
 
 @Composable
 fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
@@ -229,9 +240,44 @@ private fun LanguageSelector(
         }
     }
 
+    var anchorWidth by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+
     Box(
         modifier = Modifier.padding(horizontal = 4.dp)
     ) {
+        // Miuix 下不用 ExposedDropdownMenuBox：锚点与菜单容器都是 MD3 的，
+        // 改成记录锚点宽度 + Kedge 弹出菜单（与 Select/SelectTextField 一致）。
+        if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+            KedgeOutlinedTextField(
+                value = getLanguageDisplayName(targetLanguage),
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { expanded = !expanded }
+                    .onGloballyPositioned { anchorWidth = it.size.width },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    disabledBorderColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            KedgeDropdownMenuSlots(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(with(density) { anchorWidth.toDp() })
+                    .heightIn(max = 320.dp),
+            ) {
+                LanguageItems(onLanguageSelected) { expanded = false }
+            }
+        } else {
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = it }
@@ -256,17 +302,39 @@ private fun LanguageSelector(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                Locales.forEach { language ->
-                    KedgeDropdownItemSlot(
-                        text = { Text(getLanguageDisplayName(language)) },
-                        onClick = {
-                            onLanguageSelected(language)
-                            expanded = false
-                        }
-                    )
-                }
+                LanguageItems(onLanguageSelected) { expanded = false }
             }
         }
+        }
+    }
+}
+
+/** 语言下拉项，两种风格共用。 */
+@Composable
+private fun LanguageItems(
+    onLanguageSelected: (Locale) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Locales.forEach { language ->
+        KedgeDropdownItemSlot(
+            text = { Text(getLanguageDisplayName(language)) },
+            onClick = {
+                onLanguageSelected(language)
+                onDismiss()
+            }
+        )
+    }
+}
+
+/** 语言显示名，与 [LanguageSelector] 内部逻辑一致。 */
+@Composable
+private fun getLanguageDisplayName(locale: Locale): String {
+    return when (locale) {
+        Locale.SIMPLIFIED_CHINESE -> stringResource(R.string.language_simplified_chinese)
+        Locale.ENGLISH -> stringResource(R.string.language_english)
+        Locale.TRADITIONAL_CHINESE -> stringResource(R.string.language_traditional_chinese)
+        Locale.JAPANESE -> stringResource(R.string.language_japanese)
+        else -> locale.displayLanguage
     }
 }
 
@@ -287,7 +355,7 @@ private fun BottomBar(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            KedgeFloatingActionButton(
                 onClick = {
                     if (translating) {
                         onCancelTranslation()
@@ -295,8 +363,6 @@ private fun BottomBar(
                         onTranslate()
                     }
                 },
-                containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-                elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
             ) {
                 if (!translating) {
                     Row(
