@@ -230,7 +230,11 @@ fun ChatDrawerContent(
     // 这样两条 bar 的背景能画到状态栏/导航栏后面，和系统栏颜色一致。
     val sheetContent: @Composable () -> Unit = {
         // 顶栏/底栏叠在内容之上，毛玻璃才有东西可透（见 KedgeOverlayScaffold）。
-        val backdrop = rememberKedgeBlurBackdrop(LocalKedgeEnableBlur.current)
+        // 毛玻璃只有 Miuix 风格有；MD3Exp 下把 backdrop 置空，各层就退化成
+        // 不透明底色，不会出现 MD3 主题上的半透明糊层。
+        val blurEnabled = LocalKedgeEnableBlur.current &&
+            LocalKedgeStyle.current == KedgeStyle.Miuix
+        val backdrop = rememberKedgeBlurBackdrop(blurEnabled)
 
         // 搜索展开进度：预测返回手势跟手收起。组合位置在 ModalDrawerSheet 内容里，
         // 晚于抽屉自身的预测返回处理器，因此搜索展开时返回手势优先收起搜索。
