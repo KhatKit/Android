@@ -70,7 +70,7 @@ diffutils = "4.17"
 snakeyaml = "2.7"
 pdfbox = "2.0.27.0"
 shizuku = "13.1.5"
-kedge = "0.1.1"
+kedge = "0.1.2"
 khromia = "1.6.5"
 
 [libraries]
