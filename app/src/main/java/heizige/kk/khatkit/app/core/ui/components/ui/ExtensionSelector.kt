@@ -1,13 +1,9 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.SecondaryScrollableTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,11 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -33,7 +26,7 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModeInjectionsContent
 import heizige.kk.khatkit.app.core.ui.components.ai.QuickMessagesContent
 import heizige.kk.khatkit.app.core.ui.components.ai.SkillsContent
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 
 @Composable
 fun ExtensionSelector(
@@ -72,44 +65,25 @@ fun ExtensionSelector(
     val pagerState = rememberPagerState { 4 }
     val scope = rememberCoroutineScope()
 
+    val tabTitles = listOf(
+        stringResource(R.string.extension_selector_tab_quick_messages),
+        stringResource(R.string.extension_selector_tab_mode_injections),
+        stringResource(R.string.extension_selector_tab_lorebooks),
+        stringResource(R.string.extension_selector_tab_skills),
+    )
+
     Column(
         modifier = modifier
     ) {
-        SecondaryScrollableTabRow(
+        KedgeTabRow(
+            titles = tabTitles,
             selectedTabIndex = pagerState.currentPage,
-            containerColor = Color.Transparent,
+            onTabSelected = { index ->
+                scope.launch { pagerState.animateScrollToPage(index) }
+            },
+            scrollable = true,
             modifier = Modifier.fillMaxWidth(),
-            edgePadding = 4.dp,
-        ) {
-            Tab(
-                selected = pagerState.currentPage == 0,
-                onClick = {
-                    scope.launch { pagerState.animateScrollToPage(0) }
-                },
-                text = { Text(stringResource(R.string.extension_selector_tab_quick_messages)) }
-            )
-            Tab(
-                selected = pagerState.currentPage == 1,
-                onClick = {
-                    scope.launch { pagerState.animateScrollToPage(1) }
-                },
-                text = { Text(stringResource(R.string.extension_selector_tab_mode_injections)) }
-            )
-            Tab(
-                selected = pagerState.currentPage == 2,
-                onClick = {
-                    scope.launch { pagerState.animateScrollToPage(2) }
-                },
-                text = { Text(stringResource(R.string.extension_selector_tab_lorebooks)) }
-            )
-            Tab(
-                selected = pagerState.currentPage == 3,
-                onClick = {
-                    scope.launch { pagerState.animateScrollToPage(3) }
-                },
-                text = { Text(stringResource(R.string.extension_selector_tab_skills)) }
-            )
-        }
+        )
 
         HorizontalPager(
             state = pagerState,

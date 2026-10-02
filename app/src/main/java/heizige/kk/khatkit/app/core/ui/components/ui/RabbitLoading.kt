@@ -11,6 +11,10 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+
+
 
 @Composable
 fun RabbitLoadingIndicator(modifier: Modifier = Modifier) {
@@ -36,8 +40,11 @@ fun RabbitLoadingIndicator(modifier: Modifier = Modifier) {
             }
         )
     } else {
-        ContainedLoadingIndicator(
+        // MD3 的 ContainedLoadingIndicator 在 Miuix 下不画任何东西，
+        // 换成 Kedge 的 Circular：Miuix 走自己的环形进度，MD3 侧外观基本一致。
+        KedgeProgressIndicator(
             modifier = modifier,
+            type = KedgeProgressIndicatorType.Circular,
         )
     }
 }

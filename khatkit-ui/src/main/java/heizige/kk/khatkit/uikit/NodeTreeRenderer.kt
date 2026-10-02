@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -146,7 +146,7 @@ fun UiNode.Render(
             if (type == "Card") KedgeSurface(modifier = m, content = content) else Box(m) { content() }
         }
         "Spacer" -> Spacer(m.width(number("width").dp).height(number("height").dp))
-        "Divider" -> HorizontalDivider(modifier = m, color = style.color("muted"))
+        "Divider" -> KedgeHorizontalDivider(modifier = m, color = style.color("muted"))
         "Text" -> Text(text("text"), modifier = m, color = style.color(text("tone", "default")),
             style = style.textStyle(text("style", "body")), fontWeight = if (props["bold"] == true) FontWeight.Bold else null)
         "Markdown" -> markdown(text("text"), m)

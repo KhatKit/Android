@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCheckbox
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeRadioButton
 import heizige.kk.kedge.components.KedgeSlider
@@ -183,7 +183,7 @@ internal fun FormWidget(
 
     when (type) {
         "text", "markdown" -> Text(label.ifBlank { item["value"]?.toString().orEmpty() })
-        "divider" -> HorizontalDivider()
+        "divider" -> KedgeHorizontalDivider()
 
         "input" -> KedgeOutlinedTextField(
             value = values[id]?.toString().orEmpty(),
