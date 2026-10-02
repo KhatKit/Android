@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.animation.core.Animatable
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.activity.compose.BackHandler
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
@@ -23,6 +24,7 @@ import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -34,6 +36,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -65,6 +68,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -74,7 +78,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -88,6 +91,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -96,6 +100,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -105,10 +111,14 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import dev.chrisbanes.haze.HazeInput
@@ -158,7 +168,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
-import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -177,7 +186,19 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
+import heizige.kk.khatkit.app.core.ui.icons.title
+import heizige.kk.khatkit.app.core.ui.icons.formatListBulleted
+import heizige.kk.khatkit.app.core.ui.icons.code
+import heizige.kk.khatkit.app.core.ui.icons.link
+import heizige.kk.khatkit.app.core.ui.icons.preview
+import heizige.kk.khatkit.app.core.ui.icons.edit
+import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
+import com.mohamedrejeb.richeditor.model.RichTextState
+import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
 
 @Composable
 fun ChatInput(
@@ -226,12 +247,14 @@ fun ChatInput(
     }
     // 面板全开后继续上滑 → 进入全屏编辑
     var fullScreenEditor by remember { mutableStateOf(false) }
+    var fullScreenRevealProgress by remember { mutableFloatStateOf(0f) }
+    var fullScreenRevealFromGesture by remember { mutableStateOf(false) }
     var permissionSheetVisible by remember { mutableStateOf(false) }
     var overscrollPx by remember { mutableFloatStateOf(0f) }
     val fullscreenThresholdPx = with(LocalDensity.current) { 110.dp.toPx() }
 
     // 预测返回：展开时返回手势跟手收起面板（KodeHead 同款）
-    PredictiveBackHandler(enabled = progress.value > 0.01f) { backEvents ->
+    PredictiveBackHandler(enabled = progress.value > 0.01f && !fullScreenEditor) { backEvents ->
         try {
             backEvents.collect { event ->
                 progress.snapTo((1f - event.progress).coerceIn(0f, 1f))
@@ -315,7 +338,7 @@ fun ChatInput(
         }
     }
 
-    Surface(
+    KedgeSurface(
         color = Color.Transparent,
     ) {
         Column(
@@ -346,8 +369,13 @@ fun ChatInput(
                             if (progress.value >= 0.999f && delta < 0f) {
                                 // 已全开还继续上滑：累计到阈值进入全屏
                                 overscrollPx += -delta
-                                if (overscrollPx > fullscreenThresholdPx) {
-                                    overscrollPx = 0f
+                                val revealStartPx = fullscreenThresholdPx * (20f / 110f)
+                                if (overscrollPx > revealStartPx) {
+                                    fullScreenRevealProgress =
+                                        ((overscrollPx - revealStartPx) /
+                                            (fullscreenThresholdPx - revealStartPx))
+                                            .coerceIn(0f, 0.86f)
+                                    fullScreenRevealFromGesture = true
                                     fullScreenEditor = true
                                 }
                             } else if (panelHeightPx > 0) {
@@ -357,20 +385,28 @@ fun ChatInput(
                             }
                         },
                         onDragStopped = { velocity ->
-                            val target = when {
-                                velocity < -1200f -> 1f
-                                velocity > 1200f -> 0f
-                                progress.value > 0.5f -> 1f
-                                else -> 0f
-                            }
                             scope.launch {
-                                progress.animateTo(
-                                    targetValue = target,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow,
-                                    ),
+                                val flbSpec = spring<Float>(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
                                 )
+                                if (fullScreenEditor) {
+                                    animate(
+                                        initialValue = fullScreenRevealProgress,
+                                        targetValue = 1f,
+                                        animationSpec = flbSpec,
+                                    ) { value, _ -> fullScreenRevealProgress = value }
+                                    fullScreenRevealProgress = 1f
+                                    overscrollPx = 0f
+                                } else {
+                                    val target = when {
+                                        velocity < -1200f -> 1f
+                                        velocity > 1200f -> 0f
+                                        progress.value > 0.5f -> 1f
+                                        else -> 0f
+                                    }
+                                    progress.animateTo(targetValue = target, animationSpec = flbSpec)
+                                }
                             }
                         },
                     )
@@ -520,7 +556,7 @@ fun ChatInput(
                     }
 
 
-                    Surface(
+                    KedgeSurface(
                         shape = RoundedCornerShape(innerRadiusDp.dp),
                         color = hazeTintColor,
                         modifier = Modifier
@@ -560,7 +596,17 @@ fun ChatInput(
                             completionProviders = completionProviders,
                             onSendMessage = { sendMessage() },
                             isFullScreen = fullScreenEditor,
-                            onFullScreenChange = { fullScreenEditor = it },
+                            fullScreenRevealProgress = fullScreenRevealProgress,
+                            fullScreenRevealFromGesture = fullScreenRevealFromGesture,
+                            onFullScreenRevealProgress = { fullScreenRevealProgress = it },
+                            attachmentActions = attachmentActions,
+                            onFullScreenChange = {
+                                fullScreenEditor = it
+                                if (!it) {
+                                    fullScreenRevealProgress = 0f
+                                    fullScreenRevealFromGesture = false
+                                }
+                            },
                             modifier = Modifier.weight(1f),
                         )
 
@@ -594,7 +640,7 @@ fun ChatInput(
                     }
                 }
             ) {
-            FloatingActionButton(
+            KedgeFloatingActionButton(
                 onClick = {
                     when (fabState) {
                         FabState.Recording -> asr.stop()
@@ -703,7 +749,7 @@ private fun SendButton(
                 onLongClick = onLongClick,
             )
     ) {
-        Surface(
+        KedgeSurface(
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(13.dp),
             color = containerColor,
@@ -723,7 +769,7 @@ private fun ActionIconButton(
     onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    Surface(
+    KedgeSurface(
         onClick = onClick,
         modifier = Modifier.size(36.dp),
         shape = CircleShape,
@@ -748,6 +794,10 @@ private fun TextInputRow(
     completionProviders: List<ChatCompletionProvider>,
     onSendMessage: () -> Unit,
     isFullScreen: Boolean,
+    fullScreenRevealProgress: Float = 0f,
+    fullScreenRevealFromGesture: Boolean = false,
+    onFullScreenRevealProgress: (Float) -> Unit = {},
+    attachmentActions: ChatAttachmentPickerActions? = null,
     onFullScreenChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -763,7 +813,7 @@ private fun TextInputRow(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (state.isEditing()) {
-            Surface(
+            KedgeSurface(
                 shape = RoundedCornerShape(16.dp),
                 color = KedgeColors.surfaceContainerHigh,
             ) {
@@ -909,7 +959,15 @@ private fun TextInputRow(
             } else null,
         )
         if (isFullScreen) {
-            FullScreenEditor(state = state) {
+            FullScreenEditor(
+                state = state,
+                initialRevealProgress = fullScreenRevealProgress,
+                revealProgress = fullScreenRevealProgress,
+                revealFromGesture = fullScreenRevealFromGesture,
+                onRevealProgress = onFullScreenRevealProgress,
+                attachmentActions = attachmentActions,
+                onSend = { onSendMessage(); onFullScreenChange(false) },
+            ) {
                 onFullScreenChange(false)
             }
         }
@@ -926,6 +984,7 @@ private fun ChatInputTextField(
     sendOnEnter: Boolean = false,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
+    multiline: Boolean = false,
 ) {
     val keyboardAction: () -> Unit = {
         if (sendOnEnter && !state.isEmpty()) {
@@ -947,7 +1006,7 @@ private fun ChatInputTextField(
             useLabelAsPlaceholder = true,
             keyboardOptions = keyboardOptions,
             onKeyboardAction = { keyboardAction() },
-            lineLimits = TextFieldLineLimits.SingleLine,
+            lineLimits = if (multiline) TextFieldLineLimits.MultiLine() else TextFieldLineLimits.SingleLine,
             leadingIcon = leadingContent,
             trailingIcon = trailingContent,
         )
@@ -959,7 +1018,7 @@ private fun ChatInputTextField(
             placeholder = {
                 Text(placeholder)
             },
-            lineLimits = TextFieldLineLimits.SingleLine,
+            lineLimits = if (multiline) TextFieldLineLimits.MultiLine() else TextFieldLineLimits.SingleLine,
             keyboardOptions = keyboardOptions,
             onKeyboardAction = { keyboardAction() },
             colors = TextFieldDefaults.colors().copy(
@@ -979,7 +1038,7 @@ private fun CompletionPopup(
     completionList: ChatCompletionList,
     onItemClick: (ChatCompletionItem) -> Unit,
 ) {
-    Surface(
+    KedgeSurface(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 280.dp),
@@ -997,7 +1056,7 @@ private fun CompletionPopup(
                 items = completionList.items,
                 key = { item -> "${item.label}:${item.insertText}" },
             ) { item ->
-                Surface(
+                KedgeSurface(
                     onClick = { onItemClick(item) },
                     modifier = Modifier.fillMaxWidth(),
                     color = Color.Transparent,
@@ -1021,14 +1080,14 @@ private fun CompletionPopup(
                         ) {
                             Text(
                                 text = item.label,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = KedgeTextStyles.body(),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             item.detail?.let { detail ->
                                 Text(
                                     text = detail,
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = KedgeTextStyles.footnoteSmall(),
                                     color = KedgeColors.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -1074,7 +1133,7 @@ private fun QuickMessageButton(
                 .widthIn(min = 200.dp, max = 360.dp)
         ) {
             quickMessages.forEach { quickMessage ->
-                Surface(
+                KedgeSurface(
                     onClick = {
                         state.appendText(quickMessage.content)
                         expanded = false
@@ -1087,13 +1146,13 @@ private fun QuickMessageButton(
                     ) {
                         Text(
                             text = quickMessage.title,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KedgeTextStyles.title(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = quickMessage.content,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1106,7 +1165,14 @@ private fun QuickMessageButton(
 
 @Composable
 private fun FullScreenEditor(
-    state: ChatInputState, onDone: () -> Unit
+    state: ChatInputState,
+    initialRevealProgress: Float = 0f,
+    revealProgress: Float = initialRevealProgress,
+    revealFromGesture: Boolean = false,
+    onRevealProgress: (Float) -> Unit = {},
+    attachmentActions: ChatAttachmentPickerActions? = null,
+    onSend: () -> Unit,
+    onDone: () -> Unit,
 ) {
     BasicAlertDialog(
         onDismissRequest = {
@@ -1116,62 +1182,298 @@ private fun FullScreenEditor(
             usePlatformDefaultWidth = false, decorFitsSystemWindows = false
         ),
     ) {
-        // 和普通展开同一曲线：ease-out 三次 + 同一个 spring
-        val appear = remember { androidx.compose.animation.core.Animatable(0f) }
+        BackHandler(enabled = true) {
+            onDone()
+        }
+        val richState = remember { RichTextState() }
         LaunchedEffect(Unit) {
-            appear.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow,
-                ),
+            richState.setMarkdown(state.textContent.text.toString())
+        }
+        fun commitRichText() {
+            state.setMessageText(richState.toMarkdown())
+        }
+        // 复用 KodeHeap 帖子 Composer 的 FLB 曲线：三次 ease-out 先快后慢，
+        // 再用同一组无回弹 spring 落位，避免全屏编辑器出现另一套手感。
+        val appear = remember {
+            androidx.compose.animation.core.Animatable(
+                initialRevealProgress.coerceIn(0f, 1f)
             )
         }
+        LaunchedEffect(revealProgress, revealFromGesture) {
+            if (revealFromGesture) {
+                appear.snapTo(revealProgress.coerceIn(0f, 1f))
+            } else {
+                appear.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                )
+            }
+        }
+        PredictiveBackHandler(enabled = appear.value > 0.01f) { events ->
+            try {
+                events.collect { event ->
+                    val value = (1f - event.progress).coerceIn(0f, 1f)
+                    appear.snapTo(value)
+                    if (revealFromGesture) onRevealProgress(value)
+                }
+                appear.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                )
+                if (revealFromGesture) onRevealProgress(0f)
+                onDone()
+            } catch (_: CancellationException) {
+                appear.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                )
+                if (revealFromGesture) onRevealProgress(1f)
+            }
+        }
         val appearEased = 1f - (1f - appear.value) * (1f - appear.value) * (1f - appear.value)
+        val editorShape = RoundedCornerShape((24f * (1f - appearEased)).dp)
+        val editorLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+        var editorSize by remember { mutableStateOf(IntSize.Zero) }
+        val editorDensity = LocalDensity.current
+        val collapsedBounds = Rect(
+            left = editorSize.width / 2f - with(editorDensity) { 30.dp.toPx() },
+            top = editorSize.height - with(editorDensity) { 58.dp.toPx() },
+            right = editorSize.width / 2f + with(editorDensity) { 30.dp.toPx() },
+            bottom = editorSize.height - with(editorDensity) { 2.dp.toPx() },
+        )
+        var previewMode by rememberSaveable { mutableStateOf(false) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .safeDrawingPadding()
                 .imePadding()
-                .graphicsLayer {
+            .graphicsLayer {
                     alpha = appearEased
-                    translationY = (1f - appearEased) * 64f
+                    translationY = (1f - appearEased) * 96f
+                    scaleX = 0.94f + 0.06f * appearEased
+                    scaleY = 0.94f + 0.06f * appearEased
                 },
             verticalArrangement = Arrangement.Bottom
         ) {
             KedgeSurface(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(0.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onSizeChanged { editorSize = it }
+                    .aiChatGenieEffect(
+                        progress = appearEased,
+                        collapsedBounds = collapsedBounds,
+                        contentLayer = editorLayer,
+                        maxBandCount = 36,
+                    ),
+                shape = editorShape,
             ) {
-                Column(
+                Box(
                     modifier = Modifier
-                        .padding(8.dp)
                         .fillMaxSize(),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Row {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp)
+                            .padding(bottom = 64.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (previewMode) {
+                            MarkdownBlock(
+                                content = richState.toMarkdown(),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            BasicRichTextEditor(
+                                state = richState,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 180.dp),
+                                textStyle = KedgeTextStyles.body(),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                singleLine = false,
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(
+                                KedgeColors.surfaceContainerHigh.copy(alpha = 0.96f),
+                                RoundedCornerShape(18.dp),
+                            )
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Toolbar is anchored to the editor bottom, like KodeHeap's FLB.
+                        RichMarkdownButton(richState, title, "标题") { "# " to "" }
+                        RichStyleButton(richState, "B", "粗体", SpanStyle(fontWeight = FontWeight.Bold))
+                        RichStyleButton(richState, "I", "斜体", SpanStyle(fontStyle = FontStyle.Italic))
+                        RichMarkdownButton(richState, formatListBulleted, "列表") { "- " to "" }
+                        RichMarkdownButton(richState, code, "代码") { "`" to "`" }
+                        RichMarkdownButton(richState, link, "链接") { "[" to "](url)" }
+                        KedgeIconButton(
+                            onClick = { previewMode = !previewMode },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(
+                                imageVector = if (previewMode) edit else preview,
+                                contentDescription = if (previewMode) "编辑" else "预览",
+                            )
+                        }
+                        attachmentActions?.let { actions ->
+                            KedgeIconButton(
+                                onClick = actions.onPickImage,
+                                shapes = IconButtonDefaults.shapes(),
+                            ) { Icon(image, contentDescription = "图片") }
+                            KedgeIconButton(
+                                onClick = actions.onPickVideo,
+                                shapes = IconButtonDefaults.shapes(),
+                            ) { Icon(videocam, contentDescription = "视频") }
+                            KedgeIconButton(
+                                onClick = actions.onPickFile,
+                                shapes = IconButtonDefaults.shapes(),
+                            ) { Icon(insertDriveFile, contentDescription = "文件") }
+                        }
+                        Spacer(Modifier.weight(1f))
                         KedgeTextButton(
                             onClick = {
+                                commitRichText()
                                 onDone()
                             },
                                  shapes = ButtonDefaults.shapes(),) {
                             Text(stringResource(R.string.chat_page_save))
                         }
+                        KedgeIconButton(
+                            onClick = {
+                                commitRichText()
+                                onSend()
+                            },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(arrowUpward, contentDescription = stringResource(R.string.send))
+                        }
+                        KedgeIconButton(
+                            onClick = onDone,
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(
+                                imageVector = close,
+                                contentDescription = stringResource(R.string.cancel),
+                            )
+                        }
                     }
-                    ChatInputTextField(
-                        state = state,
-                        modifier = Modifier
-                            .padding(bottom = 2.dp)
-                            .fillMaxSize(),
-                        placeholder = stringResource(R.string.chat_input_placeholder),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Sentences,
-                        ),
-                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RichMarkdownButton(
+    state: RichTextState,
+    icon: ImageVector,
+    label: String,
+    wrapper: () -> Pair<String, String>,
+) {
+    KedgeIconButton(
+        onClick = {
+            val (prefix, suffix) = wrapper()
+            val selected = state.toMarkdown(state.selection)
+            state.insertMarkdownAfterSelection(prefix + selected + suffix)
+        },
+        shapes = IconButtonDefaults.shapes(),
+    ) {
+        Icon(icon, contentDescription = label)
+    }
+}
+
+@Composable
+private fun RichStyleButton(
+    state: RichTextState,
+    glyph: String,
+    label: String,
+    style: SpanStyle,
+) {
+    KedgeIconButton(
+        onClick = { state.toggleSpanStyle(style) },
+        shapes = IconButtonDefaults.shapes(),
+    ) {
+        Text(
+            text = glyph,
+            fontWeight = if (glyph == "B") FontWeight.Bold else null,
+            fontStyle = if (glyph == "I") FontStyle.Italic else null,
+        )
+    }
+}
+
+@Composable
+private fun MarkdownEditButton(
+    state: ChatInputState,
+    icon: ImageVector,
+    label: String,
+    wrapper: () -> Pair<String, String>,
+) {
+    KedgeIconButton(
+        onClick = {
+            val (prefix, suffix) = wrapper()
+            val selectedRange = state.textContent.selection
+            val text = state.textContent.text.toString()
+            val start = selectedRange.min.coerceIn(0, text.length)
+            val end = selectedRange.max.coerceIn(start, text.length)
+            val selected = text.substring(start, end)
+            state.textContent.edit {
+                replace(start, end, prefix + selected + suffix)
+                selection = TextRange(start + prefix.length, start + prefix.length + selected.length)
+            }
+        },
+        shapes = IconButtonDefaults.shapes(),
+    ) {
+        Icon(icon, contentDescription = label)
+    }
+}
+
+@Composable
+private fun MarkdownEditTextButton(
+    state: ChatInputState,
+    glyph: String,
+    label: String,
+    wrapper: () -> Pair<String, String>,
+) {
+    KedgeIconButton(
+        onClick = {
+            val (prefix, suffix) = wrapper()
+            val selectedRange = state.textContent.selection
+            val text = state.textContent.text.toString()
+            val start = selectedRange.min.coerceIn(0, text.length)
+            val end = selectedRange.max.coerceIn(start, text.length)
+            val selected = text.substring(start, end)
+            state.textContent.edit {
+                replace(start, end, prefix + selected + suffix)
+                selection = TextRange(start + prefix.length, start + prefix.length + selected.length)
+            }
+        },
+        shapes = IconButtonDefaults.shapes(),
+    ) {
+        Text(
+            text = glyph,
+            modifier = Modifier,
+            fontWeight = if (glyph == "B") androidx.compose.ui.text.font.FontWeight.Bold else null,
+            fontStyle = if (glyph == "I") androidx.compose.ui.text.font.FontStyle.Italic else null,
+        )
     }
 }
 
@@ -1194,7 +1496,7 @@ private fun PanelAction(
         }
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = KedgeTextStyles.footnoteSmall(),
             color = KedgeColors.onSurfaceVariant,
         )
     }

@@ -42,19 +42,58 @@ AI / 用户 ──▶ image_* 卡片（Hub 下载的 Lua） ──▶ imageToolb
 ImageToolbox 的完整图片选择器不是一个单独的 `ActivityResultContracts` 调用，而是由
 `feature/media-picker` 的媒体查询、相册分组、权限页、搜索、拖拽多选、长按预览、选择确认栏和
 全屏图片预览共同组成。迁移时应保留这些层次，不能用系统文件选择器替代，否则无法得到同样的
-MD3 网格和交互：
+MD3 网格和交互。
 
-- `MediaPickerRootContentEmbeddable`
-- `MediaPickerHavePermissions` / `ManageExternalStorageWarning`
-- `MediaPickerGrid` / `MediaPickerGridWithOverlays`
-- `MediaStickyHeader` / `MediaExtensionHeader` / `MediaSizeFooter`
-- `MediaImagePager` / `MediaImage`
-- `MediaPickerComponent`、`AndroidMediaRetriever`、`MediaQuery`、`MediaObserver`
+**已完成**：自研选择器落在宿主 APK 的独立 UI 模块 `:mediapicker`
+（`heizige.kk.khatkit.mediapicker`），不塞进 Lua 卡片，也不进 imageToolbox 依赖包。
+聊天附件、助手背景、头像、图像生成参考图四处入口都改用它，不再走系统
+`GetMultipleContents`。
 
-当前 KhatKit 聊天附件仍使用系统 `GetMultipleContents`，这只能提供系统 picker，**不等于完整迁移**。
-完整迁移需要把上述 UI 与媒体查询放入 KhatKit 的图片选择器模块，并通过统一回调返回 `List<Uri>`；
-同时按 Android 版本处理 `READ_MEDIA_IMAGES`、旧版存储权限和“所有文件访问”警告。此项不应塞进 Lua
-卡片或 imageToolbox 依赖包，应该是宿主 APK 的独立 UI 模块。
+对外只暴露一个入口：
+
+```kotlin
+KhatKitMediaPicker(
+    visible = showPicker,
+    onDismiss = { showPicker = false },
+    onPicked = { uris -> /* 选中不会自动关闭，宿主自己决定 */ },
+    allowedMedia = AllowedMedia.Photos(null),  // 收窄扩展名传 "png"
+    allowMultiple = true,
+)
+```
+
+与上游的对应关系（保留上游 Apache-2.0 署名）：
+
+| 上游 | 本项目 | 说明 |
+|---|---|---|
+| `MediaPickerRootContentEmbeddable` | `ui/KhatKitMediaPicker.kt` | 顶栏 + 相册行 + 网格 + 预览的骨架，改为全屏 `Dialog`，不占独立 Activity |
+| `MediaPickerHavePermissions` | `ui/components/MediaAlbumRow.kt` + `KhatKitMediaPicker.kt` | 相册 chip 行、缩略图展开、波浪进度条、权限引导页 |
+| `MediaPickerGridWithOverlays` | `ui/components/MediaPickerGridWithOverlays.kt` | 确认条（Deselect + Pick 角标）、加载/空态/搜索无结果、搜索框与筛选入口 |
+| `MediaPickerGrid` | `ui/components/MediaPickerGrid.kt` | `Adaptive(100.dp)` 网格、1dp 间距、粘性日期头、长按预览 |
+| `MediaImage` / `MediaCheckBox` / `MediaStickyHeader` / `MediaSizeFooter` / `MediaExtensionHeader` | 同名文件，`ui/components/` | 选中内缩 12dp + 16dp 圆角 + 2dp 描边、顺序序号角标、格式/体积角标 |
+| `core/ui/widget/modifier/DragHandler` | `ui/components/DragHandler.kt` | 长按拖拽连选 + 边缘自动滚动 |
+| `MediaSearchAndFilter` | `ui/components/MediaFilterSheet.kt` | 分组维度/粒度/排序/升降序面板 |
+| `MediaImagePager` | `ui/components/MediaImagePager.kt` | 全屏预览；缩放/翻页复用宿主已有的 `com.jvziyaoyao.scale`，上滑关闭、点按隐藏控件、顶栏页码 + 勾选、底栏文件名 + 体积 |
+| `ManageExternalStorageWarning` | `ui/components/ManageExternalStorageWarning.kt` | 缺「所有文件访问」时的提示条（ROM 不提供该开关时不显示） |
+| `MediaPickerComponent` | `ui/MediaPickerState.kt` | 去掉 Decompose + Hilt，改由 Compose 生命周期作用域驱动 |
+| `AndroidMediaRetriever` / `MediaQuery` / `MediaObserver` / `SupportedFiles` | `data/` 同名文件 | MediaStore 三路合并查询、相册聚合、`ContentObserver` 增量刷新 |
+
+差异（有意为之）：
+
+- **风格只做 MD3**。MD3 侧用 Kedge 组件（`KedgeButton` / `KedgeIconButton` /
+  `KedgeBadge` / `KedgeTextFieldWithSlots` / `KedgeTextStyles`）+ 原生 MD3
+  （`FilterChip`、`SmallFloatingActionButton`、`ModalBottomSheet`）；
+  Miuix 分支后续按同样的切法补，不在本轮范围内。
+- **文案走资源**。库内 `values/strings.xml` 放英文默认值，宿主 `values-zh` 同名覆盖
+  （资源合并时 app 优先）。日期粘性头的「今天/昨天」也由宿主传入本地化文案。
+- **权限**：`READ_MEDIA_IMAGES`（13+）/ `READ_EXTERNAL_STORAGE`（≤32）；
+  `AllowedMedia.Videos` / `Both` 会额外申请 `READ_MEDIA_VIDEO`。
+- **网格手势**：`combinedClickable` + `dragHandler` 职责同上游；预览器喂的是**过滤后**的
+  列表，搜索时左右翻页不会跳出结果。
+
+验收状态：`./gradlew :mediapicker:lintDebug` 0 issue，
+`:mediapicker:testDebugUnitTest` 9 项全过（`MediaGroupingTest` 覆盖分组/排序/大小写），
+`:app:assembleDebug` 通过。仍需真机核对：不同 ROM 的 MediaStore 列差异、
+拖拽连选在极大列表下的滚动流畅度、Miuix 风格。
 
 ### 1.1 既有类型化方法（向后兼容）
 
@@ -236,4 +275,5 @@ AI 调用示例：
 | 调色板 PDF、照片马赛克、Seam Carving 等高级算法 | 算法体量与收益不匹配，暂不实现 |
 迁移验收标准：打开聊天附件图片入口后必须显示 ImageToolbox 风格的媒体网格，而不是系统文件管理器；
 支持相册分组、搜索、单选/多选、拖拽连续选择、长按预览、选择确认栏、权限缺失页和全屏预览，并返回
-可读的 `content://` `Uri` 列表给聊天附件管线。
+可读的 `content://` `Uri` 列表给聊天附件管线。以上已全部落地在 `:mediapicker`（见 1.0 节），
+自动化检查已过；余下的是真机观感核对与 Miuix 分支。

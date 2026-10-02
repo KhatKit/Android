@@ -25,6 +25,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissio
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.ImageUtils
+import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
+import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.khatkit.app.core.util.isAllowedFileType
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
@@ -104,39 +106,8 @@ internal fun rememberChatAttachmentPickerActions(
             preCropTempFile = null
         }
     )
-    val imagePickerLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { selectedUris ->
-            if (selectedUris.isNotEmpty()) {
-                Log.d("ImagePickButton", "Selected URIs: $selectedUris")
-                if (setting.displaySetting.skipCropImage) {
-                    inputState.addImages(filesManager.createChatFilesByContents(selectedUris))
-                    onAttachmentAdded()
-                } else if (selectedUris.size == 1) {
-                    val tempFile = File(context.appTempFolder, "pick_temp_${System.currentTimeMillis()}.jpg")
-                    runCatching {
-                        val source = selectedUris.first()
-                        // HEIF/HEIC（尤其 HDR HEIF）交给 UCrop 前先解码转为 JPEG，规避裁剪解码失败
-                        val converted = ImageUtils.isHeifImage(context, source) &&
-                            ImageUtils.convertHeifToJpeg(context, source, tempFile)
-                        if (!converted) {
-                            context.contentResolver.openInputStream(source)?.use { input ->
-                                tempFile.outputStream().use { output -> input.copyTo(output) }
-                            }
-                        }
-                        preCropTempFile = tempFile
-                        launchImageCrop(tempFile.toUri())
-                    }.onFailure {
-                        Log.e("ImagePickButton", "Failed to copy image to temp, falling back", it)
-                        launchImageCrop(selectedUris.first())
-                    }
-                } else {
-                    inputState.addImages(filesManager.createChatFilesByContents(selectedUris))
-                    onAttachmentAdded()
-                }
-            } else {
-                Log.d("ImagePickButton", "No images selected")
-            }
-        }
+    // 图片走自研媒体网格选择器（对齐 ImageToolbox），不是系统文件浏览器
+    var showImagePicker by remember { mutableStateOf(false) }
 
     val videoPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { selectedUris ->
@@ -185,9 +156,42 @@ internal fun rememberChatAttachmentPickerActions(
             }
         }
 
+    KhatKitMediaPicker(
+        visible = showImagePicker,
+        allowedMedia = AllowedMedia.Photos(null),
+        allowMultiple = true,
+        onDismiss = { showImagePicker = false },
+        onPicked = { selectedUris ->
+            showImagePicker = false
+            if (selectedUris.isEmpty()) return@KhatKitMediaPicker
+            if (setting.displaySetting.skipCropImage || selectedUris.size > 1) {
+                inputState.addImages(filesManager.createChatFilesByContents(selectedUris))
+                onAttachmentAdded()
+            } else {
+                val source = selectedUris.first()
+                val tempFile = File(context.appTempFolder, "pick_temp_${System.currentTimeMillis()}.jpg")
+                runCatching {
+                    // HEIF/HEIC（尤其 HDR HEIF）交给 UCrop 前先解码转为 JPEG，规避裁剪解码失败
+                    val converted = ImageUtils.isHeifImage(context, source) &&
+                        ImageUtils.convertHeifToJpeg(context, source, tempFile)
+                    if (!converted) {
+                        context.contentResolver.openInputStream(source)?.use { input ->
+                            tempFile.outputStream().use { output -> input.copyTo(output) }
+                        }
+                    }
+                    preCropTempFile = tempFile
+                    launchImageCrop(tempFile.toUri())
+                }.onFailure {
+                    Log.e("ChatAttachmentPicker", "Failed to copy image to temp, falling back", it)
+                    launchImageCrop(source)
+                }
+            }
+        },
+    )
+
     return ChatAttachmentPickerActions(
         onTakePicture = onTakePicture,
-        onPickImage = { imagePickerLauncher.launch("image/*") },
+        onPickImage = { showImagePicker = true },
         onPickVideo = { videoPickerLauncher.launch("video/*") },
         onPickAudio = { audioPickerLauncher.launch("audio/*") },
         onPickFile = { filePickerLauncher.launch(arrayOf("*/*")) },

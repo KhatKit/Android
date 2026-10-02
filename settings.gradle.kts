@@ -110,5 +110,7 @@ include(":material3")
 include(":workspace")
 include(":app:baselineprofile")
 include(":oauth")
+// 自研图片选择器（对齐 ImageToolbox 的媒体网格），宿主 APK 的 UI 模块
+include(":mediapicker")
 // 原生依赖包模块：不随应用编译，只通过 buildDependencyDex 产出 Hub 分发的 dex 依赖 jar
 include(":image-toolbox-dependency")

@@ -22,6 +22,12 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 - **document**: Document parsing module for handling PDF, DOCX, PPTX, and EPUB files
 - **highlight**: Code syntax highlighting implementation
 - **material3**: Material color utility extensions used by the app UI
+- **mediapicker**: Self-implemented media picker (port of `T8RIN/ImageToolbox`'s
+  `feature/media-picker`): MediaStore query + album grouping + MD3 grid, drag-select, search/sort
+  sheet, fullscreen preview. Replaces the system `GetMultipleContents` picker for chat attachments,
+  assistant background, avatar and image-gen reference images. Single entry point
+  `KhatKitMediaPicker`; returns `List<Uri>`. Only the MD3 style is done — the Miuix branch is
+  follow-up work. See [docs/image-toolbox.md](docs/image-toolbox.md) for the upstream mapping.
 - **search**: Search functionality SDK for multiple providers (Exa, Tavily, Zhipu, Bing, Brave, SearXNG, and others)
 - **speech**: Speech module for TTS and ASR implementations
 - **web**: Embedded web server module that provides Ktor server startup function. Hosts the JSON API (`/api/**`)

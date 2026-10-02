@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 选择器。英文为库内默认值，宿主可在自己的 values-zh 里同名覆盖。 -->
+    <string name="media_picker_all">All</string>
+    <string name="media_picker_pick">Pick</string>
+    <string name="media_picker_pick_multiple">Select media</string>
+    <string name="media_picker_pick_single">Select one</string>
+    <string name="media_picker_gallery_picker">Gallery</string>
+    <string name="media_picker_clear_selection">Clear selection</string>
+    <string name="media_picker_no_permissions">Media permission is required to browse your library</string>
+    <string name="media_picker_request">Grant</string>
+    <string name="media_picker_no_data">No media here yet</string>
+    <string name="media_picker_nothing_found_by_search">Nothing matches your search</string>
+    <string name="media_picker_try_again">Try again</string>
+    <string name="media_picker_search_here">Search here</string>
+    <string name="media_picker_search">Search</string>
+    <string name="media_picker_filter">Filter and sort</string>
+    <string name="media_picker_clear">Clear</string>
+    <string name="media_picker_exit">Exit</string>
+    <string name="media_picker_close">Close</string>
+    <string name="media_picker_expand_albums">Expand albums</string>
+    <string name="media_picker_today">Today</string>
+    <string name="media_picker_yesterday">Yesterday</string>
+
+    <!-- 「所有文件访问」提示条 -->
+    <string name="media_picker_manage_storage_extra_types">Some folders are hidden</string>
+    <string name="media_picker_manage_storage_extra_types_sub">Android/data, SD card root and other app folders need the “All files access” permission to be listed.</string>
+
+    <!-- 排序/分组面板 -->
+    <string name="media_picker_display_options">Display options</string>
+    <string name="media_picker_gallery_grouping">Grouping</string>
+    <string name="media_picker_sorting">Sorting</string>
+    <string name="media_picker_gallery_order">Order</string>
+    <string name="media_picker_ascending">Ascending</string>
+    <string name="media_picker_descending">Descending</string>
+    <string name="media_picker_years">Years</string>
+    <string name="media_picker_months">Months</string>
+    <string name="media_picker_days">Days</string>
+    <string name="media_picker_filename">File name</string>
+    <string name="media_picker_path">Path</string>
+    <string name="media_picker_sort_by_size">Size</string>
+    <string name="media_picker_sort_by_date_modified">Date modified</string>
+    <string name="media_picker_caption_date_taken">Date taken</string>
+    <string name="media_picker_shuffle">Shuffle</string>
+    <string name="media_picker_sort_by_mime_type">Mime type</string>
+    <string name="media_picker_sort_by_extension">Extension</string>
+</resources>

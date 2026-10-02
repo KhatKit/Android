@@ -1,8 +1,6 @@
 package heizige.kk.khatkit.app.feature.imggen
 
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -86,6 +84,8 @@ import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.ui.ImageGenSize
 import heizige.kk.khatkit.common.android.appTempFolder
+import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
+import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.files.FileUtils
@@ -336,27 +336,35 @@ private fun InputBar(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val imagePickerLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { selectedUris ->
-            if (selectedUris.isNotEmpty()) {
-                scope.launch {
-                    val paths = selectedUris.mapNotNull { uri ->
-                        withContext(Dispatchers.IO) {
-                            runCatching {
-                                val bitmap = ImageUtils.loadOptimizedBitmap(context, uri, maxSize = 2048)
-                                    ?: error("Failed to decode image")
-                                val pngBytes = FileUtils.compressBitmapToPng(bitmap)
-                                bitmap.recycle()
-                                val file = File(context.appTempFolder, "imggen_ref_${Uuid.random()}.png")
-                                file.writeBytes(pngBytes)
-                                file.absolutePath
-                            }.getOrNull()
-                        }
+    // 参考图走自研媒体网格选择器（对齐 ImageToolbox）
+    var showImagePicker by remember { mutableStateOf(false) }
+
+    KhatKitMediaPicker(
+        visible = showImagePicker,
+        allowedMedia = AllowedMedia.Photos(null),
+        allowMultiple = true,
+        onDismiss = { showImagePicker = false },
+        onPicked = { selectedUris ->
+            showImagePicker = false
+            if (selectedUris.isEmpty()) return@KhatKitMediaPicker
+            scope.launch {
+                val paths = selectedUris.mapNotNull { uri ->
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            val bitmap = ImageUtils.loadOptimizedBitmap(context, uri, maxSize = 2048)
+                                ?: error("Failed to decode image")
+                            val pngBytes = FileUtils.compressBitmapToPng(bitmap)
+                            bitmap.recycle()
+                            val file = File(context.appTempFolder, "imggen_ref_${Uuid.random()}.png")
+                            file.writeBytes(pngBytes)
+                            file.absolutePath
+                        }.getOrNull()
                     }
-                    vm.addReferenceImages(paths)
                 }
+                vm.addReferenceImages(paths)
             }
-        }
+        },
+    )
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -409,7 +417,7 @@ private fun InputBar(
             }
 
             KedgeIconButton(
-                onClick = { imagePickerLauncher.launch("image/*") },
+                onClick = { showImagePicker = true },
                 shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(

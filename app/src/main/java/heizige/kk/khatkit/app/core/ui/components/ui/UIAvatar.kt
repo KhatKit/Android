@@ -1,8 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Canvas
@@ -54,6 +52,8 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.ui.components.ai.useCropLauncher
+import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
+import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAvatarShape
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
@@ -126,24 +126,8 @@ fun UIAvatar(
         freeStyleCropEnabled = false
     )
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { selectedUri ->
-            val tempFile = File(context.appTempFolder, "avatar_pick_${System.currentTimeMillis()}.jpg")
-            runCatching {
-                context.contentResolver.openInputStream(selectedUri)?.use { input ->
-                    tempFile.outputStream().use { output -> input.copyTo(output) }
-                } ?: error("Failed to open input stream for $selectedUri")
-                preCropTempFile?.delete()
-                preCropTempFile = tempFile
-                launchImageCrop(tempFile.toUri())
-            }.onFailure {
-                tempFile.delete()
-                launchImageCrop(selectedUri)
-            }
-        }
-    }
+    // 头像走自研媒体网格选择器（对齐 ImageToolbox），单选
+    var showImagePicker by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.then(Modifier.size(32.dp))) {
         KedgeSurface(
@@ -230,7 +214,7 @@ fun UIAvatar(
                     KedgeButton(
                         onClick = {
                             showPickOption = false
-                            imagePickerLauncher.launch("image/*")
+                            showImagePicker = true
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shapes = ButtonDefaults.shapes(),
@@ -349,6 +333,30 @@ fun UIAvatar(
             }
         )
     }
+
+    KhatKitMediaPicker(
+        visible = showImagePicker,
+        allowedMedia = AllowedMedia.Photos(null),
+        allowMultiple = false,
+        onDismiss = { showImagePicker = false },
+        onPicked = { uris ->
+            showImagePicker = false
+            uris.firstOrNull()?.let { selectedUri ->
+                val tempFile = File(context.appTempFolder, "avatar_pick_${System.currentTimeMillis()}.jpg")
+                runCatching {
+                    context.contentResolver.openInputStream(selectedUri)?.use { input ->
+                        tempFile.outputStream().use { output -> input.copyTo(output) }
+                    } ?: error("Failed to open input stream for $selectedUri")
+                    preCropTempFile?.delete()
+                    preCropTempFile = tempFile
+                    launchImageCrop(tempFile.toUri())
+                }.onFailure {
+                    tempFile.delete()
+                    launchImageCrop(selectedUri)
+                }
+            }
+        },
+    )
 }
 
 @Composable

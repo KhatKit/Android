@@ -203,6 +203,13 @@ dependencies {
 
     // jetbrains markdown parser
     implementation(libs.jetbrains.markdown)
+    // richeditor 会传递引入 org.jetbrains:markdown(-jvm)，与上面 rikkahub 的 markdown fork
+    // 提供同一批 org.intellij.markdown.* 类，checkDebugDuplicateClasses 直接报重复类。
+    // 两者是同一上游代码的 fork，统一保留 rikkahub 那份。
+    implementation(libs.richeditor.compose) {
+        exclude(group = "org.jetbrains", module = "markdown")
+        exclude(group = "org.jetbrains", module = "markdown-jvm")
+    }
 
     // ktor client（networking 全量走 Ktor，无 OkHttp）
     implementation(libs.ktor.client.core)
@@ -290,6 +297,7 @@ dependencies {
     implementation(project(":material3"))
     implementation(project(":workspace"))
     implementation(project(":oauth"))
+    implementation(project(":mediapicker"))
     implementation(project(":khatkit"))
     implementation(project(":khatkit-ui"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))

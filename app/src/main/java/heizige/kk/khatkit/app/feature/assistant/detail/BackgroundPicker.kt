@@ -1,8 +1,6 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +29,8 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
+import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -45,16 +45,8 @@ fun BackgroundPicker(
     var showUrlInput by remember { mutableStateOf(false) }
     var urlInput by remember { mutableStateOf("") }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val localUris = filesManager.createChatFilesByContents(listOf(it))
-            localUris.firstOrNull()?.let { localUri ->
-                onUpdate(localUri.toString())
-            }
-        }
-    }
+    // 背景图走自研媒体网格选择器（对齐 ImageToolbox），单选
+    var showImagePicker by remember { mutableStateOf(false) }
 
     val previewOpacity = backgroundOpacity.coerceIn(0f, 1f)
 
@@ -130,7 +122,7 @@ fun BackgroundPicker(
                     KedgeButton(
                         onClick = {
                             showPickOption = false
-                            imagePickerLauncher.launch("image/*")
+                            showImagePicker = true
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shapes = ButtonDefaults.shapes(),
@@ -219,4 +211,18 @@ fun BackgroundPicker(
             }
         )
     }
+
+    KhatKitMediaPicker(
+        visible = showImagePicker,
+        allowedMedia = AllowedMedia.Photos(null),
+        allowMultiple = false,
+        onDismiss = { showImagePicker = false },
+        onPicked = { uris ->
+            showImagePicker = false
+            uris.firstOrNull()?.let { picked ->
+                val localUris = filesManager.createChatFilesByContents(listOf(picked))
+                localUris.firstOrNull()?.let { localUri -> onUpdate(localUri.toString()) }
+            }
+        },
+    )
 }
