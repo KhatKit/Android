@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!--
+      多语言由 Crowdin 维护（本地只补 values/ 与 values-zh/），ar / ru 落后是常态：
+      缺翻译继续报在报告里，但不该让构建红掉。要看清单跑 ./gradlew :app:lintDebug。
+    -->
+    <issue id="MissingTranslation" severity="warning" />
+</lint>
