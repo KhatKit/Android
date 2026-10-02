@@ -50,6 +50,21 @@ data class ListCardStyle(
         groupItemShape(isFirst = index == 0, isLast = index == count - 1)
 }
 
+/**
+ * Miuix 观感的列表卡片样式（对齐 KernelSU SettingsMiuix）：每一项都是独立的圆角卡片，
+ * 项之间留 [gap]，不做 MD3 那种「组内紧贴 + 首尾圆角不同」的分组。
+ *
+ * 注意这个常量要在 **Miuix 主题分支** 里通过 [LocalListCardStyle] 下发——Miuix 走的是
+ * `:khatkit-ui` 的 KhatKitTheme，不会经过 `core/ui/theme/Theme.kt` 里的那段逻辑，
+ * 漏下发就会退回默认的 gap=2dp，页面上的选项会看起来挤成一坨。
+ */
+val MiuixListCardStyle = ListCardStyle(
+    largeCorner = 20.dp,
+    smallCorner = 20.dp,
+    gap = 12.dp,
+    independentItems = true,
+)
+
 val LocalListCardStyle = staticCompositionLocalOf { ListCardStyle() }
 
 @Composable

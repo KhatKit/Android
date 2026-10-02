@@ -124,7 +124,6 @@ import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
 import heizige.kk.kedge.adaptive.KedgeBlurredBar
 import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
 import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
-import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
@@ -370,7 +369,7 @@ fun ChatDrawerContent(
                         .fillMaxWidth()
                         // 原 MD3 BottomAppBar 自带 windowInsets，去掉外壳后要自己补
                         .navigationBarsPadding()
-                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                        .padding(horizontal = 12.dp, vertical = 16.dp)
                 ) {
                     DrawerAction(
                         icon = {
@@ -408,16 +407,6 @@ fun ChatDrawerContent(
 
                     DrawerAction(
                         icon = {
-                            Icon(extension, null)
-                        },
-                        label = "卡片市场",
-                        onClick = {
-                            navController.navigate(Screen.KhatKitMarket)
-                        },
-                    )
-
-                    DrawerAction(
-                        icon = {
                             Icon(download, null)
                         },
                         label = "下载中心",
@@ -436,9 +425,6 @@ fun ChatDrawerContent(
                     .padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-            // 顶栏占位。减 8.dp 是因为 spacedBy 会在 Spacer 和下一个子项之间
-            // 再加一段 8.dp 间距。
-            Spacer(Modifier.height(DrawerTopBarHeight + statusBarTop - 8.dp))
             if (updateChecksEnabled && !isPlayStore) {
                 UpdateCard(vm)
             }
@@ -465,32 +451,50 @@ fun ChatDrawerContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    // 底栏浮在内容之上，列表要多留出这段才能滚到底栏上方
-                    .padding(bottom = DrawerBottomBarHeight + navBarBottom),
+                    .weight(1f),
             ) {
                 ConversationList(
                     conversations = conversations,
                     currentId = current.id,
                     conversationJobs = conversationJobs.keys,
                     listState = conversationListState,
-                    contentPadding = PaddingValues(bottom = 80.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    // 顶/底栏浮在列表之上，列表本身铺满并从栏下面穿过（毛玻璃才有
+                    // 内容可透）；用列表内的 Spacer 占位，首尾项仍能完整滚出来。
+                    topSpacerHeight = DrawerTopBarHeight + statusBarTop,
+                    bottomSpacerHeight = DrawerBottomBarHeight + navBarBottom,
                     header = {
-                        Button(
+                        // 整宽浅色卡片（surfaceContainer），不是实心主色按钮——
+                        // 抽屉里已经有实心按钮了，这里再一个会互相抢视觉。
+                        KedgeButton(
                             onClick = { showCreateFolderDialog = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp)
-                                .height(46.dp),
-                            shapes = ButtonDefaults.shapes(),
+                                .padding(bottom = 12.dp)
+                                .height(56.dp),
+                            variant = KedgeButtonVariant.Secondary,
+                            shapes = ButtonDefaults.shapes(RoundedCornerShape(20.dp)),
+                            miuixCornerRadius = 20.dp,
+                            // Miuix 分支把这个值当 insideMargin 用，会叠在Miuix 自带的
+                            // 内边距上；这里交给下面的居中排版控制，不要再额外加边距。
+                            contentPadding = PaddingValues(0.dp),
                         ) {
-                            Icon(
-                                createNewFolder,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.chat_page_create_folder))
+                            // 图标 + 文案整体居中（对齐 KernelSU 抽屉的「新建文件夹」）
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    createNewFolder,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.chat_page_create_folder),
+                                    style = KedgeTextStyles.body(),
+                                )
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
@@ -828,7 +832,9 @@ private fun DrawerAction(
 // 抽屉顶栏高度：MD3 TopAppBar 内容高 64.dp（不含状态栏 inset）
 private val DrawerTopBarHeight = 64.dp
 
-private val DrawerBottomBarHeight = 64.dp
+// 抽屉底栏高度：图标按钮 48.dp + 上下各 16.dp 内边距 = 80.dp，
+// 与原先 MD3 BottomAppBar 的高度一致（去掉它之后曾缩到 64.dp，手感偏挤）。
+private val DrawerBottomBarHeight = 80.dp
 
 private val FolderRowShape = RoundedCornerShape(16.dp)
 

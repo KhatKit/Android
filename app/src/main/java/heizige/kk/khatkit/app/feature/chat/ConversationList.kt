@@ -77,6 +77,8 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.theme.KedgeTextStyles
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.Dp
 
 /**
  * 会话列表按时间分组后的条目类型。
@@ -162,6 +164,13 @@ fun ConversationList(
     conversationJobs: Collection<Uuid> = emptyList(),
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    /**
+     * 列表内首/尾占位高度。用于「顶栏/底栏浮在内容之上」的场景：栏不内缩列表，
+     * 而是在列表里塞一个等高Spacer，这样会话项能一路滚到栏下面（毛玻璃才有东西
+     * 可透），又能继续滚到栏上方完全露出来。
+     */
+    topSpacerHeight: Dp = 0.dp,
+    bottomSpacerHeight: Dp = 0.dp,
     header: (@Composable () -> Unit)? = null,
     onClick: (Conversation) -> Unit = {},
     onDelete: ((Conversation) -> Unit)? = null,
@@ -194,6 +203,12 @@ fun ConversationList(
         modifier = modifier,
         contentPadding = contentPadding,
     ) {
+        if (topSpacerHeight > 0.dp) {
+            item(key = "conversation_list_top_spacer") {
+                Spacer(Modifier.height(topSpacerHeight))
+            }
+        }
+
         header?.let { content ->
             item(key = "conversation_list_header") {
                 content()
@@ -272,6 +287,12 @@ fun ConversationList(
                 null -> {
                     // Placeholder for loading state
                 }
+            }
+        }
+
+        if (bottomSpacerHeight > 0.dp) {
+            item(key = "conversation_list_bottom_spacer") {
+                Spacer(Modifier.height(bottomSpacerHeight))
             }
         }
     }

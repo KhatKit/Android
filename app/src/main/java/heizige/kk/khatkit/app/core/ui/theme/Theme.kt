@@ -110,14 +110,7 @@ fun KhatKitTheme(
         isMiuix,
     ) {
         if (isMiuix) {
-            // Miuix 观感（对齐 KernelSU SettingsMiuix）：每一项都是独立的圆角卡片，
-            // 项之间留 12dp 间距，不做 MD3 那种「组内紧贴 + 首尾圆角不同」的分组。
-            ListCardStyle(
-                largeCorner = 20.dp,
-                smallCorner = 20.dp,
-                gap = 12.dp,
-                independentItems = true,
-            )
+            MiuixListCardStyle
         } else {
             ListCardStyle(
                 largeCorner = settings.listCardLargeCorner.dp,

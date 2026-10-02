@@ -55,12 +55,23 @@ fun KedgeExtendedFloatingActionButton(
     containerColor: Color? = null,
 ) {
     when (LocalKedgeStyle.current) {
-        KedgeStyle.Miuix -> MiuixFloatingActionButton(
-            onClick = onClick,
-            modifier = modifier,
-            containerColor = containerColor ?: MiuixTheme.colorScheme.primary,
-            content = icon,
-        )
+        // Miuix 的 FAB 自带 shape（圆角方）+ 配色默认值，不要用 MD3 的
+        // primary 去覆盖——那会得到一个过饱和的圆点，看着就不像 Miuix。
+        // 所以 Miuix 分支只透传调用方显式指定的颜色，没给就用 Miuix 自己的。
+        KedgeStyle.Miuix -> if (containerColor != null) {
+            MiuixFloatingActionButton(
+                onClick = onClick,
+                modifier = modifier,
+                containerColor = containerColor,
+                content = icon,
+            )
+        } else {
+            MiuixFloatingActionButton(
+                onClick = onClick,
+                modifier = modifier,
+                content = icon,
+            )
+        }
 
         KedgeStyle.MD3Exp -> androidx.compose.material3.ExtendedFloatingActionButton(
             onClick = onClick,

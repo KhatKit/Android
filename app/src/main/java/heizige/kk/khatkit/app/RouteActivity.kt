@@ -65,7 +65,6 @@ import heizige.kk.khatkit.app.core.ui.activity.SafeModeActivity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
 import heizige.kk.khatkit.app.feature.explore.ExploreMarketPage
-import heizige.kk.khatkit.app.feature.market.KhatKitMarketPage
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
@@ -222,7 +221,15 @@ class RouteActivity : ComponentActivity() {
                         heizige.kk.kedge.adaptive.ProvideKedgeBlur(
                             enabled = khatKitProvider.enableBlur
                         ) {
-                            appContent()
+                            // Miuix 下列表卡片样式也要在这里下发：Miuix 走的是
+                            // :khatkit-ui 的 KhatKitTheme，不会经过 core/ui/theme/Theme.kt，
+                            // 漏下发会退回 gap=2dp 的默认分组样式，页面选项会挤成一坨。
+                            androidx.compose.runtime.CompositionLocalProvider(
+                                heizige.kk.khatkit.app.core.ui.theme.LocalListCardStyle provides
+                                    heizige.kk.khatkit.app.core.ui.theme.MiuixListCardStyle,
+                            ) {
+                                appContent()
+                            }
                         }
                     }
                 } else {
@@ -523,10 +530,6 @@ class RouteActivity : ComponentActivity() {
                                 SettingMcpPage()
                             }
 
-                            entry<Screen.KhatKitMarket> {
-                                KhatKitMarketPage()
-                            }
-
                             entry<Screen.ExploreMarket> {
                                 ExploreMarketPage()
                             }
@@ -766,8 +769,6 @@ sealed interface Screen : NavKey {
     data object SettingMcp : Screen
 
     @Serializable
-    data object KhatKitMarket : Screen
-
     data object ExploreMarket : Screen
 
     @Serializable

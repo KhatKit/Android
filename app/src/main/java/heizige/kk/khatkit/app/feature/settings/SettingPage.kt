@@ -80,7 +80,6 @@ import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.groups
-import heizige.kk.khatkit.app.core.ui.icons.inventory2
 import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
@@ -90,6 +89,7 @@ import heizige.kk.khatkit.app.core.ui.icons.shelves
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
+import heizige.kk.khatkit.app.core.ui.icons.inventory2
 
 @Composable
 fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
@@ -254,12 +254,6 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         leadingContent = { Icon(inventory2, null) },
                         supportingContent = { Text("一站式浏览工具、技能、MCP、模型能力与脚本卡片") },
                         headlineContent = { Text("探索市场") },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.KhatKitMarket) },
-                        leadingContent = { Icon(inventory2, null) },
-                        supportingContent = { Text("浏览、安装脚本卡片，让 AI 能操作手机") },
-                        headlineContent = { Text("卡片市场") },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPackage) },
