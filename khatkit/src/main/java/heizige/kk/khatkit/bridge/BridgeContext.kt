@@ -26,3 +26,14 @@ fun interface ApprovalGate {
     /** @return true 放行；false 表示用户拒绝或不可审批。 */
     fun request(title: String, detail: String, category: String): Boolean
 }
+
+/**
+ * 能按卡片名绑定视图的 bridge（宿主实现提供 `bindCard`）。
+ *
+ * `BridgeRegistry.inject` 拿到 manifest 后据此给单例实现换一张绑定卡片名的视图，
+ * 这样宿主侧实现不必自己知道「现在是哪张卡片」，也不用把实现类暴露给 `khatkit`。
+ */
+interface CardBindable {
+    /** 返回绑定 [cardName] 的同类型实例。 */
+    fun bindCard(cardName: String): Any
+}

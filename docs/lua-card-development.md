@@ -188,7 +188,7 @@ return { message: "Hello, " + name };
 }
 ```
 
-- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `net` `fs` `json` `crypto` `time` `host` `system` `ai` `mediaPicker` `ui` `web` `download` `store` `shizuku` `root` `accessibility` `imageToolbox`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
+- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `net` `fs` `json` `crypto` `time` `host` `system` `ai` `mediaPicker` `ui` `web` `download` `store` `shizuku` `root` `accessibility` `imageToolbox` `schedule`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
 - `libs`：共享库声明。`name` 为库名；`lang` 为 `lua` / `js`（默认 `js`）；`version` 为 SemVer 范围（默认 `*`）。宿主解析顺序：内置层 `assets/libs/<dir>/<version>/` → Hub CDN 共享库 registry；**只解析与当前引擎同语言的库**。脚本内用 `require(name)` 使用（Lua 走 `package.preload`，JS 为 CommonJS 形态）。
 - `bins` / `env`：当前宿主版本未消费，保留字段，可留空数组。
 
@@ -1002,6 +1002,39 @@ return { text = text }
   匹配不到会返回带可用模型列表的中文错误（卡片拿不到用户的密钥，只能用已配置的）。
 - **多模态**：`imagePaths` 传本地文件路径（`mediaPicker.pickMedia` 的返回值、`fs` 读到的缓存文件都行）。
 - **计费**：模型调用本身不额外计费（`price = 0`），但每次调用都会上报 Hub 统计，卡片价格按卡片调用次数结算。
+
+### 4.13 schedule（脚本自建定时任务，L0）
+
+```lua
+-- 每 10 分钟跑一次；jobId 由卡片名派生，跨卡片不会撞车
+local job = schedule.every(10, "refresh", '{"url":"https://api.example.com/feed"}')
+
+-- 每天 08:00 / 21:30，只在周一到周五
+schedule.at({ "08:00", "21:30" }, { 1, 2, 3, 4, 5 }, "daily")
+
+for _, t in ipairs(schedule.list()) do
+  print(t.jobId, t.kind, t.nextRunAt)
+end
+
+schedule.cancel(job)
+```
+
+| 方法（签名） | 返回 | 说明 |
+|---|---|---|
+| `every(intervalMinutes, jobId, payloadJson)` | string | 每 N 分钟触发（1–10080）；`jobId` 留空自动生成；返回完整 jobId。 |
+| `at(times, days, jobId)` | string | `times` 严格 `HH:mm`；`days` 为 1=周一…7=周日，空 = 每天。 |
+| `cancel(jobId)` | boolean | 取消本卡片任务；`jobId` 可传完整值或卡片内自定义值。 |
+| `list()` | map[] | `{ jobId, kind, intervalMinutes, times, days, nextRunAt, createdAt }`。 |
+
+- **payloadJson 必须是 JSON 对象**，触发时作为 `args` 注入：
+  ```lua
+  local url = args.url
+  ```
+- **与 `schedule` 事件的区别**：事件是卡片声明的固定计划，走宿主精确闹钟（准点）；
+  这里给的是脚本临时排的班，走 WorkManager，**可能延迟**到下一个维护窗口（省电 / 休眠时尤其明显）。
+  要准点就写 manifest 事件。
+- 同名任务重复 `every` / `at` 会覆盖（幂等）；卡片卸载时自动取消。
+- 不受「自动化触发器」总开关约束，但每次触发仍走卡片自身的审批与计费链路。
 
 ### 4.12 宿主侧接口速览
 

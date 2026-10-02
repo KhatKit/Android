@@ -27,6 +27,8 @@ import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
+import heizige.kk.khatkit.app.feature.automation.CardScheduleStore
+import heizige.kk.khatkit.app.feature.automation.ScheduleBridgeImpl
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.card.CardParser
@@ -70,6 +72,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import androidx.work.WorkManager
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -185,6 +188,9 @@ class KhatKitToolProvider(
             onCall = ::reportAiCall,
         ),
     )
+
+    /** 脚本自建定时任务的宿主侧实现；卡片名由 BridgeRegistry 按 manifest 绑定。 */
+    private val scheduleImpl by lazy { ScheduleBridgeImpl(appContext, "") }
 
     /** 表单 `file_picker` / `dir_picker` 的宿主侧选择器请求；表单渲染时传入 KhatKitForm。 */
     val formPickerHost = FormPickerHost()
@@ -379,6 +385,7 @@ class KhatKitToolProvider(
                 ai = aiBridge,
                 // store.embed* 用用户已配置的 embedding 模型；没有模型时方法返回中文错误
                 embeddingEngine = CardEmbeddingEngine(providerManager, { settingsRepository.settingsFlow.value }),
+                schedule = scheduleImpl,
             ).also {
                 executor = it
                 bindDownloadCenter(it)
@@ -1569,7 +1576,34 @@ class KhatKitToolProvider(
 
     /** 卸载卡片（删掉其所有版本目录）。 */
     override suspend fun uninstallCard(name: String): Boolean = withContext(Dispatchers.IO) {
-        cache.uninstall(name)
+        val ok = cache.uninstall(name)
+        if (ok) cancelScheduledCardJobs(name)
+        ok
+    }
+
+    /** 卸载卡片：连带取消它用 `schedule` 自建的任务（含 WorkManager 队列）。 */
+    fun cancelScheduledCardJobs(cardName: String) {
+        val removed = CardScheduleStore(appContext).removeAll(cardName)
+        removed.forEach { job ->
+            runCatching {
+                WorkManager.getInstance(appContext).cancelUniqueWork(CardScheduleStore.workName(job.jobId))
+            }
+        }
+        runCatching { appContext.deleteDatabase("cards/$cardName.db") }
+    }
+
+    /**
+     * 以 [argsJson]（JSON 对象文本）运行本卡片；供 [CardScheduleWorker] 走定时任务链路。
+     * 复用 [runCardWithStatus]，因此审批、看板、计费、并发上限与事件触发一致。
+     */
+    suspend fun runScheduledCard(cardName: String, argsJson: String): String {
+        val card = loadInstalledCards().firstOrNull { it.manifest.name == cardName }
+            ?: return "卡片未安装：$cardName"
+        val args = runCatching { argsJson.toPlainMap() }.getOrDefault(emptyMap())
+        return when (val result = runCardWithStatus(card, args, trigger = "定时任务")) {
+            is EngineResult.Ok -> (result.value["error"]?.toString() ?: "ok")
+            is EngineResult.Err -> result.message
+        }
     }
 
     /** 已安装卡片 name -> version，市场页据此显示"更新"。 */
@@ -2282,3 +2316,22 @@ private fun toElement(value: Any?, depth: Int = 0): JsonElement = when (value) {
 }
 
 private fun String.escape(): String = replace("\\", "\\\\").replace("\"", "\\\"")
+
+/** JSON 对象文本 → 卡片 args（数字 / 布尔 / 字符串 / null / 嵌套 table）。 */
+private fun String.toPlainMap(): Map<String, Any?> {
+    val element = Json.parseToJsonElement(this)
+    val obj = element as? JsonObject ?: throw IllegalArgumentException("参数必须是 JSON 对象")
+    return obj.mapValues { (_, value) -> value.toPlainValue() }
+}
+
+private fun JsonElement.toPlainValue(): Any? = when (this) {
+    is JsonNull -> null
+    is JsonObject -> mapValues { (_, value) -> value.toPlainValue() }
+    is JsonArray -> map { it.toPlainValue() }
+    is JsonPrimitive -> when {
+        isString -> content
+        content == "true" -> true
+        content == "false" -> false
+        else -> content.toLongOrNull() ?: content.toDoubleOrNull() ?: content
+    }
+}

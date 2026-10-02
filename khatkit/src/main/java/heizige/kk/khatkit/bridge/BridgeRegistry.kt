@@ -33,6 +33,7 @@ class BridgeRegistry(
     private val shizuku: ShizukuBridge? = null,
     private val root: RootBridge? = null,
     private val accessibility: AccessibilityBridge? = null,
+    private val schedule: ScheduleBridge? = null,
 ) {
     /**
      * 运行期动态注册的 bridge（原生依赖包加载后注册，如 imageToolbox）。
@@ -83,6 +84,7 @@ class BridgeRegistry(
         if (shizuku != null) add("shizuku")
         if (root != null) add("root")
         if (accessibility != null) add("accessibility")
+        if (schedule != null) add("schedule")
         addAll(dynamicBridges.keys)
         add(CAPABILITY_DEPENDENCY)
     }
@@ -152,6 +154,10 @@ class BridgeRegistry(
                 "shizuku" -> shizuku
                 "root" -> root
                 "accessibility" -> accessibility
+                "schedule" -> when (val s = schedule) {
+                    is CardBindable -> s.bindCard(manifest.name)
+                    else -> s
+                }
                 else -> dynamicBridges[name]
             } ?: return false
             engine.define(name, scopedBridge(context, name, impl))

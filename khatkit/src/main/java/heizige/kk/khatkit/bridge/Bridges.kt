@@ -378,6 +378,38 @@ interface UiBridge {
     fun isCancelled(): Boolean = false
 }
 
+/**
+ * 卡片脚本在运行期自建的定时任务（L0）。
+ *
+ * 与 manifest 的 `schedule` 事件**相互独立**：事件是卡片声明的固定计划（宿主有精确闹钟通道），
+ * 这里是脚本临时排的班（例如「抓到更新后 10 分钟再抓一次」）。jobId 按卡片命名空间隔离，
+ * 跨卡片不会撞车；卸载卡片时宿主会连带取消它留下的任务。
+ *
+ * 调度由宿主 WorkManager 负责，**不是精确闹钟**：系统休眠或省电策略下可能延迟到下一个维护窗口。
+ * 需要准点执行请改用 manifest 的 `schedule` 事件。
+ */
+interface ScheduleBridge {
+    /**
+     * 每 [intervalMinutes] 分钟触发一次（1–10080，即 7 天）。
+     * [jobId] 为空时自动生成；同名任务会覆盖。返回完整 jobId。
+     *
+     * @param payloadJson 触发时注入卡片的 `args`（必须是 JSON 对象），缺省 `{}`。
+     */
+    fun every(intervalMinutes: Int, jobId: String = "", payloadJson: String = "{}"): String
+
+    /**
+     * 在 [times]（严格 `HH:mm`）命中时触发；[days] 限定星期（1=周一 … 7=周日，空 = 每天）。
+     * 至少要给一个时间。同名任务会覆盖，返回完整 jobId。
+     */
+    fun at(times: List<String>, days: List<Int>, jobId: String = ""): String
+
+    /** 取消本卡片的某个任务；jobId 可传完整值或卡片内自定义值。 */
+    fun cancel(jobId: String): Boolean
+
+    /** 本卡片当前任务：`{ jobId, kind, intervalMinutes, times, days, nextRunAt, createdAt }`（时间戳均为毫秒）。 */
+    fun list(): List<Map<String, Any?>>
+}
+
 /** 白名单组件，CI 扫描 card 时校验 type 必须在此集合内 */
 object UiWidgets {
     val ALLOWED: Set<String> = heizige.kk.khatkit.card.UiWidgetVocabulary.ALLOWED

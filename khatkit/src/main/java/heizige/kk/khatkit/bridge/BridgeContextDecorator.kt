@@ -131,6 +131,11 @@ class ScopedRootBridge(
     delegate: RootBridge,
 ) : RootBridge by delegate, ContextAwareBridge
 
+class ScopedScheduleBridge(
+    override val context: BridgeContext,
+    delegate: ScheduleBridge,
+) : ScheduleBridge by delegate, ContextAwareBridge
+
 /** 透明无障碍包装器。 */
 class ScopedAccessibilityBridge(
     override val context: BridgeContext,
@@ -156,5 +161,6 @@ fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = whe
     "shizuku" -> ScopedShizukuBridge(context, delegate as ShizukuBridge)
     "root" -> ScopedRootBridge(context, delegate as RootBridge)
     "accessibility" -> ScopedAccessibilityBridge(context, delegate as AccessibilityBridge)
+    "schedule" -> ScopedScheduleBridge(context, delegate as ScheduleBridge)
     else -> delegate
 }

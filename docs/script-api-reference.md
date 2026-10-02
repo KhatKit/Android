@@ -39,7 +39,8 @@
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
-| `store` | `StoreBridge` | L0 | 始终 | 卡片隔离的 kv / file / db / secret + 跨卡片共享区。 |
+| `store` | `StoreBridge` | L0 | 始终 | 卡片隔离的 kv / file / db / secret + 跨卡片共享区 + 自管 SQLite 与向量检索。 |
+| `schedule` | `ScheduleBridge` | L0 | 始终 | 脚本运行期自建的定时任务（WorkManager，非精确闹钟）。 |
 | `imageToolbox` | `ImageToolboxBridge` | L0 | 依赖包已下载 | 本地图像工具箱，随 `requires.dependencies` 下发的 dex 包注入，见 [dependency-system.md](dependency-system.md)。 |
 | `shizuku` | `ShizukuBridge` | L1 | Shizuku 在线 | 动作级 API + `shell`。 |
 | `accessibility` | `AccessibilityBridge` | L1 | 无障碍服务开启 | 找节点 / 点击 / 手势 / 识图。 |
@@ -242,8 +243,8 @@ return { count = #paths, first = paths[1] }
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
-| `ui.form(title, items, options)` | table / nil | 声明式表单；返回用户填的值，取消或超时返回 nil。items 组件白名单见 §7。 |
-| `ui.sheet(title, actions, options)` | table / nil | 声明式操作弹层；返回 `{event, values}`，取消或超时返回 nil。actions 字段见 §8。 |
+| `ui.form(title, items, options)` | table / nil | 声明式表单；返回用户填的值，取消或超时返回 nil。items 组件白名单见 §9。 |
+| `ui.sheet(title, actions, options)` | table / nil | 声明式操作弹层；返回 `{event, values}`，取消或超时返回 nil。actions 字段见 §10。 |
 | `ui.confirm(title, message, danger)` | boolean | 二次确认；`danger` 为真时按钮是危险样式。取消 / 超时返回 false。 |
 | `ui.progress(ratio, label)` | 无 | 顶部进度条，`ratio` 0.0–1.0，`label` 为空则只更新进度。 |
 | `ui.show(card, options)` | 无 | 结果卡片，优先渲染 `markdown` / `text` / `content`，标题取 `title`；不阻塞。 |
@@ -267,7 +268,7 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
-| `web.openLogin(url, title, actions, options)` | table | 打开网页登录弹层并阻塞等待。返回 `{event, values}`：`event` 为脚本声明的事件名，`values.currentUrl` 是点击时的当前页面地址。失败 / 取消见 §9。 |
+| `web.openLogin(url, title, actions, options)` | table | 打开网页登录弹层并阻塞等待。返回 `{event, values}`：`event` 为脚本声明的事件名，`values.currentUrl` 是点击时的当前页面地址。失败 / 取消见 §11。 |
 | `web.savedCookie(url)` | string | 读该 host 已保存的 Cookie，没有返回空串。 |
 | `web.cookieStatus(url)` | table | `{host, saved, length}`，只给状态与长度。 |
 | `web.clearCookie(url)` | boolean | 清除该 host 的已保存 Cookie。 |
@@ -395,7 +396,38 @@ else
 end
 ```
 
-## 8. ui.form 组件白名单
+## 8. schedule（L0，脚本自建定时任务）
+
+卡片在**运行期**排的定时任务（抓取轮询、延迟重试、提醒自己）。和 manifest 的
+`schedule` 事件互相独立：事件是卡片声明的固定计划，调度走宿主精确闹钟；这里是脚本临时排的班。
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `schedule.every(intervalMinutes, jobId, payloadJson)` | string | 每 N 分钟跑一次（1–10080）；`jobId` 留空自动生成；返回完整 jobId。 |
+| `schedule.at(times, days, jobId)` | string | 在 `times`（严格 `HH:mm`）命中时跑；`days` 限定星期（1=周一…7=周日，空 = 每天）；返回完整 jobId。 |
+| `schedule.cancel(jobId)` | boolean | 取消本卡片的任务；没命中返回 false。 |
+| `schedule.list()` | table[] | 本卡片当前任务，见下。 |
+
+`schedule.list()` 每项：`{ jobId, kind, intervalMinutes, times, days, nextRunAt, createdAt }`
+（时间戳为毫秒；`kind` 为 `every` / `at`）。
+
+```lua
+local job = schedule.every(10, "refresh", '{"url":"https://api.example.com/feed"}')
+schedule.list()   -- { { jobId = "my_card:refresh", kind = "every", ... } }
+schedule.cancel(job)
+```
+
+要点：
+
+- **jobId 命名空间**：`jobId` 实际是 `<卡片名>:<自定义值>`，跨卡片不会撞车；
+  同名任务会覆盖（幂等）。`cancel` 可以传完整值，也可以只传卡片内的自定义值。
+- **`payloadJson`** 必须是 JSON 对象，触发时作为卡片的 `args` 注入（`args.url` 这样取）。
+- **不保证准点**：调度用 WorkManager 的一次性任务链（跑完再排下一次），系统休眠或省电策略下
+  会延迟到下一个维护窗口。需要分钟级准点请用 manifest 的 `schedule` 事件。
+- 任务在卡片**卸载**时自动取消；进程被杀不影响后续触发（任务已持久化）。
+- 这些任务不受「自动化触发器」总开关约束（那是管事件触发的），但仍走卡片自身的审批与计费链路。
+
+## 9. ui.form 组件白名单
 
 | type | 渲染行为 | 取值 |
 |---|---|---|
@@ -411,7 +443,7 @@ end
 | `button` | 按钮（当前无点击回调） | 不参与 |
 | `custom` | 按 `renderer` 找宿主注册的渲染器 | 取决于渲染器 |
 
-## 9. ui.sheet / web.openLogin 的 action 字段
+## 10. ui.sheet / web.openLogin 的 action 字段
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -423,7 +455,7 @@ end
 
 弹层只要有 `top` 或 `overflow` 动作，就切成「拖柄顶行 + 标题」布局：图标按钮与溢出菜单在拖柄所在顶行右侧，底部只留关闭按钮；这两类动作不会同时出现在内容区。表单弹层（`ui.form`）没有顶栏动作。
 
-## 10. web.openLogin 结果
+## 11. web.openLogin 结果
 
 | 情况 | 返回 |
 |---|---|
@@ -435,7 +467,7 @@ end
 | 用户关闭弹层 | `{event:"cancelled", cancelled:true, state:"login_cancelled"}` |
 | UI 不可用 | `{error:"UI 不可用", state:"login_unavailable"}` |
 
-## 11. shizuku（L1）
+## 12. shizuku（L1）
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
@@ -444,7 +476,7 @@ end
 | `shizuku.pm(action, pkg)` | string | 包管理动作（`install` / `uninstall` / `clear` 等）。 |
 | `shizuku.shell(cmd)` | string | 以 shell 身份执行 `/system/bin/sh -c`，返回合并输出并带 `[exit N]` 前缀；失败返回 `[error] 中文说明`。 |
 
-## 12. accessibility（L1）
+## 13. accessibility（L1）
 
 节点查询统一用 map：`text` / `desc` / `viewId` / `className` / `clickable` / `exact`；返回的节点字段含 `depth` / `bounds` / `text` / `desc`。
 
@@ -475,13 +507,13 @@ end
 | `accessibility.addOverlay(view, params)` | boolean | **宿主专用**：用 WindowManager 加悬浮窗。 |
 | `accessibility.removeOverlay(view)` | 无 | **宿主专用**：移除上面加的悬浮窗。 |
 
-## 13. root（L2）
+## 14. root（L2）
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
 | `root.shell(cmd)` | string | 以 root 执行 `/system/bin/sh -c`，返回合并输出并带 `[exit N]` 前缀；未启用 root 时返回中文错误。 |
 
-## 14. imageToolbox（L0，随依赖包注入）
+## 15. imageToolbox（L0，随依赖包注入）
 
 参数名与行为见 [dependency-system.md](dependency-system.md)；纯 Android SDK 实现，不联网、不上传。
 
@@ -514,7 +546,7 @@ end
 | `imageToolbox.analyze(path, query, paramsJson)` | string | 只读分析，返回 JSON，不写文件。 |
 | `imageToolbox.pdfEdit(op, source, paramsJson)` | string | PDF 编辑：`rotate` / `reorder` / `extract` / `delete` / `nup` / `compress` / `merge`。 |
 
-## 15. 跨引擎约定
+## 16. 跨引擎约定
 
 - 桥方法返回 Kotlin `String` / `Map` / `List` 时会 JSON 化后再进脚本：返回 JSON 对象的接口在 Lua 里是 table，返回 JSON 字符串的接口拿到的是 string（需要自己解析）。
 - 返回 `Map` / `List` 的接口在 Lua 里是 table，字段名即键名；标量接口直接给标量。

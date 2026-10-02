@@ -5,6 +5,7 @@ import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.bridge.AiBridge
 import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.bridge.MediaPickerBridge
+import heizige.kk.khatkit.bridge.ScheduleBridge
 import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CommandRunner
@@ -52,6 +53,7 @@ object BridgeFactory {
         mediaPicker: MediaPickerBridge? = null,
         ai: AiBridge? = null,
         embeddingEngine: EmbeddingEngine? = null,
+        schedule: ScheduleBridge? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -95,6 +97,7 @@ object BridgeFactory {
             shizuku = shizukuBridge,
             root = rootBridge,
             accessibility = accessibilityBridge,
+            schedule = schedule ?: UnavailableScheduleBridge(),
         )
 
         // 原生依赖包：随云端卡片下载，校验 sha256 + ECDSA 签名后 DexClassLoader 加载为动态 bridge。

@@ -85,6 +85,21 @@ class CardValidatorTest {
     }
 
     @Test
+    fun scheduleBridgeAcceptedAndScanned() {
+        assertTrue(
+            CardValidator.isValid(
+                manifest(bridges = listOf("schedule")),
+                scripts = mapOf("main.lua" to "schedule.every(10, 'job')"),
+            )
+        )
+        val issues = CardValidator.validate(
+            manifest(bridges = listOf("tool")),
+            scripts = mapOf("main.lua" to "schedule.every(10, 'job')"),
+        )
+        assertTrue(issues.any { it.code == "BRIDGE_UNDECLARED" })
+    }
+
+    @Test
     fun invalidPermissionMethodRejected() {
         val issues = CardValidator.validate(
             manifest(bridges = listOf("net")).copy(

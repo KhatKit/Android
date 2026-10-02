@@ -30,6 +30,7 @@ class BridgeApiDocTest {
         SystemBridge::class.java to "system",
         AiBridge::class.java to "ai",
         MediaPickerBridge::class.java to "mediaPicker",
+        ScheduleBridge::class.java to "schedule",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
         ImageToolboxBridge::class.java to "imageToolbox",
