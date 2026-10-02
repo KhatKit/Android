@@ -19,6 +19,7 @@ import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
 import heizige.kk.khatkit.app.feature.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.CardParser
@@ -312,6 +313,7 @@ class KhatKitToolProvider(
                 // 原生依赖包从用户配置的 Hub 下载；下载/校验进度发布到自动化看板
                 hubBaseUrl = { hubBaseUrl },
                 onDependencyStatus = { AutomationBus.update(it) },
+                approvalGate = BusApprovalGate(),
             ).also {
                 executor = it
                 bindDownloadCenter(it)

@@ -1502,6 +1502,7 @@
   <string name="approval_category_shell_root">Shell / Root</string>
   <string name="approval_category_file_delete">Delete file</string>
   <string name="approval_category_app_manage">App management</string>
+  <string name="approval_category_ai_invoke">AI model invocation</string>
   <string name="approval_policy_always_ask">Ask every time</string>
   <string name="approval_policy_allow">Allow</string>
   <string name="approval_policy_deny">Deny</string>

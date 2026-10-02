@@ -21,6 +21,7 @@ class BridgeApiDocTest {
     /** 接口声明 → 脚本侧 bridge 名（动态依赖包注入的 bridge 不在此列）。 */
     private val bridges = mapOf(
         ToolBridge::class.java to "tool",
+        NetBridge::class.java to "net",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
         ImageToolboxBridge::class.java to "imageToolbox",

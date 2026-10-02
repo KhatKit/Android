@@ -37,15 +37,16 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 授权操作类别：审批策略按类别持久化，10 分钟记住同样按类别生效。
- * [SHELL_ROOT] 覆盖 root / Shizuku 命令执行；[FILE_DELETE] / [APP_MANAGE] 预留给后续
- * 更细粒度的调用方（卡片脚本内部的文件 / 应用操作暂不细分）。
+ * [SHELL_ROOT] 覆盖 root / Shizuku 命令执行；[FILE_DELETE]、[APP_MANAGE] 和
+ * [AI_INVOKE] 供卡片脚本内部的敏感能力使用。
  */
 enum class ApprovalCategory(val id: String, @StringRes val labelRes: Int) {
     CARD_RUN("card_run", R.string.approval_category_card_run),
     UI_ACTION("ui_action", R.string.approval_category_ui_action),
     SHELL_ROOT("shell_root", R.string.approval_category_shell_root),
     FILE_DELETE("file_delete", R.string.approval_category_file_delete),
-    APP_MANAGE("app_manage", R.string.approval_category_app_manage);
+    APP_MANAGE("app_manage", R.string.approval_category_app_manage),
+    AI_INVOKE("ai_invoke", R.string.approval_category_ai_invoke);
 
     companion object {
         fun fromId(id: String?): ApprovalCategory? = entries.firstOrNull { it.id == id }

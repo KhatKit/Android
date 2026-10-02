@@ -29,6 +29,8 @@ data class CardManifest(
 
     val requires: Requires = Requires(),
     val network: Network = Network(),
+    /** 方法级权限声明。缺省为空，由宿主按 bridge 默认策略处理。 */
+    val permissions: Permissions = Permissions(),
 
     /** 标准 JSON Schema */
     val parameters: JsonObject = JsonObject(emptyMap()),
@@ -108,6 +110,18 @@ data class CardManifest(
     data class Network(
         /** 域名白名单，空数组 = 禁止联网 */
         val allow: List<String> = emptyList(),
+    )
+
+    @Serializable
+    data class Permissions(
+        /** 方法白名单：key 为 "<bridge>.<method>"，值为 allow / ask / deny。 */
+        val methods: Map<String, String> = emptyMap(),
+        /** fs 读白名单（路径前缀）。 */
+        val fsRead: List<String> = emptyList(),
+        /** fs 写白名单（路径前缀）。 */
+        val fsWrite: List<String> = emptyList(),
+        /** 卡片希望宿主执行的预检。 */
+        val grants: List<String> = emptyList(),
     )
 
     /**

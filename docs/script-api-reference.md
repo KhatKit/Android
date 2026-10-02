@@ -27,6 +27,7 @@
 | 脚本名 | 接口 | 权限 | 触发条件 | 说明 |
 |---|---|---|---|---|
 | `tool` | `ToolBridge` | L0 | 始终 | 文件 / 网络 / 剪贴板 / OCR。共享存储需「所有文件访问」。 |
+| `net` | `NetBridge` | L0 | 始终 | 受 `network.allow` 域名白名单约束的网络请求。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
@@ -40,6 +41,8 @@
 依赖包注入的动态 bridge（名字由卡片自定）不在本文件里，字段与生命周期见 [dependency-system.md](dependency-system.md)。
 
 ## 3. tool（L0）
+
+其中 `tool.httpGet`、`tool.httpPost`、`tool.httpMultipart` 已废弃，新卡片请使用 `net`。
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
@@ -65,6 +68,19 @@
 | `tool.wakeScreen()` | string | 点亮屏幕，成功返回中文提示，失败返回中文错误。 |
 | `tool.ocrText(path)` | string | 本地图片 OCR（中文 + 拉丁），返回识别文本。 |
 | `tool.ocrBoxes(path)` | string | OCR 带坐标，返回 JSON 数组 `[{text,x,y,w,h}]`（像素坐标，已按 EXIF 校正）。 |
+
+## 3.1 net（L0）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `net.get(url, headers)` | string | GET；host 必须命中 `network.allow`。 |
+| `net.post(url, body, headers)` | string | JSON POST。 |
+| `net.put(url, body, headers)` | string | JSON PUT。 |
+| `net.delete(url, headers)` | string | DELETE。 |
+| `net.multipart(url, fields, fileField, filePath, headers, saveBinary)` | string | multipart；当前宿主未启用时返回错误。 |
+| `net.streamText(url, method, body, headers, timeoutSeconds)` | string | 缓冲完整响应后一次性返回，不提供增量结果。 |
+| `net.toFile(url, outputPath, headers)` | string | 下载二进制并返回输出路径。 |
+| `net.head(url, headers)` | table | 返回 `{status, headers, contentType, length}`。 |
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 

@@ -2,6 +2,7 @@ package heizige.kk.khatkit.bridge.impl
 
 import android.content.Context
 import heizige.kk.khatkit.bridge.BridgeRegistry
+import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CommandRunner
@@ -45,6 +46,7 @@ object BridgeFactory {
         libResolver: LibResolver? = null,
         hubBaseUrl: () -> String = { "" },
         onDependencyStatus: ((String) -> Unit)? = null,
+        approvalGate: ApprovalGate? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -56,6 +58,7 @@ object BridgeFactory {
 
         val registry = BridgeRegistry(
             tool = AndroidToolBridge(appContext, http),
+            net = AndroidNetBridge(http),
             ui = ui,
             web = WebBridgeImpl(appContext, ui),
             download = DownloadManagerImpl(
@@ -110,7 +113,7 @@ object BridgeFactory {
             else -> null
         }
 
-        CardExecutor(registry, commandRunner, libResolver, dependencyManager, onDependencyStatus)
+        CardExecutor(registry, commandRunner, libResolver, dependencyManager, onDependencyStatus, approvalGate)
     }
 
     private val PUBKEY_FINGERPRINT_REGEX = Regex("\"fingerprintSha256\"\\s*:\\s*\"([0-9a-fA-F]{64})\"")

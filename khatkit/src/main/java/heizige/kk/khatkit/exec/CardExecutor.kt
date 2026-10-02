@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.exec
 
 import heizige.kk.khatkit.bridge.BridgeRegistry
+import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineFactory
 import heizige.kk.khatkit.engine.EngineKind
@@ -29,6 +30,7 @@ class CardExecutor(
     private val libResolver: LibResolver? = null,
     private val dependencyManager: DependencyManager? = null,
     private val onDependencyStatus: ((String) -> Unit)? = null,
+    private val approvalGate: ApprovalGate? = null,
 ) {
     suspend fun execute(card: LoadedCard, args: Map<String, Any?>): EngineResult =
         withContext(Dispatchers.Default) {
@@ -113,7 +115,7 @@ class CardExecutor(
 
         val engine = EngineFactory.create(card.engineKind)
         return try {
-            if (!bridges.inject(engine, card.manifest.name, required, card.manifest.store.quotaMb)) {
+            if (!bridges.inject(engine, card.manifest, approvalGate = approvalGate)) {
                 EngineResult.Err("BRIDGE_INJECT_FAILED", "bridge 注入失败")
             } else {
                 modules.forEach { lib -> engine.defineModule(lib.name, lib.source) }

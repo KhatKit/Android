@@ -14,6 +14,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import heizige.kk.khatkit.bridge.ToolBridge
+import heizige.kk.khatkit.bridge.NetBridge
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -48,6 +49,7 @@ class AndroidToolBridge(
     private val context: Context,
     private val httpClient: HttpClient,
 ) : ToolBridge {
+    private val legacyNet = AndroidNetBridge(httpClient)
 
     override fun readText(path: String): String {
         requireSharedStorageAccess(path)
@@ -71,18 +73,15 @@ class AndroidToolBridge(
         }
     }
 
-    override fun httpGet(url: String, headers: Map<String, String>): String = runBlocking {
-        httpClient.get(url) { headers.forEach { (key, value) -> header(key, value) } }.bodyAsText()
-    }
+    @Deprecated("请改用 net.get")
+    override fun httpGet(url: String, headers: Map<String, String>): String =
+        legacyNet.get(url, headers.mapValues { it.value })
 
-    override fun httpPost(url: String, body: String, headers: Map<String, String>): String = runBlocking {
-        httpClient.post(url) {
-            headers.forEach { (key, value) -> header(key, value) }
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }.bodyAsText()
-    }
+    @Deprecated("请改用 net.post")
+    override fun httpPost(url: String, body: String, headers: Map<String, String>): String =
+        legacyNet.post(url, body, headers.mapValues { it.value })
 
+    @Deprecated("请改用 net.multipart")
     override fun httpMultipart(
         url: String,
         fields: Map<String, String>,

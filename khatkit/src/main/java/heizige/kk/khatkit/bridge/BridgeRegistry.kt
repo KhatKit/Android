@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.bridge
 
 import heizige.kk.khatkit.engine.ScriptEngine
+import heizige.kk.khatkit.card.CardManifest
 
 /**
  * 按设备当前能力决定挂哪些 bridge（设计文档 7.1 的能力协商）。
@@ -10,6 +11,7 @@ import heizige.kk.khatkit.engine.ScriptEngine
  */
 class BridgeRegistry(
     private val tool: ToolBridge? = null,
+    private val net: NetBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -51,6 +53,7 @@ class BridgeRegistry(
      */
     fun availableBridges(): Set<String> = buildSet {
         if (tool != null) add("tool")
+        if (net != null) add("net")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -71,24 +74,35 @@ class BridgeRegistry(
      */
     fun inject(
         engine: ScriptEngine,
-        cardName: String,
-        required: Collection<String>,
-        storeQuotaMb: Int = 50,
+        manifest: CardManifest,
+        approvalGate: ApprovalGate? = null,
+        deadlineAt: Long = 0L,
     ): Boolean {
+        val required = manifest.requiredBridges
         if (!supports(required)) return false
+        val context = BridgeContext(
+            cardName = manifest.name,
+            engine = manifest.engine,
+            quotaMb = manifest.store.quotaMb,
+            networkAllow = manifest.network.allow.map { it.lowercase().substringBefore(':') }.toSet(),
+            permissions = manifest.permissions.methods,
+            approvalGate = approvalGate,
+            deadlineAt = deadlineAt,
+        )
         required.forEach { name ->
             val impl: Any = when (name) {
                 "tool" -> tool
+                "net" -> net
                 "ui" -> ui
                 "web" -> web
                 "download" -> download
-                "store" -> storeProvider?.invoke(cardName, storeQuotaMb)
+                "store" -> storeProvider?.invoke(manifest.name, manifest.store.quotaMb)
                 "shizuku" -> shizuku
                 "root" -> root
                 "accessibility" -> accessibility
                 else -> dynamicBridges[name]
             } ?: return false
-            engine.define(name, impl)
+            engine.define(name, scopedBridge(context, name, impl))
         }
         return true
     }

@@ -75,6 +75,31 @@ interface ToolBridge {
     fun ocrBoxes(path: String): String
 }
 
+/** L0 网络能力；每次请求均受本次卡片的域名白名单约束。 */
+interface NetBridge {
+    fun get(url: String, headers: Map<String, Any?> = emptyMap()): String
+    fun post(url: String, body: String, headers: Map<String, Any?> = emptyMap()): String
+    fun put(url: String, body: String, headers: Map<String, Any?> = emptyMap()): String
+    fun delete(url: String, headers: Map<String, Any?> = emptyMap()): String
+    fun multipart(
+        url: String,
+        fields: Map<String, Any?>,
+        fileField: String? = null,
+        filePath: String? = null,
+        headers: Map<String, Any?> = emptyMap(),
+        saveBinary: Boolean = true,
+    ): String
+    fun streamText(
+        url: String,
+        method: String,
+        body: String,
+        headers: Map<String, Any?>,
+        timeoutSeconds: Int = 60,
+    ): String
+    fun toFile(url: String, outputPath: String, headers: Map<String, Any?> = emptyMap()): String
+    fun head(url: String, headers: Map<String, Any?> = emptyMap()): Map<String, Any?>
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**

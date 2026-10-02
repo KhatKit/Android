@@ -1488,6 +1488,7 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="approval_category_shell_root">Shell / Root</string>
   <string name="approval_category_file_delete">删除文件</string>
   <string name="approval_category_app_manage">应用管理</string>
+  <string name="approval_category_ai_invoke">调用 AI 模型</string>
   <string name="approval_policy_always_ask">每次询问</string>
   <string name="approval_policy_allow">允许</string>
   <string name="approval_policy_deny">拒绝</string>
