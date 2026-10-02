@@ -556,11 +556,26 @@ interface ScheduleBridge {
 
 已知遗留：
 
-- `./gradlew assembleDebug`（全量）与 `./gradlew lint` 在干净树上即失败：`:speech` 有直接本地
-  `.aar` 依赖、app 模块有 ~270 个历史 lint error。两者都与卡片系统无关。
 - 动态依赖包（`imageToolbox` 等）仍只能走 `call` / `availableMethods`，未做类型化扩展。
 - 决策点 5 的取舍副作用：设置了 `host.setTimeout` 的卡片，用户在 `ui.form` 上停留过久会
   直接超时失败。卡片作者应给表单交互留足预算。
+- `tool.*` 文件方法只标了废弃、**没有委托给 `fs`**：委托会让 Hub 上已发布卡片的
+  `tool.readText('/sdcard/…')` 直接失败（`fs` 有沙箱），与 §1.3 硬冲突。连带
+  `tool.deletePath` 仍不审批。要收紧（让删除也走审批）是产品决定，见 §7。
+- 方法级权限目前在各 bridge 实现内部判定（`ai.chat` / `store.embed*` / `fs.delete` /
+  `system.launchApp`），没有做成 §2 要点 2 说的「dispatch 层统一准入」。行为正确，
+  但新增敏感方法时要记得在实现里接审批。
+
+构建与 lint（2026-10-02 另一轮清完，§6 门禁现在能跑通）：
+
+- `:speech` 原本直接依赖本地 `.aar`，AGP 禁止 library 模块这么做 → 抽成 `.jar`，
+  `./gradlew assembleDebug` 全量首次可用（`bb4d3d26`）。
+- app 的 274 个 lint error 分三类清掉：i18n 220 个（39 个 `media_picker_*` 中文串错放在
+  app 的 `values-zh`，搬回模块；`MissingTranslation` 在 `app/lint.xml` 降为 warning，
+  翻译走 Crowdin，本地只补 `values/` + `values-zh/`）、真 bug 7 个（5 处权限检查藏在
+  helper 里、`BgEffectPainter` 的 `RuntimeShader` 需要 API 33）、Composable 正确性 47 个
+  （63 处 `LocalContext` 取文案改 `stringResource`、`Locale.getDefault()` 改
+  `LocalConfiguration`、`ChatList` 的 Activity 改 `LocalActivity`）。
 
 ---
 
