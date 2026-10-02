@@ -209,8 +209,9 @@
 
 - **卡片不能自带 key**：只能调用用户已配置的供应商（决策记录见 docs/bridge-expansion-spec.md §7.3）。
 - **默认每次都要用户点允许**（审批类别 `ai_invoke`）；卡片在 `card.json` 里声明
-  `"permissions": { "methods": { "ai.chat": "allow" } }` 后不再询问，写 `"deny"` 直接拒绝。
-  `ai.complete` 可单独声明，未声明时沿用 `ai.chat`。
+  `"permissions": { "methods": { "ai.chat": "allow" } }` 后不再询问，写 `"deny"` 直接拒绝
+  （在调用前就失败，不会进入模型）。`ai.complete` 可单独声明，未声明时沿用 `ai.chat`。
+  运行时硬超时优先于策略：已超时的运行任何方法都先返回超时错误。
 - 未配置供应商 / 模型不存在 / 超时，都会返回 `{"__error":"中文说明"}`。
 - 每次调用都会以 `trigger = ai.chat`、`price = 0` 上报一次 Hub 统计（卡片价格仍按卡片调用结算）。
 

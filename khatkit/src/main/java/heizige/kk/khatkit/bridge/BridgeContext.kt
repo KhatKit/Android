@@ -25,6 +25,12 @@ data class BridgeContext(
      * 每轮运行一份，所以并发运行互不干扰。
      */
     val deadline: RunDeadline = RunDeadline(deadlineAt)
+
+    /** 被 manifest 显式放行的方法；实现层闸门先看这里再决定要不要问用户。 */
+    val grants: RunGrants = RunGrants()
+
+    /** 方法级策略：`permissions.methods[key]` 的值（`allow` / `ask` / `deny`），未声明返回空串。 */
+    fun policy(method: String): String = permissions[method].orEmpty()
 }
 
 /** 同步审批闸门。实现可以阻塞等待宿主的审批结果。 */

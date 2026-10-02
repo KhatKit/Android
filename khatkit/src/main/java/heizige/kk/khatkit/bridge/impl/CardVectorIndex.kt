@@ -2,6 +2,7 @@ package heizige.kk.khatkit.bridge.impl
 
 import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.bridge.RunDeadline
+import heizige.kk.khatkit.bridge.RunGrants
 
 /** 宿主侧的向量化能力；`khatkit` 不依赖 `app`，由宿主实现本接口并注入。 */
 fun interface EmbeddingEngine {
@@ -18,6 +19,8 @@ data class StoreRequest(
     val approvalGate: ApprovalGate? = null,
     /** 与 bridge 派发共享同一份运行超时句柄。 */
     val deadline: RunDeadline = RunDeadline(),
+    /** 与 bridge 派发共享同一份「manifest 已放行」记录。 */
+    val grants: RunGrants = RunGrants(),
 )
 
 /** 一条向量命中（`store.embedSearch` 的返回行）。 */

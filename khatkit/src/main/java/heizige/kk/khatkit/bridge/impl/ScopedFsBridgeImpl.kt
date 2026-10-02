@@ -6,6 +6,7 @@ import android.net.Uri
 import android.util.Base64
 import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.bridge.FsBridge
+import heizige.kk.khatkit.bridge.RunGrants
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -19,6 +20,8 @@ class ScopedFsBridgeImpl(
     private val cardName: String,
     private val roots: Set<String> = emptySet(),
     private val approvalGate: ApprovalGate? = null,
+    /** dispatch 层判定为 allow 的方法；见 [RunGrants]。 */
+    private val grants: RunGrants = RunGrants(),
 ) : FsBridge {
     fun context(): Context = context
     private val privateRoot = File(context.filesDir, "cards/$cardName").apply { mkdirs() }
@@ -75,11 +78,13 @@ class ScopedFsBridgeImpl(
 
     override fun delete(path: String, recursive: Boolean): Boolean {
         val file = resolve(path, true)
-        val allowed = approvalGate?.request(
+        // manifest 里显式写了 permissions.methods["fs.delete"]="allow" 时不再打扰用户
+        // （判定在 RustBridgeDispatcher 里做，这里只是读结果）
+        val allowed = grants.isGranted(FS_DELETE_KEY) || (approvalGate?.request(
             "删除卡片文件",
             "卡片 $cardName 请求删除路径：${file.absolutePath}",
             "file_delete",
-        ) ?: false
+        ) ?: false)
         if (!allowed) throw SecurityException("用户拒绝了操作：删除文件 ${file.absolutePath}")
         if (file.isDirectory && !recursive && file.listFiles()?.isNotEmpty() == true) {
             throw IllegalArgumentException("目录非空，需显式传 recursive=true：$path")
@@ -162,3 +167,6 @@ class ScopedFsBridgeImpl(
         return file
     }
 }
+
+/** `permissions.methods` 里对应的方法键。 */
+private const val FS_DELETE_KEY = "fs.delete"

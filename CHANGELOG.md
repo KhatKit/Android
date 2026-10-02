@@ -18,6 +18,7 @@
 - 新增卡片向量检索：`store.embedInsert` / `store.embedSearch`（每张卡片一个索引，与 `store.sql` 同库，暴力余弦相似度），使用用户已配置的 embedding 模型，审批策略与 `ai.chat` 一致。
 - 新增 `schedule` bridge：卡片脚本可自建定时任务（`every` / `at` / `cancel` / `list`），jobId 按卡片隔离、卸载自动取消；调度走 WorkManager 一次性任务链，不保证准点（准点请用 manifest 的 schedule 事件）。
 - 卡片运行超时真正生效：`host.setTimeout(ms)` 改写本轮运行的 deadline，`RustBridgeDispatcher` 在每次 dispatch 前比对，超时后所有 bridge 调用返回「卡片运行超时，已终止」且 `ui.isCancelled()` 变为 true（并发运行互不干扰）。
+- `permissions.methods` 变成运行时强约束：`allow` 的方法不再弹审批框，`deny` 的方法调用前直接失败（此前只有 `ai.chat` / `store.embed*` / `fs.delete` / `system.launchApp` 认这个声明）。
 - 修正文档三处返回类型标错：`accessibility.findImage` / `findColor` 与 `web.openLogin` 实际返回 **JSON 字符串**（此前标成 table），`tool.ocrBoxes` / `tool.listFiles` 也补上「需 `json.decode`」标注，示例改用 `json.decode` 取字段。
 - 文档对齐实际实现：事件触发按 `CardManifest.ALL_EVENT_TYPES` 的 18 种对齐（补 notification_click / notification_reply / app_exit / app_install / app_uninstall / shortcut / tile），依赖包文档补「现状与边界」（撤销后不自动清理、依赖不能声明依赖与权限、非 imageToolbox 依赖只有通用调用面）。
 

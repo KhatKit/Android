@@ -123,6 +123,7 @@ class BridgeRegistry(
                         cardName = manifest.name,
                         roots = (manifest.permissions.fsRead + manifest.permissions.fsWrite).toSet(),
                         approvalGate = approvalGate,
+                        grants = context.grants,
                     )
                     else -> fs
                 }
@@ -149,6 +150,7 @@ class BridgeRegistry(
                         permissions = context.permissions,
                         approvalGate = approvalGate,
                         deadline = context.deadline,
+                        grants = context.grants,
                     ),
                 )
                 "shizuku" -> shizuku

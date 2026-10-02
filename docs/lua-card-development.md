@@ -373,6 +373,10 @@ end
 - value 非法报 `PERMISSION_VALUE_INVALID`；key 所属 bridge 没写进 `requires.bridges` 报 `PERMISSION_UNDECLARED_METHOD`。
 - **默认值**：没声明的方法按各 bridge 的默认策略走——`ai.chat` / `ai.complete` / `fs.delete` / `system.launchApp`
   默认 `ask`（每次调用要用户点允许，类别见 [script-api-reference.md](script-api-reference.md)），其余默认直接放行。
+- **`allow` 是真的不再问**：`permissions.methods` 里写了 `allow` 的方法，宿主在调用前就记账，
+  实现层不会再弹审批框（默认 `ask` 的那四个也一样）。写了 `deny` 则是**调用前直接失败**，
+  返回 `{"__error":"卡片声明禁止调用该能力：<bridge>.<method>"}`。
+  运行时硬超时排在策略之前：已经超时的运行，任何方法都先返回超时错误。
 - 同时在 `network.allow` 与 `permissions.methods` 里声明 `net.*` 只是 WARNING（`PERMISSIONS_NETWORK_LEGACY`），不阻断发布；
   出网仍以 `network.allow` 的域白名单为准，`permissions` 只管审批方式。
 - `fsRead` / `fsWrite` 是**前缀白名单**，`fs` 的每个路径都会做规范化（含符号链接）后校验，越界返回中文错误；

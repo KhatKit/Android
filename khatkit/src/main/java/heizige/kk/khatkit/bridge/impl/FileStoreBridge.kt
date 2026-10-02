@@ -118,6 +118,8 @@ class FileStoreBridge(
 
     /** 向量调用同样花钱，策略与 `ai.chat` 一致（默认 ask，可由卡片声明 allow）。 */
     private fun approveEmbedding(detail: String) {
+        // dispatch 层已按 manifest 放行过就不再问用户
+        if (request.grants.isGranted(AI_CHAT_KEY)) return
         when (request.permissions[AI_CHAT_KEY]) {
             "allow" -> Unit
             "deny" -> throw IllegalStateException("卡片声明禁止调用模型（permissions.methods[\"$AI_CHAT_KEY\"] = deny）")

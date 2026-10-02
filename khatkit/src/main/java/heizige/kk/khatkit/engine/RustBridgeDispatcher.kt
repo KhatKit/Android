@@ -13,10 +13,19 @@ class RustBridgeDispatcher(private val bridges: Map<String, Any>) {
     fun dispatch(bridge: String, method: String, argsJson: String): String {
         val target = bridges[bridge]
             ?: return JsonValues.encode(mapOf("__error" to "unknown bridge: $bridge"))
-        // 运行超时在这里统一收口：到点后所有 bridge 调用都直接失败，不再进入实现
         val context = (target as? heizige.kk.khatkit.bridge.ContextAwareBridge)?.context
+        // 准入顺序：① 超时 → ② 方法级策略 → （③ ask 由实现层问用户，避免问两次）→ ④ 反射调用
         if (context?.deadline?.expired() == true) {
             return JsonValues.encode(mapOf("__error" to TIMEOUT_ERROR))
+        }
+        val key = "$bridge.$method"
+        when (context?.policy(key)) {
+            "deny" -> {
+                context.grants.deny(key)
+                return JsonValues.encode(mapOf("__error" to DENY_ERROR_PREFIX + key))
+            }
+            // allow 只记账，真正放行由实现层的闸门读 context.grants 决定（见 RunGrants）
+            "allow" -> context?.grants?.grant(key)
         }
         return try {
             val result = ReflectiveInvoker.invoke(target, method, parseArgs(argsJson))
@@ -29,6 +38,9 @@ class RustBridgeDispatcher(private val bridges: Map<String, Any>) {
     private companion object {
         /** 超时后的统一文案（产品的一部分，脚本按它判断是否重试）。 */
         const val TIMEOUT_ERROR = "卡片运行超时，已终止"
+
+        /** 命中 `permissions.methods` 的 `deny` 时的文案前缀。 */
+        const val DENY_ERROR_PREFIX = "卡片声明禁止调用该能力："
     }
 
     private fun parseArgs(argsJson: String): List<Any?> {

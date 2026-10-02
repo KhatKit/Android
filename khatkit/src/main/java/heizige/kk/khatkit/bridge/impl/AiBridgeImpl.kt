@@ -125,6 +125,8 @@ private class RunScopedAiBridge(
      * 方法级策略：默认 `ask`，走 [heizige.kk.khatkit.bridge.ApprovalGate]；`deny` 直接拒。
      */
     private fun approve(key: String, target: String, prompt: String): Boolean {
+        // dispatch 层已按 manifest 放行过就不再问用户
+        if (context.grants.isGranted(key)) return true
         return when (context.permissions[key]) {
             "allow" -> true
             "deny" -> false
