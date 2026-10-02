@@ -726,6 +726,8 @@ end
 - **全文检索看能力位**：多数 ROM 的平台 SQLite 不带 FTS5，先 `host.health().fts5` 判断，
   为 `false` 时用普通表 + `LIKE`（详见 [script-api-reference.md](script-api-reference.md) §7.1）。
 - 超配额（`store.quota_mb`）时写入被拒或事务回滚，返回中文错误。
+- `fs.zip` / `fs.unzip` 的入参与输出都必须在沙箱内；`fs.unzip` 会逐条校验条目不越出目标目录
+  （防 zip slip），越界条目直接报错而不是静默丢弃。
 
 #### 4.4.2 store 向量检索（语义召回）
 

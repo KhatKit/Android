@@ -111,8 +111,8 @@
 | `fs.move(src, dst)` | 无 | 移动文件或目录。 |
 | `fs.mkdir(path)` | 无 | 创建目录。 |
 | `fs.delete(path, recursive)` | boolean | 删除；默认需要审批，非空目录需 `recursive=true`。 |
-| `fs.zip(paths, output)` | string | 压缩文件列表。 |
-| `fs.unzip(zipPath, outputDir)` | string | 解压 zip。 |
+| `fs.zip(paths, output)` | string | 压缩文件列表（入参与输出都要在沙箱内），返回输出路径。 |
+| `fs.unzip(zipPath, outputDir)` | string | 解压 zip 到沙箱内目录；条目越界（zip slip）一律拒绝。 |
 | `fs.readBase64(path)` | string | 读取 Base64。 |
 | `fs.saveBase64(data, outputPath)` | string | 写入 Base64 并返回路径。 |
 | `fs.openDir(path)` | 无 | 打开目录。 |

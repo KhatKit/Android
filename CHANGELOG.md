@@ -3,6 +3,7 @@
 ## 未发布（自动化 Toast 与图片选择器迁移）
 
 - 新增受卡片 `network.allow` 白名单约束的 `net` bridge；旧 `tool.http*` 接口保留兼容并标记废弃。
+- `fs.zip` / `fs.unzip` 落地（原实现直接抛「尚未迁移」，与 `tool.zip/unzip` 标废弃矛盾）：入参与输出都过沙箱，`unzip` 逐条校验条目不越出目标目录（防 zip slip）。
 - `tool.*` 的 12 个文件方法（`readText` / `writeText` / `listFiles` / `copyPath` / `deletePath` / `mkdir` / `renamePath` / `zip` / `unzip` / `readBase64` / `saveBase64` / `openDir`）标记废弃，请改用 `fs`。**旧方法行为不变**：仍按传入绝对路径操作、只受「所有文件访问」约束；因此 `tool.deletePath` 不向用户确认、`fs.delete` 每次确认，新卡片请直接用 `fs`。
 - 卡片能力新增 `fs`（沙箱文件）、`json`、`crypto`、`time`、`host`、`system`、`ai` 七个 bridge，接口见 docs/script-api-reference.md；其中 `system.vibrate` / `system.connectivity` 需要宿主声明 `VIBRATE` / `ACCESS_NETWORK_STATE` 权限（已随卡片库清单合并进应用）。
 - `mediaPicker.pickMedia` 接入应用内媒体选择器（与聊天附件同一套相册 / 多选 / 预览），选中文件复制进应用缓存后回传真实路径。

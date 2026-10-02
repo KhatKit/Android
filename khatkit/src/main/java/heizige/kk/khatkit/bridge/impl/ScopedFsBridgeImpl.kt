@@ -7,9 +7,11 @@ import android.util.Base64
 import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.bridge.FsBridge
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 /** 受卡片根目录约束的文件 bridge。 */
 class ScopedFsBridgeImpl(
@@ -85,8 +87,50 @@ class ScopedFsBridgeImpl(
         return if (recursive) file.deleteRecursively() else file.delete()
     }
 
-    override fun zip(paths: List<String>, output: String): String = throw UnsupportedOperationException("fs.zip 尚未迁移，请暂用 tool.zip")
-    override fun unzip(zipPath: String, outputDir: String): String = throw UnsupportedOperationException("fs.unzip 尚未迁移，请暂用 tool.unzip")
+    /** 压缩：入参与输出都要过沙箱；条目名相对各自父目录，与 `tool.zip` 同格式。 */
+    override fun zip(paths: List<String>, output: String): String {
+        require(paths.isNotEmpty()) { "没有待压缩的文件" }
+        val targets = paths.map { resolve(it, false) }
+        val out = resolve(output, true)
+        out.parentFile?.mkdirs()
+        ZipOutputStream(FileOutputStream(out).buffered()).use { zos ->
+            targets.forEach { file ->
+                require(file.exists()) { "不存在：${file.absolutePath}" }
+                val base = file.parentFile ?: File("/")
+                file.walkTopDown().forEach { current ->
+                    val entryName = current.relativeTo(base).path + if (current.isDirectory) "/" else ""
+                    zos.putNextEntry(ZipEntry(entryName))
+                    if (current.isFile) current.inputStream().use { it.copyTo(zos) }
+                    zos.closeEntry()
+                }
+            }
+        }
+        return out.absolutePath
+    }
+
+    /** 解压：逐条校验条目不越出目标目录（防 zip slip）。 */
+    override fun unzip(zipPath: String, outputDir: String): String {
+        val source = resolve(zipPath, false)
+        val out = resolve(outputDir, true)
+        out.mkdirs()
+        val canonicalOut = out.canonicalPath + File.separator
+        ZipInputStream(FileInputStream(source).buffered()).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                val target = File(out, entry.name)
+                require(target.canonicalPath.startsWith(canonicalOut)) { "非法压缩包路径（疑似 zip slip）：${entry.name}" }
+                if (entry.isDirectory) {
+                    target.mkdirs()
+                } else {
+                    target.parentFile?.mkdirs()
+                    FileOutputStream(target).use { zis.copyTo(it) }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return out.absolutePath
+    }
 
     override fun readBase64(path: String): String = Base64.encodeToString(resolve(path, false).readBytes(), Base64.NO_WRAP)
 
