@@ -106,6 +106,40 @@ class CardValidatorTest {
     }
 
     @Test
+    fun sensitiveMethodsAcceptAllowAndDeny() {
+        val allowed = CardValidator.validate(
+            manifest(bridges = listOf("ai", "system", "mediaPicker")).copy(
+                permissions = CardManifest.Permissions(
+                    methods = mapOf(
+                        "ai.chat" to "allow",
+                        "ai.complete" to "deny",
+                        "system.launchApp" to "ask",
+                        "mediaPicker.pickMedia" to "allow",
+                    ),
+                ),
+            )
+        )
+        assertFalse(allowed.any { it.code.startsWith("PERMISSION") })
+
+        val denied = CardValidator.validate(
+            manifest(bridges = listOf("ai")).copy(
+                permissions = CardManifest.Permissions(methods = mapOf("ai.chat" to "deny")),
+            )
+        )
+        assertFalse(denied.any { it.code.startsWith("PERMISSION") })
+    }
+
+    @Test
+    fun unknownAiMethodRejected() {
+        val issues = CardValidator.validate(
+            manifest(bridges = listOf("ai")).copy(
+                permissions = CardManifest.Permissions(methods = mapOf("ai.stream" to "allow")),
+            )
+        )
+        assertTrue(issues.any { it.code == "PERMISSION_METHOD_UNKNOWN" })
+    }
+
+    @Test
     fun undeclaredDomainInScriptRejected() {
         val issues = CardValidator.validate(
             manifest(),

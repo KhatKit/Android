@@ -131,10 +131,14 @@ object AppHiltModule {
         @ApplicationContext context: Context,
         appScope: AppScope,
         json: Json,
+        providerManager: ProviderManager,
+        settingsStore: SettingsRepository,
     ): KhatKitToolProvider = KhatKitToolProvider(
         context = context,
         scope = appScope,
         json = json,
+        providerManager = providerManager,
+        settingsRepository = settingsStore,
     )
 
     // 事件触发器：卡片在定时/通知/应用启动/充电时自动运行

@@ -176,10 +176,35 @@
 
 ## 3.8 ai（L0 + 敏感）
 
+**阻塞、非流式**调用用户已在设置里配好的模型（Rust bridge 只有同步契约，拿不到增量输出；
+需要进度反馈时用 `ui.progress` 自己分段汇报）。未配置供应商时返回中文错误。
+
 | 接口 | 返回 | 说明 |
 |---|---|---|
 | `ai.chat(prompt, system, provider, model, imagePaths, maxTokens, temperature, timeoutSeconds)` | string | 阻塞至模型返回完整文本；未配置供应商时返回中文错误。 |
 | `ai.complete(prompt, maxTokens)` | string | 无 system 的一次性补全。 |
+
+参数语义：
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `prompt` | 必填 | 不能为空，否则返回中文错误。 |
+| `system` | `""` | 为空时不发 system 消息。 |
+| `provider` | `""` | 供应商名（`settings.providers[].name`）；空 = 用当前聊天模型所在的供应商。 |
+| `model` | `""` | 模型 ID / 显示名；空 = 用当前聊天模型。找不到时返回中文错误并列出可用模型。 |
+| `imagePaths` | `[]` | 多模态输入的**本地文件路径**（`mediaPicker.pickMedia` 或 `fs` 的返回值）。 |
+| `maxTokens` | `0` | 0 = 不限制（沿用模型默认）。 |
+| `temperature` | `0.0` | 0 = 不覆盖用户配置。 |
+| `timeoutSeconds` | `120` | 上限 600；实际超时取它与卡片运行剩余预算的较小值，模型超时不会占死引擎线程。 |
+
+凭据与审批：
+
+- **卡片不能自带 key**：只能调用用户已配置的供应商（决策记录见 docs/bridge-expansion-spec.md §7.3）。
+- **默认每次都要用户点允许**（审批类别 `ai_invoke`）；卡片在 `card.json` 里声明
+  `"permissions": { "methods": { "ai.chat": "allow" } }` 后不再询问，写 `"deny"` 直接拒绝。
+  `ai.complete` 可单独声明，未声明时沿用 `ai.chat`。
+- 未配置供应商 / 模型不存在 / 超时，都会返回 `{"__error":"中文说明"}`。
+- 每次调用都会以 `trigger = ai.chat`、`price = 0` 上报一次 Hub 统计（卡片价格仍按卡片调用结算）。
 
 ## 3.9 mediaPicker（L0）
 

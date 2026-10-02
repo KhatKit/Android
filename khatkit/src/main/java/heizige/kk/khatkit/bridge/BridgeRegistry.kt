@@ -2,6 +2,7 @@ package heizige.kk.khatkit.bridge
 
 import heizige.kk.khatkit.engine.ScriptEngine
 import heizige.kk.khatkit.card.CardManifest
+import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.ScopedFsBridgeImpl
 import heizige.kk.khatkit.ui.MediaPickerHost
 
@@ -125,7 +126,10 @@ class BridgeRegistry(
                 "time" -> time
                 "host" -> host
                 "system" -> system
-                "ai" -> ai
+                "ai" -> when (val a = ai) {
+                    is CardAiBridge -> a.forRun(context)
+                    else -> a
+                }
                 "mediaPicker" -> when (val mp = mediaPicker) {
                     is MediaPickerHost -> mp.forCard(manifest.name)
                     else -> mp

@@ -16,13 +16,18 @@ import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AndroidToolBridge
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
+import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
 import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
+import heizige.kk.khatkit.app.core.data.ai.CardAiEngine
+import heizige.kk.khatkit.app.core.data.ai.AiCallReport
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
 import heizige.kk.khatkit.card.CardManifest
+import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.card.CardParser
 import heizige.kk.khatkit.dependency.DependencyCache
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
@@ -147,6 +152,8 @@ class KhatKitToolProvider(
     context: Context,
     private val scope: CoroutineScope,
     private val json: Json,
+    private val providerManager: ProviderManager,
+    private val settingsRepository: SettingsRepository,
 ) : KhatKitController {
     private val appContext = context.applicationContext
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
@@ -164,6 +171,18 @@ class KhatKitToolProvider(
     private val mediaPickerHost = MediaPickerHost(
         importToCache = { cardName, uris -> mediaImporter.import(cardName, uris) },
         onAwaiting = { name -> AutomationBus.update("等待选择媒体", name) },
+    )
+
+    /**
+     * 卡片 `ai` bridge 的宿主实现：用用户已配置的供应商跑非流式调用，
+     * 每次调用 best-effort 以 `trigger = ai.chat` 上报 Hub 统计（价格仍按卡片计费）。
+     */
+    private val aiBridge = CardAiBridge(
+        engine = CardAiEngine(
+            providerManager = providerManager,
+            settings = { settingsRepository.settingsFlow.value },
+            onCall = ::reportAiCall,
+        ),
     )
 
     /** 表单 `file_picker` / `dir_picker` 的宿主侧选择器请求；表单渲染时传入 KhatKitForm。 */
@@ -356,6 +375,7 @@ class KhatKitToolProvider(
                 onDependencyStatus = { AutomationBus.update(it) },
                 approvalGate = BusApprovalGate(),
                 mediaPicker = mediaPickerHost,
+                ai = aiBridge,
             ).also {
                 executor = it
                 bindDownloadCenter(it)
@@ -433,6 +453,30 @@ class KhatKitToolProvider(
             return result
         } finally {
             AutomationBus.finish()
+        }
+    }
+
+    /**
+     * 卡片内 `ai.chat` 调用的 Hub 上报：price=0（模型调用不额外计费，卡片价格仍在
+     * [reportToolCallAsync] 里结算），只把调用次数、耗时与成败带进统计。
+     */
+    private fun reportAiCall(report: AiCallReport) {
+        val token = accountStore.token()
+        if (token.isNullOrBlank()) return
+        scope.launch {
+            runCatching {
+                hub().reportTool(
+                    token,
+                    HubToolReportRequest(
+                        cardName = report.cardName,
+                        price = 0.0,
+                        ok = report.ok,
+                        trigger = "ai.chat",
+                        durationMs = report.durationMs,
+                        message = "${report.model}：${report.message}",
+                    ),
+                )
+            }.onFailure { Log.w(TAG, "模型调用上报失败：${report.cardName}（${it.message}）") }
         }
     }
 

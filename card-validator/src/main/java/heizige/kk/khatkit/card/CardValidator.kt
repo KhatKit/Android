@@ -25,6 +25,9 @@ object CardValidator {
     private val BRIDGE_METHODS = mapOf(
         "net" to setOf("get", "post", "put", "delete", "multipart", "streamText", "toFile", "head"),
         "fs" to setOf("read", "write", "exists", "stat", "list", "copy", "move", "mkdir", "delete", "zip", "unzip", "readBase64", "saveBase64", "openDir"),
+        "ai" to setOf("chat", "complete"),
+        "system" to setOf("launchApp"),
+        "mediaPicker" to setOf("pickMedia"),
     )
 
     private val NAME_REGEX = Regex("^[a-z][a-z0-9_]{1,63}$")

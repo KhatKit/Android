@@ -154,6 +154,7 @@ return { message: "Hello, " + name };
 | `privilege` | string | `"none"` | 否 | `none` / `elevated`，其他值报 `PRIVILEGE_UNKNOWN`。声明性字段，见 6.1。 |
 | `requires` | object | `{}` | 否 | 能力声明，见 2.3。 |
 | `network` | object | `{}` | 否 | `{ "allow": ["api.example.com"] }`，见 2.4。 |
+| `permissions` | object | `{}` | 否 | 方法级权限与文件目录白名单，见 2.10。 |
 | `parameters` | object | `{}` | 否 | 标准 JSON Schema，AI 填参依据，见 2.5。 |
 | `ui` | object | `{}` | 否 | 参数 UI 声明（CI 白名单校验），见 2.5。 |
 | `triggers` | array | `["ai","user"]` | 否 | `ai` / `user`，不允许空数组、重复或未知值，见 2.8。 |
@@ -187,7 +188,7 @@ return { message: "Hello, " + name };
 }
 ```
 
-- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `ui` `web` `download` `store` `shizuku` `root` `accessibility` `imageToolbox`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
+- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `net` `fs` `json` `crypto` `time` `host` `system` `ai` `mediaPicker` `ui` `web` `download` `store` `shizuku` `root` `accessibility` `imageToolbox`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
 - `libs`：共享库声明。`name` 为库名；`lang` 为 `lua` / `js`（默认 `js`）；`version` 为 SemVer 范围（默认 `*`）。宿主解析顺序：内置层 `assets/libs/<dir>/<version>/` → Hub CDN 共享库 registry；**只解析与当前引擎同语言的库**。脚本内用 `require(name)` 使用（Lua 走 `package.preload`，JS 为 CommonJS 形态）。
 - `bins` / `env`：当前宿主版本未消费，保留字段，可留空数组。
 
@@ -206,7 +207,7 @@ return { message: "Hello, " + name };
 
 - 空数组（默认）= 不允许联网，脚本里出现的任何 `http(s)://host` 都会被 CI 判定违规。
 - CI 扫描脚本正文里的 `http(s)://<host>`，要求 host 等于白名单项或为其子域：`host == allowed || host.endsWith("." + allowed)`，比较时不区分大小写。例如声明 `example.com` 允许 `api.example.com`，但不允许 `example.com.evil.net`。
-- 违规报 `NETWORK_UNDECLARED`。**运行时宿主不逐请求校验域名**，白名单靠 CI 静态扫描 + 人工审核保障，请自觉只访问已声明域名。
+- 违规报 `NETWORK_UNDECLARED`。**运行时也会逐请求校验**：`net.*` 每次请求前解析 host，未命中白名单直接返回中文错误；旧 `tool.http*` 已废弃，请改用 `net`（见 [script-api-reference.md](script-api-reference.md) §3.1）。
 - 声明 `127.0.0.1` / `localhost` 可以访问本机服务（如 vFlow 的本地 Web API）。
 
 ### 2.5 parameters 与 ui
@@ -334,6 +335,39 @@ end
 ```
 
 事件运行还有冷却（防抖）与失败重试，详见 5.3。
+
+### 2.10 permissions（方法级权限与文件目录白名单）
+
+`permissions` 让卡片把「哪些方法可以直接用、哪些要问用户」写进 manifest，Hub 审核时可见。
+
+```json
+"permissions": {
+  "methods": { "ai.chat": "allow", "fs.delete": "ask" },
+  "fsRead": ["/storage/emulated/0/DCIM"],
+  "fsWrite": [],
+  "grants": []
+}
+```
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `methods` | object | `{}` | key 为 `<bridge>.<method>`，value 为 `allow` / `ask` / `deny`。 |
+| `fsRead` | string[] | `[]` | `fs` 可读目录前缀。空 = 只允许卡片私有目录。 |
+| `fsWrite` | string[] | `[]` | `fs` 可写目录前缀。空 = 只允许卡片私有目录。 |
+| `grants` | string[] | `[]` | 预留：希望宿主先做的预检。当前宿主忽略。 |
+
+- **已登记的 method key**（其他 key 报 `PERMISSION_METHOD_UNKNOWN`）：
+  `net.get` / `net.post` / `net.put` / `net.delete` / `net.multipart` / `net.streamText` / `net.toFile` / `net.head`、
+  `fs.read` / `fs.write` / `fs.exists` / `fs.stat` / `fs.list` / `fs.copy` / `fs.move` / `fs.mkdir` / `fs.delete` /
+  `fs.zip` / `fs.unzip` / `fs.readBase64` / `fs.saveBase64` / `fs.openDir`、
+  `ai.chat` / `ai.complete` / `system.launchApp` / `mediaPicker.pickMedia`。
+- value 非法报 `PERMISSION_VALUE_INVALID`；key 所属 bridge 没写进 `requires.bridges` 报 `PERMISSION_UNDECLARED_METHOD`。
+- **默认值**：没声明的方法按各 bridge 的默认策略走——`ai.chat` / `ai.complete` / `fs.delete` / `system.launchApp`
+  默认 `ask`（每次调用要用户点允许，类别见 [script-api-reference.md](script-api-reference.md)），其余默认直接放行。
+- 同时在 `network.allow` 与 `permissions.methods` 里声明 `net.*` 只是 WARNING（`PERMISSIONS_NETWORK_LEGACY`），不阻断发布；
+  出网仍以 `network.allow` 的域白名单为准，`permissions` 只管审批方式。
+- `fsRead` / `fsWrite` 是**前缀白名单**，`fs` 的每个路径都会做规范化（含符号链接）后校验，越界返回中文错误；
+  访问共享存储还需要宿主已授予「所有文件访问」。
 
 ---
 
@@ -878,7 +912,41 @@ return { ok = true, resp = resp }
 - 表单里的 `file_picker` / `dir_picker` 是「文本框 + 浏览按钮」，适合让用户确认/微调路径；
   纯选图场景用 `mediaPicker.pickMedia` 更直接（不依赖表单是否弹出）。
 
-### 4.11 宿主侧接口速览
+### 4.11 ai（卡片调用模型，L0 + 敏感）
+
+用**用户已配置的**模型跑一次非流式调用：卡片拿不到、也不能自带 key。
+
+```lua
+local text = ai.chat(
+  "把这段话翻译成英文，只输出译文：" .. input,
+  "你是翻译引擎，输出纯文本",
+  "",            -- provider：空 = 当前聊天模型所在的供应商
+  "",            -- model：空 = 当前聊天模型
+  {},            -- imagePaths：多模态输入的本地文件路径
+  0,             -- maxTokens：0 = 不限制
+  0.0,           -- temperature：0 = 不覆盖用户配置
+  60             -- timeoutSeconds
+)
+if type(text) == "table" and text.__error then return { error = text.__error } end
+return { text = text }
+```
+
+要点：
+
+- **非流式**：拿不到增量输出，一次性返回完整文本；要给用户反馈就分段调用 + `ui.progress`。
+- **默认每次都要审批**（类别 `ai_invoke`）。不想被打断就在 manifest 里声明一次：
+  ```json
+  { "permissions": { "methods": { "ai.chat": "allow" } } }
+  ```
+  写 `"deny"` 则直接拒绝（Hub 审核时可见）。`ai.complete` 可单独声明。
+- **超时**：`timeoutSeconds` 上限 600，实际取它与卡片运行剩余预算的较小值；超时返回中文错误，
+  不会把引擎线程占死。经验值：短摘要 30s、长文 120s。
+- **模型选择**：两个参数都留空就用当前聊天模型；只给 `model` 会在已配置的供应商里按模型 ID 匹配，
+  匹配不到会返回带可用模型列表的中文错误（卡片拿不到用户的密钥，只能用已配置的）。
+- **多模态**：`imagePaths` 传本地文件路径（`mediaPicker.pickMedia` 的返回值、`fs` 读到的缓存文件都行）。
+- **计费**：模型调用本身不额外计费（`price = 0`），但每次调用都会上报 Hub 统计，卡片价格按卡片调用次数结算。
+
+### 4.12 宿主侧接口速览
 
 | 接口 | 方法 | 说明 |
 |---|---|---|
