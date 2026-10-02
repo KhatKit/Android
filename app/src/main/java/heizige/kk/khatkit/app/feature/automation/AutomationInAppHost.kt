@@ -33,6 +33,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeTextButton
 
 /** 应用前台的自动化提示；点击只隐藏提示，不取消脚本。 */
 @Composable
@@ -100,8 +101,8 @@ fun AutomationInAppHost() {
                             maxLines = 2,
                         )
                         if (approval != null) {
-                            TextButton(onClick = { AutomationBus.approve() }) { Text("允许") }
-                            TextButton(onClick = { AutomationBus.deny() }) { Text("拒绝") }
+                            KedgeTextButton(onClick = { AutomationBus.approve() }) { Text("允许") }
+                            KedgeTextButton(onClick = { AutomationBus.deny() }) { Text("拒绝") }
                         }
                     }
                 }
