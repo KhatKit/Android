@@ -461,16 +461,17 @@ fun ChatDrawerContent(
                         // 抽屉里已经有实心按钮了，这里再一个会互相抢视觉。
                         KedgeButton(
                             onClick = { showCreateFolderDialog = true },
+                            // 不写死高度、也不覆盖 contentPadding：KedgeButton 的 Miuix
+                            // 分支会把 contentPadding 当 insideMargin 传给 MiuixButton，
+                            // 沿用默认的 KedgeButtonDefaults.ContentPadding(vertical=10dp)
+                            // 即可与其它默认 Miuix 按钮等高。此前写死 height(38.dp) 且把
+                            // contentPadding 清零，两个叠加把按钮压得比常规矮一截。
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp)
-                                .height(38.dp),
+                                .padding(bottom = 8.dp),
                             variant = KedgeButtonVariant.Secondary,
-                            shapes = ButtonDefaults.shapes(RoundedCornerShape(20.dp)),
-                            miuixCornerRadius = 20.dp,
-                            // Miuix 分支把这个值当 insideMargin 用，会叠在Miuix 自带的
-                            // 内边距上；这里交给下面的居中排版控制，不要再额外加边距。
-                            contentPadding = PaddingValues(0.dp),
+                            shapes = ButtonDefaults.shapes(RoundedCornerShape(8.dp)),
+                            miuixCornerRadius = 8.dp,
                         ) {
                             // 图标 + 文案整体居中（对齐 KernelSU 抽屉的「新建文件夹」）
                             Row(
