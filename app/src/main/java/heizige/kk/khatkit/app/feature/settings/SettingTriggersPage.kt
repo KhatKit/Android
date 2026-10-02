@@ -76,6 +76,9 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.core.ui.icons.add
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,
@@ -95,12 +98,14 @@ private val PermissionBluetoothConnect = PermissionInfo(
 @Composable
 fun SettingTriggersPage() {
     val controller: TriggerController = rememberAppEntryPoint().triggerController()
+    val navController = LocalNavController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val triggerState by controller.settings.state.collectAsStateWithLifecycle()
     val cards by controller.cards.collectAsStateWithLifecycle()
     val logEntries by controller.logs.entries.collectAsStateWithLifecycle()
+    var workflows by remember { mutableStateOf(WorkflowStore.load(context)) }
 
     val permissionState = rememberPermissionState(
         permissions = buildSet {
@@ -254,7 +259,37 @@ fun SettingTriggersPage() {
                     cards = cards,
                     enabled = triggerState.masterEnabled,
                     onAddAi = { showAiDialog = true },
+                    onCreate = { navController.navigate(Screen.CreateWorkflow()) },
                 )
+            }
+
+            item("saved-workflows") {
+                if (workflows.isNotEmpty()) {
+                    CardGroup(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        title = { Text("我的工作流") },
+                    ) {
+                        workflows.forEach { workflow ->
+                            item(
+                                onClick = {
+                                    navController.navigate(Screen.CreateWorkflow(workflow.id))
+                                },
+                                headlineContent = { Text(workflow.name) },
+                                supportingContent = {
+                                    Text("${workflow.nodes.size} 个节点 · ${if (workflow.enabled) "已启用" else "已停用"}")
+                                },
+                                trailingContent = {
+                                    KedgeTextButton(
+                                        onClick = {
+                                            WorkflowStore.delete(context, workflow.id)
+                                            workflows = WorkflowStore.load(context)
+                                        },
+                                    ) { Text("删除") }
+                                },
+                            )
+                        }
+                    }
+                }
             }
 
             item("cards") {
@@ -496,6 +531,7 @@ private fun FlowOverviewCard(
     cards: List<TriggerCard>,
     enabled: Boolean,
     onAddAi: () -> Unit,
+    onCreate: () -> Unit,
 ) {
     val style = LocalKedgeStyle.current
     KedgeCard(
@@ -543,6 +579,17 @@ private fun FlowOverviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                KedgeFilterChip(
+                    selected = false,
+                    onClick = onCreate,
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.size(4.dp))
+                            Text("创建工作流")
+                        }
+                    },
+                )
                 KedgeFilterChip(
                     selected = false,
                     onClick = onAddAi,

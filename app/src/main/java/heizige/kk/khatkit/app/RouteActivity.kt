@@ -126,6 +126,7 @@ import heizige.kk.khatkit.app.feature.settings.SettingSearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingSpeechPage
 import heizige.kk.khatkit.app.feature.settings.SettingPackagePage
 import heizige.kk.khatkit.app.feature.settings.SettingTriggersPage
+import heizige.kk.khatkit.app.feature.settings.CreateWorkflowPage
 import heizige.kk.khatkit.app.feature.settings.SettingWebPage
 import heizige.kk.khatkit.app.feature.share.handler.ShareHandlerPage
 import heizige.kk.khatkit.app.feature.translator.TranslatorPage
@@ -549,6 +550,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingTriggersPage()
                             }
 
+                            entry<Screen.CreateWorkflow> { key ->
+                                CreateWorkflowPage(key.workflowId)
+                            }
+
                             entry<Screen.SettingPackage> {
                                 SettingPackagePage()
                             }
@@ -781,6 +786,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingTriggers : Screen
+
+    @Serializable
+    data class CreateWorkflow(val workflowId: String? = null) : Screen
 
     @Serializable
     data object SettingPackage : Screen
