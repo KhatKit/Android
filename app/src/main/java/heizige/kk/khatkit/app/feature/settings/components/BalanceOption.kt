@@ -34,6 +34,7 @@ import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.sync
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private val ApiPathRegex = Regex("""^/[^ \t\n\r]*$""")
 
@@ -99,7 +100,7 @@ fun SettingProviderBalanceOption(
                     label = { Text(stringResource(R.string.setting_provider_page_balance_json_key)) },
                     isError = !isJsonExprValid(balanceOption.resultPath),
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
+                    textStyle = KedgeTextStyles.body().copy(fontFamily = JetbrainsMono),
                     shape = RoundedCornerShape(16.dp)
                 )
                 KedgeIconButton(

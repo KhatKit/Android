@@ -37,6 +37,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.feature.chat.MessageQueueState
 import heizige.kk.khatkit.app.feature.chat.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun MessageQueuePanel(
@@ -63,7 +64,7 @@ internal fun MessageQueuePanel(
                             else R.string.chat_page_queue_pending_count,
                             state.messages.size,
                         ),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         color = KedgeColors.onSurfaceVariant,
                         modifier = Modifier
                             .weight(1f)
@@ -99,7 +100,7 @@ internal fun MessageQueuePanel(
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodySmall,
+                                style = KedgeTextStyles.body(),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )

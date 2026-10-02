@@ -109,6 +109,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val TAG = "ChatList"
 private const val LoadingIndicatorKey = "LoadingIndicator"
@@ -380,7 +381,7 @@ private fun ChatListNormal(
                         ) {
                             Text(
                                 text = processingStatus ?: "",
-                                style = MaterialTheme.typography.labelMedium,
+                                style = KedgeTextStyles.body(),
                                 color = KedgeColors.onSurfaceVariant,
                             )
                         }
@@ -751,7 +752,7 @@ private fun ChatListPreview(
                             }
                             Text(
                                 text = highlightedText,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = KedgeTextStyles.body(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

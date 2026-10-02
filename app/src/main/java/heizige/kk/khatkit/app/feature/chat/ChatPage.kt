@@ -115,6 +115,7 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
@@ -830,7 +831,7 @@ private fun TopBar(
                             Text(
                                 text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
                                 maxLines = 1,
-                                style = MaterialTheme.typography.titleLarge,
+                                style = KedgeTextStyles.displayTitle(),
                                 overflow = TextOverflow.Ellipsis,
                             )
                             if (model != null && provider != null) {
@@ -839,7 +840,7 @@ private fun TopBar(
                                     overflow = TextOverflow.Ellipsis,
                                     maxLines = 1,
                                     color = LocalContentColor.current.copy(0.65f),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = KedgeTextStyles.body(),
                                 )
                             }
                         }

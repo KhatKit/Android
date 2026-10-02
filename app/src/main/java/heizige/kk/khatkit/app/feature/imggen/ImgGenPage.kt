@@ -119,6 +119,7 @@ import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ImageGenPage(
@@ -377,7 +378,7 @@ private fun InputBar(
             minLines = 1,
             maxLines = 5,
             shape = RoundedCornerShape(16.dp),
-            textStyle = MaterialTheme.typography.bodySmall,
+            textStyle = KedgeTextStyles.body(),
         )
 
         Row(
@@ -631,7 +632,7 @@ private fun ImageGalleryScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = stringResource(R.string.imggen_page_no_generated_images),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
@@ -700,12 +701,12 @@ private fun ImageGalleryScreen(
                                         Column {
                                             Text(
                                                 text = it.model,
-                                                style = MaterialTheme.typography.labelSmall,
+                                                style = KedgeTextStyles.footnoteSmall(),
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                             Text(
                                                 text = it.prompt.take(20) + if (it.prompt.length > 20) "..." else "",
-                                                style = MaterialTheme.typography.bodySmall,
+                                                style = KedgeTextStyles.body(),
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 2
                                             )
@@ -850,7 +851,7 @@ private fun SettingsBottomSheet(
                     placeholder = { Text("e.g. 1024x1024") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodySmall,
+                    textStyle = KedgeTextStyles.body(),
                     shape = RoundedCornerShape(16.dp)
                 )
             }

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 应用前台的自动化提示；点击只隐藏提示，不取消脚本。 */
 @Composable
@@ -94,7 +95,7 @@ fun AutomationInAppHost() {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = if (detail.isBlank()) label else "$label · $detail",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = KedgeTextStyles.body(),
                             modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
                             maxLines = 2,
                         )

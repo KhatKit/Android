@@ -133,6 +133,7 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 
 @Composable
@@ -233,7 +234,7 @@ internal fun ModelPicker(
                                 ) {
                                     Text(
                                         text = it.modelId,
-                                        style = MaterialTheme.typography.titleSmall,
+                                        style = KedgeTextStyles.title(),
                                     )
 
                                     Row(
@@ -319,7 +320,7 @@ internal fun ModelTypeSelector(
 ) {
     Text(
         stringResource(R.string.setting_provider_page_model_type),
-        style = MaterialTheme.typography.titleSmall
+        style = KedgeTextStyles.title()
     )
     KedgeSingleChoiceSegmentedRow(
         items = ModelType.entries.map { type ->
@@ -349,7 +350,7 @@ internal fun ModelModalitySelector(
     if (model.type == ModelType.CHAT) {
         Text(
             stringResource(R.string.setting_provider_page_input_modality),
-            style = MaterialTheme.typography.titleSmall
+            style = KedgeTextStyles.title()
         )
         KedgeMultiChoiceSegmentedRow(
             items = Modality.entries.map { modality ->
@@ -376,7 +377,7 @@ internal fun ModelModalitySelector(
 
         Text(
             stringResource(R.string.setting_provider_page_output_modality),
-            style = MaterialTheme.typography.titleSmall
+            style = KedgeTextStyles.title()
         )
         KedgeMultiChoiceSegmentedRow(
             items = Modality.entries.map { modality ->
@@ -410,7 +411,7 @@ fun ModalAbilitySelector(
 ) {
     Text(
         stringResource(R.string.setting_provider_page_abilities),
-        style = MaterialTheme.typography.titleSmall
+        style = KedgeTextStyles.title()
     )
     KedgeMultiChoiceSegmentedRow(
         items = ModelAbility.entries.map { ability ->

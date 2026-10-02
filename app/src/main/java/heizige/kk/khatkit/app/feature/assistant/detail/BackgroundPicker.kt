@@ -31,6 +31,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun BackgroundPicker(
@@ -90,7 +91,7 @@ fun BackgroundPicker(
             ) {
                 Text(
                     text = stringResource(R.string.assistant_page_background_set),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )

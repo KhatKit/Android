@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ChatMessageBranchSelector(
@@ -63,7 +64,7 @@ fun ChatMessageBranchSelector(
 
             Text(
                 text = "${node.selectIndex + 1}/${node.messages.size}",
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 color = actionColor
             )
 

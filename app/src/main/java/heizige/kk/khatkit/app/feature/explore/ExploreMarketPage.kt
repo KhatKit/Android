@@ -114,6 +114,7 @@ import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private enum class ExploreFilter(val label: String) {
     ALL("全部"),
@@ -294,18 +295,18 @@ fun ExploreMarketPage() {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 text = stringResource(R.string.explore_market_source_badge),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = KedgeTextStyles.footnoteSmall(),
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
                                 text = stringResource(R.string.explore_market_overview),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                             Text(
                                 text = stringResource(R.string.explore_market_card_count, cards.size, installed.size),
-                                style = MaterialTheme.typography.labelMedium,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
                             )
                         }
@@ -350,7 +351,7 @@ fun ExploreMarketPage() {
                                             Text("${dependency.name} ${dependency.version}", fontWeight = FontWeight.SemiBold)
                                             Text(
                                                 "${formatBytes(dependency.sizeBytes)} · SHA-256 ${dependency.sha256.take(12)}…",
-                                                style = MaterialTheme.typography.bodySmall,
+                                                style = KedgeTextStyles.body(),
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
@@ -497,10 +498,10 @@ fun ExploreMarketPage() {
                                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(text = name, style = MaterialTheme.typography.titleSmallEmphasized)
+                                        Text(text = name, style = KedgeTextStyles.title())
                                         Text(
                                             text = "v${installed[name].orEmpty()} · 未在市场索引中",
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = KedgeTextStyles.body(),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
@@ -569,13 +570,13 @@ fun ExploreMarketPage() {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = skill.name,
-                                            style = MaterialTheme.typography.titleSmallEmphasized,
+                                            style = KedgeTextStyles.title(),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
                                             text = skill.description,
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = KedgeTextStyles.body(),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis,
@@ -655,7 +656,7 @@ fun ExploreMarketPage() {
                         )
                         Text(
                             text = "没有找到相关内容",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -797,13 +798,13 @@ private fun SectionHeader(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLargeEmphasized,
+                style = KedgeTextStyles.displayTitle(),
                 fontWeight = FontWeight.Bold,
             )
             if (supporting != null) {
                 Text(
                     text = supporting,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -881,10 +882,10 @@ private fun ToolCard(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = tool.title, style = MaterialTheme.typography.titleSmallEmphasized)
+                Text(text = tool.title, style = KedgeTextStyles.title())
                 Text(
                     text = tool.desc,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -922,13 +923,13 @@ private fun McpCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = server.commonOptions.name.ifBlank { server.serverUrl },
-                    style = MaterialTheme.typography.titleSmallEmphasized,
+                    style = KedgeTextStyles.title(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = server.serverUrl,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -971,13 +972,13 @@ private fun ModelCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = model.displayName.ifBlank { model.modelId },
-                        style = MaterialTheme.typography.titleSmallEmphasized,
+                        style = KedgeTextStyles.title(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = providerName,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -1037,7 +1038,7 @@ private fun FeaturedCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = entry.name,
-                        style = MaterialTheme.typography.titleMediumEmphasized,
+                        style = KedgeTextStyles.title(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
@@ -1050,7 +1051,7 @@ private fun FeaturedCard(
                 }
                 Text(
                     text = entry.summary.ifBlank { entry.description }.ifBlank { entry.author },
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -1097,7 +1098,7 @@ private fun CompactCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = entry.name,
-                    style = MaterialTheme.typography.titleSmallEmphasized,
+                    style = KedgeTextStyles.title(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -1113,7 +1114,7 @@ private fun CompactCard(
             }
             Text(
                 text = entry.summary.ifBlank { entry.description },
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -1180,12 +1181,12 @@ private fun CardDetailSheet(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = entry.name,
-                    style = MaterialTheme.typography.titleLargeEmphasized,
+                    style = KedgeTextStyles.displayTitle(),
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = "v${entry.version}",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = KedgeTextStyles.title(),
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -1200,7 +1201,7 @@ private fun CardDetailSheet(
             if (description.isNotBlank()) {
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -1235,7 +1236,7 @@ private fun CardDetailSheet(
 
             Text(
                 text = "${entry.engine} · ${entry.privilege} · ${entry.bridges.joinToString(", ").ifBlank { "L0" }}",
-                style = MaterialTheme.typography.labelMedium,
+                style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
@@ -1245,7 +1246,7 @@ private fun CardDetailSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text("处理中…", style = MaterialTheme.typography.labelMedium)
+                    Text("处理中…", style = KedgeTextStyles.body())
                 }
             }
 
@@ -1319,7 +1320,7 @@ private fun BigActionButton(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleSmallEmphasized,
+            style = KedgeTextStyles.title(),
             color = contentColor,
         )
     }
@@ -1343,7 +1344,7 @@ private fun OutlinedButtonLike(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -1390,7 +1391,7 @@ private fun PublishCardDialog(
                 )
                 Text(
                     text = "提交后进入审核，通过后可能成为首选版本。",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

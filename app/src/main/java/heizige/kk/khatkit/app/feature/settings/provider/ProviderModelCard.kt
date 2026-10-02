@@ -129,6 +129,7 @@ import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 
 @Composable
@@ -253,7 +254,7 @@ internal fun ModelCard(
                 ) {
                     Text(
                         text = model.displayName,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -303,12 +304,12 @@ internal fun BuiltInToolsSettings(
     ) {
         Text(
             text = stringResource(R.string.setting_page_built_in_tools),
-            style = MaterialTheme.typography.titleMedium
+            style = KedgeTextStyles.title()
         )
 
         Text(
             text = stringResource(R.string.setting_page_built_in_tools_desc),
-            style = MaterialTheme.typography.bodyMedium,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -345,11 +346,11 @@ internal fun BuiltInToolsSettings(
                     ) {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleSmall
+                            style = KedgeTextStyles.title()
                         )
                         Text(
                             text = description,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -383,12 +384,12 @@ internal fun ProviderOverrideSettings(
     ) {
         Text(
             text = stringResource(R.string.setting_provider_page_provider_override),
-            style = MaterialTheme.typography.titleSmall
+            style = KedgeTextStyles.title()
         )
 
         Text(
             text = stringResource(R.string.setting_provider_page_provider_override_desc),
-            style = MaterialTheme.typography.bodyMedium,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -412,7 +413,7 @@ internal fun ProviderOverrideSettings(
                         )
                         Text(
                             text = "${providerOverride.name} (Override)",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = KedgeTextStyles.body(),
                             modifier = Modifier.weight(1f)
                         )
                         KedgeIconButton(

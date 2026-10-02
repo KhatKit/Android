@@ -8,11 +8,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import heizige.kk.khatkit.app.R
 import java.util.Calendar
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun Greeting(
     modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.headlineMedium
+    style: TextStyle = KedgeTextStyles.displayTitle()
 ) {
     @Composable
     fun getGreetingMessage(): String {

@@ -639,7 +639,7 @@ fun ChatDrawerContent(
                         Icon(folderIcon, null)
                         Text(
                             text = stringResource(R.string.chat_page_remove_from_folder),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KedgeTextStyles.title(),
                         )
                     }
                 }
@@ -670,7 +670,7 @@ fun ChatDrawerContent(
                                 Icon(folderIcon, null)
                                 Text(
                                     text = folder.name,
-                                    style = MaterialTheme.typography.titleMedium,
+                                    style = KedgeTextStyles.title(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -879,7 +879,7 @@ private fun FolderSection(
                                 )
                                 Text(
                                     text = folder.name,
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    style = KedgeTextStyles.body(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
@@ -955,14 +955,14 @@ private fun AssistantItem(
             ) {
                 Text(
                     text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (isCurrentAssistant) {
                     Text(
                         text = stringResource(R.string.assistant_page_current_assistant),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

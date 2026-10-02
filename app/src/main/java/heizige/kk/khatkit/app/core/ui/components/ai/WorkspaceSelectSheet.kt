@@ -30,6 +30,7 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.doneAll
 import heizige.kk.khatkit.app.core.ui.icons.terminal
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun WorkspaceSelectSheet(
@@ -129,7 +130,7 @@ private fun WorkspaceSelectRow(
             {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

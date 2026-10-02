@@ -72,6 +72,7 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -420,7 +421,7 @@ fun PermissionChecklist(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.greeting_permissions_hint),
-            style = MaterialTheme.typography.bodySmall,
+            style = KedgeTextStyles.body(),
             color = KedgeColors.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -540,7 +541,7 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = stringResource(R.string.approval_sheet_desc),
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ApprovalCategory.entries.forEach { category ->
@@ -550,7 +551,7 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = stringResource(category.labelRes),
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                     )
                     KedgeSingleChoiceSegmentedRow(
                         items = ApprovalPolicy.entries.map { option ->

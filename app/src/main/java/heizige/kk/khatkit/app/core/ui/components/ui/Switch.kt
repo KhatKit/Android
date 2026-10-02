@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 enum class SwitchSize {
     Small,
@@ -141,35 +142,35 @@ private fun SwitchPreview() {
         var checkedLarge by remember { mutableStateOf(true) }
         var unchecked by remember { mutableStateOf(false) }
 
-        Text("Small", style = MaterialTheme.typography.labelMedium)
+        Text("Small", style = KedgeTextStyles.body())
         Switch(
             checked = checkedSmall,
             onCheckedChange = { checkedSmall = it },
             size = SwitchSize.Small
         )
 
-        Text("Medium (Default)", style = MaterialTheme.typography.labelMedium)
+        Text("Medium (Default)", style = KedgeTextStyles.body())
         Switch(
             checked = checkedMedium,
             onCheckedChange = { checkedMedium = it },
             size = SwitchSize.Medium
         )
 
-        Text("Large", style = MaterialTheme.typography.labelMedium)
+        Text("Large", style = KedgeTextStyles.body())
         Switch(
             checked = checkedLarge,
             onCheckedChange = { checkedLarge = it },
             size = SwitchSize.Large
         )
 
-        Text("Unchecked", style = MaterialTheme.typography.labelMedium)
+        Text("Unchecked", style = KedgeTextStyles.body())
         Switch(
             checked = unchecked,
             onCheckedChange = { unchecked = it },
             size = SwitchSize.Medium
         )
 
-        Text("Disabled", style = MaterialTheme.typography.labelMedium)
+        Text("Disabled", style = KedgeTextStyles.body())
         Switch(
             checked = true,
             onCheckedChange = {},

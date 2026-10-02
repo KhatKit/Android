@@ -25,6 +25,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.settingsBackupRestore
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun BackupReminderCard(
@@ -56,7 +57,7 @@ fun BackupReminderCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.backup_page_reminder_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = KedgeTextStyles.title(),
                     color = MaterialTheme.colorScheme.primary,
                 )
                 val lastBackupText = if (config.lastBackupTime == 0L) {
@@ -67,7 +68,7 @@ fun BackupReminderCard(
                 }
                 Text(
                     text = lastBackupText,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                 )
             }
             KedgeIconButton(

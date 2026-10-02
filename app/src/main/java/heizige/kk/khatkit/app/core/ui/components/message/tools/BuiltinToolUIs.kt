@@ -85,6 +85,7 @@ import heizige.kk.khatkit.app.core.ui.icons.sms
 import heizige.kk.khatkit.app.core.ui.icons.timer
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 记忆工具: 按 action 区分标题/图标, 摘要显示记忆内容, 详情附带删除按钮
@@ -121,7 +122,7 @@ object MemoryToolUI : ToolUIRenderer {
         context.content.getStringContent("content")?.let { memoryContent ->
             Text(
                 text = memoryContent,
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = KedgeColors.onPrimaryContainer,
                 modifier = Modifier.shimmer(isLoading = context.loading),
                 maxLines = 3,
@@ -186,7 +187,7 @@ object SearchWebToolUI : ToolUIRenderer {
         context.content.getStringContent("answer")?.let { answer ->
             Text(
                 text = answer,
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = KedgeColors.onPrimaryContainer,
                 modifier = Modifier.shimmer(isLoading = context.loading),
                 maxLines = 3,
@@ -205,7 +206,7 @@ object SearchWebToolUI : ToolUIRenderer {
                 )
                 Text(
                     text = stringResource(R.string.chat_message_tool_search_results_count, items.size),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
                 )
             }
@@ -242,7 +243,7 @@ object ScrapeWebToolUI : ToolUIRenderer {
     override fun Summary(context: ToolUIContext) {
         Text(
             text = context.arguments.getStringContent("url") ?: "",
-            style = MaterialTheme.typography.labelSmall,
+            style = KedgeTextStyles.footnoteSmall(),
             color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
         )
     }
@@ -322,7 +323,7 @@ object TextToSpeechToolUI : ToolUIRenderer {
         ) {
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = KedgeColors.onPrimaryContainer,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -382,7 +383,7 @@ object RecentChatsToolUI : ToolUIRenderer {
         if (titles.isEmpty()) return
         Text(
             text = titles.joinToString(", "),
-            style = MaterialTheme.typography.labelSmall,
+            style = KedgeTextStyles.footnoteSmall(),
             color = KedgeColors.onPrimaryContainer,
             modifier = Modifier.shimmer(isLoading = context.loading),
             maxLines = 3,
@@ -416,7 +417,7 @@ object ConversationSearchToolUI : ToolUIRenderer {
         if (results.isEmpty()) return
         Text(
             text = stringResource(R.string.chat_message_tool_search_results_count, results.size),
-            style = MaterialTheme.typography.labelSmall,
+            style = KedgeTextStyles.footnoteSmall(),
             color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
         )
     }
@@ -451,7 +452,7 @@ object GetScreenTimeToolUI : ToolUIRenderer {
         if (isNoPermission(context)) {
             Text(
                 text = stringResource(R.string.assistant_page_local_tools_screen_time_permission_required),
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = KedgeColors.error,
             )
             return
@@ -470,13 +471,13 @@ object GetScreenTimeToolUI : ToolUIRenderer {
             ) {
                 Text(
                     text = stringResource(R.string.tool_ui_screen_time_total),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = formatMinutes(totalMinutes),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = KedgeColors.onPrimaryContainer,
                 )
             }
@@ -488,7 +489,7 @@ object GetScreenTimeToolUI : ToolUIRenderer {
                     Text(
                         text = app.getStringContent("app_name")
                             ?: app.getStringContent("package") ?: "",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = KedgeColors.onPrimaryContainer,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -496,7 +497,7 @@ object GetScreenTimeToolUI : ToolUIRenderer {
                     )
                     Text(
                         text = formatMinutes(app.appMinutes()),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
                     )
                 }
@@ -539,14 +540,14 @@ object CalendarQueryToolUI : ToolUIRenderer {
         ) {
             Text(
                 text = stringResource(R.string.chat_message_tool_search_results_count, events.size),
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
             )
             events.take(3).forEach { event ->
                 val title = event.getStringContent("title") ?: return@forEach
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = KedgeColors.onPrimaryContainer,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -588,12 +589,12 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                 ) {
                     Text(
                         text = stringResource(R.string.tool_ui_screen_time_total),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = formatMinutes(totalMinutes),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                         color = KedgeColors.primary,
                     )
                 }
@@ -602,7 +603,7 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                 if (begin != null && finish != null) {
                     Text(
                         text = "${formatRangeTime(begin)} → ${formatRangeTime(finish)}",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         color = KedgeColors.onSurface.copy(alpha = 0.6f),
                     )
                 }
@@ -618,14 +619,14 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                 ) {
                     Text(
                         text = name,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = KedgeTextStyles.body(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = formatMinutes(app.appMinutes()),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = KedgeTextStyles.body(),
                         color = KedgeColors.onSurface.copy(alpha = 0.7f),
                     )
                 }
@@ -720,7 +721,7 @@ private fun SearchWebPreview(
                             Text(
                                 text = "$name: $displayValue",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = KedgeTextStyles.footnoteSmall(),
                             )
                         }
                     }
@@ -740,7 +741,7 @@ private fun SearchWebPreview(
                         modifier = Modifier
                             .padding(16.dp)
                             .fillMaxWidth(),
-                        style = MaterialTheme.typography.bodySmall
+                        style = KedgeTextStyles.body()
                     )
                 }
             }
@@ -808,7 +809,7 @@ private fun SearchWebPreview(
                                     text = dateLabel,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = KedgeTextStyles.footnoteSmall(),
                                     color = KedgeColors.onSurfaceVariant,
                                 )
                             }
@@ -816,12 +817,12 @@ private fun SearchWebPreview(
                                 text = text,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.bodySmall
+                                style = KedgeTextStyles.body()
                             )
                             Text(
                                 text = url,
                                 maxLines = 1,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = KedgeTextStyles.footnoteSmall(),
                                 color = KedgeColors.onSurface.copy(alpha = 0.6f)
                             )
                         }
@@ -867,7 +868,7 @@ private fun ScrapeWebPreview(content: JsonElement) {
             ) {
                 Text(
                     text = urlObject["url"]?.jsonPrimitive?.content ?: "",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
                     modifier = Modifier.fillMaxWidth()
                 )

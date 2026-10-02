@@ -128,6 +128,7 @@ import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 
 @Composable
@@ -179,12 +180,12 @@ internal fun ModelList(
                     ) {
                         Text(
                             text = stringResource(R.string.setting_provider_page_no_models),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = stringResource(R.string.setting_provider_page_add_models_hint),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
@@ -507,7 +508,7 @@ internal fun AddModelButton(
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(
                         stringResource(R.string.setting_provider_page_add_new_model),
-                        style = MaterialTheme.typography.bodyLarge
+                        style = KedgeTextStyles.body()
                     )
                 }
             }

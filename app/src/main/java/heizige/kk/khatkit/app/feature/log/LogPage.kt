@@ -53,6 +53,7 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun LogPage() {
@@ -153,12 +154,12 @@ private fun RequestLoggingSwitchCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.log_page_record_requests),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = KedgeTextStyles.title(),
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = stringResource(R.string.log_page_record_requests_desc),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -190,20 +191,20 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
             ) {
                 Text(
                     text = log.method,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = KedgeTextStyles.body(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = dateFormat.format(Date(log.timestamp)),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
                 text = log.url,
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 fontFamily = JetbrainsMono,
                 maxLines = 2
             )
@@ -214,7 +215,7 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
                 log.responseCode?.let { code ->
                     Text(
                         text = "Status: $code",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = if (code in 200..299) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -225,7 +226,7 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
                 log.durationMs?.let { duration ->
                     Text(
                         text = "${duration}ms",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -234,7 +235,7 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
             log.error?.let { error ->
                 Text(
                     text = "Error: $error",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.error
                 )
             }
@@ -289,7 +290,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                     KedgeFormDivider()
                     Text(
                         text = "Request Headers",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -310,7 +311,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                     ) {
                         Text(
                             text = "Request Body",
-                            style = MaterialTheme.typography.titleSmall,
+                            style = KedgeTextStyles.title(),
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
                         )
@@ -354,7 +355,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                     KedgeFormDivider()
                     Text(
                         text = "Response Headers",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -374,12 +375,12 @@ private fun DetailSection(label: String, value: String) {
     Column {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = KedgeTextStyles.footnoteSmall(),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
+            style = KedgeTextStyles.body(),
             fontFamily = JetbrainsMono
         )
     }
@@ -390,12 +391,12 @@ private fun HeaderItem(key: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 2.dp)) {
         Text(
             text = key,
-            style = MaterialTheme.typography.labelSmall,
+            style = KedgeTextStyles.footnoteSmall(),
             color = MaterialTheme.colorScheme.primary
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodySmall,
+            style = KedgeTextStyles.body(),
             fontFamily = JetbrainsMono
         )
     }
@@ -417,19 +418,19 @@ private fun TextLogCard(log: LogEntry.TextLog) {
                 ) {
                     Text(
                         text = log.tag,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = dateFormat.format(Date(log.timestamp)),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(
                     text = log.message,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     fontFamily = JetbrainsMono
                 )
             }

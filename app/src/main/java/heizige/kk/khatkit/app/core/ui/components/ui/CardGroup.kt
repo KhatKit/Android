@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEachIndexed
 import heizige.kk.khromia.components.pressBounce
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private data class CardGroupItem(
     val onClick: (() -> Unit)?,
@@ -123,7 +124,7 @@ fun CardGroup(
         if (title != null) {
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary.copy(alpha = 0.54f)) {
                 ProvideTextStyle(
-                    MaterialTheme.typography.titleSmallEmphasized.copy(
+                    KedgeTextStyles.title().copy(
                         fontSize = 14.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                         lineHeight = 20.sp,

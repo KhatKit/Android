@@ -25,6 +25,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.util.copyMessageToClipboard
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ChatMessageCopySheet(
@@ -65,7 +66,7 @@ fun ChatMessageCopySheet(
                 ) {
                     Text(
                         text = stringResource(R.string.no_text_content_to_copy),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = KedgeTextStyles.body(),
                         color = KedgeColors.onSurface.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center
                     )
@@ -81,7 +82,7 @@ fun ChatMessageCopySheet(
                         textParts.fastForEach { textPart ->
                             Text(
                                 text = textPart.text,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = KedgeTextStyles.body(),
                             )
                         }
                     }

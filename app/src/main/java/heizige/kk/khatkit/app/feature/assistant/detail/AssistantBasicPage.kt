@@ -66,6 +66,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantBasicPage(id: String) {
@@ -468,7 +469,7 @@ internal fun AssistantBasicContent(
                 if (assistant.contextMessageLimit > 0) {
                     Text(
                         text = stringResource(R.string.assistant_page_context_message_limit_warning),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -619,7 +620,7 @@ internal fun AssistantBasicContent(
                             R.string.assistant_page_background_opacity_value,
                             (backgroundOpacity * 100).roundToInt()
                         ),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.75f),
                     )
                 }

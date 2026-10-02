@@ -22,6 +22,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.feature.chat.VoicePhase
 import heizige.kk.khatkit.app.feature.chat.VoiceSessionState
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun VoiceModeRow(
@@ -41,7 +42,7 @@ internal fun VoiceModeRow(
         ) {
             Icon(graphicEq, contentDescription = null, tint = statusColor, modifier = Modifier.size(20.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.chat_page_voice_title), style = MaterialTheme.typography.labelLarge, color = statusColor)
+                Text(stringResource(R.string.chat_page_voice_title), style = KedgeTextStyles.body(), color = statusColor)
                 Text(
                     text = when (state.phase) {
                         VoicePhase.Off -> ""
@@ -52,7 +53,7 @@ internal fun VoiceModeRow(
                         VoicePhase.Speaking -> stringResource(R.string.chat_page_voice_speaking)
                         VoicePhase.Error -> stringResource(R.string.chat_page_voice_paused)
                     },
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = KedgeColors.onSurfaceVariant,
                 )
             }
@@ -60,12 +61,12 @@ internal fun VoiceModeRow(
             KedgeTextButton(onClick = onStop, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_end)) }
         }
         if (isError && !state.error.isNullOrBlank()) {
-            Text(state.error, style = MaterialTheme.typography.bodySmall, color = statusColor)
+            Text(state.error, style = KedgeTextStyles.body(), color = statusColor)
         }
         if (state.transcript.isNotBlank()) {
             Text(
                 text = state.transcript,
-                style = MaterialTheme.typography.bodyMedium,
+                style = KedgeTextStyles.body(),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

@@ -59,6 +59,7 @@ import heizige.kk.khatkit.app.core.util.CrashHandler
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.uuid.Uuid
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @AndroidEntryPoint
 class SafeModeActivity : ComponentActivity() {
@@ -93,7 +94,7 @@ class SafeModeActivity : ComponentActivity() {
                     ) {
                         Text(
                             text = stringResource(R.string.safe_mode_description),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
@@ -101,7 +102,7 @@ class SafeModeActivity : ComponentActivity() {
                             text = stringResource(
                                 R.string.safe_mode_current_assistant,
                                 settings.getCurrentAssistant().name.ifEmpty { stringResource(R.string.safe_mode_default_assistant) }),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                         )
 
                         KedgeButton(
@@ -130,7 +131,7 @@ class SafeModeActivity : ComponentActivity() {
                             ) {
                                 Text(
                                     text = stringResource(R.string.safe_mode_crash_report),
-                                    style = MaterialTheme.typography.titleSmall,
+                                    style = KedgeTextStyles.title(),
                                 )
                                 KedgeButton(
                                     onClick = {
@@ -158,7 +159,7 @@ class SafeModeActivity : ComponentActivity() {
                                         .padding(12.dp)
                                         .verticalScroll(vScroll)
                                         .horizontalScroll(hScroll),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = KedgeTextStyles.body(),
                                     fontFamily = FontFamily.Monospace,
                                 )
                             }
@@ -256,7 +257,7 @@ private fun AssistantPickerSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                         )
                     }
                 }

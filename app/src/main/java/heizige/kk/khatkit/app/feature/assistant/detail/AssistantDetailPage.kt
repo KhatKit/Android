@@ -47,6 +47,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantDetailPage(id: String) {
@@ -210,7 +211,7 @@ private fun AssistantHeader(
 
         Text(
             text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-            style = MaterialTheme.typography.headlineSmall,
+            style = KedgeTextStyles.displayTitle(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -218,7 +219,7 @@ private fun AssistantHeader(
         if (assistant.systemPrompt.isNotBlank()) {
             Text(
                 text = assistant.systemPrompt.take(100) + if (assistant.systemPrompt.length > 100) "..." else "",
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

@@ -46,6 +46,7 @@ import heizige.kk.khatkit.app.core.ui.icons.show_chart
 import heizige.kk.khatkit.app.core.ui.icons.barChart
 import heizige.kk.khatkit.app.core.ui.icons.scatter_plot
 import heizige.kk.khatkit.app.core.ui.icons.table
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 enum class ChartDisplayMode { Chart, Table }
 
@@ -83,7 +84,7 @@ fun ChartCard(
                     spec.title?.let {
                         Text(
                             text = it,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KedgeTextStyles.title(),
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -91,7 +92,7 @@ fun ChartCard(
                         spec.yAxis.title?.let {
                             Text(
                                 text = it,
-                                style = MaterialTheme.typography.labelMedium,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -116,7 +117,7 @@ fun ChartCard(
                     spec.xAxis.title?.let {
                         Text(
                             text = it,
-                            style = MaterialTheme.typography.labelMedium,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
@@ -155,7 +156,7 @@ private fun LegendItem(color: Color, label: String) {
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            style = KedgeTextStyles.body(),
         )
     }
 }

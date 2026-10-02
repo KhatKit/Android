@@ -97,6 +97,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
 
@@ -449,7 +450,7 @@ private fun MessagePartsBlock(
                             shape = RoundedCornerShape(50),
                             color = KedgeColors.secondaryContainer
                         ) {
-                            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
+                            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -505,7 +506,7 @@ private fun MessagePartsBlock(
                             shape = RoundedCornerShape(50),
                             color = KedgeColors.tertiaryContainer
                         ) {
-                            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
+                            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -564,7 +565,7 @@ private fun MessagePartsBlock(
             var expand by remember { mutableStateOf(false) }
             if (expand) {
                 ProvideTextStyle(
-                    MaterialTheme.typography.labelMedium.copy(
+                    KedgeTextStyles.body().copy(
                         color = MaterialTheme.extendColors.gray8.copy(alpha = 0.65f)
                     )
                 ) {

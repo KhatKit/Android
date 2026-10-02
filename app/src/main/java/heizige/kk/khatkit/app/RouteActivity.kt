@@ -142,6 +142,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import javax.inject.Inject
 import kotlin.uuid.Uuid
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val TAG = "RouteActivity"
 private const val ACTION_TRANSLATE = "heizige.kk.khatkit.app.action.TRANSLATE"
@@ -614,7 +615,7 @@ class RouteActivity : ComponentActivity() {
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .padding(top = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                         )
                     }
@@ -638,12 +639,12 @@ class RouteActivity : ComponentActivity() {
                                 KedgeProgressIndicator()
                                 Text(
                                     text = stringResource(R.string.db_migrating),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = KedgeTextStyles.body()
                                 )
                                 if (state != null) {
                                     Text(
                                         text = "v${state.from} → v${state.to}",
-                                        style = MaterialTheme.typography.bodySmall,
+                                        style = KedgeTextStyles.body(),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }

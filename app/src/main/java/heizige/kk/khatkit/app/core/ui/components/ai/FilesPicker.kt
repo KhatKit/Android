@@ -85,6 +85,7 @@ import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.videocam
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun FilesPicker(
@@ -204,7 +205,7 @@ internal fun FilesPicker(
                 if (activeCount > 0) {
                     Text(
                         text = activeCount.toString(),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -234,7 +235,7 @@ internal fun FilesPicker(
                 if (conversation.messageNodes.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.chat_page_message_count, conversation.messageNodes.size),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -530,7 +531,7 @@ private fun BigIconTextButton(
                 icon()
             }
         }
-        ProvideTextStyle(MaterialTheme.typography.bodySmall) {
+        ProvideTextStyle(KedgeTextStyles.body()) {
             text()
         }
     }

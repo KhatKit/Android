@@ -63,6 +63,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantMemoryPage(id: String) {
@@ -299,7 +300,7 @@ private fun AssistantMemoryContent(
         ) {
             Text(
                 text = stringResource(R.string.assistant_page_manage_memory_title),
-                style = MaterialTheme.typography.titleMedium,
+                style = KedgeTextStyles.title(),
                 modifier = Modifier
                     .padding(bottom = 8.dp)
                     .align(Alignment.CenterStart)
@@ -379,7 +380,7 @@ private fun MemoryItem(
                     text = memory.content,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                 )
             }
             KedgeIconButton(

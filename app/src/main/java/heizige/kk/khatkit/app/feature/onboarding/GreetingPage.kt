@@ -181,6 +181,7 @@ import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -367,7 +368,7 @@ private fun GreetingTopAppBar(step: GreetingStep) {
                     if (subtitle != null) {
                         Text(
                             text = subtitle,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             color = KedgeColors.onSurfaceVariant,
                             modifier = Modifier.alpha(0.87f),
                         )
@@ -559,7 +560,7 @@ private fun GreetingWelcomeScreen() {
         Text(
             text = stringResource(R.string.app_name),
             onTextLayout = { textWidth = it.size.width.toFloat() },
-            style = MaterialTheme.typography.titleLargeEmphasized.copy(
+            style = KedgeTextStyles.displayTitle().copy(
                 brush = Brush.linearGradient(
                     colors = gradientColors,
                     start = Offset(glowOffset, 0f),
@@ -588,7 +589,7 @@ private fun GreetingAgreementScreen(
     ) {
         Text(
             text = stringResource(R.string.greeting_agreement_text),
-            style = MaterialTheme.typography.bodyMedium,
+            style = KedgeTextStyles.body(),
             color = KedgeColors.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -607,7 +608,7 @@ private fun GreetingAgreementScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.greeting_agreement_accept),
-                style = MaterialTheme.typography.bodyLarge,
+                style = KedgeTextStyles.body(),
             )
         }
     }

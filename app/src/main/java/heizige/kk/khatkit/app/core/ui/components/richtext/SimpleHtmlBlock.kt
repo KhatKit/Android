@@ -41,6 +41,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SimpleHtmlBlock(
@@ -81,7 +82,7 @@ private fun RenderNode(
             if (node.text().isNotBlank()) {
                 Text(
                     text = node.text(),
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    style = KedgeTextStyles.body().copy(
                         color = LocalContentColor.current
                     )
                 )
@@ -99,7 +100,7 @@ private fun RenderNode(
 
                         Text(
                             text = annotatedString,
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                            style = KedgeTextStyles.body().copy(
                                 color = inlineStyle?.color ?: LocalContentColor.current,
                                 fontWeight = inlineStyle?.fontWeight ?: FontWeight.Normal
                             ),
@@ -111,12 +112,12 @@ private fun RenderNode(
                 "h1", "h2", "h3", "h4", "h5", "h6" -> {
                     val headingLevel = node.tagName().substring(1).toIntOrNull() ?: 1
                     val textStyle = when (headingLevel) {
-                        1 -> MaterialTheme.typography.headlineLarge
-                        2 -> MaterialTheme.typography.headlineMedium
-                        3 -> MaterialTheme.typography.headlineSmall
-                        4 -> MaterialTheme.typography.titleLarge
-                        5 -> MaterialTheme.typography.titleMedium
-                        else -> MaterialTheme.typography.titleSmall
+                        1 -> KedgeTextStyles.displayTitle()
+                        2 -> KedgeTextStyles.displayTitle()
+                        3 -> KedgeTextStyles.displayTitle()
+                        4 -> KedgeTextStyles.displayTitle()
+                        5 -> KedgeTextStyles.title()
+                        else -> KedgeTextStyles.title()
                     }
 
                     val annotatedString = buildAnnotatedStringFromElement(node, onLinkClick)
@@ -178,7 +179,7 @@ private fun RenderNode(
 
                         Text(
                             text = annotatedString,
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                            style = KedgeTextStyles.body().copy(
                                 color = inlineStyle?.color ?: LocalContentColor.current,
                                 fontWeight = inlineStyle?.fontWeight ?: FontWeight.Normal
                             )
@@ -202,7 +203,7 @@ private fun RenderList(
                 Row(modifier = Modifier.padding(vertical = 2.dp)) {
                     Text(
                         text = if (isOrdered) "${index + 1}. " else "• ",
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = KedgeTextStyles.body().copy(
                             color = LocalContentColor.current
                         )
                     )
@@ -212,7 +213,7 @@ private fun RenderList(
                     if (annotatedString.text.isNotBlank()) {
                         Text(
                             text = annotatedString,
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                            style = KedgeTextStyles.body().copy(
                                 color = LocalContentColor.current
                             ),
                             modifier = Modifier.weight(1f)
@@ -248,7 +249,7 @@ private fun RenderDetails(
         ) {
             Text(
                 text = if (isExpanded) "▼ " else "▶ ",
-                style = MaterialTheme.typography.bodyMedium.copy(
+                style = KedgeTextStyles.body().copy(
                     color = LocalContentColor.current
                 )
             )
@@ -261,7 +262,7 @@ private fun RenderDetails(
 
             Text(
                 text = summaryAnnotatedString,
-                style = MaterialTheme.typography.bodyMedium.copy(
+                style = KedgeTextStyles.body().copy(
                     color = LocalContentColor.current,
                     fontWeight = FontWeight.Medium
                 )
@@ -650,7 +651,7 @@ private fun RenderTable(
                 if (annotatedString.text.isNotBlank()) {
                     Text(
                         text = annotatedString,
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = KedgeTextStyles.body().copy(
                             color = LocalContentColor.current
                         )
                     )

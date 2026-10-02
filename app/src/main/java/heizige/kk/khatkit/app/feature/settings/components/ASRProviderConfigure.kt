@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khromia.components.AnimatedRadioButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ASRProviderConfigure(
@@ -790,12 +791,12 @@ private fun SherpaLocalASRConfiguration(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "sherpa-onnx ${SherpaModels.ENGINE_VERSION}",
-                            style = MaterialTheme.typography.titleSmall,
+                            style = KedgeTextStyles.title(),
                         )
                         Text(
                             text = "约 ${SherpaModels.ENGINE_SIZE_BYTES / 1024 / 1024} MB · " +
                                 if (engineReady) "已安装" else "未安装",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -847,7 +848,7 @@ private fun SherpaLocalASRConfiguration(
                     Text(
                         text = it,
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                     )
                 }
             }
@@ -881,11 +882,11 @@ private fun SherpaLocalASRConfiguration(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = preset.displayName,
-                                    style = MaterialTheme.typography.titleSmall,
+                                    style = KedgeTextStyles.title(),
                                 )
                                 Text(
                                     text = "${preset.sizeBytes / 1024 / 1024} MB · ${if (preset.streaming) "流式" else "离线"} · ${preset.type}",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = KedgeTextStyles.footnoteSmall(),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -962,7 +963,7 @@ private fun SherpaLocalASRConfiguration(
                                 )
                                 Text(
                                     text = if (isSelected) "当前使用" else "使用该模型",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = KedgeTextStyles.body(),
                                 )
                             }
                         }
@@ -974,7 +975,7 @@ private fun SherpaLocalASRConfiguration(
                 Text(
                     text = it,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                 )
             }
         }

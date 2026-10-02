@@ -60,6 +60,7 @@ import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.questionAnswer
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val ASK_USER_TOOL_NAME = "ask_user"
 
@@ -82,7 +83,7 @@ fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool
         label = {
             Text(
                 text = stringResource(R.string.chat_message_tool_call_generic, tool.toolName),
-                style = MaterialTheme.typography.titleSmall,
+                style = KedgeTextStyles.title(),
                 color = KedgeColors.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
@@ -153,7 +154,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
         label = {
             Text(
                 text = renderer.title(context),
-                style = MaterialTheme.typography.titleSmall,
+                style = KedgeTextStyles.title(),
                 color = KedgeColors.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
@@ -218,7 +219,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                         Text(
                             text = stringResource(R.string.chat_message_tool_denied) +
                                 if (reason.isNotBlank()) ": $reason" else "",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             color = KedgeColors.error,
                         )
                     }
@@ -311,7 +312,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                     R.string.chat_message_tool_ask_questions,
                     questions.size
                 ),
-                style = MaterialTheme.typography.titleSmall,
+                style = KedgeTextStyles.title(),
                 color = KedgeColors.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
@@ -327,7 +328,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = q.question,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             color = KedgeColors.onSurface,
                         )
 
@@ -359,7 +360,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                             label = {
                                                 Text(
                                                     text = option,
-                                                    style = MaterialTheme.typography.labelSmall,
+                                                    style = KedgeTextStyles.footnoteSmall(),
                                                 )
                                             },
                                         )
@@ -371,7 +372,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 value = answers[q.id] ?: "",
                                 onValueChange = { answers[q.id] = it },
                                 modifier = Modifier.fillMaxWidth(),
-                                textStyle = MaterialTheme.typography.bodySmall,
+                                textStyle = KedgeTextStyles.body(),
                                 singleLine = false,
                                 minLines = 1,
                                 maxLines = 3,
@@ -388,7 +389,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 ?: answeredState.answer
                             Text(
                                 text = answerText,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = KedgeTextStyles.body(),
                                 color = KedgeColors.primary,
                             )
                         }

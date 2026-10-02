@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ToggleSurface(
@@ -30,7 +31,7 @@ fun ToggleSurface(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
-        ProvideTextStyle(MaterialTheme.typography.labelLarge) {
+        ProvideTextStyle(KedgeTextStyles.body()) {
             content()
         }
     }

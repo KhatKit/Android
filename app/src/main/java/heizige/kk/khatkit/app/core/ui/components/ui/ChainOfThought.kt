@@ -45,6 +45,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 以时间线/步骤卡片的形式展示一组思考过程。
@@ -134,7 +135,7 @@ fun <T> ChainOfThought(
                                 steps.size - collapsedVisibleCount
                             )
                         },
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         color = KedgeColors.primary,
                     )
                 }
@@ -496,13 +497,13 @@ private fun ChainOfThoughtPreview() {
                         }
                     }
                     val labelComposable: @Composable () -> Unit = {
-                        Text(step.label, style = MaterialTheme.typography.bodyMedium)
+                        Text(step.label, style = KedgeTextStyles.body())
                     }
                     val extraComposable: (@Composable () -> Unit)? = step.status?.let {
                         {
                             Text(
                                 it,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = KedgeTextStyles.footnoteSmall(),
                                 color = KedgeColors.onSurfaceVariant
                             )
                         }
@@ -523,7 +524,7 @@ private fun ChainOfThoughtPreview() {
                                     ).forEach { result ->
                                         Text(
                                             text = "• $result",
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = KedgeTextStyles.body(),
                                             color = KedgeColors.onSurfaceVariant
                                         )
                                     }
@@ -532,7 +533,7 @@ private fun ChainOfThoughtPreview() {
                                         text = "This is expandable content showing detailed analysis. " +
                                             "It can contain multiple lines of text, code snippets, " +
                                             "or any other composable content.",
-                                        style = MaterialTheme.typography.bodySmall,
+                                        style = KedgeTextStyles.body(),
                                     )
                                 }
                             }

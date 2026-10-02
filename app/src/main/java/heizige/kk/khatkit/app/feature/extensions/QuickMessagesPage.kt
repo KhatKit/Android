@@ -55,6 +55,7 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
@@ -95,12 +96,12 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
                         )
                         Text(
                             text = stringResource(R.string.quick_messages_page_empty_title),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = stringResource(R.string.quick_messages_page_empty_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -193,13 +194,13 @@ private fun QuickMessageCard(
             ) {
                 Text(
                     text = quickMessage.title.ifBlank { stringResource(R.string.quick_messages_page_untitled) },
-                    style = MaterialTheme.typography.titleSmallEmphasized,
+                    style = KedgeTextStyles.title(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = quickMessage.content.ifBlank { stringResource(R.string.quick_messages_page_empty_content) },
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,

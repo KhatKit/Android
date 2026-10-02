@@ -64,6 +64,7 @@ import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun WorkspaceTerminalPage(id: String) {
@@ -214,7 +215,7 @@ private fun WorkspaceTerminalContent(
                                             maxLines = 1,
                                             softWrap = false,
                                             overflow = if (isSelected) TextOverflow.Clip else TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelMedium,
+                                            style = KedgeTextStyles.body(),
                                         )
                                         val closeDescription = stringResource(
                                             R.string.workspace_terminal_close_tab,
@@ -274,7 +275,7 @@ private fun WorkspaceTerminalContent(
                             }
                             else -> stringResource(R.string.workspace_terminal_no_tabs)
                         },
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     )
                 }
@@ -351,7 +352,7 @@ private fun WorkspaceTerminalTabContent(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(12.dp),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 )
             }
@@ -418,7 +419,7 @@ private fun TerminalExtraKey(
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        style = MaterialTheme.typography.labelMedium,
+        style = KedgeTextStyles.body(),
         color = if (selected) {
             MaterialTheme.colorScheme.onPrimary
         } else {

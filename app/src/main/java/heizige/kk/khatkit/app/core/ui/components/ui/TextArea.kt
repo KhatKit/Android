@@ -51,6 +51,7 @@ import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.kedge.components.KedgeTextFieldWithState
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * A multi-line text input component with a header and file import functionality.
@@ -126,7 +127,7 @@ fun TextArea(
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelLarge
+                    style = KedgeTextStyles.body()
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),

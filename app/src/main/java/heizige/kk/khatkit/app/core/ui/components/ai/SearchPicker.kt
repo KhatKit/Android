@@ -70,6 +70,7 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.searchInsights
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 enum class SearchMode {
     OFF,
@@ -138,7 +139,7 @@ fun SearchPickerButton(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 iconContent(18.dp)
-                Text("搜索", style = MaterialTheme.typography.labelMedium)
+                Text("搜索", style = KedgeTextStyles.body())
             }
         }
     } else {
@@ -398,12 +399,12 @@ private fun SearchModeCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -444,7 +445,7 @@ private fun SearchProviderPicker(
             }
             Text(
                 text = stringResource(R.string.search_picker_select_provider),
-                style = MaterialTheme.typography.titleLarge,
+                style = KedgeTextStyles.displayTitle(),
                 fontWeight = FontWeight.Bold
             )
         }
@@ -497,7 +498,7 @@ private fun SearchProviderPicker(
                         ) {
                             Text(
                                 text = service.displayName,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = KedgeTextStyles.title(),
                             )
                             SearchAbilityTagLine(
                                 options = service,

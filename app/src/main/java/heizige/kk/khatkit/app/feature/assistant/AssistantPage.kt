@@ -91,6 +91,7 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -294,7 +295,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             Icon(add, contentDescription = null)
                             Text(
                                 text = stringResource(R.string.assistant_page_new),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = KedgeTextStyles.title(),
                             )
                         }
                     }
@@ -488,7 +489,7 @@ private fun AssistantItem(
 
                 Text(
                     text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -514,14 +515,14 @@ private fun AssistantItem(
                                 Text(
                                     text = tag.name,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = KedgeTextStyles.footnoteSmall(),
                                 )
                             }
                         }
                         if (assistant.tags.size > 2) {
                             Text(
                                 text = "+${assistant.tags.size - 2}",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = KedgeTextStyles.footnoteSmall(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -577,7 +578,7 @@ private fun AssistantActionSheet(
                 )
                 Text(
                     text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    style = MaterialTheme.typography.titleMedium
+                    style = KedgeTextStyles.title()
                 )
             }
 

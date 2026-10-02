@@ -71,6 +71,7 @@ import heizige.kk.khromia.components.EditFieldConfig
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.components.SquareColorPicker
 import heizige.kk.khromia.text.OptionsText
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 主题配色设置块：与引导页样式一致（动态取色行 + 配色圆点面板）。 */
 @Composable
@@ -225,7 +226,7 @@ fun MorphThemeModeSelector(
                                 ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
                                 ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
                             },
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(4.dp)
@@ -346,7 +347,7 @@ fun ThemeCustomColorSheet(
                 Text(
                     text = String.format("#%08X", customColor.toArgb()),
                     color = if (customColor.luminance() > 0.5f) Color.Black else Color.White,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                 )
             }
 
@@ -375,7 +376,7 @@ fun ThemeCustomColorSheet(
                         Text(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             text = stringResource(R.string.greeting_settings_history_colors),
-                            style = MaterialTheme.typography.labelLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(8.dp))

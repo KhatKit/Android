@@ -40,6 +40,7 @@ import heizige.kk.khatkit.app.core.util.onError
 import heizige.kk.khatkit.app.core.util.onSuccess
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.download
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun UpdateCard(vm: ChatViewModel) {
@@ -56,12 +57,12 @@ fun UpdateCard(vm: ChatViewModel) {
             ) {
                 Text(
                     text = stringResource(R.string.update_card_check_failed),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                     color = MaterialTheme.colorScheme.error
                 )
                 Text(
                     text = it.message ?: stringResource(R.string.update_card_unknown_error),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.error
                 )
             }
@@ -89,7 +90,7 @@ fun UpdateCard(vm: ChatViewModel) {
                     ) {
                         Text(
                             text = stringResource(R.string.update_card_new_version_found, info.latestVersion),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KedgeTextStyles.title(),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
@@ -105,7 +106,7 @@ fun UpdateCard(vm: ChatViewModel) {
                     }
                     MarkdownBlock(
                         content = info.description,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = KedgeTextStyles.body(),
                         modifier = Modifier.heightIn(max = 200.dp)
                     )
                 }
@@ -138,7 +139,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             .fillMaxWidth()
                             .height(300.dp)
                             .verticalScroll(rememberScrollState()),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = KedgeTextStyles.body()
                     )
                     KedgeCard(
                         onClick = {

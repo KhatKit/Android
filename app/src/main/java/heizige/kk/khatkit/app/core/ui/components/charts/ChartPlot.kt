@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private class ChartGeometry(
     val yScale: ChartAxisScale,
@@ -81,7 +82,7 @@ internal fun ChartPlot(
 ) {
     val geometry = remember(spec) { spec.buildGeometry() }
     val textMeasurer = rememberTextMeasurer()
-    val labelStyle = MaterialTheme.typography.labelSmall.copy(
+    val labelStyle = KedgeTextStyles.footnoteSmall().copy(
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)

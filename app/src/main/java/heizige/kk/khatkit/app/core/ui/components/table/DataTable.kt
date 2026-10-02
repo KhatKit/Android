@@ -31,6 +31,7 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import kotlin.math.max
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * DataTable（自定义布局 + 横向滚动 + 行内等高）
@@ -246,25 +247,25 @@ private fun DataTablePreview() {
     CompositionLocalProvider(LocalSettings provides Settings()) {
         Surface {
             val headers = listOf<@Composable () -> Unit>(
-                { Text("Semester", style = MaterialTheme.typography.labelLarge) },
-                { Text("Attendance", style = MaterialTheme.typography.labelLarge) },
-                { Text("Notes / Example", style = MaterialTheme.typography.labelLarge) },
+                { Text("Semester", style = KedgeTextStyles.body()) },
+                { Text("Attendance", style = KedgeTextStyles.body()) },
+                { Text("Notes / Example", style = KedgeTextStyles.body()) },
             )
 
             val rows = listOf<List<@Composable () -> Unit>>(
                 listOf<@Composable () -> Unit>(
                     { Text("Fall 2024") },
-                    { Text("Excellent", style = MaterialTheme.typography.bodyMedium) },
+                    { Text("Excellent", style = KedgeTextStyles.body()) },
                     { Text("x² + y² = 1") },
                 ),
                 listOf(
                     { Text("Fall 2024") },
-                    { Text("Good", style = MaterialTheme.typography.bodyMedium) },
+                    { Text("Good", style = KedgeTextStyles.body()) },
                     { Text("∑ k = n(n+1)/2", maxLines = 2, overflow = TextOverflow.Ellipsis) },
                 ),
                 listOf(
                     { Text("Fall 2024") },
-                    { Text("Fair", style = MaterialTheme.typography.bodyMedium) },
+                    { Text("Fair", style = KedgeTextStyles.body()) },
                     { MarkdownBlock("这行更高会把整行拉齐! 这是一个很长的文本用来测试换行功能!  \n>haha") },
                 ),
             )

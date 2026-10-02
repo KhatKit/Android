@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 enum class TagType {
     DEFAULT,
@@ -59,7 +60,7 @@ fun Tag(
     val finalTextStyle = if (isMiuix) {
         MiuixTheme.textStyles.footnote1.copy(color = finalTextColor)
     } else {
-        MaterialTheme.typography.labelSmall.copy(color = textColor)
+        KedgeTextStyles.footnoteSmall().copy(color = textColor)
     }
     val hPad = if (isMiuix) 10.dp else 6.dp
     val vPad = if (isMiuix) 4.dp else 1.dp

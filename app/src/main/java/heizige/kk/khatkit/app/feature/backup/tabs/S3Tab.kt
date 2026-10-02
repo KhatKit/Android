@@ -70,6 +70,7 @@ import heizige.kk.khatkit.app.core.ui.icons.upload
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun S3Tab(
@@ -443,7 +444,7 @@ private fun BackupStatusCard(
             headlineContent = {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = KedgeTextStyles.title()
                 )
             },
             supportingContent = {
@@ -452,12 +453,12 @@ private fun BackupStatusCard(
                 ) {
                     Text(
                         text = lastBackupText,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = fileSummaryText,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -478,7 +479,7 @@ private fun S3BackupItemCard(
             headlineContent = {
                 Text(
                     text = item.displayName,
-                    style = MaterialTheme.typography.titleMedium
+                    style = KedgeTextStyles.title()
                 )
             },
             supportingContent = {
@@ -493,11 +494,11 @@ private fun S3BackupItemCard(
                     ) {
                         Text(
                             text = item.lastModified.toLocalDateTime(),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                         )
                         Text(
                             text = item.size.fileSizeToString(),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                         )
                     }
                     Row(

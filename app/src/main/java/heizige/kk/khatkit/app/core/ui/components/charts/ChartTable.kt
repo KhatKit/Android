@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.table.DataTable
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private class ChartTableColumn(
     val title: String,
@@ -110,7 +111,7 @@ internal fun ChartTable(
                         }
                         Text(
                             text = column.title,
-                            style = MaterialTheme.typography.labelMedium,
+                            style = KedgeTextStyles.body(),
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -124,7 +125,7 @@ internal fun ChartTable(
                     @Composable {
                         Text(
                             text = cell,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             textAlign = if (numeric) TextAlign.End else TextAlign.Start,
                             modifier = if (numeric) Modifier.fillMaxWidth() else Modifier,
                         )

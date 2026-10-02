@@ -37,6 +37,7 @@ import heizige.kk.khatkit.app.core.data.model.Tag
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.close
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun TagsInput(
@@ -114,7 +115,7 @@ fun TagsInput(
                 if (unselectedTags.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.tag_input_dialog_existing_tags),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -141,7 +142,7 @@ fun TagsInput(
 
                     Text(
                         text = stringResource(R.string.tag_input_dialog_create_new),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -169,7 +170,7 @@ fun TagsInput(
                     Text(
                         text = stringResource(R.string.tag_input_dialog_tag_exists),
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+                        style = KedgeTextStyles.body()
                     )
                 }
             }

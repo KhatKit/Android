@@ -63,6 +63,7 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun TavilyOptions(
@@ -708,7 +709,7 @@ internal fun CustomJsOptions(
                 highlighter = highlighter,
                 darkMode = darkMode
             ),
-            textStyle = MaterialTheme.typography.bodySmall.merge(fontFamily = JetbrainsMono),
+            textStyle = KedgeTextStyles.body().merge(fontFamily = JetbrainsMono),
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -732,7 +733,7 @@ internal fun CustomJsOptions(
             placeholder = {
                 Text(
                     text = SearchServiceOptions.CustomJsOptions.DEFAULT_SCRAPE_SCRIPT.trimIndent(),
-                    style = MaterialTheme.typography.bodySmall.merge(fontFamily = JetbrainsMono),
+                    style = KedgeTextStyles.body().merge(fontFamily = JetbrainsMono),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 )
             },
@@ -741,7 +742,7 @@ internal fun CustomJsOptions(
                 highlighter = highlighter,
                 darkMode = darkMode
             ),
-            textStyle = MaterialTheme.typography.bodySmall.merge(fontFamily = JetbrainsMono),
+            textStyle = KedgeTextStyles.body().merge(fontFamily = JetbrainsMono),
             shape = RoundedCornerShape(16.dp)
         )
     }

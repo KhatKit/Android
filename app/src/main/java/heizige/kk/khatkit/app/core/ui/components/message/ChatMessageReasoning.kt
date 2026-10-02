@@ -55,6 +55,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 enum class ReasoningCardState(val expanded: Boolean) {
     Collapsed(false),
@@ -130,7 +131,7 @@ private fun ReasoningContent(
     loading: Boolean,
 ) {
     val isPreview = expandState == ReasoningCardState.Preview
-    val reasoningTextStyle = MaterialTheme.typography.bodySmall.copy(
+    val reasoningTextStyle = KedgeTextStyles.body().copy(
         fontFamily = LocalTextStyle.current.fontFamily,
     )
     Column(
@@ -223,7 +224,7 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
                         R.string.deep_thinking_seconds,
                         state.duration.toDouble(DurationUnit.SECONDS).toFloat()
                     ),
-                    style = MaterialTheme.typography.titleSmall.copy(fontFamily = chatFontFamily),
+                    style = KedgeTextStyles.title().copy(fontFamily = chatFontFamily),
                     color = KedgeColors.secondary,
                     modifier = Modifier.shimmer(isLoading = loading),
                 )
@@ -233,7 +234,7 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
             if (showThinkingTitle && state.duration > 0.seconds) {
                 Text(
                     text = state.duration.toString(DurationUnit.SECONDS, 1),
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = chatFontFamily),
+                    style = KedgeTextStyles.footnoteSmall().copy(fontFamily = chatFontFamily),
                     color = KedgeColors.secondary,
                     modifier = Modifier.shimmer(isLoading = loading),
                 )
@@ -268,7 +269,7 @@ private fun ReasoningTitle(title: String) {
     ) {
         Text(
             text = it,
-            style = MaterialTheme.typography.titleSmall.copy(fontFamily = chatFontFamily),
+            style = KedgeTextStyles.title().copy(fontFamily = chatFontFamily),
             color = KedgeColors.secondary,
             modifier = Modifier
                 .padding(horizontal = 4.dp)

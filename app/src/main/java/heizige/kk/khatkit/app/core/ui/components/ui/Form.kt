@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun FormItem(
@@ -38,12 +39,12 @@ fun FormItem(
             modifier = modifier.weight(1f)
         ) {
             ProvideTextStyle(
-                value = MaterialTheme.typography.titleMedium
+                value = KedgeTextStyles.title()
             ) {
                 label()
             }
             ProvideTextStyle(
-                value = MaterialTheme.typography.labelSmall.copy(
+                value = KedgeTextStyles.footnoteSmall().copy(
                     color = LocalContentColor.current.copy(alpha = 0.6f)
                 )
             ) {

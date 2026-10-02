@@ -71,6 +71,7 @@ import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SkillsPage() {
@@ -128,12 +129,12 @@ fun SkillsPage() {
                         )
                         Text(
                             text = stringResource(R.string.skills_page_empty_title),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = stringResource(R.string.skills_page_empty_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -253,18 +254,18 @@ private fun SkillCard(
             ) {
                 Text(
                     text = skill.name,
-                    style = MaterialTheme.typography.titleSmallEmphasized,
+                    style = KedgeTextStyles.title(),
                 )
                 Text(
                     text = skill.description,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                 )
                 if (!skill.compatibility.isNullOrBlank()) {
                     Text(
                         text = skill.compatibility,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                 }
@@ -399,7 +400,7 @@ private fun AddSkillDialog(
                 isError = nameError,
                 minLines = 8,
                 maxLines = 14,
-                textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                textStyle = KedgeTextStyles.body().copy(fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -434,7 +435,7 @@ private fun ImportSkillDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = stringResource(R.string.skills_page_import_description),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 KedgeOutlinedTextFieldWithSlots(
@@ -457,7 +458,7 @@ private fun ImportSkillDialog(
                         KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Text(
                             stringResource(R.string.skills_page_downloading),
-                            style = MaterialTheme.typography.bodySmall
+                            style = KedgeTextStyles.body()
                         )
                     }
                 }

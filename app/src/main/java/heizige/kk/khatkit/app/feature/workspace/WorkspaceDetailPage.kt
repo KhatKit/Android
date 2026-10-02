@@ -102,6 +102,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun WorkspaceDetailPage(id: String) {
@@ -432,7 +433,7 @@ private fun WorkspaceBasicPage(
                         Text(stringResource(R.string.workspace_detail_compatibility_mode))
                         Text(
                             text = stringResource(R.string.workspace_detail_compatibility_mode_desc),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -474,7 +475,7 @@ private fun WorkspaceToolApprovalCard(
                 Text(stringResource(R.string.workspace_detail_tool_approval))
                 Text(
                     text = stringResource(R.string.workspace_detail_tool_approval_desc),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -541,7 +542,7 @@ private fun RootfsProgress(progress: RootfsInstallProgress) {
 
                 RootfsInstallStage.INSTALLED -> stringResource(R.string.workspace_detail_install_complete)
             },
-            style = MaterialTheme.typography.bodySmall,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -564,7 +565,7 @@ private fun InstallRootfsDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = stringResource(R.string.workspace_detail_install_rootfs_desc, workspace.name),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 KedgeOutlinedTextFieldWithSlots(
@@ -748,7 +749,7 @@ private fun WorkspacePathBar(
         Text(
             text = path.ifBlank { "/" },
             modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -865,13 +866,13 @@ private fun WorkspaceFileCard(
             ) {
                 Text(
                     text = entry.name,
-                    style = MaterialTheme.typography.titleSmallEmphasized,
+                    style = KedgeTextStyles.title(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = if (entry.isDirectory) entry.path else "${entry.path} · ${entry.sizeBytes.fileSizeToString()}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -950,7 +951,7 @@ private fun EmptyDirectoryState() {
         )
         Text(
             text = stringResource(R.string.workspace_detail_empty_directory),
-            style = MaterialTheme.typography.bodyLarge,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -965,7 +966,7 @@ private fun ErrorCard(message: String) {
         Text(
             text = message,
             modifier = Modifier.padding(16.dp),
-            style = MaterialTheme.typography.bodyMedium,
+            style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.error,
         )
     }

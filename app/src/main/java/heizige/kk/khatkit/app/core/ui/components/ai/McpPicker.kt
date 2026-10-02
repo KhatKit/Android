@@ -51,6 +51,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.power
 import heizige.kk.khatkit.app.core.ui.icons.warning
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun McpPickerButton(
@@ -134,7 +135,7 @@ fun McpPickerButton(
                         LinearWavyProgressIndicator()
                         Text(
                             text = stringResource(id = R.string.mcp_picker_syncing),
-                            style = MaterialTheme.typography.bodyLarge
+                            style = KedgeTextStyles.body()
                         )
                     }
                 }
@@ -186,7 +187,7 @@ fun McpPickerListItem(
             if (enabledServers.isNotEmpty()) {
                 Text(
                     text = enabledServers.size.toString(),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -244,7 +245,7 @@ private fun McpPickerSheet(
                     LinearWavyProgressIndicator()
                     Text(
                         text = stringResource(id = R.string.mcp_picker_syncing),
-                        style = MaterialTheme.typography.bodyLarge
+                        style = KedgeTextStyles.body()
                     )
                 }
             }
@@ -310,7 +311,7 @@ fun McpPicker(
                     ) {
                         Text(
                             text = server.commonOptions.name,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = KedgeTextStyles.displayTitle(),
                         )
                         Text(
                             text = when (val s = status) {
@@ -322,7 +323,7 @@ fun McpPicker(
                                 is McpStatus.NeedsAuthorization -> "Needs authorization"
                                 is McpStatus.Authorizing -> "Authorizing"
                             },
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             color = LocalContentColor.current.copy(alpha = 0.8f),
                             maxLines = 5
                         )

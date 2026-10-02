@@ -27,6 +27,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
 import heizige.kk.khatkit.app.core.ui.icons.schedule
 import heizige.kk.khatkit.app.core.ui.icons.upload
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 显示消息的技术统计信息（如 token 使用量）
@@ -39,7 +40,7 @@ fun ChatMessageNerdLine(
 ) {
     val settings = LocalSettings.current.displaySetting
 
-    ProvideTextStyle(MaterialTheme.typography.labelSmall.copy(color = color)) {
+    ProvideTextStyle(KedgeTextStyles.footnoteSmall().copy(color = color)) {
         CompositionLocalProvider(LocalContentColor provides color) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

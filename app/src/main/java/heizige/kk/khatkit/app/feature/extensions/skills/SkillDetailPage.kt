@@ -69,6 +69,7 @@ import heizige.kk.khatkit.app.core.ui.icons.folderOpen
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SkillDetailPage(skillName: String) {
@@ -220,7 +221,7 @@ private fun FileItem(
             )
             Text(
                 text = skillFile.file.name,
-                style = MaterialTheme.typography.bodyMedium,
+                style = KedgeTextStyles.body(),
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .weight(1f)
@@ -228,7 +229,7 @@ private fun FileItem(
             )
             Text(
                 text = "${skillFile.file.length()} B",
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             KedgeIconButton(onClick = onEdit, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
@@ -288,7 +289,7 @@ private fun DirItem(
                 )
                 Text(
                     text = node.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = KedgeTextStyles.body(),
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
@@ -327,7 +328,7 @@ private fun EditFileDialog(
                 label = { Text(stringResource(R.string.skill_detail_page_content)) },
                 minLines = 10,
                 maxLines = 20,
-                textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                textStyle = KedgeTextStyles.body().copy(fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -369,7 +370,7 @@ private fun AddFileDialog(
                     isError = fileNameError,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    textStyle = KedgeTextStyles.body().copy(fontFamily = FontFamily.Monospace),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -379,7 +380,7 @@ private fun AddFileDialog(
                     label = { Text(stringResource(R.string.skill_detail_page_content)) },
                     minLines = 6,
                     maxLines = 14,
-                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    textStyle = KedgeTextStyles.body().copy(fontFamily = FontFamily.Monospace),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )

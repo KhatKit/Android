@@ -40,6 +40,7 @@ import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun JsonTree(
@@ -74,7 +75,7 @@ fun JsonTree(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                style = MaterialTheme.typography.bodySmall
+                style = KedgeTextStyles.body()
             )
         }
     }

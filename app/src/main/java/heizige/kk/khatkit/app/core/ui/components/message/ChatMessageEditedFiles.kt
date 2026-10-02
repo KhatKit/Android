@@ -47,6 +47,7 @@ import java.io.File
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val DEFAULT_VISIBLE_COUNT = 3
 private val WORKSPACE_FILE_TOOL_NAMES = setOf("workspace_write_file", "workspace_edit_file")
@@ -116,7 +117,7 @@ internal fun EditedFilesList(
                     )
                     Text(
                         text = fileName,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 200.dp),
@@ -132,7 +133,7 @@ internal fun EditedFilesList(
             ) {
                 Text(
                     text = "+${editedFiles.size - DEFAULT_VISIBLE_COUNT}",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                 )
             }
@@ -175,7 +176,7 @@ internal fun EditedFilesList(
                         )
                         Text(
                             text = stringResource(R.string.common_export),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KedgeTextStyles.title(),
                         )
                     }
                 }
@@ -221,7 +222,7 @@ internal fun EditedFilesList(
                         )
                         Text(
                             text = stringResource(R.string.common_share),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KedgeTextStyles.title(),
                         )
                     }
                 }

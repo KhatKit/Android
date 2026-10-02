@@ -52,6 +52,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun LanguageSelectionDialog(
@@ -131,7 +132,7 @@ fun LanguageSelectionDialog(
                             )
                             Text(
                                 text = getLanguageDisplayName(language),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = KedgeTextStyles.title(),
                             )
                         }
                     }
@@ -158,7 +159,7 @@ fun LanguageSelectionDialog(
                             )
                             Text(
                                 text = stringResource(R.string.translation_clear),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = KedgeTextStyles.title(),
                             )
                         }
                     }
@@ -201,7 +202,7 @@ fun CollapsibleTranslationText(
                 )
                 Text(
                     text = stringResource(R.string.translation_text),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = KedgeTextStyles.title(),
                     color = KedgeColors.primary,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -270,7 +271,7 @@ fun CollapsibleTranslationText(
 
                         Text(
                             text = stringResource(R.string.translating),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = KedgeTextStyles.body(),
                             color = KedgeColors.onSurface,
                             modifier = Modifier.graphicsLayer(alpha = alpha)
                         )

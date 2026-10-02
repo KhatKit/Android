@@ -112,6 +112,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantPromptPage(id: String) {
@@ -211,7 +212,7 @@ private fun AssistantPromptContent(
                 Column {
                     Text(
                         text = stringResource(R.string.assistant_page_available_variables),
-                        style = MaterialTheme.typography.labelSmall
+                        style = KedgeTextStyles.footnoteSmall()
                     )
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -370,7 +371,7 @@ private fun AssistantPromptContent(
             ) {
                 Text(
                     text = stringResource(R.string.assistant_page_template_preview),
-                    style = MaterialTheme.typography.titleSmall
+                    style = KedgeTextStyles.title()
                 )
                 val rawMessages = listOf(
                     UIMessage.user("你好啊"),
@@ -734,7 +735,7 @@ private fun AssistantRegexCard(
                 Column {
                     Text(
                         text = stringResource(R.string.assistant_page_regex_affecting_scopes),
-                        style = MaterialTheme.typography.labelMedium
+                        style = KedgeTextStyles.body()
                     )
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing)
@@ -767,7 +768,7 @@ private fun AssistantRegexCard(
                                 )
                                 Text(
                                     text = scope.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.labelMedium
+                                    style = KedgeTextStyles.body()
                                 )
                             }
                         }
@@ -796,7 +797,7 @@ private fun AssistantRegexCard(
                     )
                     Text(
                         text = stringResource(R.string.assistant_page_regex_visual_only),
-                        style = MaterialTheme.typography.labelMedium
+                        style = KedgeTextStyles.body()
                     )
                 }
 

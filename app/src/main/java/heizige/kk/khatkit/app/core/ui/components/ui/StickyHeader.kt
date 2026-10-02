@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun StickyHeader(
@@ -13,7 +14,7 @@ fun StickyHeader(
 ) {
     Box(modifier = modifier) {
         ProvideTextStyle(
-            MaterialTheme.typography.titleSmall.copy(
+            KedgeTextStyles.title().copy(
                 color = MaterialTheme.colorScheme.secondary
             )
         ) {

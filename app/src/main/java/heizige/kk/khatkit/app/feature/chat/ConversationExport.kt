@@ -115,6 +115,7 @@ import heizige.kk.khatkit.ai.ui.isEmptyUIMessage
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.message.groupMessageParts
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ChatExportSheet(
@@ -520,12 +521,12 @@ private fun ExportedChatImage(
                         Column(modifier = Modifier.weight(1f, fill = false)) {
                             Text(
                                 text = conversation.title,
-                                style = MaterialTheme.typography.titleLarge,
+                                style = KedgeTextStyles.displayTitle(),
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             )
                             Text(
                                 text = "${LocalDateTime.now().toLocalString()}  rikka-ai.com",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -630,7 +631,7 @@ private fun ExportedChatMessage(
                         when (val part = block.part) {
                             is UIMessagePart.Text -> {
                                 if (part.text.isNotBlank()) {
-                                    ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                                    ProvideTextStyle(KedgeTextStyles.body()) {
                                         if (message.role == MessageRole.USER) {
                                             KedgeCard(
                                                 shape = MaterialTheme.shapes.medium,
@@ -702,7 +703,7 @@ private fun ExportedChatMessage(
 
             Text(
                 text = iconLabel,
-                style = MaterialTheme.typography.titleMedium,
+                style = KedgeTextStyles.title(),
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -733,7 +734,7 @@ private fun ChainOfThoughtScope.ExportedReasoningStep(
         label = {
             Text(
                 text = stringResource(R.string.deep_thinking),
-                style = MaterialTheme.typography.titleSmall,
+                style = KedgeTextStyles.title(),
                 color = MaterialTheme.colorScheme.secondary
             )
         },
@@ -741,7 +742,7 @@ private fun ChainOfThoughtScope.ExportedReasoningStep(
             {
                 Text(
                     text = duration.toString(DurationUnit.SECONDS, 1),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.secondary
                 )
             }
@@ -752,7 +753,7 @@ private fun ChainOfThoughtScope.ExportedReasoningStep(
         content = {
             MarkdownBlock(
                 content = reasoning.reasoning,
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -808,7 +809,7 @@ private fun ChainOfThoughtScope.ExportedToolStep(
         label = {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
+                style = KedgeTextStyles.title(),
                 color = MaterialTheme.colorScheme.secondary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

@@ -106,6 +106,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
@@ -215,12 +216,12 @@ private fun ModeInjectionTab(
                     ) {
                         Text(
                             text = stringResource(R.string.prompt_page_mode_injection_empty),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = stringResource(R.string.prompt_page_empty_hint),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
@@ -346,7 +347,7 @@ private fun ModeInjectionCard(
                 ) {
                     Text(
                         text = injection.name.ifEmpty { stringResource(R.string.prompt_page_unnamed) },
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -444,7 +445,7 @@ private fun ModeInjectionEditSheet(
 
                 Text(
                     stringResource(R.string.prompt_page_injection_position),
-                    style = MaterialTheme.typography.titleSmall
+                    style = KedgeTextStyles.title()
                 )
                 InjectionPositionSelector(
                     position = injection.position,
@@ -468,7 +469,7 @@ private fun ModeInjectionEditSheet(
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
                             stringResource(R.string.prompt_page_injection_role),
-                            style = MaterialTheme.typography.titleSmall
+                            style = KedgeTextStyles.title()
                         )
                         InjectionRoleSelector(
                             role = injection.role,
@@ -605,12 +606,12 @@ private fun LorebookTab(
                     ) {
                         Text(
                             text = stringResource(R.string.prompt_page_lorebook_empty),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = stringResource(R.string.prompt_page_empty_hint),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
@@ -736,14 +737,14 @@ private fun LorebookCard(
                 ) {
                     Text(
                         text = book.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_lorebook) },
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     if (book.description.isNotEmpty()) {
                         Text(
                             text = book.description,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.body(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -857,7 +858,7 @@ private fun LorebookEditSheet(
                 ) {
                     Text(
                         stringResource(R.string.prompt_page_entries_format, book.entries.size),
-                        style = MaterialTheme.typography.titleSmall
+                        style = KedgeTextStyles.title()
                     )
                     KedgeIconButton(onClick = {
                         entryEditState.open(PromptInjection.RegexInjection())
@@ -912,12 +913,12 @@ private fun RegexInjectionEntryCard(
             ) {
                 Text(
                     text = entry.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_entry) },
-                    style = MaterialTheme.typography.bodyMedium
+                    style = KedgeTextStyles.body()
                 )
                 if (entry.keywords.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.prompt_page_keywords_format, entry.keywords.joinToString(", ")),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -995,7 +996,7 @@ private fun RegexInjectionEditDialog(
 
                 Text(
                     stringResource(R.string.prompt_page_injection_position),
-                    style = MaterialTheme.typography.titleSmall
+                    style = KedgeTextStyles.title()
                 )
                 InjectionPositionSelector(
                     position = entry.position,
@@ -1016,7 +1017,7 @@ private fun RegexInjectionEditDialog(
                 }
 
                 // 关键词
-                Text(stringResource(R.string.prompt_page_keywords_label), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.prompt_page_keywords_label), style = KedgeTextStyles.title())
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -1112,7 +1113,7 @@ private fun RegexInjectionEditDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
                             stringResource(R.string.prompt_page_injection_role),
-                            style = MaterialTheme.typography.titleSmall
+                            style = KedgeTextStyles.title()
                         )
                         InjectionRoleSelector(
                             role = entry.role,

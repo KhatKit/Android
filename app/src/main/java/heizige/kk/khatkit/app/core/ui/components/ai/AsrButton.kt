@@ -47,6 +47,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
 import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private enum class AsrDisplayState {
     Idle, Connecting, Active
@@ -161,7 +162,7 @@ internal fun AsrButton(
                         Text(
                             text = stringResource(R.string.asr_button_stop),
                             color = contentColor,
-                            style = MaterialTheme.typography.labelLarge,
+                            style = KedgeTextStyles.body(),
                             maxLines = 1
                         )
                     }

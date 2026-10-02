@@ -44,6 +44,7 @@ import kotlin.math.roundToInt
 import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
 import heizige.kk.khatkit.app.core.ui.icons.lightbulb
 import heizige.kk.khatkit.app.core.ui.icons.neurology
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private val levels = ReasoningLevel.entries
 private val levelCount = levels.size
@@ -94,7 +95,7 @@ fun ReasoningButton(
                 ) {
                     ReasoningIcon(reasoningLevel)
                 }
-                Text("推理", style = MaterialTheme.typography.labelMedium)
+                Text("推理", style = KedgeTextStyles.body())
             }
         }
     } else {
@@ -160,7 +161,7 @@ fun ReasoningPicker(
             ) {
                 Text(
                     text = stringResource(R.string.reasoning_picker_hint),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
@@ -191,7 +192,7 @@ fun ReasoningPicker(
                 )
                 Text(
                     text = reasoningLevel.label(),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                 )
             }
 

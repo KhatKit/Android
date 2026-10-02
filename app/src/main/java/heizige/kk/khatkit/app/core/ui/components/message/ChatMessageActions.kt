@@ -62,6 +62,7 @@ import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.khatkit.app.core.ui.icons.web
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ColumnScope.ChatMessageActionButtons(
@@ -200,7 +201,7 @@ fun ColumnScope.ChatMessageActionButtons(
         if (settings.displaySetting.showDateTimeInMessage) {
             Text(
                 text = message.createdAt.toJavaLocalDateTime().toMessageTimeString(),
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = KedgeColors.onSurfaceVariant.copy(alpha = 0.6f),
                 maxLines = 1,
             )
@@ -286,7 +287,7 @@ fun ChatMessageActionsSheet(
                     )
                     Text(
                         text = stringResource(R.string.select_and_copy),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                     )
                 }
             }
@@ -317,7 +318,7 @@ fun ChatMessageActionsSheet(
                         )
                         Text(
                             text = stringResource(R.string.render_with_webview),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = KedgeTextStyles.title(),
                         )
                     }
                 }
@@ -345,7 +346,7 @@ fun ChatMessageActionsSheet(
                     )
                     Text(
                         text = stringResource(R.string.edit),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                     )
                 }
             }
@@ -372,7 +373,7 @@ fun ChatMessageActionsSheet(
                     )
                     Text(
                         text = stringResource(R.string.share),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                     )
                 }
             }
@@ -399,7 +400,7 @@ fun ChatMessageActionsSheet(
                     )
                     Text(
                         text = stringResource(R.string.create_fork),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                     )
                 }
             }
@@ -429,13 +430,13 @@ fun ChatMessageActionsSheet(
                     )
                     Text(
                         text = stringResource(R.string.delete),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.title(),
                     )
                 }
             }
 
             // Message Info
-            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
+            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
                 Text(message.createdAt.toJavaLocalDateTime().toLocalString())
                 if (model != null) {
                     Text(model.displayName)

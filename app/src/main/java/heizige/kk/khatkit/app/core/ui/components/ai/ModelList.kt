@@ -96,6 +96,7 @@ import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -225,7 +226,7 @@ internal fun ModelSelectorButton(
                     text = model?.displayName ?: stringResource(R.string.model_list_select_model),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodySmall
+                    style = KedgeTextStyles.body()
                 )
             }
             if (allowClear && model != null) {
@@ -476,7 +477,7 @@ private fun ColumnScope.ModelList(
             item {
                 Text(
                     text = stringResource(R.string.model_list_no_providers),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.extendColors.gray6,
                     modifier = Modifier.padding(8.dp)
                 )
@@ -487,7 +488,7 @@ private fun ColumnScope.ModelList(
             stickyHeader {
                 Text(
                     text = stringResource(R.string.model_list_favorite),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .padding(bottom = 4.dp, top = 8.dp)
@@ -563,7 +564,7 @@ private fun ColumnScope.ModelList(
                 ) {
                     Text(
                         text = providerSetting.name,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.primary,
                     )
 
@@ -571,7 +572,7 @@ private fun ColumnScope.ModelList(
 
                     ProviderBalanceText(
                         providerSetting = providerSetting,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -746,7 +747,7 @@ private fun ModelItem(
                 ) {
                     Text(
                         text = model.displayName,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

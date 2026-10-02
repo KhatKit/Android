@@ -53,6 +53,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 结果卡片在宽屏下的内容最大宽度。 */
 private val SHOW_CONTENT_MAX_WIDTH = 840.dp
@@ -175,7 +176,7 @@ fun KhatKitUiHost() {
                         .widthIn(max = 320.dp),
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(label, style = MaterialTheme.typography.labelMedium)
+                        Text(label, style = KedgeTextStyles.body())
                         KedgeProgressIndicator(
                             progress = ratio,
                             modifier = Modifier
@@ -286,7 +287,7 @@ private fun ConfirmSheetContent(message: String, onCancel: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (message.isNotBlank()) {
-            Text(message, style = MaterialTheme.typography.bodyMedium)
+            Text(message, style = KedgeTextStyles.body())
         }
         Row(
             modifier = Modifier.fillMaxWidth(),

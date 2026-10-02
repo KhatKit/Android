@@ -34,6 +34,7 @@ import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ShareHandlerPage(text: String, image: String?) {
@@ -60,7 +61,7 @@ fun ShareHandlerPage(text: String, image: String?) {
                             text = vm.shareText,
                             maxLines = 5,
                             overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.bodySmall
+                            style = KedgeTextStyles.body()
                         )
 
                         image?.let {

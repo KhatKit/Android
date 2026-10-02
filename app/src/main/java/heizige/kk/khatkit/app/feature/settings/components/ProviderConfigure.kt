@@ -48,6 +48,7 @@ import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ProviderConfigure(
@@ -471,7 +472,7 @@ private fun ProviderConfigureGoogle(
             modifier = Modifier.fillMaxWidth(),
             maxLines = 6,
             minLines = 3,
-            textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
+            textStyle = KedgeTextStyles.body().copy(fontFamily = JetbrainsMono),
             visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 KedgeIconButton(onClick = { privateKeyVisible = !privateKeyVisible }, shapes = IconButtonDefaults.shapes()) {

@@ -46,6 +46,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ErrorCardsDisplay(
@@ -84,7 +85,7 @@ fun ErrorCardsDisplay(
                         )
                         Text(
                             text = stringResource(R.string.chat_page_clear_all_errors),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                             color = MaterialTheme.colorScheme.onErrorContainer,
                         )
                     }
@@ -140,7 +141,7 @@ fun ErrorCard(
                 if (error.title != null) {
                     Text(
                         text = error.title,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -148,7 +149,7 @@ fun ErrorCard(
                 }
                 Text(
                     text = error.error.message ?: "Unknown error",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -172,7 +173,7 @@ fun ErrorCard(
                                 append(checkFastModelSettings)
                             }
                         },
-                        style = MaterialTheme.typography.bodySmall,
+                        style = KedgeTextStyles.body(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

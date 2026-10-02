@@ -32,6 +32,7 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.JsonInstantPretty
 import heizige.kk.khatkit.app.core.util.jsonPrimitiveOrNull
 import heizige.kk.khatkit.app.core.ui.icons.build
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 工具调用的渲染上下文, 预解析好工具入参与输出, 避免各渲染器重复解析
@@ -138,7 +139,7 @@ fun DefaultToolPreview(
         ) {
             Text(
                 text = stringResource(R.string.chat_message_tool_call_title),
-                style = MaterialTheme.typography.headlineSmall,
+                style = KedgeTextStyles.displayTitle(),
                 textAlign = TextAlign.Center
             )
             headerActions?.invoke()

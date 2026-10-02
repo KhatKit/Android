@@ -67,6 +67,7 @@ import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
@@ -188,7 +189,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                                     current,
                                     total
                                 ) else stringResource(R.string.search_page_rebuilding_simple),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -200,7 +201,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                         ) {
                             Text(
                                 text = stringResource(R.string.search_page_hint),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -213,7 +214,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                         ) {
                             Text(
                                 text = stringResource(R.string.search_page_no_results),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = KedgeTextStyles.body(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -339,17 +340,17 @@ private fun SearchResultItem(
         ) {
             Text(
                 text = result.title.ifBlank { untitled },
-                style = MaterialTheme.typography.titleSmall,
+                style = KedgeTextStyles.title(),
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = snippetText,
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = formattedTime,
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

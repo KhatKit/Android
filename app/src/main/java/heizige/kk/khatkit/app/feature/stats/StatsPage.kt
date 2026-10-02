@@ -182,7 +182,7 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                         Text(
                             text = label,
                             style = KedgeTextStyles.footnoteSmall(),
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.7,
+                            fontSize = KedgeTextStyles.footnoteSmall().fontSize * 0.7,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -217,7 +217,7 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                                 },
                                 modifier = Modifier.wrapContentWidth(unbounded = true),
                                 style = KedgeTextStyles.footnoteSmall(),
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.75,
+                                fontSize = KedgeTextStyles.footnoteSmall().fontSize * 0.75,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 softWrap = false,
                                 maxLines = 1,
@@ -344,7 +344,7 @@ private fun StatCard(
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineSmall,
+                style = KedgeTextStyles.displayTitle(),
             )
             Text(
                 text = label,

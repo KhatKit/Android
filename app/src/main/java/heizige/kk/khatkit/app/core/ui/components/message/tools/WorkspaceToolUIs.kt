@@ -45,6 +45,7 @@ import heizige.kk.khatkit.app.core.ui.icons.editDocument
 import heizige.kk.khatkit.app.core.ui.icons.noteAdd
 import heizige.kk.khatkit.app.core.ui.icons.preview
 import heizige.kk.khatkit.app.core.ui.icons.terminal
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 工作空间编辑文件: 摘要显示增删统计与精简 diff, 详情为完整 diff view
@@ -88,12 +89,12 @@ object EditFileToolUI : ToolUIRenderer {
         ) {
             Text(
                 text = "+${stats.additions}",
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = DiffAddedColor,
             )
             Text(
                 text = "-${stats.deletions}",
-                style = MaterialTheme.typography.labelSmall,
+                style = KedgeTextStyles.footnoteSmall(),
                 color = DiffRemovedColor,
             )
         }
@@ -127,19 +128,19 @@ object EditFileToolUI : ToolUIRenderer {
             ) {
                 Text(
                     text = context.arguments.getStringContent("path") ?: toolName,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = "+${stats.additions}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = KedgeTextStyles.body(),
                     color = DiffAddedColor,
                 )
                 Text(
                     text = "-${stats.deletions}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = KedgeTextStyles.body(),
                     color = DiffRemovedColor,
                 )
             }
@@ -270,7 +271,7 @@ private fun FileContentPreview(path: String?, code: String) {
     ) {
         Text(
             text = path ?: stringResource(R.string.tool_ui_file),
-            style = MaterialTheme.typography.titleMedium,
+            style = KedgeTextStyles.title(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
@@ -314,7 +315,7 @@ object ShellToolUI : ToolUIRenderer {
                 .trim()
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            ShellExitStatus(content, MaterialTheme.typography.labelSmall)
+            ShellExitStatus(content, KedgeTextStyles.footnoteSmall())
             if (combined.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -326,7 +327,7 @@ object ShellToolUI : ToolUIRenderer {
                 ) {
                     Text(
                         text = combined.lineSequence().take(SUMMARY_MAX_LINES).joinToString("\n"),
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                        style = KedgeTextStyles.footnoteSmall().copy(fontFamily = FontFamily.Monospace),
                         fontSize = 11.sp,
                         lineHeight = 14.sp,
                         maxLines = SUMMARY_MAX_LINES,
@@ -362,10 +363,10 @@ object ShellToolUI : ToolUIRenderer {
             ) {
                 Text(
                     text = stringResource(R.string.tool_ui_shell_default),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = KedgeTextStyles.title(),
                     modifier = Modifier.weight(1f),
                 )
-                ShellExitStatus(content, MaterialTheme.typography.labelMedium)
+                ShellExitStatus(content, KedgeTextStyles.body())
             }
             HighlightCodeBlock(
                 code = if (cwd.isNullOrBlank()) command else "# cwd: $cwd\n$command",
@@ -373,7 +374,7 @@ object ShellToolUI : ToolUIRenderer {
                 modifier = Modifier.fillMaxWidth(),
             )
             if (stdout.isNotEmpty()) {
-                Text(text = "stdout", style = MaterialTheme.typography.labelMedium)
+                Text(text = "stdout", style = KedgeTextStyles.body())
                 HighlightCodeBlock(
                     code = stdout,
                     language = "plaintext",
@@ -383,7 +384,7 @@ object ShellToolUI : ToolUIRenderer {
             if (stderr.isNotEmpty()) {
                 Text(
                     text = "stderr",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = KedgeTextStyles.body(),
                     color = KedgeColors.error,
                 )
                 HighlightCodeBlock(

@@ -63,6 +63,7 @@ import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
@@ -203,7 +204,7 @@ private fun MainPage(vm: DebugViewModel) {
 
         KedgeHorizontalDivider()
 
-        Text("Launch Stats", style = MaterialTheme.typography.labelMedium)
+        Text("Launch Stats", style = KedgeTextStyles.body())
 
         var launchCountInput by remember(settings.launchCount) {
             mutableStateOf(settings.launchCount.toString())
@@ -353,10 +354,10 @@ private fun ColorTokenItem(name: String, color: Color) {
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
         )
         Column(modifier = Modifier.weight(2f)) {
-            Text(name, style = MaterialTheme.typography.bodyMedium)
+            Text(name, style = KedgeTextStyles.body())
             Text(
                 color.toHexString(),
-                style = MaterialTheme.typography.bodySmall,
+                style = KedgeTextStyles.body(),
                 fontFamily = JetbrainsMono,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

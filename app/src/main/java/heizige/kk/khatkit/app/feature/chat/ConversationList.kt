@@ -76,6 +76,7 @@ import kotlin.math.abs
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.launch
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 会话列表按时间分组后的条目类型。
@@ -210,7 +211,7 @@ fun ConversationList(
                 ) {
                     Text(
                         text = stringResource(id = R.string.chat_page_no_conversations),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = KedgeTextStyles.body(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp),
                     )
@@ -305,7 +306,7 @@ private fun SectionHeader(
         }
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
+            style = KedgeTextStyles.body(),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -524,7 +525,7 @@ private fun ConversationItem(
                         text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = KedgeTextStyles.body(),
                         color = if (selected) {
                             MaterialTheme.colorScheme.onPrimaryContainer
                         } else {

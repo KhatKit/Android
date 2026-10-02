@@ -54,6 +54,7 @@ import heizige.kk.khatkit.app.core.util.Emoji
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Preview
 @Composable
@@ -158,7 +159,7 @@ fun EmojiPicker(
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = KedgeTextStyles.body(),
                             )
                         }
                     }
@@ -287,7 +288,7 @@ private fun EmojiModifierPicker(
             ) {
                 Text(
                     text = stringResource(R.string.emoji_picker_select_skin_tone),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = KedgeTextStyles.title(),
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 

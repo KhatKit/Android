@@ -25,6 +25,7 @@ import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 权限面板：只展示各项权限的授予状态，外加一个「放手模式」开关。
@@ -96,11 +97,11 @@ fun KhatKitPermissionSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "放手模式",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = KedgeTextStyles.title(),
                     )
                     Text(
                         text = "高权限 / 高风险卡片不再逐条确认，全部交给 AI 执行",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = KedgeTextStyles.footnoteSmall(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -131,12 +132,12 @@ private fun PermissionRow(
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            style = KedgeTextStyles.body(),
             modifier = Modifier.weight(1f),
         )
         Text(
             text = if (granted) grantedText else deniedText,
-            style = MaterialTheme.typography.labelMedium,
+            style = KedgeTextStyles.body(),
             color = if (granted) MaterialTheme.colorScheme.primary else Color.Unspecified,
         )
     }
