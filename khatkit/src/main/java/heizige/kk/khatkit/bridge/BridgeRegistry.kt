@@ -2,6 +2,7 @@ package heizige.kk.khatkit.bridge
 
 import heizige.kk.khatkit.engine.ScriptEngine
 import heizige.kk.khatkit.card.CardManifest
+import heizige.kk.khatkit.bridge.impl.ScopedFsBridgeImpl
 
 /**
  * 按设备当前能力决定挂哪些 bridge（设计文档 7.1 的能力协商）。
@@ -12,6 +13,7 @@ import heizige.kk.khatkit.card.CardManifest
 class BridgeRegistry(
     private val tool: ToolBridge? = null,
     private val net: NetBridge? = null,
+    private val fs: FsBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -54,6 +56,7 @@ class BridgeRegistry(
     fun availableBridges(): Set<String> = buildSet {
         if (tool != null) add("tool")
         if (net != null) add("net")
+        if (fs != null) add("fs")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -93,6 +96,15 @@ class BridgeRegistry(
             val impl: Any = when (name) {
                 "tool" -> tool
                 "net" -> net
+                "fs" -> when (fs) {
+                    is ScopedFsBridgeImpl -> ScopedFsBridgeImpl(
+                        context = fs.context(),
+                        cardName = manifest.name,
+                        roots = (manifest.permissions.fsRead + manifest.permissions.fsWrite).toSet(),
+                        approvalGate = approvalGate,
+                    )
+                    else -> fs
+                }
                 "ui" -> ui
                 "web" -> web
                 "download" -> download

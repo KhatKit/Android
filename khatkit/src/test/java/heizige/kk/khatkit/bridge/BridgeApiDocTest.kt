@@ -22,6 +22,7 @@ class BridgeApiDocTest {
     private val bridges = mapOf(
         ToolBridge::class.java to "tool",
         NetBridge::class.java to "net",
+        FsBridge::class.java to "fs",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
         ImageToolboxBridge::class.java to "imageToolbox",

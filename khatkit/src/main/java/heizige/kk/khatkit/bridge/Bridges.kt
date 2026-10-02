@@ -100,6 +100,24 @@ interface NetBridge {
     fun head(url: String, headers: Map<String, Any?> = emptyMap()): Map<String, Any?>
 }
 
+/** L0 卡片文件能力；路径由本次运行的 fs 根目录约束。 */
+interface FsBridge {
+    fun read(path: String): String
+    fun write(path: String, content: String, append: Boolean = false)
+    fun exists(path: String): Boolean
+    fun stat(path: String): Map<String, Any?>
+    fun list(path: String, recursive: Boolean = false, limit: Int = 500): List<Map<String, Any?>>
+    fun copy(src: String, dst: String)
+    fun move(src: String, dst: String)
+    fun mkdir(path: String)
+    fun delete(path: String, recursive: Boolean = false): Boolean
+    fun zip(paths: List<String>, output: String): String
+    fun unzip(zipPath: String, outputDir: String): String
+    fun readBase64(path: String): String
+    fun saveBase64(data: String, outputPath: String): String
+    fun openDir(path: String)
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**

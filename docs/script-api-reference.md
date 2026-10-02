@@ -82,6 +82,25 @@
 | `net.toFile(url, outputPath, headers)` | string | 下载二进制并返回输出路径。 |
 | `net.head(url, headers)` | table | 返回 `{status, headers, contentType, length}`。 |
 
+## 3.2 fs（L0）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `fs.read(path)` | string | 读取卡片允许目录内的文本。 |
+| `fs.write(path, content, append)` | 无 | 写入卡片允许目录；`append` 显式传布尔值。 |
+| `fs.exists(path)` | boolean | 检查路径是否存在。 |
+| `fs.stat(path)` | table | 返回路径、名称、目录标志、大小和修改时间。 |
+| `fs.list(path, recursive, limit)` | table[] | 结构化列目录结果。 |
+| `fs.copy(src, dst)` | 无 | 复制文件或目录。 |
+| `fs.move(src, dst)` | 无 | 移动文件或目录。 |
+| `fs.mkdir(path)` | 无 | 创建目录。 |
+| `fs.delete(path, recursive)` | boolean | 删除；默认需要审批，非空目录需 `recursive=true`。 |
+| `fs.zip(paths, output)` | string | 压缩文件列表。 |
+| `fs.unzip(zipPath, outputDir)` | string | 解压 zip。 |
+| `fs.readBase64(path)` | string | 读取 Base64。 |
+| `fs.saveBase64(data, outputPath)` | string | 写入 Base64 并返回路径。 |
+| `fs.openDir(path)` | 无 | 打开目录。 |
+
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 
 ## 4. ui（L0）

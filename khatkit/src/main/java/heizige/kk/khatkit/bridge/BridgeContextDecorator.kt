@@ -55,6 +55,11 @@ class ScopedNetBridge(
     override fun head(url: String, headers: Map<String, Any?>): Map<String, Any?> = scoped.head(url, headers)
 }
 
+class ScopedFsBridge(
+    override val context: BridgeContext,
+    delegate: FsBridge,
+) : FsBridge by delegate, ContextAwareBridge
+
 /** 透明 UI 包装器。 */
 class ScopedUiBridge(
     override val context: BridgeContext,
@@ -101,6 +106,7 @@ class ScopedAccessibilityBridge(
 fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = when (name) {
     "tool" -> ScopedToolBridge(context, delegate as ToolBridge)
     "net" -> ScopedNetBridge(context, delegate as NetBridge)
+    "fs" -> ScopedFsBridge(context, delegate as FsBridge)
     "ui" -> ScopedUiBridge(context, delegate as UiBridge)
     "web" -> ScopedWebBridge(context, delegate as WebBridge)
     "download" -> ScopedDownloadBridge(context, delegate as DownloadBridge)

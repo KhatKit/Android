@@ -59,6 +59,7 @@ object BridgeFactory {
         val registry = BridgeRegistry(
             tool = AndroidToolBridge(appContext, http),
             net = AndroidNetBridge(http),
+            fs = ScopedFsBridgeImpl(appContext, "", emptySet()),
             ui = ui,
             web = WebBridgeImpl(appContext, ui),
             download = DownloadManagerImpl(
