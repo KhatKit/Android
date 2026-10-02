@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -9,6 +8,9 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFloatingActionButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.dp
 
 /**
  * 双风格浮动按钮：Miuix 用 Miuix 原生 FAB，MD3Exp 保持 [FloatingActionButton]。
@@ -23,11 +25,18 @@ fun KedgeFloatingActionButton(
     content: @Composable () -> Unit,
 ) {
     when (LocalKedgeStyle.current) {
-        KedgeStyle.Miuix -> MiuixFloatingActionButton(
-            onClick = onClick,
-            modifier = modifier,
-            content = content,
-        )
+        // 对齐 KernelSU：Miuix 的 FAB 用 primary 底 + onPrimary 图标、无阴影。
+        // 图标颜色靠 LocalContentColor 下发（Icon 默认取它）。
+        KedgeStyle.Miuix -> CompositionLocalProvider(
+            LocalContentColor provides MiuixTheme.colorScheme.onPrimary,
+        ) {
+            MiuixFloatingActionButton(
+                onClick = onClick,
+                modifier = modifier,
+                shadowElevation = 0.dp,
+                content = content,
+            )
+        }
 
         KedgeStyle.MD3Exp -> FloatingActionButton(
             onClick = onClick,
@@ -59,29 +68,23 @@ fun KedgeExtendedFloatingActionButton(
         // Miuix 的 FAB 自带 shape（圆角方）+ 配色默认值，不要用 MD3 的
         // primary 去覆盖——那会得到一个过饱和的圆点，看着就不像 Miuix。
         // 所以 Miuix 分支只透传调用方显式指定的颜色，没给就用 Miuix 自己的。
-        KedgeStyle.Miuix -> {
-            // Miuix 的 FAB 内容槽不会把裸 Icon/进度指示器自动居中，图标会偏；
-            // 这里自己铺满并居中。
-            val centered: @Composable () -> Unit = {
-                androidx.compose.foundation.layout.Box(
-                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) {
-                    icon()
-                }
-            }
+        KedgeStyle.Miuix -> CompositionLocalProvider(
+            LocalContentColor provides MiuixTheme.colorScheme.onPrimary,
+        ) {
             if (containerColor != null) {
                 MiuixFloatingActionButton(
                     onClick = onClick,
                     modifier = modifier,
                     containerColor = containerColor,
-                    content = centered,
+                    shadowElevation = 0.dp,
+                    content = icon,
                 )
             } else {
                 MiuixFloatingActionButton(
                     onClick = onClick,
                     modifier = modifier,
-                    content = centered,
+                    shadowElevation = 0.dp,
+                    content = icon,
                 )
             }
         }
