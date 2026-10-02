@@ -1,8 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.LocalContentColor
@@ -108,6 +108,8 @@ fun CardGroupScope.settingItem(item: SettingItem) = setItem(item)
 /**
  * 左标题 + 右开关的紧凑行，用于表单中间（不在 [CardGroup] 分组内）。
  *
+ * 整行可点：点行任意位置等价于点开关，与设置分组内的开关行保持一致。
+ *
  * ```
  * SwitchRow(R.string.setting_provider_page_enable, checked = provider.enabled) {
  *     onEdit(provider.copy(enabled = it))
@@ -123,7 +125,9 @@ fun SwitchRow(
     enabled: Boolean = true,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { onCheckedChange(!checked) },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -168,7 +172,19 @@ fun SliderRow(
 
 private fun CardGroupScope.setItem(item: SettingItem) {
     item(
-        onClick = (item as? NavSetting)?.onClick,
+        // 只有导航行与开关行给整行点击；纯信息行 / 滑块行传 null。
+        // 开关行必须显式带 enabled 门控：enabled=false 时 trailing 的 KedgeSwitch
+        // 不消费点击事件，行级 onClick 会照样触发，禁用的行就变成能被改。
+        onClick = when (item) {
+            is NavSetting -> item.onClick
+            is SwitchSetting -> if (item.enabled) {
+                { item.onCheckedChange(!item.checked) }
+            } else {
+                null
+            }
+
+            else -> null
+        },
         supportingContent = item.descriptionRes?.let { res -> { Text(stringResource(res)) } },
         trailingContent = when (item) {
             is SwitchSetting -> {
