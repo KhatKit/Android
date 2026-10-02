@@ -65,6 +65,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -477,8 +478,8 @@ fun ChatDrawerContent(
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp),
                             variant = KedgeButtonVariant.Secondary,
-                            shapes = ButtonDefaults.shapes(RoundedCornerShape(8.dp)),
-                            miuixCornerRadius = 8.dp,
+                            shapes = ButtonDefaults.shapes(RoundedCornerShape(12.dp)),
+                            miuixCornerRadius = 12.dp,
                             // 同上：Secondary 默认色太淡，这里加深一档
                             colors = KedgeDrawerButtonColors.md3(),
                             miuixColors = KedgeDrawerButtonColors.miuix(),
@@ -496,7 +497,7 @@ fun ChatDrawerContent(
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = stringResource(R.string.chat_page_create_folder),
-                                    style = KedgeTextStyles.body(),
+                                    style = KedgeTextStyles.bodyLarge(),
                                 )
                             }
                         }
@@ -990,17 +991,33 @@ private fun AssistantItem(
  * 抢视觉，且明暗主题都跟着主题色槽自动翻转。
  */
 private object KedgeDrawerButtonColors {
-    @Composable
-    fun md3(): androidx.compose.material3.ButtonColors =
-        androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
-        )
+    /**
+     * 从 secondaryContainer 朝 secondary 混合的比例。
+     *
+     * 取值只允许三档：0.27f / 0.54f / 0.87f，与 MD3 的配色分档对齐，不要填中间值。
+     * 当前取最深一档 0.87f：0.27f / 0.54f 实测都偏淡，抽屉底色接近时看不出按钮
+     * 边界；0.87f 是三档里唯一能看清的，又还没到纯 secondary 实色蓝的程度。
+     * 要调档只改这一个常量。
+     *
+     * 文字色不传 contentColor，交给 MiuixButton / filledTonalButton 各自的默认
+     * 配对（Miuix 侧是 onSecondaryVariant、MD3 侧是 onTonalSurface）。手动指定
+     * 试过 onSecondaryContainer / onSecondary / secondary 都不如默认的合适。
+     */
+    private const val TOWARD_SECONDARY = 0.87f
 
     @Composable
-    fun miuix(): top.yukonga.miuix.kmp.basic.ButtonColors =
-        top.yukonga.miuix.kmp.basic.ButtonDefaults.buttonColors(
-            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.secondaryContainer,
-            contentColor = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSecondaryContainer,
+    fun md3(): androidx.compose.material3.ButtonColors {
+        val scheme = androidx.compose.material3.MaterialTheme.colorScheme
+        return androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+            containerColor = lerp(scheme.secondaryContainer, scheme.secondary, TOWARD_SECONDARY),
         )
+    }
+
+    @Composable
+    fun miuix(): top.yukonga.miuix.kmp.basic.ButtonColors {
+        val scheme = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
+        return top.yukonga.miuix.kmp.basic.ButtonDefaults.buttonColors(
+            color = lerp(scheme.secondaryContainer, scheme.secondary, TOWARD_SECONDARY),
+        )
+    }
 }

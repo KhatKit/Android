@@ -68,6 +68,7 @@ import heizige.kk.khatkit.app.core.ui.theme.extendColors
 import heizige.kk.khatkit.app.core.ui.icons.forward
 import heizige.kk.khatkit.app.core.ui.icons.keepOff
 import heizige.kk.khatkit.app.core.ui.icons.pushPin
+import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import java.time.LocalDate
 import java.time.ZoneId
@@ -452,8 +453,12 @@ private fun ConversationItem(
         enableDismissFromStartToEnd = onPin != null,
         enableDismissFromEndToStart = onDelete != null,
         backgroundContent = {
-            val pinContainer = MaterialTheme.colorScheme.primaryContainer
-            val deleteContainer = MaterialTheme.colorScheme.errorContainer
+            // 必须走 KedgeColors：这里原先直接取 MaterialTheme.colorScheme，
+            // Miuix 模式下拿到的是 MD3 那套量化色——primaryContainer 是高饱和
+            // 染色（置顶背景过浓），errorContainer 是很淡的粉白（删除背景过淡）。
+            // KedgeColors 会按 LocalKedgeStyle 返回对应风格的调色板。
+            val pinContainer = KedgeColors.primaryContainer
+            val deleteContainer = KedgeColors.errorContainer
             val width = rowWidth.coerceAtLeast(1)
 
             Box(
@@ -471,7 +476,7 @@ private fun ConversationItem(
                 Icon(
                     imageVector = pushPin,
                     contentDescription = stringResource(R.string.pin_chat),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = KedgeColors.onPrimaryContainer,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .padding(start = 16.dp)
@@ -485,7 +490,7 @@ private fun ConversationItem(
                 Icon(
                     imageVector = delete,
                     contentDescription = stringResource(R.string.chat_page_delete),
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    tint = KedgeColors.onErrorContainer,
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 16.dp)

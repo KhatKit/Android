@@ -996,6 +996,9 @@ private fun ChatInputTextField(
             state = state.textContent,
             modifier = modifier,
             insideMargin = DpSize(8.dp, 8.dp),
+            // 不传 textStyle 时 Miuix 用 textStyles.main，与抽屉里「新建文件夹」
+            // 等按钮字号不一致；这里显式给 bodyLarge()，两种风格同一套字号。
+            textStyle = KedgeTextStyles.bodyLarge(),
             colors = MiuixTextFieldDefaults.textFieldColors(
                 backgroundColor = Color.Transparent,
                 labelColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -1015,6 +1018,7 @@ private fun ChatInputTextField(
             state = state.textContent,
             modifier = modifier,
             shape = RoundedCornerShape(16.dp),
+            textStyle = KedgeTextStyles.bodyLarge(),
             placeholder = {
                 Text(placeholder)
             },
@@ -1299,7 +1303,7 @@ private fun FullScreenEditor(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 180.dp),
-                                textStyle = KedgeTextStyles.body(),
+                                textStyle = KedgeTextStyles.bodyLarge(),
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                 singleLine = false,
                             )
