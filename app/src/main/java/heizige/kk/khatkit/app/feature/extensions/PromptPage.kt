@@ -108,6 +108,7 @@ import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
@@ -316,7 +317,9 @@ private fun ModeInjectionCard(
                 KedgeIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
-                FilledIconButton(onClick = {
+                KedgeIconButton(
+                    variant = KedgeIconButtonVariant.Filled,
+                    onClick = {
                     scope.launch {
                         onDelete()
                         swipeState.reset()
@@ -706,7 +709,9 @@ private fun LorebookCard(
                 KedgeIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
-                FilledIconButton(onClick = {
+                KedgeIconButton(
+                    variant = KedgeIconButtonVariant.Filled,
+                    onClick = {
                     scope.launch {
                         onDelete()
                         swipeState.reset()

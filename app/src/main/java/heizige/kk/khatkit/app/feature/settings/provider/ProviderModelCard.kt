@@ -130,6 +130,7 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 
 @Composable
@@ -211,7 +212,8 @@ internal fun ModelCard(
                 ) {
                     Icon(close, null)
                 }
-                FilledIconButton(
+                KedgeIconButton(
+                    variant = KedgeIconButtonVariant.Filled,
                     onClick = {
                         scope.launch {
                             onDelete()
