@@ -50,6 +50,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.kedge.components.KedgeTextFieldWithState
 
 /**
  * A multi-line text input component with a header and file import functionality.
@@ -157,13 +158,11 @@ fun TextArea(
             }
 
             // Multi-line text input
-            OutlinedTextField(
+            KedgeTextFieldWithState(
                 state = state,
                 modifier = Modifier
                     .fillMaxWidth(),
-                placeholder = if (placeholder.isNotEmpty()) {
-                    { Text(placeholder) }
-                } else null,
+                placeholder = placeholder.ifEmpty { null },
                 lineLimits = TextFieldLineLimits.MultiLine(
                     minHeightInLines = minLines,
                     maxHeightInLines = maxLines
