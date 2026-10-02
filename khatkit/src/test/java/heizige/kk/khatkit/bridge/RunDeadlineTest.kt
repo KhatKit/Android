@@ -86,7 +86,7 @@ class RunDeadlineTest {
     fun `ui isCancelled flips when the run times out`() {
         val context = BridgeContext(cardName = "c", engine = "lua", quotaMb = 1)
         val ui = ScopedUiBridge(context, object : UiBridge {
-            override fun form(title: String, items: List<Map<String, Any?>>, options: Map<String, Any?>?): Map<String, Any?>? = null
+            override fun form(title: String, items: Any, options: Map<String, Any?>?): Map<String, Any?>? = null
             override fun sheet(title: String, actions: List<Map<String, Any?>>, options: Map<String, Any?>?): Map<String, Any?>? = null
             override fun confirm(title: String, message: String, danger: Boolean) = false
             override fun progress(ratio: Float, label: String) = Unit

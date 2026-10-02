@@ -29,6 +29,23 @@ class ScopedFsBridgeImpl(
 
     override fun read(path: String): String = resolve(path, false).readText()
 
+    internal fun imageSource(path: String): String {
+        if (path.startsWith("content://")) {
+            val uri = Uri.parse(path)
+            require(context.contentResolver.persistedUriPermissions.any { it.isReadPermission && it.uri == uri } ||
+                context.checkUriPermission(uri, android.os.Process.myPid(), android.os.Process.myUid(),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                "Image.src: content URI has no read grant"
+            }
+            context.contentResolver.openInputStream(uri)?.use { } ?: error("Image.src: unreadable URI")
+            return path
+        }
+        require(!path.contains("://")) { "Image.src: only local files/content URI are supported" }
+        val file = resolve(path, false)
+        require(file.isFile && file.canRead()) { "Image.src: unreadable file" }
+        return file.path
+    }
+
     override fun write(path: String, content: String, append: Boolean) {
         val file = resolve(path, true)
         file.parentFile?.mkdirs()

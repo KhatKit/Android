@@ -369,9 +369,12 @@ interface UiBridge {
      */
     fun form(
         title: String,
-        items: List<Map<String, Any?>>,
+        items: Any,
         options: Map<String, Any?>? = null,
     ): Map<String, Any?>?
+
+    /** 节点树屏幕；按钮结束等待并返回 {event, values}，取消返回 null。 */
+    fun screen(title: String, root: Map<String, Any?>, options: Map<String, Any?>? = null): Map<String, Any?>? = null
 
     /** 危险操作二次确认 */
     fun confirm(title: String, message: String, danger: Boolean = false): Boolean

@@ -172,7 +172,7 @@ private fun isFullWidthItem(item: Map<String, Any?>): Boolean =
     (item["type"]?.toString() ?: "text") in FULL_WIDTH_TYPES
 
 @Composable
-private fun FormWidget(
+internal fun FormWidget(
     item: Map<String, Any?>,
     values: MutableMap<String, Any?>,
     pickerHost: FormPickerHost? = null,
@@ -189,7 +189,9 @@ private fun FormWidget(
             value = values[id]?.toString().orEmpty(),
             onValueChange = { values[id] = it },
             label = label,
-            singleLine = true,
+            singleLine = item["multiline"] != true,
+            minLines = (item["lines"] as? Number)?.toInt() ?: 1,
+            placeholder = item["placeholder"] as? String,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -209,6 +211,10 @@ private fun FormWidget(
             )
         }
 
+        "checkbox" -> FormRow(label) {
+            KedgeCheckbox(checked = values[id] as? Boolean ?: false, onCheckedChange = { values[id] = it })
+        }
+
         "slider" -> {
             val min = (item["min"] as? Number)?.toFloat() ?: 0f
             val max = (item["max"] as? Number)?.toFloat() ?: 100f
@@ -218,7 +224,12 @@ private fun FormWidget(
                 Text("$label: ${current.toInt()}")
                 KedgeSlider(
                     value = current,
-                    onValueChange = { values[id] = it },
+                    onValueChange = { value ->
+                        val step = (item["step"] as? Number)?.toFloat()
+                        values[id] = if (step != null && step > 0) {
+                            (min + kotlin.math.round((value - min) / step) * step).coerceIn(min, max)
+                        } else value
+                    },
                     valueRange = min..max,
                 )
             }

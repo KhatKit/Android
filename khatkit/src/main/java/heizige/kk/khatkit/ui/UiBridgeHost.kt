@@ -164,6 +164,22 @@ sealed interface UiRequest {
         val deferred: CompletableDeferred<Boolean>,
     ) : UiRequest
 
+    data class FormTree(
+        val title: String,
+        val root: UiNode,
+        val options: UiSheetOptions,
+        val deferred: CompletableDeferred<Map<String, Any?>?>,
+    ) : UiRequest
+
+    data class Screen(
+        val title: String,
+        val root: UiNode,
+        val options: UiSheetOptions,
+        val deferred: CompletableDeferred<Map<String, Any?>?>,
+    ) : UiRequest
+
+    data class ShowTree(val title: String, val root: UiNode, val options: UiSheetOptions) : UiRequest
+
     data class Show(
         val card: Map<String, Any?>,
         val options: UiSheetOptions,
@@ -181,6 +197,16 @@ class UiBridgeHost(
     private val onAutomationStatus: (String, String) -> Unit = { _, _ -> },
     private val onCancelled: () -> Boolean = { false },
 ) : UiBridge {
+    companion object {
+        private val waitBudget = ThreadLocal<Long>()
+        internal fun <T> withinBudget(millis: Long, block: () -> T): T {
+            val previous = waitBudget.get()
+            waitBudget.set(millis)
+            return try { block() } finally {
+                if (previous == null) waitBudget.remove() else waitBudget.set(previous)
+            }
+        }
+    }
 
     private val _request = MutableStateFlow<UiRequest?>(null)
     val request: StateFlow<UiRequest?> = _request.asStateFlow()
@@ -193,14 +219,41 @@ class UiBridgeHost(
 
     override fun form(
         title: String,
-        items: List<Map<String, Any?>>,
+        items: Any,
         options: Map<String, Any?>?,
     ): Map<String, Any?>? {
         val deferred = CompletableDeferred<Map<String, Any?>?>()
-        _request.value = UiRequest.Form(title, items, UiSheetOptions.from(options), deferred)
-        return runBlocking { withTimeoutOrNull(timeoutMillis) { deferred.await() } }
+        val request = if (items is Map<*, *>) {
+            UiRequest.FormTree(title, UiNodeParser.parse(items), UiSheetOptions.from(options), deferred)
+        } else {
+            require(items is List<*>) { "ui.form: expected node tree or legacy items" }
+            val legacy = items.map {
+                require(it is Map<*, *> && it.keys.all { key -> key is String }) { "ui.form: invalid legacy item" }
+                require(it["type"] in heizige.kk.khatkit.card.UiWidgetVocabulary.LEGACY) { "ui.form: unknown legacy type ${it["type"]}" }
+                @Suppress("UNCHECKED_CAST")
+                (it as Map<String, Any?>)
+            }
+            java.util.logging.Logger.getLogger("KhatKit.UI").warning("ui.form(items) is deprecated; use a node tree")
+            UiRequest.Form(title, legacy, UiSheetOptions.from(options), deferred)
+        }
+        return await(request, deferred)
     }
 
+    override fun screen(title: String, root: Map<String, Any?>, options: Map<String, Any?>?): Map<String, Any?>? {
+        val deferred = CompletableDeferred<Map<String, Any?>?>()
+        return await(UiRequest.Screen(title, UiNodeParser.parse(root), UiSheetOptions.from(options), deferred), deferred)
+    }
+
+    private fun await(request: UiRequest, deferred: CompletableDeferred<Map<String, Any?>?>): Map<String, Any?>? {
+        _request.value = request
+        return try {
+            val budget = minOf(timeoutMillis, waitBudget.get() ?: Long.MAX_VALUE)
+            runBlocking { withTimeoutOrNull(budget) { deferred.await() } }
+        } finally {
+            _request.compareAndSet(request, null)
+            deferred.cancel()
+        }
+    }
     override fun sheet(
         title: String,
         actions: List<Map<String, Any?>>,
@@ -237,6 +290,12 @@ class UiBridgeHost(
     }
 
     override fun show(card: Map<String, Any?>, options: Map<String, Any?>?) {
+        if (card.containsKey("__ui")) {
+            val root = UiNodeParser.parse(card)
+            _shown.value = card
+            _request.value = UiRequest.ShowTree(options?.get("title") as? String ?: "", root, UiSheetOptions.from(options))
+            return
+        }
         _shown.value = card
         _request.value = UiRequest.Show(card, UiSheetOptions.from(options))
     }
@@ -251,15 +310,33 @@ class UiBridgeHost(
     override fun isCancelled(): Boolean = onCancelled()
 
     fun submitForm(values: Map<String, Any?>?) {
-        val current = _request.value as? UiRequest.Form ?: return
-        current.deferred.complete(values)
-        _request.value = null
+        val current = _request.value
+        when (current) {
+            is UiRequest.Form -> current.deferred.complete(values)
+            is UiRequest.FormTree -> {
+                if (values != null && current.root.errors(values).isNotEmpty()) return
+                current.deferred.complete(values?.let(current.root::collect))
+            }
+            else -> return
+        }
+        _request.compareAndSet(current, null)
     }
 
     fun selectSheetAction(event: String, values: Map<String, Any?> = emptyMap()) {
         val current = _request.value as? UiRequest.Sheet ?: return
         current.deferred.complete(mapOf("event" to event, "values" to values))
         _request.value = null
+    }
+
+    fun submitScreen(event: String, values: Map<String, Any?>) {
+        val screen = _request.value as? UiRequest.Screen
+        if (screen != null) {
+            if (screen.root.errors(values).isNotEmpty()) return
+            if (screen.root.walk().none { it.type == "Button" && it.props["action"] == event && it.props["disabled"] != true }) return
+            screen.deferred.complete(mapOf("event" to event, "values" to screen.root.collect(values)))
+            _request.compareAndSet(screen, null)
+            return
+        }
     }
 
     fun answerConfirm(confirmed: Boolean) {
@@ -271,6 +348,8 @@ class UiBridgeHost(
     fun dismiss() {
         when (val current = _request.value) {
             is UiRequest.Form -> current.deferred.complete(null)
+            is UiRequest.FormTree -> current.deferred.complete(null)
+            is UiRequest.Screen -> current.deferred.complete(null)
             is UiRequest.Confirm -> current.deferred.complete(false)
             is UiRequest.Sheet -> current.deferred.complete(null)
             else -> Unit

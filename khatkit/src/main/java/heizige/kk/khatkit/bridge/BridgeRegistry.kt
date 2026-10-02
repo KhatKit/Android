@@ -140,7 +140,15 @@ class BridgeRegistry(
                     is MediaPickerHost -> mp.forCard(manifest.name)
                     else -> mp
                 }
-                "ui" -> ui
+                "ui" -> ui?.let { delegate ->
+                    val imageFs = (fs as? ScopedFsBridgeImpl)?.let {
+                        ScopedFsBridgeImpl(it.context(), manifest.name,
+                            manifest.permissions.fsRead.toSet(), approvalGate, context.grants)
+                    }
+                    UiImageAccessBridge(delegate) { path ->
+                        imageFs?.imageSource(path) ?: error("Image.src: file access unavailable")
+                    }
+                }
                 "web" -> web
                 "download" -> download
                 "store" -> storeProvider?.invoke(

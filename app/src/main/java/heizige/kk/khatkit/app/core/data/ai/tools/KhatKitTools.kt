@@ -1549,6 +1549,7 @@ class KhatKitToolProvider(
     }
 
     override fun submitForm(values: Map<String, Any?>?) = uiHost.submitForm(values)
+    override fun submitScreen(event: String, values: Map<String, Any?>) = uiHost.submitScreen(event, values)
 
     override fun answerConfirm(confirmed: Boolean) = uiHost.answerConfirm(confirmed)
 

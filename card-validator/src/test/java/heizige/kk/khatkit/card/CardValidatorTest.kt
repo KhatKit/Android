@@ -44,6 +44,24 @@ class CardValidatorTest {
     }
 
     @Test
+    fun dependencyBridgeAcceptedButUndeclaredDynamicBridgeRejected() {
+        val dependency = CardManifest.DependencyReq(
+            name = "musicKey",
+            version = "1.0.0",
+            sha256 = "a".repeat(64),
+        )
+        val valid = CardValidator.validate(
+            manifest(bridges = listOf("musicKey"), dependencies = listOf(dependency)),
+        )
+        assertFalse(valid.any { it.code == "BRIDGE_UNKNOWN" })
+
+        val unknown = CardValidator.validate(
+            manifest(bridges = listOf("unknownKey"), dependencies = listOf(dependency)),
+        )
+        assertTrue(unknown.any { it.code == "BRIDGE_UNKNOWN" })
+    }
+
+    @Test
     fun invalidNameRejected() {
         val issues = CardValidator.validate(manifest(name = "Bad-Name"))
         assertTrue(issues.any { it.code == "NAME_INVALID" && it.severity == Severity.ERROR })

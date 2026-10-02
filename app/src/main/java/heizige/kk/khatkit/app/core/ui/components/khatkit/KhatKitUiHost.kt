@@ -31,6 +31,10 @@ import heizige.kk.khatkit.ui.SheetAction
 import heizige.kk.khatkit.ui.UiRequest
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.uikit.KhatKitForm
+import heizige.kk.khatkit.uikit.NodeTreeSheet
+import heizige.kk.khatkit.ui.UiNode
+import androidx.compose.runtime.key
+import coil3.compose.AsyncImage
 import heizige.kk.khatkit.uikit.KhatKitSheet
 import heizige.kk.khatkit.uikit.KhatKitSheetAction
 import heizige.kk.khatkit.uikit.KhatKitTheme
@@ -103,6 +107,9 @@ fun KhatKitUiHost() {
         is UiRequest.Sheet -> current.options.landscape
         is UiRequest.Form -> current.options.landscape
         is UiRequest.Show -> current.options.landscape
+        is UiRequest.FormTree -> current.options.landscape
+        is UiRequest.Screen -> current.options.landscape
+        is UiRequest.ShowTree -> current.options.landscape
         else -> false
     }
     val activity = LocalActivity.current
@@ -142,6 +149,15 @@ fun KhatKitUiHost() {
                 pickerHost = provider.formPickerHost,
             )
 
+            is UiRequest.FormTree -> key(current) {
+                TreeSheet(current.title, current.root, current.options, provider, form = true)
+            }
+            is UiRequest.Screen -> key(current) {
+                TreeSheet(current.title, current.root, current.options, provider)
+            }
+            is UiRequest.ShowTree -> key(current) {
+                TreeSheet(current.title, current.root, current.options, provider, readOnly = true)
+            }
             is UiRequest.Confirm -> PrimaryBottomSheet(
                 visible = true,
                 title = current.title,
@@ -192,6 +208,30 @@ fun KhatKitUiHost() {
         // 媒体 / 目录选择器：与表单弹层并列挂载，独立于 ui request 生命周期
         KhatKitPickerHost(provider)
     }
+}
+
+@Composable
+private fun TreeSheet(
+    title: String,
+    root: UiNode,
+    options: UiSheetOptions,
+    provider: KhatKitToolProvider,
+    form: Boolean = false,
+    readOnly: Boolean = false,
+) {
+    NodeTreeSheet(
+        title = title, root = root, options = options, form = form, readOnly = readOnly,
+        pickerHost = provider.formPickerHost,
+        onAction = { event, values ->
+            if (form) provider.submitForm(values) else provider.submitScreen(event, values)
+        },
+        onDismiss = { provider.dismissUi() },
+        markdown = { text, modifier -> Box(modifier) { MarkdownBlock(text) } },
+        image = { src, description, modifier ->
+            AsyncImage(model = if (src.startsWith("content://")) android.net.Uri.parse(src) else java.io.File(src),
+                contentDescription = description, modifier = modifier)
+        },
+    )
 }
 
 /**

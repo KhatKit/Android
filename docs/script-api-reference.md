@@ -251,11 +251,12 @@ return { count = #paths, first = paths[1] }
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
-| `ui.form(title, items, options)` | table / nil | 声明式表单；返回用户填的值，取消或超时返回 nil。items 组件白名单见 §9。 |
+| `ui.form(title, items, options)` | table / nil | 接收受限 Compose 节点树，返回字段值；取消/超时返回 nil。旧 items 数组保留一个发布周期，已弃用。 |
+| `ui.screen(title, root, options)` | table / nil | 阻塞节点树屏幕；按钮返回 `{event=action, values={id=value}}`，取消/超时返回 nil。 |
 | `ui.sheet(title, actions, options)` | table / nil | 声明式操作弹层；返回 `{event, values}`，取消或超时返回 nil。actions 字段见 §10。 |
 | `ui.confirm(title, message, danger)` | boolean | 二次确认；`danger` 为真时按钮是危险样式。取消 / 超时返回 false。 |
 | `ui.progress(ratio, label)` | 无 | 顶部进度条，`ratio` 0.0–1.0，`label` 为空则只更新进度。 |
-| `ui.show(card, options)` | 无 | 结果卡片，优先渲染 `markdown` / `text` / `content`，标题取 `title`；不阻塞。 |
+| `ui.show(card, options)` | 无 | 非阻塞展示节点树；标题取 options.title。兼容旧 `{title, markdown/text/content}`。 |
 | `ui.automationStatus(label, detail)` | 无 | 发布当前步骤。应用前台显示为应用内 Toast，应用退后台后切换为悬浮看板；连续重复 `label` 由宿主去重。点击提示卡片可隐藏提示，不会取消脚本。 |
 | `ui.isCancelled()` | boolean | 用户在看板点过「停止」后为 true；长脚本在每步之间轮询。 |
 | `ui.webSheet(title, url, actions, options)` | table / nil | **宿主专用**：`web.openLogin` 的宿主实现，脚本请调 `web.openLogin`。 |
@@ -436,6 +437,42 @@ schedule.cancel(job)
 - 这些任务不受「自动化触发器」总开关约束（那是管事件触发的），但仍走卡片自身的审批与计费链路。
 
 ## 9. ui.form 组件白名单
+
+Lua 新卡片使用局部别名构造节点树，子节点放表的数组部分：
+
+```lua
+local Column, TextField, Switch, Button = ui.Column, ui.TextField, ui.Switch, ui.Button
+local values = ui.form("无障碍点击", Column {
+  TextField { id = "text", label = "要点击的文字", required = true },
+  Switch { id = "exact", label = "精确匹配", value = false },
+  Button { label = "开始", action = "submit", tone = "primary" },
+})
+if not values then return { cancelled = true } end
+```
+
+节点组件：Column、Row、Box、Spacer、Divider、Card、Section、Text、Markdown、Image、
+Badge、ProgressBar、TextField、NumberField、Switch、Checkbox、Slider、Select、RadioGroup、
+FilePicker、DirPicker、Button。布局接受节点子项，裸字符串提升为 Text；叶子不接受子项。
+字段以 `id` 为键，默认值使用 `value`；`required` 空值阻止提交。
+Column/Row 支持 spacing；Section 使用 title。Button 使用 label/action/tone/disabled。
+Text 的 style 为 title/subtitle/body/label/code，tone 为 default/muted/primary/error；
+Badge tone 为 default/primary/success/warning/error；Button tone 为 primary/default/danger。
+禁止 raw 颜色、字号、字体和 theme 属性。未知组件/属性、非法 token、重复 id、超过 32 层或
+512 节点的树均被拒绝。Lua 和宿主双端校验；JS 暂不注入构造器。
+
+`ui.Modifier` 支持 fillMaxSize/fillMaxWidth/fillMaxHeight、width/height/size(dp)、
+padding(n)/padding(h,v)/padding(start,top,end,bottom)、weight(n)、clip("rounded"|"circle",radius?)、
+visible(bool)、scrollable()。尺寸为有限非负数字，weight 为正数且仅用于 Row/Column 直接子项。
+嵌套滚动容器有界高，避免与弹层滚动冲突。Image 仅接受经过本次卡片文件权限检查的本地路径或可读 content URI。
+form 内没有 submit Button 时宿主提供提交底栏。form/screen 默认等待 300s；
+等待时间也计入 host.setTimeout 预算，超时返回 nil。
+
+旧语法迁移：input→TextField、number→NumberField、switch→Switch、slider→Slider、
+select→Select、radio→RadioGroup、file_picker→FilePicker、dir_picker→DirPicker，
+`default` 改为 `value`；text/markdown 的展示内容改为 `text`。
+`ui.sheet` 为兼容 API，新交互使用 `ui.screen` + Button。
+
+以下为旧 items 数组兼容词表：
 
 | type | 渲染行为 | 取值 |
 |---|---|---|

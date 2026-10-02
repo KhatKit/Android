@@ -21,6 +21,11 @@ class RustScriptEngine private constructor(private val kind: Int) : ScriptEngine
         bridges[name] = value
         if (handle != 0L) {
             nativeDefine(handle, name, ReflectiveInvoker.methodNames(value).joinToString(","))
+            if (kind == KIND_LUA && name == "ui") {
+                val result = nativeEval(handle, uiPrelude, "{}")
+                val error = result?.let { JsonValues.json.parseToJsonElement(it) as? JsonObject }?.get("__error")
+                check(error == null) { "UI DSL initialization failed: $error" }
+            }
         }
     }
 
@@ -54,6 +59,12 @@ class RustScriptEngine private constructor(private val kind: Int) : ScriptEngine
     companion object {
         const val KIND_LUA = 0
         const val KIND_JS = 1
+
+        internal val uiPrelude: String by lazy {
+            checkNotNull(RustScriptEngine::class.java.getResourceAsStream("/ui_kit.lua")) {
+                "Missing ui_kit.lua"
+            }.bufferedReader().use { it.readText() }
+        }
 
         /** native 库是否可用；不可用时引擎创建即失败。 */
         val isAvailable: Boolean by lazy {

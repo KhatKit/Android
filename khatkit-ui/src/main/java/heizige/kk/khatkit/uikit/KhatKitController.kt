@@ -27,6 +27,7 @@ interface KhatKitController {
     val formPickRequest: StateFlow<FormPickRequest?> get() = MutableStateFlow(null)
 
     fun submitForm(values: Map<String, Any?>?)
+    fun submitScreen(event: String, values: Map<String, Any?>) {}
     fun selectSheetAction(event: String, values: Map<String, Any?> = emptyMap())
     fun answerConfirm(confirmed: Boolean)
     fun dismissUi()

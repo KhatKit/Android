@@ -86,8 +86,9 @@ local name = args.name
 
 -- AI 已填参就跳过表单；缺参数时才弹 UI 兜底
 if not name or name == "" then
-  local v = ui.form("打个招呼", {
-    { type = "input", id = "name", label = "名字", default = "" }
+  local Column, TextField = ui.Column, ui.TextField
+  local v = ui.form("打个招呼", Column {
+    TextField { id = "name", label = "名字", value = "", required = true }
   })
   if not v then return { cancelled = true } end
   name = v.name
@@ -558,13 +559,27 @@ local saved = tool.saveBase64(img, "/sdcard/Download/copy.png")
 
 ### 4.2 ui（声明式表单与看板，L0）
 
+新 Lua 卡片使用受限 Compose DSL，构造器只生成节点数据，不执行任意 UI 代码。
+`local Column, TextField = ui.Column, ui.TextField` 按需取局部别名；
+子节点放表的数组部分，命名键作为属性。布局为 Column/Row/Box/Card/Section，
+文本为 Text/Markdown/Image/Badge/ProgressBar，字段为 TextField/NumberField/Switch/
+Checkbox/Slider/Select/RadioGroup/FilePicker/DirPicker，动作使用 Button。
+完整字段、token 和 Modifier 白名单见 [接口清单 §9](script-api-reference.md#9-uiform-组件白名单)。
+节点树最多 32 层、512 个节点；未知组件/属性、重复字段 id、非法 token 会在 Lua 和 Kotlin 两侧报错。
+不提供响应式状态或 Lua 回调。
+
+字段初始值用 `value`，必填用 `required=true`，以 `id` 收集结果。
+`Text.style` 使用 title/subtitle/body/label/code；颜色用各组件支持的语义 `tone`，
+禁止 raw 颜色、字号、字体和卡片自选 theme。外观跟随宿主 M3/Miuix 及明暗模式。
+
 | 方法（签名） | 参数 | 返回 | 说明 |
 |---|---|---|---|
-| `form(title, items, options)` | title: string；items: map[]；options: map 或 nil | map 或 nil | 弹出表单，阻塞等待。items 每项：`type`（组件白名单）、`id`、`label`、`default`、`min`/`max`（slider）、`options`（select/radio）、`renderer`（custom）。用户取消或 300 秒超时返回 nil。`options` 见下方「弹层选项」。 |
+| `form(title, root, options)` | title: string；root: 节点树；options: map 或 nil | map 或 nil | 阻塞表单；submit Button 提交，未声明则宿主追加提交栏。required 空值阻止提交；取消或 300 秒超时返回 nil。旧 items 数组已弃用，保留一个发布周期。 |
+| `screen(title, root, options)` | title: string；root: 节点树；options: map 或 nil | map 或 nil | 阻塞屏幕，Button 的 action 作为 event 返回，结构为 `{event, values}`；取消/超时 nil。 |
 | `sheet(title, actions, options)` | title: string；actions: map[]；options: map 或 nil | map 或 nil | 声明式操作弹层，阻塞等待。actions 每项声明 `event`（回传的事件名）、`label`、`icon`、`placement`，摆放位置见下方「Sheet 动作」。用户取消或超时返回 nil。 |
 | `confirm(title, message, danger)` | title/message: string；danger: boolean | boolean | 二次确认弹窗；danger 时按钮文案为危险样式。取消/超时返回 false。 |
 | `progress(ratio, label)` | ratio: 0.0–1.0；label: string | 无 | 显示顶部进度；label 会同步到自动化看板。 |
-| `show(card, options)` | card: map；options: map 或 nil | 无 | 弹出结果卡片：优先渲染 `markdown` / `text` / `content`，标题取 `title`；都没有时逐行打印键值。不阻塞，`options` 同 `form`。 |
+| `show(root, options)` | root: 节点树；options: map 或 nil | 无 | 非阻塞结果展示；标题使用 options.title，尺寸选项同 form。旧 `{title,markdown}` 保持兼容。 |
 | `automationStatus(label, detail)` | label/detail: string | 无 | 发布当前自动化步骤到悬浮看板；detail 可空。连续重复 label 会去重。 |
 | `isCancelled()` | 无 | boolean | 用户在看板点过「停止」后返回 true；新一轮运行自动复位。 |
 
@@ -576,9 +591,10 @@ local saved = tool.saveBase64(img, "/sdcard/Download/copy.png")
 | `landscape` | boolean | 弹层显示期间宿主把 Activity 方向切到 `FULL_SENSOR`，允许横屏；表单提交/取消后自动还原 `UNSPECIFIED`（不改变用户平时的旋转锁定）。 |
 | `height` | number | 弹层高度占屏幕比例 `0.1–1.0`（`fullscreen=true` 等价于 `height=1`）；不传沿用组件默认（最高约 0.9 屏）。 |
 
-宽屏（宽度 ≥ 600dp，如横屏手机/平板）时表单自动排成两列，`text` / `divider` / `progress` / `button` 仍独占整行；`show` 的内容最大宽度 840dp 居中。
+新节点树按 Column/Row/Box 的嵌套关系排版；Row 子节点需要分配宽度时使用 `ui.Modifier.weight(n)`。
+旧 items 兼容表单在宽度 ≥ 600dp 时仍自动排成两列。
 
-Sheet 动作（`ui.sheet` 与 `web.openLogin` 的 actions，共用一套字段）：
+兼容 Sheet 动作（`ui.sheet` 与 `web.openLogin` 的 actions，共用一套字段；新普通屏幕优先用 `ui.screen`）：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -604,15 +620,17 @@ return { picked = r.event }
 
 ```lua
 -- 全屏 + 横屏的大表单
-local v = ui.form("批量处理", {
-  { type = "input", id = "src", label = "源目录" },
-  { type = "input", id = "dst", label = "输出目录" },
-  { type = "switch", id = "overwrite", label = "覆盖已有文件" }
+local Column, DirPicker, Switch, Markdown = ui.Column, ui.DirPicker, ui.Switch, ui.Markdown
+local v = ui.form("批量处理", Column {
+  DirPicker { id = "src", label = "源目录", required = true },
+  DirPicker { id = "dst", label = "输出目录", required = true },
+  Switch { id = "overwrite", label = "覆盖已有文件", value = false }
 }, { fullscreen = true, landscape = true })
 if not v then return { cancelled = true } end
 
 -- 半屏结果卡片（高度 60%）
-ui.show({ title = "处理结果", markdown = "完成 12 个文件" }, { height = 0.6, landscape = true })
+ui.show(Column { Markdown { text = "完成 12 个文件" } },
+  { title = "处理结果", height = 0.6, landscape = true })
 ```
 
 ```js
@@ -622,7 +640,8 @@ const v = ui.form("批量处理", [
 if (!v) return { cancelled: true };
 ```
 
-表单组件白名单与真实渲染行为（`KhatKitForm`）：
+以下 JS 和旧 items 词表属于 deprecated 兼容 API；JS 暂不注入 Lua 构造器。
+旧表单组件白名单与真实渲染行为（`KhatKitForm`）：
 
 | type | 渲染行为 | 取值 |
 |---|---|---|
@@ -639,10 +658,11 @@ if (!v) return { cancelled: true };
 | `custom` | 按 `renderer` 找宿主注册的渲染器，缺省显示缺失提示 | 取决于渲染器 |
 
 ```lua
-local v = ui.form("压缩图片", {
-  { type = "file_picker", id = "path", label = "图片路径" },
-  { type = "slider", id = "quality", label = "质量", min = 10, max = 100, default = 80 },
-  { type = "switch", id = "overwrite", label = "覆盖原文件" }
+local Column, FilePicker, Slider, Switch = ui.Column, ui.FilePicker, ui.Slider, ui.Switch
+local v = ui.form("压缩图片", Column {
+  FilePicker { id = "path", label = "图片路径", filter = "image", required = true },
+  Slider { id = "quality", label = "质量", min = 10, max = 100, value = 80 },
+  Switch { id = "overwrite", label = "覆盖原文件", value = false }
 })
 if not v then return { cancelled = true } end
 
@@ -652,6 +672,25 @@ end
 ui.progress(0.5, "压缩中…")
 return { output = tool.compressImage(v.path, math.floor(v.quality or 80)) }
 ```
+
+#### 新旧对照与风格扩展
+
+| 旧 UI | 新 UI |
+|---|---|
+| items 中 `type="input"`，`default` | `TextField { value=... }` |
+| switch / number / slider | Switch / NumberField / Slider |
+| select / radio | Select / RadioGroup |
+| file_picker / dir_picker | FilePicker / DirPicker |
+| text / markdown 展示项 | Text / Markdown（后者复用宿主富文本） |
+| `ui.show({title,markdown})` | `ui.show(Column { Markdown {text=...} }, {title=...})` |
+| `ui.sheet` 普通动作 | `ui.screen` 节点树内 Button，读取返回的 event/values |
+
+宿主扩展第三风格的接入面：先在 Kedge 增加 `KedgeStyle.X` 及控件，
+在 khatkit-ui 实现 `XStyleResolver`，调用 `StyleResolvers.register` 注册，
+在 `KhatKitUiStyle` 增加映射，再把新枚举加入组件渲染测试矩阵。
+卡片节点协议和 Lua 构造器无需修改；未注册的风格回退 Material 并只记录一次 warning。
+NodeTree 模型位于 khatkit 运行时模块以避免 khatkit→khatkit-ui 循环依赖；
+渲染器留在 khatkit-ui，Markdown/Image 由 app 注入渲染槽位。
 
 ### 4.3 download（宿主后台下载，L0）
 
@@ -1325,10 +1364,11 @@ local timeoutS = tonumber(args.timeout_s) or 10
 local exact = args.exact == true
 
 if not text or text == "" then
-  local v = ui.form("无障碍点击", {
-    { type = "input", id = "text", label = "要点击的文字" },
-    { type = "number", id = "timeout_s", label = "等待秒数", default = 10 },
-    { type = "switch", id = "exact", label = "精确匹配" }
+  local Column, TextField, NumberField, Switch = ui.Column, ui.TextField, ui.NumberField, ui.Switch
+  local v = ui.form("无障碍点击", Column {
+    TextField { id = "text", label = "要点击的文字", required = true },
+    NumberField { id = "timeout_s", label = "等待秒数", value = 10 },
+    Switch { id = "exact", label = "精确匹配", value = false }
   })
   if not v then return { cancelled = true } end
   text = v.text

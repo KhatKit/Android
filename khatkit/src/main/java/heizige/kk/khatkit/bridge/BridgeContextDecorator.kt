@@ -107,6 +107,14 @@ class ScopedUiBridge(
     private val delegate: UiBridge,
 ) : UiBridge by delegate, ContextAwareBridge {
     override fun isCancelled(): Boolean = delegate.isCancelled() || context.deadline.expired()
+    override fun form(title: String, items: Any, options: Map<String, Any?>?): Map<String, Any?>? =
+        heizige.kk.khatkit.ui.UiBridgeHost.withinBudget(context.deadline.remainingMs()) {
+            delegate.form(title, items, options)
+        }
+    override fun screen(title: String, root: Map<String, Any?>, options: Map<String, Any?>?): Map<String, Any?>? =
+        heizige.kk.khatkit.ui.UiBridgeHost.withinBudget(context.deadline.remainingMs()) {
+            delegate.screen(title, root, options)
+        }
 }
 
 /** 透明 Web 包装器。 */

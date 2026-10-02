@@ -7,11 +7,17 @@ package heizige.kk.khatkit.card
  * CI 用它对 card.json 的 `ui.*.widget` 做校验，未实现的不允许出现在卡片里。
  */
 object UiWidgetVocabulary {
-    val ALLOWED = setOf(
+    val NODES = setOf(
+        "Column", "Row", "Box", "Spacer", "Divider", "Card", "Section",
+        "Text", "Markdown", "Image", "Badge", "ProgressBar", "TextField", "NumberField",
+        "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "Button",
+    )
+    val LEGACY = setOf(
         "text", "input", "number", "switch", "slider", "select", "radio",
         "file_picker", "dir_picker",
         "button", "progress", "markdown", "divider", "custom",
     )
+    val ALLOWED = LEGACY + NODES
 
     val SOURCES = setOf("ai", "ui")
 }

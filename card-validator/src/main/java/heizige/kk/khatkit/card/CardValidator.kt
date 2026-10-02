@@ -238,7 +238,8 @@ object CardValidator {
         }
 
         val declared = manifest.requires.bridges
-        val unknown = declared.filterNot { it in BRIDGES }
+        val dependencyBridges = manifest.requires.dependencies.map { it.name }.toSet()
+        val unknown = declared.filterNot { it in BRIDGES || it in dependencyBridges }
         if (unknown.isNotEmpty()) {
             error("BRIDGE_UNKNOWN", "声明了未知 bridge：$unknown")
         }
