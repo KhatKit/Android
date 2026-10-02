@@ -86,6 +86,15 @@ fun WebDavTab(
     val backupItemsState by vm.webDavBackupItems.collectAsStateWithLifecycle()
     val toaster = LocalToaster.current
     val context = LocalContext.current
+
+    val backupPageConnectionSuccess = stringResource(R.string.backup_page_connection_success)
+    val backupPageConnectionFailed = stringResource(R.string.backup_page_connection_failed)
+    val backupPageBackupSuccess = stringResource(R.string.backup_page_backup_success)
+    val backupPageUnknownError = stringResource(R.string.backup_page_unknown_error)
+    val backupPageDeleteSuccess = stringResource(R.string.backup_page_delete_success)
+    val backupPageDeleteFailed = stringResource(R.string.backup_page_delete_failed)
+    val backupPageRestoreSuccess = stringResource(R.string.backup_page_restore_success)
+    val backupPageRestoreFailed = stringResource(R.string.backup_page_restore_failed)
     val scope = rememberCoroutineScope()
     var showBackupFiles by remember { mutableStateOf(false) }
     var restoringItemId by remember { mutableStateOf<String?>(null) }
@@ -241,16 +250,13 @@ fun WebDavTab(
                         try {
                             vm.testWebDav()
                             Toast.show(
-                                context.getString(R.string.backup_page_connection_success),
+                                backupPageConnectionSuccess,
                                 isError = false
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()
                             Toast.show(
-                                context.getString(
-                                    R.string.backup_page_connection_failed,
-                                    e.message ?: ""
-                                ),
+                                String.format(backupPageConnectionFailed, e.message ?: ""),
                                 isError = true
                             )
                         }
@@ -277,13 +283,13 @@ fun WebDavTab(
                             vm.backup()
                             vm.loadBackupFileItems()
                             Toast.show(
-                                context.getString(R.string.backup_page_backup_success),
+                                backupPageBackupSuccess,
                                 isError = false
                             )
                         }.onFailure {
                             it.printStackTrace()
                             Toast.show(
-                                it.message ?: context.getString(R.string.backup_page_unknown_error),
+                                it.message ?: backupPageUnknownError,
                                 isError = true
                             )
                         }
@@ -346,17 +352,14 @@ fun WebDavTab(
                                         runCatching {
                                             vm.deleteWebDavBackupFile(item)
                                             Toast.show(
-                                                context.getString(R.string.backup_page_delete_success),
+                                                backupPageDeleteSuccess,
                                                 isError = false
                                             )
                                             vm.loadBackupFileItems()
                                         }.onFailure { err ->
                                             err.printStackTrace()
                                             Toast.show(
-                                                context.getString(
-                                                    R.string.backup_page_delete_failed,
-                                                    err.message ?: ""
-                                                ),
+                                                String.format(backupPageDeleteFailed, err.message ?: ""),
                                                 isError = true
                                             )
                                         }
@@ -368,7 +371,7 @@ fun WebDavTab(
                                         runCatching {
                                             vm.restore(item = restoreItem)
                                             Toast.show(
-                                                context.getString(R.string.backup_page_restore_success),
+                                                backupPageRestoreSuccess,
                                                 isError = false
                                             )
                                             showBackupFiles = false
@@ -376,10 +379,7 @@ fun WebDavTab(
                                         }.onFailure { err ->
                                             err.printStackTrace()
                                             Toast.show(
-                                                context.getString(
-                                                    R.string.backup_page_restore_failed,
-                                                    err.message ?: ""
-                                                ),
+                                                String.format(backupPageRestoreFailed, err.message ?: ""),
                                                 isError = true
                                             )
                                         }

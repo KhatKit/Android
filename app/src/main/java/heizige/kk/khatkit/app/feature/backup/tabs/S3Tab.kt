@@ -87,6 +87,15 @@ fun S3Tab(
     val backupItemsState by vm.s3BackupItems.collectAsStateWithLifecycle()
     val toaster = LocalToaster.current
     val context = LocalContext.current
+
+    val backupPageConnectionSuccess = stringResource(R.string.backup_page_connection_success)
+    val backupPageConnectionFailed = stringResource(R.string.backup_page_connection_failed)
+    val backupPageBackupSuccess = stringResource(R.string.backup_page_backup_success)
+    val backupPageUnknownError = stringResource(R.string.backup_page_unknown_error)
+    val backupPageDeleteSuccess = stringResource(R.string.backup_page_delete_success)
+    val backupPageDeleteFailed = stringResource(R.string.backup_page_delete_failed)
+    val backupPageRestoreSuccess = stringResource(R.string.backup_page_restore_success)
+    val backupPageRestoreFailed = stringResource(R.string.backup_page_restore_failed)
     val scope = rememberCoroutineScope()
     var showBackupFiles by remember { mutableStateOf(false) }
     var restoringItemId by remember { mutableStateOf<String?>(null) }
@@ -260,16 +269,13 @@ fun S3Tab(
                         try {
                             vm.testS3()
                             Toast.show(
-                                context.getString(R.string.backup_page_connection_success),
+                                backupPageConnectionSuccess,
                                 isError = false
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()
                             Toast.show(
-                                context.getString(
-                                    R.string.backup_page_connection_failed,
-                                    e.message ?: ""
-                                ),
+                                String.format(backupPageConnectionFailed, e.message ?: ""),
                                 isError = true
                             )
                         }
@@ -297,13 +303,13 @@ fun S3Tab(
                             vm.backupToS3()
                             vm.loadS3BackupFileItems()
                             Toast.show(
-                                context.getString(R.string.backup_page_backup_success),
+                                backupPageBackupSuccess,
                                 isError = false
                             )
                         }.onFailure {
                             it.printStackTrace()
                             Toast.show(
-                                it.message ?: context.getString(R.string.backup_page_unknown_error),
+                                it.message ?: backupPageUnknownError,
                                 isError = true
                             )
                         }
@@ -366,17 +372,14 @@ fun S3Tab(
                                         runCatching {
                                             vm.deleteS3BackupFile(item)
                                             Toast.show(
-                                                context.getString(R.string.backup_page_delete_success),
+                                                backupPageDeleteSuccess,
                                                 isError = false
                                             )
                                             vm.loadS3BackupFileItems()
                                         }.onFailure { err ->
                                             err.printStackTrace()
                                             Toast.show(
-                                                context.getString(
-                                                    R.string.backup_page_delete_failed,
-                                                    err.message ?: ""
-                                                ),
+                                                String.format(backupPageDeleteFailed, err.message ?: ""),
                                                 isError = true
                                             )
                                         }
@@ -388,7 +391,7 @@ fun S3Tab(
                                         runCatching {
                                             vm.restoreFromS3(item = restoreItem)
                                             Toast.show(
-                                                context.getString(R.string.backup_page_restore_success),
+                                                backupPageRestoreSuccess,
                                                 isError = false
                                             )
                                             showBackupFiles = false
@@ -396,10 +399,7 @@ fun S3Tab(
                                         }.onFailure { err ->
                                             err.printStackTrace()
                                             Toast.show(
-                                                context.getString(
-                                                    R.string.backup_page_restore_failed,
-                                                    err.message ?: ""
-                                                ),
+                                                String.format(backupPageRestoreFailed, err.message ?: ""),
                                                 isError = true
                                             )
                                         }
