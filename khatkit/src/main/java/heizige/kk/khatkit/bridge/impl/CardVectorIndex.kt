@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.bridge.impl
 
 import heizige.kk.khatkit.bridge.ApprovalGate
+import heizige.kk.khatkit.bridge.RunDeadline
 
 /** 宿主侧的向量化能力；`khatkit` 不依赖 `app`，由宿主实现本接口并注入。 */
 fun interface EmbeddingEngine {
@@ -15,7 +16,8 @@ data class StoreRequest(
     /** 方法级权限：向量检索复用 `ai.chat` 的审批策略（同样是花钱的模型调用）。 */
     val permissions: Map<String, String> = emptyMap(),
     val approvalGate: ApprovalGate? = null,
-    val deadlineAt: Long = 0L,
+    /** 与 bridge 派发共享同一份运行超时句柄。 */
+    val deadline: RunDeadline = RunDeadline(),
 )
 
 /** 一条向量命中（`store.embedSearch` 的返回行）。 */

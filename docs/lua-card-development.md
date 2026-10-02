@@ -1215,7 +1215,7 @@ checked N card(s), M error(s)
 AI 工具列表有 5 分钟索引缓存和最多 20 张候选卡片限制；重新进入聊天/重启生成会刷新。未声明 `triggers: ["ai"]` 的卡片不会暴露。
 
 **Q：表单没弹出来。**
-`ui.form` 由脚本主动调用；AI 已填参时应跳过表单。事件触发在后台运行时表单会等待用户回到应用（300 秒超时返回 nil），无人值守场景请勿依赖 UI。`file_picker` / `dir_picker` 的「浏览」按钮同样是阻塞 UI：后台运行时用户看不到选择器，此时请给 `id` 一个 `default`，或改用 `mediaPicker.pickMedia` 之外的路径约定。
+`ui.form` 由脚本主动调用；AI 已填参时应跳过表单。事件触发在后台运行时表单会等待用户回到应用（300 秒超时返回 nil），无人值守场景请勿依赖 UI。另外**表单等待计入超时预算**：设置了 `host.setTimeout(ms)` 的话，用户在表单上停留过久，提交后下一次 bridge 调用就会拿到「卡片运行超时」。`file_picker` / `dir_picker` 的「浏览」按钮同样是阻塞 UI：后台运行时用户看不到选择器，此时请给 `id` 一个 `default`，或改用 `mediaPicker.pickMedia` 之外的路径约定。
 
 **Q：`tool.readText` 返回了 table 而不是字符串。**
 说明调用失败，返回的是 `{__error = "..."}`。先 `type(res) == "table" and res.__error` 检查。共享存储路径需要「所有文件访问」。

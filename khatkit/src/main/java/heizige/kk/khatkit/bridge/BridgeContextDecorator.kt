@@ -77,8 +77,14 @@ class ScopedTimeBridge(
 
 class ScopedHostBridge(
     override val context: BridgeContext,
-    delegate: HostBridge,
-) : HostBridge by delegate, ContextAwareBridge
+    private val delegate: HostBridge,
+) : HostBridge by delegate, ContextAwareBridge {
+    /** `setTimeout` 必须落到本轮运行的 deadline 上，delegate 的字段是进程级的、跨运行共享。 */
+    override fun setTimeout(ms: Int) {
+        context.deadline.set(ms)
+        delegate.setTimeout(ms)
+    }
+}
 
 class ScopedSystemBridge(
     override val context: BridgeContext,
@@ -95,11 +101,13 @@ class ScopedMediaPickerBridge(
     delegate: MediaPickerBridge,
 ) : MediaPickerBridge by delegate, ContextAwareBridge
 
-/** 透明 UI 包装器。 */
+/** UI 包装器；超时后 `isCancelled()` 直接返回 true，脚本能在长循环里尽快退出。 */
 class ScopedUiBridge(
     override val context: BridgeContext,
-    delegate: UiBridge,
-) : UiBridge by delegate, ContextAwareBridge
+    private val delegate: UiBridge,
+) : UiBridge by delegate, ContextAwareBridge {
+    override fun isCancelled(): Boolean = delegate.isCancelled() || context.deadline.expired()
+}
 
 /** 透明 Web 包装器。 */
 class ScopedWebBridge(

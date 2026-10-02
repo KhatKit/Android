@@ -133,10 +133,7 @@ class FileStoreBridge(
     }
 
     private fun ensureNotTimedOut() {
-        val deadline = request.deadlineAt
-        if (deadline > 0 && deadline <= System.currentTimeMillis()) {
-            throw IllegalStateException("卡片运行超时，已终止")
-        }
+        if (request.deadline.expired()) throw IllegalStateException("卡片运行超时，已终止")
     }
 
     private fun safeNamespace(table: String): String? =

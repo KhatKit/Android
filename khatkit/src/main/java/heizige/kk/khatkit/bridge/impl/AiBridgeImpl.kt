@@ -139,9 +139,8 @@ private class RunScopedAiBridge(
     /** 单次调用超时取 `timeoutSeconds` 与卡片运行剩余预算的较小值。 */
     private fun budget(timeoutSeconds: Int): Long {
         val seconds = timeoutSeconds.coerceIn(1, MAX_TIMEOUT_SECONDS).toLong() * 1000
-        val remaining = context.deadlineAt.takeIf { it > 0 }?.minus(System.currentTimeMillis())
-        require(remaining == null || remaining > 0) { "卡片运行超时，已终止" }
-        return minOf(seconds, remaining ?: seconds)
+        require(!context.deadline.expired()) { "卡片运行超时，已终止" }
+        return minOf(seconds, context.deadline.remainingMs())
     }
 
     private companion object {

@@ -148,7 +148,7 @@ class BridgeRegistry(
                         quotaMb = manifest.store.quotaMb,
                         permissions = context.permissions,
                         approvalGate = approvalGate,
-                        deadlineAt = deadlineAt,
+                        deadline = context.deadline,
                     ),
                 )
                 "shizuku" -> shizuku

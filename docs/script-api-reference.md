@@ -154,10 +154,10 @@
 |---|---|---|
 | `host.info()` | table | `{appVersion, osVersion, sdkInt, engine}`。 |
 | `host.card()` | table | 当前卡片的名称、版本、作者和标签。 |
-| `host.health()` | table | root、Shizuku、无障碍、所有文件访问等能力状态。 |
+| `host.health()` | table | root、Shizuku、无障碍、所有文件访问、平台 SQLite 是否支持 FTS5 等能力状态。 |
 | `host.capabilities()` | string[] | 当前可用 bridge 名称。 |
 | `host.log(level, message)` | 无 | 写入宿主日志，level 支持 debug/info/warn/error。 |
-| `host.setTimeout(ms)` | 无 | 设置卡片运行超时预算；0 表示不限时。 |
+| `host.setTimeout(ms)` | 无 | 设置本次运行的超时预算（从此刻起算毫秒，0 = 不限）；到点后所有 bridge 调用返回 `{"__error":"卡片运行超时，已终止"}`，`ui.isCancelled()` 同时返回 true。 |
 | `host.elapsedMs()` | number | 当前卡片运行已耗时毫秒数。 |
 
 ## 3.7 system（L0）

@@ -14,6 +14,7 @@
 - `store.sql` 落地：卡片可用 SQLite 自管表结构（每张卡片一个 `databases/cards/<卡片名>.db`，与宿主聊天库隔离），支持运行期 `CREATE TABLE`、参数绑定、FTS5 能力位（`host.health().fts5`，不支持时用 `LIKE`）；禁止 `ATTACH` / `VACUUM` 等跨库跨文件语句，占用计入 `store.quota_mb`。旧 `dbQuery` / `dbInsert` 保持不变。
 - 新增卡片向量检索：`store.embedInsert` / `store.embedSearch`（每张卡片一个索引，与 `store.sql` 同库，暴力余弦相似度），使用用户已配置的 embedding 模型，审批策略与 `ai.chat` 一致。
 - 新增 `schedule` bridge：卡片脚本可自建定时任务（`every` / `at` / `cancel` / `list`），jobId 按卡片隔离、卸载自动取消；调度走 WorkManager 一次性任务链，不保证准点（准点请用 manifest 的 schedule 事件）。
+- 卡片运行超时真正生效：`host.setTimeout(ms)` 改写本轮运行的 deadline，`RustBridgeDispatcher` 在每次 dispatch 前比对，超时后所有 bridge 调用返回「卡片运行超时，已终止」且 `ui.isCancelled()` 变为 true（并发运行互不干扰）。
 - 文档对齐实际实现：事件触发按 `CardManifest.ALL_EVENT_TYPES` 的 18 种对齐（补 notification_click / notification_reply / app_exit / app_install / app_uninstall / shortcut / tile），依赖包文档补「现状与边界」（撤销后不自动清理、依赖不能声明依赖与权限、非 imageToolbox 依赖只有通用调用面）。
 
 ## 2.5.2（2026-09-18）

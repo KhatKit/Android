@@ -19,7 +19,13 @@ data class BridgeContext(
     val approvalGate: ApprovalGate? = null,
     /** 运行硬超时（epoch ms）；0 = 不限。 */
     val deadlineAt: Long = 0L,
-)
+) {
+    /**
+     * 运行超时的可变句柄：初始值取 [deadlineAt]，脚本调 `host.setTimeout(ms)` 后改写它。
+     * 每轮运行一份，所以并发运行互不干扰。
+     */
+    val deadline: RunDeadline = RunDeadline(deadlineAt)
+}
 
 /** 同步审批闸门。实现可以阻塞等待宿主的审批结果。 */
 fun interface ApprovalGate {
