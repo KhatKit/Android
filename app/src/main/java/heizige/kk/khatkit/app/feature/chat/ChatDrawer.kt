@@ -1,10 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -13,7 +10,6 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.download
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,20 +37,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.kedge.overlays.KedgeEditDialog
 import heizige.kk.khromia.components.EditFieldConfig
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -89,11 +80,9 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.Folder
-import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.hub.HubAccountInfo
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPicker
 import heizige.kk.khatkit.app.core.ui.components.ui.BackupReminderCard
-import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.components.ui.UpdateCard
 import androidx.compose.ui.draw.clip
@@ -103,7 +92,6 @@ import heizige.kk.khatkit.app.core.ui.hooks.readBooleanPreference
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsPlayStoreVersion
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
-import heizige.kk.khatkit.app.core.util.toDp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
@@ -138,6 +126,8 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.statusBars
 import heizige.kk.kedge.components.KedgeSurface
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 
 @Composable
 fun ChatDrawerContent(
@@ -514,65 +504,24 @@ fun ChatDrawerContent(
                             onClick = { navController.navigate(Screen.Backup) },
                         )
 
-                        if (folders.isNotEmpty()) {
-                            FolderSection(
-                                folders = folders,
-                                onClickFolder = { folder ->
-                                    if (drawerState != null) {
-                                        scope.launch { drawerState.close() }
-                                    }
-                                    navController.navigate(Screen.FolderDetail(folder.id.toString()))
-                                },
-                                onRename = { folderToRename = it },
-                                onDelete = { folderToDelete = it },
-                                // 文件夹区与「新建文件夹」按钮之间留一档间距：header 是
-                                // 列表里的单个 item，内部的 spacedBy 管不到这里。
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
-                        }
-
-                        // 整宽浅色卡片（surfaceContainer），不是实心主色按钮——
-                        // 抽屉里已经有实心按钮了，这里再一个会互相抢视觉。
-                        val layoutDirection = LocalLayoutDirection.current
-                        val basePadding = KedgeButtonDefaults.ContentPadding
-                        KedgeButton(
-                            onClick = { showCreateFolderDialog = true },
-                            // 文字离背景边缘再远一点：默认 vertical 10dp，这里 +50% 到
-                            // 15dp。水平方向保持默认——按钮是 fillMaxWidth 且内容居中，
-                            // 水平 padding 对居中内容没有视觉影响，只会缩小可用宽度。
-                            contentPadding = PaddingValues(
-                                start = basePadding.calculateStartPadding(layoutDirection),
-                                end = basePadding.calculateEndPadding(layoutDirection),
-                                top = basePadding.calculateTopPadding() * 1.5f,
-                                bottom = basePadding.calculateBottomPadding() * 1.5f,
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 8.dp),
-                            variant = KedgeButtonVariant.Secondary,
-                            shapes = ButtonDefaults.shapes(RoundedCornerShape(12.dp)),
-                            miuixCornerRadius = 12.dp,
-                            // 同上：Secondary 默认色太淡，这里加深一档
-                            colors = KedgeDrawerButtonColors.md3(),
-                            miuixColors = KedgeDrawerButtonColors.miuix(),
-                        ) {
-                            // 图标 + 文案整体居中（对齐 KernelSU 抽屉的「新建文件夹」）
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    createNewFolder,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(R.string.chat_page_create_folder),
-                                    style = KedgeTextStyles.bodyLarge(),
-                                )
-                            }
-                        }
+                        // 文件夹与「新建文件夹」是同一组（Miuix 下零间距、首末圆角，
+                        // 圆角收口全靠这最后一组），所以它总是要出现——即使一个文件夹
+                        // 都没有，也要渲染出那一行「新建文件夹」。组底留 8dp 断开与
+                        // 会话列表的间距（header 是列表里的单个 item，内部的
+                        // spacedBy 管不到这里）。
+                        FolderSection(
+                            folders = folders,
+                            onClickFolder = { folder ->
+                                if (drawerState != null) {
+                                    scope.launch { drawerState.close() }
+                                }
+                                navController.navigate(Screen.FolderDetail(folder.id.toString()))
+                            },
+                            onRename = { folderToRename = it },
+                            onDelete = { folderToDelete = it },
+                            onCreateFolder = { showCreateFolderDialog = true },
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
                     },
                     modifier = Modifier.fillMaxSize(),
                     onClick = {
@@ -916,14 +865,65 @@ private val DrawerBottomBarHeight = 80.dp
 
 private val FolderRowShape = RoundedCornerShape(16.dp)
 
+private val FolderCorner = 16.dp
+
+/**
+ * Miuix 组内圆角：**只有第一项上圆角、最后一项下圆角，中间项直角**，项与项之间
+ * 不留间距（卡片之间本来就有 8dp 圆角，硬拼成方角会在接缝处露出两个小缺口）。
+ */
+private fun folderGroupShape(index: Int, count: Int): RoundedCornerShape = RoundedCornerShape(
+    topStart = if (index == 0) FolderCorner else 0.dp,
+    topEnd = if (index == 0) FolderCorner else 0.dp,
+    bottomStart = if (index == count - 1) FolderCorner else 0.dp,
+    bottomEnd = if (index == count - 1) FolderCorner else 0.dp,
+)
+
+/**
+ * 抽屉里的文件夹区。
+ *
+ * Miuix 下「文件夹行 + 新建文件夹行」是**同一组**：组内零间距，首项上圆角、
+ * 末项（新建文件夹）下圆角、中间项直角。为此这里不能再套一层限高 156dp 的
+ * LazyColumn —— 内层滚动会把「最后一项」滚出可视区，方角与圆角就接不上了；
+ * 抽屉本身可滚，文件夹多的时候跟着抽屉一起滚即可。
+ *
+ * MD3 保持原来的观感：文件夹行各自圆角、行间 6dp，新建文件夹是独立的整宽按钮。
+ */
 @Composable
 private fun FolderSection(
     folders: List<Folder>,
     onClickFolder: (Folder) -> Unit,
     onRename: (Folder) -> Unit,
     onDelete: (Folder) -> Unit,
+    onCreateFolder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+
+    if (isMiuix) {
+        // 新建文件夹也算一项，所以 count 要 +1
+        val count = folders.size + 1
+        Column(modifier = modifier.fillMaxWidth()) {
+            folders.forEachIndexed { index, folder ->
+                FolderRow(
+                    folder = folder,
+                    shape = folderGroupShape(index, count),
+                    onClick = { onClickFolder(folder) },
+                    onRename = { onRename(folder) },
+                    onDelete = { onDelete(folder) },
+                )
+            }
+            CreateFolderButton(
+                onClick = onCreateFolder,
+                modifier = Modifier.fillMaxWidth(),
+                // 并入文件夹组：末项直角 + 下圆角由外层 clip 收口，按钮自身的
+                // Miuix 圆角设 0，避免内外两套圆角打架。
+                miuixCornerRadius = 0.dp,
+                modifierClip = folderGroupShape(count - 1, count),
+            )
+        }
+        return
+    }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -938,68 +938,149 @@ private fun FolderSection(
                 items(folders, key = { it.id }) { folder ->
                     var menuExpanded by remember { mutableStateOf(false) }
                     Box(modifier = Modifier.animateItem()) {
-                        KedgeSurface(
+                        FolderRow(
+                            folder = folder,
                             shape = FolderRowShape,
-                            color = MaterialTheme.colorScheme.surfaceContainer,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(FolderRowShape)
-                                .combinedClickable(
-                                    onClick = { onClickFolder(folder) },
-                                    onLongClick = { menuExpanded = true },
-                                ),
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Icon(
-                                    folderIcon,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Text(
-                                    text = folder.name,
-                                    style = KedgeTextStyles.body(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Icon(
-                                    chevronRight,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        }
-                        KedgeDropdownMenuSlots(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            KedgeDropdownItemSlot(
-                                text = { Text(stringResource(R.string.chat_page_rename)) },
-                                leadingIcon = { Icon(edit, null) },
-                                onClick = {
-                                    onRename(folder)
-                                    menuExpanded = false
-                                }
-                            )
-                            KedgeDropdownItemSlot(
-                                text = { Text(stringResource(R.string.chat_page_delete)) },
-                                leadingIcon = { Icon(delete, null) },
-                                onClick = {
-                                    onDelete(folder)
-                                    menuExpanded = false
-                                }
-                            )
-                        }
+                            onClick = { onClickFolder(folder) },
+                            onRename = {
+                                menuExpanded = false
+                                onRename(folder)
+                            },
+                            onDelete = {
+                                menuExpanded = false
+                                onDelete(folder)
+                            },
+                        )
                     }
                 }
+            }
+        }
+
+        // MD3：整宽浅色卡片（surfaceContainer），不是实心主色按钮——
+        // 抽屉里已经有实心按钮了，这里再一个会互相抢视觉。
+        CreateFolderButton(
+            onClick = onCreateFolder,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun FolderRow(
+    folder: Folder,
+    shape: Shape,
+    onClick: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        KedgeSurface(
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { menuExpanded = true },
+                ),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    folderIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = folder.name,
+                    style = KedgeTextStyles.body(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    chevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        KedgeDropdownMenuSlots(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            KedgeDropdownItemSlot(
+                text = { Text(stringResource(R.string.chat_page_rename)) },
+                leadingIcon = { Icon(edit, null) },
+                onClick = onRename,
+            )
+            KedgeDropdownItemSlot(
+                text = { Text(stringResource(R.string.chat_page_delete)) },
+                leadingIcon = { Icon(delete, null) },
+                onClick = onDelete,
+            )
+        }
+    }
+}
+
+/**
+ * 抽屉里的「新建文件夹」按钮：配色与大小一直沿用原来那个 Secondary 整宽按钮
+ * （[KedgeDrawerButtonColors] 加深一档 + 15dp 竖向内边距），Miuix 下并入文件夹组
+ * 只需要外层 [modifierClip] 收口。
+ */
+@Composable
+private fun CreateFolderButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    miuixCornerRadius: Dp = 12.dp,
+    modifierClip: Shape? = null,
+) {
+    val layoutDirection = LocalLayoutDirection.current
+    val basePadding = KedgeButtonDefaults.ContentPadding
+    Box(modifier = modifier.then(modifierClip?.let { Modifier.clip(it) } ?: Modifier)) {
+        KedgeButton(
+            onClick = onClick,
+            // 文字离背景边缘再远一点：默认 vertical 10dp，这里 +50% 到
+            // 15dp。水平方向保持默认——按钮是 fillMaxWidth 且内容居中，
+            // 水平 padding 对居中内容没有视觉影响，只会缩小可用宽度。
+            contentPadding = PaddingValues(
+                start = basePadding.calculateStartPadding(layoutDirection),
+                end = basePadding.calculateEndPadding(layoutDirection),
+                top = basePadding.calculateTopPadding() * 1.5f,
+                bottom = basePadding.calculateBottomPadding() * 1.5f,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            variant = KedgeButtonVariant.Secondary,
+            shapes = ButtonDefaults.shapes(RoundedCornerShape(12.dp)),
+            miuixCornerRadius = miuixCornerRadius,
+            // 同上：Secondary 默认色太淡，这里加深一档
+            colors = KedgeDrawerButtonColors.md3(),
+            miuixColors = KedgeDrawerButtonColors.miuix(),
+        ) {
+            // 图标 + 文案整体居中（对齐 KernelSU 抽屉的「新建文件夹」）
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    createNewFolder,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.chat_page_create_folder),
+                    style = KedgeTextStyles.bodyLarge(),
+                )
             }
         }
     }
