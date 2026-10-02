@@ -158,7 +158,7 @@ return { message: "Hello, " + name };
 | `parameters` | object | `{}` | 否 | 标准 JSON Schema，AI 填参依据，见 2.5。 |
 | `ui` | object | `{}` | 否 | 参数 UI 声明（CI 白名单校验），见 2.5。 |
 | `triggers` | array | `["ai","user"]` | 否 | `ai` / `user`，不允许空数组、重复或未知值，见 2.8。 |
-| `events` | array | `[]` | 否 | 事件触发声明，11 种类型，见 2.9。 |
+| `events` | array | `[]` | 否 | 事件触发声明，18 种类型，见 2.9。 |
 | `tags` | object | null | **是** | `{ "domain": ..., "action": ..., "scene": ... }`，词表见 2.6；缺失报 `TAGS_MISSING`。 |
 | `compliance` | object | null | 条件 | `{ "risk": "low|medium|high", "note": "..." }`；`tags.domain == "game"` 时必填。 |
 | `store` | object | `{ "quota_mb": 50, "secret": false }` | 否 | 卡片存储配额（file + db 合计）与敏感标记；`quota_mb` 最小按 1MB 生效。 |
@@ -290,7 +290,7 @@ return { message: "Hello, " + name };
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `type` | string | 必填，仅 11 种取值（下表）；未知报 `EVENT_TYPE_UNKNOWN`。 |
+| `type` | string | 必填，仅 18 种取值（下表）；未知报 `EVENT_TYPE_UNKNOWN`。 |
 | `times` | string[] | schedule 专用，严格 `HH:mm`（`00:00`–`23:59`）。 |
 | `intervalMinutes` | int | schedule 专用，间隔分钟数，与 `times` 二选一。 |
 | `days` | int[] | schedule 专用，1=周一 … 7=周日；空 = 每天。 |
@@ -305,7 +305,7 @@ return { message: "Hello, " + name };
 | `lat` / `lon` | double | location 圆心纬度 `[-90,90]` / 经度 `[-180,180]`。 |
 | `radius_m` | int | location 半径（米，≥1）。 |
 
-#### 11 种事件类型：匹配、校验与参数
+#### 18 种事件类型：匹配、校验与参数
 
 | type | 必填/校验 | 运行时匹配 | `args.event` 字段 |
 |---|---|---|---|
@@ -320,6 +320,15 @@ return { message: "Hello, " + name };
 | `clipboard` | `text_contains` / `textContains` 必填，否则 `EVENT_CLIPBOARD_EMPTY` | 每 2 秒轮询剪贴板，新文本包含关键字（忽略大小写）触发；Android 10+ 后台读取受限会静默跳过 | `type`, `text` |
 | `bluetooth` | `state` 必须是 `connected` / `disconnected`，否则 `EVENT_BLUETOOTH_STATE_INVALID` | 蓝牙 ACL 连接/断开广播；`device` 空 = 任意，否则设备名包含（忽略大小写）；API 31+ 需要 `BLUETOOTH_CONNECT` | `type`, `state`, `device` |
 | `location` | `state` 必须是 `enter` / `exit`（否则 `EVENT_LOCATION_STATE_INVALID`）；`lat`/`lon` 必填且范围合法；`radius_m ≥ 1` | 每 60 秒取一次最近位置（GPS/网络）；每个事件独立维护内外状态，**首次采样只记基线**，之后按 enter/exit 方向在边界转换时触发 | `type`, `state`, `lat`, `lon`（当前坐标） |
+| `notification_click` | 与 `notification` 相同：`package` / `titleContains` / `textContains` 不能全空，否则 `EVENT_NOTIFICATION_CLICK_EMPTY` | 通知被移除且 reason 为「用户点击」；匹配语义同 `notification` | `type`, `package`, `title`, `text` |
+| `notification_reply` | `package` 必填，否则 `EVENT_NOTIFICATION_REPLY_PACKAGE_REQUIRED`；`titleContains` / `textContains` 针对恢复出来的文本 | **启发式**：用户点击带 RemoteInput 的通知后，同包名在短窗口内到达的下一条通知视为一次直接回复；拿不到回复原文，也无法区分是否真的发送成功 | `type`, `package`, `title`, `text` |
+| `app_exit` | `package` 必填，否则 `EVENT_APP_EXIT_PACKAGE_REQUIRED` | 无障碍轮询前台包名，**防抖确认后仍未回前台**才派发（避免切屏/系统弹层误报） | `type`, `package` |
+| `app_install` | 无（`package` 留空 = 任意应用） | `PACKAGE_ADDED` 广播；应用升级（`EXTRA_REPLACING`）不触发 | `type`, `package` |
+| `app_uninstall` | 无（`package` 留空 = 任意应用） | `PACKAGE_REMOVED` 广播；应用升级不触发 | `type`, `package` |
+| `shortcut` | `name` 必填（快捷方式显示名称），否则 `EVENT_SHORTCUT_NAME_REQUIRED` | 桌面快捷方式（宿主为每个声明的 `shortcut` 事件发布一枚快捷方式）；点击后运行卡片 | `type`, `name` |
+| `tile` | `name` 必填（磁贴显示名称），否则 `EVENT_TILE_NAME_REQUIRED` | 快捷设置磁贴（`TriggerTileService` 为每个声明的 `tile` 事件同步一枚磁贴）；点击后运行卡片 | `type`, `name` |
+
+快捷方式 / 磁贴类事件的 `package` / `titleContains` 等字段不参与匹配；它们靠 `name` 区分同一卡片上的多条声明。
 
 脚本读取事件参数：
 
@@ -1427,6 +1436,13 @@ return {
 | clipboard | `type`, `text` |
 | bluetooth | `type`, `state`, `device` |
 | location | `type`, `state`（enter/exit）, `lat`, `lon` |
+| notification_click | `type`, `package`, `title`, `text` |
+| notification_reply | `type`, `package`, `title`, `text`（回复原文为启发式还原） |
+| app_exit | `type`, `package` |
+| app_install | `type`, `package` |
+| app_uninstall | `type`, `package` |
+| shortcut | `type`, `name` |
+| tile | `type`, `name` |
 
 空值字段不会出现在 `args.event` 里（例如通知没有标题时没有 `title` 键），脚本访问前先判空。
 
@@ -1435,7 +1451,7 @@ return {
 | 能力 | 权限或设置 | 相关 API 示例 |
 |---|---|---|
 | 共享存储读写 | 所有文件访问 | `tool.readText`、`captureScreen`、`ocrText` |
-| 网络 | `network.allow` 白名单（运行时直连） | `tool.httpGet/httpPost/httpMultipart` |
+| 网络 | `network.allow` 白名单（运行时逐请求校验） | `net.get/net.post/net.multipart`（旧 `tool.http*` 已废弃） |
 | 剪贴板 | 应用前台时可用 | `tool.setClipboard/getClipboard`、`accessibility.paste` |
 | 点亮屏幕 | `WAKE_LOCK`（部分 ROM 拦截） | `tool.wakeScreen` |
 | 无障碍 | 系统设置开启服务 | `accessibility.*` |

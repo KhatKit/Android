@@ -256,11 +256,32 @@ Gradle 任务细节：`buildDependencyDex` 依赖 `:image-toolbox-dependency:ass
 `classes.jar` 交给 D8（`$ANDROID_HOME/build-tools/*/d8 --min-api 26`），jar 条目时间戳固定为 0，
 保证同源码重复构建产物字节一致（sha256 稳定）。
 
-## 7. 已知边界 / TODO
+## 7. 现状与边界（写给卡片作者）
 
-- 依赖卸载/版本回收：服务端已支持 `disable`（410 停止下发，别名 `revoke`）与 `enable`（回滚，别名 `activate`），
-  但客户端 `filesDir/dependencies` 下按 name/version 的 jar 无自动清理策略；
-  后续可按「最近 1 个版本 + 30 天」清理（已加载到内存的 revoked 版本需重启进程才彻底失效）。
-- 依赖间依赖、权限声明（如 MANAGE_EXTERNAL_STORAGE 申请入口）由宿主统一提供，依赖不单独声明。
-- 非 imageToolbox 依赖若只实现 `KhatKitDependency`，脚本只能用 `call/availableMethods`；
-  需要类型化 API 时在宿主侧新增接口并由依赖实现（与本文件所述 imageToolbox 相同）。
+这一节记录**当前版本的实际行为**，不是待办清单。写卡片时按这里的约束来。
+
+### 7.1 卸载与版本回收
+
+- 服务端侧已经可用：`disable`（410 停止下发，别名 `revoke`）与 `enable`（回滚，别名 `activate`）；
+  被 disable 的版本会**立即停止下发**，客户端下次取索引就拿不到它。
+- 客户端侧**没有自动清理**：已下载的 `filesDir/dependencies/<name>/<version>/` jar 会一直留在磁盘上，
+  直到用户清理应用数据或卸载。占用通常只有几百 KB 到几 MB，属于有意接受的取舍。
+- **已经加载进内存的 dex 不会因为 revoke 立刻失效**：bridge 实例由 `DexClassLoader` 持有，
+  撤销后最坏要重启进程才会彻底卸载该版本。想立刻生效就提示用户重启应用。
+- 想在设备上腾空间：系统「设置 → 应用 → 存储 → 清除缓存」不会动这里（依赖不在缓存目录），
+  只能用「清除数据」（会连带清掉已安装卡片）或卸载应用。
+
+### 7.2 依赖不能声明依赖与权限
+
+- 一个依赖包**不能再声明自己的依赖**，也不带权限声明清单；它用到的能力必须由宿主提供。
+- 因此依赖需要 MANAGE_EXTERNAL_STORAGE、Shizuku、无障碍等权限时，只能写宿主侧实现或依赖已有系统权限；
+  权限申请入口（如「所有文件访问」引导）由宿主统一提供，依赖无法自己弹。
+- 依赖源码复用宿主的依赖包模板（`buildDependencyDex` 任务 + 固定时间戳保证 sha256 稳定）。
+
+### 7.3 非 imageToolbox 依赖只有通用调用面
+
+- 只实现 `KhatKitDependency` 的依赖，脚本侧只能走 `call(op, paramsJson)` / `availableMethods()`，
+  返回值是 JSON 字符串，需要脚本自己 `json.decode`。
+- 需要类型化 API（像 `ImageToolboxBridge` 那样 `resize(path, width)`）时：
+  在宿主侧新增接口（`khatkit/.../bridge/Bridges.kt`）并由依赖实现，
+  同时在 `BridgeApiDocTest` 的 `bridges` map 登记、在 `script-api-reference.md` 补章节。

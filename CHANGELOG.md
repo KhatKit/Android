@@ -11,6 +11,7 @@
 - 应用内和悬浮提示支持点击隐藏；点击隐藏不取消正在运行的卡片，停止任务仍使用看板停止操作。
 - Toast 进入/退出动画按 ImageToolbox/Khromia 规范对齐：淡入、底部中心弹性缩放、半高滑入，以及对应退出动画。
 - 文档记录 ImageToolbox 完整媒体选择器迁移边界；聊天附件当前仍使用系统 Picker，完整媒体网格、相册、搜索、多选和预览迁移尚未完成。
+- 文档对齐实际实现：事件触发按 `CardManifest.ALL_EVENT_TYPES` 的 18 种对齐（补 notification_click / notification_reply / app_exit / app_install / app_uninstall / shortcut / tile），依赖包文档补「现状与边界」（撤销后不自动清理、依赖不能声明依赖与权限、非 imageToolbox 依赖只有通用调用面）。
 
 ## 2.5.2（2026-09-18）
 
