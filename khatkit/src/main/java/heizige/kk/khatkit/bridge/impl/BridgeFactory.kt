@@ -60,6 +60,7 @@ object BridgeFactory {
             tool = AndroidToolBridge(appContext, http),
             net = AndroidNetBridge(http),
             fs = ScopedFsBridgeImpl(appContext, "", emptySet()),
+            json = JsonBridgeImpl(),
             ui = ui,
             web = WebBridgeImpl(appContext, ui),
             download = DownloadManagerImpl(

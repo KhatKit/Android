@@ -14,6 +14,7 @@ class BridgeRegistry(
     private val tool: ToolBridge? = null,
     private val net: NetBridge? = null,
     private val fs: FsBridge? = null,
+    private val json: JsonBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -57,6 +58,7 @@ class BridgeRegistry(
         if (tool != null) add("tool")
         if (net != null) add("net")
         if (fs != null) add("fs")
+        if (json != null) add("json")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -105,6 +107,7 @@ class BridgeRegistry(
                     )
                     else -> fs
                 }
+                "json" -> json
                 "ui" -> ui
                 "web" -> web
                 "download" -> download

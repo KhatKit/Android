@@ -28,6 +28,8 @@
 |---|---|---|---|---|
 | `tool` | `ToolBridge` | L0 | 始终 | 文件 / 网络 / 剪贴板 / OCR。共享存储需「所有文件访问」。 |
 | `net` | `NetBridge` | L0 | 始终 | 受 `network.allow` 域名白名单约束的网络请求。 |
+| `fs` | `FsBridge` | L0 | 始终 | 卡片私有/声明目录的结构化文件操作。 |
+| `json` | `JsonBridge` | L0 | 始终 | 结构化 JSON 编解码、查询与合并。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
@@ -100,6 +102,17 @@
 | `fs.readBase64(path)` | string | 读取 Base64。 |
 | `fs.saveBase64(data, outputPath)` | string | 写入 Base64 并返回路径。 |
 | `fs.openDir(path)` | 无 | 打开目录。 |
+
+## 3.3 json（L0）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `json.decode(text)` | table / nil | 解码 JSON；JSON `null` 返回 nil。 |
+| `json.encode(value)` | string | 编码对象、数组、标量或 nil。 |
+| `json.query(text, path, default)` | string / nil | 查询 `a.b[0].c`，未命中返回 default。 |
+| `json.merge(base, patch)` | string | 合并两个 JSON 对象，patch 字段覆盖 base。 |
+| `json.pluck(text, keys)` | table | 按键提取字段。 |
+| `json.pretty(text)` | string | 校验并返回 JSON 文本。 |
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 

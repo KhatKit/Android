@@ -118,6 +118,16 @@ interface FsBridge {
     fun openDir(path: String)
 }
 
+/** L0 结构化 JSON 工具；null 编码为 JSON null。 */
+interface JsonBridge {
+    fun decode(text: String): Any?
+    fun encode(value: Any?): String
+    fun query(text: String, path: String, default: String? = null): String?
+    fun merge(base: String, patch: String): String
+    fun pluck(text: String, keys: List<String>): Map<String, Any?>
+    fun pretty(text: String): String
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**
