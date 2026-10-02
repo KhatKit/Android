@@ -28,9 +28,14 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 
-    // 本地语音识别：仅打包 sherpa-onnx Kotlin 类（~220KB，已把 loadLibrary 换成 NativeLibLoader），
-    // 原生库 .so 由用户按需下载（见 SherpaModelStore.downloadEngine）
-    implementation(files("libs/sherpa-onnx-arm64-nolib-1.13.8.aar"))
+    // 本地语音识别：仅打包 sherpa-onnx Kotlin 类（~235KB，已把 loadLibrary 换成 NativeLibLoader），
+    // 原生库 .so 由用户按需下载（见 SherpaModelStore.downloadEngine）。
+    //
+    // 这里依赖 jar 而不是原始 aar：AGP 禁止 library 模块直接依赖本地 .aar（产出的 AAR 不会
+    // 打进 classes/resources，全量 assembleDebug 会直接失败）。上游 aar 里只有 classes.jar，
+    // 所以抽成 jar 是 1:1 等价：
+    //   unzip -o libs/sherpa-onnx-arm64-nolib-1.13.8.aar classes.jar && mv classes.jar libs/*.jar
+    implementation(files("libs/sherpa-onnx-arm64-nolib-1.13.8.jar"))
     implementation(libs.commons.compress)
 
     implementation(libs.androidx.media3.exoplayer)
