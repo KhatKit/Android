@@ -85,6 +85,27 @@ class CardValidatorTest {
     }
 
     @Test
+    fun invalidPermissionMethodRejected() {
+        val issues = CardValidator.validate(
+            manifest(bridges = listOf("net")).copy(
+                permissions = CardManifest.Permissions(methods = mapOf("net.nope" to "allow")),
+            )
+        )
+        assertTrue(issues.any { it.code == "PERMISSION_METHOD_UNKNOWN" })
+    }
+
+    @Test
+    fun permissionValueAndDeclarationValidated() {
+        val issues = CardValidator.validate(
+            manifest(bridges = listOf("tool")).copy(
+                permissions = CardManifest.Permissions(methods = mapOf("net.get" to "maybe")),
+            )
+        )
+        assertTrue(issues.any { it.code == "PERMISSION_VALUE_INVALID" })
+        assertTrue(issues.any { it.code == "PERMISSION_UNDECLARED_METHOD" })
+    }
+
+    @Test
     fun undeclaredDomainInScriptRejected() {
         val issues = CardValidator.validate(
             manifest(),

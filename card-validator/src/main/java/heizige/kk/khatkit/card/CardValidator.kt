@@ -21,7 +21,11 @@ data class CardIssue(
 object CardValidator {
     val ENGINES = setOf("lua", "js", "auto", "command")
     val PRIVILEGES = setOf("none", "elevated")
-    val BRIDGES = setOf("tool", "ui", "web", "download", "store", "shizuku", "root", "accessibility", "imageToolbox")
+    val BRIDGES = setOf("tool", "net", "fs", "ui", "web", "download", "store", "shizuku", "root", "accessibility", "imageToolbox")
+    private val BRIDGE_METHODS = mapOf(
+        "net" to setOf("get", "post", "put", "delete", "multipart", "streamText", "toFile", "head"),
+        "fs" to setOf("read", "write", "exists", "stat", "list", "copy", "move", "mkdir", "delete", "zip", "unzip", "readBase64", "saveBase64", "openDir"),
+    )
 
     private val NAME_REGEX = Regex("^[a-z][a-z0-9_]{1,63}$")
 
@@ -30,7 +34,7 @@ object CardValidator {
     private val SEMVER_REGEX = Regex("^\\d+\\.\\d+\\.\\d+([-+].*)?$")
     private val SHA256_REGEX = Regex("^[0-9a-f]{64}$")
     private val URL_REGEX = Regex("""https?://([A-Za-z0-9.-]+)""")
-    private val BRIDGE_CALL_REGEX = Regex("""\b(tool|ui|web|download|store|shizuku|root|accessibility|imageToolbox)\s*[.:]""")
+    private val BRIDGE_CALL_REGEX = Regex("""\b(tool|net|fs|ui|web|download|store|shizuku|root|accessibility|imageToolbox)\s*[.:]""")
     private val TIME_REGEX = Regex("^([01]\\d|2[0-3]):[0-5]\\d$")
     private const val ALL_EVENT_TYPE_TEXT =
         "schedule|notification|notification_click|notification_reply|app_launch|app_exit|app_install|app_uninstall|charging|wifi|network|battery|screen|clipboard|bluetooth|location|shortcut|tile"
@@ -234,6 +238,23 @@ object CardValidator {
         val unknown = declared.filterNot { it in BRIDGES }
         if (unknown.isNotEmpty()) {
             error("BRIDGE_UNKNOWN", "声明了未知 bridge：$unknown")
+        }
+
+        manifest.permissions.methods.forEach { (key, value) ->
+            val bridge = key.substringBefore('.', "")
+            val method = key.substringAfter('.', "")
+            if (bridge !in BRIDGE_METHODS || method !in BRIDGE_METHODS[bridge].orEmpty()) {
+                error("PERMISSION_METHOD_UNKNOWN", "未知权限方法：$key")
+            }
+            if (value !in setOf("allow", "ask", "deny")) {
+                error("PERMISSION_VALUE_INVALID", "权限方法 $key 的值必须是 allow|ask|deny：$value")
+            }
+            if (bridge !in declared) {
+                error("PERMISSION_UNDECLARED_METHOD", "权限方法 $key 所属 bridge 未在 requires.bridges 声明")
+            }
+        }
+        if (manifest.network.allow.isNotEmpty() && manifest.permissions.methods.keys.any { it.startsWith("net.") }) {
+            warning("PERMISSIONS_NETWORK_LEGACY", "同时使用了 network.allow 与 permissions.methods 的 net.* 声明")
         }
 
         // 原生依赖包：名称/版本必填，sha256 必须是 64 位十六进制，url 只允许 Hub 相对路径。
