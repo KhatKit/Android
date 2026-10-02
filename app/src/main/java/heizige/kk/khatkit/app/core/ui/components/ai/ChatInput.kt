@@ -198,7 +198,7 @@ import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
+import heizige.kk.kedge.components.KedgeFloatingActionButton
 
 @Composable
 fun ChatInput(

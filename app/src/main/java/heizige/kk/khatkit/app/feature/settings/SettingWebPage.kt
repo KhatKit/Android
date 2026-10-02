@@ -68,7 +68,7 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.icons.stop
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeExtendedFloatingActionButton
+import heizige.kk.kedge.components.KedgeExtendedFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
 

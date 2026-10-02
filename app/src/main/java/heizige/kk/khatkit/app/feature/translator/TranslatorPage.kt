@@ -26,7 +26,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -76,7 +75,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
+import heizige.kk.kedge.components.KedgeFloatingActionButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import androidx.compose.foundation.layout.navigationBarsPadding
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
