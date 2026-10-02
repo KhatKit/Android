@@ -470,8 +470,8 @@ fun ChatDrawerContent(
                             onClick = { showCreateFolderDialog = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 12.dp)
-                                .height(56.dp),
+                                .padding(bottom = 8.dp)
+                                .height(38.dp),
                             variant = KedgeButtonVariant.Secondary,
                             shapes = ButtonDefaults.shapes(RoundedCornerShape(20.dp)),
                             miuixCornerRadius = 20.dp,
@@ -487,7 +487,7 @@ fun ChatDrawerContent(
                                 Icon(
                                     createNewFolder,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(18.dp),
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
