@@ -221,7 +221,14 @@ class RouteActivity : ComponentActivity() {
                         heizige.kk.kedge.adaptive.ProvideKedgeBlur(
                             enabled = khatKitProvider.enableBlur
                         ) {
-                            appContent()
+                            // Miuix 下列表卡片走「同组合在一起」的形态：组内不留间距，
+                            // 首项只圆上边、末项只圆下边、中间项直角。
+                            androidx.compose.runtime.CompositionLocalProvider(
+                                heizige.kk.khatkit.app.core.ui.theme.LocalListCardStyle provides
+                                    heizige.kk.khatkit.app.core.ui.theme.MiuixListCardStyle,
+                            ) {
+                                appContent()
+                            }
                         }
                     }
                 } else {
