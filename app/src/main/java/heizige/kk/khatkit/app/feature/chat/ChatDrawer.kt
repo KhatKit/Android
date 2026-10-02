@@ -50,7 +50,6 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -116,6 +115,7 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.adaptive.KedgeOverlayScaffold
+import heizige.kk.kedge.adaptive.KedgeTopAppBar
 import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
 import heizige.kk.kedge.adaptive.KedgeBlurredBar
 import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
@@ -259,121 +259,127 @@ fun ChatDrawerContent(
             contentInsetTop = 0.dp,
             contentInsetBottom = 0.dp,
             topBar = {
-                KedgeBlurredBar(backdrop = backdrop) {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    // 有 backdrop 时透明，让 KedgeBlurredBar 的模糊透出来；
-                    // 没有 backdrop 时退回 surface，避免出现无底的栏。
-                    containerColor = KedgeOverlayBarColor(
-                        backdrop = backdrop,
-                        // MD3Exp 下没有 MiuixTheme，取它会拿到全 0 的透明色，
-                        // 所以退回 MD3 的 surface。
-                        fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                            MiuixTheme.colorScheme.surface
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                    ),
-                ),
-                navigationIcon = {
-                    if (searchVisible) {
-                        KedgeIconButton(
-                            onClick = {
-                                drawerVm.updateSearchKeyword("")
-                                showSearch = false
-                            },
-                            modifier = Modifier.graphicsLayer {
-                                alpha = searchProgress.value
-                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                            },
-                        ) {
-                            Icon(arrowBack, contentDescription = null)
-                        }
-                    }
-                },
-                title = {
-                    Box {
-                        if (titleVisible) {
-                            Text(
-                                text = "KhatKit",
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = 1f - searchProgress.value
-                                    translationX = -searchProgress.value * 24.dp.toPx()
-                                },
-                            )
-                        }
-                        if (searchVisible) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
-                                    .graphicsLayer {
-                                        alpha = searchProgress.value
-                                        translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                                    },
-                            ) {
-                                if (searchKeyword.isBlank()) {
-                                    Text(
-                                        text = stringResource(R.string.chat_page_search_chats),
-                                        style = androidx.compose.material3.LocalTextStyle.current,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    )
-                                }
-                                BasicTextField(
-                                    value = searchKeyword,
-                                    onValueChange = drawerVm::updateSearchKeyword,
-                                    singleLine = true,
-                                    textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(searchFocus),
-                                )
-                            }
-                        }
-                    }
-                },
-                actions = {
-                    // search↔close 同槽交叉淡化，三态判定照 ImageToolbox
-                    // SettingsContent：!searching → search；
-                    // searching && hasQuery → close；搜索态但还没输入时留空。
-                    // 此前是硬切 imageVector，与 ChatPage 不一致。
-                    val searching = searchProgress.value >= 0.5f
-                    val hasQuery = searchProgress.value >= 0.5f && searchKeyword.isNotEmpty()
-                    KedgeIconButton(
-                        onClick = {
-                            if (!showSearch) {
-                                showSearch = true
-                            } else {
-                                drawerVm.updateSearchKeyword("")
-                            }
-                        },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            if (!searching) {
-                                Icon(
-                                    imageVector = search,
-                                    contentDescription = stringResource(R.string.chat_page_search_chats),
+                // 走 KedgeTopAppBar 而不是裸 MD3 TopAppBar：Miuix 下它落到
+                // SmallTopAppBar / 自绘同度量的标题栏，标题拿到 Miuix 的
+                // LocalTextStyle（bodyLarge 16sp）。此前这里硬用 MD3 TopAppBar，
+                // 标题槽给的是 titleLarge 22sp，Miuix 下字号偏大且字阶不对。
+                // 标题与搜索输入框都取 LocalTextStyle.current，换过去后两者
+                // 自动保持同字号，不用各自再写一遍。
+                // Miuix 分支自己包 KedgeBlurredBar，所以这里不再外套一层。
+                KedgeTopAppBar(
+                    title = "",
+                    titleContent = {
+                        Box {
+                            if (titleVisible) {
+                                Text(
+                                    text = "KhatKit",
                                     modifier = Modifier.graphicsLayer {
                                         alpha = 1f - searchProgress.value
+                                        translationX = -searchProgress.value * 24.dp.toPx()
                                     },
                                 )
                             }
-                            if (searching && hasQuery) {
-                                Icon(
-                                    imageVector = close,
-                                    contentDescription = stringResource(R.string.chat_page_search_chats),
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = searchProgress.value
-                                    },
-                                )
+                            if (searchVisible) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
+                                        .graphicsLayer {
+                                            alpha = searchProgress.value
+                                            translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                                        },
+                                ) {
+                                    if (searchKeyword.isBlank()) {
+                                        Text(
+                                            text = stringResource(R.string.chat_page_search_chats),
+                                            style = androidx.compose.material3.LocalTextStyle.current,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        )
+                                    }
+                                    BasicTextField(
+                                        value = searchKeyword,
+                                        onValueChange = drawerVm::updateSearchKeyword,
+                                        singleLine = true,
+                                        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        ),
+                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .focusRequester(searchFocus),
+                                    )
+                                }
                             }
                         }
-                    }
-                },
-            )
-                }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        // 有 backdrop 时透明，让毛玻璃透出来；没有 backdrop 时退回
+                        // surface，避免出现无底的栏。只在 MD3Exp 分支生效。
+                        containerColor = KedgeOverlayBarColor(
+                            backdrop = backdrop,
+                            // MD3Exp 下没有 MiuixTheme，取它会拿到全 0 的透明色，
+                            // 所以退回 MD3 的 surface。
+                            fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                                MiuixTheme.colorScheme.surface
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                        ),
+                    ),
+                    navigationIcon = {
+                        if (searchVisible) {
+                            KedgeIconButton(
+                                onClick = {
+                                    drawerVm.updateSearchKeyword("")
+                                    showSearch = false
+                                },
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = searchProgress.value
+                                    translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                                },
+                            ) {
+                                Icon(arrowBack, contentDescription = null)
+                            }
+                        }
+                    },
+                    actions = {
+                        // search↔close 同槽交叉淡化，三态判定照 ImageToolbox
+                        // SettingsContent：!searching → search；
+                        // searching && hasQuery → close；搜索态但还没输入时留空。
+                        // 此前是硬切 imageVector，与 ChatPage 不一致。
+                        val searching = searchProgress.value >= 0.5f
+                        val hasQuery = searchProgress.value >= 0.5f && searchKeyword.isNotEmpty()
+                        KedgeIconButton(
+                            onClick = {
+                                if (!showSearch) {
+                                    showSearch = true
+                                } else {
+                                    drawerVm.updateSearchKeyword("")
+                                }
+                            },
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (!searching) {
+                                    Icon(
+                                        imageVector = search,
+                                        contentDescription = stringResource(R.string.chat_page_search_chats),
+                                        modifier = Modifier.graphicsLayer {
+                                            alpha = 1f - searchProgress.value
+                                        },
+                                    )
+                                }
+                                if (searching && hasQuery) {
+                                    Icon(
+                                        imageVector = close,
+                                        contentDescription = stringResource(R.string.chat_page_search_chats),
+                                        modifier = Modifier.graphicsLayer {
+                                            alpha = searchProgress.value
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    },
+                )
             },
             bottomBar = {
                 // KedgeOverlayScaffold 内部是普通 Box，顶/底栏各自负责对齐；
