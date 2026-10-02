@@ -107,6 +107,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.containers.KedgeFloatingToolbar
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
@@ -250,7 +251,7 @@ private fun ModeInjectionTab(
             }
         }
 
-        HorizontalFloatingToolbar(
+        KedgeFloatingToolbar(
             expanded = expanded,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -640,7 +641,7 @@ private fun LorebookTab(
             }
         }
 
-        HorizontalFloatingToolbar(
+        KedgeFloatingToolbar(
             expanded = expanded,
             modifier = Modifier
                 .align(Alignment.BottomCenter)

@@ -63,6 +63,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeListItem
 
 @Composable
 fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
@@ -225,7 +226,7 @@ private fun ConversationItem(
         shape = RoundedCornerShape(25),
         modifier = modifier
     ) {
-        ListItem(
+        KedgeListItem(
             headlineContent = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

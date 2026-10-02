@@ -130,6 +130,7 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
+import heizige.kk.kedge.containers.KedgeFloatingToolbar
 
 
 @Composable
@@ -222,7 +223,7 @@ internal fun ModelList(
                 }
             }
         }
-        HorizontalFloatingToolbar(
+        KedgeFloatingToolbar(
             expanded = expanded,
             modifier = Modifier
                 .align(Alignment.BottomCenter)

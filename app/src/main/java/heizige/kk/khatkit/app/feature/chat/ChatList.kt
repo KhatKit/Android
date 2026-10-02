@@ -111,6 +111,7 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.kedge.containers.KedgeFloatingToolbar
 
 private const val TAG = "ChatList"
 private const val LoadingIndicatorKey = "LoadingIndicator"
@@ -429,7 +430,7 @@ private fun ChatListNormal(
                     targetOffsetY = { it * 2 },
                 ),
             ) {
-                HorizontalFloatingToolbar(
+                KedgeFloatingToolbar(
                     expanded = true,
                 ) {
                     Tooltip(
