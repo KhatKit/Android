@@ -50,6 +50,8 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.error
 import heizige.kk.khatkit.app.core.ui.icons.link
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
 @Composable
 fun ProviderConnectionTester(
@@ -251,7 +253,8 @@ private fun TestResultItem(
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            is UiState.Loading -> LinearWavyProgressIndicator(modifier = Modifier.weight(1f))
+            is UiState.Loading -> KedgeProgressIndicator(
+                    type = KedgeProgressIndicatorType.Linear,modifier = Modifier.weight(1f))
             is UiState.Success -> Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)

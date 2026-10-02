@@ -78,6 +78,8 @@ import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import androidx.compose.foundation.layout.navigationBarsPadding
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
 @Composable
 fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
@@ -158,7 +160,8 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
             // 翻译进度条
             Crossfade(translating) { isTranslating ->
                 if (isTranslating) {
-                    LinearWavyProgressIndicator(
+                    KedgeProgressIndicator(
+                    type = KedgeProgressIndicatorType.Linear,
                         modifier = Modifier
                             .padding(8.dp)
                             .fillMaxWidth()

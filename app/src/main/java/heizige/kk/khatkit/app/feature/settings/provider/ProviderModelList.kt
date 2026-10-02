@@ -129,6 +129,7 @@ import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 
 
 @Composable
@@ -270,38 +271,19 @@ internal fun ModelSettingsForm(
     }
 
     Column {
-        SecondaryTabRow(
+        KedgeTabRow(
+            titles = listOf(
+                stringResource(R.string.setting_provider_page_basic_settings),
+                stringResource(R.string.setting_provider_page_advanced_settings),
+                stringResource(R.string.setting_page_built_in_tools),
+            ),
             selectedTabIndex = pagerState.currentPage,
-            containerColor = Color.Transparent,
-        ) {
-            Tab(
-                selected = pagerState.currentPage == 0,
-                onClick = {
-                    scope.launch {
-                        pagerState.animateScrollToPage(0)
-                    }
-                },
-                text = { Text(stringResource(R.string.setting_provider_page_basic_settings)) }
-            )
-            Tab(
-                selected = pagerState.currentPage == 1,
-                onClick = {
-                    scope.launch {
-                        pagerState.animateScrollToPage(1)
-                    }
-                },
-                text = { Text(stringResource(R.string.setting_provider_page_advanced_settings)) }
-            )
-            Tab(
-                selected = pagerState.currentPage == 2,
-                onClick = {
-                    scope.launch {
-                        pagerState.animateScrollToPage(2)
-                    }
-                },
-                text = { Text(stringResource(R.string.setting_page_built_in_tools)) }
-            )
-        }
+            onTabSelected = { index ->
+                scope.launch {
+                    pagerState.animateScrollToPage(index)
+                }
+            },
+        )
 
         HorizontalPager(
             state = pagerState,

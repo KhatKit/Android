@@ -46,6 +46,8 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
 @Composable
 fun ImportExportTab(
@@ -240,7 +242,8 @@ fun ImportExportTab(
                     },
                     leadingContent = {
                         if (isExporting) {
-                            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                            KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(description, null)
                         }
@@ -265,7 +268,8 @@ fun ImportExportTab(
                     },
                     leadingContent = {
                         if (isRestoring) {
-                            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                            KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(uploadFile, null)
                         }
@@ -293,7 +297,8 @@ fun ImportExportTab(
                     supportingContent = { Text(stringResource(R.string.backup_page_import_chatbox_desc)) },
                     leadingContent = {
                         if (isRestoring && importType == "chatbox") {
-                            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                            KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(uploadFile, null)
                         }
@@ -311,7 +316,8 @@ fun ImportExportTab(
                     supportingContent = { Text(stringResource(R.string.backup_page_import_cherry_studio_desc)) },
                     leadingContent = {
                         if (isRestoring && importType == "cherry") {
-                            CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                            KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(uploadFile, null)
                         }

@@ -74,6 +74,8 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
 @Composable
 fun S3Tab(
@@ -312,7 +314,8 @@ fun S3Tab(
                 shapes = ButtonDefaults.shapes(),
             ) {
                 if (isBackingUp) {
-                    CircularWavyProgressIndicator(
+                    KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,
                         modifier = Modifier.size(18.dp)
                     )
                 } else {
@@ -421,7 +424,8 @@ fun S3Tab(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularWavyProgressIndicator()
+                        KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,)
                     }
                 }
             }
@@ -519,7 +523,8 @@ private fun S3BackupItemCard(
                             shapes = ButtonDefaults.shapes(),
                         ) {
                             if (isRestoring) {
-                                CircularWavyProgressIndicator(
+                                KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(Modifier.width(8.dp))

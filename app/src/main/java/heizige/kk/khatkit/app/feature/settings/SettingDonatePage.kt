@@ -46,6 +46,8 @@ import heizige.kk.khatkit.app.core.util.onSuccess
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
 @Composable
 fun SettingDonatePage() {
@@ -170,7 +172,8 @@ internal fun Sponsors(modifier: Modifier = Modifier) {
                 }
             }
         }.onLoading {
-            CircularWavyProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            KedgeProgressIndicator(
+                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.align(Alignment.Center))
         }.onError {
             Text(
                 text = it.message ?: it.javaClass.simpleName,

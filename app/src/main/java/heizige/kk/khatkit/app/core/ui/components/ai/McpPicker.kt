@@ -52,6 +52,7 @@ import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.power
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
 @Composable
 fun McpPickerButton(
@@ -132,7 +133,8 @@ fun McpPickerButton(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        LinearWavyProgressIndicator()
+                        KedgeProgressIndicator(
+                    type = KedgeProgressIndicatorType.Linear,)
                         Text(
                             text = stringResource(id = R.string.mcp_picker_syncing),
                             style = KedgeTextStyles.body()
@@ -242,7 +244,8 @@ private fun McpPickerSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.padding(vertical = 4.dp)
                 ) {
-                    LinearWavyProgressIndicator()
+                    KedgeProgressIndicator(
+                    type = KedgeProgressIndicatorType.Linear,)
                     Text(
                         text = stringResource(id = R.string.mcp_picker_syncing),
                         style = KedgeTextStyles.body()
