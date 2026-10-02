@@ -34,6 +34,7 @@
 | `time` | `TimeBridge` | L0 | 始终 | 时间戳、ISO-8601、格式化、解析与本地化信息。 |
 | `host` | `HostBridge` | L0 | 始终 | 宿主信息、能力体检、日志与运行耗时。 |
 | `system` | `SystemBridge` | L0 | 始终 | URL、分享、通知、电池、存储和网络状态。 |
+| `ai` | `AiBridge` | L0 | 始终 | 同步调用宿主已配置的模型供应商。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
@@ -171,6 +172,13 @@
 | `system.battery()` | table | `{level, charging, temperature}`。 |
 | `system.storage()` | table | `{total, available}`。 |
 | `system.connectivity()` | table | `{online, type, metered}`。 |
+
+## 3.8 ai（L0 + 敏感）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `ai.chat(prompt, system, provider, model, imagePaths, maxTokens, temperature, timeoutSeconds)` | string | 阻塞至模型返回完整文本；未配置供应商时返回中文错误。 |
+| `ai.complete(prompt, maxTokens)` | string | 无 system 的一次性补全。 |
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 

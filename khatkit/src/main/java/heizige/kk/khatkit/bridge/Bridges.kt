@@ -188,6 +188,21 @@ interface SystemBridge {
     fun connectivity(): Map<String, Any?>
 }
 
+/** L0 模型调用接口；同步返回完整结果。 */
+interface AiBridge {
+    fun chat(
+        prompt: String,
+        system: String = "",
+        provider: String = "",
+        model: String = "",
+        imagePaths: List<String> = emptyList(),
+        maxTokens: Int = 0,
+        temperature: Double = 0.0,
+        timeoutSeconds: Int = 120,
+    ): String
+    fun complete(prompt: String, maxTokens: Int = 0): String
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**

@@ -19,6 +19,7 @@ class BridgeRegistry(
     private val time: TimeBridge? = null,
     private val host: HostBridge? = null,
     private val system: SystemBridge? = null,
+    private val ai: AiBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -67,6 +68,7 @@ class BridgeRegistry(
         if (time != null) add("time")
         if (host != null) add("host")
         if (system != null) add("system")
+        if (ai != null) add("ai")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -120,6 +122,7 @@ class BridgeRegistry(
                 "time" -> time
                 "host" -> host
                 "system" -> system
+                "ai" -> ai
                 "ui" -> ui
                 "web" -> web
                 "download" -> download
