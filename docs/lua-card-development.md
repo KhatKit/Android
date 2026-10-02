@@ -531,7 +531,7 @@ end
 | `getClipboard()` | 无 | string | 读剪贴板文本，无内容返回 `""`。 |
 | `wakeScreen()` | 无 | string | 点亮屏幕；成功返回 `屏幕已点亮`，失败返回中文错误说明。 |
 | `ocrText(path)` | path: string | string | 本地 ML Kit 中文 OCR（中文+拉丁），成功返回纯文本；失败返回**字符串** `{"error":"..."}`（是字符串不是对象）。 |
-| `ocrBoxes(path)` | path: string | string | 带坐标 OCR，返回 JSON 字符串数组：`[{"text","x","y","w","h"}]`，坐标为图片像素（已按 EXIF 转正）；失败返回 `{"error":"..."}`。 |
+| `ocrBoxes(path)` | path: string | string | 带坐标 OCR，返回 **JSON 字符串**，需 `json.decode`：`[{"text","x","y","w","h"}]`，坐标为图片像素（已按 EXIF 转正）；失败返回 `{"error":"..."}`。 |
 
 文件类方法（read/write/list/copy/delete/mkdir/rename/zip/unzip/compress/OCR/截屏落盘/模板图片）访问 `/sdcard`、`/storage`、`/mnt/sdcard` 时要求「所有文件访问」，否则返回带申请指引的中文错误。
 
@@ -818,9 +818,9 @@ return { output = out, android = ver }
 | `waitForIdle(timeoutMs)` | boolean | 等待窗口内容稳定（连续两次节点摘要一致）；每 200ms 检查，上限 120s。 |
 | `waitForPackage(packageName, timeoutMs)` | boolean | 等待指定包名成为前台，每 200ms 轮询，上限 120s。 |
 | `captureScreen(outputPath)` | string | 截屏保存 PNG，返回路径。`outputPath` 可空（默认 `/sdcard/Download/KhatKit/screenshot_<时间戳>.png`）。失败返回中文错误文本（**不抛异常**）。需要 Android 11（API 30）以上 + 「所有文件访问」。 |
-| `findImage(templatePath, threshold)` | string | 在当前屏幕做多尺度灰度归一化互相关模板匹配。命中返回 JSON 字符串 `{"found":true,"x","y","score"}`（x/y 为屏幕像素中心），未命中 `{"found":false}`，参数/截图失败 `{"error":"..."}`。`threshold` 0–1，显式传 0 或省略时使用默认 0.9。 |
+| `findImage(templatePath, threshold)` | string | 在当前屏幕做多尺度灰度归一化互相关模板匹配。返回 **JSON 字符串**，需 `json.decode`：命中 `{"found":true,"x","y","score"}`（x/y 为屏幕像素中心），未命中 `{"found":false}`，参数/截图失败 `{"error":"..."}`。`threshold` 0–1，显式传 0 或省略时使用默认 0.9。 |
 | `tapImage(templatePath, threshold, timeoutMs)` | boolean | 查找模板并点击中心；`timeoutMs > 0` 时每 300ms 轮询直到超时（上限 120s）。 |
-| `findColor(colorHex, tolerance, region)` | string | 找第一个匹配颜色的像素。`colorHex` 支持 `#RRGGBB`/`#AARRGGBB`；`tolerance` 为每通道容差（0–255，注意省略时为 0）；`region` 空串=全屏，或 `"x,y,w,h"`。命中 `{"found":true,"x","y","color":"#RRGGBB"}`。 |
+| `findColor(colorHex, tolerance, region)` | string | 找第一个匹配颜色的像素，返回 **JSON 字符串**（需 `json.decode`）。`colorHex` 支持 `#RRGGBB`/`#AARRGGBB`；`tolerance` 为每通道容差（0–255，注意省略时为 0）；`region` 空串=全屏，或 `"x,y,w,h"`。命中 `{"found":true,"x","y","color":"#RRGGBB"}`。 |
 | `paste()` | boolean | 对当前聚焦的输入框执行粘贴（剪贴板内容由 `tool.setClipboard` 或系统写入）。 |
 | `addOverlay(view, params)` / `removeOverlay(view)` | boolean / 无 | 宿主内部 API（参数是 Android View 对象），脚本无法使用。 |
 
@@ -837,12 +837,10 @@ if not accessibility.click({ text = "确定", exact = false }) then
   end
 end
 
--- 模板找图点击
-local r = accessibility.findImage("/sdcard/KhatKit/btn.png", 0.9)
-if string.find(r, '"found":true', 1, true) then
-  local x = tonumber(string.match(r, '"x":(%d+)'))
-  local y = tonumber(string.match(r, '"y":(%d+)'))
-  accessibility.tap(x, y)
+-- 模板找图点击：findImage 返回 JSON 字符串，先 json.decode 再取字段
+local hit = json.decode(accessibility.findImage("/sdcard/KhatKit/btn.png", 0.9))
+if type(hit) == "table" and hit.found and not hit.error then
+  accessibility.tap(hit.x, hit.y)
 end
 
 -- 坐标长按 + 多段手势
@@ -852,9 +850,16 @@ accessibility.gesture('[ [ {"x":100,"y":200,"t":0}, {"x":300,"y":200,"t":500} ] 
 -- OCR 找字再点击：captureScreen 失败时返回中文错误文本，先判断是否为路径
 local shot = accessibility.captureScreen()
 if string.sub(shot, 1, 1) == "/" then
-  local boxes = tool.ocrBoxes(shot)
-  local x, y = string.match(boxes or "", '"x":(%d+),"y":(%d+)')
-  if x and y then accessibility.tap(tonumber(x), tonumber(y)) end
+  -- ocrBoxes 返回 JSON 字符串：[{text,x,y,w,h}]，失败是 {"error":...}
+  local boxes = json.decode(tool.ocrBoxes(shot))
+  if type(boxes) == "table" and not boxes.error then
+    for _, box in ipairs(boxes) do
+      if box.text and string.find(box.text, "领取", 1, true) then
+        accessibility.tap(box.x + box.w / 2, box.y + box.h / 2)
+        break
+      end
+    end
+  end
 end
 ```
 

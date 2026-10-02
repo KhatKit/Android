@@ -71,7 +71,7 @@
 | `tool.saveBase64(data, outputPath)` | string | data URL / 裸 base64 解码写入 `outputPath`，返回路径。 |
 | `tool.compressImage(path, quality)` | string | 压成 JPEG（`quality` 1–100），输出 `<name>_compressed.jpg`，返回路径。 |
 | `tool.openDir(path)` | 无 | 用系统文件管理器打开目录。 |
-| `tool.listFiles(path)` | string | 列目录，返回 JSON 数组：`{name, path, is_dir, size, modified}`。 |
+| `tool.listFiles(path)` | string | 列目录，返回 **JSON 字符串**：`[{name, path, is_dir, size, modified}]`，需 `json.decode` 后再用（已废弃，请改用 `fs.list`）。 |
 | `tool.copyPath(src, dst)` | 无 | 复制文件 / 目录。 |
 | `tool.deletePath(path, recursive)` | boolean | 删除；非空目录需 `recursive=true`。 |
 | `tool.mkdir(path)` | 无 | 建目录（含父目录）。 |
@@ -83,7 +83,7 @@
 | `tool.getClipboard()` | string | 读剪贴板，无内容返回空串。 |
 | `tool.wakeScreen()` | string | 点亮屏幕，成功返回中文提示，失败返回中文错误。 |
 | `tool.ocrText(path)` | string | 本地图片 OCR（中文 + 拉丁），返回识别文本。 |
-| `tool.ocrBoxes(path)` | string | OCR 带坐标，返回 JSON 数组 `[{text,x,y,w,h}]`（像素坐标，已按 EXIF 校正）。 |
+| `tool.ocrBoxes(path)` | string | OCR 带坐标，返回 **JSON 字符串**：`[{text,x,y,w,h}]`（像素坐标，已按 EXIF 校正），需 `json.decode`；失败返回 `{"error":"..."}` 字符串。 |
 
 ## 3.1 net（L0）
 
@@ -275,7 +275,7 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
-| `web.openLogin(url, title, actions, options)` | table | 打开网页登录弹层并阻塞等待。返回 `{event, values}`：`event` 为脚本声明的事件名，`values.currentUrl` 是点击时的当前页面地址。失败 / 取消见 §11。 |
+| `web.openLogin(url, title, actions, options)` | string | 打开网页登录弹层并阻塞等待。返回 **JSON 字符串** `{"event":...,"values":{"currentUrl":...}}`，需 `json.decode`；取消返回 `null`。 |
 | `web.savedCookie(url)` | string | 读该 host 已保存的 Cookie，没有返回空串。 |
 | `web.cookieStatus(url)` | table | `{host, saved, length}`，只给状态与长度。 |
 | `web.clearCookie(url)` | boolean | 清除该 host 的已保存 Cookie。 |
@@ -507,9 +507,9 @@ schedule.cancel(job)
 | `accessibility.waitForPackage(packageName, timeoutMs)` | boolean | 等指定包成为前台。 |
 | `accessibility.gesture(strokesJson)` | boolean | 多段手势。`strokesJson` 是 JSON 数组 `[[{"x":1,"y":2,"t":0},{"x":3,"y":4,"t":500}], …]`，`t` 为段内毫秒偏移。 |
 | `accessibility.captureScreen(outputPath)` | string | 截屏存 PNG，返回路径；API 30 以下或失败返回中文错误文本。 |
-| `accessibility.findImage(templatePath, threshold)` | table | 模板匹配（多尺度灰度归一化互相关）。命中 `{found:true,x,y,score}`，未命中 `{found:false}`。 |
+| `accessibility.findImage(templatePath, threshold)` | string | 模板匹配（多尺度灰度归一化互相关）。返回 **JSON 字符串**：命中 `{"found":true,"x":..,"y":..,"score":..}`，未命中 `{"found":false}`，失败 `{"error":"..."}`；一律先 `json.decode`。 |
 | `accessibility.tapImage(templatePath, threshold, timeoutMs)` | boolean | 找模板并点中心；`timeoutMs>0` 时每 300ms 轮询。 |
-| `accessibility.findColor(colorHex, tolerance, region)` | table | 找颜色。命中 `{found:true,x,y,color}`，未命中 `{found:false}`；`region` 为 `""` 或 `"x,y,w,h"`。 |
+| `accessibility.findColor(colorHex, tolerance, region)` | string | 找颜色。返回 **JSON 字符串**：命中 `{"found":true,"x":..,"y":..,"color":"#RRGGBB"}`，未命中 `{"found":false}`；`region` 为 `""` 或 `"x,y,w,h"`。 |
 | `accessibility.paste()` | boolean | 对当前聚焦的输入框粘贴。 |
 | `accessibility.addOverlay(view, params)` | boolean | **宿主专用**：用 WindowManager 加悬浮窗。 |
 | `accessibility.removeOverlay(view)` | 无 | **宿主专用**：移除上面加的悬浮窗。 |
