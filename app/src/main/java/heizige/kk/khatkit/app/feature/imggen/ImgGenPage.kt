@@ -120,6 +120,7 @@ import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.overlays.KedgePullToRefreshBox
 
 @Composable
 fun ImageGenPage(
@@ -610,10 +611,9 @@ private fun ImageGalleryScreen(
             }
         }
 
-        PullToRefreshBox(
+        KedgePullToRefreshBox(
             isRefreshing = false,
             onRefresh = { generatedImages.refresh() },
-            state = pullToRefreshState
         ) {
             if (generatedImages.itemCount == 0) {
                 Box(

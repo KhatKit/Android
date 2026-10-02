@@ -53,6 +53,7 @@ import heizige.kk.khatkit.app.core.ui.icons.power
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.kedge.components.KedgeBadgedBox
 
 @Composable
 fun McpPickerButton(
@@ -90,7 +91,7 @@ fun McpPickerButton(
                         modifier = Modifier.size(20.dp)
                     )
                 } else {
-                    BadgedBox(
+                    KedgeBadgedBox(
                         badge = {
                             if (enabledServers.isNotEmpty()) {
                                 KedgeBadge(

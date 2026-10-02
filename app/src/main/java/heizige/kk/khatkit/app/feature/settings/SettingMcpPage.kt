@@ -112,6 +112,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.feature.settings.mcp.McpServerConfigModal
 import heizige.kk.khatkit.app.feature.settings.mcp.McpImportModal
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.overlays.KedgePullToRefreshBox
 
 @Composable
 fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
@@ -180,14 +181,13 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
         val state = rememberPullToRefreshState()
         val loading = status.values.any { it == McpStatus.Connecting || it is McpStatus.Reconnecting }
         val layoutDirection = LocalLayoutDirection.current
-        PullToRefreshBox(
+        KedgePullToRefreshBox(
             isRefreshing = loading,
             onRefresh = {
                 scope.launch {
                     mcpManager.syncAll()
                 }
             },
-            state = state,
             modifier = Modifier.fillMaxSize()
         ) {
             LazyColumn(
@@ -221,8 +221,8 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
 
             if (mcpConfigs.isEmpty()) {
                 Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(text = stringResource(R.string.setting_mcp_page_no_mcp_servers_found))

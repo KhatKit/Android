@@ -134,6 +134,7 @@ import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeBadgedBox
 
 
 @Composable
@@ -293,7 +294,7 @@ internal fun ModelPicker(
             }
         }
     }
-    BadgedBox(
+    KedgeBadgedBox(
         badge = {
             if (models.isNotEmpty()) {
                 KedgeBadge {

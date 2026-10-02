@@ -115,6 +115,7 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.overlays.KedgePullToRefreshBox
 
 private enum class ExploreFilter(val label: String) {
     ALL("全部"),
@@ -236,10 +237,9 @@ fun ExploreMarketPage() {
         md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
         val pullToRefreshState = rememberPullToRefreshState()
-        PullToRefreshBox(
+        KedgePullToRefreshBox(
             isRefreshing = loading,
             onRefresh = { vm.refresh(query) },
-            state = pullToRefreshState,
             modifier = Modifier.fillMaxSize(),
         ) {
             LazyColumn(
