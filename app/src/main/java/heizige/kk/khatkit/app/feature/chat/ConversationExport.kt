@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.kedge.components.KedgeButton
@@ -116,6 +115,7 @@ import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.message.groupMessageParts
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun ChatExportSheet(
@@ -503,7 +503,7 @@ private fun ExportedChatImage(
             LocalNavController provides navigator,
             LocalToaster provides toasterState
         ) {
-            Surface(
+            KedgeSurface(
                 modifier = Modifier.width(540.dp) // like 1080p but with density independence
             ) {
                 Column(

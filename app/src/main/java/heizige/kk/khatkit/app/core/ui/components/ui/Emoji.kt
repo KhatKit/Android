@@ -26,7 +26,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
@@ -55,6 +54,7 @@ import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Preview
 @Composable
@@ -274,7 +274,7 @@ private fun EmojiModifierPicker(
             dismissOnClickOutside = true
         )
     ) {
-        Surface(
+        KedgeSurface(
             modifier = Modifier
                 .wrapContentSize()
                 .padding(16.dp),

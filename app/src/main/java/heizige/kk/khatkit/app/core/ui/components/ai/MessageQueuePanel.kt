@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import heizige.kk.kedge.components.KedgeTextButton
@@ -38,6 +37,7 @@ import heizige.kk.khatkit.app.feature.chat.MessageQueueState
 import heizige.kk.khatkit.app.feature.chat.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 internal fun MessageQueuePanel(
@@ -49,7 +49,7 @@ internal fun MessageQueuePanel(
 ) {
     var editing by remember { mutableStateOf<QueuedMessage?>(null) }
     if (state.messages.isNotEmpty()) {
-        Surface(
+        KedgeSurface(
             shape = MaterialTheme.shapes.large,
             color = KedgeColors.surfaceContainer,
             modifier = Modifier

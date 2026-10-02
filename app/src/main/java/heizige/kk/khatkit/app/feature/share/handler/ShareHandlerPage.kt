@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
@@ -35,6 +34,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun ShareHandlerPage(text: String, image: String?) {
@@ -76,7 +76,7 @@ fun ShareHandlerPage(text: String, image: String?) {
             }
 
             items(settings.assistants) { assistant ->
-                Surface(
+                KedgeSurface(
                     onClick = {
                         scope.launch {
                             vm.updateAssistant(assistant.id)

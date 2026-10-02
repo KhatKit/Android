@@ -119,6 +119,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import heizige.kk.kedge.components.KedgeSurface
 
 private const val TAG = "AutomationOverlay"
 
@@ -681,7 +682,7 @@ private fun AutomationToast(
     val contentColor = MaterialTheme.colorScheme.inverseOnSurface.harmonizeWithPrimary()
     val boardShape = AutoCornersShape(32.dp)
 
-    Surface(
+    KedgeSurface(
         color = containerColor,
         contentColor = contentColor,
         shape = boardShape,

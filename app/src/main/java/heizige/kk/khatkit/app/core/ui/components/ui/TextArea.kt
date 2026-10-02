@@ -22,7 +22,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.kedge.components.KedgeTextField
@@ -52,6 +51,7 @@ import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.kedge.components.KedgeTextFieldWithState
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 /**
  * A multi-line text input component with a header and file import functionality.
@@ -207,7 +207,7 @@ private fun FullScreenTextEditor(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Bottom
         ) {
-            Surface(
+            KedgeSurface(
                 modifier = Modifier
                     .widthIn(max = 800.dp)
                     .fillMaxHeight(0.9f),

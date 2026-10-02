@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 /** 应用前台的自动化提示；点击只隐藏提示，不取消脚本。 */
 @Composable
@@ -84,7 +84,7 @@ fun AutomationInAppHost() {
                         transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f),
                     ),
             ) {
-                Surface(
+                KedgeSurface(
                     color = MaterialTheme.colorScheme.inverseSurface,
                     contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                     shape = MaterialTheme.shapes.extraLarge,

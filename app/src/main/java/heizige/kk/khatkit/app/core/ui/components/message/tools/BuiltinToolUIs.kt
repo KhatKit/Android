@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.Surface
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -86,6 +85,7 @@ import heizige.kk.khatkit.app.core.ui.icons.timer
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 /**
  * 记忆工具: 按 action 区分标题/图标, 摘要显示记忆内容, 详情附带删除按钮
@@ -713,7 +713,7 @@ private fun SearchWebPreview(
                             }
                             else -> value.jsonPrimitiveOrNull?.contentOrNull ?: value.toString()
                         }
-                        Surface(
+                        KedgeSurface(
                             shape = RoundedCornerShape(8.dp),
                             color = KedgeColors.surfaceContainerHigh,
                             contentColor = KedgeColors.onSurfaceVariant,

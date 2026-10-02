@@ -24,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +82,7 @@ import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.components.KedgeSurface
 
 // ---- Preprocessing (mirrors Markdown.kt logic) ----
 
@@ -448,7 +448,7 @@ private fun HtmlListItem(
             ) {
                 if (isTaskItem && checkboxInput != null) {
                     // Checkbox indicator
-                    Surface(
+                    KedgeSurface(
                         shape = RoundedCornerShape(2.dp),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                         modifier = Modifier.padding(end = 4.dp, top = 2.dp),

@@ -92,6 +92,7 @@ import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -279,7 +280,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             onClick = { createState.open(Assistant()) },
                         )
                     } else {
-                    Surface(
+                    KedgeSurface(
                         onClick = { createState.open(Assistant()) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.large,
@@ -508,7 +509,7 @@ private fun AssistantItem(
                         assistant.tags.take(2).fastForEach { tagId ->
                             val tag = settings.assistantTags.find { it.id == tagId }
                                 ?: return@fastForEach
-                            Surface(
+                            KedgeSurface(
                                 shape = RoundedCornerShape(50),
                                 color = MaterialTheme.colorScheme.tertiaryContainer,
                             ) {

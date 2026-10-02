@@ -42,7 +42,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
@@ -130,6 +129,7 @@ import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 
 @Composable
@@ -239,7 +239,7 @@ internal fun ModelCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
+                KedgeSurface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = MaterialTheme.shapes.small,
                 ) {

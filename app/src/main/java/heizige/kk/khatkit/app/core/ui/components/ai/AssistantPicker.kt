@@ -23,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeFilterChip
@@ -52,6 +51,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun AssistantPicker(
@@ -64,7 +64,7 @@ fun AssistantPicker(
     val defaultAssistantName = stringResource(R.string.assistant_page_default_assistant)
     var showPicker by remember { mutableStateOf(false) }
 
-    Surface(
+    KedgeSurface(
         onClick = {
             showPicker = true
         },

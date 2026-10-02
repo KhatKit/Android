@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
@@ -98,6 +97,7 @@ import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
 
@@ -346,7 +346,7 @@ private fun MessagePartsBlock(
                     is UIMessagePart.Text -> {
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
-                                Surface(
+                                KedgeSurface(
                                     modifier = Modifier.animateContentSize(),
                                     shape = RoundedCornerShape(16.dp),
                                     color = KedgeColors.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
@@ -365,7 +365,7 @@ private fun MessagePartsBlock(
                                 }
                             } else {
                                 if (settings.displaySetting.showAssistantBubble) {
-                                    Surface(
+                                    KedgeSurface(
                                         modifier = Modifier.animateContentSize(),
                                         shape = RoundedCornerShape(16.dp),
                                         color = KedgeColors.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
@@ -410,7 +410,7 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Video -> {
-                        Surface(
+                        KedgeSurface(
                             tonalElevation = 2.dp,
                             onClick = {
                                 val intent = Intent(Intent.ACTION_VIEW)
@@ -433,7 +433,7 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Audio -> {
-                        Surface(
+                        KedgeSurface(
                             tonalElevation = 2.dp,
                             onClick = {
                                 val intent = Intent(Intent.ACTION_VIEW)
@@ -489,7 +489,7 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Document -> {
-                        Surface(
+                        KedgeSurface(
                             tonalElevation = 2.dp,
                             onClick = {
                                 val intent = Intent(Intent.ACTION_VIEW)

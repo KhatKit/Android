@@ -20,7 +20,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxState
@@ -63,6 +62,7 @@ import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
@@ -219,7 +219,7 @@ private fun ConversationItem(
     onTogglePin: () -> Unit = {},
     onClick: () -> Unit = {},
 ) {
-    Surface(
+    KedgeSurface(
         onClick = onClick,
         tonalElevation = 2.dp,
         shape = RoundedCornerShape(25),

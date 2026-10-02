@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,6 +46,7 @@ import heizige.kk.khatkit.app.core.ui.icons.barChart
 import heizige.kk.khatkit.app.core.ui.icons.scatter_plot
 import heizige.kk.khatkit.app.core.ui.icons.table
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 enum class ChartDisplayMode { Chart, Table }
 
@@ -66,7 +66,7 @@ fun ChartCard(
         series.name ?: stringResource(R.string.chart_series_name, index + 1)
     }
 
-    Surface(
+    KedgeSurface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -167,7 +167,7 @@ private fun ChartModeToggle(
     mode: ChartDisplayMode,
     onModeChange: (ChartDisplayMode) -> Unit,
 ) {
-    Surface(
+    KedgeSurface(
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
@@ -202,7 +202,7 @@ private fun ChartModeButton(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    // 不用 Surface(onClick): 它会强制 48dp 最小触控尺寸, 把紧凑的切换条撑大
+    // 不用 KedgeSurface(onClick): 它会强制 48dp 最小触控尺寸, 把紧凑的切换条撑大
     val shape = RoundedCornerShape(6.dp)
     Box(
         modifier = Modifier

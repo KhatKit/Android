@@ -30,7 +30,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.kedge.components.KedgeCard
@@ -98,6 +97,7 @@ import heizige.kk.khatkit.app.core.ui.icons.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeAssistChip
+import heizige.kk.kedge.components.KedgeSurface
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -437,7 +437,7 @@ private fun ColumnScope.ModelList(
         }.toMap()
     }
 
-    Surface(
+    KedgeSurface(
         shape = RoundedCornerShape(50),
         modifier = Modifier
             .fillMaxWidth()
@@ -729,7 +729,7 @@ private fun ModelItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Surface(
+                KedgeSurface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = MaterialTheme.shapes.small,
                 ) {

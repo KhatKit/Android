@@ -42,7 +42,6 @@ import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -110,6 +109,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 private const val TAG = "ChatList"
 private const val LoadingIndicatorKey = "LoadingIndicator"
@@ -724,7 +724,7 @@ private fun ChatListPreview(
                         ),
                     horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
                 ) {
-                    Surface(
+                    KedgeSurface(
                         shape = MaterialTheme.shapes.medium,
                         color = if (isUser) KedgeColors.primaryContainer else KedgeColors.secondaryContainer,
                     ) {
@@ -785,7 +785,7 @@ private fun BoxScope.MessageJumper(
             modifier = Modifier.padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Surface(
+            KedgeSurface(
                 onClick = {
                     scope.launch {
                         state.scrollToItem(0)
@@ -802,7 +802,7 @@ private fun BoxScope.MessageJumper(
                         .padding(4.dp)
                 )
             }
-            Surface(
+            KedgeSurface(
                 onClick = {
                     scope.launch {
                         state.animateScrollToItem(
@@ -823,7 +823,7 @@ private fun BoxScope.MessageJumper(
                         .padding(4.dp)
                 )
             }
-            Surface(
+            KedgeSurface(
                 onClick = {
                     scope.launch {
                         state.animateScrollToItem(state.firstVisibleItemIndex + 1)
@@ -839,7 +839,7 @@ private fun BoxScope.MessageJumper(
                         .padding(4.dp)
                 )
             }
-            Surface(
+            KedgeSurface(
                 onClick = {
                     scope.launch {
                         state.scrollToItem(state.layoutInfo.totalItemsCount - 1)

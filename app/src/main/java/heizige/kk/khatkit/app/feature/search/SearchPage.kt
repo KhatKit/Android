@@ -17,7 +17,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.Icon
@@ -68,6 +67,7 @@ import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
@@ -327,7 +327,7 @@ private fun SearchResultItem(
         result.updateAt.toLocalDateTime()
     }
 
-    Surface(
+    KedgeSurface(
         onClick = onClick,
         color = CustomColors.listItemColors.containerColor,
         shape = MaterialTheme.shapes.large,

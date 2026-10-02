@@ -16,7 +16,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
@@ -38,6 +37,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun TagsInput(
@@ -78,7 +78,7 @@ fun TagsInput(
         }
 
         // 添加按钮
-        Surface(
+        KedgeSurface(
             shape = CircleShape,
             tonalElevation = 2.dp,
             modifier = Modifier

@@ -29,7 +29,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeTextButton
@@ -65,6 +64,7 @@ import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun WorkspaceTerminalPage(id: String) {
@@ -152,7 +152,7 @@ private fun WorkspaceTerminalContent(
         ?: 0
     val selectedTab = state.tabs.getOrNull(selectedIndex)
 
-    Surface(
+    KedgeSurface(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)

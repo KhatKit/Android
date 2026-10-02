@@ -10,7 +10,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -38,6 +37,7 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.forward
 import heizige.kk.khatkit.app.core.ui.icons.pause
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun TTSController() {
@@ -68,7 +68,7 @@ fun TTSController() {
     ) {
         val playbackState by ttsState.playbackState.collectAsState()
         var expand by remember { mutableStateOf(false) }
-        Surface(
+        KedgeSurface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 4.dp,

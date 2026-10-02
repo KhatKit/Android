@@ -24,7 +24,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -116,6 +115,7 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
@@ -346,7 +346,7 @@ private fun ChatPageContent(
         Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     }
 
-    Surface(
+    KedgeSurface(
         color = heizige.kk.kedge.theme.KedgeColors.background,
         modifier = Modifier.fillMaxSize()
     ) {
@@ -804,7 +804,7 @@ private fun TopBar(
             Box {
                 if (titleVisible) {
                     val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
-                    Surface(
+                    KedgeSurface(
                         modifier = Modifier
                             .graphicsLayer {
                                 alpha = 1f - searchProgress.value

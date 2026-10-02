@@ -44,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
@@ -120,6 +119,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun ImageGenPage(
@@ -420,7 +420,7 @@ private fun InputBar(
             Spacer(modifier = Modifier.weight(1f))
 
             val canSend = prompt.isNotBlank()
-            Surface(
+            KedgeSurface(
                 onClick = {
                     if (!isGenerating) {
                         if (referenceImages.isEmpty()) {
@@ -473,7 +473,7 @@ private fun ReferenceImagesRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         images.forEach { image ->
-            Surface(
+            KedgeSurface(
                 modifier = Modifier.size(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
@@ -487,7 +487,7 @@ private fun ReferenceImagesRow(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    Surface(
+                    KedgeSurface(
                         onClick = { onRemove(image) },
                         modifier = Modifier
                             .align(Alignment.TopEnd)

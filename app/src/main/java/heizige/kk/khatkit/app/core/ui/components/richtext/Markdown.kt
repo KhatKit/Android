@@ -34,7 +34,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -110,6 +109,7 @@ import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.components.KedgeSurface
 
 private val flavour by lazy {
     GFMFlavourDescriptor(
@@ -412,7 +412,7 @@ private fun MarkdownNode(
         // Checkbox
         GFMTokenTypes.CHECK_BOX -> {
             val isChecked = node.getTextInNode(content).trim() == "[x]"
-            Surface(
+            KedgeSurface(
                 shape = RoundedCornerShape(2.dp),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 modifier = modifier,

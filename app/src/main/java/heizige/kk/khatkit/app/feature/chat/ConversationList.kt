@@ -25,7 +25,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -79,6 +78,7 @@ import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.theme.KedgeTextStyles
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.Dp
+import heizige.kk.kedge.components.KedgeSurface
 
 /**
  * 会话列表按时间分组后的条目类型。
@@ -217,7 +217,7 @@ fun ConversationList(
 
         if (conversations.itemCount == 0) {
             item {
-                Surface(
+                KedgeSurface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),

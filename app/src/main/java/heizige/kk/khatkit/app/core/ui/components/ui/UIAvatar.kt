@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
@@ -60,6 +59,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.palette
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun TextAvatar(
@@ -146,7 +146,7 @@ fun UIAvatar(
     }
 
     Box(modifier = modifier.then(Modifier.size(32.dp))) {
-        Surface(
+        KedgeSurface(
             shape = rememberAvatarShape(loading),
             modifier = Modifier.fillMaxSize(),
             onClick = {

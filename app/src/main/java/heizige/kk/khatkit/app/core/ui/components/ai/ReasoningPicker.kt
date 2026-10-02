@@ -16,7 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
@@ -46,6 +45,7 @@ import heizige.kk.khatkit.app.core.ui.icons.lightbulb
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSlider
+import heizige.kk.kedge.components.KedgeSurface
 
 private val levels = ReasoningLevel.entries
 private val levelCount = levels.size
@@ -69,7 +69,7 @@ fun ReasoningButton(
     }
 
     if (chip) {
-        Surface(
+        KedgeSurface(
             onClick = { showPicker = true },
             modifier = modifier,
             shape = RoundedCornerShape(50),

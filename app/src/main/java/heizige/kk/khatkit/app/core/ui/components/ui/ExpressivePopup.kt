@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import heizige.kk.kedge.components.KedgeSurface
 
 /** Popup 相对锚点优先出现的一侧, 空间不足时自动翻转 */
 enum class ExpressivePopupPlacement { Above, Below }
@@ -102,7 +103,7 @@ fun ExpressivePopup(
         // 结构同官方 DropdownMenuContent, 额外设置 outsets:
         // alpha < 1 时本层会走离屏合成, 离屏缓冲默认只有本层大小, 会把 Surface 投在边界外的阴影裁掉,
         // 导致动画结束 (alpha 回到 1) 的瞬间阴影突然出现
-        Surface(
+        KedgeSurface(
             modifier = modifier.graphicsLayer {
                 scaleX = scale
                 scaleY = scale

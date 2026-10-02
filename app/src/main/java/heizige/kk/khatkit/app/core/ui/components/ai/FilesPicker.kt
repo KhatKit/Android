@@ -27,7 +27,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.kedge.components.KedgeTextButton
@@ -87,6 +86,7 @@ import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 internal fun FilesPicker(
@@ -523,7 +523,7 @@ private fun BigIconTextButton(
             .wrapContentWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Surface(
+        KedgeSurface(
             color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(8.dp)
         ) {
             Box(

@@ -49,7 +49,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
@@ -135,6 +134,7 @@ import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.statusBars
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 fun ChatDrawerContent(
@@ -527,7 +527,7 @@ fun ChatDrawerContent(
                 )
 
                 // 助手选择器（默认助手卡片：圆角胶囊 + surfaceContainerHigh 底，悬浮于会话列表之上）
-                Surface(
+                KedgeSurface(
                     shape = RoundedCornerShape(50),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier
@@ -623,7 +623,7 @@ fun ChatDrawerContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // 移出文件夹（未归类）
-                Surface(
+                KedgeSurface(
                     onClick = { doMove(null) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
@@ -653,7 +653,7 @@ fun ChatDrawerContent(
                 ) {
                     items(folders) { folder ->
                         val isCurrent = folder.id == conversationToMoveFolder?.folderId
-                        Surface(
+                        KedgeSurface(
                             onClick = { doMove(folder.id) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.medium,
@@ -859,7 +859,7 @@ private fun FolderSection(
                 items(folders, key = { it.id }) { folder ->
                     var menuExpanded by remember { mutableStateOf(false) }
                     Box(modifier = Modifier.animateItem()) {
-                        Surface(
+                        KedgeSurface(
                             shape = FolderRowShape,
                             color = MaterialTheme.colorScheme.surfaceContainer,
                             modifier = Modifier
@@ -932,7 +932,7 @@ private fun AssistantItem(
     isCurrentAssistant: Boolean,
     onClick: () -> Unit
 ) {
-    Surface(
+    KedgeSurface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,

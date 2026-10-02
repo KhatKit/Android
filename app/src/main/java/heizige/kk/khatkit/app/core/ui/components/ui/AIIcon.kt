@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -21,6 +20,7 @@ import heizige.kk.khatkit.app.core.ui.hooks.rememberAvatarShape
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.util.computeAIIconByName
 import heizige.kk.khatkit.app.core.util.toCssHex
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 private fun AIIcon(
@@ -44,7 +44,7 @@ private fun AIIcon(
             )
             .build()
     }
-    Surface(
+    KedgeSurface(
         modifier = modifier.size(24.dp),
         shape = rememberAvatarShape(loading),
         color = color,

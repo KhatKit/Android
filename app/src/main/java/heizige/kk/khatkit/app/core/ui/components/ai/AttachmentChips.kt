@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +41,7 @@ import heizige.kk.khatkit.app.core.ui.icons.folderCopy
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
 internal fun MediaFileInputRow(
@@ -81,7 +81,7 @@ internal fun MediaFileInputRow(
                             displayNameByFileName = displayNameByFileName
                         ),
                         leading = {
-                            Surface(
+                            KedgeSurface(
                                 modifier = Modifier.size(34.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -149,7 +149,7 @@ private fun AttachmentChip(
     leading: @Composable () -> Unit,
     onRemove: () -> Unit,
 ) {
-    Surface(
+    KedgeSurface(
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 1.dp,
         shadowElevation = 0.dp,
@@ -193,7 +193,7 @@ private fun AttachmentChip(
 private fun AttachmentLeadingIcon(
     icon: ImageVector,
 ) {
-    Surface(
+    KedgeSurface(
         modifier = Modifier.size(34.dp),
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,

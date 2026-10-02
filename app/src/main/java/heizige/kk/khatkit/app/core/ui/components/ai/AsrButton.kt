@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +47,7 @@ import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 private enum class AsrDisplayState {
     Idle, Connecting, Active
@@ -90,7 +90,7 @@ internal fun AsrButton(
         ASRStatus.Listening, ASRStatus.Stopping -> AsrDisplayState.Active
     }
 
-    Surface(
+    KedgeSurface(
         onClick = onClick,
         modifier = Modifier
             .height(36.dp)

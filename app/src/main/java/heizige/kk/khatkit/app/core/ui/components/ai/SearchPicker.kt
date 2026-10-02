@@ -32,7 +32,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeCard
@@ -71,6 +70,7 @@ import heizige.kk.khatkit.app.core.ui.icons.searchInsights
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSurface
 
 enum class SearchMode {
     OFF,
@@ -117,7 +117,7 @@ fun SearchPickerButton(
     }
 
     if (chip) {
-        Surface(
+        KedgeSurface(
             onClick = { showSearchPicker = true },
             modifier = modifier,
             shape = RoundedCornerShape(50),
