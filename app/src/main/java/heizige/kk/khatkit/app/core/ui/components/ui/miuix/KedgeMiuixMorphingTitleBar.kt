@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -101,7 +100,7 @@ fun KedgeMiuixMorphingTitleBar(
         ?: heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior.current
             ?.miuixScrollBehavior
 
-    BoxWithConstraints(modifier = modifier) {
+    Box(modifier = modifier) {
         Box(modifier = Modifier.fillMaxWidth()) {
             // 底层原版 TopAppBar：负责大标题折叠动画与整体度量。
             // 必须包 KedgeBlurredBar 才有毛玻璃，否则顶栏是死板的纯色。
@@ -180,4 +179,3 @@ fun KedgeMiuixMorphingTitleBar(
         }
     }
 }
-

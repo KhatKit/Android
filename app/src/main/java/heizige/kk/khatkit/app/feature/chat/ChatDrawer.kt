@@ -775,6 +775,7 @@ KedgeEditDialog(
 
     // 删除文件夹确认
     folderToDelete?.let { folder ->
+        val generatingMessage = stringResource(R.string.chat_page_delete_folder_generating)
         AppAlertDialog(
             onDismissRequest = { folderToDelete = null },
             title = { Text(stringResource(R.string.chat_page_delete_folder)) },
@@ -786,7 +787,7 @@ KedgeEditDialog(
                             folderToDelete = null
                             conversations.refresh()
                         } else {
-                            Toast.show(context.getString(R.string.chat_page_delete_folder_generating), isError = false)
+                            Toast.show(generatingMessage, isError = false)
                         }
                     },
                 ) { Text(stringResource(R.string.chat_page_delete)) }

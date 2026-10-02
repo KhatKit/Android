@@ -1318,6 +1318,12 @@
   <string name="chat_page_delete_folder">Delete Folder</string>
   <string name="chat_page_rename">Rename</string>
   <string name="chat_page_folder_default">Chat</string>
+  <string name="chat_drawer_subscription">Subscription</string>
+  <string name="chat_drawer_plan">Plan</string>
+  <string name="chat_drawer_subscription_expired">Expired</string>
+  <string name="chat_drawer_plan_remaining_calls">Plan · %1$d calls left</string>
+  <string name="chat_drawer_plan_remaining_tokens">Plan · %1$d tokens left</string>
+  <string name="chat_drawer_download_center">Download Center</string>
   <string name="chat_page_folder_add">New</string>
   <string name="chat_page_delete_folder_confirm">Delete folder "%1$s"? Conversations inside will not be deleted, only removed from the folder.</string>
   <string name="chat_page_delete_folder_generating">Some conversations in this folder are still generating. Please stop them before deleting.</string>
