@@ -60,6 +60,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.uuid.Uuid
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.adaptive.KedgeTopAppBar
 
 @AndroidEntryPoint
 class SafeModeActivity : ComponentActivity() {
@@ -82,7 +83,8 @@ class SafeModeActivity : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
-                        TopAppBar(title = { Text(stringResource(R.string.safe_mode_title)) })
+                        // 安全模式也要跟主题走：Miuix 下用 Kedge 的顶栏
+                        KedgeTopAppBar(title = stringResource(R.string.safe_mode_title))
                     }
                 ) { innerPadding ->
                     Column(

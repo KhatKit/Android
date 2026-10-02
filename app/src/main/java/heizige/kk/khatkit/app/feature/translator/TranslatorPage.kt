@@ -77,6 +77,7 @@ import androidx.compose.foundation.layout.width
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFloatingActionButton
 import heizige.kk.kedge.theme.KedgeTextStyles
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
@@ -347,15 +348,21 @@ private fun BottomBar(
     onTranslate: () -> Unit,
     onCancelTranslation: () -> Unit
 ) {
-    BottomAppBar(
-        actions = {
-            // 目标语言选择
-            LanguageSelector(
-                targetLanguage = targetLanguage,
-                onLanguageSelected = { onLanguageSelected(it) }
-            )
-        },
-        floatingActionButton = {
+    // 不用 MD3 BottomAppBar：它自带底色/内边距，会在 Miuix 下漏出 MD3 容器。
+    // 这里自己排：左侧语言选择，右侧翻译/取消按钮，都浮在内容之上。
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        LanguageSelector(
+            targetLanguage = targetLanguage,
+            onLanguageSelected = { onLanguageSelected(it) },
+        )
+        Box(
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
             KedgeFloatingActionButton(
                 onClick = {
                     if (translating) {
@@ -386,5 +393,5 @@ private fun BottomBar(
                 }
             }
         }
-    )
+    }
 }

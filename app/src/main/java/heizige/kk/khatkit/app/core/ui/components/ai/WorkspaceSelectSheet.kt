@@ -31,6 +31,7 @@ import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.doneAll
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 internal fun WorkspaceSelectSheet(
@@ -82,7 +83,7 @@ internal fun WorkspaceSelectSheet(
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            KedgeHorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // 管理工作区
             KedgeListItem(

@@ -86,6 +86,7 @@ import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 internal fun FilesPicker(
@@ -145,7 +146,7 @@ internal fun FilesPicker(
             }
         }
 
-        HorizontalDivider(
+        KedgeHorizontalDivider(
             modifier = Modifier.fillMaxWidth()
         )
 

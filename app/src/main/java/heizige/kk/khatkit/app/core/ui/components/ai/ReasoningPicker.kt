@@ -45,6 +45,7 @@ import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
 import heizige.kk.khatkit.app.core.ui.icons.lightbulb
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSlider
 
 private val levels = ReasoningLevel.entries
 private val levelCount = levels.size
@@ -196,38 +197,19 @@ fun ReasoningPicker(
                 )
             }
 
-            Slider(
-                state = sliderState,
+            // Miuix 没有自定义 thumb 槽的 value 版Slider，这里用 KedgeSlider：
+            // MD3Exp 保持原生外观，Miuix 走 Miuix 自己的滑块样式。等级吸附逻辑不变。
+            KedgeSlider(
+                value = sliderState.value,
                 onValueChange = { sliderState.value = it },
                 onValueChangeFinished = {
                     val snappedIndex = sliderState.value.roundToInt().coerceIn(0, levelCount - 1)
                     sliderState.value = snappedIndex.toFloat()
                     onUpdateReasoningLevel(levels[snappedIndex])
                 },
+                valueRange = 0f..(levelCount - 1).toFloat(),
+                steps = levelCount - 2,
                 modifier = Modifier.fillMaxWidth(),
-                thumb = {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onPrimary)
-                        )
-                    }
-                },
-                track = { sliderState ->
-                    SliderDefaults.Track(
-                        sliderState = sliderState,
-                        drawStopIndicator = null,
-                        thumbTrackGapSize = 0.dp,
-                    )
-                }
             )
         }
     }
