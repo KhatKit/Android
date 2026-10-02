@@ -6,17 +6,26 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.khatkit.app.feature.automation.CardTriggerOverride
@@ -61,6 +72,10 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,
@@ -97,6 +112,7 @@ fun SettingTriggersPage() {
     PermissionManager(permissionState = permissionState)
     var pendingStart by remember { mutableStateOf(false) }
     var editingCard by remember { mutableStateOf<TriggerCard?>(null) }
+    var showAiDialog by remember { mutableStateOf(false) }
     val editingOverride = remember(editingCard) {
         editingCard?.let { controller.settings.overrideFor(it.name) } ?: CardTriggerOverride.NONE
     }
@@ -146,6 +162,42 @@ fun SettingTriggersPage() {
         )
     }
 
+    if (showAiDialog) {
+        AlertDialog(
+            onDismissRequest = { showAiDialog = false },
+            title = { Text("AI 介入点") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "让 AI 在流程中负责识别、判断或生成参数。执行前仍会遵循当前自动化授权策略。",
+                        style = KedgeTextStyles.body(),
+                    )
+                    listOf(
+                        "识别当前页面并选择下一步",
+                        "根据通知内容生成回复参数",
+                        "失败时分析原因并给出重试建议",
+                    ).forEach { suggestion ->
+                        KedgeCard(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                suggestion,
+                                modifier = Modifier.padding(12.dp),
+                                style = KedgeTextStyles.body(),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAiDialog = false }) { Text("知道了") }
+            },
+        )
+    }
+
     KedgeSettingsPageScaffold(
         title = "自动化触发器",
         scrollBehavior = scrollBehavior,
@@ -165,6 +217,9 @@ fun SettingTriggersPage() {
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
                     item(
+                        // 整行可点 = 翻转开关：之前没给 onClick，卡片点不动，
+                        // 只能去点右边那个小开关。
+                        onClick = { applyMaster(!triggerState.masterEnabled) },
                         headlineContent = { Text("启用自动化触发器") },
                         supportingContent = {
                             Text("卡片在定时、通知/点击/回复、应用启动/退出/安装/卸载、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置、快捷方式、磁贴事件时自动运行")
@@ -194,10 +249,18 @@ fun SettingTriggersPage() {
                 }
             }
 
+            item("overview") {
+                FlowOverviewCard(
+                    cards = cards,
+                    enabled = triggerState.masterEnabled,
+                    onAddAi = { showAiDialog = true },
+                )
+            }
+
             item("cards") {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text("事件卡片（点击编辑事件）") },
+                    title = { Text("工作流节点（点击编辑）") },
                 ) {
                     if (cards.isEmpty()) {
                         item(
@@ -213,7 +276,15 @@ fun SettingTriggersPage() {
                         item(
                             onClick = { editingCard = card },
                             leadingContent = { Icon(editNote, contentDescription = null) },
-                            headlineContent = { Text(card.name) },
+                            headlineContent = {
+                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Text(card.name, fontWeight = FontWeight.SemiBold)
+                                    FlowNodeStrip(
+                                        events = card.events,
+                                        disabledIndexes = card.disabledIndexes,
+                                    )
+                                }
+                            },
                             supportingContent = {
                                 Text(
                                     if (card.events.isEmpty()) {
@@ -417,6 +488,162 @@ fun SettingTriggersPage() {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FlowOverviewCard(
+    cards: List<TriggerCard>,
+    enabled: Boolean,
+    onAddAi: () -> Unit,
+) {
+    val style = LocalKedgeStyle.current
+    KedgeCard(
+        modifier = Modifier.padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(if (style == KedgeStyle.Miuix) 20.dp else 24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("自动化工作流", style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (enabled) "监听事件 → 执行动作 → 记录结果" else "总开关已关闭，工作流暂不监听系统事件",
+                        style = KedgeTextStyles.body(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    "${cards.count { it.events.isNotEmpty() }} 个流程",
+                    style = KedgeTextStyles.body(),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (cards.isEmpty()) {
+                Text(
+                    "从卡片市场安装一个工作流，或先录制一组操作。",
+                    style = KedgeTextStyles.body(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                FlowNodeStrip(
+                    events = cards.firstOrNull { it.events.isNotEmpty() }?.events.orEmpty(),
+                    disabledIndexes = cards.firstOrNull { it.events.isNotEmpty() }?.disabledIndexes.orEmpty(),
+                    showLabels = true,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                KedgeFilterChip(
+                    selected = false,
+                    onClick = onAddAi,
+                    label = { Text("AI 介入") },
+                )
+                Text(
+                    "节点可在下方逐个展开编辑",
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    style = KedgeTextStyles.footnoteSmall(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlowNodeStrip(
+    events: List<CardManifest.Event>,
+    disabledIndexes: Set<Int> = emptySet(),
+    showLabels: Boolean = false,
+) {
+    if (events.isEmpty()) {
+        Text(
+            "未配置触发节点",
+            style = KedgeTextStyles.footnoteSmall(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        events.take(5).forEachIndexed { index, event ->
+            if (index > 0) {
+                // Canvas 的 lambda 是 DrawScope，不是 composable：颜色必须在
+                // 组合阶段读出来再传进去。
+                val connectorColor = MaterialTheme.colorScheme.outlineVariant
+                Box(
+                    modifier = Modifier
+                        .size(width = 12.dp, height = 1.dp)
+                        .padding(horizontal = 2.dp),
+                ) {
+                    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                        drawLine(
+                            color = connectorColor,
+                            start = androidx.compose.ui.geometry.Offset.Zero,
+                            end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                            strokeWidth = 2f,
+                        )
+                    }
+                }
+            }
+            val active = index !in disabledIndexes
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .then(
+                            if (active) Modifier else Modifier
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = editNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp),
+                        tint = if (active) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+                if (showLabels) {
+                    Text(
+                        eventTypeLabel(event.type),
+                        style = KedgeTextStyles.footnoteSmall(),
+                        color = if (active) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        if (events.size > 5) {
+            Text(
+                "+${events.size - 5}",
+                style = KedgeTextStyles.footnoteSmall(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.weight(1f))
     }
 }
 
