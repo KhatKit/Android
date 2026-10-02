@@ -70,6 +70,9 @@ import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
 fun WebDavTab(
@@ -197,16 +200,17 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_backup_items)) },
                     supportingContent = {
-                    MultiChoiceSegmentedButtonRow(
+                    KedgeMultiChoiceSegmentedRow(
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        WebDavConfig.BackupItem.entries.forEachIndexed { index, item ->
-                            SegmentedButton(
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = WebDavConfig.BackupItem.entries.size
-                                ),
-                                onCheckedChange = { checked ->
+                        items = WebDavConfig.BackupItem.entries.map { item ->
+                            SegmentedItem(
+                                label = when (item) {
+                                    WebDavConfig.BackupItem.DATABASE -> stringResource(R.string.backup_page_chat_records)
+                                    WebDavConfig.BackupItem.FILES -> stringResource(R.string.backup_page_files)
+                                },
+                                selected = item in webDavConfig.items,
+                                onClick = {
+                                    val checked = item !in webDavConfig.items
                                     val newItems = if (checked) {
                                         webDavConfig.items + item
                                     } else {
@@ -214,17 +218,9 @@ fun WebDavTab(
                                     }
                                     updateWebDavConfig(webDavConfig.copy(items = newItems))
                                 },
-                                checked = item in webDavConfig.items
-                            ) {
-                                Text(
-                                    when (item) {
-                                        WebDavConfig.BackupItem.DATABASE -> stringResource(R.string.backup_page_chat_records)
-                                        WebDavConfig.BackupItem.FILES -> stringResource(R.string.backup_page_files)
-                                    }
-                                )
-                            }
-                        }
-                    }
+                            )
+                        },
+                    )
                     },
                 )
             }

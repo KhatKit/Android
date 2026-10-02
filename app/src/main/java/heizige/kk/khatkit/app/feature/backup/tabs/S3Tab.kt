@@ -71,6 +71,9 @@ import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
 fun S3Tab(
@@ -216,16 +219,17 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_backup_items)) },
                     supportingContent = {
-                        MultiChoiceSegmentedButtonRow(
+                        KedgeMultiChoiceSegmentedRow(
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            S3Config.BackupItem.entries.forEachIndexed { index, item ->
-                                SegmentedButton(
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = S3Config.BackupItem.entries.size
-                                    ),
-                                    onCheckedChange = { checked ->
+                            items = S3Config.BackupItem.entries.map { item ->
+                                SegmentedItem(
+                                    label = when (item) {
+                                        S3Config.BackupItem.DATABASE -> stringResource(R.string.backup_page_chat_records)
+                                        S3Config.BackupItem.FILES -> stringResource(R.string.backup_page_files)
+                                    },
+                                    selected = item in s3Config.items,
+                                    onClick = {
+                                        val checked = item !in s3Config.items
                                         val newItems = if (checked) {
                                             s3Config.items + item
                                         } else {
@@ -233,17 +237,9 @@ fun S3Tab(
                                         }
                                         updateS3Config(s3Config.copy(items = newItems))
                                     },
-                                    checked = item in s3Config.items
-                                ) {
-                                    Text(
-                                        when (item) {
-                                            S3Config.BackupItem.DATABASE -> stringResource(R.string.backup_page_chat_records)
-                                            S3Config.BackupItem.FILES -> stringResource(R.string.backup_page_files)
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                                )
+                            },
+                        )
                     },
                 )
             }

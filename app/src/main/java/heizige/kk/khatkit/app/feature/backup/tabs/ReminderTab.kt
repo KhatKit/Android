@@ -25,6 +25,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import java.time.Instant
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
 fun ReminderTab(vm: BackupViewModel) {
@@ -61,22 +64,16 @@ fun ReminderTab(vm: BackupViewModel) {
                     headlineContent = { Text(stringResource(R.string.backup_page_reminder_interval)) },
                     supportingContent = {
                         val intervals = listOf(1, 3, 7, 14, 30)
-                        SingleChoiceSegmentedButtonRow(
+                        KedgeSingleChoiceSegmentedRow(
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            intervals.forEachIndexed { index, days ->
-                                SegmentedButton(
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = intervals.size,
-                                    ),
+                            items = intervals.map { days ->
+                                SegmentedItem(
+                                    label = stringResource(R.string.backup_page_reminder_interval_days, days),
                                     onClick = { updateConfig(config.copy(intervalDays = days)) },
                                     selected = config.intervalDays == days,
-                                ) {
-                                    Text(stringResource(R.string.backup_page_reminder_interval_days, days))
-                                }
-                            }
-                        }
+                                )
+                            },
+                        )
                     },
                 )
 

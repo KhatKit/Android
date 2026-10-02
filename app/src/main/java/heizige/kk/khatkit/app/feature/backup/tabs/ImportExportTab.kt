@@ -43,6 +43,9 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import heizige.kk.khatkit.app.core.ui.icons.description
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
 fun ImportExportTab(
@@ -194,16 +197,17 @@ fun ImportExportTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_backup_items)) },
                     supportingContent = {
-                        MultiChoiceSegmentedButtonRow(
+                        KedgeMultiChoiceSegmentedRow(
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            WebDavConfig.BackupItem.entries.forEachIndexed { index, item ->
-                                SegmentedButton(
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = WebDavConfig.BackupItem.entries.size
-                                    ),
-                                    onCheckedChange = { checked ->
+                            items = WebDavConfig.BackupItem.entries.map { item ->
+                                SegmentedItem(
+                                    label = when (item) {
+                                        WebDavConfig.BackupItem.DATABASE -> stringResource(R.string.backup_page_chat_records)
+                                        WebDavConfig.BackupItem.FILES -> stringResource(R.string.backup_page_files)
+                                    },
+                                    selected = item in selectedBackupItems,
+                                    onClick = {
+                                        val checked = item !in selectedBackupItems
                                         val newItems = if (checked) {
                                             selectedBackupItems + item
                                         } else {
@@ -211,17 +215,9 @@ fun ImportExportTab(
                                         }
                                         vm.updateLocalBackupItems(newItems)
                                     },
-                                    checked = item in selectedBackupItems
-                                ) {
-                                    Text(
-                                        when (item) {
-                                            WebDavConfig.BackupItem.DATABASE -> stringResource(R.string.backup_page_chat_records)
-                                            WebDavConfig.BackupItem.FILES -> stringResource(R.string.backup_page_files)
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                                )
+                            },
+                        )
                     },
                 )
                 item(

@@ -68,6 +68,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
 fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
@@ -144,32 +146,24 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                 ),
             )
 
-            SingleChoiceSegmentedButtonRow(
+            KedgeSingleChoiceSegmentedRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 8.dp),
-            ) {
-                MessageSearchScope.entries.forEachIndexed { index, scope ->
-                    SegmentedButton(
+                items = MessageSearchScope.entries.map { scope ->
+                    SegmentedItem(
+                        label = stringResource(
+                            when (scope) {
+                                MessageSearchScope.CURRENT_ASSISTANT -> R.string.search_page_scope_current_assistant
+                                MessageSearchScope.ALL_ASSISTANTS -> R.string.search_page_scope_all_assistants
+                            }
+                        ),
                         selected = vm.searchScope == scope,
                         onClick = { vm.onScopeChange(scope) },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = MessageSearchScope.entries.size,
-                        ),
-                    ) {
-                        Text(
-                            stringResource(
-                                when (scope) {
-                                    MessageSearchScope.CURRENT_ASSISTANT -> R.string.search_page_scope_current_assistant
-                                    MessageSearchScope.ALL_ASSISTANTS -> R.string.search_page_scope_all_assistants
-                                }
-                            )
-                        )
-                    }
-                }
-            }
+                    )
+                },
+            )
 
             Box(modifier = Modifier.weight(1f)) {
                 if (vm.isLoading || vm.isRebuilding) {

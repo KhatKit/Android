@@ -33,6 +33,9 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
 fun CompressContextDialog(
@@ -89,22 +92,16 @@ fun CompressContextDialog(
                         text = stringResource(R.string.chat_page_compress_target_tokens),
                         style = KedgeTextStyles.body()
                     )
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        tokenOptions.forEachIndexed { index, tokens ->
-                            SegmentedButton(
+                    KedgeSingleChoiceSegmentedRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        items = tokenOptions.map { tokens ->
+                            SegmentedItem(
+                                label = "$tokens",
                                 selected = selectedTokens == tokens,
                                 onClick = { selectedTokens = tokens },
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = tokenOptions.size
-                                )
-                            ) {
-                                Text("$tokens")
-                            }
-                        }
-                    }
+                            )
+                        },
+                    )
 
                     // Keep recent messages input
                     OutlinedNumberInput(

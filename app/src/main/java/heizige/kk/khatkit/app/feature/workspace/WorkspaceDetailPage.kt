@@ -103,6 +103,9 @@ import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
 fun WorkspaceDetailPage(id: String) {
@@ -715,17 +718,16 @@ private fun WorkspaceAreaSelector(
         WorkspaceStorageArea.FILES to stringResource(R.string.workspace_detail_area_files),
         WorkspaceStorageArea.LINUX to stringResource(R.string.workspace_detail_area_rootfs),
     )
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        areas.forEachIndexed { index, (area, label) ->
-            SegmentedButton(
+    KedgeSingleChoiceSegmentedRow(
+        modifier = Modifier.fillMaxWidth(),
+        items = areas.map { (area, label) ->
+            SegmentedItem(
+                label = label,
                 selected = selected == area,
                 onClick = { onSelected(area) },
-                shape = SegmentedButtonDefaults.itemShape(index, areas.size),
-            ) {
-                Text(label)
-            }
-        }
-    }
+            )
+        },
+    )
 }
 
 @Composable

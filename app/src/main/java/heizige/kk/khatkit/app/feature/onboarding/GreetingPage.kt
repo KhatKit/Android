@@ -182,6 +182,9 @@ import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khromia.components.SegmentedItem
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -1002,14 +1005,11 @@ private fun GreetingAiSetupScreen() {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (provider == null) {
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        ProviderSetting.Types.forEachIndexed { index, type ->
-                            SegmentedButton(
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = ProviderSetting.Types.size,
-                                ),
-                                label = { Text(type.simpleName ?: "") },
+                    KedgeSingleChoiceSegmentedRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        items = ProviderSetting.Types.map { type ->
+                            SegmentedItem(
+                                label = type.simpleName ?: "",
                                 selected = customType == type,
                                 onClick = {
                                     customType = type
@@ -1018,8 +1018,8 @@ private fun GreetingAiSetupScreen() {
                                     }
                                 },
                             )
-                        }
-                    }
+                        },
+                    )
                     KedgeOutlinedTextFieldWithSlots(
                         value = draftName,
                         onValueChange = { draftName = it },
