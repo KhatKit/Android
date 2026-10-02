@@ -86,6 +86,7 @@ import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 /**
  * 记忆工具: 按 action 区分标题/图标, 摘要显示记忆内容, 详情附带删除按钮
@@ -141,6 +142,7 @@ object MemoryToolUI : ToolUIRenderer {
             headerActions = if (action(context) in listOf(ACTION_CREATE, ACTION_EDIT) && memoryId != null) {
                 {
                     KedgeIconButton(
+                        variant = KedgeIconButtonVariant.Tonal,
                         onClick = {
                             scope.launch {
                                 memoryRepo.deleteMemory(memoryId)
@@ -329,7 +331,8 @@ object TextToSpeechToolUI : ToolUIRenderer {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            FilledTonalIconButton(
+            KedgeIconButton(
+                variant = KedgeIconButtonVariant.Tonal,
                 onClick = { scope.launch { eventBus.emit(AppEvent.Speak(text)) } },
                 modifier = Modifier.size(28.dp),
                 shapes = IconButtonDefaults.shapes(),

@@ -61,6 +61,8 @@ import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.questionAnswer
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 private const val ASK_USER_TOOL_NAME = "ask_user"
 
@@ -166,7 +168,8 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilledTonalIconButton(
+                    KedgeIconButton(
+                        variant = KedgeIconButtonVariant.Tonal,
                         onClick = { showDenyDialog = true },
                         modifier = Modifier.size(28.dp),
                         shapes = IconButtonDefaults.shapes(),
@@ -177,7 +180,8 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                             modifier = Modifier.size(14.dp)
                         )
                     }
-                    FilledTonalIconButton(
+                    KedgeIconButton(
+                        variant = KedgeIconButtonVariant.Tonal,
                         onClick = { onToolApproval(tool.toolCallId, true, "") },
                         modifier = Modifier.size(28.dp),
                         shapes = IconButtonDefaults.shapes(),

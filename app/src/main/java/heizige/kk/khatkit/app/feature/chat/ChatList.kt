@@ -110,6 +110,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 private const val TAG = "ChatList"
 private const val LoadingIndicatorKey = "LoadingIndicator"
@@ -437,6 +438,7 @@ private fun ChatListNormal(
                         }
                     ) {
                         KedgeIconButton(
+                            variant = KedgeIconButtonVariant.Filled,
                             onClick = {
                                 selecting = false
                                 selectedItems.clear()
@@ -452,6 +454,7 @@ private fun ChatListNormal(
                         }
                     ) {
                         KedgeIconButton(
+                            variant = KedgeIconButtonVariant.Filled,
                             onClick = {
                                 if (selectedItems.isNotEmpty()) {
                                     selectedItems.clear()
@@ -469,7 +472,8 @@ private fun ChatListNormal(
                             Text("Confirm")
                         }
                     ) {
-                        FilledIconButton(
+                        KedgeIconButton(
+                            variant = KedgeIconButtonVariant.Filled,
                             onClick = {
                                 selecting = false
                                 val messages = conversation.messageNodes.filter { it.id in selectedItems }

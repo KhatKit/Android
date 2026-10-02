@@ -38,6 +38,7 @@ import heizige.kk.khatkit.app.core.ui.icons.forward
 import heizige.kk.khatkit.app.core.ui.icons.pause
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 @Composable
 fun TTSController() {
@@ -83,6 +84,7 @@ fun TTSController() {
                 PlayPauseButton(playbackState = playbackState, ttsState = ttsState)
 
                 KedgeIconButton(
+                    variant = KedgeIconButtonVariant.Tonal,
                     onClick = {
                         ttsState.stop()
                         isVisible = false
@@ -107,6 +109,7 @@ fun TTSController() {
                 }
 
                 KedgeIconButton(
+                    variant = KedgeIconButtonVariant.Tonal,
                     onClick = {
                         expand = !expand
                     },
@@ -125,6 +128,7 @@ fun TTSController() {
 @Composable
 private fun FastForwardButton(ttsState: CustomTtsState) {
     KedgeIconButton(
+        variant = KedgeIconButtonVariant.Tonal,
         onClick = {
             ttsState.fastForward(5000)
         },
@@ -142,7 +146,8 @@ private fun PlayPauseButton(
     playbackState: PlaybackState,
     ttsState: CustomTtsState
 ) {
-    FilledTonalIconButton(
+    KedgeIconButton(
+        variant = KedgeIconButtonVariant.Tonal,
         onClick = {
             when (playbackState.status) {
                 PlaybackStatus.Playing -> {
