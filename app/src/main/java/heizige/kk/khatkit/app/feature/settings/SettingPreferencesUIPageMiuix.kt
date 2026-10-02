@@ -28,6 +28,7 @@ import heizige.kk.khatkit.app.feature.settings.components.CodeDisplaySettingsGro
 import heizige.kk.khatkit.app.feature.settings.components.ListCardStyleGroupMiuix
 import heizige.kk.khatkit.app.feature.settings.components.UiStyleGroupMiuix
 import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import androidx.compose.material3.LocalTextStyle
 import kotlin.math.roundToInt
 
@@ -50,6 +51,7 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_page_preferences_ui),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {

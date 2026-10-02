@@ -30,6 +30,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import java.time.Instant
 
 /**
@@ -59,6 +60,7 @@ fun SettingPreferencesNotificationPageMiuix(vm: SettingViewModel = hiltViewModel
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_page_preferences_notification),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {

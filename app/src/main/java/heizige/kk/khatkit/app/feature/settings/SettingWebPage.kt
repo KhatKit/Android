@@ -59,6 +59,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionNotific
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.network.WebServerManager
@@ -187,7 +188,14 @@ fun SettingWebPage() {
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(8.dp),
+            contentPadding = innerPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                // 本页有 FAB（KedgeExtendedFloatingActionButton），底部按 FAB 的
+                // 高度让位，否则滚到底时末项被按钮压住。
+                bottom = 8.dp + PageMetrics.BottomContentPaddingWithFab,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {

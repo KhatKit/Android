@@ -33,6 +33,7 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.hub.HubAccountStatus
@@ -105,7 +106,12 @@ fun SettingPackagePage(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(8.dp),
+            contentPadding = innerPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item("purchase") {

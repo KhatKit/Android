@@ -41,6 +41,7 @@ import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -67,7 +68,10 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         value = filesManager.countChatFiles()
     }
 
-    MiuixSettingsPage(title = stringResource(R.string.settings)) {
+    MiuixSettingsPage(
+        title = stringResource(R.string.settings),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
+    ) {
         if (settings.isNotConfigured()) {
             item {
                 ProviderConfigWarningCard(navController)

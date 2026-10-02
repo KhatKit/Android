@@ -59,6 +59,7 @@ import heizige.kk.khatkit.app.core.ui.icons.TencentQQIcon
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.joinQQGroup
@@ -146,7 +147,12 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(8.dp),
+            contentPadding = innerPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (settings.isNotConfigured()) {

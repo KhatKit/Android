@@ -72,6 +72,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
 import heizige.kk.khatkit.app.feature.settings.components.PresetThemeColorDots
 import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
@@ -121,7 +122,12 @@ fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(8.dp),
+            contentPadding = innerPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item("themeMode") {

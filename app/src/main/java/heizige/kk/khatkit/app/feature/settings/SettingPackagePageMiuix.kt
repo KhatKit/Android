@@ -25,6 +25,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.openInNew
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -63,6 +64,7 @@ fun SettingPackagePageMiuix(vm: SettingViewModel = hiltViewModel()) {
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_package_page_title),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {

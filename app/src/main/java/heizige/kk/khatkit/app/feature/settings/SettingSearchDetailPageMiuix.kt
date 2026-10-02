@@ -29,6 +29,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixItemSpacing
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 
 /**
  * 搜索服务详情页的 Miuix 风格版。
@@ -57,6 +58,7 @@ fun SettingSearchDetailPageMiuix(
 
     MiuixSettingsPage(
         title = options.displayName,
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
         actions = {
             if (settings.searchServices.size > 1) {

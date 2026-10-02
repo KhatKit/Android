@@ -36,6 +36,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionNotification
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
@@ -95,7 +96,12 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding + PaddingValues(8.dp),
+            contentPadding = contentPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {

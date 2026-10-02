@@ -42,6 +42,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceIcon
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 
 /**
  * 网络偏好页的 Miuix 风格版。
@@ -130,6 +131,7 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_page_preferences_network),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {

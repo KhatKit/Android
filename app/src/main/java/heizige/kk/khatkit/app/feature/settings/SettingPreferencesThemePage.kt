@@ -43,6 +43,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.feature.settings.components.PresetThemeColorDots
 import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
@@ -81,7 +82,12 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding + PaddingValues(8.dp),
+            contentPadding = contentPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {

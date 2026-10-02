@@ -15,6 +15,7 @@ import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 
 /**
  * 偏好设置首页的 Miuix 风格版（对照 KernelSU `SettingsMiuix.kt`：
@@ -26,6 +27,7 @@ fun SettingPreferencesPageMiuix() {
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_page_preferences),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {

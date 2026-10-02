@@ -57,6 +57,7 @@ import heizige.kk.khatkit.app.core.ui.effect.BgEffectBackground
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.public
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.util.openUrl
@@ -167,7 +168,12 @@ fun SettingAboutPage() {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = innerPadding + PaddingValues(8.dp),
+                    contentPadding = innerPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item(key = "about_hero") {

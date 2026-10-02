@@ -87,6 +87,7 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 
 @Composable
 fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
@@ -173,7 +174,10 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                     .weight(1f)
                     .imePadding(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) +
-                    PaddingValues(bottom = innerPadding.calculateBottomPadding()),
+                    PaddingValues(
+                        bottom = innerPadding.calculateBottomPadding() +
+                            PageMetrics.BottomContentPadding,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 state = lazyListState,
             ) {

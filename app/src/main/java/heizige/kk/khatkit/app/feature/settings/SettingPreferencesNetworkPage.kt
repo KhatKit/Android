@@ -52,6 +52,7 @@ import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -287,7 +288,12 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding(),
-            contentPadding = contentPadding + PaddingValues(8.dp),
+            contentPadding = contentPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {

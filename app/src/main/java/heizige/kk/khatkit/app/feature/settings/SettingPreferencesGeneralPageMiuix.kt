@@ -19,6 +19,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSharedPreferenceBoolean
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import kotlin.math.roundToInt
 
 /**
@@ -47,6 +48,7 @@ fun SettingPreferencesGeneralPageMiuix(vm: SettingViewModel = hiltViewModel()) {
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_page_preferences_general),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {

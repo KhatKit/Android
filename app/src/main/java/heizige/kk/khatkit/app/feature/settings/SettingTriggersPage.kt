@@ -49,6 +49,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.notifications
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.card.CardManifest
@@ -151,7 +152,12 @@ fun SettingTriggersPage() {
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(8.dp),
+            contentPadding = innerPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item("master") {

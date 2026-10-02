@@ -19,6 +19,7 @@ import heizige.kk.khatkit.app.feature.settings.components.ThemeColorSettingGroup
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode as UiColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -36,6 +37,7 @@ fun SettingPreferencesThemePageMiuix(vm: SettingViewModel = hiltViewModel()) {
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_page_preferences_theme),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {

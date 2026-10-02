@@ -59,6 +59,7 @@ import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.public
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.util.openUrl
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
@@ -161,6 +162,7 @@ fun SettingAboutPageMiuix() {
     ) {
     MiuixSettingsPage(
         title = stringResource(R.string.about_page_title),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
         lazyListState = listState,
         // 让底层流光透出来（默认 surface 不透明会盖住 Canvas）

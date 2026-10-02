@@ -54,6 +54,7 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
 import heizige.kk.khatkit.app.core.util.plus
@@ -132,7 +133,12 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding + PaddingValues(8.dp),
+            contentPadding = contentPadding + PaddingValues(
+                start = 8.dp,
+                top = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {

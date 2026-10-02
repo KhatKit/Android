@@ -8,6 +8,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 
 /**
  * 权限页的 Miuix 风格版。
@@ -19,6 +20,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 fun SettingPermissionsPageMiuix() {
     MiuixSettingsPage(
         title = stringResource(R.string.setting_page_permissions),
+        bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
         item {
