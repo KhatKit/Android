@@ -59,6 +59,7 @@ import com.jvziyaoyao.scale.zoomable.pager.PagerGestureScope
 import com.jvziyaoyao.scale.zoomable.pager.rememberZoomablePagerState
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.Media
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 上滑关闭的阈值（px）。 */
 private const val DISMISS_DRAG_THRESHOLD = 240f
@@ -192,7 +193,7 @@ private fun MediaImagePagerContent(
                     Text(
                         text = "${pagerState.currentPage + 1}/${media.size}",
                         color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = KedgeTextStyles.bodyLarge(),
                     )
                 }
                 MediaCheckBox(
@@ -224,8 +225,7 @@ private fun MediaImagePagerContent(
                         text = item.label,
                         modifier = Modifier.weight(1f, fill = false),
                         color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontSize = 14.sp,
+                        style = KedgeTextStyles.body(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -239,8 +239,7 @@ private fun MediaImagePagerContent(
                                 text = item.humanFileSize,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontSize = 12.5.sp,
+                                style = KedgeTextStyles.footnoteSmall(),
                             )
                         }
                     }

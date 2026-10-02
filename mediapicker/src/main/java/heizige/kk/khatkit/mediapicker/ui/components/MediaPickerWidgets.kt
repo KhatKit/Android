@@ -9,7 +9,6 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
 /**
  * `AnimatedVisibility` 的 Box 作用域版本：上游用它是因为浮层（FAB 列、加载遮罩）
@@ -93,5 +94,8 @@ fun Modifier.drawBottomHairline(
 /** 重查数据时的波浪进度条。 */
 @Composable
 fun WavyPickerProgress(modifier: Modifier = Modifier) {
-    LinearWavyProgressIndicator(modifier = modifier.fillMaxWidth())
+    KedgeProgressIndicator(
+        type = KedgeProgressIndicatorType.Wavy,
+        modifier = modifier.fillMaxWidth(),
+    )
 }

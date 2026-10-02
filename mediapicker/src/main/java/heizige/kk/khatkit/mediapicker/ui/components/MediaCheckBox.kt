@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun MediaCheckBox(
@@ -97,8 +98,7 @@ fun MediaCheckBox(
                     Text(
                         text = (index + 1).toString(),
                         color = contentColorFor(color),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
+                        style = KedgeTextStyles.footnoteSmall().copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                     )

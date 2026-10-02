@@ -28,7 +28,6 @@ import androidx.compose.material.icons.rounded.RadioButtonChecked
 import androidx.compose.material.icons.rounded.ViewComfy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.MediaDateGroup
 import heizige.kk.khatkit.mediapicker.domain.MediaDisplaySettings
@@ -59,7 +59,8 @@ internal fun MediaFilterSheet(
 ) {
     var page by rememberSaveable { mutableIntStateOf(0) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // Kedge 弹层：MD3Exp 下是 ModalBottomSheet，Miuix 下是 Miuix WindowBottomSheet。
+    KedgeModalBottomSheet(show = true, onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Row(
                 modifier = Modifier

@@ -26,7 +26,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -50,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
@@ -60,6 +60,7 @@ import heizige.kk.khromia.layout.FullscreenPopup
 import heizige.kk.khatkit.ui.UiSheetOptions
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * BottomSheet 拖柄顶行右侧的一个动作（`ui.sheet` / `web.openLogin` 的 action）。
@@ -372,7 +373,7 @@ private fun SheetTopBar(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
+                style = KedgeTextStyles.body(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -414,7 +415,7 @@ private fun SheetCloseBar(dismissText: String?) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
     ) {
-        Button(
+        KedgeButton(
             onClick = { dismiss() },
             shapes = ButtonDefaults.shapes(),
         ) {
@@ -453,11 +454,11 @@ private fun SheetBottomBar(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        Text(text = title, style = MaterialTheme.typography.labelLarge)
+        Text(text = title, style = KedgeTextStyles.body())
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
+        KedgeButton(
             onClick = { onConfirm?.invoke() ?: onDismiss() },
             shapes = ButtonDefaults.shapes(),
         ) {

@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -44,12 +43,10 @@ import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.rounded.BrokenImage
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,7 +71,9 @@ import heizige.kk.kedge.components.KedgeBadgedBox
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.kedge.components.KedgeFloatingActionButton
 import heizige.kk.kedge.components.KedgeTextFieldWithSlots
+import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
 import heizige.kk.khatkit.mediapicker.domain.AlbumState
@@ -148,14 +147,16 @@ internal fun MediaPickerGridWithOverlays(
                 label = "pickFabContent",
             )
             Column(horizontalAlignment = Alignment.End) {
-                // 取消选择：40dp Small FAB，12dp 圆角
+                // 取消选择：40dp 小 FAB（MD3Exp 下原本是 SmallFloatingActionButton，
+                // Miuix 没有小 FAB，用 KedgeFloatingActionButton + size 压到同尺寸）
                 AnimatedVisibility(visible = canPick) {
-                    SmallFloatingActionButton(
+                    KedgeFloatingActionButton(
                         onClick = { selectedMedia.clear() },
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.padding(bottom = 8.dp),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(bottom = 8.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Deselect,
@@ -178,11 +179,10 @@ internal fun MediaPickerGridWithOverlays(
                 ) {
                     // 确认按钮：56dp 标准 FAB（上游 EnhancedFloatingActionButtonType.Primary），
                     // 不是 40dp 的 Small —— 里面还要塞图标 + 文案
-                    FloatingActionButton(
+                    KedgeFloatingActionButton(
                         onClick = { if (canPick) onPicked() },
                         containerColor = containerColor,
                         contentColor = contentColor,
-                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.semantics { contentDescription = pickLabel },
                     ) {
                         Row(
@@ -218,7 +218,7 @@ internal fun MediaPickerGridWithOverlays(
             exit = scaleOut() + fadeOut(),
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                KedgeProgressIndicator()
             }
         }
 

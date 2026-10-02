@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * custom 组件渲染器注册表（设计文档 7.2 的「逃逸舱」）。
@@ -48,11 +49,11 @@ object UiRegistry {
                         Text(
                             text = "$key: ",
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                         )
                         Text(
                             text = value?.toString().orEmpty(),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = KedgeTextStyles.footnoteSmall(),
                         )
                     }
                 }

@@ -31,6 +31,7 @@ import heizige.kk.kedge.components.KedgeSlider
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -63,7 +64,7 @@ fun KhatKitSecretsDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(key, style = MaterialTheme.typography.bodyMedium)
+                        Text(key, style = KedgeTextStyles.body())
                         KedgeTextButton(
                             onClick = {
                                 controller.removeCardSecret(cardName, key)

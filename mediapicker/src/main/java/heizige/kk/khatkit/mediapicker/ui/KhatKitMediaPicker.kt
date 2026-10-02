@@ -18,12 +18,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,10 +29,7 @@ import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,8 +48,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.kedge.adaptive.KedgeTopAppBar
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
 import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
@@ -117,6 +115,18 @@ fun KhatKitMediaPicker(
     }
 }
 
+/**
+ * 顶栏 + 相册行那一整块的底色。
+ *
+ * 原来写死 MD3 的 `surfaceContainer`，Miuix 下那块底色会和 Miuix 页面底色对不上
+ * （Miuix 主题只桥接了配色，`MaterialTheme.colorScheme` 仍是 MD3 那套）。
+ */
+@Composable
+private fun barSurfaceColor(): Color = when (LocalKedgeStyle.current) {
+    KedgeStyle.Miuix -> MiuixTheme.colorScheme.surface
+    KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.surfaceContainer
+}
+
 @Composable
 internal fun MediaPickerRootContent(
     onDismiss: () -> Unit,
@@ -163,7 +173,10 @@ internal fun MediaPickerRootContent(
         pickerState.getAlbum(ALL_ALBUM_ID)
     }
 
-    Scaffold(
+    // 骨架与顶栏都走 Kedge：MD3Exp 下与原来的 MD3 Scaffold + TopAppBar 等价，
+    // Miuix 下换成 Miuix Scaffold + Miuix 顶栏（此前整页是 MD3，AGENTS.md 里
+    // 「Miuix 分支待补」指的就是这一块）。
+    KedgePageScaffold(
         modifier = modifier,
         topBar = {
             // 顶栏与相册行共用一块 surfaceContainer（上游是两个嵌套 Scaffold 的
@@ -172,19 +185,16 @@ internal fun MediaPickerRootContent(
             val isRefreshing = mediaState.isLoading && mediaState.media.isNotEmpty()
             Column(
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .background(barSurfaceColor())
                     .drawBottomHairline(if (hasAlbums || isRefreshing) 1.dp else 0.dp),
             ) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = title ?: stringResource(
-                                if (allowMultiple) R.string.media_picker_pick_multiple
-                                else R.string.media_picker_pick_single
-                            ),
-                            maxLines = 1,
-                        )
-                    },
+                KedgeTopAppBar(
+                    // Kedge 顶栏的标题收 String（Miuix 原版 TopAppBar 也只收 String），
+                    // 两边共用同一个字符串，标题的字阶/基线由 Kedge 按风格给。
+                    title = title ?: stringResource(
+                        if (allowMultiple) R.string.media_picker_pick_multiple
+                        else R.string.media_picker_pick_single
+                    ),
                     navigationIcon = {
                         KedgeIconButton(
                             onClick = onDismiss,
@@ -198,13 +208,13 @@ internal fun MediaPickerRootContent(
                             )
                         }
                     },
-                    // 底色交给外层 Column，自身透明；insets 收紧到 safeDrawing 的
-                    // 上边 + 左右，和上游一致
-                    colors = TopAppBarDefaults.topAppBarColors(
+                    // 底色交给外层 Column（MD3Exp 下透明；Kedge 的 MD3 分支默认就是
+                    // MD3 顶栏底色，所以这里给 colors 覆盖成透明），
+                    // inset 由 Kedge 顶栏自己处理（MD3 走 TopAppBar 默认，
+                    // Miuix 走 Miuix 顶栏的 systemBars）。
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                     ),
-                    windowInsets = WindowInsets.safeDrawing
-                        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
                 )
                 if (hasPermission) {
                     MediaAlbumRow(

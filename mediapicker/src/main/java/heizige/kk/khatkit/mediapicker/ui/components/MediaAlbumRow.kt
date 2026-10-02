@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
 import heizige.kk.khatkit.mediapicker.domain.Album
@@ -217,7 +218,7 @@ private fun MediaAlbumChip(
                 text = title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                style = KedgeTextStyles.footnote().copy(fontWeight = FontWeight.SemiBold),
                 color = contentColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.onSizeChanged {
@@ -257,8 +258,7 @@ private fun MediaAlbumChip(
                     ) {
                         Text(
                             text = album.count.toString(),
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontSize = 20.sp,
+                            style = KedgeTextStyles.title().copy(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                             ),
