@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.bridge.impl
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -7,7 +8,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.VibrationEffect
@@ -16,13 +16,14 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import heizige.kk.khatkit.bridge.SystemBridge
 
 class SystemBridgeImpl(
     private val context: Context,
 ) : SystemBridge {
     override fun openUrl(url: String): Boolean {
-        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
+        val uri = runCatching { url.toUri() }.getOrNull() ?: return false
         if (uri.scheme !in setOf("http", "https")) return false
         return runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -48,12 +49,9 @@ class SystemBridgeImpl(
 
     override fun vibrate(durationMs: Int) {
         val vibrator = context.getSystemService(Vibrator::class.java) ?: return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(durationMs.coerceAtLeast(1).toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(durationMs.coerceAtLeast(1).toLong())
-        }
+        val duration = durationMs.coerceAtLeast(1).toLong()
+        // minSdk 26，只走 VibrationEffect 分支；旧 vibrate(long) 已不可用
+        vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
     override fun launchApp(packageName: String, activity: String): Boolean = runCatching {
@@ -73,12 +71,11 @@ class SystemBridgeImpl(
         text: String,
         actions: List<String>,
     ): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.getSystemService(NotificationManager::class.java)
-                ?.createNotificationChannel(NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_DEFAULT))
-        }
+        // minSdk 26：通知渠道无需判版本
+        context.getSystemService(NotificationManager::class.java)
+            ?.createNotificationChannel(NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_DEFAULT))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return false
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
