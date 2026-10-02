@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.SolidColor
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.download
-import heizige.kk.khromia.components.TextTooltip
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -51,9 +50,6 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TextButton
@@ -128,6 +124,7 @@ import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.kedge.components.KedgeTextTooltipBox
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
@@ -381,11 +378,7 @@ fun ChatDrawerContent(
                         },
                     )
 
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
-                        tooltip = { TextTooltip("套餐") },
-                        state = rememberTooltipState(),
-                    ) {
+                    KedgeTextTooltipBox("套餐") {
                         KedgeButton(
                             onClick = {
                                 navController.navigate(Screen.SettingPackage)
@@ -814,11 +807,7 @@ private fun DrawerAction(
     label: String,
     onClick: () -> Unit,
 ) {
-    TooltipBox(
-        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
-        tooltip = { TextTooltip(label) },
-        state = rememberTooltipState(),
-    ) {
+    KedgeTextTooltipBox(label) {
         KedgeIconButton(
             onClick = onClick,
             modifier = modifier,

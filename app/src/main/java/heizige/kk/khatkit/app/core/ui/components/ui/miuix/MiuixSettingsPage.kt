@@ -2,6 +2,8 @@ package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
 import androidx.compose.foundation.layout.ColumnScope
 import heizige.kk.kedge.components.KedgeCard
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -77,6 +79,11 @@ fun MiuixSettingsPage(
     barColorAlpha: Float? = null,
     /** 外部持有的列表状态：需要驱动视差/折叠动画的页面传入（如关于页的大 logo 头图）。 */
     lazyListState: LazyListState? = null,
+    /**
+     * 浮层内容，与列表同级叠在它上面（KernelSU `AboutMiuix.kt` 的大 logo 就是这么放的：
+     * logo 不参与列表布局，列表首项改用一个等高的透明占位）。仅在需要「浮层随滚动收起」时使用。
+     */
+    overlay: (@Composable BoxScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     // 0.9.3 里 MiuixScrollBehavior 是 @Composable 工厂函数（默认参数全走 remember），不是类。
@@ -133,6 +140,7 @@ fun MiuixSettingsPage(
         // Box 必须 fillMaxSize：否则 Miuix Scaffold 给的是松散约束，
         // 里面的 LazyColumn 拿不到确定高度，滚不动。
         KedgeBlurSurface(backdrop = backdrop, modifier = Modifier.fillMaxSize()) {
+          Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = lazyListState ?: rememberLazyListState(),
                 modifier = Modifier
@@ -150,6 +158,8 @@ fun MiuixSettingsPage(
                 overscrollEffect = null,
                 content = content,
             )
+            overlay?.invoke(this)
+          }
         }
     }
 }
