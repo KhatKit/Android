@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.data.ai
 
+import android.util.Log
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ProviderManager
@@ -44,6 +45,7 @@ class CardAiEngine(
 ) : AiEngine {
 
     override fun chat(request: AiChatRequest): String {
+        logBlockingThread("ai.chat")
         val startedAt = System.currentTimeMillis()
         return try {
             val text = runBlocking { withTimeout(request.timeoutMs) { generate(request) } }
@@ -137,7 +139,18 @@ class CardAiEngine(
     private fun ProviderSetting.matches(name: String): Boolean =
         this.name.equals(name, ignoreCase = true) || id.toString().equals(name, ignoreCase = true)
 
+    /**
+     * 首次阻塞前记一次线程名：bridge 是同步契约，这里会阻塞调用线程，
+     * 必须是 `CardExecutor` 的 `Dispatchers.Default` 而不是主线程（规格 §1.4 约束 8）。
+     */
+    private fun logBlockingThread(api: String) {
+        if (!threadLogged.compareAndSet(false, true)) return
+        Log.d(TAG, "$api 阻塞调用线程：${Thread.currentThread().name}")
+    }
+
     companion object {
+        private const val TAG = "CardAiEngine"
+        private val threadLogged = java.util.concurrent.atomic.AtomicBoolean(false)
         const val NOT_CONFIGURED = "卡片调用模型前请先在设置中配置供应商与模型"
     }
 }

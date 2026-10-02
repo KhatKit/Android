@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.data.ai
 
+import android.util.Log
 import heizige.kk.khatkit.ai.provider.EmbeddingGenerationParams
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
@@ -27,6 +28,10 @@ class CardEmbeddingEngine(
 
     override fun embed(texts: List<String>): List<FloatArray> {
         if (texts.isEmpty()) return emptyList()
+        // 同 CardAiEngine：阻塞调用线程，必须是 Dispatchers.Default 而非主线程（规格 §1.4 约束 8）
+        if (threadLogged.compareAndSet(false, true)) {
+            Log.d(TAG, "store.embed* 阻塞调用线程：${Thread.currentThread().name}")
+        }
         return try {
             runBlocking { withTimeout(timeoutMs) { generate(texts) } }
         } catch (e: TimeoutCancellationException) {
@@ -59,6 +64,9 @@ class CardEmbeddingEngine(
     }
 
     companion object {
+        private const val TAG = "CardEmbeddingEngine"
+        private val threadLogged = java.util.concurrent.atomic.AtomicBoolean(false)
+
         const val NOT_CONFIGURED =
             "卡片向量检索需要一个 embedding 模型：请在设置里给某个供应商添加 embedding 类型的模型"
     }
