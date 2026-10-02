@@ -3,6 +3,7 @@ package heizige.kk.khatkit.bridge
 import heizige.kk.khatkit.engine.ScriptEngine
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.bridge.impl.ScopedFsBridgeImpl
+import heizige.kk.khatkit.ui.MediaPickerHost
 
 /**
  * 按设备当前能力决定挂哪些 bridge（设计文档 7.1 的能力协商）。
@@ -125,7 +126,10 @@ class BridgeRegistry(
                 "host" -> host
                 "system" -> system
                 "ai" -> ai
-                "mediaPicker" -> mediaPicker
+                "mediaPicker" -> when (val mp = mediaPicker) {
+                    is MediaPickerHost -> mp.forCard(manifest.name)
+                    else -> mp
+                }
                 "ui" -> ui
                 "web" -> web
                 "download" -> download

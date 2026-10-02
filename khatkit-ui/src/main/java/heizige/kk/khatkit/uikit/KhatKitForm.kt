@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -51,6 +52,9 @@ private val FULL_WIDTH_TYPES = setOf("text", "markdown", "divider", "progress", 
  *
  * 控件全部走 Kedge，跟随 [KhatKitTheme] 切换风格。
  * [options] 来自 `ui.form` 的第三个参数：全屏 / 横屏 / 高度；宽屏时表单自动两列。
+ *
+ * [pickerHost] 非空时 `file_picker` / `dir_picker` 额外渲染「浏览」按钮，
+ * 由宿主启动系统 / 媒体选择器；为 null 时两行控件退回纯路径文本框。
  */
 @Composable
 fun KhatKitForm(
@@ -59,6 +63,7 @@ fun KhatKitForm(
     onSubmit: (Map<String, Any?>) -> Unit,
     onCancel: () -> Unit,
     options: UiSheetOptions = UiSheetOptions(),
+    pickerHost: FormPickerHost? = null,
 ) {
     val values = remember { mutableStateMapOf<String, Any?>() }
 
@@ -69,6 +74,11 @@ fun KhatKitForm(
         }
     }
 
+    DisposableEffect(pickerHost) {
+        pickerHost?.attach { id, value -> values[id] = value }
+        onDispose { pickerHost?.detach() }
+    }
+
     KhatKitSheet(
         title = title,
         imageVector = Icons.Filled.Edit,
@@ -77,7 +87,7 @@ fun KhatKitForm(
         onConfirm = { onSubmit(values.toMap()) },
         onDismiss = onCancel,
     ) { dismiss ->
-        FormContent(items = items, values = values, onCancel = dismiss)
+        FormContent(items = items, values = values, onCancel = dismiss, pickerHost = pickerHost)
     }
 }
 
@@ -86,6 +96,7 @@ private fun FormContent(
     items: List<Map<String, Any?>>,
     values: MutableMap<String, Any?>,
     onCancel: () -> Unit,
+    pickerHost: FormPickerHost? = null,
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -107,7 +118,7 @@ private fun FormContent(
         ) {
             rows.forEach { row ->
                 if (row.size == 1 && isFullWidthItem(row.first())) {
-                    FormWidget(row.first(), values)
+                    FormWidget(row.first(), values, pickerHost)
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -115,7 +126,7 @@ private fun FormContent(
                     ) {
                         row.forEach { item ->
                             Box(modifier = Modifier.weight(1f)) {
-                                FormWidget(item, values)
+                                FormWidget(item, values, pickerHost)
                             }
                         }
                         if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
@@ -161,7 +172,11 @@ private fun isFullWidthItem(item: Map<String, Any?>): Boolean =
     (item["type"]?.toString() ?: "text") in FULL_WIDTH_TYPES
 
 @Composable
-private fun FormWidget(item: Map<String, Any?>, values: MutableMap<String, Any?>) {
+private fun FormWidget(
+    item: Map<String, Any?>,
+    values: MutableMap<String, Any?>,
+    pickerHost: FormPickerHost? = null,
+) {
     val type = item["type"]?.toString() ?: "text"
     val id = item["id"]?.toString().orEmpty()
     val label = item["label"]?.toString().orEmpty()
@@ -224,13 +239,35 @@ private fun FormWidget(item: Map<String, Any?>, values: MutableMap<String, Any?>
             }
         }
 
-        "file_picker", "dir_picker" -> KedgeOutlinedTextField(
-            value = values[id]?.toString().orEmpty(),
-            onValueChange = { values[id] = it },
-            label = stringResource(R.string.khatkit_form_path_label, label),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        "file_picker", "dir_picker" -> {
+            val kind = if (type == "dir_picker") FormPickKind.DIR else FormPickKind.FILE
+            val request = pickerHost?.let { FormPickRequest.from(item, kind) }
+            val field: @Composable () -> Unit = {
+                KedgeOutlinedTextField(
+                    value = values[id]?.toString().orEmpty(),
+                    onValueChange = { values[id] = it },
+                    label = stringResource(R.string.khatkit_form_path_label, label),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (request == null) {
+                field()
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(modifier = Modifier.weight(1f)) { field() }
+                    KedgeTextButton(
+                        onClick = { pickerHost.request(request) },
+                    ) {
+                        Text(stringResource(R.string.khatkit_form_browse))
+                    }
+                }
+            }
+        }
 
         "progress" -> {
             val ratio = (values[id] as? Number)?.toFloat()

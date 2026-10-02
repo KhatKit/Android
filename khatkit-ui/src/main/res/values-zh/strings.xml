@@ -3,6 +3,7 @@
   <string name="khatkit_form_cancel">取消</string>
   <string name="khatkit_form_confirm">确定</string>
   <string name="khatkit_form_path_label">%1$s（路径）</string>
+  <string name="khatkit_form_browse">浏览</string>
   <string name="khatkit_form_action">操作</string>
   <string name="khatkit_form_renderer_missing">[%1$s] 未注册的渲染器：%2$s</string>
   <string name="khatkit_form_widget_unsupported">%1$s（未支持的组件：%2$s）</string>

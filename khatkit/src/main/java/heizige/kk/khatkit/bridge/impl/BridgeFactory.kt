@@ -3,6 +3,7 @@ package heizige.kk.khatkit.bridge.impl
 import android.content.Context
 import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.bridge.ApprovalGate
+import heizige.kk.khatkit.bridge.MediaPickerBridge
 import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CommandRunner
@@ -47,6 +48,7 @@ object BridgeFactory {
         hubBaseUrl: () -> String = { "" },
         onDependencyStatus: ((String) -> Unit)? = null,
         approvalGate: ApprovalGate? = null,
+        mediaPicker: MediaPickerBridge? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -67,7 +69,7 @@ object BridgeFactory {
             time = TimeBridgeImpl(),
             system = SystemBridgeImpl(appContext),
             ai = UnavailableAiBridge(),
-            mediaPicker = UnavailableMediaPickerBridge(),
+            mediaPicker = mediaPicker ?: UnavailableMediaPickerBridge(),
             host = host,
             ui = ui,
             web = WebBridgeImpl(appContext, ui),

@@ -21,6 +21,7 @@ import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
 import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
+import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.CardParser
 import heizige.kk.khatkit.dependency.DependencyCache
@@ -45,8 +46,10 @@ import heizige.kk.khatkit.hub.HubLibProvider
 import heizige.kk.khatkit.hub.HubToolReportRequest
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
+import heizige.kk.khatkit.ui.MediaPickerHost
 import heizige.kk.khatkit.ui.UiBridgeHost
 import heizige.kk.khatkit.uikit.CardRunResult
+import heizige.kk.khatkit.uikit.FormPickerHost
 import heizige.kk.khatkit.uikit.KhatKitController
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.CancellationException
@@ -152,6 +155,19 @@ class KhatKitToolProvider(
         onAutomationStatus = { label, detail -> AutomationBus.update(label, detail) },
         onCancelled = { AutomationBus.isCancelRequested() },
     )
+
+    /**
+     * `mediaPicker.pickMedia` 的宿主侧：脚本线程在这里等，Compose 层弹媒体选择器，
+     * 用户选好后把 URI 复制进缓存再回传真实路径。
+     */
+    private val mediaImporter = CardMediaImporter(appContext)
+    private val mediaPickerHost = MediaPickerHost(
+        importToCache = { cardName, uris -> mediaImporter.import(cardName, uris) },
+        onAwaiting = { name -> AutomationBus.update("等待选择媒体", name) },
+    )
+
+    /** 表单 `file_picker` / `dir_picker` 的宿主侧选择器请求；表单渲染时传入 KhatKitForm。 */
+    val formPickerHost = FormPickerHost()
     private val initMutex = Mutex()
     private val settings = appContext.getSharedPreferences("khatkit_settings", Context.MODE_PRIVATE)
 
@@ -179,6 +195,31 @@ class KhatKitToolProvider(
 
     override val uiRequest = uiHost.request
     override val uiProgress = uiHost.progress
+
+    override val mediaPickRequest = mediaPickerHost.request
+
+    override val formPickRequest = formPickerHost.request
+
+    override fun submitMediaPick(uris: List<String>) = mediaPickerHost.submit(uris)
+
+    override fun submitFormPick(id: String, value: String) = formPickerHost.submit(id, value)
+
+    /** 表单选择器取消 / 无法呈现 / 导入完成前收起请求（不影响用户已填的值）。 */
+    fun clearFormPick() = formPickerHost.clearRequest()
+
+    /** 媒体选择器被用户取消 / 宿主收不起时结束等待。 */
+    fun cancelMediaPick() = mediaPickerHost.dismiss()
+
+    /**
+     * 表单 `file_picker` 选中的文件导入缓存后回填（表单拿不到卡片名，走共享目录）。
+     * 复制在 IO 线程做，回调回主线程。
+     */
+    fun importPickedMedia(uris: List<String>, onDone: (List<String>) -> Unit) {
+        scope.launch {
+            val paths = withContext(Dispatchers.IO) { mediaImporter.import("", uris) }
+            onDone(paths)
+        }
+    }
 
     override fun selectSheetAction(event: String, values: Map<String, Any?>) {
         uiHost.selectSheetAction(event, values)
@@ -314,6 +355,7 @@ class KhatKitToolProvider(
                 hubBaseUrl = { hubBaseUrl },
                 onDependencyStatus = { AutomationBus.update(it) },
                 approvalGate = BusApprovalGate(),
+                mediaPicker = mediaPickerHost,
             ).also {
                 executor = it
                 bindDownloadCenter(it)

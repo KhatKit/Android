@@ -3,6 +3,7 @@
   <string name="khatkit_form_cancel">Cancel</string>
   <string name="khatkit_form_confirm">OK</string>
   <string name="khatkit_form_path_label">%1$s (path)</string>
+  <string name="khatkit_form_browse">Browse</string>
   <string name="khatkit_form_action">Action</string>
   <string name="khatkit_form_renderer_missing">[%1$s] Unregistered renderer: %2$s</string>
   <string name="khatkit_form_widget_unsupported">%1$s (unsupported widget: %2$s)</string>

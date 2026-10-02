@@ -4,7 +4,9 @@ import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubAccountStatus
 import heizige.kk.khatkit.hub.HubActionResult
 import heizige.kk.khatkit.hub.HubCardMarketInfo
+import heizige.kk.khatkit.ui.MediaPickRequest
 import heizige.kk.khatkit.ui.UiRequest
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -18,10 +20,22 @@ interface KhatKitController {
     val uiRequest: StateFlow<UiRequest?>
     val uiProgress: StateFlow<Pair<Float, String>?>
 
+    /** `mediaPicker.pickMedia` 在途的选择请求；宿主据此弹媒体选择器。 */
+    val mediaPickRequest: StateFlow<MediaPickRequest?> get() = MutableStateFlow(null)
+
+    /** 表单 `file_picker` / `dir_picker` 在途的选择请求；宿主据此弹系统选择器。 */
+    val formPickRequest: StateFlow<FormPickRequest?> get() = MutableStateFlow(null)
+
     fun submitForm(values: Map<String, Any?>?)
     fun selectSheetAction(event: String, values: Map<String, Any?> = emptyMap())
     fun answerConfirm(confirmed: Boolean)
     fun dismissUi()
+
+    /** 用户在媒体选择器里选好后回传 URI 字符串。 */
+    fun submitMediaPick(uris: List<String>) {}
+
+    /** 表单选择器回填；value 为空串表示未选择（清掉该行）。 */
+    fun submitFormPick(id: String, value: String) {}
 
     suspend fun searchCards(query: String, limit: Int = 20): List<CardIndexEntry>
     suspend fun installCard(entry: CardIndexEntry, force: Boolean = false): Boolean

@@ -139,6 +139,7 @@ fun KhatKitUiHost() {
                 options = current.options,
                 onSubmit = { values -> provider.submitForm(values) },
                 onCancel = { provider.dismissUi() },
+                pickerHost = provider.formPickerHost,
             )
 
             is UiRequest.Confirm -> PrimaryBottomSheet(
@@ -187,6 +188,9 @@ fun KhatKitUiHost() {
                 }
             }
         }
+
+        // 媒体 / 目录选择器：与表单弹层并列挂载，独立于 ui request 生命周期
+        KhatKitPickerHost(provider)
     }
 }
 

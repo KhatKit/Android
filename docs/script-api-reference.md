@@ -183,9 +183,31 @@
 
 ## 3.9 mediaPicker（L0）
 
+打开宿主媒体选择器（与聊天附件同一套相册 / 多选 / 预览），**阻塞**到用户选完或取消。
+
 | 接口 | 返回 | 说明 |
 |---|---|---|
 | `mediaPicker.pickMedia(options)` | string[] | 用户选择媒体后返回应用缓存路径；取消返回空数组。 |
+
+`options` 字段（都不传等价于 `{}`）：
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `media` | string | `image` | `image` / `video` / `any`，选择器只呈现该类型。 |
+| `multiple` | boolean | `true` | 是否允许多选；`false` 时上限强制为 1。 |
+| `max` | number | `9` | 最多可选数量，钳在 1–50。 |
+
+- 返回的是**复制进应用缓存后的真实文件路径**（`cacheDir/cards/<卡片名>/picked/`）：
+  选择器给的 URI 在卡片运行结束后可能失效，所以宿主先落地成文件再回传。
+  缓存目录会被系统按空间压力回收，长期结果请用 `fs` 写进卡片目录。
+- 用户取消、宿主无法呈现选择器或等待超时（300 秒）都返回**空数组**，不抛错；
+  无人值守场景（后台触发）不要依赖这个接口。
+
+```lua
+local paths = mediaPicker.pickMedia({ media = "image", multiple = true, max = 3 })
+if #paths == 0 then return { cancelled = true } end
+return { count = #paths, first = paths[1] }
+```
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 
@@ -288,7 +310,7 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 | `switch` | 开关 | boolean |
 | `slider` | 滑杆（`min` / `max` / `default` 必填） | number |
 | `select` / `radio` | 单选列表（`options` 字符串数组） | string |
-| `file_picker` / `dir_picker` | 路径文本输入框（不弹系统选择器） | string |
+| `file_picker` / `dir_picker` | 路径文本框 + 「浏览」按钮：`file_picker` 弹媒体/文档选择器，`dir_picker` 弹目录选择器；不点按钮也能直接手输路径 | string（`multiple` 时为换行分隔的多条路径） |
 | `progress` | 只读进度条（取 `ratio`，缺省 0） | 不参与 |
 | `button` | 按钮（当前无点击回调） | 不参与 |
 | `custom` | 按 `renderer` 找宿主注册的渲染器 | 取决于渲染器 |

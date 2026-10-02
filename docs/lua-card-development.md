@@ -236,7 +236,7 @@ return { message: "Hello, " + name };
 - `source` 只能是 `ai` / `ui`，否则 `UI_SOURCE_INVALID`。
 - `widget` 必须在宿主已实现的白名单内，否则 `UI_WIDGET_UNKNOWN`：
   `text` `input` `number` `switch` `slider` `select` `radio` `file_picker` `dir_picker` `button` `progress` `markdown` `divider` `custom`。
-- 注意：`file_picker` / `dir_picker` 在当前表单实现里渲染为**路径文本输入框**，不会弹出系统文件选择器；`filter`、`multiple` 等字段仅作为声明信息，表单渲染时被忽略。
+- 注意：`file_picker` / `dir_picker` 渲染为**路径文本框 + 「浏览」按钮**：不点按钮就是纯文本输入（历史行为不变），点按钮才弹选择器。`file_picker` 的 `filter` 描述媒体（`image/*`、`png` 等）时走应用内媒体选择器，其余（`application/pdf`、`*/*` 等）走系统文件选择器；`multiple = true` 允许多选，回填值是**换行分隔**的路径列表。`dir_picker` 弹系统目录选择器，回填目录的绝对路径（无法还原为真实路径时保持原值）。
 
 ### 2.6 tags（受控词表）
 
@@ -580,7 +580,7 @@ if (!v) return { cancelled: true };
 | `switch` | 开关 | boolean |
 | `slider` | 滑杆（`min`/`max`/`default` 必须显式给） | number |
 | `select` / `radio` | 单选列表（`options` 字符串数组） | string |
-| `file_picker` / `dir_picker` | **路径文本输入框**，不弹系统选择器 | string |
+| `file_picker` / `dir_picker` | 路径文本框 + 「浏览」按钮（媒体走应用内媒体选择器，其余走系统选择器；目录走系统目录选择器） | string（`multiple` 时换行分隔多条） |
 | `progress` | 只读进度条（取 `ratio` 或默认值） | 不参与 |
 | `button` | 按钮（当前无点击回调） | 不参与 |
 | `custom` | 按 `renderer` 找宿主注册的渲染器，缺省显示缺失提示 | 取决于渲染器 |
@@ -848,7 +848,37 @@ end
 return { ready = true }
 ```
 
-### 4.10 宿主侧接口速览
+### 4.10 mediaPicker（媒体选择，L0）
+
+让用户挑图片 / 视频，宿主把选中的文件复制进应用缓存后回传真实路径。
+
+```lua
+-- 单选一张图片；取消返回空表
+local picked = mediaPicker.pickMedia({ media = "image", multiple = false })
+if #picked == 0 then return { cancelled = true } end
+
+-- 路径可直接交给 tool / net 使用（net 受 network.allow 域白名单约束）
+ui.progress(0.3, "上传中…")
+local resp = net.post("https://example.com/upload", tool.readBase64(picked[1]))
+return { ok = true, resp = resp }
+```
+
+| options 字段 | 默认 | 说明 |
+|---|---|---|
+| `media` | `image` | `image` / `video` / `any`。 |
+| `multiple` | `true` | `false` 时最多选 1 个。 |
+| `max` | `9` | 上限 50。 |
+
+坑：
+
+- **阻塞调用**：与 `ui.form` 一样要等用户操作，取消 / 超时（300 秒）返回**空数组**而不报错；
+  后台事件触发、无人值守场景不要调用。
+- **返回的是缓存副本**：`cacheDir/cards/<卡片名>/picked/` 下的文件，会被系统按空间回收，
+  且不落在 `fs` 的可访问根目录内。要长期保存就复制到 `permissions.fsWrite` 声明的目录，或直接上传。
+- 表单里的 `file_picker` / `dir_picker` 是「文本框 + 浏览按钮」，适合让用户确认/微调路径；
+  纯选图场景用 `mediaPicker.pickMedia` 更直接（不依赖表单是否弹出）。
+
+### 4.11 宿主侧接口速览
 
 | 接口 | 方法 | 说明 |
 |---|---|---|
@@ -1027,7 +1057,7 @@ checked N card(s), M error(s)
 AI 工具列表有 5 分钟索引缓存和最多 20 张候选卡片限制；重新进入聊天/重启生成会刷新。未声明 `triggers: ["ai"]` 的卡片不会暴露。
 
 **Q：表单没弹出来。**
-`ui.form` 由脚本主动调用；AI 已填参时应跳过表单。事件触发在后台运行时表单会等待用户回到应用（300 秒超时返回 nil），无人值守场景请勿依赖 UI。`file_picker` / `dir_picker` 目前是路径文本输入框。
+`ui.form` 由脚本主动调用；AI 已填参时应跳过表单。事件触发在后台运行时表单会等待用户回到应用（300 秒超时返回 nil），无人值守场景请勿依赖 UI。`file_picker` / `dir_picker` 的「浏览」按钮同样是阻塞 UI：后台运行时用户看不到选择器，此时请给 `id` 一个 `default`，或改用 `mediaPicker.pickMedia` 之外的路径约定。
 
 **Q：`tool.readText` 返回了 table 而不是字符串。**
 说明调用失败，返回的是 `{__error = "..."}`。先 `type(res) == "table" and res.__error` 检查。共享存储路径需要「所有文件访问」。
