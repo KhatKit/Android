@@ -64,6 +64,9 @@ private fun SillyTavernImporter(
     onImport: (Assistant) -> Unit
 ) {
     val context = LocalContext.current
+    // 文案在 composable 作用域取：LocalContext 取值不是 configuration-aware，
+    // 语言切换后不会重组，Toast 会停在旧语言
+    val importFailed = stringResource(R.string.assistant_importer_import_failed)
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -86,7 +89,7 @@ private fun SillyTavernImporter(
                         )
                     }.onFailure { exception ->
                         exception.printStackTrace()
-                        Toast.show(exception.message ?: context.getString(R.string.assistant_importer_import_failed))
+                        Toast.show(exception.message ?: importFailed)
                     }
                 } finally {
                     isLoading = false
@@ -112,7 +115,7 @@ private fun SillyTavernImporter(
                         )
                     }.onFailure { exception ->
                         exception.printStackTrace()
-                        Toast.show(exception.message ?: context.getString(R.string.assistant_importer_import_failed))
+                        Toast.show(exception.message ?: importFailed)
                     }
                 } finally {
                     isLoading = false
