@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.core.ui.effect
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import android.os.Build
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,8 +44,9 @@ fun BgEffectBackground(
     content: @Composable BoxScope.() -> Unit,
 ) {
     // Android 13 以下没有 RuntimeShader，直接退化成纯背景，不画流光。
-    val shaderSupported = remember { isRuntimeShaderSupported() }
-    if (!shaderSupported) {
+    // 这里必须是「显式版本比较 + 提前 return」：BgEffectPainter 标了 @RequiresApi(33)，
+    // lint 的 NewApi 只认同函数内的 SDK_INT 分支。
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !isRuntimeShaderSupported()) {
         Box(modifier = modifier, content = content)
         return
     }

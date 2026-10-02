@@ -382,6 +382,13 @@ object AutomationBus {
                     approvalActionPendingIntent(context, request, ACTION_APPROVAL_ALLOW, 2),
                 )
                 .build()
+            // 就地再判一次权限：lint 看不清 canPostNotifications 里的检查，
+            // 缺 POST_NOTIFICATIONS 时 notify 会抛 SecurityException
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                return@runCatching false
+            }
             NotificationManagerCompat.from(context).notify(APPROVAL_NOTIFICATION_ID, notification)
             true
         }.getOrDefault(false)

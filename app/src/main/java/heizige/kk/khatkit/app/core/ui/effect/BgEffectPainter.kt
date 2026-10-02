@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.effect
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Brush
 import top.yukonga.miuix.kmp.shader.RuntimeShader
 import top.yukonga.miuix.kmp.shader.asBrush
@@ -10,7 +12,11 @@ import top.yukonga.miuix.kmp.shader.asBrush
  * 持有 [RuntimeShader] 与 uniform 状态，供 [BgEffectBackground] 每帧更新。
  * 去掉了原项目的 `isOs3` 分支与逐帧光点推送——关于页固定 OS3，流动由着色器
  * 内部按 `uAnimTime` 自行完成。
+ *
+ * [RuntimeShader] 需要 Android 13（API 33），所以本类标了 [RequiresApi]；
+ * 调用方 [BgEffectBackground] 必须先过版本判断，否则在 API 26–32 上会崩。
  */
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 class BgEffectPainter {
 
     val runtimeShader by lazy {

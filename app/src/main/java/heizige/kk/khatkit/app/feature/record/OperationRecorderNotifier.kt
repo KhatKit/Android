@@ -26,6 +26,12 @@ object OperationRecorderNotifier {
         ensureChannel(appContext)
         if (!canNotify(appContext)) return
         runCatching {
+            // 再判一次权限：lint 看不清 canNotify 里的检查
+            if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                return@runCatching
+            }
             NotificationManagerCompat.from(appContext)
                 .notify(NOTIFICATION_ID, build(appContext, stepCount))
         }
@@ -35,6 +41,11 @@ object OperationRecorderNotifier {
         val appContext = context.applicationContext
         if (!canNotify(appContext)) return
         runCatching {
+            if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                return@runCatching
+            }
             NotificationManagerCompat.from(appContext)
                 .notify(NOTIFICATION_ID, build(appContext, stepCount))
         }

@@ -263,7 +263,14 @@ class TriggerEventSources(
     @Suppress("DEPRECATION")
     private fun deviceName(device: BluetoothDevice?): String {
         if (device == null) return ""
-        // 设备名在 API 31+ 需要 BLUETOOTH_CONNECT，拿不到时退化为 MAC 地址
+        // 设备名在 API 31+ 需要 BLUETOOTH_CONNECT：没权限就退化成空串。
+        // 权限判断必须就地写（lint 不看 hasPermission 这层间接调用）。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.BLUETOOTH_CONNECT)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return ""
+        }
         return runCatching { device.name }.getOrNull()
             ?.takeIf { it.isNotBlank() }
             ?: runCatching { device.address }.getOrDefault("")
@@ -352,6 +359,13 @@ class TriggerEventSources(
     }
 
     private fun latestLocation(manager: LocationManager): Location? {
+        // 就地判权限：调用方 pollLocation 已经判过，这里再判一次是为了让 lint 看得见，
+        // 也防住以后有人直接调本函数（getLastKnownLocation 没有权限时抛 SecurityException）
+        val granted = ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) return null
         val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
         return providers
             .mapNotNull { provider ->
