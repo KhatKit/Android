@@ -385,6 +385,13 @@ fun ChatDrawerContent(
                             },
                             modifier = Modifier.height(32.dp),
                             variant = KedgeButtonVariant.Secondary,
+                            // Secondary 在两种风格下都偏淡（MD3 是 secondaryContainer、
+                            // Miuix 是 secondaryVariant），抽屉底色接近时几乎看不出按钮
+                            // 边界，这里各自往上抬到容器色档 secondaryContainer。
+                            // 别再往实色 secondary 走——抽屉里已有实心按钮，实色会显得
+                            // 过重。
+                            colors = KedgeDrawerButtonColors.md3(),
+                            miuixColors = KedgeDrawerButtonColors.miuix(),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                         ) {
                             Text(
@@ -472,6 +479,9 @@ fun ChatDrawerContent(
                             variant = KedgeButtonVariant.Secondary,
                             shapes = ButtonDefaults.shapes(RoundedCornerShape(8.dp)),
                             miuixCornerRadius = 8.dp,
+                            // 同上：Secondary 默认色太淡，这里加深一档
+                            colors = KedgeDrawerButtonColors.md3(),
+                            miuixColors = KedgeDrawerButtonColors.miuix(),
                         ) {
                             // 图标 + 文案整体居中（对齐 KernelSU 抽屉的「新建文件夹」）
                             Row(
@@ -965,4 +975,32 @@ private fun AssistantItem(
             }
         }
     }
+}
+
+/**
+ * 抽屉里两个次级按钮（新建文件夹、套餐/订阅）的加深配色。
+ *
+ * [KedgeButtonVariant.Secondary] 的默认色两边都偏淡：MD3 走
+ * `filledTonalButton` 的 secondaryContainer，Miuix 走 `buttonColors()` 的
+ * secondaryVariant。抽屉底色接近时按钮边界几乎看不见，所以统一抬到容器色档
+ * secondaryContainer。
+ *
+ * 不要用实色 secondary 试过：在 Miuix 调色板里它会渲染成高饱和亮蓝实心块，
+ * 抽屉里本来就有实心按钮，两个挨着显得过重。容器色档既能让边界看清，又不会
+ * 抢视觉，且明暗主题都跟着主题色槽自动翻转。
+ */
+private object KedgeDrawerButtonColors {
+    @Composable
+    fun md3(): androidx.compose.material3.ButtonColors =
+        androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+
+    @Composable
+    fun miuix(): top.yukonga.miuix.kmp.basic.ButtonColors =
+        top.yukonga.miuix.kmp.basic.ButtonDefaults.buttonColors(
+            color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.secondaryContainer,
+            contentColor = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSecondaryContainer,
+        )
 }
