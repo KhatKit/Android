@@ -66,7 +66,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.core.graphics.toColorInt
-import heizige.kk.khromia.components.EditDialog
+import heizige.kk.kedge.overlays.KedgeEditDialog
 import heizige.kk.khromia.components.EditFieldConfig
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.components.SquareColorPicker
@@ -448,29 +448,29 @@ fun ThemeCustomColorSheet(
         }
     }
 
-    if (showHexDialog) {
-        EditDialog(
-            visible = true,
-            title = stringResource(R.string.greeting_settings_custom_color),
-            fields = listOf(
-                EditFieldConfig(
-                    label = "Hex Code",
-                    initialValue = String.format("%08X", customColor.toArgb()),
-                    placeholder = "#AARRGGBB, #RRGGBB, AARRGGBB, RRGGBB",
-                    maxLength = 10,
-                    onValidate = { input -> if (parseHexColor(input) == null) "Invalid hex" else null },
-                )
-            ),
-            onDismiss = { showHexDialog = false },
-            onConfirm = { results ->
-                parseHexColor(results.first())?.let {
-                    customColor = it
-                    onColorChanged(it)
-                }
-                showHexDialog = false
-            },
+    // 始终调用并用 visible 控制显隐，不要用 if (showHexDialog) 包一层：
+// 那样退场动画播不出来（组件会在 visible 变 false 的瞬间被卸载）。
+KedgeEditDialog(
+    visible = showHexDialog,
+    title = stringResource(R.string.greeting_settings_custom_color),
+    fields = listOf(
+        EditFieldConfig(
+            label = "Hex Code",
+            initialValue = String.format("%08X", customColor.toArgb()),
+            placeholder = "#AARRGGBB, #RRGGBB, AARRGGBB, RRGGBB",
+            maxLength = 10,
+            onValidate = { input -> if (parseHexColor(input) == null) "Invalid hex" else null },
         )
-    }
+    ),
+    onDismiss = { showHexDialog = false },
+    onConfirm = { results ->
+        parseHexColor(results.first())?.let {
+            customColor = it
+            onColorChanged(it)
+        }
+        showHexDialog = false
+    },
+)
 }
 
 private fun parseHexColor(input: String): Color? {

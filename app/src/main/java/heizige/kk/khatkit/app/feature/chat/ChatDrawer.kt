@@ -37,7 +37,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import heizige.kk.khromia.components.EditDialog
+import heizige.kk.kedge.overlays.KedgeEditDialog
 import heizige.kk.khromia.components.EditFieldConfig
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -713,29 +713,28 @@ fun ChatDrawerContent(
         }
     }
 
-    // 新建文件夹对话框
-    if (showCreateFolderDialog) {
-        val emptyNameError = stringResource(R.string.chat_page_folder_name_empty)
-        EditDialog(
-            visible = true,
-            title = stringResource(R.string.chat_page_create_folder),
-            fields = listOf(
-                EditFieldConfig(
-                    label = stringResource(R.string.chat_page_folder_name),
-                    onValidate = { input ->
-                        if (input.trim().isEmpty()) emptyNameError else null
-                    },
-                )
-            ),
-            confirmText = stringResource(R.string.chat_page_save),
-            dismissText = stringResource(R.string.chat_page_cancel),
-            onDismiss = { showCreateFolderDialog = false },
-            onConfirm = { values ->
-                drawerVm.createFolder(values.first())
-                showCreateFolderDialog = false
+// 新建文件夹对话框。始终调用并用 visible 控制显隐，不要用 if 包一层：
+// 那样退场动画播不出来（组件会在 visible 变 false 的瞬间被卸载）。
+val emptyNameError = stringResource(R.string.chat_page_folder_name_empty)
+KedgeEditDialog(
+    visible = showCreateFolderDialog,
+    title = stringResource(R.string.chat_page_create_folder),
+    fields = listOf(
+        EditFieldConfig(
+            label = stringResource(R.string.chat_page_folder_name),
+            onValidate = { input ->
+                if (input.trim().isEmpty()) emptyNameError else null
             },
         )
-    }
+    ),
+    confirmText = stringResource(R.string.chat_page_save),
+    dismissText = stringResource(R.string.chat_page_cancel),
+    onDismiss = { showCreateFolderDialog = false },
+    onConfirm = { values ->
+        drawerVm.createFolder(values.first())
+        showCreateFolderDialog = false
+    },
+)
 
     // 重命名文件夹对话框
     folderToRename?.let { folder ->
