@@ -97,6 +97,7 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeAssistChip
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -664,16 +665,14 @@ private fun ColumnScope.ModelList(
             state = providerBadgeListState
         ) {
             items(providers) { provider ->
-                AssistChip(
+                KedgeAssistChip(
                     onClick = {
                         val position = providerPositions[provider.id] ?: 0
                         coroutineScope.launch {
                             lazyListState.animateScrollToItem(position)
                         }
                     },
-                    label = {
-                        Text(provider.name)
-                    },
+                    label = provider.name,
                     leadingIcon = {
                         AutoAIIcon(name = provider.name, modifier = Modifier.size(16.dp))
                     },
