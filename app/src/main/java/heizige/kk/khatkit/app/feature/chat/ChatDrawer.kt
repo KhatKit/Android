@@ -335,6 +335,12 @@ fun ChatDrawerContent(
                     }
                 },
                 actions = {
+                    // search↔close 同槽交叉淡化，三态判定照 ImageToolbox
+                    // SettingsContent：!searching → search；
+                    // searching && hasQuery → close；搜索态但还没输入时留空。
+                    // 此前是硬切 imageVector，与 ChatPage 不一致。
+                    val searching = searchProgress.value >= 0.5f
+                    val hasQuery = searchProgress.value >= 0.5f && searchKeyword.isNotEmpty()
                     KedgeIconButton(
                         onClick = {
                             if (!showSearch) {
@@ -344,10 +350,26 @@ fun ChatDrawerContent(
                             }
                         },
                     ) {
-                        Icon(
-                            imageVector = if (searchVisible && searchKeyword.isNotEmpty()) close else search,
-                            contentDescription = stringResource(R.string.chat_page_search_chats),
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            if (!searching) {
+                                Icon(
+                                    imageVector = search,
+                                    contentDescription = stringResource(R.string.chat_page_search_chats),
+                                    modifier = Modifier.graphicsLayer {
+                                        alpha = 1f - searchProgress.value
+                                    },
+                                )
+                            }
+                            if (searching && hasQuery) {
+                                Icon(
+                                    imageVector = close,
+                                    contentDescription = stringResource(R.string.chat_page_search_chats),
+                                    modifier = Modifier.graphicsLayer {
+                                        alpha = searchProgress.value
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
             )

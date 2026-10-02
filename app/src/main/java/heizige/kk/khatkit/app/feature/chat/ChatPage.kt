@@ -46,6 +46,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -297,7 +299,7 @@ private fun ChatPageContent(
     val toaster = LocalToaster.current
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     var previewMode by rememberSaveable { mutableStateOf(false) }
-    var previewSearchQuery by remember { mutableStateOf("") }
+    var previewSearchQuery by rememberSaveable { mutableStateOf("") }
     val hazeState = rememberHazeState()
     val assistant = setting.getCurrentAssistant()
     val modelListState = rememberModelListState(
@@ -688,6 +690,16 @@ private fun TopBar(
     val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
     val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
 
+    // 与侧边栏一致：展开后自动聚焦，delay(100) 等动画起手再抢焦点，
+    // 直接 requestFocus() 会把入场动画顶掉。
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(previewMode) {
+        if (previewMode) {
+            delay(100)
+            searchFocus.requestFocus()
+        }
+    }
+
     // 顶栏副标题只显示当前模型名（助手名 + 提供商名在顶栏里太挤，已去掉）。
     val topBarModel = settings.getCurrentChatModel()
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
@@ -701,6 +713,9 @@ private fun TopBar(
             keyword = searchQuery,
             onKeywordChange = onSearchQueryChange,
             dragProgress = searchProgress.value,
+            // 不传 dragging 的话 KedgeMiuixMorphingTitleBar 内部的 snapTo 被门控掉
+            // （dragging 默认 false），手势拖动完全没有反馈，只剩 tween。
+            dragging = searchExpand.dragging.value,
             onExitSearch = onCollapseSearch,
             placeholder = stringResource(R.string.history_page_search),
             subtitle = topBarModel?.displayName,
@@ -717,29 +732,29 @@ private fun TopBar(
             },
             actions = {
                 // 搜索图标切「聊天内容预览搜索」(previewMode)；与 MD3 版一致，
-                // 带搜索↔关闭同槽交叉淡化。选模型走标题点击，不在此处。
+                // 判定同样照 ImageToolbox SettingsContent（搜索态无输入时留空）。
+                val searching = searchProgress.value >= 0.5f
+                val hasQuery = searchProgress.value >= 0.5f && searchQuery.isNotEmpty()
                 MiuixIconButton(onClick = onClickMenu) {
                     Box(contentAlignment = Alignment.Center) {
-                        MiuixIcon(
-                            imageVector = search,
-                            contentDescription = "Chat Options",
-                            modifier = Modifier.graphicsLayer {
-                                val progress = searchProgress.value
-                                alpha = 1f - progress
-                                scaleX = 1f - 0.15f * progress
-                                scaleY = 1f - 0.15f * progress
-                            },
-                        )
-                        MiuixIcon(
-                            imageVector = close,
-                            contentDescription = "Chat Options",
-                            modifier = Modifier.graphicsLayer {
-                                val progress = searchProgress.value
-                                alpha = progress
-                                scaleX = 0.85f + 0.15f * progress
-                                scaleY = 0.85f + 0.15f * progress
-                            },
-                        )
+                        if (!searching) {
+                            MiuixIcon(
+                                imageVector = search,
+                                contentDescription = "Chat Options",
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = 1f - searchProgress.value
+                                },
+                            )
+                        }
+                        if (searching && hasQuery) {
+                            MiuixIcon(
+                                imageVector = close,
+                                contentDescription = "Chat Options",
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = searchProgress.value
+                                },
+                            )
+                        }
                     }
                 }
                 MiuixIconButton(onClick = onNewChat) {
@@ -773,8 +788,11 @@ private fun TopBar(
                             .graphicsLayer {
                                 val progress = searchProgress.value
                                 alpha = 1f - progress
-                                scaleX = 1f - 0.15f * progress
-                                scaleY = 1f - 0.15f * progress
+                                // 只做淡入淡出 + 横移，不叠 scale 冲量（对齐
+                                // ImageToolbox SettingsContent 的 fadeIn/fadeOut）。
+                                // 两个图标靠 enabled 互斥切换，scale 会在 0.5
+                                // 附近把「跳一下」放大。
+                                translationX = progress * 24.dp.toPx()
                             },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -789,8 +807,7 @@ private fun TopBar(
                         .graphicsLayer {
                             val progress = searchProgress.value
                             alpha = progress
-                            scaleX = 0.85f + 0.15f * progress
-                            scaleY = 0.85f + 0.15f * progress
+                            translationX = (1f - progress) * -24.dp.toPx()
                         },
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -847,6 +864,15 @@ private fun TopBar(
                     }
                 }
                 if (previewMode || searchVisible) {
+                    // 必须与上面标题用**同一个 token**。此前占位符与输入框都写
+                    // LocalTextStyle.current，而这里的 title 槽是
+                    // LargeFlexibleTopAppBar 的 title，内部
+                    // ProvideContentColorTextStyle 给的是 displaySmall（36sp）；
+                    // 标题自己写的 displayTitle() 是 headlineMedium（28sp），
+                    // 于是输入框比标题还大 8sp。两者都取 displayTitle() 后
+                    // MD3 下 28↔28 严格相等，Miuix 分支走
+                    // KedgeMiuixMorphingTitleBar（title3），不受这里影响。
+                    val searchFieldStyle = KedgeTextStyles.displayTitle()
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
@@ -858,7 +884,7 @@ private fun TopBar(
                         if (searchQuery.isBlank()) {
                             Text(
                                 text = stringResource(R.string.history_page_search),
-                                style = androidx.compose.material3.LocalTextStyle.current,
+                                style = searchFieldStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             )
                         }
@@ -866,11 +892,13 @@ private fun TopBar(
                             value = searchQuery,
                             onValueChange = onSearchQueryChange,
                             singleLine = true,
-                            textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                            textStyle = searchFieldStyle.copy(
                                 color = MaterialTheme.colorScheme.onSurface,
                             ),
                             cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(searchFocus),
                         )
                     }
                 }
@@ -883,28 +911,31 @@ private fun TopBar(
                 },
                 shapes = IconButtonDefaults.shapes(),
             ) {
-                // 搜索↔关闭图标同槽交叉淡化，不再整体切换 imageVector。
+                // search↔close 同槽交叉淡化，判定照 ImageToolbox SettingsContent：
+                // searching && hasQuery → close；!searching → search；
+                // 搜索态但还没输入时图标槽留空（两边都不命中）。
+                val searching = searchProgress.value >= 0.5f
+                val hasQuery = searchProgress.value >= 0.5f && searchQuery.isNotEmpty()
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        search,
-                        contentDescription = "Chat Options",
-                        modifier = Modifier.graphicsLayer {
-                            val progress = searchProgress.value
-                            alpha = 1f - progress
-                            scaleX = 1f - 0.15f * progress
-                            scaleY = 1f - 0.15f * progress
-                        },
-                    )
-                    Icon(
-                        close,
-                        contentDescription = "Chat Options",
-                        modifier = Modifier.graphicsLayer {
-                            val progress = searchProgress.value
-                            alpha = progress
-                            scaleX = 0.85f + 0.15f * progress
-                            scaleY = 0.85f + 0.15f * progress
-                        },
-                    )
+                    if (!searching) {
+                        Icon(
+                            search,
+                            contentDescription = "Chat Options",
+                            modifier = Modifier.graphicsLayer {
+                                val progress = searchProgress.value
+                                alpha = 1f - progress
+                            },
+                        )
+                    }
+                    if (searching && hasQuery) {
+                        Icon(
+                            close,
+                            contentDescription = "Chat Options",
+                            modifier = Modifier.graphicsLayer {
+                                alpha = searchProgress.value
+                            },
+                        )
+                    }
                 }
             }
 
