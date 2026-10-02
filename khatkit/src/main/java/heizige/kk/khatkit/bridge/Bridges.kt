@@ -128,6 +128,25 @@ interface JsonBridge {
     fun pretty(text: String): String
 }
 
+/** L0 纯 JVM 加密与编码工具。 */
+interface CryptoBridge {
+    fun sha256(text: String): String
+    fun sha256File(path: String): String
+    fun md5(text: String): String
+    fun hmacSha256(text: String, key: String, encoding: String = "hex"): String
+    fun uuid(): String
+    fun randomInt(min: Int, max: Int): Int
+    fun randomToken(bytes: Int = 32): String
+    fun urlEncode(text: String): String
+    fun urlDecode(text: String): String
+    fun base64(text: String): String
+    fun base64Decode(text: String): String
+    fun hexEncode(data: String): String
+    fun hexDecode(text: String): String
+    fun aesEncrypt(text: String, key: String, iv: String = ""): String
+    fun aesDecrypt(text: String, key: String, iv: String = ""): String
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**

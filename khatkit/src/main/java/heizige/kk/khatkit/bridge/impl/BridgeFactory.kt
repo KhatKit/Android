@@ -61,6 +61,7 @@ object BridgeFactory {
             net = AndroidNetBridge(http),
             fs = ScopedFsBridgeImpl(appContext, "", emptySet()),
             json = JsonBridgeImpl(),
+            crypto = CryptoBridgeImpl(),
             ui = ui,
             web = WebBridgeImpl(appContext, ui),
             download = DownloadManagerImpl(

@@ -65,6 +65,11 @@ class ScopedJsonBridge(
     delegate: JsonBridge,
 ) : JsonBridge by delegate, ContextAwareBridge
 
+class ScopedCryptoBridge(
+    override val context: BridgeContext,
+    delegate: CryptoBridge,
+) : CryptoBridge by delegate, ContextAwareBridge
+
 /** 透明 UI 包装器。 */
 class ScopedUiBridge(
     override val context: BridgeContext,
@@ -113,6 +118,7 @@ fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = whe
     "net" -> ScopedNetBridge(context, delegate as NetBridge)
     "fs" -> ScopedFsBridge(context, delegate as FsBridge)
     "json" -> ScopedJsonBridge(context, delegate as JsonBridge)
+    "crypto" -> ScopedCryptoBridge(context, delegate as CryptoBridge)
     "ui" -> ScopedUiBridge(context, delegate as UiBridge)
     "web" -> ScopedWebBridge(context, delegate as WebBridge)
     "download" -> ScopedDownloadBridge(context, delegate as DownloadBridge)

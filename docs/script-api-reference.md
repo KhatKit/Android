@@ -30,6 +30,7 @@
 | `net` | `NetBridge` | L0 | 始终 | 受 `network.allow` 域名白名单约束的网络请求。 |
 | `fs` | `FsBridge` | L0 | 始终 | 卡片私有/声明目录的结构化文件操作。 |
 | `json` | `JsonBridge` | L0 | 始终 | 结构化 JSON 编解码、查询与合并。 |
+| `crypto` | `CryptoBridge` | L0 | 始终 | 哈希、HMAC、AES、Base64、URL 与随机值工具。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
@@ -113,6 +114,22 @@
 | `json.merge(base, patch)` | string | 合并两个 JSON 对象，patch 字段覆盖 base。 |
 | `json.pluck(text, keys)` | table | 按键提取字段。 |
 | `json.pretty(text)` | string | 校验并返回 JSON 文本。 |
+
+## 3.4 crypto（L0）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `crypto.sha256(text)` | string | UTF-8 文本 SHA-256 十六进制。 |
+| `crypto.sha256File(path)` | string | 文件 SHA-256 十六进制。 |
+| `crypto.md5(text)` | string | UTF-8 文本 MD5。 |
+| `crypto.hmacSha256(text, key, encoding)` | string | HMAC-SHA256，encoding 为 `hex` 或 `base64`。 |
+| `crypto.uuid()` | string | UUID。 |
+| `crypto.randomInt(min, max)` | number | 闭区间随机整数。 |
+| `crypto.randomToken(bytes)` | string | 无填充 Base64URL 随机 token。 |
+| `crypto.urlEncode(text)` / `crypto.urlDecode(text)` | string | URL 编解码。 |
+| `crypto.base64(text)` / `crypto.base64Decode(text)` | string | UTF-8 Base64 编解码。 |
+| `crypto.hexEncode(data)` / `crypto.hexDecode(text)` | string | UTF-8 十六进制编解码。 |
+| `crypto.aesEncrypt(text, key, iv)` / `crypto.aesDecrypt(text, key, iv)` | string | AES/CBC/PKCS7 + Base64；key 为 16/24/32 字节，iv 为空时使用零 iv。 |
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 

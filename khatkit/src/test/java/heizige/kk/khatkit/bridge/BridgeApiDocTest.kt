@@ -24,6 +24,7 @@ class BridgeApiDocTest {
         NetBridge::class.java to "net",
         FsBridge::class.java to "fs",
         JsonBridge::class.java to "json",
+        CryptoBridge::class.java to "crypto",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
         ImageToolboxBridge::class.java to "imageToolbox",
