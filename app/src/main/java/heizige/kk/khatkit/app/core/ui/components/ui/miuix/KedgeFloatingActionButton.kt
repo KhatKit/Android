@@ -22,27 +22,56 @@ import androidx.compose.ui.unit.dp
 fun KedgeFloatingActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** 底色；`null` 时 Miuix 用自己的默认底色，MD3Exp 用 MD3 默认。 */
+    containerColor: androidx.compose.ui.graphics.Color? = null,
+    /** 内容色；`null` 时 Miuix 下发 onPrimary（KSU 的 FAB 配色），MD3Exp 用 MD3 默认。 */
+    contentColor: androidx.compose.ui.graphics.Color? = null,
     content: @Composable () -> Unit,
 ) {
     when (LocalKedgeStyle.current) {
         // 对齐 KernelSU：Miuix 的 FAB 用 primary 底 + onPrimary 图标、无阴影。
         // 图标颜色靠 LocalContentColor 下发（Icon 默认取它）。
         KedgeStyle.Miuix -> CompositionLocalProvider(
-            LocalContentColor provides MiuixTheme.colorScheme.onPrimary,
+            LocalContentColor provides (contentColor ?: MiuixTheme.colorScheme.onPrimary),
         ) {
-            MiuixFloatingActionButton(
+            if (containerColor != null) {
+                MiuixFloatingActionButton(
+                    onClick = onClick,
+                    modifier = modifier,
+                    containerColor = containerColor,
+                    shadowElevation = 0.dp,
+                    content = content,
+                )
+            } else {
+                MiuixFloatingActionButton(
+                    onClick = onClick,
+                    modifier = modifier,
+                    shadowElevation = 0.dp,
+                    content = content,
+                )
+            }
+        }
+
+        // MD3 的 contentColor 没有 Defaults 常量，不传时它内部会用 LocalContentColor，
+        // 所以只在调用点显式给了才透传。
+        KedgeStyle.MD3Exp -> if (contentColor != null) {
+            FloatingActionButton(
                 onClick = onClick,
                 modifier = modifier,
-                shadowElevation = 0.dp,
+                containerColor = containerColor
+                    ?: androidx.compose.material3.FloatingActionButtonDefaults.containerColor,
+                contentColor = contentColor,
+                content = content,
+            )
+        } else {
+            FloatingActionButton(
+                onClick = onClick,
+                modifier = modifier,
+                containerColor = containerColor
+                    ?: androidx.compose.material3.FloatingActionButtonDefaults.containerColor,
                 content = content,
             )
         }
-
-        KedgeStyle.MD3Exp -> FloatingActionButton(
-            onClick = onClick,
-            modifier = modifier,
-            content = content,
-        )
     }
 }
 
