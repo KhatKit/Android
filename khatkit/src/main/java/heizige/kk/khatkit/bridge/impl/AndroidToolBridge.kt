@@ -51,6 +51,7 @@ class AndroidToolBridge(
 ) : ToolBridge {
     private val legacyNet = AndroidNetBridge(httpClient)
 
+@Deprecated("请改用 fs.read")
     override fun readText(path: String): String {
         requireSharedStorageAccess(path)
         val file = File(path)
@@ -62,6 +63,7 @@ class AndroidToolBridge(
         }
     }
 
+@Deprecated("请改用 fs.write")
     override fun writeText(path: String, content: String) {
         requireSharedStorageAccess(path)
         val file = File(path)
@@ -116,6 +118,7 @@ class AndroidToolBridge(
         saveImageOrText(url, response, saveBinary)
     }
 
+@Deprecated("请改用 fs.readBase64")
     override fun readBase64(path: String): String {
         requireSharedStorageAccess(path)
         val file = File(path)
@@ -124,6 +127,7 @@ class AndroidToolBridge(
         return "data:${mimeFor(file.name)};base64,$encoded"
     }
 
+@Deprecated("请改用 fs.saveBase64")
     override fun saveBase64(data: String, outputPath: String): String {
         requireSharedStorageAccess(outputPath)
         val payload = data.substringAfter("base64,", data).trim()
@@ -186,6 +190,7 @@ class AndroidToolBridge(
         return output.absolutePath
     }
 
+@Deprecated("请改用 fs.list")
     override fun listFiles(path: String): String {
         requireSharedStorageAccess(path)
         val dir = File(path)
@@ -203,6 +208,7 @@ class AndroidToolBridge(
         return array.toString()
     }
 
+@Deprecated("请改用 fs.copy")
     override fun copyPath(src: String, dst: String) {
         requireSharedStorageAccess(src, dst)
         val source = File(src)
@@ -210,6 +216,7 @@ class AndroidToolBridge(
         source.copyRecursively(File(dst), overwrite = true)
     }
 
+@Deprecated("请改用 fs.delete（fs.delete 会先向用户确认）")
     override fun deletePath(path: String, recursive: Boolean): Boolean {
         requireSharedStorageAccess(path)
         val target = File(path)
@@ -217,17 +224,20 @@ class AndroidToolBridge(
         return if (recursive) target.deleteRecursively() else target.delete()
     }
 
+@Deprecated("请改用 fs.mkdir")
     override fun mkdir(path: String) {
         requireSharedStorageAccess(path)
         val dir = File(path)
         require(dir.mkdirs() || dir.isDirectory) { "创建目录失败：$path" }
     }
 
+@Deprecated("请改用 fs.move")
     override fun renamePath(src: String, dst: String) {
         requireSharedStorageAccess(src, dst)
         require(File(src).renameTo(File(dst))) { "重命名失败：$src -> $dst" }
     }
 
+@Deprecated("请改用 fs.zip")
     override fun zip(paths: List<String>, output: String): String {
         require(paths.isNotEmpty()) { "没有待压缩的文件" }
         requireSharedStorageAccess(*(paths + output).toTypedArray())
@@ -247,6 +257,7 @@ class AndroidToolBridge(
         return output
     }
 
+@Deprecated("请改用 fs.unzip")
     override fun unzip(zipPath: String, outputDir: String): String {
         requireSharedStorageAccess(zipPath, outputDir)
         val out = File(outputDir)
@@ -356,6 +367,7 @@ class AndroidToolBridge(
         TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
     }
 
+@Deprecated("请改用 fs.openDir")
     override fun openDir(path: String) {
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(Uri.parse("file://$path"), "resource/folder")

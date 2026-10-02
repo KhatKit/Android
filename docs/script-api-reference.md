@@ -51,7 +51,14 @@
 
 ## 3. tool（L0）
 
-其中 `tool.httpGet`、`tool.httpPost`、`tool.httpMultipart` 已废弃，新卡片请使用 `net`。
+其中 `tool.httpGet`、`tool.httpPost`、`tool.httpMultipart` 已废弃，新卡片请使用 `net`；
+文件类方法（`tool.readText` / `writeText` / `listFiles` / `copyPath` / `deletePath` / `mkdir` /
+`renamePath` / `zip` / `unzip` / `readBase64` / `saveBase64` / `openDir`）已废弃，新卡片请使用 `fs`。
+
+**旧方法与 `fs` 的差异（迁移时注意）**：`tool.*` 文件方法保持历史行为——按传入的绝对路径操作，
+只受「所有文件访问」权限约束；`fs.*` 则是沙箱化的，只能访问卡片私有目录与 `permissions.fsRead/fsWrite`
+声明的目录，且 `fs.delete` 每次都会向用户确认。也就是说 `tool.deletePath` 不审批、`fs.delete` 审批，
+这条不一致是**有意保留**的：不改已发布卡片的脚本行为。
 
 | 接口 | 返回 | 说明 |
 |---|---|---|

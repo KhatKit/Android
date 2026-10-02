@@ -16,7 +16,9 @@ import android.view.WindowManager
  *   root          L2 —— su 能力（安卓），桌面映射为 sudo 且默认禁用
  */
 interface ToolBridge {
+@Deprecated("请改用 fs.read")
     fun readText(path: String): String
+@Deprecated("请改用 fs.write")
     fun writeText(path: String, content: String)
     fun httpGet(url: String, headers: Map<String, String> = emptyMap()): String
     fun httpPost(url: String, body: String, headers: Map<String, String> = emptyMap()): String
@@ -37,21 +39,31 @@ interface ToolBridge {
     ): String
 
     /** 读取本地文件为 data URL（base64），供 JSON 接口上传图片用。 */
+@Deprecated("请改用 fs.readBase64")
     fun readBase64(path: String): String
 
     /** 把 data URL / 裸 base64 解码写入 outputPath，返回文件路径。 */
+@Deprecated("请改用 fs.saveBase64")
     fun saveBase64(data: String, outputPath: String): String
     fun compressImage(path: String, quality: Int): String
 
     // mergePdf 已移除：PDF 能力剥离到 imageToolbox 依赖包（见 docs/dependency-system.md），
     // 卡片改用 imageToolbox.pdfEdit(op = "merge")。
+@Deprecated("请改用 fs.openDir")
     fun openDir(path: String)
+@Deprecated("请改用 fs.list")
     fun listFiles(path: String): String
+@Deprecated("请改用 fs.copy")
     fun copyPath(src: String, dst: String)
+@Deprecated("请改用 fs.delete（fs.delete 会先向用户确认）")
     fun deletePath(path: String, recursive: Boolean): Boolean
+@Deprecated("请改用 fs.mkdir")
     fun mkdir(path: String)
+@Deprecated("请改用 fs.move")
     fun renamePath(src: String, dst: String)
+@Deprecated("请改用 fs.zip")
     fun zip(paths: List<String>, output: String): String
+@Deprecated("请改用 fs.unzip")
     fun unzip(zipPath: String, outputDir: String): String
     fun sleep(seconds: Int)
 
