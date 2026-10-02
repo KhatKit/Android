@@ -11,6 +11,8 @@ data class WorkflowNode(
     val category: String,
     val title: String,
     val detail: String,
+    val params: Map<String, String> = emptyMap(),
+    val enabled: Boolean = true,
 )
 
 @Serializable
@@ -75,7 +77,9 @@ object WorkflowStore {
                                     JSONObject()
                                         .put("category", node.category)
                                         .put("title", node.title)
-                                        .put("detail", node.detail),
+                                        .put("detail", node.detail)
+                                        .put("enabled", node.enabled)
+                                        .put("params", JSONObject(node.params)),
                                 )
                             }
                         },
@@ -99,8 +103,15 @@ private fun JSONArray?.toNodeList(): List<WorkflowNode> {
             category = item.optString("category", "动作"),
             title = item.optString("title", "未命名节点"),
             detail = item.optString("detail", "执行自动化操作"),
+            params = item.optJSONObject("params").toStringMap(),
+            enabled = item.optBoolean("enabled", true),
         )
     }.ifEmpty {
         listOf(WorkflowNode("触发器", "手动启动", "点击运行或绑定到自动化触发器"))
     }
+}
+
+private fun JSONObject?.toStringMap(): Map<String, String> {
+    if (this == null) return emptyMap()
+    return keys().asSequence().associateWith { optString(it) }
 }
