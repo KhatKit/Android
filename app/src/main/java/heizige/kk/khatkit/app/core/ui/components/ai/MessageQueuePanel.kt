@@ -38,6 +38,7 @@ import heizige.kk.khatkit.app.feature.chat.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeTextFieldWithState
 
 @Composable
 internal fun MessageQueuePanel(
@@ -139,7 +140,7 @@ internal fun MessageQueuePanel(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (input.messageContent.isNotEmpty()) MediaFileInputRow(input)
-                    TextField(
+                    KedgeTextFieldWithState(
                         state = input.textContent,
                         modifier = Modifier
                             .fillMaxWidth()
