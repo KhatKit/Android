@@ -25,6 +25,7 @@ coil = "3.6.3"
 quickjs = "1.0.15"
 commonsCompress = "1.27.1"
 room = "2.8.5"
+sqlite = "2.6.2"
 hilt = "2.60.1"
 androidx-hilt = "1.4.0"
 datastore = "1.2.1"
@@ -105,6 +106,7 @@ androidx-material3-adaptive-layout = { group = "androidx.compose.material3.adapt
 androidx-material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "nav3Material" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-sqlite = { group = "androidx.sqlite", name = "sqlite-framework", version.ref = "sqlite" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-paging = { group = "androidx.room", name = "room-paging", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }

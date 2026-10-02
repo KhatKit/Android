@@ -435,6 +435,18 @@ interface StoreBridge {
     fun dbQuery(table: String, where: String, args: List<Any?>): List<Map<String, Any?>>
     fun dbInsert(table: String, row: Map<String, Any?>)
 
+    /**
+     * 在卡片自己的 SQLite 库里执行一条 SQL（`databases/cards/<卡片名>.db`）。
+     *
+     * `SELECT` / `PRAGMA` / `WITH` / `VALUES` 返回行表（最多 1000 行，超出请自己加 `LIMIT`），
+     * 其余语句返回空表。`args` 里的值按 ? 顺序绑定（数字 / 字符串 / nil 都行）。
+     *
+     * 一次只允许一条语句；`ATTACH` / `DETACH` / `VACUUM` / `LOAD_EXTENSION` 会被拒绝
+     * （防止卡片碰到宿主数据库或往任意路径写文件）。占用计入 `store.quota_mb`。
+     * FTS5 是否可用见 `host.health().fts5`，不支持时退化为普通表 + `LIKE`。
+     */
+    fun sql(query: String, args: List<Any?> = emptyList()): List<Map<String, Any?>>
+
     /** 敏感数据走 Keystore / 系统钥匙串，不进 kv */
     fun secretGet(key: String): String?
     fun secretSet(key: String, value: String)

@@ -18,7 +18,8 @@ import java.util.zip.ZipOutputStream
  *
  * - KV：SharedPreferences，底层 key 自动带 `card_<name>_` 前缀
  * - 文件：filesDir/khatkit/store/<name>/files
- * - 结构化：db/<table>.jsonl，按行追加
+ * - 结构化：db/<table>.jsonl，按行追加（历史接口，保留兼容）
+ * - SQL：databases/cards/<name>.db，卡片自管表结构（store.sql）
  * - 密钥：Keystore 加密，独立于 kv
  * - export/import：换机备份（默认不含密钥）
  */
@@ -28,11 +29,18 @@ class FileStoreBridge(
     quotaMb: Int = 50,
 ) : StoreBridge {
 
-    private val quotaBytes: Long = quotaMb.coerceAtLeast(1).toLong() * 1024L * 1024L
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences("khatkit_card_$cardName", Context.MODE_PRIVATE)
     private val fileDir = File(appContext.filesDir, "khatkit/store/$cardName/files").apply { mkdirs() }
     private val dbDir = File(appContext.filesDir, "khatkit/store/$cardName/db").apply { mkdirs() }
+    /** files + JSONL + SQLite 合计配额（store.quota_mb）。 */
+    private val quota = StoreQuota(quotaMb)
+
+    /** 卡片自己的 SQLite 库；files/ 与 db/ 的占用通过 externalUsage 一起计入配额。 */
+    private val sqlStore = CardSqlStore(appContext, cardName, quota) {
+        directorySize(fileDir) + directorySize(dbDir)
+    }
+
     private val secrets = SecretStore(appContext, cardName)
     private val shared = SharedStore(File(appContext.filesDir, "khatkit/shared"), cardName)
     private val json = Json { ignoreUnknownKeys = true }
@@ -66,18 +74,17 @@ class FileStoreBridge(
         target.appendText(line)
     }
 
-    /** 配额是天花板：file + db 合计超过 manifest 的 quota_mb 时拒绝写入。 */
-    private fun enforceQuota(additionalBytes: Long) {
-        val used = directorySize(fileDir) + directorySize(dbDir)
-        require(used + additionalBytes <= quotaBytes) {
-            "store 配额超限：已用 ${used / 1024 / 1024}MB，本次 ${
-                (additionalBytes / 1024).coerceAtLeast(1)
-            }KB，上限 ${quotaBytes / 1024 / 1024}MB"
-        }
-    }
+    /** 配额是天花板：file + JSONL + SQLite 合计超过 manifest 的 quota_mb 时拒绝写入。 */
+    private fun enforceQuota(additionalBytes: Long) =
+        quota.enforce(directorySize(fileDir) + directorySize(dbDir) + sqlStore.ownBytes(), additionalBytes)
 
     private fun directorySize(dir: File): Long =
         dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+
+    /** 库文件路径（供 UI / 诊断查看占用）。 */
+    fun sqlDbFile(): File = sqlStore.dbFile
+
+    override fun sql(query: String, args: List<Any?>): List<Map<String, Any?>> = sqlStore.exec(query, args)
 
     override fun secretGet(key: String): String? = secrets.get(key)
 
@@ -96,7 +103,11 @@ class FileStoreBridge(
 
     fun secretRemove(key: String) = secrets.remove(key)
 
-    /** 导出为 zip；密钥默认不导出（Keystore 不随备份走）。 */
+    /**
+     * 导出为 zip；密钥默认不导出（Keystore 不随备份走）。
+     *
+     * 注意：不含 [sqlDbFile] 的 SQLite 库（卡片自管结构需要 schema 才能还原）。
+     */
     fun export(includeSecrets: Boolean = false): String {
         val target = File(appContext.cacheDir, "khatkit-export-$cardName.zip")
         ZipOutputStream(target.outputStream().buffered()).use { zip ->

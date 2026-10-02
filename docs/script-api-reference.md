@@ -307,7 +307,7 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 
 ## 7. store（L0）
 
-底层 key 自动加 `card_<name>_` 前缀，卡片读不到别人的数据；`store.quota_mb` 约束 `file` + `db` 合计大小。
+底层 key 自动加 `card_<name>_` 前缀，卡片读不到别人的数据；`store.quota_mb` 约束 `file` + `db` + **SQLite 库**合计大小。
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
@@ -323,6 +323,45 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 | `store.sharedRead(name)` | string / nil | 按名读其他卡片的共享数据。 |
 | `store.sharedList()` | string[] | 列出共享区条目名。 |
 | `store.sharedDelete(name)` | boolean | 删除共享条目。 |
+| `store.sql(query, args)` | table[] | 在卡片自己的 SQLite 库里执行一条 SQL，见下。 |
+
+### 7.1 store.sql（卡片自管的 SQLite）
+
+`store.sql` 让卡片自己管表结构，库文件是 `databases/cards/<卡片名>.db`，与宿主聊天库隔离；
+卸载卡片时宿主连库一起删。`store.dbQuery` / `store.dbInsert`（JSONL）保持原样不动，
+老卡片不受影响，新表用 `store.sql` 自建。
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `store.sql(query, args)` | table[] | 执行一条 SQL。`SELECT` / `PRAGMA` / `WITH` / `VALUES` 返回行表（**最多 1000 行**，超出请自己加 `LIMIT`），其余语句返回空表。 |
+
+规则：
+
+- `args` 按 `?` 顺序绑定，支持 number / string / boolean / nil；
+- **一次只允许一条语句**（尾随分号可以），注释与字符串字面量里的 `;` 不算；
+- **禁止** `ATTACH` / `DETACH` / `VACUUM` / `LOAD_EXTENSION`：卡片只能碰自己的库文件，
+  `VACUUM INTO '任意路径'` 这类能往别处写文件的语句同样拒绝；
+- 返回值按列类型映射：整数 → number，浮点 → number，文本 → string，`NULL` → nil，
+  BLOB → base64 字符串；
+- 占用计入 `store.quota_mb`，另有 SQLite 页数硬顶；超限返回中文错误（写入被拒或事务回滚）。
+
+```lua
+store.sql("CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY, title TEXT, body TEXT)", {})
+store.sql("INSERT INTO notes(title, body) VALUES (?, ?)", { "标题", "正文" })
+local rows = store.sql("SELECT id, title FROM notes ORDER BY id DESC LIMIT 10", {})
+```
+
+**FTS5**：`host.health().fts5` 告诉你设备平台的 SQLite 是否带 FTS5
+（多数 ROM 不带，需要宿主用 `sqlite-android` 替换引擎才有）。为 `false` 时请用普通表 + `LIKE`：
+
+```lua
+local health = host.health()
+if health.fts5 then
+  store.sql("CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(body, tokenize='simple')", {})
+else
+  store.sql("CREATE TABLE IF NOT EXISTS notes_fts(body TEXT)", {})
+end
+```
 
 ## 8. ui.form 组件白名单
 

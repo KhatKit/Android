@@ -52,6 +52,10 @@ dependencies {
     // OCR: ML Kit 中文文字识别（模型随包，无需 GMS）
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 
+    // store.sql：卡片自己的 SQLite 库（androidx.sqlite，Room 底层同一引擎）。
+    // 刻意不引 Room：卡片要运行期 CREATE TABLE，注解处理器帮不上忙（决策见 docs/bridge-expansion-spec.md T2.1）。
+    implementation(libs.androidx.sqlite)
+
     // Networking: Ktor client only, deliberately not OkHttp
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)

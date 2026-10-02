@@ -677,7 +677,7 @@ return { file = st.file, state = st.state }
 
 ### 4.4 store（卡片隔离存储，L0）
 
-底层 KV key 自动加 `card_<name>_` 前缀，卡片改不到别人的数据；`quota_mb` 约束 file + db 合计大小。
+底层 KV key 自动加 `card_<name>_` 前缀，卡片改不到别人的数据；`quota_mb` 约束 file + JSONL + SQLite 合计大小。
 
 | 方法（签名） | 返回 | 说明 |
 |---|---|---|
@@ -693,6 +693,31 @@ return { file = st.file, state = st.state }
 | `sharedRead(name)` | string 或 null | 优先按 `<卡片名>/<文件名>` 精确读；传裸文件名时在所有卡片目录中找最新同名文件。 |
 | `sharedList()` | string[] | 列出共享区所有文件（`<卡片名>/<文件名>`）。 |
 | `sharedDelete(name)` | boolean | 只能删自己命名空间里的文件。 |
+| `sql(query, args)` | map[] | 在卡片自己的 SQLite 库（`databases/cards/<卡片名>.db`）里执行一条 SQL，见下。 |
+
+#### 4.4.1 store.sql（卡片自管的 SQLite）
+
+```lua
+-- 建表（运行期 CREATE TABLE，宿主不预置 schema）
+store.sql("CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY, title TEXT, body TEXT)", {})
+store.sql("INSERT INTO notes(title, body) VALUES (?, ?)", { "标题", "正文" })
+
+local rows = store.sql("SELECT id, title FROM notes ORDER BY id DESC LIMIT 10", {})
+for _, row in ipairs(rows) do
+  print(row.id, row.title)
+end
+```
+
+- `args` 按 `?` 顺序绑定（number / string / boolean / nil 都行）。
+- `SELECT` / `PRAGMA` / `WITH` / `VALUES` 返回行表，**最多 1000 行**，超出请自己加 `LIMIT`；
+  其余语句返回空表。BLOB 列按 base64 字符串返回。
+- **一次一条语句**；`ATTACH` / `DETACH` / `VACUUM` / `LOAD_EXTENSION` 一律拒绝——
+  卡片只能操作自己的库文件，`ATTACH` 能挂上宿主聊天库，`VACUUM INTO` 能往任意路径落文件。
+- 旧接口 `dbQuery` / `dbInsert`（JSONL）签名与行为不变，老卡片不受影响；
+  新表一律用 `store.sql` 自建，两者互不干扰。
+- **全文检索看能力位**：多数 ROM 的平台 SQLite 不带 FTS5，先 `host.health().fts5` 判断，
+  为 `false` 时用普通表 + `LIKE`（详见 [script-api-reference.md](script-api-reference.md) §7.1）。
+- 超配额（`store.quota_mb`）时写入被拒或事务回滚，返回中文错误。
 
 ```lua
 store.kvSet("last_url", url)
@@ -1451,6 +1476,7 @@ return {
 | 能力 | 权限或设置 | 相关 API 示例 |
 |---|---|---|
 | 共享存储读写 | 所有文件访问 | `tool.readText`、`captureScreen`、`ocrText` |
+| 卡片私有存储 | 无（`store.quota_mb` 限额） | `store.kvGet/kvSet`、`store.sql` |
 | 网络 | `network.allow` 白名单（运行时逐请求校验） | `net.get/net.post/net.multipart`（旧 `tool.http*` 已废弃） |
 | 剪贴板 | 应用前台时可用 | `tool.setClipboard/getClipboard`、`accessibility.paste` |
 | 点亮屏幕 | `WAKE_LOCK`（部分 ROM 拦截） | `tool.wakeScreen` |
