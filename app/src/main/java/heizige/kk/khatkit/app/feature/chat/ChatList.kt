@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.animation.AnimatedContent
@@ -216,7 +217,9 @@ private fun ChatListNormal(
     var isRecentScroll by remember { mutableStateOf(false) }
     val conversationUpdated by rememberUpdatedState(conversation)
     val density = LocalDensity.current
-    val activity = LocalContext.current as? heizige.kk.khatkit.app.RouteActivity
+    // LocalActivity 才是 activity-compose 认可的取法（LocalContext as? Activity 在 ComposeView
+    // 或多 Activity 场景下可能拿到非 Activity 上下文）
+    val activity = LocalActivity.current as? heizige.kk.khatkit.app.RouteActivity
 
     DisposableEffect(Unit) {
         val listener: (Boolean) -> Boolean = { isVolumeUp ->
