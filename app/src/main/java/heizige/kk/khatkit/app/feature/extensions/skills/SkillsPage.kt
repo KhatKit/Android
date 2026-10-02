@@ -81,6 +81,10 @@ fun SkillsPage() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current
     val context = LocalContext.current
+
+    val skillsPageImportSuccess = stringResource(R.string.skills_page_import_success)
+    val skillsPageImportFailed = stringResource(R.string.skills_page_import_failed)
+    val skillsPageSaveFailed = stringResource(R.string.skills_page_save_failed)
     var showImportSheet by rememberSaveable { mutableStateOf(false) }
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var showImportDialog by rememberSaveable { mutableStateOf(false) }
@@ -91,9 +95,9 @@ fun SkillsPage() {
         uri ?: return@rememberLauncherForActivityResult
         vm.importSkillFromFile(context, uri) { success, message ->
             if (success) {
-                Toast.show(context.getString(R.string.skills_page_import_success, message))
+                Toast.show(String.format(skillsPageImportSuccess, message))
             } else {
-                Toast.show(context.getString(R.string.skills_page_import_failed, message))
+                Toast.show(String.format(skillsPageImportFailed, message))
             }
         }
     }
@@ -183,7 +187,7 @@ fun SkillsPage() {
                 vm.saveSkill(name, content) { success ->
                     showAddDialog = false
                     if (!success) {
-                        Toast.show(context.getString(R.string.skills_page_save_failed))
+                        Toast.show(skillsPageSaveFailed)
                     }
                 }
             },
@@ -197,9 +201,9 @@ fun SkillsPage() {
                 vm.importSkillFromGitHub(repoUrl) { success, message ->
                     showImportDialog = false
                     if (success) {
-                        Toast.show(context.getString(R.string.skills_page_import_success, message))
+                        Toast.show(String.format(skillsPageImportSuccess, message))
                     } else {
-                        Toast.show(context.getString(R.string.skills_page_import_failed, message))
+                        Toast.show(String.format(skillsPageImportFailed, message))
                     }
                 }
             },

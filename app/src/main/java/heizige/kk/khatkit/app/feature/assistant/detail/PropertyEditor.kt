@@ -130,6 +130,8 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
 @Composable
 fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) -> Unit) {
     val context = LocalContext.current
+
+    val assistantPageInvalidJson = stringResource(R.string.assistant_page_invalid_json)
     Column(
         modifier = Modifier.padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -176,10 +178,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                                         jsonParseError = null
                                     } catch (e: Exception) {
                                         jsonParseError =
-                                            context.getString(
-                                                R.string.assistant_page_invalid_json,
-                                                e.message?.take(100) ?: ""
-                                            )
+                                            String.format(assistantPageInvalidJson, e.message?.take(100) ?: "")
                                     }
                                 },
                                 label = { Text(stringResource(R.string.assistant_page_body_value)) },

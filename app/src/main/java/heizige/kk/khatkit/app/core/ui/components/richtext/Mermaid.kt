@@ -48,6 +48,9 @@ fun Mermaid(
     val colorScheme = MaterialTheme.colorScheme
     val darkMode = LocalDarkMode.current
     val context = LocalContext.current
+
+    val mermaidExportSuccess = stringResource(R.string.mermaid_export_success)
+    val mermaidExportFailed = stringResource(R.string.mermaid_export_failed)
     val activity = LocalActivity.current
     val toaster = LocalToaster.current
     val navController = LocalNavController.current
@@ -71,13 +74,13 @@ fun Mermaid(
                         }
                     }
                     Toast.show(
-                        context.getString(R.string.mermaid_export_success),
+                        mermaidExportSuccess,
                         isError = false
                     )
                 }.onFailure {
                     it.printStackTrace()
                     Toast.show(
-                        context.getString(R.string.mermaid_export_failed),
+                        mermaidExportFailed,
                         isError = true
                     )
                 }

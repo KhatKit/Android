@@ -46,6 +46,8 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun UpdateCard(vm: ChatViewModel) {
     val state by vm.updateState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    val updateCardDownloading = stringResource(R.string.update_card_downloading)
     val toaster = LocalToaster.current
     state.onError {
         KedgeCard {
@@ -116,7 +118,7 @@ fun UpdateCard(vm: ChatViewModel) {
             val downloadHandler = useThrottle<UpdateCheckResponse>(500) { item ->
                 vm.updateChecker.downloadUpdate(context, item)
                 showDetail = false
-                Toast.show(context.getString(R.string.update_card_downloading), isError = false)
+                Toast.show(updateCardDownloading, isError = false)
             }
             PrimaryBottomSheet(
                 visible = true,

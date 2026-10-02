@@ -62,6 +62,9 @@ fun ProviderConnectionTester(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    val settingProviderPageTestToolCalled = stringResource(R.string.setting_provider_page_test_tool_called)
+    val settingProviderPageTestToolNotCalled = stringResource(R.string.setting_provider_page_test_tool_not_called)
+
     KedgeIconButton(onClick = { showTestDialog = true }, shapes = IconButtonDefaults.shapes()) {
         Icon(link, null)
     }
@@ -199,19 +202,12 @@ fun ProviderConnectionTester(
                                         .filterIsInstance<UIMessagePart.Tool>()
                                         .firstOrNull()
                                     val resultText = if (toolCall != null) {
-                                        context.getString(
-                                            R.string.setting_provider_page_test_tool_called,
-                                            toolCall.toolName,
-                                            toolCall.input
-                                        )
+                                        String.format(settingProviderPageTestToolCalled, toolCall.toolName, toolCall.input)
                                     } else {
                                         val text = message.parts
                                             .filterIsInstance<UIMessagePart.Text>()
                                             .joinToString("") { it.text }
-                                        context.getString(
-                                            R.string.setting_provider_page_test_tool_not_called,
-                                            text
-                                        )
+                                        String.format(settingProviderPageTestToolNotCalled, text)
                                     }
                                     toolsState = UiState.Success(resultText)
                                 }.onFailure { toolsState = UiState.Error(it) }

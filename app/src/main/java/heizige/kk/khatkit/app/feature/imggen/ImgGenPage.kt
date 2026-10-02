@@ -335,6 +335,7 @@ private fun InputBar(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
     val scope = rememberCoroutineScope()
     // 参考图走自研媒体网格选择器（对齐 ImageToolbox）
     var showImagePicker by remember { mutableStateOf(false) }
@@ -527,6 +528,11 @@ private fun ImageGalleryScreen(
 ) {
     val generatedImages = vm.generatedImages.collectAsLazyPagingItems()
     val context = LocalContext.current
+
+    val imggenPageDeleteImagesSuccess = stringResource(R.string.imggen_page_delete_images_success)
+    val imggenPageDeleteImagesFailed = stringResource(R.string.imggen_page_delete_images_failed)
+    val imggenPageImageSavedSuccess = stringResource(R.string.imggen_page_image_saved_success)
+    val imggenPageSaveFailed = stringResource(R.string.imggen_page_save_failed)
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
@@ -576,12 +582,8 @@ private fun ImageGalleryScreen(
                             selectedImages = failed.associateBy { it.id }
                             selectionMode = failed.isNotEmpty()
                             Toast.show(
-                                message = if (failed.isEmpty()) context.getString(R.string.imggen_page_delete_images_success, images.size)
-                                else context.getString(
-                                    R.string.imggen_page_delete_images_failed,
-                                    images.size - failed.size,
-                                    failed.size
-                                ),
+                                message = if (failed.isEmpty()) String.format(imggenPageDeleteImagesSuccess, images.size)
+                                else String.format(imggenPageDeleteImagesFailed, images.size - failed.size, failed.size),
                                 isError = failed.isNotEmpty(),
                             )
                         } finally {
@@ -745,15 +747,12 @@ private fun ImageGalleryScreen(
                                                         try {
                                                             filesManager.saveMessageImage(context, "file://${it.filePath}")
                                                             Toast.show(
-                                                                message = context.getString(R.string.imggen_page_image_saved_success),
+                                                                message = imggenPageImageSavedSuccess,
                                                                 isError = false
                                                             )
                                                         } catch (e: Exception) {
                                                             Toast.show(
-                                                                message = context.getString(
-                                                                    R.string.imggen_page_save_failed,
-                                                                    e.message
-                                                                ),
+                                                                message = String.format(imggenPageSaveFailed, e.message),
                                                                 isError = true
                                                             )
                                                         }

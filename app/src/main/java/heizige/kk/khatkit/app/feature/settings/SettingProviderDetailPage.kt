@@ -173,6 +173,8 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
     val toaster = LocalToaster.current
     val context = LocalContext.current
 
+    val settingProviderPageSaveSuccess = stringResource(R.string.setting_provider_page_save_success)
+
     KedgePageScaffold(
        containerColor = CustomColors.pageContainerColor,
         topBar = {
@@ -239,7 +241,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
                         onEdit = {
                             onEdit(it)
                             Toast.show(
-                                context.getString(R.string.setting_provider_page_save_success),
+                                settingProviderPageSaveSuccess,
                                 isError = false
                             )
                         },

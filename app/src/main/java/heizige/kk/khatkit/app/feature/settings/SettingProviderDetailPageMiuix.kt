@@ -57,6 +57,8 @@ fun SettingProviderDetailPageMiuix(
     onDelete: () -> Unit,
 ) {
     val context = LocalContext.current
+
+    val settingProviderPageSaveSuccess = stringResource(R.string.setting_provider_page_save_success)
     val scope = rememberCoroutineScope()
     val pager = rememberPagerState { 2 }
     val shareSheetState = rememberShareSheetState()
@@ -103,7 +105,7 @@ fun SettingProviderDetailPageMiuix(
                         onEdit = {
                             onEdit(it)
                             Toast.show(
-                                message = context.getString(R.string.setting_provider_page_save_success),
+                                message = settingProviderPageSaveSuccess,
                                 isError = false,
                             )
                         },

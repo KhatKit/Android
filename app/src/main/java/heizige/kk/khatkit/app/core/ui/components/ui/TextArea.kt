@@ -83,6 +83,9 @@ fun TextArea(
     onImportError: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
+
+    val textAreaImportSuccess = stringResource(R.string.text_area_import_success)
+    val textAreaImportFailed = stringResource(R.string.text_area_import_failed)
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     var isFullScreen by remember { mutableStateOf(false) }
@@ -99,10 +102,10 @@ fun TextArea(
                             ?: error("Failed to read file")
                     }
                     state.setTextAndPlaceCursorAtEnd(content)
-                    Toast.show(context.getString(R.string.text_area_import_success), isError = false)
+                    Toast.show(textAreaImportSuccess, isError = false)
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    val errorMessage = e.message ?: context.getString(R.string.text_area_import_failed)
+                    val errorMessage = e.message ?: textAreaImportFailed
                     onImportError?.invoke(errorMessage) ?: Toast.show(
                         message = errorMessage,
                         isError = true
