@@ -16,6 +16,7 @@ class BridgeRegistry(
     private val fs: FsBridge? = null,
     private val json: JsonBridge? = null,
     private val crypto: CryptoBridge? = null,
+    private val time: TimeBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -61,6 +62,7 @@ class BridgeRegistry(
         if (fs != null) add("fs")
         if (json != null) add("json")
         if (crypto != null) add("crypto")
+        if (time != null) add("time")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -111,6 +113,7 @@ class BridgeRegistry(
                 }
                 "json" -> json
                 "crypto" -> crypto
+                "time" -> time
                 "ui" -> ui
                 "web" -> web
                 "download" -> download

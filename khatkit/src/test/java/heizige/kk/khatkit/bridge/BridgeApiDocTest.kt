@@ -25,6 +25,7 @@ class BridgeApiDocTest {
         FsBridge::class.java to "fs",
         JsonBridge::class.java to "json",
         CryptoBridge::class.java to "crypto",
+        TimeBridge::class.java to "time",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
         ImageToolboxBridge::class.java to "imageToolbox",

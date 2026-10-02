@@ -31,6 +31,7 @@
 | `fs` | `FsBridge` | L0 | 始终 | 卡片私有/声明目录的结构化文件操作。 |
 | `json` | `JsonBridge` | L0 | 始终 | 结构化 JSON 编解码、查询与合并。 |
 | `crypto` | `CryptoBridge` | L0 | 始终 | 哈希、HMAC、AES、Base64、URL 与随机值工具。 |
+| `time` | `TimeBridge` | L0 | 始终 | 时间戳、ISO-8601、格式化、解析与本地化信息。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
@@ -130,6 +131,17 @@
 | `crypto.base64(text)` / `crypto.base64Decode(text)` | string | UTF-8 Base64 编解码。 |
 | `crypto.hexEncode(data)` / `crypto.hexDecode(text)` | string | UTF-8 十六进制编解码。 |
 | `crypto.aesEncrypt(text, key, iv)` / `crypto.aesDecrypt(text, key, iv)` | string | AES/CBC/PKCS7 + Base64；key 为 16/24/32 字节，iv 为空时使用零 iv。 |
+
+## 3.5 time（L0）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `time.now()` | number | 当前 Unix 时间戳，单位毫秒。 |
+| `time.nowIso()` | string | 当前 UTC ISO-8601 文本。 |
+| `time.format(pattern, timestampMs, timeZone)` | string | `SimpleDateFormat` 语义；timestampMs 为 0 表示现在。 |
+| `time.parse(text, pattern)` | number | pattern 为空时按 ISO-8601 解析，否则按 `SimpleDateFormat` 解析。 |
+| `time.timeZone()` | string | 设备默认时区 ID。 |
+| `time.locale()` | string | 当前 Locale 的 BCP-47 标签。 |
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 

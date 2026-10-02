@@ -147,6 +147,16 @@ interface CryptoBridge {
     fun aesDecrypt(text: String, key: String, iv: String = ""): String
 }
 
+/** L0 时间与本地化工具。 */
+interface TimeBridge {
+    fun now(): Long
+    fun nowIso(): String
+    fun format(pattern: String, timestampMs: Long = 0, timeZone: String = ""): String
+    fun parse(text: String, pattern: String = ""): Long
+    fun timeZone(): String
+    fun locale(): String
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**

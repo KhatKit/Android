@@ -62,6 +62,7 @@ object BridgeFactory {
             fs = ScopedFsBridgeImpl(appContext, "", emptySet()),
             json = JsonBridgeImpl(),
             crypto = CryptoBridgeImpl(),
+            time = TimeBridgeImpl(),
             ui = ui,
             web = WebBridgeImpl(appContext, ui),
             download = DownloadManagerImpl(
