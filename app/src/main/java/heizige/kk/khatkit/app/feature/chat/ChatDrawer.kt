@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -50,6 +52,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -108,6 +112,7 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.folder as folderIcon
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.app.core.ui.icons.edit
+import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
@@ -115,11 +120,11 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.adaptive.KedgeOverlayScaffold
-import heizige.kk.kedge.adaptive.KedgeTopAppBar
 import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
 import heizige.kk.kedge.adaptive.KedgeBlurredBar
 import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
 import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
+import heizige.kk.kedge.components.KedgeButtonDefaults
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
@@ -155,11 +160,19 @@ fun ChatDrawerContent(
     }
     val account = hubAccount
     val subscriptionLabel = when {
-        account == null -> "套餐"
-        !account.active -> "订阅"
-        account.toolCallsRemaining != null -> "套餐 · 剩余 ${account.toolCallsRemaining} 次"
-        account.aiTokensRemaining != null -> "套餐 · ${account.aiTokensRemaining} tokens"
-        else -> "套餐"
+        account == null -> stringResource(R.string.chat_drawer_plan)
+        !account.active -> stringResource(R.string.chat_drawer_subscription_expired)
+        account.toolCallsRemaining != null -> stringResource(
+            R.string.chat_drawer_plan_remaining_calls,
+            account.toolCallsRemaining!!,
+        )
+
+        account.aiTokensRemaining != null -> stringResource(
+            R.string.chat_drawer_plan_remaining_tokens,
+            account.aiTokensRemaining!!,
+        )
+
+        else -> stringResource(R.string.chat_drawer_plan)
     }
 
     val activity = context as ComponentActivity
@@ -259,127 +272,128 @@ fun ChatDrawerContent(
             contentInsetTop = 0.dp,
             contentInsetBottom = 0.dp,
             topBar = {
-                // 走 KedgeTopAppBar 而不是裸 MD3 TopAppBar：Miuix 下它落到
-                // SmallTopAppBar / 自绘同度量的标题栏，标题拿到 Miuix 的
-                // LocalTextStyle（bodyLarge 16sp）。此前这里硬用 MD3 TopAppBar，
-                // 标题槽给的是 titleLarge 22sp，Miuix 下字号偏大且字阶不对。
-                // 标题与搜索输入框都取 LocalTextStyle.current，换过去后两者
-                // 自动保持同字号，不用各自再写一遍。
-                // Miuix 分支自己包 KedgeBlurredBar，所以这里不再外套一层。
-                KedgeTopAppBar(
-                    title = "",
-                    titleContent = {
-                        Box {
-                            if (titleVisible) {
-                                Text(
-                                    text = "KhatKit",
+                // 这里刻意用裸 MD3 TopAppBar（不分流），不用 KedgeTopAppBar：
+                // Kedge 的 Miuix 分支走 KedgeMiuixCustomTitleBar，标题区套 26dp
+                // TitlePadding 而 actions 侧只有 16dp ActionIconPadding，左右留白
+                // 不对称（实测 43.7dp vs 27.7dp）。抽屉顶栏要的是左右对齐。
+                KedgeBlurredBar(backdrop = backdrop) {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    // 有 backdrop 时透明，让 KedgeBlurredBar 的模糊透出来；
+                    // 没有 backdrop 时退回 surface，避免出现无底的栏。
+                    containerColor = KedgeOverlayBarColor(
+                        backdrop = backdrop,
+                        // MD3Exp 下没有 MiuixTheme，取它会拿到全 0 的透明色，
+                        // 所以退回 MD3 的 surface。
+                        fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                            MiuixTheme.colorScheme.surface
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                    ),
+                ),
+                navigationIcon = {
+                    if (searchVisible) {
+                        KedgeIconButton(
+                            onClick = {
+                                drawerVm.updateSearchKeyword("")
+                                showSearch = false
+                            },
+                            modifier = Modifier.graphicsLayer {
+                                alpha = searchProgress.value
+                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                            },
+                        ) {
+                            Icon(arrowBack, contentDescription = null)
+                        }
+                    }
+                },
+                title = {
+                    // 标题与搜索输入框共用 topBarTitle()，保证两边字号严格相等
+                    // （MD3 22sp / Miuix 24sp）。
+                    val topBarStyle = KedgeTextStyles.topBarTitle()
+                    Box {
+                        if (titleVisible) {
+                            Text(
+                                text = "KhatKit",
+                                style = topBarStyle,
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = 1f - searchProgress.value
+                                    translationX = -searchProgress.value * 24.dp.toPx()
+                                },
+                            )
+                        }
+                        if (searchVisible) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
+                                    .graphicsLayer {
+                                        alpha = searchProgress.value
+                                        translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                                    },
+                            ) {
+                                if (searchKeyword.isBlank()) {
+                                    Text(
+                                        text = stringResource(R.string.chat_page_search_chats),
+                                        style = topBarStyle,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    )
+                                }
+                                BasicTextField(
+                                    value = searchKeyword,
+                                    onValueChange = drawerVm::updateSearchKeyword,
+                                    singleLine = true,
+                                    textStyle = topBarStyle.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    ),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(searchFocus),
+                                )
+                            }
+                        }
+                    }
+                },
+                actions = {
+                    // search↔close 同槽交叉淡化，三态判定照 ImageToolbox
+                    // SettingsContent：!searching → search；
+                    // searching && hasQuery → close；搜索态但还没输入时留空。
+                    val searching = searchProgress.value >= 0.5f
+                    val hasQuery = searchProgress.value >= 0.5f && searchKeyword.isNotEmpty()
+                    KedgeIconButton(
+                        onClick = {
+                            if (!showSearch) {
+                                showSearch = true
+                            } else {
+                                drawerVm.updateSearchKeyword("")
+                            }
+                        },
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (!searching) {
+                                Icon(
+                                    imageVector = search,
+                                    contentDescription = stringResource(R.string.chat_page_search_chats),
                                     modifier = Modifier.graphicsLayer {
                                         alpha = 1f - searchProgress.value
-                                        translationX = -searchProgress.value * 24.dp.toPx()
                                     },
                                 )
                             }
-                            if (searchVisible) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
-                                        .graphicsLayer {
-                                            alpha = searchProgress.value
-                                            translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                                        },
-                                ) {
-                                    if (searchKeyword.isBlank()) {
-                                        Text(
-                                            text = stringResource(R.string.chat_page_search_chats),
-                                            style = androidx.compose.material3.LocalTextStyle.current,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        )
-                                    }
-                                    BasicTextField(
-                                        value = searchKeyword,
-                                        onValueChange = drawerVm::updateSearchKeyword,
-                                        singleLine = true,
-                                        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                        ),
-                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .focusRequester(searchFocus),
-                                    )
-                                }
+                            if (searching && hasQuery) {
+                                Icon(
+                                    imageVector = close,
+                                    contentDescription = stringResource(R.string.chat_page_search_chats),
+                                    modifier = Modifier.graphicsLayer {
+                                        alpha = searchProgress.value
+                                    },
+                                )
                             }
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        // 有 backdrop 时透明，让毛玻璃透出来；没有 backdrop 时退回
-                        // surface，避免出现无底的栏。只在 MD3Exp 分支生效。
-                        containerColor = KedgeOverlayBarColor(
-                            backdrop = backdrop,
-                            // MD3Exp 下没有 MiuixTheme，取它会拿到全 0 的透明色，
-                            // 所以退回 MD3 的 surface。
-                            fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                                MiuixTheme.colorScheme.surface
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
-                        ),
-                    ),
-                    navigationIcon = {
-                        if (searchVisible) {
-                            KedgeIconButton(
-                                onClick = {
-                                    drawerVm.updateSearchKeyword("")
-                                    showSearch = false
-                                },
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = searchProgress.value
-                                    translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                                },
-                            ) {
-                                Icon(arrowBack, contentDescription = null)
-                            }
-                        }
-                    },
-                    actions = {
-                        // search↔close 同槽交叉淡化，三态判定照 ImageToolbox
-                        // SettingsContent：!searching → search；
-                        // searching && hasQuery → close；搜索态但还没输入时留空。
-                        // 此前是硬切 imageVector，与 ChatPage 不一致。
-                        val searching = searchProgress.value >= 0.5f
-                        val hasQuery = searchProgress.value >= 0.5f && searchKeyword.isNotEmpty()
-                        KedgeIconButton(
-                            onClick = {
-                                if (!showSearch) {
-                                    showSearch = true
-                                } else {
-                                    drawerVm.updateSearchKeyword("")
-                                }
-                            },
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                if (!searching) {
-                                    Icon(
-                                        imageVector = search,
-                                        contentDescription = stringResource(R.string.chat_page_search_chats),
-                                        modifier = Modifier.graphicsLayer {
-                                            alpha = 1f - searchProgress.value
-                                        },
-                                    )
-                                }
-                                if (searching && hasQuery) {
-                                    Icon(
-                                        imageVector = close,
-                                        contentDescription = stringResource(R.string.chat_page_search_chats),
-                                        modifier = Modifier.graphicsLayer {
-                                            alpha = searchProgress.value
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    },
-                )
+                    }
+                },
+            )
+                }
             },
             bottomBar = {
                 // KedgeOverlayScaffold 内部是普通 Box，顶/底栏各自负责对齐；
@@ -407,7 +421,7 @@ fun ChatDrawerContent(
                         },
                     )
 
-                    KedgeTextTooltipBox("套餐") {
+                    KedgeTextTooltipBox(stringResource(R.string.chat_drawer_plan)) {
                         KedgeButton(
                             onClick = {
                                 navController.navigate(Screen.SettingPackage)
@@ -434,11 +448,27 @@ fun ChatDrawerContent(
 
                     Spacer(Modifier.weight(1f))
 
+                    // 探索市场入口：原先这里是「卡片市场」（跳 Screen.KhatKitMarket），
+                    // cd20c4f6 把卡片市场页并进 Screen.ExploreMarket 时连入口一起删了，
+                    // 结果这个页只剩设置页一个入口。入口加回来，跳合并后的市场页。
+                    DrawerAction(
+                        icon = {
+                            Icon(extension, null)
+                        },
+                        label = stringResource(R.string.explore_market_title),
+                        onClick = {
+                            if (drawerState != null) {
+                                scope.launch { drawerState.close() }
+                            }
+                            navController.navigate(Screen.ExploreMarket)
+                        },
+                    )
+
                     DrawerAction(
                         icon = {
                             Icon(download, null)
                         },
-                        label = "下载中心",
+                        label = stringResource(R.string.chat_drawer_download_center),
                         onClick = {
                             navController.navigate(Screen.DownloadCenter)
                         },
@@ -450,33 +480,10 @@ fun ChatDrawerContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // 只留横向内边距；上下由下面的顶栏 Spacer 与列表底部 padding 负责
+                    // 只留横向内边距；上下由列表内的顶/底 Spacer 负责
                     .padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-            if (updateChecksEnabled && !isPlayStore) {
-                UpdateCard(vm)
-            }
-
-            BackupReminderCard(
-                settings = settings,
-                onClick = { navController.navigate(Screen.Backup) },
-            )
-
-            if (folders.isNotEmpty()) {
-                FolderSection(
-                    folders = folders,
-                    onClickFolder = { folder ->
-                        if (drawerState != null) {
-                            scope.launch { drawerState.close() }
-                        }
-                        navController.navigate(Screen.FolderDetail(folder.id.toString()))
-                    },
-                    onRename = { folderToRename = it },
-                    onDelete = { folderToDelete = it },
-                )
-            }
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -490,18 +497,55 @@ fun ChatDrawerContent(
                     contentPadding = PaddingValues(0.dp),
                     // 顶/底栏浮在列表之上，列表本身铺满并从栏下面穿过（毛玻璃才有
                     // 内容可透）；用列表内的 Spacer 占位，首尾项仍能完整滚出来。
+                    // **顶栏下面的一切（更新卡片 / 备份提醒 / 文件夹区 / 新建按钮）
+                    // 都必须放进这个 header**：它们在列表流里，列表顶端本来就在顶栏
+                    // 之下；放到 Column 里会整块藏进顶栏底下（文件夹「建了看不到、
+                    // 点不到，只留一段空白」就是这么来的），而且顶栏那段留白会和
+                    // 列表的 topSpacer 叠成两倍，把文件夹和「新建」按钮拉得很开。
                     topSpacerHeight = DrawerTopBarHeight + statusBarTop,
                     bottomSpacerHeight = DrawerBottomBarHeight + navBarBottom,
                     header = {
+                        if (updateChecksEnabled && !isPlayStore) {
+                            UpdateCard(vm)
+                        }
+
+                        BackupReminderCard(
+                            settings = settings,
+                            onClick = { navController.navigate(Screen.Backup) },
+                        )
+
+                        if (folders.isNotEmpty()) {
+                            FolderSection(
+                                folders = folders,
+                                onClickFolder = { folder ->
+                                    if (drawerState != null) {
+                                        scope.launch { drawerState.close() }
+                                    }
+                                    navController.navigate(Screen.FolderDetail(folder.id.toString()))
+                                },
+                                onRename = { folderToRename = it },
+                                onDelete = { folderToDelete = it },
+                                // 文件夹区与「新建文件夹」按钮之间留一档间距：header 是
+                                // 列表里的单个 item，内部的 spacedBy 管不到这里。
+                                modifier = Modifier.padding(bottom = 8.dp),
+                            )
+                        }
+
                         // 整宽浅色卡片（surfaceContainer），不是实心主色按钮——
                         // 抽屉里已经有实心按钮了，这里再一个会互相抢视觉。
+                        val layoutDirection = LocalLayoutDirection.current
+                        val basePadding = KedgeButtonDefaults.ContentPadding
                         KedgeButton(
                             onClick = { showCreateFolderDialog = true },
-                            // 不写死高度、也不覆盖 contentPadding：KedgeButton 的 Miuix
-                            // 分支会把 contentPadding 当 insideMargin 传给 MiuixButton，
-                            // 沿用默认的 KedgeButtonDefaults.ContentPadding(vertical=10dp)
-                            // 即可与其它默认 Miuix 按钮等高。此前写死 height(38.dp) 且把
-                            // contentPadding 清零，两个叠加把按钮压得比常规矮一截。
+                            // 文字离背景边缘再远一点：默认 vertical 10dp，这里 +50% 到
+                            // 15dp。水平方向保持默认——按钮是 fillMaxWidth 且内容居中，
+                            // 水平 padding 对居中内容没有视觉影响，只会缩小可用宽度。
+                            contentPadding = PaddingValues(
+                                start = basePadding.calculateStartPadding(layoutDirection),
+                                end = basePadding.calculateEndPadding(layoutDirection),
+                                top = basePadding.calculateTopPadding() * 1.5f,
+                                bottom = basePadding.calculateBottomPadding() * 1.5f,
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp),
@@ -566,7 +610,11 @@ fun ChatDrawerContent(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+                        .padding(start = 4.dp, end = 4.dp)
+                        // 底栏（设置/订阅/下载中心）是浮在内容之上的，且自带
+                        // navigationBarsPadding。助手胶囊在内容流里，必须自己垫出
+                        // 「底栏高 + 导航栏」的高度，否则会被底栏整块盖住、点不到。
+                        .padding(bottom = DrawerBottomBarHeight + navBarBottom + 8.dp),
                 ) {
                     AssistantPicker(
                         settings = settings,
@@ -659,7 +707,8 @@ fun ChatDrawerContent(
                 KedgeSurface(
                     onClick = { doMove(null) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
+                    // 不写死 shape：KedgeSurface 在 MD3Exp 下取 shapes.medium、
+                    // Miuix 下取自己的 16dp 圆角，写死就等于把 MD3 圆角带进 Miuix。
                     color = if (conversationToMoveFolder?.folderId == null) {
                         MaterialTheme.colorScheme.surfaceVariant
                     } else {
@@ -689,7 +738,7 @@ fun ChatDrawerContent(
                         KedgeSurface(
                             onClick = { doMove(folder.id) },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium,
+                            // 同上：形状交给 KedgeSurface 按风格取默认
                             color = if (isCurrent) {
                                 MaterialTheme.colorScheme.surfaceVariant
                             } else {
@@ -873,9 +922,10 @@ private fun FolderSection(
     onClickFolder: (Folder) -> Unit,
     onRename: (Folder) -> Unit,
     onDelete: (Folder) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (folders.isNotEmpty()) {
@@ -964,7 +1014,7 @@ private fun AssistantItem(
     KedgeSurface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        // 同上：形状交给 KedgeSurface 按风格取默认
         color = if (isCurrentAssistant) {
             MaterialTheme.colorScheme.surfaceVariant
         } else {
@@ -1007,16 +1057,27 @@ private fun AssistantItem(
 }
 
 /**
- * 抽屉里两个次级按钮（新建文件夹、套餐/订阅）的加深配色。
+ * 抽屉里两个次级按钮（新建文件夹、套餐/订阅）的配色。
  *
  * [KedgeButtonVariant.Secondary] 的默认色两边都偏淡：MD3 走
  * `filledTonalButton` 的 secondaryContainer，Miuix 走 `buttonColors()` 的
- * secondaryVariant。抽屉底色接近时按钮边界几乎看不见，所以统一抬到容器色档
- * secondaryContainer。
+ * secondaryVariant。抽屉底色接近时按钮边界几乎看不见，所以各自往上抬了一档。
  *
- * 不要用实色 secondary 试过：在 Miuix 调色板里它会渲染成高饱和亮蓝实心块，
- * 抽屉里本来就有实心按钮，两个挨着显得过重。容器色档既能让边界看清，又不会
- * 抢视觉，且明暗主题都跟着主题色槽自动翻转。
+ * ## MD3 为什么不用 secondary 混色
+ *
+ * 之前 MD3 侧是 `lerp(secondaryContainer, secondary, 0.87f)`（几乎就是实色
+ * secondary），但**内容色没跟着换**——`filledTonalButtonColors()` 默认给
+ * `onSecondaryContainer`/`onTonalSurface`，那是**浅底专用**的深色字。深底配深字，
+ * 浅色主题下对比度极低，文字几乎读不出来（就是反馈的「配色反人类」）。
+ * 混色本身还破坏了 M3 的容器色/内容色配对关系，再怎么调比例都是补丁。
+ *
+ * 现在 MD3 直接用中性 `surfaceContainerHigh` + `onSurface`：抽屉里其它卡片
+ * （文件夹行 `surfaceContainer`、空态 `surfaceContainer`、助手胶囊
+ * `surfaceContainerHigh`）都是这一族，两个按钮回到同一族才是同一套视觉语言；
+ * 深浅主题都由 `onSurface` 自动配对，可读性稳定。
+ *
+ * Miuix 侧保持原来的 secondary 混色：那边按钮本来就小而轻（32dp 胶囊），
+ * 提亮后边界够清晰，且没有「深底深字」的问题。
  */
 private object KedgeDrawerButtonColors {
     /**
@@ -1037,7 +1098,9 @@ private object KedgeDrawerButtonColors {
     fun md3(): androidx.compose.material3.ButtonColors {
         val scheme = androidx.compose.material3.MaterialTheme.colorScheme
         return androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-            containerColor = lerp(scheme.secondaryContainer, scheme.secondary, TOWARD_SECONDARY),
+            // 中性容器色 + 同族内容色：与抽屉其它卡片一致，且不出现深底深字。
+            containerColor = scheme.surfaceContainerHigh,
+            contentColor = scheme.onSurface,
         )
     }
 
