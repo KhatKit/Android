@@ -67,6 +67,7 @@ object BridgeFactory {
             time = TimeBridgeImpl(),
             system = SystemBridgeImpl(appContext),
             ai = UnavailableAiBridge(),
+            mediaPicker = UnavailableMediaPickerBridge(),
             host = host,
             ui = ui,
             web = WebBridgeImpl(appContext, ui),

@@ -29,6 +29,7 @@ class BridgeApiDocTest {
         HostBridge::class.java to "host",
         SystemBridge::class.java to "system",
         AiBridge::class.java to "ai",
+        MediaPickerBridge::class.java to "mediaPicker",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
         ImageToolboxBridge::class.java to "imageToolbox",

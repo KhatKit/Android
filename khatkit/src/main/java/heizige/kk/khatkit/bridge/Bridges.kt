@@ -203,6 +203,11 @@ interface AiBridge {
     fun complete(prompt: String, maxTokens: Int = 0): String
 }
 
+/** L0 媒体选择能力。 */
+interface MediaPickerBridge {
+    fun pickMedia(options: Map<String, Any?> = emptyMap()): List<String>
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**

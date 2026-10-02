@@ -20,6 +20,7 @@ class BridgeRegistry(
     private val host: HostBridge? = null,
     private val system: SystemBridge? = null,
     private val ai: AiBridge? = null,
+    private val mediaPicker: MediaPickerBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -69,6 +70,7 @@ class BridgeRegistry(
         if (host != null) add("host")
         if (system != null) add("system")
         if (ai != null) add("ai")
+        if (mediaPicker != null) add("mediaPicker")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -123,6 +125,7 @@ class BridgeRegistry(
                 "host" -> host
                 "system" -> system
                 "ai" -> ai
+                "mediaPicker" -> mediaPicker
                 "ui" -> ui
                 "web" -> web
                 "download" -> download

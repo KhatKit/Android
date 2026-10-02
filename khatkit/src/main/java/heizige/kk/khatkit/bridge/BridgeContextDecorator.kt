@@ -90,6 +90,11 @@ class ScopedAiBridge(
     delegate: AiBridge,
 ) : AiBridge by delegate, ContextAwareBridge
 
+class ScopedMediaPickerBridge(
+    override val context: BridgeContext,
+    delegate: MediaPickerBridge,
+) : MediaPickerBridge by delegate, ContextAwareBridge
+
 /** 透明 UI 包装器。 */
 class ScopedUiBridge(
     override val context: BridgeContext,
@@ -143,6 +148,7 @@ fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = whe
     "host" -> ScopedHostBridge(context, delegate as HostBridge)
     "system" -> ScopedSystemBridge(context, delegate as SystemBridge)
     "ai" -> ScopedAiBridge(context, delegate as AiBridge)
+    "mediaPicker" -> ScopedMediaPickerBridge(context, delegate as MediaPickerBridge)
     "ui" -> ScopedUiBridge(context, delegate as UiBridge)
     "web" -> ScopedWebBridge(context, delegate as WebBridge)
     "download" -> ScopedDownloadBridge(context, delegate as DownloadBridge)
