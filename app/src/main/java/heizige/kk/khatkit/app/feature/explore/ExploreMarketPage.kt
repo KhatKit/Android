@@ -29,15 +29,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import heizige.kk.kedge.components.KedgeFilterChip
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -225,7 +225,9 @@ fun ExploreMarketPage() {
                 colors = CustomColors.topBarColors,
             )
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // Miuix 下 KedgePageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
+        // 滚动增量（整页滑不动），所以按风格取。
+        modifier = activeNestedScroll(scrollBehavior),
         // 页面底色用 Miuix surface，不能用顶栏的半透明色：
         // 否则整页透出下层黑底，正文比顶栏暗，看起来像顶栏/背景反了。
         containerColor = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
@@ -1165,12 +1167,14 @@ private fun CardDetailSheet(
     onUninstall: () -> Unit,
     onVote: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
 
-    ModalBottomSheet(
+    // 走 Kedge 的弹层：MD3Exp 下是 ModalBottomSheet，Miuix 下是 Miuix 的
+    // WindowBottomSheet（自带标题栏与圆角）。此前直接用 MD3 ModalBottomSheet，
+    // Miuix 风格下会漏出 MD3 弹层。
+    KedgeModalBottomSheet(
+        show = true,
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
     ) {
         Column(
             modifier = Modifier

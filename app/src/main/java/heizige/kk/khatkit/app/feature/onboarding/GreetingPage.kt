@@ -63,9 +63,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -132,6 +130,7 @@ import heizige.kk.khromia.components.OptionItem
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
+import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.kedge.adaptive.KedgeTopAppBar
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCheckbox
@@ -221,7 +220,11 @@ fun GreetingPage(onFinish: () -> Unit) {
         onBackCompleted = goBack,
     )
 
-    Scaffold(
+    // 骨架也走 Kedge：MD3Exp 下等价于原生 Scaffold，Miuix 下换成 Miuix Scaffold
+    // （inset 只垫水平方向，竖向由顶/底栏各自的 navigationBarsPadding /
+    // windowInsetsPadding 负责，和这两条自定义栏的写法对齐）。
+    // 之前用 MD3 Scaffold 只手动分了底色，Miuix 下滚动与 inset 仍是 MD3 那套。
+    KedgePageScaffold(
         // 顶栏/底栏已经按 isMiuixStyle() 分流；Scaffold 自身的底色默认取 MD3 的
         // background，Miuix 下会漏出 MD3 配色，所以这里显式给 Miuix 的 surface。
         containerColor = if (isMiuixStyle()) {
