@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.draggable
@@ -38,12 +37,11 @@ import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,7 +60,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalScrollCaptureInProgress
@@ -96,8 +93,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
 import heizige.kk.khatkit.app.core.ui.hooks.ImeLazyListAutoScroller
 import heizige.kk.khatkit.app.core.ui.theme.ChatFontProvider
-import heizige.kk.khatkit.app.core.util.plus
-import heizige.kk.kedge.components.KedgeTextField
 import heizige.kk.kedge.theme.KedgeColors
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
@@ -108,7 +103,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
-import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
@@ -437,9 +431,7 @@ private fun ChatListNormal(
                     expanded = true,
                 ) {
                     Tooltip(
-                        tooltip = {
-                            Text("Clear selection")
-                        }
+                        text = "Clear selection",
                     ) {
                         KedgeIconButton(
                             variant = KedgeIconButtonVariant.Filled,
@@ -453,9 +445,7 @@ private fun ChatListNormal(
                         }
                     }
                     Tooltip(
-                        tooltip = {
-                            Text("Select all")
-                        }
+                        text = "Select all",
                     ) {
                         KedgeIconButton(
                             variant = KedgeIconButtonVariant.Filled,
@@ -472,9 +462,7 @@ private fun ChatListNormal(
                         }
                     }
                     Tooltip(
-                        tooltip = {
-                            Text("Confirm")
-                        }
+                        text = "Confirm",
                     ) {
                         KedgeIconButton(
                             variant = KedgeIconButtonVariant.Filled,
