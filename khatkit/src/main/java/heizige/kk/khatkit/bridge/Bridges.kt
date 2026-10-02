@@ -447,6 +447,20 @@ interface StoreBridge {
      */
     fun sql(query: String, args: List<Any?> = emptyList()): List<Map<String, Any?>>
 
+    /**
+     * 把 [text] 向量化后写入卡片自己的向量索引（命名空间 = [table]）。
+     * 同一 (table, rowId) 重复写入会覆盖；宿主没有可用的 embedding 模型时返回中文错误。
+     *
+     * 与 `ai.chat` 共用审批策略（默认每次询问，`permissions.methods["ai.chat"]="allow"` 后免打扰）。
+     */
+    fun embedInsert(table: String, rowId: String, text: String): Boolean
+
+    /**
+     * 向量语义检索，返回 `{ rowId, score, text }`，按 score 降序，条数取 `topK`（1–50）。
+     * `score` 是余弦相似度（-1..1，越大越像）；命名空间为空时返回空表。
+     */
+    fun embedSearch(table: String, query: String, topK: Int = 5): List<Map<String, Any?>>
+
     /** 敏感数据走 Keystore / 系统钥匙串，不进 kv */
     fun secretGet(key: String): String?
     fun secretSet(key: String, value: String)

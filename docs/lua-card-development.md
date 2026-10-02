@@ -694,6 +694,8 @@ return { file = st.file, state = st.state }
 | `sharedList()` | string[] | 列出共享区所有文件（`<卡片名>/<文件名>`）。 |
 | `sharedDelete(name)` | boolean | 只能删自己命名空间里的文件。 |
 | `sql(query, args)` | map[] | 在卡片自己的 SQLite 库（`databases/cards/<卡片名>.db`）里执行一条 SQL，见下。 |
+| `embedInsert(table, rowId, text)` | boolean | 向量化后写入卡片向量索引，见 4.4.2。 |
+| `embedSearch(table, query, topK)` | map[] | 语义检索，返回 `{rowId, score, text}`，见 4.4.2。 |
 
 #### 4.4.1 store.sql（卡片自管的 SQLite）
 
@@ -718,6 +720,27 @@ end
 - **全文检索看能力位**：多数 ROM 的平台 SQLite 不带 FTS5，先 `host.health().fts5` 判断，
   为 `false` 时用普通表 + `LIKE`（详见 [script-api-reference.md](script-api-reference.md) §7.1）。
 - 超配额（`store.quota_mb`）时写入被拒或事务回滚，返回中文错误。
+
+#### 4.4.2 store 向量检索（语义召回）
+
+```lua
+-- 写入：同一 (table, rowId) 重复写入会覆盖
+store.embedInsert("notes", "n1", "今天在北京出差，酒店发票明天到期")
+store.embedInsert("notes", "n2", "Lua 的 table 是混合类型数组")
+
+-- 检索：score 是余弦相似度，越大越像
+local hits = store.embedSearch("notes", "报销要用的凭证", 3)
+for _, hit in ipairs(hits) do
+  print(string.format("%.3f %s", hit.score, hit.text))
+end
+```
+
+- **需要 embedding 模型**：用用户已配置供应商里的 embedding 类型模型，卡片不能自带 key、
+  不能指定模型；没配就返回中文错误。
+- **审批同 `ai.chat`**：默认每次询问用户，`permissions.methods["ai.chat"] = "allow"` 后免打扰。
+- 索引表 `__khatkit_embeddings` 与 `store.sql` 共用同一个库文件，占用计入 `store.quota_mb`；
+  检索是暴力余弦，单次最多扫描 2000 条，数据量大请分命名空间。
+- 换了 embedding 模型后旧向量维度不同会被跳过（清库重建即可）。
 
 ```lua
 store.kvSet("last_url", url)

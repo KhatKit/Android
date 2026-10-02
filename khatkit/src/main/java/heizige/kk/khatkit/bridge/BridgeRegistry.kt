@@ -3,6 +3,8 @@ package heizige.kk.khatkit.bridge
 import heizige.kk.khatkit.engine.ScriptEngine
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.bridge.impl.CardAiBridge
+import heizige.kk.khatkit.bridge.impl.EmbeddingEngine
+import heizige.kk.khatkit.bridge.impl.StoreRequest
 import heizige.kk.khatkit.bridge.impl.ScopedFsBridgeImpl
 import heizige.kk.khatkit.ui.MediaPickerHost
 
@@ -26,7 +28,8 @@ class BridgeRegistry(
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
-    private val storeProvider: ((cardName: String, quotaMb: Int) -> StoreBridge)? = null,
+    private val storeProvider: ((request: StoreRequest) -> StoreBridge)? = null,
+    private val embeddingEngine: EmbeddingEngine? = null,
     private val shizuku: ShizukuBridge? = null,
     private val root: RootBridge? = null,
     private val accessibility: AccessibilityBridge? = null,
@@ -137,7 +140,15 @@ class BridgeRegistry(
                 "ui" -> ui
                 "web" -> web
                 "download" -> download
-                "store" -> storeProvider?.invoke(manifest.name, manifest.store.quotaMb)
+                "store" -> storeProvider?.invoke(
+                    StoreRequest(
+                        cardName = manifest.name,
+                        quotaMb = manifest.store.quotaMb,
+                        permissions = context.permissions,
+                        approvalGate = approvalGate,
+                        deadlineAt = deadlineAt,
+                    ),
+                )
                 "shizuku" -> shizuku
                 "root" -> root
                 "accessibility" -> accessibility

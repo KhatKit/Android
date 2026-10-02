@@ -323,7 +323,9 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 | `store.sharedRead(name)` | string / nil | 按名读其他卡片的共享数据。 |
 | `store.sharedList()` | string[] | 列出共享区条目名。 |
 | `store.sharedDelete(name)` | boolean | 删除共享条目。 |
-| `store.sql(query, args)` | table[] | 在卡片自己的 SQLite 库里执行一条 SQL，见下。 |
+| `store.sql(query, args)` | table[] | 在卡片自己的 SQLite 库里执行一条 SQL，见 7.1。 |
+| `store.embedInsert(table, rowId, text)` | boolean | 把 `text` 向量化后写入命名空间 `table`（同一 `rowId` 覆盖）。见 7.2。 |
+| `store.embedSearch(table, query, topK)` | table[] | 语义检索，返回 `{rowId, score, text}` 按 score 降序。见 7.2。 |
 
 ### 7.1 store.sql（卡片自管的 SQLite）
 
@@ -350,6 +352,36 @@ store.sql("CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY, title TEXT, 
 store.sql("INSERT INTO notes(title, body) VALUES (?, ?)", { "标题", "正文" })
 local rows = store.sql("SELECT id, title FROM notes ORDER BY id DESC LIMIT 10", {})
 ```
+
+### 7.2 store 向量检索（embedInsert / embedSearch）
+
+卡片自带的小规模向量索引：语义召回笔记、聊天记录、去重。索引存在**同一张卡片库里**
+（表名 `__khatkit_embeddings`），检索是**暴力余弦相似度**，规模到几千条就该换方案了。
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `store.embedInsert(table, rowId, text)` | boolean | 向量化 `text` 并写入；同一 `(table, rowId)` 再次写入会覆盖。 |
+| `store.embedSearch(table, query, topK)` | table[] | 返回 `{rowId, score, text}`，`score` 是余弦相似度（越大越像），条数取 `topK`（1–50，默认 5）。 |
+
+```lua
+store.embedInsert("notes", "n1", "今天在北京出差，酒店发票明天到期")
+store.embedInsert("notes", "n2", "Lua 的 table 是混合类型数组")
+
+local hits = store.embedSearch("notes", "报销要用的凭证", 3)
+for _, hit in ipairs(hits) do
+  print(string.format("%.3f %s", hit.score, hit.text))
+end
+```
+
+要点：
+
+- **需要 embedding 模型**：用用户已配置供应商里第一个 `embedding` 类型的模型；卡片不能自带 key，
+  也不能指定用哪个模型。没配就返回中文错误。
+- **审批与 `ai.chat` 相同**：默认每次询问用户，`permissions.methods["ai.chat"] = "allow"` 后不再打扰，
+  `deny` 则直接拒绝——向量调用一样花钱。
+- `table` 命名空间只允许字母、数字、下划线（`^[A-Za-z_][A-Za-z0-9_]{0,63}$`）；
+  换了 embedding 模型后旧向量维度不同，检索时会被自动跳过（旧数据请自己清库重建）。
+- 单次检索最多扫描 2000 条向量；超出请按命名空间分片。
 
 **FTS5**：`host.health().fts5` 告诉你设备平台的 SQLite 是否带 FTS5
 （多数 ROM 不带，需要宿主用 `sqlite-android` 替换引擎才有）。为 `false` 时请用普通表 + `LIKE`：

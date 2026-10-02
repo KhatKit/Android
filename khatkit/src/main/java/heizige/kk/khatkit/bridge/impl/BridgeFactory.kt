@@ -51,6 +51,7 @@ object BridgeFactory {
         approvalGate: ApprovalGate? = null,
         mediaPicker: MediaPickerBridge? = null,
         ai: AiBridge? = null,
+        embeddingEngine: EmbeddingEngine? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -82,7 +83,15 @@ object BridgeFactory {
                 http = http,
                 maxConcurrent = policy.maxConcurrent,
             ),
-            storeProvider = { cardName, quotaMb -> FileStoreBridge(appContext, cardName, quotaMb) },
+            storeProvider = { request ->
+                FileStoreBridge(
+                    context = appContext,
+                    cardName = request.cardName,
+                    quotaMb = request.quotaMb,
+                    embeddingEngine = embeddingEngine,
+                    request = request,
+                )
+            },
             shizuku = shizukuBridge,
             root = rootBridge,
             accessibility = accessibilityBridge,

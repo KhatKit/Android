@@ -27,6 +27,10 @@ class FileStoreBridge(
     context: Context,
     private val cardName: String,
     quotaMb: Int = 50,
+    /** 向量能力；宿主未接入时 `embedInsert` / `embedSearch` 返回中文错误。 */
+    private val embeddingEngine: EmbeddingEngine? = null,
+    /** 方法级权限与运行预算（向量调用复用 `ai.chat` 的审批策略）。 */
+    private val request: StoreRequest = StoreRequest(cardName, quotaMb),
 ) : StoreBridge {
 
     private val appContext = context.applicationContext
@@ -83,6 +87,60 @@ class FileStoreBridge(
 
     /** 库文件路径（供 UI / 诊断查看占用）。 */
     fun sqlDbFile(): File = sqlStore.dbFile
+
+    /** 卡片向量索引（与 SQLite 库同文件）。 */
+    private val vectors = CardVectorIndex(sqlStore)
+
+    override fun embedInsert(table: String, rowId: String, text: String): Boolean {
+        val namespace = safeNamespace(table) ?: error("非法向量命名空间：$table（只允许字母、数字、下划线）")
+        require(rowId.isNotBlank()) { "embedInsert 的 rowId 不能为空" }
+        require(text.isNotBlank()) { "embedInsert 的文本不能为空" }
+        val engine = embeddingEngine ?: throw IllegalStateException(EMBEDDING_UNAVAILABLE)
+        ensureNotTimedOut()
+        approveEmbedding("写入向量「$namespace / $rowId」（${text.length} 字）")
+        val vector = engine.embed(listOf(text)).firstOrNull()
+            ?: throw IllegalStateException("向量化失败：模型没有返回向量")
+        return vectors.upsert(namespace, rowId, text, vector)
+    }
+
+    override fun embedSearch(table: String, query: String, topK: Int): List<Map<String, Any?>> {
+        val namespace = safeNamespace(table) ?: error("非法向量命名空间：$table（只允许字母、数字、下划线）")
+        require(query.isNotBlank()) { "embedSearch 的 query 不能为空" }
+        val engine = embeddingEngine ?: throw IllegalStateException(EMBEDDING_UNAVAILABLE)
+        ensureNotTimedOut()
+        approveEmbedding("检索向量「$namespace」（${query.length} 字）")
+        val vector = engine.embed(listOf(query)).firstOrNull()
+            ?: throw IllegalStateException("向量化失败：模型没有返回向量")
+        return vectors.search(namespace, vector, topK).map {
+            mapOf("rowId" to it.rowId, "score" to it.score.toDouble(), "text" to it.text)
+        }
+    }
+
+    /** 向量调用同样花钱，策略与 `ai.chat` 一致（默认 ask，可由卡片声明 allow）。 */
+    private fun approveEmbedding(detail: String) {
+        when (request.permissions[AI_CHAT_KEY]) {
+            "allow" -> Unit
+            "deny" -> throw IllegalStateException("卡片声明禁止调用模型（permissions.methods[\"$AI_CHAT_KEY\"] = deny）")
+            else -> {
+                val granted = request.approvalGate?.request(
+                    "卡片调用向量模型：$cardName",
+                    "卡片「$cardName」请求$detail",
+                    AI_INVOKE_CATEGORY,
+                ) ?: false
+                if (!granted) throw IllegalStateException("用户拒绝了卡片 $cardName 的向量模型调用：$detail")
+            }
+        }
+    }
+
+    private fun ensureNotTimedOut() {
+        val deadline = request.deadlineAt
+        if (deadline > 0 && deadline <= System.currentTimeMillis()) {
+            throw IllegalStateException("卡片运行超时，已终止")
+        }
+    }
+
+    private fun safeNamespace(table: String): String? =
+        table.takeIf { it.matches(TABLE_NAME_REGEX) }
 
     override fun sql(query: String, args: List<Any?>): List<Map<String, Any?>> = sqlStore.exec(query, args)
 
@@ -164,7 +222,7 @@ class FileStoreBridge(
     }
 
     private fun safeDbFile(table: String): File? {
-        if (!table.matches(Regex("^[A-Za-z_][A-Za-z0-9_]{0,63}$"))) return null
+        if (!table.matches(TABLE_NAME_REGEX)) return null
         val base = dbDir.canonicalFile
         val target = File(base, "$table.jsonl").canonicalFile
         return target.takeIf { it.path.startsWith(base.path) }
@@ -217,6 +275,18 @@ class FileStoreBridge(
         is JsonObject -> element.mapValues { fromJson(it.value) }
     }
 }
+
+/** 方法级权限键：向量调用复用 `ai.chat` 的策略（默认每次询问用户）。 */
+private const val AI_CHAT_KEY = "ai.chat"
+
+/** 审批类别：与模型调用同属一类。 */
+private const val AI_INVOKE_CATEGORY = "ai_invoke"
+
+/** 表名 / 命名空间白名单：`^[A-Za-z_][A-Za-z0-9_]{0,63}$`。 */
+private val TABLE_NAME_REGEX = Regex("^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+
+/** 宿主没有 embedding 模型时的统一文案。 */
+private const val EMBEDDING_UNAVAILABLE = "卡片向量检索未接入：请先在设置里添加一个 embedding 模型"
 
 /** 极简 where 解析：`col op ? [AND col op ?]*`，op ∈ = != <> > < >= <= like。 */
 internal object WhereParser {

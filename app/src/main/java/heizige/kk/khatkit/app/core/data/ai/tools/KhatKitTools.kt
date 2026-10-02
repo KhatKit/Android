@@ -23,6 +23,7 @@ import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.ai.CardAiEngine
+import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
@@ -376,6 +377,8 @@ class KhatKitToolProvider(
                 approvalGate = BusApprovalGate(),
                 mediaPicker = mediaPickerHost,
                 ai = aiBridge,
+                // store.embed* 用用户已配置的 embedding 模型；没有模型时方法返回中文错误
+                embeddingEngine = CardEmbeddingEngine(providerManager, { settingsRepository.settingsFlow.value }),
             ).also {
                 executor = it
                 bindDownloadCenter(it)
