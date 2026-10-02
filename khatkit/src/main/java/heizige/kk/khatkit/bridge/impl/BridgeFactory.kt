@@ -56,13 +56,16 @@ object BridgeFactory {
         val rootBridge = if (enableRoot && RootBridgeImpl.isAvailable()) RootBridgeImpl() else null
         val accessibilityBridge = AccessibilityBridgeHolder.current()
 
-        val registry = BridgeRegistry(
+        lateinit var registry: BridgeRegistry
+        val host = HostBridgeImpl(appContext, { registry })
+        registry = BridgeRegistry(
             tool = AndroidToolBridge(appContext, http),
             net = AndroidNetBridge(http),
             fs = ScopedFsBridgeImpl(appContext, "", emptySet()),
             json = JsonBridgeImpl(),
             crypto = CryptoBridgeImpl(),
             time = TimeBridgeImpl(),
+            host = host,
             ui = ui,
             web = WebBridgeImpl(appContext, ui),
             download = DownloadManagerImpl(

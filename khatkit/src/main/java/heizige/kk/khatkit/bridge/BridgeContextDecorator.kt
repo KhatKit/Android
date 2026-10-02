@@ -75,6 +75,11 @@ class ScopedTimeBridge(
     delegate: TimeBridge,
 ) : TimeBridge by delegate, ContextAwareBridge
 
+class ScopedHostBridge(
+    override val context: BridgeContext,
+    delegate: HostBridge,
+) : HostBridge by delegate, ContextAwareBridge
+
 /** 透明 UI 包装器。 */
 class ScopedUiBridge(
     override val context: BridgeContext,
@@ -125,6 +130,7 @@ fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = whe
     "json" -> ScopedJsonBridge(context, delegate as JsonBridge)
     "crypto" -> ScopedCryptoBridge(context, delegate as CryptoBridge)
     "time" -> ScopedTimeBridge(context, delegate as TimeBridge)
+    "host" -> ScopedHostBridge(context, delegate as HostBridge)
     "ui" -> ScopedUiBridge(context, delegate as UiBridge)
     "web" -> ScopedWebBridge(context, delegate as WebBridge)
     "download" -> ScopedDownloadBridge(context, delegate as DownloadBridge)

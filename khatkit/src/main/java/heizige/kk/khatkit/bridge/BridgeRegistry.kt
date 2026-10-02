@@ -17,6 +17,7 @@ class BridgeRegistry(
     private val json: JsonBridge? = null,
     private val crypto: CryptoBridge? = null,
     private val time: TimeBridge? = null,
+    private val host: HostBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -63,6 +64,7 @@ class BridgeRegistry(
         if (json != null) add("json")
         if (crypto != null) add("crypto")
         if (time != null) add("time")
+        if (host != null) add("host")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -114,6 +116,7 @@ class BridgeRegistry(
                 "json" -> json
                 "crypto" -> crypto
                 "time" -> time
+                "host" -> host
                 "ui" -> ui
                 "web" -> web
                 "download" -> download

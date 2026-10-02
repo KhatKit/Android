@@ -32,6 +32,7 @@
 | `json` | `JsonBridge` | L0 | 始终 | 结构化 JSON 编解码、查询与合并。 |
 | `crypto` | `CryptoBridge` | L0 | 始终 | 哈希、HMAC、AES、Base64、URL 与随机值工具。 |
 | `time` | `TimeBridge` | L0 | 始终 | 时间戳、ISO-8601、格式化、解析与本地化信息。 |
+| `host` | `HostBridge` | L0 | 始终 | 宿主信息、能力体检、日志与运行耗时。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
@@ -142,6 +143,18 @@
 | `time.parse(text, pattern)` | number | pattern 为空时按 ISO-8601 解析，否则按 `SimpleDateFormat` 解析。 |
 | `time.timeZone()` | string | 设备默认时区 ID。 |
 | `time.locale()` | string | 当前 Locale 的 BCP-47 标签。 |
+
+## 3.6 host（L0）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `host.info()` | table | `{appVersion, osVersion, sdkInt, engine}`。 |
+| `host.card()` | table | 当前卡片的名称、版本、作者和标签。 |
+| `host.health()` | table | root、Shizuku、无障碍、所有文件访问等能力状态。 |
+| `host.capabilities()` | string[] | 当前可用 bridge 名称。 |
+| `host.log(level, message)` | 无 | 写入宿主日志，level 支持 debug/info/warn/error。 |
+| `host.setTimeout(ms)` | 无 | 设置卡片运行超时预算；0 表示不限时。 |
+| `host.elapsedMs()` | number | 当前卡片运行已耗时毫秒数。 |
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 

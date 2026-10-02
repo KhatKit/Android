@@ -157,6 +157,17 @@ interface TimeBridge {
     fun locale(): String
 }
 
+/** L0 卡片运行诊断与超时控制。 */
+interface HostBridge {
+    fun info(): Map<String, Any?>
+    fun card(): Map<String, Any?>
+    fun health(): Map<String, Any?>
+    fun capabilities(): List<String>
+    fun log(level: String, message: String)
+    fun setTimeout(ms: Int)
+    fun elapsedMs(): Long
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**
