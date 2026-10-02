@@ -221,15 +221,7 @@ class RouteActivity : ComponentActivity() {
                         heizige.kk.kedge.adaptive.ProvideKedgeBlur(
                             enabled = khatKitProvider.enableBlur
                         ) {
-                            // Miuix 下列表卡片样式也要在这里下发：Miuix 走的是
-                            // :khatkit-ui 的 KhatKitTheme，不会经过 core/ui/theme/Theme.kt，
-                            // 漏下发会退回 gap=2dp 的默认分组样式，页面选项会挤成一坨。
-                            androidx.compose.runtime.CompositionLocalProvider(
-                                heizige.kk.khatkit.app.core.ui.theme.LocalListCardStyle provides
-                                    heizige.kk.khatkit.app.core.ui.theme.MiuixListCardStyle,
-                            ) {
-                                appContent()
-                            }
+                            appContent()
                         }
                     }
                 } else {

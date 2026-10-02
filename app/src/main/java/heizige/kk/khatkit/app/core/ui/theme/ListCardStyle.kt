@@ -57,8 +57,9 @@ data class ListCardStyle(
  * 与 MD3 分组的区别只在配色/圆角大小（走 Miuix 的 surfaceContainer 与 20dp），
  * 分组形态本身一致；所以不要开 [ListCardStyle.independentItems]，也不要有 [ListCardStyle.gap]。
  *
- * 注意这个常量要在 **Miuix 主题分支** 里通过 [LocalListCardStyle] 下发——Miuix 走的是
- * `:khatkit-ui` 的 KhatKitTheme，不会经过 `core/ui/theme/Theme.kt` 里的那段逻辑。
+ * 取值统一走 [listCardStyle]：它会按当前风格返回，Miuix 下必定是这个「合在一起」的
+ * 形态，不依赖谁去下发 [LocalListCardStyle]（Miuix 走 `:khatkit-ui` 的 KhatKitTheme，
+ * 经过的应用主题层数与 MD3Exp 不同，靠 provider 传容易漏）。
  */
 val MiuixListCardStyle = ListCardStyle(
     largeCorner = 20.dp,
@@ -71,4 +72,9 @@ val LocalListCardStyle = staticCompositionLocalOf { ListCardStyle() }
 
 @Composable
 @ReadOnlyComposable
-fun listCardStyle(): ListCardStyle = LocalListCardStyle.current
+fun listCardStyle(): ListCardStyle =
+    if (heizige.kk.kedge.theme.LocalKedgeStyle.current == heizige.kk.kedge.theme.KedgeStyle.Miuix) {
+        MiuixListCardStyle
+    } else {
+        LocalListCardStyle.current
+    }

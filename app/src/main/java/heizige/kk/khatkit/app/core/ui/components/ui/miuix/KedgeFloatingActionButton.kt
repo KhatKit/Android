@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,19 +59,31 @@ fun KedgeExtendedFloatingActionButton(
         // Miuix 的 FAB 自带 shape（圆角方）+ 配色默认值，不要用 MD3 的
         // primary 去覆盖——那会得到一个过饱和的圆点，看着就不像 Miuix。
         // 所以 Miuix 分支只透传调用方显式指定的颜色，没给就用 Miuix 自己的。
-        KedgeStyle.Miuix -> if (containerColor != null) {
-            MiuixFloatingActionButton(
-                onClick = onClick,
-                modifier = modifier,
-                containerColor = containerColor,
-                content = icon,
-            )
-        } else {
-            MiuixFloatingActionButton(
-                onClick = onClick,
-                modifier = modifier,
-                content = icon,
-            )
+        KedgeStyle.Miuix -> {
+            // Miuix 的 FAB 内容槽不会把裸 Icon/进度指示器自动居中，图标会偏；
+            // 这里自己铺满并居中。
+            val centered: @Composable () -> Unit = {
+                androidx.compose.foundation.layout.Box(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    contentAlignment = androidx.compose.ui.Alignment.Center,
+                ) {
+                    icon()
+                }
+            }
+            if (containerColor != null) {
+                MiuixFloatingActionButton(
+                    onClick = onClick,
+                    modifier = modifier,
+                    containerColor = containerColor,
+                    content = centered,
+                )
+            } else {
+                MiuixFloatingActionButton(
+                    onClick = onClick,
+                    modifier = modifier,
+                    content = centered,
+                )
+            }
         }
 
         KedgeStyle.MD3Exp -> androidx.compose.material3.ExtendedFloatingActionButton(
