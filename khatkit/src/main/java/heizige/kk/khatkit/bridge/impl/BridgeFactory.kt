@@ -65,6 +65,7 @@ object BridgeFactory {
             json = JsonBridgeImpl(),
             crypto = CryptoBridgeImpl(),
             time = TimeBridgeImpl(),
+            system = SystemBridgeImpl(appContext),
             host = host,
             ui = ui,
             web = WebBridgeImpl(appContext, ui),

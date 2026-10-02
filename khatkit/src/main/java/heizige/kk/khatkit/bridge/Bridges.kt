@@ -168,6 +168,26 @@ interface HostBridge {
     fun elapsedMs(): Long
 }
 
+/** L0 系统交互能力。 */
+interface SystemBridge {
+    fun openUrl(url: String): Boolean
+    fun share(text: String, title: String = ""): Boolean
+    fun toast(text: String)
+    fun vibrate(durationMs: Int = 200)
+    fun launchApp(packageName: String, activity: String = ""): Boolean
+    fun postNotification(
+        channelId: String,
+        channelName: String,
+        title: String,
+        text: String,
+        actions: List<String> = emptyList(),
+    ): Boolean
+    fun screenState(): String
+    fun battery(): Map<String, Any?>
+    fun storage(): Map<String, Any?>
+    fun connectivity(): Map<String, Any?>
+}
+
 /** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
 interface WebBridge {
     /**

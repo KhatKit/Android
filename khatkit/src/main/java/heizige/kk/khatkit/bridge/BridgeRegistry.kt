@@ -18,6 +18,7 @@ class BridgeRegistry(
     private val crypto: CryptoBridge? = null,
     private val time: TimeBridge? = null,
     private val host: HostBridge? = null,
+    private val system: SystemBridge? = null,
     private val ui: UiBridge? = null,
     private val web: WebBridge? = null,
     private val download: DownloadBridge? = null,
@@ -65,6 +66,7 @@ class BridgeRegistry(
         if (crypto != null) add("crypto")
         if (time != null) add("time")
         if (host != null) add("host")
+        if (system != null) add("system")
         if (ui != null) add("ui")
         if (web != null) add("web")
         if (download != null) add("download")
@@ -117,6 +119,7 @@ class BridgeRegistry(
                 "crypto" -> crypto
                 "time" -> time
                 "host" -> host
+                "system" -> system
                 "ui" -> ui
                 "web" -> web
                 "download" -> download

@@ -80,6 +80,11 @@ class ScopedHostBridge(
     delegate: HostBridge,
 ) : HostBridge by delegate, ContextAwareBridge
 
+class ScopedSystemBridge(
+    override val context: BridgeContext,
+    delegate: SystemBridge,
+) : SystemBridge by delegate, ContextAwareBridge
+
 /** 透明 UI 包装器。 */
 class ScopedUiBridge(
     override val context: BridgeContext,
@@ -131,6 +136,7 @@ fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = whe
     "crypto" -> ScopedCryptoBridge(context, delegate as CryptoBridge)
     "time" -> ScopedTimeBridge(context, delegate as TimeBridge)
     "host" -> ScopedHostBridge(context, delegate as HostBridge)
+    "system" -> ScopedSystemBridge(context, delegate as SystemBridge)
     "ui" -> ScopedUiBridge(context, delegate as UiBridge)
     "web" -> ScopedWebBridge(context, delegate as WebBridge)
     "download" -> ScopedDownloadBridge(context, delegate as DownloadBridge)

@@ -33,6 +33,7 @@
 | `crypto` | `CryptoBridge` | L0 | 始终 | 哈希、HMAC、AES、Base64、URL 与随机值工具。 |
 | `time` | `TimeBridge` | L0 | 始终 | 时间戳、ISO-8601、格式化、解析与本地化信息。 |
 | `host` | `HostBridge` | L0 | 始终 | 宿主信息、能力体检、日志与运行耗时。 |
+| `system` | `SystemBridge` | L0 | 始终 | URL、分享、通知、电池、存储和网络状态。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
@@ -155,6 +156,21 @@
 | `host.log(level, message)` | 无 | 写入宿主日志，level 支持 debug/info/warn/error。 |
 | `host.setTimeout(ms)` | 无 | 设置卡片运行超时预算；0 表示不限时。 |
 | `host.elapsedMs()` | number | 当前卡片运行已耗时毫秒数。 |
+
+## 3.7 system（L0）
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `system.openUrl(url)` | boolean | 仅允许 http/https。 |
+| `system.share(text, title)` | boolean | 打开系统分享面板。 |
+| `system.toast(text)` | 无 | 显示短 Toast。 |
+| `system.vibrate(durationMs)` | 无 | 振动指定毫秒数。 |
+| `system.launchApp(packageName, activity)` | boolean | 启动应用；失败返回 false。 |
+| `system.postNotification(channelId, channelName, title, text, actions)` | boolean | 无通知权限时返回 false。 |
+| `system.screenState()` | string | `on` / `off` / `unlocked` / `locked`。 |
+| `system.battery()` | table | `{level, charging, temperature}`。 |
+| `system.storage()` | table | `{total, available}`。 |
+| `system.connectivity()` | table | `{online, type, metered}`。 |
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 

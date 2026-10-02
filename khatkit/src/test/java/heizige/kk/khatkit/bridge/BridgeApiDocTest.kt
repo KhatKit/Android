@@ -27,6 +27,7 @@ class BridgeApiDocTest {
         CryptoBridge::class.java to "crypto",
         TimeBridge::class.java to "time",
         HostBridge::class.java to "host",
+        SystemBridge::class.java to "system",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
         ImageToolboxBridge::class.java to "imageToolbox",
