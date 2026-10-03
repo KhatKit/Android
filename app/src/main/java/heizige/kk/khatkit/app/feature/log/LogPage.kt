@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khromia.helper.Toast as KhromiaToast
 import heizige.kk.khatkit.common.android.LogEntry
 import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.app.R
@@ -247,6 +248,7 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
 private fun RequestLogDetail(log: LogEntry.RequestLog) {
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()) }
     val clipboard = LocalClipboard.current
+    val copyTooLargeMessage = stringResource(R.string.log_page_copy_too_large)
     val scope = rememberCoroutineScope()
 
     SelectionContainer {
@@ -318,9 +320,17 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                         KedgeIconButton(
                             onClick = {
                                 scope.launch {
-                                    clipboard.setClipEntry(
-                                        ClipEntry(ClipData.newPlainText("Request Body", body))
-                                    )
+                                    try {
+                                        clipboard.setClipEntry(
+                                            ClipEntry(ClipData.newPlainText("Request Body", body))
+                                        )
+                                    } catch (e: RuntimeException) {
+                                        // 内容过大时 Binder 会抛出 TransactionTooLargeException (被包装为 RuntimeException)
+                                        KhromiaToast.show(
+                                            copyTooLargeMessage,
+                                            isError = true,
+                                        )
+                                    }
                                 }
                             },
                             shapes = IconButtonDefaults.shapes(),
