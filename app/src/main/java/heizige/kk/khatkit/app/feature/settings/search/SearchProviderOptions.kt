@@ -18,7 +18,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
-import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import androidx.compose.material3.Text
@@ -61,6 +60,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -523,21 +523,17 @@ internal fun BochaOptions(
         )
     }
 
-    KedgeFormRow(
+    KedgeSwitchFormRow(
+        checked = options.summary,
+        onCheckedChange = { checked ->
+            onUpdateOptions(options.copy(summary = checked))
+        },
         label = {
             Text(stringResource(R.string.search_detail_summary))
         },
         description = {
             Text(stringResource(R.string.search_detail_summary_desc))
         },
-        tail = {
-            OptionSwitch(
-                checked = options.summary,
-                onCheckedChange = { checked ->
-                    onUpdateOptions(options.copy(summary = checked))
-                }
-            )
-        }
     )
 }
 

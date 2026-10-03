@@ -39,7 +39,7 @@ import heizige.kk.khatkit.asr.sherpa.SherpaModels
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.components.AnimatedRadioButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -709,25 +709,19 @@ private fun StepASRConfiguration(
         )
     }
 
-    KedgeFormRow(
+    KedgeSwitchFormRow(
+        checked = setting.enableItn,
+        onCheckedChange = { onValueChange(setting.copy(enableItn = it)) },
         label = { Text(stringResource(R.string.setting_asr_configure_step_itn)) },
-        description = { Text(stringResource(R.string.setting_asr_configure_step_itn_desc)) }
-    ) {
-        KedgeSwitch(
-            checked = setting.enableItn,
-            onCheckedChange = { onValueChange(setting.copy(enableItn = it)) }
-        )
-    }
+        description = { Text(stringResource(R.string.setting_asr_configure_step_itn_desc)) },
+    )
 
-    KedgeFormRow(
+    KedgeSwitchFormRow(
+        checked = setting.enableTimestamp,
+        onCheckedChange = { onValueChange(setting.copy(enableTimestamp = it)) },
         label = { Text(stringResource(R.string.setting_asr_configure_step_timestamp)) },
-        description = { Text(stringResource(R.string.setting_asr_configure_step_timestamp_desc)) }
-    ) {
-        KedgeSwitch(
-            checked = setting.enableTimestamp,
-            onCheckedChange = { onValueChange(setting.copy(enableTimestamp = it)) }
-        )
-    }
+        description = { Text(stringResource(R.string.setting_asr_configure_step_timestamp_desc)) },
+    )
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_asr_configure_step_hotwords)) },

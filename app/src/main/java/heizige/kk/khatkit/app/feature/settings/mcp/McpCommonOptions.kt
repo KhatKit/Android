@@ -81,7 +81,6 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpTool
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
@@ -111,6 +110,7 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 
@@ -127,37 +127,27 @@ internal fun McpCommonOptionsConfigure(
             .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 启用/禁用开关
-        KedgeFormRow(
-            label = {
-                Text(stringResource(R.string.setting_mcp_page_enable))
-            }
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(stringResource(R.string.setting_mcp_page_enable))
-                Spacer(Modifier.weight(1f))
-                OptionSwitch(
-                    checked = config.commonOptions.enable,
-                    onCheckedChange = { enabled ->
-                        update(
-                            when (config) {
-                                is McpServerConfig.SseTransportServer -> config.copy(
-                                    commonOptions = config.commonOptions.copy(enable = enabled)
-                                )
+        // 启用/禁用开关。标题只由行自己画一次 —— 之前这里套 KedgeFormRow 又在 content
+        // 里写了个 Text(启用)，屏幕上「启用」出现两遍；开关也是 MD3 的 OptionSwitch。
+        KedgeSwitchFormRow(
+            checked = config.commonOptions.enable,
+            onCheckedChange = { enabled ->
+                update(
+                    when (config) {
+                        is McpServerConfig.SseTransportServer -> config.copy(
+                            commonOptions = config.commonOptions.copy(enable = enabled)
+                        )
 
-                                is McpServerConfig.StreamableHTTPServer -> config.copy(
-                                    commonOptions = config.commonOptions.copy(enable = enabled)
-                                )
-                            }
+                        is McpServerConfig.StreamableHTTPServer -> config.copy(
+                            commonOptions = config.commonOptions.copy(enable = enabled)
                         )
                     }
                 )
-            }
-        }
+            },
+            label = {
+                Text(stringResource(R.string.setting_mcp_page_enable))
+            },
+        )
 
         KedgeFormDivider()
 

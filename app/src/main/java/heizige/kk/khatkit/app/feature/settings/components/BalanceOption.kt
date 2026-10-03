@@ -30,6 +30,7 @@ import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.common.http.isJsonExprValid
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
@@ -50,38 +51,36 @@ fun SettingProviderBalanceOption(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
     ) {
-        Row(
-            modifier = Modifier,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.setting_provider_page_balance_info),
-                modifier = Modifier.weight(1f),
-            )
-            KedgeIconButton(
-                onClick = {
-                    expand = !expand
-                },
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                if (expand) {
-                    Icon(
-                        imageVector = keyboardArrowUp,
-                        contentDescription = null,
-                    )
-                } else {
-                    Icon(
-                        imageVector = keyboardArrowDown,
-                        contentDescription = null,
+        KedgeFormRow(
+            modifier = Modifier.fillMaxWidth(),
+            label = {
+                Text(stringResource(R.string.setting_provider_page_balance_info))
+            },
+            // 整行点开/收起；箭头按钮自己消费点击，不会冒泡回来翻第二次。
+            onClick = { expand = !expand },
+            tail = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    KedgeIconButton(
+                        onClick = {
+                            expand = !expand
+                        },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = if (expand) keyboardArrowUp else keyboardArrowDown,
+                            contentDescription = null,
+                        )
+                    }
+                    KedgeCheckbox(
+                        checked = balanceOption.enabled,
+                        onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
                     )
                 }
-            }
-            KedgeCheckbox(
-                checked = balanceOption.enabled,
-                onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
-            )
-        }
+            },
+        )
         AnimatedVisibility(visible = expand) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),

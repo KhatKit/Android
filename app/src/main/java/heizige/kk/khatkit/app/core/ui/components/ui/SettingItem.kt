@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,10 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import heizige.kk.khromia.components.FancySlider
-import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.components.KedgeSlider
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 
 /**
  * 设置项的声明式描述。
@@ -110,6 +108,10 @@ fun CardGroupScope.settingItem(item: SettingItem) = setItem(item)
  *
  * 整行可点：点行任意位置等价于点开关，与设置分组内的开关行保持一致。
  *
+ * 渲染交给双风格的 [KedgeSwitchFormRow]：MD3 还是原来的左标题右开关，
+ * Miuix 则自己出一行圆角卡片并换 Miuix 字阶。之前这里是裸 `Row` + 默认字阶，
+ * 在 Miuix 页面里就是「唯一一块没做过的那块」，所以别再在这里手写布局。
+ *
  * ```
  * SwitchRow(R.string.setting_provider_page_enable, checked = provider.enabled) {
  *     onEdit(provider.copy(enabled = it))
@@ -122,22 +124,13 @@ fun SwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled) { onCheckedChange(!checked) },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(stringResource(titleRes))
-        KedgeSwitch(
-            checked = checked,
-            enabled = enabled,
-            onCheckedChange = onCheckedChange,
-        )
-    }
+    KedgeSwitchFormRow(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        label = { Text(stringResource(titleRes)) },
+    )
 }
 
 /** 左标题 + 右滑块的紧凑行，[valueLabel] 缺省时按百分比显示。 */

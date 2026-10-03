@@ -4,7 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
@@ -14,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
@@ -24,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -427,17 +426,11 @@ private fun ProviderConfigureGoogle(
             shape = RoundedCornerShape(16.dp)
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Interactions API (Beta)")
-            androidx.compose.material3.Switch(
-                checked = provider.useInteractionsApi,
-                onCheckedChange = { onEdit(provider.copy(useInteractionsApi = it)) },
-            )
-        }
+        KedgeSwitchFormRow(
+            checked = provider.useInteractionsApi,
+            onCheckedChange = { onEdit(provider.copy(useInteractionsApi = it)) },
+            label = { Text("Interactions API (Beta)") },
+        )
     }
 
     SwitchRow(
