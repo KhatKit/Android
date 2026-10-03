@@ -44,7 +44,7 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 | C2 工作区 | 现有 workspace/proot 与文件工具可复用 | 五种模板与项目规则；preview；内容寻址 diff/revert 与聊天重发回滚；SSH/SFTP 许可评估和读写后端；APK/HTML 打包；端到端及路径穿越测试 |
 | C3 语音入口 | 现有 VoiceSessionController 可复用 | Sherpa 唤醒/前台服务/VAD/流式 ASR；全双工打断与草稿；ASSIST 面板、Widget、气泡、取词悬浮球；VITS 依赖包；真机误触/保活/500ms 打断/1s ASSIST 验证 |
 | C4 虚拟形象 | 尚未完成审计 | glTF 模块、五状态、口型/视线/情绪事件；桌面宠物；dependency 安装卸载；骁龙 7 系 60fps 真机验证 |
-| D0 UI DSL | 尚未读取并完成独立规格审计 | 按卡片仓库 `UI_DSL_UPGRADE.md` 与 `UI_DSL_CLIENT_CHANGES.md` 全量实现/验收 |
+| D0 UI DSL | 宿主 NodeTree/22 节点/事件回传/旧表单 deprecated 兼容；12/15 卡迁移（3 卡无 UI）；后建 6 卡均已是新 DSL 或无 UI；validator 21 卡 0 错误；2026-10-03 全量 build/test/lint 绿 | 真机交互与人工业务验收；`UI_DSL_CLIENT_CHANGES.md` 拆分文档未创建（内容由卡片仓库 `MIGRATION_PROGRESS.md` 覆盖） |
 
 排除项保持原决策：不做 A3 端侧推理、不做酒馆 L5、不引入 RemoteCompose，
 不新增 resource 品类、不启用 S6 扩展计量。
@@ -306,3 +306,15 @@ screen2prompt 上游未核实（PyPI 页面 JS challenge），未复制源码；
 - 卡片 `a11y_act` 的重试间隔受 `tool.sleep` 整数秒限制（下限 1s），比内置 400ms 粗。
 - `a11y_screen` 未返回 image_width/height（Lua 解 PNG 头未做）；坐标系以节点 bounds 为准。
 - 真机 AI 循环（a11y_screen 看图 → a11y_act/a11y_visual_act 操作）未实测。
+
+## D0 卡片 UI DSL 复核（2026-10-03）
+
+- 按卡片仓库 `UI_DSL_UPGRADE.md` 与 `MIGRATION_PROGRESS.md`（T1–T8）复核：宿主与卡片迁移均已完成，
+  此前状态表 D0 行「未审计」过时。
+- 全仓旧 `ui.form(items 数组)` 语法 **0 命中**（`rg 'type="(input|select|switch|slider)"'` 清零）；
+  `card.json` 中的 `items` 为清单字段，与 UI 无关，不计入。
+- 后建 6 卡确认无需迁移：`a11y-act`/`a11y-trace-replay`/`a11y-visual-act` 建卡即用新 DSL，
+  `a11y-screen` 仅 `ui.progress`，`browser_checkin`/`browser_compare_prices` 为 JS 卡无 UI（DSL 不注入 JS）。
+- 验证：card-validator 21 卡 0 错误；`./gradlew --offline assembleDebug test lint`
+  BUILD SUCCESSFUL（3m28s，835 tasks）。
+- 仍未完成：真机交互与人工业务验收（当前 ADB 无设备）；`UI_DSL_CLIENT_CHANGES.md` 拆分文档未单独创建。
