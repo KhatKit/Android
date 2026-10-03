@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.data.browser
 
 import java.util.UUID
+import java.net.URI
 
 /** Lightweight multi-tab browser state independent from an Android WebView instance. */
 class BrowserSessionManager(
@@ -13,6 +14,7 @@ class BrowserSessionManager(
         url: String = "about:blank",
         title: String? = null,
     ): BrowserSession {
+        validateBrowserUrl(url)
         val session = BrowserSession(
             id = UUID.randomUUID().toString(),
             currentUrl = url,
@@ -47,6 +49,7 @@ class BrowserSessionManager(
 
     fun navigate(id: String, url: String, title: String? = null): BrowserSession {
         require(url.isNotBlank()) { "URL must not be blank" }
+        validateBrowserUrl(url)
         val session = requireSession(id)
         val history = session.history.take(session.historyIndex + 1) + url
         val updated = session.copy(
@@ -96,6 +99,19 @@ class BrowserSessionManager(
 
     companion object {
         const val DEFAULT_MAX_SNAPSHOT_CHARS = 20_000
+
+        fun validateBrowserUrl(url: String) {
+            val uri = runCatching { URI(url) }.getOrNull()
+                ?: throw IllegalArgumentException("Invalid URL")
+            require(uri.scheme == "http" || uri.scheme == "https" || uri.scheme == "about") {
+                "Only http(s) and about URLs are supported"
+            }
+            if (uri.scheme == "about") {
+                require(uri.schemeSpecificPart == "blank") { "Only about:blank is supported" }
+            } else {
+                require(!uri.host.isNullOrBlank()) { "URL host is required" }
+            }
+        }
     }
 }
 
