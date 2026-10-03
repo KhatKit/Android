@@ -149,9 +149,18 @@ class SkillManager(
     fun saveSkillFile(skillName: String, relativePath: String, content: String): Boolean {
         val skillDir = resolveSkillDir(skillName) ?: return false
         val target = SkillPaths.resolveSkillFile(skillDir, relativePath) ?: return false
-        target.parentFile?.mkdirs()
-        target.writeText(content)
-        return true
+        val parent = target.parentFile ?: return false
+        val tempFile = parent.resolve(".${target.name}.tmp")
+        return try {
+            if (!parent.exists() && !parent.mkdirs()) return false
+            tempFile.writeText(content)
+            tempFile.renameTo(target)
+        } catch (e: Exception) {
+            Log.w(TAG, "saveSkillFile: Failed to save $skillName/$relativePath", e)
+            false
+        } finally {
+            if (tempFile.exists()) tempFile.delete()
+        }
     }
 
     fun saveSkillFilesAtomically(skillName: String, files: Map<String, String>): Boolean {

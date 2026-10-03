@@ -72,12 +72,14 @@ import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.components.KedgeSearchBar
 
 @Composable
 fun SkillsPage() {
     val navController = LocalNavController.current
     val vm = hiltViewModel<SkillsViewModel>()
     val skills by vm.skills.collectAsStateWithLifecycle()
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current
     val context = LocalContext.current
@@ -116,7 +118,18 @@ fun SkillsPage() {
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (skills.isEmpty()) {
+            val visibleSkills = skills.filter {
+                searchQuery.isBlank() || it.name.contains(searchQuery, true) || it.description.contains(searchQuery, true)
+            }
+            item {
+                KedgeSearchBar(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = stringResource(R.string.skills_page_search_placeholder),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (visibleSkills.isEmpty()) {
                 item {
                     Column(
                         modifier = Modifier
@@ -145,7 +158,7 @@ fun SkillsPage() {
                 }
             }
 
-            items(skills, key = { it.skillDir.absolutePath }) { skill ->
+            items(visibleSkills, key = { it.skillDir.absolutePath }) { skill ->
                 SkillCard(
                     skill = skill,
                     onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },

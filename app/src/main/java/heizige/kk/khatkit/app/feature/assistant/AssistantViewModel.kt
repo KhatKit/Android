@@ -71,7 +71,7 @@ class AssistantViewModel @Inject constructor(
         }
     }
 
-    fun copyAssistant(assistant: Assistant) {
+    fun copyAssistant(assistant: Assistant, copyMemories: Boolean = false) {
         viewModelScope.launch {
             val settings = settings.value
             val copiedAssistant = assistant.copy(
@@ -84,6 +84,9 @@ class AssistantViewModel @Inject constructor(
                     assistants = settings.assistants.plus(copiedAssistant)
                 )
             )
+            if (copyMemories && !assistant.useGlobalMemory) {
+                memoryRepository.copyMemories(assistant.id.toString(), copiedAssistant.id.toString())
+            }
         }
     }
 

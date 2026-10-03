@@ -74,6 +74,7 @@
   <string name="assistant_page_chat_model">聊天模型</string>
   <string name="assistant_page_chat_model_desc">设置助手的默认聊天模型，如果不设置，则使用全局默认聊天模型</string>
   <string name="assistant_page_clone">复制</string>
+  <string name="assistant_page_clone_with_memories">同时复制记忆</string>
   <string name="assistant_page_confirm">确定</string>
   <string name="assistant_page_creative">创造</string>
   <string name="assistant_page_current_assistant">当前助手</string>
@@ -1486,7 +1487,7 @@
 <string name="workspace_terminal_new_tab">新增終端機分頁</string>
 <string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
 <string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
-<string name="skills_page_search_placeholder">搜尋技能</string>
+<string name="skills_page_search_placeholder">搜索技能</string>
 <string name="skills_page_search_no_result">找不到符合的技能</string>
 <string name="assistant_page_local_tools_chart_display_title">图表</string>
 <string name="assistant_page_local_tools_chart_display_desc">让AI显示折线图、柱状图和散点图</string>

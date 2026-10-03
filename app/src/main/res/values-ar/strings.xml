@@ -66,6 +66,7 @@
   <string name="assistant_page_chat_model">نموذج الدردشة</string>
   <string name="assistant_page_chat_model_desc">تعيين نموذج الدردشة الافتراضي للمساعد. إذا لم يتم تعيينه، فسيتم استخدام نموذج الدردشة الافتراضي العام</string>
   <string name="assistant_page_clone">استنساخ</string>
+  <string name="assistant_page_clone_with_memories">نسخ الذكريات أيضًا</string>
   <string name="assistant_page_confirm">تأكيد</string>
   <string name="assistant_page_context_message_limit">حد رسائل السياق</string>
   <string name="assistant_page_context_message_limit_count">حد رسائل السياق: %d</string>

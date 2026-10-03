@@ -66,6 +66,7 @@
   <string name="assistant_page_chat_model">채팅 모델</string>
   <string name="assistant_page_chat_model_desc">어시스턴트의 기본 채팅 모델 설정. 미설정 시 전역 기본 채팅 모델 사용</string>
   <string name="assistant_page_clone">복제</string>
+  <string name="assistant_page_clone_with_memories">메모리도 복사</string>
   <string name="assistant_page_confirm">확인</string>
   <string name="assistant_page_creative">창의적</string>
   <string name="assistant_page_current_assistant">현재 어시스턴트</string>
@@ -1365,7 +1366,7 @@
 <string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
 <string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
 <string name="assistant_page_context_message_limit_too_small">上下文訊息限制不能小於 %1$d。已重設為 %1$d。</string>
-<string name="skills_page_search_placeholder">搜尋技能</string>
+<string name="skills_page_search_placeholder">스킬 검색</string>
 <string name="skills_page_search_no_result">找不到符合的技能</string>
 <string name="assistant_page_local_tools_chart_display_title">차트</string>
 <string name="assistant_page_local_tools_chart_display_desc">AI가 선형 차트, 막대 차트, 산점도 차트를 표시할 수 있도록 합니다</string>

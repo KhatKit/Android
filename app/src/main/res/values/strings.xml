@@ -74,6 +74,7 @@
   <string name="assistant_page_chat_model">Chat Model</string>
   <string name="assistant_page_chat_model_desc">Set the default chat model for the assistant. If not set, the global default chat model will be used</string>
   <string name="assistant_page_clone">Clone</string>
+  <string name="assistant_page_clone_with_memories">Also copy memories</string>
   <string name="assistant_page_confirm">Confirm</string>
   <string name="assistant_page_creative">Creative</string>
   <string name="assistant_page_current_assistant">Current Assistant</string>
@@ -1496,7 +1497,7 @@
   <string name="setting_package_page_clear">Clear activation on this device</string>
   <string name="setting_package_page_clear_desc">Only removes the locally stored token; the server account is untouched</string>
   <string name="setting_package_page_tip">Buying a plan gives an activation token; activate this device on the web. Local cards keep working when offline, and only an explicit server rejection blocks them.</string>
-<string name="skills_page_search_placeholder">搜尋技能</string>
+<string name="skills_page_search_placeholder">Search skills</string>
 <string name="skills_page_search_no_result">找不到符合的技能</string>
 <string name="assistant_page_local_tools_chart_display_title">Charts</string>
 <string name="assistant_page_local_tools_chart_display_desc">Let the AI show line, bar, and scatter charts</string>
