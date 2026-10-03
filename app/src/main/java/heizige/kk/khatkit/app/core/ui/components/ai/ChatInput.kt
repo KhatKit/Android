@@ -423,7 +423,7 @@ fun ChatInput(
                                     input = HazeInput.Sources(hazeState),
                                     style = GlassStyle.Material3(
                                         containerColor = hazeTintColor,
-                                        tint = hazeTintColor.copy(alpha = 0.72f),
+                                        tint = hazeTintColor.copy(alpha = 0.3f),
                                     ) {
                                         optics(
                                             GlassDefaults.optics.copy(

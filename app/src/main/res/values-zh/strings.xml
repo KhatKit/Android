@@ -1487,10 +1487,10 @@
 <string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
 <string name="skills_page_search_placeholder">搜尋技能</string>
 <string name="skills_page_search_no_result">找不到符合的技能</string>
-<string name="assistant_page_local_tools_chart_display_title">圖表顯示</string>
-<string name="assistant_page_local_tools_chart_display_desc">讓 AI 顯示折線圖、長條圖和散佈圖</string>
-<string name="chat_message_tool_chart_display">顯示圖表</string>
-<string name="chat_message_tool_chart_display_with_title">顯示圖表：%1$s</string>
+<string name="assistant_page_local_tools_chart_display_title">图表</string>
+<string name="assistant_page_local_tools_chart_display_desc">让AI显示折线图、柱状图和散点图</string>
+<string name="chat_message_tool_chart_display">显示图表</string>
+<string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
 <string name="chart_mode_chart">圖表</string>
 <string name="chart_mode_table">表格</string>
 <string name="chart_series">數列</string>

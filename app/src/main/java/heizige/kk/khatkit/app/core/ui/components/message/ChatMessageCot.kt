@@ -2,6 +2,12 @@ package heizige.kk.khatkit.app.core.ui.components.message
 
 import androidx.compose.ui.util.fastForEachIndexed
 import heizige.kk.khatkit.ai.ui.UIMessagePart
+import heizige.kk.khatkit.app.core.util.JsonInstant
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+
+internal const val CHART_DISPLAY_TOOL_NAME = "chart_display"
 
 /**
  * 思考步骤类型，用于分组 Reasoning、客户端 Tool 和 ServerTool
@@ -53,7 +59,13 @@ fun List<UIMessagePart>.groupMessageParts(): List<MessagePartBlock> {
             }
 
             is UIMessagePart.Tool -> {
-                currentThinkingSteps.add(ThinkingStep.ToolStep(part))
+                if (part.isSuccessfulChartDisplay()) {
+                    // chart_display 成功时切成独立块，避免被塞进思考链里
+                    flushThinkingSteps()
+                    result.add(MessagePartBlock.ChartBlock(part, index))
+                } else {
+                    currentThinkingSteps.add(ThinkingStep.ToolStep(part))
+                }
             }
 
             is UIMessagePart.ServerTool -> {
@@ -68,4 +80,11 @@ fun List<UIMessagePart>.groupMessageParts(): List<MessagePartBlock> {
     }
     flushThinkingSteps()
     return result
+}
+
+private fun UIMessagePart.Tool.isSuccessfulChartDisplay(): Boolean {
+    if (toolName != CHART_DISPLAY_TOOL_NAME || !isExecuted) return false
+    val outputText = output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+    val result = runCatching { JsonInstant.parseToJsonElement(outputText) }.getOrNull() as? JsonObject
+    return (result?.get("success") as? JsonPrimitive)?.booleanOrNull == true
 }

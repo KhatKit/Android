@@ -31,6 +31,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import heizige.kk.khatkit.app.core.ui.components.charts.ChartCard
+import heizige.kk.khatkit.app.core.ui.components.charts.ChartSpec
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -294,8 +296,9 @@ private fun MessagePartsBlock(
     val groupedParts = remember(parts) { parts.groupMessageParts() }
     groupedParts.fastForEach { block ->
         when (block) {
-            is MessagePartBlock.ChartBlock -> {
-                // chart_display 的图表卡片渲染在 ChatMessageServerToolStep 里统一处理
+            is MessagePartBlock.ChartBlock -> key(block.index) {
+                val spec = remember(block.tool.input) { ChartSpec.fromJson(block.tool.inputAsJson()) }
+                spec?.let { ChartCard(spec = it) }
             }
             is MessagePartBlock.ThinkingBlock -> {
                 if (block.steps.isNotEmpty()) {

@@ -68,6 +68,7 @@ import heizige.kk.khatkit.app.core.ui.theme.extendColors
 import heizige.kk.khatkit.app.core.ui.icons.forward
 import heizige.kk.khatkit.app.core.ui.icons.keepOff
 import heizige.kk.khatkit.app.core.ui.icons.pushPin
+import heizige.kk.khatkit.app.core.util.mirrorForRtl
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import java.time.LocalDate
@@ -630,7 +631,7 @@ private fun ConversationItem(
                                 showDropdownMenu = false
                             },
                             leadingIcon = {
-                                Icon(forward, null)
+                                Icon(forward, null, modifier = Modifier.mirrorForRtl())
                             }
                         )
                     }

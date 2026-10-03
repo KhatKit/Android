@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.insert
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 
@@ -50,3 +53,8 @@ fun TextFieldState.insertAtCursor(text: String) {
         insert(selection.start, text)
     }
 }
+
+// 用于未开启 autoMirror、但在当前语境下有方向含义的图标
+@Composable
+fun Modifier.mirrorForRtl(): Modifier =
+    if (LocalLayoutDirection.current == LayoutDirection.Rtl) scale(scaleX = -1f, scaleY = 1f) else this

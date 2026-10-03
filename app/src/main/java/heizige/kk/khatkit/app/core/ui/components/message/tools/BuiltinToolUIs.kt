@@ -50,12 +50,16 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import heizige.kk.khatkit.app.core.ui.icons.barChart
+import heizige.kk.khatkit.app.core.ui.icons.scatter_plot
+import heizige.kk.khatkit.app.core.ui.icons.show_chart
 import heizige.kk.khatkit.common.http.jsonObjectOrNull
 import heizige.kk.khatkit.highlight.CodeHighlightText
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.event.AppEvent
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.ui.components.message.CHART_DISPLAY_TOOL_NAME
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.Favicon
 import heizige.kk.khatkit.app.core.ui.components.ui.FaviconRow
@@ -569,6 +573,27 @@ object CalendarCreateToolUI : ToolUIRenderer {
     override fun title(context: ToolUIContext): String {
         val eventTitle = context.arguments.getStringContent("title") ?: ""
         return stringResource(R.string.chat_message_tool_calendar_create, eventTitle)
+    }
+}
+
+object ChartDisplayToolUI : ToolUIRenderer {
+    override val toolName: String = CHART_DISPLAY_TOOL_NAME
+
+    override fun icon(context: ToolUIContext): ImageVector =
+        when (context.arguments.getStringContent("style")) {
+            "bar" -> barChart
+            "scatter" -> scatter_plot
+            else -> show_chart
+        }
+
+    @Composable
+    override fun title(context: ToolUIContext): String {
+        val chartTitle = context.arguments.getStringContent("title")
+        return if (chartTitle.isNullOrBlank()) {
+            stringResource(R.string.chat_message_tool_chart_display)
+        } else {
+            stringResource(R.string.chat_message_tool_chart_display_with_title, chartTitle)
+        }
     }
 }
 

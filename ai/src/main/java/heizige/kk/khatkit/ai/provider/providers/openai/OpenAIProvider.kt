@@ -31,6 +31,7 @@ import heizige.kk.khatkit.ai.util.configureReferHeaders
 import heizige.kk.khatkit.ai.util.json
 import heizige.kk.khatkit.ai.util.mergeCustomBody
 import heizige.kk.khatkit.ai.util.toHeaders
+import heizige.kk.khatkit.common.http.okhttp.toHttpUrlOrNull
 import heizige.kk.khatkit.common.http.getByKey
 import heizige.kk.khatkit.common.http.okhttp.MultipartBody
 import heizige.kk.khatkit.common.http.okhttp.toMediaType
@@ -214,10 +215,12 @@ class OpenAIProvider(
                 put("prompt", params.prompt)
                 put("n", params.numOfImages)
                 
-                val isGrok = providerSetting.baseUrl.contains("x.ai", ignoreCase = true) || 
+                // 只匹配 x.ai 本身及其子域名，避免 "xxx-max.ai" 之类的中转域名被误判
+                val host = providerSetting.baseUrl.toHttpUrlOrNull()?.host?.lowercase()
+                val isGrok = host == "x.ai" || host?.endsWith(".x.ai") == true ||
                     params.model.modelId.contains("grok", ignoreCase = true)
-                
-                if (params.size.isNotBlank() && !isGrok) {
+
+                if (params.size.isNotBlank() && !params.size.equals("auto", ignoreCase = true) && !isGrok) {
                     put("size", params.size)
                 }
             }

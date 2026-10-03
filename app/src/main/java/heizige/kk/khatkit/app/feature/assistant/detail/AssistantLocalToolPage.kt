@@ -189,6 +189,12 @@ private fun AssistantLocalToolContent(
                 checked = assistant.localTools.contains(LocalToolOption.Calendar),
                 onCheckedChange = { toggleLocalTool(LocalToolOption.Calendar, it) },
             )
+            PreferenceSwitch(
+                title = stringResource(R.string.assistant_page_local_tools_chart_display_title),
+                summary = stringResource(R.string.assistant_page_local_tools_chart_display_desc),
+                checked = assistant.localTools.contains(LocalToolOption.ChartDisplay),
+                onCheckedChange = { toggleLocalTool(LocalToolOption.ChartDisplay, it) },
+            )
         }
     }
 }

@@ -1497,10 +1497,10 @@
   <string name="setting_package_page_tip">Buying a plan gives an activation token; activate this device on the web. Local cards keep working when offline, and only an explicit server rejection blocks them.</string>
 <string name="skills_page_search_placeholder">搜尋技能</string>
 <string name="skills_page_search_no_result">找不到符合的技能</string>
-<string name="assistant_page_local_tools_chart_display_title">圖表顯示</string>
-<string name="assistant_page_local_tools_chart_display_desc">讓 AI 顯示折線圖、長條圖和散佈圖</string>
-<string name="chat_message_tool_chart_display">顯示圖表</string>
-<string name="chat_message_tool_chart_display_with_title">顯示圖表：%1$s</string>
+<string name="assistant_page_local_tools_chart_display_title">Charts</string>
+<string name="assistant_page_local_tools_chart_display_desc">Let the AI show line, bar, and scatter charts</string>
+<string name="chat_message_tool_chart_display">Show chart</string>
+<string name="chat_message_tool_chart_display_with_title">Show chart: %1$s</string>
 <string name="chart_mode_chart">圖表</string>
 <string name="chart_mode_table">表格</string>
 <string name="chart_series">數列</string>
