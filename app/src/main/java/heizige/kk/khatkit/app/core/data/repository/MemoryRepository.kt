@@ -2,6 +2,8 @@ package heizige.kk.khatkit.app.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.sqlite.db.SupportSQLiteDatabase
 import heizige.kk.khatkit.app.core.data.db.dao.MemoryDAO
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryEntity
@@ -32,26 +34,42 @@ class MemoryRepository(
                 entities.map { AssistantMemory(it.id, it.content) }
             }
 
-    suspend fun searchMemories(assistantId: String, query: String, limit: Int = 8): List<AssistantMemory> {
-        val normalizedQuery = query.trim().lowercase()
-        if (normalizedQuery.isBlank() || limit <= 0) return emptyList()
-        val terms = normalizedQuery.split(Regex("\\s+"))
-            .map(String::trim)
-            .filter { it.length >= 2 }
-            .distinct()
-        return getMemoriesOfAssistant(assistantId)
-            .map { memory ->
-                val normalizedContent = memory.content.lowercase()
-                val score = if (terms.isEmpty()) 0 else terms.sumOf { term ->
-                    if (normalizedContent.contains(term)) 1 else 0
+    suspend fun searchMemories(assistantId: String, query: String, limit: Int = 8): List<AssistantMemory> =
+        withContext(Dispatchers.IO) {
+            val normalizedQuery = query.trim()
+            if (normalizedQuery.isBlank() || limit <= 0) return@withContext emptyList()
+
+            val indexed = database?.let { db ->
+                val results = mutableListOf<AssistantMemory>()
+                val cursor = runCatching {
+                    db.query(
+                        """
+                        SELECT memory_id, content
+                        FROM memory_fts
+                        WHERE memory_fts MATCH ?
+                          AND assistant_id = ?
+                        ORDER BY rank
+                        LIMIT ?
+                        """.trimIndent(),
+                        arrayOf(toFtsQuery(normalizedQuery), assistantId, limit.coerceIn(1, 50).toString()),
+                    )
+                }.getOrNull() ?: return@let null
+                cursor.use {
+                    while (it.moveToNext()) {
+                        results += AssistantMemory(
+                            id = it.getString(0).toIntOrNull() ?: continue,
+                            content = it.getString(1),
+                        )
+                    }
                 }
-                memory to score
+                results
             }
-            .filter { (_, score) -> score > 0 }
-            .sortedByDescending { (_, score) -> score }
-            .take(limit)
-            .map { (memory, _) -> memory }
-    }
+            if (indexed != null) return@withContext indexed
+
+            getMemoriesOfAssistant(assistantId)
+                .filter { it.content.contains(normalizedQuery, ignoreCase = true) }
+                .take(limit)
+        }
 
     suspend fun getGlobalMemories(): List<AssistantMemory> {
         return memoryDAO.getMemoriesOfAssistant(GLOBAL_MEMORY_ID)
@@ -109,4 +127,10 @@ class MemoryRepository(
             arrayOf(memory.content, memory.assistantId, memory.id.toString()),
         )
     }
+
+    private fun toFtsQuery(query: String): String =
+        query.split(Regex("\\s+"))
+            .map { it.trim().replace("\"", "\"\"") }
+            .filter { it.isNotBlank() }
+            .joinToString(" AND ") { "\"$it\"" }
 }

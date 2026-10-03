@@ -676,11 +676,19 @@ class ChatManager(
                 conversationModeInjectionIds = conversation.modeInjectionIds,
                 conversationLorebookIds = conversation.lorebookIds,
                 workspaceCwd = conversation.workspaceCwd,
-                memories = if (assistant.useGlobalMemory) {
-                    memoryRepository.getGlobalMemories()
-                } else {
-                    memoryRepository.getMemoriesOfAssistant(assistant.id.toString())
-                },
+                memories = memoryRepository.searchMemories(
+                    assistantId = if (assistant.useGlobalMemory) {
+                        MemoryRepository.GLOBAL_MEMORY_ID
+                    } else {
+                        assistant.id.toString()
+                    },
+                    query = conversation.currentMessages
+                        .takeLast(6)
+                        .filter { it.role == MessageRole.USER }
+                        .joinToString("\n") { it.toText() }
+                        .takeLast(4_000),
+                    limit = 8,
+                ),
                 inputTransformers = buildList {
                     addAll(inputTransformers)
                     add(templateTransformer)
