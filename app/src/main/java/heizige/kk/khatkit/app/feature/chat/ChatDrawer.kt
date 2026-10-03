@@ -172,6 +172,7 @@ fun ChatDrawerContent(
 
     val conversations = drawerVm.conversations.collectAsLazyPagingItems()
     val folders by drawerVm.folders.collectAsStateWithLifecycle()
+    val typeFilter by drawerVm.typeFilter.collectAsStateWithLifecycle()
     val conversationListState = rememberLazyListState(
         initialFirstVisibleItemIndex = drawerVm.scrollIndex,
         initialFirstVisibleItemScrollOffset = drawerVm.scrollOffset,
@@ -540,6 +541,26 @@ fun ChatDrawerContent(
                             onCreateFolder = { showCreateFolderDialog = true },
                             modifier = Modifier.padding(bottom = 8.dp),
                         )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 8.dp)) {
+                            listOf(
+                                heizige.kk.khatkit.app.core.data.model.GroupChat.FILTER_ALL to "全部",
+                                heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_DIRECT to "单聊",
+                                heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_GROUP to "群聊",
+                            ).forEach { (value, label) ->
+                                heizige.kk.kedge.components.KedgeFilterChip(
+                                    selected = typeFilter == value,
+                                    onClick = { drawerVm.updateTypeFilter(value) },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
+                        heizige.kk.kedge.components.KedgeTextButton(
+                            onClick = {
+                                drawerVm.createGroup { created ->
+                                    navController.navigate(Screen.Chat(created.toString()))
+                                }
+                            },
+                        ) { Text("新建群聊") }
                     },
                     modifier = Modifier.fillMaxSize(),
                     onClick = {

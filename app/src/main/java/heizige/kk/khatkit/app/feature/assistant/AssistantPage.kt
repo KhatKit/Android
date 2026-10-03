@@ -469,6 +469,7 @@ private fun AssistantCreationSheet(
                     }
 
                     AssistantImporter(
+                        assistant = assistant,
                         onUpdate = {
                             update(it)
                             state.confirm()

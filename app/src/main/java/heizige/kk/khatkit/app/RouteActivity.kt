@@ -95,6 +95,7 @@ import heizige.kk.khatkit.app.feature.assistant.detail.AssistantPromptPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantRequestPage
 import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
+import heizige.kk.khatkit.app.feature.chat.GroupOrDirectPage
 import heizige.kk.khatkit.app.feature.chat.FolderDetailPage
 import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
@@ -397,11 +398,12 @@ class RouteActivity : ComponentActivity() {
                                 metadata = NavDisplay.transitionSpec { fadeIn() togetherWith fadeOut() }
                                     + NavDisplay.popTransitionSpec { fadeIn() togetherWith fadeOut() }
                             ) { key ->
-                                ChatPage(
+                                GroupOrDirectPage(
                                     id = Uuid.parse(key.id),
                                     text = key.text,
                                     files = key.files.map { it.toUri() },
-                                    nodeId = key.nodeId?.let { Uuid.parse(it) }
+                                    nodeId = key.nodeId?.let { Uuid.parse(it) },
+                                    messageId = key.messageId?.let { Uuid.parse(it) },
                                 )
                             }
 
@@ -523,6 +525,10 @@ class RouteActivity : ComponentActivity() {
 
                             entry<Screen.SettingModels> {
                                 SettingModelPage()
+                            }
+
+                            entry<Screen.TraceAudit> {
+                                heizige.kk.khatkit.app.feature.automation.TraceAuditPage()
                             }
 
                             entry<Screen.SettingAbout> {
@@ -693,7 +699,8 @@ sealed interface Screen : NavKey {
         val id: String,
         val text: String? = null,
         val files: List<String> = emptyList(),
-        val nodeId: String? = null
+        val nodeId: String? = null,
+        val messageId: String? = null,
     ) : Screen
 
     @Serializable
@@ -703,6 +710,8 @@ sealed interface Screen : NavKey {
     data class FolderDetail(val folderId: String) : Screen
 
     @Serializable
+    data object TraceAudit : Screen
+
     data object Assistant : Screen
 
     @Serializable

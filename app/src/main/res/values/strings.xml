@@ -38,6 +38,9 @@
   <string name="assistant_extensions_page_tab_quick_messages">Quick Messages</string>
   <string name="assistant_extensions_page_tab_skills">Skills</string>
   <string name="assistant_extensions_page_title">Extensions</string>
+  <string name="assistant_importer_export_failed">Export failed</string>
+  <string name="assistant_importer_export_tavern_json">Export Tavern Character Card (JSON)</string>
+  <string name="assistant_importer_export_tavern_png">Export Tavern Character Card (PNG)</string>
   <string name="assistant_importer_import_failed">Import failed</string>
   <string name="assistant_importer_import_tavern_json">Import Tavern Character Card (JSON)</string>
   <string name="assistant_importer_import_tavern_png">Import Tavern Character Card (PNG)</string>
@@ -114,6 +117,7 @@
   <string name="assistant_page_auto_extract_memory">Auto Memory Extraction</string>
   <string name="assistant_page_auto_extract_memory_desc">Automatically extract facts from conversations using a fast model after each turn. Requires Memory to be enabled.</string>
   <string name="memory_source_message">Source</string>
+  <string name="memory_source_missing">Source message was not found</string>
   <string name="memory_confidence">Confidence</string>
   <string name="memory_graph_title">Memory Graph</string>
   <string name="memory_extracted_at">Extracted</string>

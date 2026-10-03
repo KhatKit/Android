@@ -6,6 +6,8 @@
 >
 > **总原则**（沿用总路线 §3）：遵守 `AGENTS.md`；新增逻辑带单测；`./gradlew assembleDebug test lint` 全绿；安全红线与许可审查不豁免。
 
+> **实现方硬约束（每次开工前复述）**：① **C4 排最后**，其余包验收通过前不得开工；② 每包交付必须执行 `./gradlew --offline assembleDebug test lint` 并保持全绿（以 `AGENTS.md` 为准）；③ **B2 功能开关默认关闭**，服务端 S1–S4 未上线前不得向用户暴露新 `kind` 入口（本地运行时/安装校验可先行）。
+
 ---
 
 ## 1. 工作包总览
@@ -187,6 +189,55 @@
 - Tavern 导出 + QR 分享补齐；备份走既有 sync 管线
   - **QR 内容** = 群配置 JSON（成员角色卡数据 + 协作模式 + 预算），扫码导入即建同构群聊；导出复用 Tavern 角色卡格式
 - 验收：3 角色 @ 提及不串上下文；独立记忆空间生效；导出/恢复可用；同一列表中群聊与单聊混排/筛选互切不丢数据
+
+#### C1 实施契约（先定数据与边界，再写 UI）
+
+> 2026-10-04 进度与缺口写在 `beyond-operit-implementation-status.md` 的「C1 交给下一位」。
+> 验收证据只认 `docs/eval/c1-group-chat.md`。那里仍全部是 `unverified`。
+
+- **持久化模型**：复用 `Conversation`、`MessageNode` 与现有 sync/搜索管线；仅新增 `Conversation.type = GROUP`、`Conversation.group_config`（版本化 JSON）以及消息 `role_id`、`mention_role_ids`、`round_id`、`turn_kind` 字段。`type` 缺失或未知值按 `DIRECT` 读取，旧数据库零迁移；群配置未知字段必须保留，导出/恢复不得丢失。
+- **群配置最小 schema（v1）**：`roles[]`（稳定 `role_id`、assistant/角色卡引用、显示名、模型绑定、记忆空间 id、工具包/Skill/MCP 绑定）、`mode`（仅 `pipeline|roundtable|vote`）、`chair_role_id`（roundtable 必填）、`token_budget_per_round`（正整数上限）、`revision`。保存时校验角色 id 唯一、引用存在、预算范围；非法配置拒绝写入并返回字段级错误。
+- **上下文过滤必须发生在 prompt 组装层**：`buildContext(viewerRoleId, conversationId)` 只返回该角色自己发送的消息、用户消息、`mention_role_ids` 包含自己的消息和轮次摘要；工具调用、检索与记忆注入均使用同一 viewer 过滤结果，禁止在 UI 层“隐藏但仍发送”。过滤器做 JVM 纯函数测试，断言三角色任意组合下不存在越权消息。
+- **路由与失败语义**：显式 `@角色` 只投递到被提及角色；无 @ 时按协作模式展开；pipeline 按配置顺序串联上一角色输出，roundtable 全员完成后仅议长汇总，vote 只接受结构化候选/票并按多数决输出。单角色失败记录错误节点并停止该轮（不伪造回复）；已完成角色输出保留，可从失败角色续跑；取消/超时不得写入未生成的消息。
+- **预算口径**：每轮累计 prompt + completion token，达到 `token_budget_per_round` 后停止剩余角色；超预算原因、已用/上限与未运行角色写入运行日志。下一轮重新计数，不挪用其他轮预算；预算为 0、负数或超过宿主上限时配置保存失败。
+- **记忆隔离**：记忆空间键固定为 `group:<conversationId>:role:<roleId>`，首次发言懒创建；不得回退到全局/助手空间。群消息写入记忆时带 `source_message_id` 与 `role_id`，检索结果再次经过 viewer 过滤。
+- **并发与幂等**：同一群同一 `round_id` 只允许一个运行实例（持久化 run token + mutex）；重试使用同一 `round_id` 并跳过已提交 turn，避免重复消息。不同群可并行，不同角色不得共享可变 prompt buffer。
+- **导出/恢复**：Tavern 导出保留成员角色卡、群配置、`role_id`/轮次/分支；QR 仅携带群配置与角色卡最小元数据，不携带密钥、隐私记忆或工具授权 token。导入先 schema 校验与去重，再创建新 conversation；恢复失败不留下半成品会话。
+- **验收证据（写入 `docs/eval/c1-group-chat.md`）**：至少 3 角色、3 种模式、显式/隐式路由、预算截断、取消/重试、记忆隔离、Tavern/QR 往返、单聊/群聊筛选共 10 个用例；每例保存输入、各角色可见消息集合、实际模型调用序列、token 计数和导出哈希。未有真机或自动化证据的条目保持未完成，不得仅凭 UI 截图勾选。
+
+#### C1 执行分包与交付闸门
+
+C1 只能在 A2 的空间键、检索过滤和 `source_message_id` 证据通过后开工；不得用临时
+全局记忆或第二套消息存储“先把 UI 做出来”。实现按以下顺序拆包，每个子包都必须
+单独可回滚、补测试并在包末执行 `./gradlew --offline assembleDebug test lint`：
+
+| 子包 | 主要改动/边界 | 必须先有的证据 | 交付证据 |
+|---|---|---|---|
+| C1-D 数据与迁移 | `Conversation` 的 `GROUP`/`group_config`、消息字段、角色关联表；未知字段保留，旧行按 `DIRECT` 读取 | Room schema/export 现状 | migration/round-trip 单测；旧库打开不崩 |
+| C1-R 视角与协作内核 | `buildContext(viewerRoleId, …)`、三种模式、显式 @ 路由、预算/取消/重试/幂等；不新增执行器 | C1-D；A2 `memory_spaces` | 纯 JVM 测试覆盖可见集合、调用序列、token 截断和失败续跑 |
+| C1-M 记忆与工具接线 | 固定 `group:<conversationId>:role:<roleId>` 空间；检索、工具调用、记忆注入统一走 viewer 过滤 | C1-R；A2 检索 API | 越权消息断言；三角色各自写入/检索隔离 |
+| C1-U 会话 UI | 同一会话列表混排；类型筛选 chip；成员/颜色、@ 选择器、模式与预算设置；群页复用消息管线 | C1-R | Compose/UI 测试 + 真机手动记录；无第二套会话列表 |
+| C1-X 导出与恢复 | Tavern 导出、QR 配置导入、sync/备份；导入先校验去重，失败无半成品 | C1-D；A5 角色卡格式 | JSON/PNG/QR 哈希往返；敏感 token/记忆不出包 |
+| C1-E 验收集 | 建立 `docs/eval/c1-group-chat.md` 的 10 用例及原始结果（输入、可见集合、模型序列、token、导出哈希） | C1-D/R/M/U/X | 自动化与真机证据逐条勾选；缺证据保持未完成 |
+
+**代码边界（领取任务时写入变更说明）**：数据层只负责版本化序列化与约束校验；
+协作内核只接收不可变消息快照并返回运行日志；UI 不做上下文裁剪、不决定路由；导出器
+不得读取密钥、隐私记忆或工具授权 token。任何跨包改动须在任务说明中列出原因与回滚点。
+
+**运行与安全闸门**：同一 `conversationId + roundId` 的 run token 必须持久化后才可执行，
+重试沿用原 round 并跳过已提交 turn；取消/超时只写运行日志，不写虚构消息。未知
+`mode`、重复 `role_id`、非法预算、缺失议长引用一律拒绝保存；读取未知版本按兼容
+字段保留策略处理，不静默丢弃。任何失败不得回退到全局记忆空间。
+
+**验收记录格式**：每个子包在 `docs/eval/c1-group-chat.md` 增加一行，至少包含
+`commit`、测试命令及退出码、设备/Android 版本（如适用）、用例输入、各 viewer 的
+可见消息 ID、实际模型调用序列、prompt+completion token、导出 SHA-256。测试未运行、
+只看截图或只看 UI 状态均标记 `unverified`，不得勾选完成。
+
+**开工/收尾硬约束**：C4 仍排最后；C1 交付前不得开始 C4。每包必须离线
+`assembleDebug test lint` 全绿；B2 的 `marketNewKinds` 默认关闭，服务端 S1–S4
+未上线前不得把新 `kind` 入口暴露给用户。C1 不依赖 B2/S1–S4，但若复用 ToolPkg/
+Skill/MCP 绑定，只保存引用并在未上线时隐藏不可用入口。
 
 ### C2 工作区开发闭环（P2-2）
 

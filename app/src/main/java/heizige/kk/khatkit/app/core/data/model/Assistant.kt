@@ -52,6 +52,8 @@ data class Assistant(
     val timeReminderIntervalMinutes: Int = 60,          // 时间提醒间隔（分钟，至少 1 分钟）
     val allowConversationSystemPrompt: Boolean = false, // 允许对话单独重写 system prompt
     val allowConversationPromptInjection: Boolean = false, // 允许对话单独绑定提示词注入
+    // 导入的酒馆角色卡原文。导出时以此回写，超集字段只透传。
+    val tavernCardJson: String? = null,
 )
 
 @Serializable
@@ -201,7 +203,36 @@ sealed class PromptInjection {
         val caseSensitive: Boolean = false,        // 大小写敏感
         val scanDepth: Int = 4,                    // 扫描最近N条消息
         val constantActive: Boolean = false,       // 常驻激活（无需匹配）
+        val secondaryKeywords: List<String> = emptyList(),
+        val selective: Boolean = false,
+        val keyLogic: LorebookKeyLogic = LorebookKeyLogic.OR,
+        val probability: Int = 100,
+        // 递归扫描时，本条内容是否进入后续扫描缓冲。对应酒馆 exclude_recursion 的反义。
+        val includeInRecursion: Boolean = true,
+        val preventRecursion: Boolean = false,
     ) : PromptInjection()
+}
+
+/**
+ * 酒馆 world info 的次键逻辑。未开启 selective 时主关键字仍是 OR。
+ * 数值与 SillyTavern `selectiveLogic` 对齐：0 AND_ANY，1 NOT_ALL，2 NOT_ANY，3 AND_ALL。
+ */
+@Serializable
+enum class LorebookKeyLogic {
+    @SerialName("or")
+    OR,
+
+    @SerialName("and_any")
+    AND_ANY,
+
+    @SerialName("not_all")
+    NOT_ALL,
+
+    @SerialName("not_any")
+    NOT_ANY,
+
+    @SerialName("and_all")
+    AND_ALL,
 }
 
 /**
@@ -214,6 +245,7 @@ data class Lorebook(
     val description: String = "",
     val enabled: Boolean = true,
     val entries: List<PromptInjection.RegexInjection> = emptyList(),
+    val recursiveScanning: Boolean = false,
 )
 
 /**

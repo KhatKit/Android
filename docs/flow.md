@@ -89,3 +89,25 @@ AI 通过内置工具 `khatkit__run_flow` 创建并运行流；每一步都走�
 - 单步任务不需要流：直接调用 `khatkit__<卡片名>` 即可。
 - 多步且后一步依赖前一步输出时用流，省去模型逐次调用与重复确认。
 - 流内每一步仍可被看板观察、可被套餐计量与用户取消；审批与安全策略与单卡片完全一致。
+
+---
+
+## 6. 可视化 JSON 如何编译成 steps
+
+状态：已完成（2026-10-03）。自由画布和自然语言生成仍未做，见 `beyond-operit-implementation-status.md`。
+
+规范形态是 `VisualWorkflow` JSON（`feature/workflow/VisualWorkflow.kt`）。10 类节点：`trigger / llm / card_tool / condition / loop / delay / data_extract / http / notify / sub_flow`。触发器的 `event` 只能是 TriggerEngine 已有的 18 种，或本地 `manual`。
+
+`WorkflowEngine.flowSpecJson` 把一次执行里真正要跑的成功步骤写成 `parseFlowSpec` 能读的数组。控制节点（trigger / condition / loop）不进流。对应关系：
+
+| 节点 | FlowSpec `card` |
+| --- | --- |
+| llm | `workflow_llm` |
+| card_tool | 参数 `card` |
+| delay | `workflow_delay` |
+| data_extract | `workflow_extract` |
+| http | `workflow_http` |
+| notify | `workflow_notify` |
+| sub_flow | `workflow_sub_flow` |
+
+条件与循环留在导出的 Lua 脚本里。同一输入下，可视化执行的成功节点输出序列与脚本解释结果一致，FlowSpec 的 card 序列与成功步骤里的卡片名一致。宿主执行仍走 `khatkit__run_flow`，不另写卡片执行器。预览运行只记录计划与输出，真正调卡片要把这份 steps JSON 交给现有流工具。

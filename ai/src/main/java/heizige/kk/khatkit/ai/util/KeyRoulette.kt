@@ -8,6 +8,8 @@ import java.io.File
 interface KeyRoulette {
     fun next(keys: String, providerId: String = ""): String
 
+    fun report(providerId: String, key: String, status: Int) {}
+
     companion object {
         fun default(): KeyRoulette = DefaultKeyRoulette()
 
@@ -31,12 +33,12 @@ private fun splitKey(key: String): List<String> {
 
 private class DefaultKeyRoulette : KeyRoulette {
     override fun next(keys: String, providerId: String): String {
-        val keyList = splitKey(keys)
-        return if (keyList.isNotEmpty()) {
-            keyList.random()
-        } else {
-            keys
-        }
+        val accounts = splitKey(keys).map { ProviderAccount(it) }
+        return KeyPool.shared.choose(providerId, accounts, System.currentTimeMillis())?.apiKey ?: keys
+    }
+
+    override fun report(providerId: String, key: String, status: Int) {
+        KeyPool.shared.reportFailure(key, status, System.currentTimeMillis())
     }
 }
 
@@ -67,8 +69,14 @@ private class LruKeyRoulette(
                 .toMutableMap()
 
             // 优先选从未使用的 key，否则选最久未使用的
-            val selected = keyList.firstOrNull { it !in providerCache }
-                ?: providerCache.minByOrNull { it.value }!!.key
+            val cooled = keyList.filter { key ->
+                val until = KeyPool.shared.coolingUntil(key)
+                until != null && now < until
+            }.toSet()
+            val eligible = keyList.filter { it !in cooled }.ifEmpty { keyList }
+            val selected = eligible.firstOrNull { it !in providerCache }
+                ?: providerCache.filterKeys { it in eligible }.minByOrNull { it.value }?.key
+                ?: eligible.first()
 
             providerCache[selected] = now
             allCache[providerId] = providerCache
@@ -81,6 +89,10 @@ private class LruKeyRoulette(
             saveCache(allCache)
             return selected
         }
+    }
+
+    override fun report(providerId: String, key: String, status: Int) {
+        KeyPool.shared.reportFailure(key, status, System.currentTimeMillis())
     }
 
     private fun loadCache(): LruCache {

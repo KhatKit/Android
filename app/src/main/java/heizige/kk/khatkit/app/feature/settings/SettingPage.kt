@@ -225,6 +225,12 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_mcp)) },
                     )
                     item(
+                        onClick = { navController.navigate(Screen.TraceAudit) },
+                        leadingContent = { Icon(bolt, null) },
+                        supportingContent = { Text("逐步查看设备动作的截图、目标和结果") },
+                        headlineContent = { Text("轨迹审计") },
+                    )
+                    item(
                         onClick = { navController.navigate(Screen.ExploreMarket) },
                         leadingContent = { Icon(inventory2, null) },
                         supportingContent = { Text("一站式浏览工具、技能、MCP、模型能力与脚本卡片") },

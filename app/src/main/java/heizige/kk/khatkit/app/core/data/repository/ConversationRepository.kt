@@ -20,7 +20,10 @@ import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MessageNodeEntity
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.GroupChat
+import heizige.kk.khatkit.app.core.data.model.MessageAnchor
 import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.locateMessage
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import java.time.Instant
 import kotlin.uuid.Uuid
@@ -79,13 +82,15 @@ class ConversationRepository(
         }
     }
 
-    fun getUnfiledConversationsOfAssistantPaging(assistantId: Uuid): Flow<PagingData<Conversation>> = Pager(
+    fun getUnfiledConversationsOfAssistantPaging(assistantId: Uuid, type: String = ""): Flow<PagingData<Conversation>> = Pager(
         config = PagingConfig(
             pageSize = PAGE_SIZE,
             initialLoadSize = INITIAL_LOAD_SIZE,
             enablePlaceholders = false
         ),
-        pagingSourceFactory = { conversationDAO.getUnfiledConversationsOfAssistantPaging(assistantId.toString()) }
+        pagingSourceFactory = {
+            conversationDAO.getUnfiledConversationsOfAssistantByType(assistantId.toString(), type)
+        }
     ).flow.map { pagingData ->
         pagingData.map { entity ->
             conversationSummaryToConversation(entity)
@@ -328,6 +333,20 @@ class ConversationRepository(
         filesManager.deleteChatFiles(fullConversation.files)
     }
 
+    suspend fun findMessageAnchor(messageId: String): MessageAnchor? {
+        val parsedId = runCatching { Uuid.parse(messageId) }.getOrNull() ?: return null
+        return messageNodeDAO.findNodesMentioning(messageId).firstNotNullOfOrNull { entity ->
+            val messages = runCatching {
+                JsonInstant.decodeFromString<List<UIMessage>>(entity.messages)
+            }.getOrNull() ?: return@firstNotNullOfOrNull null
+            locateMessage(
+                conversationId = Uuid.parse(entity.conversationId),
+                node = MessageNode(id = Uuid.parse(entity.id), messages = messages, selectIndex = entity.selectIndex),
+                messageId = parsedId,
+            )
+        }
+    }
+
     suspend fun searchMessages(
         keyword: String,
         sort: MessageSearchSort = MessageSearchSort.RELEVANCE,
@@ -369,6 +388,8 @@ class ConversationRepository(
             lorebookIds = JsonInstant.encodeToString(conversation.lorebookIds),
             workspaceCwd = conversation.workspaceCwd ?: "",
             folderId = conversation.folderId?.toString() ?: "",
+            type = conversation.type,
+            groupConfig = conversation.groupConfig?.let { GroupChat.encodeConfig(it) }.orEmpty(),
         )
     }
 
@@ -390,6 +411,8 @@ class ConversationRepository(
             lorebookIds = JsonInstant.decodeFromString(conversationEntity.lorebookIds),
             workspaceCwd = conversationEntity.workspaceCwd.ifEmpty { null },
             folderId = conversationEntity.folderId.ifEmpty { null }?.let { Uuid.parse(it) },
+            type = conversationEntity.type.ifBlank { GroupChat.TYPE_DIRECT },
+            groupConfig = GroupChat.decodeConfig(conversationEntity.groupConfig),
         )
     }
 
@@ -434,6 +457,8 @@ class ConversationRepository(
             updateAt = Instant.ofEpochMilli(entity.updateAt),
             messageNodes = emptyList(),
             folderId = entity.folderId.ifEmpty { null }?.let { Uuid.parse(it) },
+            type = entity.type.ifBlank { GroupChat.TYPE_DIRECT },
+            groupConfig = GroupChat.decodeConfig(entity.groupConfig),
         )
     }
 
@@ -497,6 +522,8 @@ data class LightConversationEntity(
     val createAt: Long,
     val updateAt: Long,
     val folderId: String = "",
+    val type: String = GroupChat.TYPE_DIRECT,
+    val groupConfig: String = "",
 )
 
 data class ConversationPageResult(

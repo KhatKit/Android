@@ -16,6 +16,8 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.common.cache.LruCache
 import heizige.kk.khatkit.common.cache.SingleFileCacheStore
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
+import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
+import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -110,7 +112,7 @@ class OcrTransformer @Inject constructor(
         }
 
         val settings = settingsStore.settingsFlow.value
-        val model = settings.findModelById(settings.ocrModelId) ?: return null
+        val model = runCatching { TaskRoutes.resolve(settings, ModelTaskType.OCR) }.getOrNull() ?: return null
         val providerSetting = model.findProvider(settings.providers) ?: return null
         return runCatching {
             val provider = providerManager.getProviderByType(providerSetting)

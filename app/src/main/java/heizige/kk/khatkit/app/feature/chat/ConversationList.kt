@@ -548,6 +548,14 @@ private fun ConversationItem(
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (conversation.type == heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_GROUP) {
+                        Text(
+                            text = "群",
+                            style = KedgeTextStyles.footnoteSmall(),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
+                    }
                     Text(
                         text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
                         maxLines = 1,

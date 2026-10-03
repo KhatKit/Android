@@ -177,6 +177,7 @@ class SettingsRepository @Inject constructor(
         val MODE_INJECTIONS = stringPreferencesKey("mode_injections")
         val LOREBOOKS = stringPreferencesKey("lorebooks")
         val QUICK_MESSAGES = stringPreferencesKey("quick_messages")
+        val FEATURE_FLAGS = stringPreferencesKey("feature_flags")
 
         // 备份提醒
         val BACKUP_REMINDER_CONFIG = stringPreferencesKey("backup_reminder_config")
@@ -240,6 +241,7 @@ class SettingsRepository @Inject constructor(
                 preferences[MODE_INJECTIONS] = JsonInstant.encodeToString(settings.modeInjections)
                 preferences[LOREBOOKS] = JsonInstant.encodeToString(settings.lorebooks)
                 preferences[QUICK_MESSAGES] = JsonInstant.encodeToString(settings.quickMessages)
+                preferences[FEATURE_FLAGS] = JsonInstant.encodeToString(settings.featureFlags)
                 preferences[WEB_SERVER_ENABLED] = settings.webServerEnabled
                 preferences[WEB_SERVER_PORT] = settings.webServerPort
                 preferences[WEB_SERVER_JWT_ENABLED] = settings.webServerJwtEnabled
@@ -344,6 +346,9 @@ class SettingsRepository @Inject constructor(
                     JsonInstant.decodeFromString(it)
                 } ?: BackupReminderConfig(),
                 launchCount = preferences[LAUNCH_COUNT] ?: 0,
+                featureFlags = preferences[FEATURE_FLAGS]?.let {
+                    runCatching { JsonInstant.decodeFromString<FeatureFlags>(it) }.getOrDefault(FeatureFlags())
+                } ?: FeatureFlags(),
             )
         }
         .map {
@@ -602,12 +607,26 @@ data class Settings(
     val webServerLocalhostOnly: Boolean = false,
     val backupReminderConfig: BackupReminderConfig = BackupReminderConfig(),
     val launchCount: Int = 0,
+    val featureFlags: FeatureFlags = FeatureFlags(),
 ) {
     companion object {
         // 构造一个用于初始化的settings, 但它不能用于保存，防止使用初始值存储
         fun dummy() = Settings(init = true)
     }
 }
+
+@Serializable
+data class FeatureFlags(
+    val marketNewKinds: Boolean = false,
+    val pluginHooksEnabled: Boolean = true,
+)
+
+fun FeatureFlags.visibleMarketKinds(): List<String> =
+    if (marketNewKinds) {
+        listOf("card", "skill", "mcp", "prompt", "workflow", "dependency", "provider_plugin")
+    } else {
+        listOf("card")
+    }
 
 @Serializable
 data class NetworkSetting(

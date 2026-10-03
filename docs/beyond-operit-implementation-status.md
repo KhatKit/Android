@@ -1,6 +1,6 @@
 # beyond-operit 实施与验收状态
 
-更新：2026-10-03。目标仍为 `beyond-operit-client-changes.md` 与
+更新：2026-10-04。目标仍为 `beyond-operit-client-changes.md` 与
 `beyond-operit-server-changes.md` 的完整范围；本文件不替代总路线规格。
 “已有代码”不等于验收通过，未有直接证据的项目都保持未完成。
 
@@ -26,21 +26,72 @@ SemVer、审计版本绑定、幂等投票和优选、旧卡片发布/fork/投�
 AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageToolbox Lua
 脚本。不能宣称服务端全量测试全绿。
 
-用户目前开着代理，要求需要线上操作时先发消息；尚未连接/部署服务端，
-未执行生产迁移。客户端市场新 kind 入口不得因为本地测试通过就开启。
+2026-10-04 已按 `KodeHeapServer/deploy.sh` 部署到 https://heizige.top。
+就绪探针与 `/api/items`、`/api/cards` 冒烟通过。客户端 `marketNewKinds` 仍默认关闭。
+
+## C1 交给下一位（2026-10-04）
+
+下一包只做 C1。规格以 `beyond-operit-client-changes.md` 的「C1 实施契约」为准，
+冲突时以该契约为准。验收表是 `docs/eval/c1-group-chat.md`，十例都还是
+`unverified`。没有命令退出码、可见消息 ID、调用序列和哈希，不能改成通过。
+
+硬约束：
+
+- 不开工 C4。
+- 每包结束跑 `./gradlew --offline assembleDebug test lint`，全绿再写已完成。
+- `marketNewKinds` 保持默认 false。C1 不依赖市场新 kind。
+- 不落第二套消息库。过滤只发生在发给模型的副本上，库存消息保持完整。
+- 记忆键必须是 `group:<conversationId>:role:<roleId>`，失败不得回退到全局或助手空间。
+- 开源对照：SillyTavern `public/scripts/group-chats.js`（AGPL-3.0，release）。
+  只借鉴名单顺序和整词 `@`。不要照搬它的共享历史。
+
+已经在代码里、不要推倒重写：
+
+- `app/.../core/data/model/GroupChat.kt`：`buildContext` / `visibleMessages`、
+  `plan`、`parseMentions`、`pendingSpeakers`、`speakersAfterBudget`、`majority`、
+  `validate`、`encodeQr` / `decodeQr`、`memorySpaceId`。
+- `UIMessage.roleId` / `mentions`；`Conversation.type` 默认 `DIRECT`，
+  `groupConfig` 可空。Room 已到 version 30，`type` / `group_config` 有默认值，
+  schema `app/schemas/.../30.json` 已导出。
+- `GroupPerspectiveTransformer` 挂在 `ChatManager.handleMessageComplete` 的
+  input transformer 最前。`takeGroupSpeaker` / `continueGroupTurn` /
+  `stampGroupRole` / `appendVoteSummary` / `createGroup` 已有草稿。
+- `GroupChatPage`、抽屉类型 chip、群徽标、新建群聊。`GroupChatTest` 覆盖隔离、
+  pipeline 交接、议长、多数决、预算、QR、列表过滤。这只是 JVM 证据，不是 C1-01…C1-10。
+
+下一位按这个顺序补，补完一项就在验收表登记，没跑的保持 `unverified`：
+
+1. 消息还缺契约字段 `mention_role_ids`、`round_id`、`turn_kind`。现在只有
+   `roleId` 和 `mentions`。同一 `conversationId + round_id` 要有持久化 run token，
+   重试跳过已提交 turn。取消和超时不得写入未生成消息。
+2. `GroupConfig` 还不是契约里的版本化 JSON：未知字段会在
+   `encodeQr` / `decodeQr` 往返时丢掉。`chair_role_id`、`token_budget_per_round`、
+   `revision` 要和现有字段对齐；非法预算、重复 role、roundtable 缺议长必须拒绝保存。
+3. 记忆：空间会 `ensureSpace`，检索键也换成了群角色空间。还没把
+   `source_message_id` 和 `role_id` 写入记忆，检索结果也没有再过一遍 viewer 过滤。
+   工具调用仍可能看到未过滤的完整 `messages`，要和 prompt 用同一份 `buildContext`。
+4. vote 现在把角色正文拿去 `majority`。契约要求结构化候选和票，平票按配置失败，
+   不能靠自由文本猜。
+5. 导出：QR 只有群配置，没有角色卡最小元数据，也没有 Tavern 导出。
+   导入还是文本粘贴，没有相机扫码。导出不得带密钥、记忆或工具授权 token。
+6. UI：群页是独立列表，没有复用 `ChatPage` 的消息管线；成员头像组还没有。
+   筛选 chip 已在，要补「筛选只过滤、来回切换不丢数据」的证据。
+7. 跑通离线 `assembleDebug test lint` 后，把命令和退出码写进
+   `docs/eval/c1-group-chat.md`。真机三角色、酒馆本体打开文件、相机扫码另列，
+   没做就继续标 `unverified`。
 
 ## 客户端包验收清单
 
 | 包 | 代码现状/证据 | 必须继续实现或验证 |
 | --- | --- | --- |
 | A1 浏览器 | 无设置页；WebView 会话与动作、语义/增量快照、截图、Room 历史、卡片脚本桥已写入；签到/比价卡已移至 KhatKitCards，AI 通过卡片工具调用；JVM 与设备本地 HTML 有定向证据 | 独立 cookie；真实网站登录/重定向/两张卡验收；更多 WebView/设备版本验证 |
-| A2 记忆 | 空间/chunks/edges/mentions 四表 + 迁移（旧 KV 保留溯源）；FTS5 外部内容+触发器；sqlite-vector 接线 + Kotlin 暴力余弦兜底；RRF 四路融合（FTS/向量/图谱/时间衰减）；memory_search/add/link/forget 四工具；LLM 自动抽取+开关；检索式注入带 id/来源/置信度；UI 置信度/来源标注 | 50 文档/20 问 ≥80% 与 5k P95 <300ms 实测；记忆图谱 Mermaid UI；来源跳转到原消息（当前只显示 messageId）；bi-temporal 冲突标记 |
-| A4 视觉 GUI | UiAction 同构动作模型（RecordedStep 超集+bbox）+ 双向转换；VisualGrounding 双通道（中心包含/IoU→节点中心误差 0，bbox 兜底≤8dp）；AutomationTracer JSONL 轨迹（截图+动作+目标+结果）；TracePlayer 回放；device_act bbox 参数+双通道解析+全动作轨迹；device_screen 返回 image_width/height 坐标空间 | 10 任务成功率 >85% 与 3 台设备矩阵实测；有节点树时误差 0 的真机验证；轨迹回放 UI（当前只有引擎）；可选虚拟显示回退；录制卡导出（复用 RecordingCardFactory 待接） |
-| A5 酒馆 | 宏与 CCv3 lorebook 字段导入已有代码 | 完整无损 V2/V3/PNG 双向；15 项 lorebook 语义对照；ST 聊天 swipe 分支互通；preset/instruct 子集；20 张真实卡回归；酒馆本体导入验证；角色带工具设备任务演示 |
-| B1 工作流 | 节点编辑页/WorkflowStore 已有基础 | Room workflows/runs/steps；10 类节点执行端到端；18 触发源连接；自然语言/JSON/脚本三态；SSE 日志/取消/重试/成本；通知分类分支案例；3 个脚本等价性用例 |
-| B2 ToolPkg | 服务端本地协议已推进 | 本地 ZIP/dex/脚本安装与卸载更新；依赖解析/sha256；工具/设置/Provider 热安装；五类 hooks 与全局禁用/审批；静态报告生成及三样例；市场 UI 与功能开关；六 kind 安装全流程；服务端上线后联调 |
-| B3 路由 | 已有 task route 与 cooldown 基础 | 全任务候选/三策略消费点；Key 池轮换/429/5xx 熔断恢复；日/月预算降级或只读；每 key/任务统计 UI；模型分离与故障切换测试 |
-| C1 群聊 | 尚未完成审计 | role_id/关联表；角色视角过滤与独立记忆；@ 路由 UI；pipeline/roundtable/vote 与轮次预算；Tavern 导出、QR、备份恢复；三角色隔离验证 |
+| A2 记忆 | 空间/检索/工具/注入已落地；来源可点击跳到原消息节点和对应分支 | 50 文档/20 问 ≥80% 与 5k P95 <300ms 实测；记忆图谱 Mermaid UI；bi-temporal 冲突标记 |
+| A4 视觉 GUI | 同构动作、双通道定位、JSONL 轨迹、TracePlayer、设置页轨迹审计（逐步查看动作/结果/命中/截图路径） | 10 任务成功率 >85% 与 3 台设备矩阵实测；有节点树时误差 0 的真机验证；截图缩略图；可选虚拟显示回退；录制卡导出 |
+| A5 酒馆 | 宏 v1、角色卡原文保留与 JSON/PNG 双向、lorebook AND/OR/NOT/递归/概率、ST 聊天 swipe、instruct/sampler 子集已有代码与 JVM 对照测试；子集说明见 `docs/tavern-compat.md` | 酒馆本体打开 PNG/聊天文件；20 张第三方真实卡；带工具角色的真机设备任务演示 |
+| B1 工作流 | 规范 JSON、10 类节点、FlowSpec/Lua 导出、3 个等价性用例、Room 三表、失败跳过/续跑/取消、现有 `/api/events` 的 `workflow_run`、通知分类示例与逐步日志。对照见开源参考 B1。`docs/flow.md` §6 已完成 | 自由画布；自然语言经 GenerationLoop 生成；真机把 FlowSpec 交给 `khatkit__run_flow` 跑通卡片；成本统计接真实 Token |
+| B2 ToolPkg | 本地包校验、hooks 能力边界、插件设置 schema、Provider 声明解析、静态审计报告三样例；`marketNewKinds` 默认 false | dex 热加载、市场 UI、服务端上线后联调 |
+| B3 路由 | 三策略、Key 池指数退避/半开、预算降级或只读、7 个消费点调用 `taskBinding()`、统计页路由计数；对照见开源参考 B3 | 设置页策略编辑；价格表 JSON；真机 429 对话无感 |
+| C1 群聊 | 内核和一版 UI 已写入，**未验收**。详见下方「C1 交给下一位」。`docs/eval/c1-group-chat.md` 十例全部 `unverified` | 按该节缺口续写；补证据前不得把 C1 标成已完成 |
 | C2 工作区 | 现有 workspace/proot 与文件工具可复用 | 五种模板与项目规则；preview；内容寻址 diff/revert 与聊天重发回滚；SSH/SFTP 许可评估和读写后端；APK/HTML 打包；端到端及路径穿越测试 |
 | C3 语音入口 | 现有 VoiceSessionController 可复用 | Sherpa 唤醒/前台服务/VAD/流式 ASR；全双工打断与草稿；ASSIST 面板、Widget、气泡、取词悬浮球；VITS 依赖包；真机误触/保活/500ms 打断/1s ASSIST 验证 |
 | C4 虚拟形象 | 尚未完成审计 | glTF 模块、五状态、口型/视线/情绪事件；桌面宠物；dependency 安装卸载；骁龙 7 系 60fps 真机验证 |
@@ -318,3 +369,44 @@ screen2prompt 上游未核实（PyPI 页面 JS challenge），未复制源码；
 - 验证：card-validator 21 卡 0 错误；`./gradlew --offline assembleDebug test lint`
   BUILD SUCCESSFUL（3m28s，835 tasks）。
 - 仍未完成：真机交互与人工业务验收（当前 ADB 无设备）；`UI_DSL_CLIENT_CHANGES.md` 拆分文档未单独创建。
+
+## A5 酒馆生态兼容（2026-10-03）
+
+兼容子集写在 `docs/tavern-compat.md`。不接 L5，不把群聊语义或角色卡市场做进本包。
+
+- 角色卡：`chara_card_v2/v3` 原文存 `Assistant.tavernCardJson`，导出 JSON 回写。PNG 按 SillyTavern `character-card-parser.js`：`chara` 保留原文，`ccv3` 把 spec 改成 v3，读取优先 `ccv3`。助手编辑页在已导入卡片上提供导出。
+- 开场白：`alternate_greetings` 作为首条消息的 swipe，不拆成连续轮次。
+- 聊天导出增加 JSONL，与酒馆 `chats/` 文件一致。数组格式仍可读。
+- 宏 v1：`{{user}}` `{{char}}` `{{random:a|b}}` `{{roll:1d6}}` `{{lastMessage}}` `{{time}}`，未识别宏保留。
+- lorebook：主关键字 OR；selective 次键对齐酒馆 0–3；递归、概率、优先级进 `LorebookEngine`，挂在 `PromptInjectionTransformer`。角色卡内嵌 character book 随助手生效，不依赖设置里的 lorebook id。
+- 聊天 JSON v1：`swipes` → `MessageNode`，`swipe_id` 为选中下标，超集字段回写。
+- instruct / sampler 子集：顺序包裹与温度/top_p/max_tokens 映射，未知字段透传。
+
+### 验证
+
+- `LorebookEngineTest` 覆盖 OR、大小写、正则、常驻、禁用、AND_ANY/AND_ALL/NOT_ANY/NOT_ALL、概率、优先级、递归开/关、exclude/prevent、扫描深度。
+- `TavernCompatTest`：20 张规格卡 JSON 往返字段不丢；PNG `chara`/`ccv3` 往返且 metadata-extractor 可见；聊天 swipe 与 extra 回写；instruct 顺序；sampler 透传。
+- 20 张卡是按 v2/v3 字段生成的规格夹具，不是第三方角色卡文件。
+- `./gradlew --offline assembleDebug test lint` BUILD SUCCESSFUL（3m20s，839 tasks）。
+
+### 未完成 / 风险
+
+- 未用 SillyTavern 本体打开 PNG 或聊天文件。
+- 未做 20 张第三方真实卡回归，也未做「带工具的酒馆角色」真机设备任务。
+- 聊天导出目前是编解码 API，会话页还没有导出按钮。
+- C4 未开工。B2 新 kind 入口仍未暴露。
+
+## B1 可视化工作流（2026-10-03）
+
+已完成：
+
+- 规范 JSON 与 10 类节点。触发器只存 TriggerEngine 已有的 18 种事件名，或本地 `manual`。
+- `WorkflowEngine` 按 QGraph 的 Kahn / 失败下游跳过 / 成功节点续跑重写。输出编译成 `parseFlowSpec` 可读的 steps JSON。
+- 同一输入下，可视化执行与导出 Lua 的成功节点输出一致。线性、紧急分支、非紧急分支、三次循环四个用例通过。
+- Room 28→29：`workflows` / `workflow_runs` / `workflow_run_steps`。旧 SharedPreferences 在表为空时迁入。
+- 本机 `/api/events` 增加 `workflow_run`。不新开 Hub 协议。
+- 编辑页接到这 10 类节点，可加载「通知分类」示例，预览运行可逐步展开输入/输出。
+- `docs/flow.md` §6 已完成。
+- `./gradlew --offline assembleDebug test lint` BUILD SUCCESSFUL（3m14s，835 tasks）。这是构建与 JVM 证据，不是真机跑卡片。
+
+未完成：自由画布、自然语言经 GenerationLoop 生成 FlowSpec、真机把编译结果交给 `khatkit__run_flow` 执行已安装卡片、成本接真实 Token。C4 未开工。`marketNewKinds` 仍默认关闭。

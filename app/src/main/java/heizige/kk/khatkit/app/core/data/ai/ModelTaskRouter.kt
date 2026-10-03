@@ -21,12 +21,18 @@ enum class ModelTaskType {
 enum class ModelRoutePolicy {
     PRIORITY,
     ROUND_ROBIN,
+    COST_FIRST,
+    QUALITY_FIRST,
+    LATENCY_FIRST,
 }
 
 data class ModelRouteCandidate(
     val providerId: String,
     val modelId: String,
     val priority: Int = 0,
+    val costRank: Int = 0,
+    val qualityRank: Int = 0,
+    val latencyRank: Int = 0,
 )
 
 data class ModelTaskBinding(
@@ -46,6 +52,9 @@ class ModelTaskRouter(
         if (available.isEmpty()) return null
         return when (binding.policy) {
             ModelRoutePolicy.PRIORITY -> available.maxByOrNull { it.priority }
+            ModelRoutePolicy.COST_FIRST -> available.minByOrNull { it.costRank }
+            ModelRoutePolicy.QUALITY_FIRST -> available.maxByOrNull { it.qualityRank }
+            ModelRoutePolicy.LATENCY_FIRST -> available.minByOrNull { it.latencyRank }
             ModelRoutePolicy.ROUND_ROBIN -> {
                 val cursor = cursors.getOrDefault(task, 0)
                 val selected = available[cursor % available.size]
@@ -65,6 +74,9 @@ class ModelTaskRouter(
         failures.remove(key(candidate))
     }
 
+    @Synchronized
+    fun isCooling(candidate: ModelRouteCandidate, nowMillis: Long): Boolean = isCoolingDown(candidate, nowMillis)
+
     private fun isCoolingDown(candidate: ModelRouteCandidate, nowMillis: Long): Boolean =
         failures[key(candidate)]?.let { nowMillis - it < cooldown.inWholeMilliseconds } == true
 
@@ -76,20 +88,29 @@ class ModelTaskRouter(
  * This keeps routing backward compatible while the UI for explicit per-task
  * pools is developed.
  */
-fun Settings.taskBinding(task: ModelTaskType): ModelTaskBinding {
-    val selectedId = when (task) {
+fun Settings.taskBinding(task: ModelTaskType, preferredId: kotlin.uuid.Uuid? = null): ModelTaskBinding {
+    val selectedId = preferredId ?: when (task) {
         ModelTaskType.CHAT,
         ModelTaskType.UI_CONTROL -> chatModelId
         ModelTaskType.MEMORY,
-        ModelTaskType.SUMMARY,
         ModelTaskType.TITLE -> fastModelId
+        ModelTaskType.SUMMARY -> compressModelId
         ModelTaskType.OCR -> ocrModelId
         ModelTaskType.TRANSLATION -> translateModeId
     }
     val selected = findModelById(selectedId)
     val candidates = buildList<ModelRouteCandidate> {
         selected?.findProvider(providers)?.let { provider ->
-            add(ModelRouteCandidate(provider.id.toString(), selected.id.toString(), priority = 100))
+            add(
+                ModelRouteCandidate(
+                    provider.id.toString(),
+                    selected.id.toString(),
+                    priority = 100,
+                    costRank = 100,
+                    qualityRank = 100,
+                    latencyRank = 50,
+                )
+            )
         }
         providers.filter { it.enabled }.forEach { provider ->
             provider.models
@@ -100,6 +121,9 @@ fun Settings.taskBinding(task: ModelTaskType): ModelTaskBinding {
                             providerId = provider.id.toString(),
                             modelId = model.id.toString(),
                             priority = 90 - index,
+                            costRank = 40 - index,
+                            qualityRank = 60 - index,
+                            latencyRank = 20 - index,
                         )
                     )
                 }

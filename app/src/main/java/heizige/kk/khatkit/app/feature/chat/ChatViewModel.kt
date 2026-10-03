@@ -73,6 +73,16 @@ class ChatViewModel @AssistedInject constructor(
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)
     var chatListInitialized by mutableStateOf(false) // 聊天列表是否已经滚动到底部
 
+    fun focusMessage(messageId: Uuid) {
+        val current = conversation.value
+        val node = current.getMessageNodeByMessageId(messageId) ?: return
+        val index = node.messages.indexOfFirst { it.id == messageId }
+        if (index < 0 || node.selectIndex == index) return
+        viewModelScope.launch {
+            runCatching { chatService.selectMessageNode(current.id, node.id, index) }
+        }
+    }
+
     // 聊天输入状态 - 保存在 ViewModel 中避免 TransactionTooLargeException
     val inputState = ChatInputState()
 

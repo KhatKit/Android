@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -46,8 +48,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.util.navigateToChatPage
+import kotlinx.coroutines.launch
+import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
@@ -71,6 +78,24 @@ fun AssistantMemoryPage(id: String) {
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val memories by vm.memories.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val navController = LocalNavController.current
+    val scope = rememberCoroutineScope()
+    val sourceMissing = stringResource(R.string.memory_source_missing)
+    val onOpenSource: (String) -> Unit = { messageId ->
+        scope.launch {
+            val anchor = vm.locateMemorySource(messageId)
+            if (anchor == null) {
+                Toast.show(sourceMissing)
+            } else {
+                navigateToChatPage(
+                    navigator = navController,
+                    chatId = anchor.conversationId,
+                    nodeId = anchor.nodeId,
+                    messageId = Uuid.parse(messageId),
+                )
+            }
+        }
+    }
 
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
         KedgeSettingsPageScaffold(
@@ -89,6 +114,7 @@ fun AssistantMemoryPage(id: String) {
                 onDeleteMemory = { vm.deleteMemory(it) },
                 onAddMemory = { vm.addMemory(it) },
                 onUpdateMemory = { vm.updateMemory(it) },
+                onOpenSource = onOpenSource,
             )
         }
         return
@@ -117,7 +143,8 @@ fun AssistantMemoryPage(id: String) {
             onUpdateAssistant = { vm.update(it) },
             onDeleteMemory = { vm.deleteMemory(it) },
             onAddMemory = { vm.addMemory(it) },
-            onUpdateMemory = { vm.updateMemory(it) }
+            onUpdateMemory = { vm.updateMemory(it) },
+            onOpenSource = onOpenSource,
         )
     }
 }
@@ -131,6 +158,7 @@ private fun AssistantMemoryContent(
     onAddMemory: (AssistantMemory) -> Unit,
     onUpdateMemory: (AssistantMemory) -> Unit,
     onDeleteMemory: (AssistantMemory) -> Unit,
+    onOpenSource: (String) -> Unit = {},
 ) {
     val memoryDialogState = useEditState<AssistantMemory> {
         if (it.id == 0) {
@@ -338,7 +366,8 @@ private fun AssistantMemoryContent(
                     },
                     onDeleteMemory = {
                         pendingDeleteMemory = it
-                    }
+                    },
+                    onOpenSource = onOpenSource,
                 )
             }
         }
@@ -368,7 +397,8 @@ private fun AssistantMemoryContent(
 private fun MemoryItem(
     memory: AssistantMemory,
     onEditMemory: (AssistantMemory) -> Unit,
-    onDeleteMemory: (AssistantMemory) -> Unit
+    onDeleteMemory: (AssistantMemory) -> Unit,
+    onOpenSource: (String) -> Unit = {},
 ) {
     KedgeCard(
         modifier = Modifier.fillMaxWidth(),
@@ -404,12 +434,22 @@ private fun MemoryItem(
                     }
                 }
                 if (provenance.isNotEmpty()) {
+                    val sourceId = memory.sourceMessageId
                     Text(
                         text = provenance.joinToString(" · "),
                         style = KedgeTextStyles.footnoteSmall(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (sourceId != null) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = if (sourceId != null) {
+                            Modifier.clickable { onOpenSource(sourceId) }
+                        } else {
+                            Modifier
+                        },
                     )
                 }
             }

@@ -7,8 +7,11 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.InjectionPosition
 import heizige.kk.khatkit.app.core.data.model.PromptInjection
 import heizige.kk.khatkit.app.core.data.model.Lorebook
-import heizige.kk.khatkit.app.core.data.model.extractContextForMatching
-import heizige.kk.khatkit.app.core.data.model.isTriggered
+import heizige.kk.khatkit.app.core.data.ai.lorebook.activateLorebookEntries
+import heizige.kk.khatkit.app.core.data.ai.tavern.expandTavernMacros
+import heizige.kk.khatkit.app.core.data.ai.tavern.previousChatText
+import heizige.kk.khatkit.app.core.data.export.parseCharacterCardLorebook
+import kotlin.random.Random
 import kotlin.uuid.Uuid
 
 /**
@@ -28,6 +31,7 @@ object PromptInjectionTransformer : InputMessageTransformer {
             lorebooks = ctx.settings.lorebooks,
             conversationModeInjectionIds = ctx.conversationModeInjectionIds,
             conversationLorebookIds = ctx.conversationLorebookIds,
+            userName = ctx.settings.displaySetting.userNickname.ifBlank { "User" },
         )
     }
 }
@@ -42,6 +46,8 @@ internal fun transformMessages(
     lorebooks: List<Lorebook>,
     conversationModeInjectionIds: Set<Uuid> = emptySet(),
     conversationLorebookIds: Set<Uuid> = emptySet(),
+    userName: String = "User",
+    lorebookRoll: () -> Int = { Random.nextInt(100) },
 ): List<UIMessage> {
     // 收集所有需要注入的内容
     val injections = collectInjections(
@@ -51,6 +57,8 @@ internal fun transformMessages(
         lorebooks = lorebooks,
         conversationModeInjectionIds = conversationModeInjectionIds,
         conversationLorebookIds = conversationLorebookIds,
+        userName = userName,
+        lorebookRoll = lorebookRoll,
     )
 
     if (injections.isEmpty()) {
@@ -76,6 +84,8 @@ internal fun collectInjections(
     lorebooks: List<Lorebook>,
     conversationModeInjectionIds: Set<Uuid> = emptySet(),
     conversationLorebookIds: Set<Uuid> = emptySet(),
+    userName: String = "User",
+    lorebookRoll: () -> Int = { Random.nextInt(100) },
 ): List<PromptInjection> {
     val injections = mutableListOf<PromptInjection>()
     val effectiveModeInjectionIds = if (assistant.allowConversationPromptInjection) {
@@ -98,22 +108,42 @@ internal fun collectInjections(
     val enabledLorebooks = lorebooks.filter {
         it.enabled && effectiveLorebookIds.contains(it.id)
     }
+    val nonSystemMessages = messages.filter { it.role != MessageRole.SYSTEM }
     if (enabledLorebooks.isNotEmpty()) {
-        // 提取上下文用于匹配（只取非 SYSTEM 消息）
-        val nonSystemMessages = messages.filter { it.role != MessageRole.SYSTEM }
-
         enabledLorebooks.forEach { lorebook ->
-            lorebook.entries
-                .filter { entry ->
-                    val context = extractContextForMatching(nonSystemMessages, entry.scanDepth)
-                    entry.isTriggered(context)
-                }
-                .forEach { injections.add(it) }
+            activateLorebookEntries(
+                entries = lorebook.entries,
+                messages = nonSystemMessages,
+                recursiveScanning = lorebook.recursiveScanning,
+                roll = lorebookRoll,
+            ).forEach { injections.add(it.expandContent(messages, assistant, userName)) }
         }
+    }
+
+    parseCharacterCardLorebook(assistant.tavernCardJson.orEmpty())?.let { book ->
+        activateLorebookEntries(
+            entries = book.entries,
+            messages = nonSystemMessages,
+            recursiveScanning = book.recursiveScanning,
+            roll = lorebookRoll,
+        ).forEach { injections.add(it.expandContent(messages, assistant, userName)) }
     }
 
     return injections
 }
+
+private fun PromptInjection.RegexInjection.expandContent(
+    messages: List<UIMessage>,
+    assistant: Assistant,
+    userName: String,
+): PromptInjection.RegexInjection = copy(
+    content = expandTavernMacros(
+        template = content,
+        userName = userName,
+        characterName = assistant.name.ifBlank { "Assistant" },
+        lastMessage = previousChatText(messages),
+    )
+)
 
 /**
  * 应用注入到消息列表
@@ -235,6 +265,7 @@ private fun createMergedInjectionMessages(injections: List<PromptInjection>): Li
             val mergedContent = grouped.joinToString("\n") { it.content }
             when (role) {
                 MessageRole.ASSISTANT -> UIMessage.assistant(mergedContent)
+                MessageRole.SYSTEM -> UIMessage.system(mergedContent)
                 else -> UIMessage.user(mergedContent)
             }.copy(
                 isSynthetic = true,

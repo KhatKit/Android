@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +31,14 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.feature.workflow.WorkflowEngine
+import heizige.kk.khatkit.app.feature.workflow.WorkflowExecution
+import heizige.kk.khatkit.app.feature.workflow.WorkflowLegacy
+import heizige.kk.khatkit.app.feature.workflow.WorkflowSamples
+import heizige.kk.khatkit.app.feature.workflow.encode
+import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khromia.helper.Toast
@@ -54,17 +62,23 @@ fun CreateWorkflowPage(workflowId: String? = null) {
         }
     }
     var expandedIndex by remember { mutableStateOf<Int?>(0) }
-    val categories = listOf(
-        "触发器" to listOf("手动启动", "定时触发", "通知触发", "应用启动", "剪贴板变化", "充电状态", "Wi-Fi 状态", "位置进入"),
-        "交互" to listOf("点击控件", "长按控件", "输入文本", "滑动页面", "返回上一页", "打开应用", "截图"),
-        "识别" to listOf("查找文本", "查找控件", "OCR 识别", "等待控件出现", "等待页面稳定"),
-        "逻辑" to listOf("条件判断", "否则分支", "重复执行", "遍历列表", "等待", "停止流程", "调用子流程"),
-        "数据" to listOf("提取文本", "保存变量", "使用变量", "格式化文本", "JSON 解析", "数组操作"),
-        "网络" to listOf("HTTP 请求", "下载文件", "上传文件", "解析响应"),
-        "文件" to listOf("读取文件", "写入文件", "复制文件", "删除文件"),
-        "系统" to listOf("发送通知", "震动", "设置剪贴板", "调节音量", "打开系统设置"),
-        "AI" to listOf("AI 识别页面", "AI 判断下一步", "AI 生成文本", "AI 提取字段", "AI 总结结果"),
-        "脚本" to listOf("运行 Lua", "运行 JavaScript", "执行 Shell"),
+    var classification by remember { mutableStateOf("urgent") }
+    var preview by remember { mutableStateOf<WorkflowExecution?>(null) }
+    var expandedStep by remember { mutableStateOf<Int?>(null) }
+    val scope = rememberCoroutineScope()
+    val repository = rememberAppEntryPoint().workflowRepository()
+    val presets = listOf(
+        WorkflowPreset("trigger", "触发器", "通知触发", mapOf("event" to "notification")),
+        WorkflowPreset("trigger", "触发器", "手动启动", mapOf("event" to "manual")),
+        WorkflowPreset("llm", "模型", "分类", mapOf("prompt" to "分类这条通知", "fallback" to "other")),
+        WorkflowPreset("condition", "逻辑", "条件分支", mapOf("field" to "text", "equals" to "urgent")),
+        WorkflowPreset("loop", "逻辑", "重复", mapOf("count" to "3")),
+        WorkflowPreset("delay", "逻辑", "等待", mapOf("ms" to "1000")),
+        WorkflowPreset("data_extract", "数据", "提取字段", mapOf("field" to "text")),
+        WorkflowPreset("http", "网络", "HTTP 请求", mapOf("url" to "https://example.com", "method" to "GET")),
+        WorkflowPreset("notify", "系统", "发送通知", mapOf("title" to "回复")),
+        WorkflowPreset("card_tool", "卡片", "写文件", mapOf("card" to "write_file", "path" to "out.txt")),
+        WorkflowPreset("sub_flow", "流程", "子流程", mapOf("workflow" to "")),
     )
 
     KedgeSettingsPageScaffold(
@@ -73,14 +87,13 @@ fun CreateWorkflowPage(workflowId: String? = null) {
         actions = {
             KedgeTextButton(
                 onClick = {
-                    WorkflowStore.save(
-                        context,
-                        WorkflowDefinition(
-                            id = editing?.id ?: java.util.UUID.randomUUID().toString(),
-                            name = name.ifBlank { "未命名" },
-                            nodes = nodes.toList(),
-                        ),
-                    )
+                    val saved = currentDefinition(editing?.id, name, nodes.toList())
+                    WorkflowStore.save(context, saved)
+                    scope.launch {
+                        runCatching {
+                            repository.save(WorkflowLegacy.fromStored(saved))
+                        }
+                    }
                     Toast.show("工作流「${name.ifBlank { "未命名" }}」已保存")
                     nav.navigate(Screen.SettingTriggers) {
                         popUpTo(Screen.CreateWorkflow()) { inclusive = true }
@@ -134,7 +147,17 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             item {
                 Text("添加模块", style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
             }
-            categories.forEach { (category, actions) ->
+            item {
+                KedgeTextButton(
+                    onClick = {
+                        val sample = WorkflowSamples.notificationClassify()
+                        name = sample.name
+                        nodes.clear()
+                        nodes.addAll(WorkflowLegacy.toStoredNodes(sample))
+                    },
+                ) { Text("加载通知分类示例") }
+            }
+            presets.groupBy { it.category }.forEach { (category, actions) ->
                 item(key = category) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(category, style = KedgeTextStyles.body(), color = MaterialTheme.colorScheme.primary)
@@ -146,16 +169,23 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                                 KedgeFilterChip(
                                     selected = false,
                                     onClick = {
+                                        val previous = nodes.lastOrNull()?.id.orEmpty()
                                         nodes.add(
                                             WorkflowNode(
-                                                category = category,
-                                                title = action,
-                                                detail = moduleHint(action),
-                                                params = defaultParams(action),
-                                            )
+                                                category = action.category,
+                                                title = action.title,
+                                                detail = action.kind,
+                                                params = action.params + if (previous.isNotEmpty()) {
+                                                    mapOf("depends_on" to previous)
+                                                } else {
+                                                    emptyMap()
+                                                },
+                                                kind = action.kind,
+                                                id = "n${nodes.size}",
+                                            ),
                                         )
                                     },
-                                    label = { Text(action) },
+                                    label = { Text(action.title) },
                                 )
                             }
                         }
@@ -164,13 +194,87 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             }
             item {
                 Text(
-                    "节点会按顺序执行。AI 节点只在你明确添加后介入，并遵循自动化授权策略。",
+                    "规范形态是可视化 JSON，执行时编译成现有 FlowSpec。触发器只引用已有的 18 种事件。",
                     style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            item {
+                KedgeOutlinedTextFieldWithSlots(
+                    value = classification,
+                    onValueChange = { classification = it },
+                    label = { Text("预览分类结果") },
+                    supportingText = { Text("urgent 走回复，其他值写文件") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                )
+            }
+            item {
+                KedgeTextButton(
+                    onClick = {
+                        val graph = WorkflowLegacy.fromStored(currentDefinition(editing?.id, name, nodes.toList()))
+                        val execution = WorkflowEngine.execute(
+                            graph,
+                            mapOf("classification" to classification, "event" to "notification"),
+                        )
+                        preview = execution
+                        expandedStep = 0
+                        scope.launch {
+                            runCatching {
+                                repository.save(graph)
+                                repository.record(graph, execution)
+                            }
+                        }
+                    },
+                ) { Text("预览运行") }
+            }
+            preview?.let { execution ->
+                item {
+                    Text(
+                        "运行 ${execution.status}",
+                        style = KedgeTextStyles.title(),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                itemsIndexed(execution.steps, key = { index, step -> "${step.nodeId}-$index" }) { index, step ->
+                    KedgeCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            KedgeTextButton(onClick = {
+                                expandedStep = if (expandedStep == index) null else index
+                            }) {
+                                Text("${index + 1}. ${step.nodeId} · ${step.kind} · ${step.status}")
+                            }
+                            if (expandedStep == index) {
+                                Text("输入 ${step.input}", style = KedgeTextStyles.footnoteSmall())
+                                Text("输出 ${step.output}", style = KedgeTextStyles.footnoteSmall())
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+private data class WorkflowPreset(
+    val kind: String,
+    val category: String,
+    val title: String,
+    val params: Map<String, String>,
+)
+
+private fun currentDefinition(id: String?, name: String, nodes: List<WorkflowNode>): WorkflowDefinition {
+    val draft = WorkflowDefinition(
+        id = id ?: java.util.UUID.randomUUID().toString(),
+        name = name.ifBlank { "未命名" },
+        nodes = nodes,
+    )
+    val graph = WorkflowLegacy.fromStored(draft.copy(graphJson = ""))
+    return draft.copy(graphJson = graph.encode())
 }
 
 @Composable
@@ -233,28 +337,4 @@ private fun WorkflowNodeCard(
     }
 }
 
-private fun moduleHint(action: String): String = when {
-    action.startsWith("AI") -> "需要模型参与判断或生成"
-    action.contains("条件") || action.contains("重复") -> "控制后续节点的执行路径"
-    action.contains("变量") || action.contains("文本") -> "读写流程中的动态数据"
-    else -> "在当前设备上执行自动化操作"
-}
 
-private fun defaultParams(action: String): Map<String, String> = when {
-    action.contains("定时") -> mapOf("时间" to "08:00", "星期" to "每天")
-    action.contains("通知") -> mapOf("应用包名" to "", "标题包含" to "", "正文包含" to "")
-    action.contains("应用") -> mapOf("包名" to "")
-    action.contains("点击") || action.contains("长按") -> mapOf("文本或 resourceId" to "")
-    action.contains("输入") -> mapOf("文本" to "")
-    action.contains("滑动") -> mapOf("方向" to "向上", "时长(ms)" to "300")
-    action.contains("等待") -> mapOf("超时(ms)" to "5000")
-    action.contains("重复") -> mapOf("次数" to "3")
-    action.contains("条件") -> mapOf("条件表达式" to "")
-    action.contains("HTTP") -> mapOf("URL" to "", "方法" to "GET", "请求体" to "")
-    action.contains("文件") || action.contains("读取") || action.contains("写入") ||
-        action.contains("复制") || action.contains("删除") -> mapOf("路径" to "")
-    action.startsWith("AI") -> mapOf("提示词" to "", "输出变量" to "ai_result")
-    action.contains("Lua") || action.contains("JavaScript") || action.contains("Shell") ->
-        mapOf("脚本" to "")
-    else -> mapOf("参数" to "")
-}

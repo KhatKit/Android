@@ -13,6 +13,7 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.core.util.JsonInstant
+import heizige.kk.khatkit.app.feature.workflow.WorkflowEventBus
 import heizige.kk.khatkit.app.core.network.dto.ConversationListInvalidateEvent
 import heizige.kk.khatkit.app.core.network.dto.FolderListEvent
 import heizige.kk.khatkit.app.core.network.dto.toDto
@@ -26,6 +27,7 @@ import kotlin.time.Duration.Companion.seconds
  *  - `settings`                     -> full Settings snapshot
  *  - `conversation_list_invalidate` -> the conversation list for an assistant changed
  *  - `folders`                      -> the folder list for an assistant changed
+ *  - `workflow_run`                -> a local workflow run or step changed
  *
  * Per-conversation streaming (generation updates) keeps its own dedicated connection
  * at `/api/conversations/{id}/stream`.
@@ -103,7 +105,11 @@ fun Route.eventsRoutes(
                 }
             }
 
-        merge(settingsEvents, conversationListEvents, folderEvents).collect { payload ->
+        val workflowEvents = WorkflowEventBus.events.map { json ->
+            EventPayload(event = "workflow_run", json = json)
+        }
+
+        merge(settingsEvents, conversationListEvents, folderEvents, workflowEvents).collect { payload ->
             send(data = payload.json, event = payload.event)
         }
     }

@@ -29,6 +29,8 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.data.model.Tag
+import heizige.kk.khatkit.app.core.data.model.MessageAnchor
+import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import kotlin.uuid.Uuid
@@ -40,6 +42,7 @@ class AssistantDetailViewModel @AssistedInject constructor(
     @Assisted private val id: String,
     private val settingsStore: SettingsRepository,
     private val memoryRepository: MemoryRepository,
+    private val conversationRepository: ConversationRepository,
     private val filesManager: FilesManager,
     private val skillManager: SkillManager,
     private val workspaceRepository: WorkspaceRepository,
@@ -76,6 +79,9 @@ class AssistantDetailViewModel @AssistedInject constructor(
         }.stateIn(
             scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = Assistant()
         )
+
+    suspend fun locateMemorySource(messageId: String): MessageAnchor? =
+        conversationRepository.findMessageAnchor(messageId)
 
     val memories = assistant
         .flatMapLatest { currentAssistant ->

@@ -12,6 +12,7 @@ import java.io.File
 import com.drew.imaging.ImageMetadataReader
 import com.drew.imaging.png.PngChunkType
 import com.drew.metadata.png.PngDirectory
+import heizige.kk.khatkit.app.core.data.ai.tavern.PngCharacterCard
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
@@ -299,20 +300,20 @@ object ImageUtils {
      * @return Result<String> 包含角色元数据的Result对象
      */
     fun getTavernCharacterMeta(context: Context, uri: Uri): Result<String> = runCatching {
-        val metadata = context.contentResolver.openInputStream(uri)?.use { ImageMetadataReader.readMetadata(it) }
-        if (metadata == null) error("Metadata is null, please check if the image is a character card")
-        if (!metadata.containsDirectoryOfType(PngDirectory::class.java)) error("No PNG directory found, please check if the image is a character card")
-
-        val pngDirectory = metadata.getDirectoriesOfType(PngDirectory::class.java)
-            .firstOrNull { directory ->
-                directory.pngChunkType == PngChunkType.tEXt
-                    && directory.getString(PngDirectory.TAG_TEXTUAL_DATA).startsWith("[chara:")
-            } ?: error("No tEXt chunk found, please check if the image is a character card")
-
-        val value = pngDirectory.getString(PngDirectory.TAG_TEXTUAL_DATA)
-
-        val regex = Regex("""\[chara:\s*(.+?)]""")
-        return Result.success(regex.find(value)?.groupValues?.get(1) ?: error("No character data found"))
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: error("Metadata is null, please check if the image is a character card")
+        PngCharacterCard.readBase64(bytes)?.let { return Result.success(it) }
+        val metadata = ImageMetadataReader.readMetadata(bytes.inputStream())
+        if (!metadata.containsDirectoryOfType(PngDirectory::class.java)) {
+            error("No PNG directory found, please check if the image is a character card")
+        }
+        val value = metadata.getDirectoriesOfType(PngDirectory::class.java)
+            .firstOrNull { it.pngChunkType == PngChunkType.tEXt }
+            ?.getString(PngDirectory.TAG_TEXTUAL_DATA)
+            ?: error("No tEXt chunk found, please check if the image is a character card")
+        val bracketed = Regex("""\[chara:\s*(.+?)]""").find(value)?.groupValues?.get(1)
+        val labeled = Regex("""(?m)^chara:\s*(.+)$""").find(value)?.groupValues?.get(1)
+        bracketed ?: labeled ?: error("No character data found")
     }
 
     data class ImageInfo(

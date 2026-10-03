@@ -7,6 +7,8 @@ import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.ai.provider.TextGenerationParams
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
+import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryChunkEntity
@@ -104,7 +106,7 @@ class MemoryExtractor(
     }
 
     private fun resolveFastModel(settings: Settings): Pair<ProviderSetting, Model>? {
-        val model = settings.findModelById(settings.fastModelId) ?: return null
+        val model = runCatching { TaskRoutes.resolve(settings, ModelTaskType.MEMORY) }.getOrNull() ?: return null
         val provider = model.findProvider(settings.providers) ?: return null
         return provider to model
     }

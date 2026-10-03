@@ -41,6 +41,8 @@ import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.ai.GenerationChunk
+import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
+import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
@@ -291,8 +293,9 @@ class ChatService @Inject constructor(
                     Conversation.ofId(
                         id = conversationId,
                         assistantId = assistant.id,
+                        messages = heizige.kk.khatkit.app.core.data.ai.tavern.tavernSeedNodes(assistant),
                         newConversation = true
-                    ).updateCurrentMessages(assistant.presetMessages)
+                    )
                 }
             }
             settingsStore.updateAssistant(session.state.value.assistantId)
@@ -616,8 +619,7 @@ class ChatService @Inject constructor(
         val initialConversation = getConversationFlow(conversationId).value
         val assistant = settings.getAssistantById(initialConversation.assistantId)
             ?: settings.getCurrentAssistant()
-        val model = settings.findModelById(assistant.chatModelId ?: settings.chatModelId)
-            ?: throw IllegalStateException("No chat model selected")
+        val model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
 
         val senderName = if (assistant.useAssistantAvatar) {
             assistant.name.ifEmpty { context.getString(R.string.assistant_page_default_assistant) }
@@ -872,8 +874,7 @@ class ChatService @Inject constructor(
 
         runCatching {
             val settings = settingsStore.settingsFlow.first()
-            val model = settings.findModelById(settings.fastModelId)
-                ?: throw IllegalStateException(context.getString(R.string.error_fast_model_not_found))
+            val model = TaskRoutes.resolve(settings, ModelTaskType.TITLE)
             val provider = model.findProvider(settings.providers)
                 ?: throw IllegalStateException(context.getString(R.string.error_fast_model_provider_not_found))
 
@@ -918,7 +919,7 @@ class ChatService @Inject constructor(
         runCatching {
             val settings = settingsStore.settingsFlow.first()
             if (!settings.enableSuggestion) return@runCatching
-            val model = settings.findModelById(settings.fastModelId)
+            val model = runCatching { TaskRoutes.resolve(settings, ModelTaskType.TITLE) }.getOrNull()
                 ?: return@runCatching
             val provider = model.findProvider(settings.providers) ?: return@runCatching
 
@@ -972,9 +973,7 @@ class ChatService @Inject constructor(
         keepRecentMessages: Int = 32
     ): Result<Unit> = runCatching {
         val settings = settingsStore.settingsFlow.first()
-        val model = settings.findModelById(settings.compressModelId)
-            ?: settings.getCurrentChatModel()
-            ?: throw IllegalStateException("No model available for compression")
+        val model = TaskRoutes.resolve(settings, ModelTaskType.SUMMARY)
         val provider = model.findProvider(settings.providers)
             ?: throw IllegalStateException("Provider not found")
 

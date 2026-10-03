@@ -123,7 +123,7 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 
 @Composable
-fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
+fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, messageId: Uuid? = null) {
     val vm: ChatViewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(creationCallback = { it.create(id.toString()) })
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val navController = LocalNavController.current
@@ -196,6 +196,12 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
     }
 
     val chatListState = rememberLazyListState()
+    LaunchedEffect(messageId, conversation.messageNodes.size) {
+        val target = messageId ?: return@LaunchedEffect
+        if (conversation.messageNodes.isEmpty()) return@LaunchedEffect
+        vm.focusMessage(target)
+    }
+
     LaunchedEffect(nodeId, conversation.messageNodes.size) {
         if (!vm.chatListInitialized && conversation.messageNodes.isNotEmpty()) {
             if (nodeId != null) {

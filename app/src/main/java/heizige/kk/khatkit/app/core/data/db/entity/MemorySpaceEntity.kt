@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
  * id 约定：
  * - `__global__` 全局共享
  * - `conv:<uuid>` 会话级
+ * - `group:<conversationId>:<roleId>` 群内角色独立记忆
  * - 其余为 assistant uuid（兼容旧 `memoryentity.assistant_id`）
  */
 @Entity(tableName = "memory_spaces")
@@ -31,6 +32,8 @@ data class MemorySpaceEntity(
         const val KIND_GLOBAL = "GLOBAL"
         const val KIND_ASSISTANT = "ASSISTANT"
         const val KIND_CONVERSATION = "CONVERSATION"
+        const val KIND_GROUP = "GROUP"
+        const val GROUP_PREFIX = "group:"
 
         const val GLOBAL_SPACE_ID = "__global__"
         const val CONVERSATION_PREFIX = "conv:"
@@ -38,6 +41,7 @@ data class MemorySpaceEntity(
         fun kindOf(spaceId: String): String = when {
             spaceId == GLOBAL_SPACE_ID -> KIND_GLOBAL
             spaceId.startsWith(CONVERSATION_PREFIX) -> KIND_CONVERSATION
+            spaceId.startsWith(GROUP_PREFIX) -> KIND_GROUP
             else -> KIND_ASSISTANT
         }
 

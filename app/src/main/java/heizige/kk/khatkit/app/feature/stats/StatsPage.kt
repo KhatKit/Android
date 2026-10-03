@@ -93,6 +93,9 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
                         modifier = Modifier.padding(horizontal = 8.dp),
                     )
                 }
+                item {
+                    RouteStatsCard(modifier = Modifier.padding(horizontal = 8.dp))
+                }
             }
         }
     }
@@ -267,6 +270,23 @@ private fun HeatmapCell(alpha: Float, sizeDp: Int) {
             .clip(MaterialTheme.shapes.extraSmall)
             .background(color)
     )
+}
+
+@Composable
+private fun RouteStatsCard(modifier: Modifier = Modifier) {
+    val rows = heizige.kk.khatkit.app.core.data.ai.TaskRoutes.snapshot().entries.sortedBy { it.key }
+    if (rows.isEmpty()) return
+    KedgeCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("Route", style = MaterialTheme.typography.titleMedium)
+            rows.forEach { (key, count) ->
+                Text("$key  $count", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
 }
 
 @Composable

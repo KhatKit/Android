@@ -25,6 +25,8 @@ import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
 import heizige.kk.khatkit.app.feature.automation.UiAutomationSnapshotProvider
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.ai.CardAiEngine
+import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
+import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
@@ -1203,6 +1205,7 @@ class KhatKitToolProvider(
     private data class ScreenCapture(val text: String, val imagePath: String? = null)
 
     private suspend fun deviceAct(params: Map<String, Any?>): String {
+        runCatching { TaskRoutes.resolve(settingsRepository.settingsFlow.value, ModelTaskType.UI_CONTROL) }
         if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
         val action = params.str("action")?.lowercase()
             ?: return "缺少参数：action"

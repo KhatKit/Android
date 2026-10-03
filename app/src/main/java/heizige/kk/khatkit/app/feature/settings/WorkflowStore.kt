@@ -13,6 +13,8 @@ data class WorkflowNode(
     val detail: String,
     val params: Map<String, String> = emptyMap(),
     val enabled: Boolean = true,
+    val kind: String = "",
+    val id: String = "",
 )
 
 @Serializable
@@ -21,8 +23,9 @@ data class WorkflowDefinition(
     val name: String = "新工作流",
     val enabled: Boolean = true,
     val nodes: List<WorkflowNode> = listOf(
-        WorkflowNode("触发器", "手动启动", "点击运行或绑定到自动化触发器"),
+        WorkflowNode("触发器", "手动启动", "点击运行或绑定到自动化触发器", kind = "trigger", id = "t1"),
     ),
+    val graphJson: String = "",
 )
 
 /**
@@ -45,6 +48,7 @@ object WorkflowStore {
                     name = item.optString("name", "新工作流"),
                     enabled = item.optBoolean("enabled", true),
                     nodes = item.optJSONArray("nodes").toNodeList(),
+                    graphJson = item.optString("graphJson"),
                 )
             }
         }.getOrDefault(emptyList())
@@ -69,6 +73,7 @@ object WorkflowStore {
                     .put("id", definition.id)
                     .put("name", definition.name)
                     .put("enabled", definition.enabled)
+                    .put("graphJson", definition.graphJson)
                     .put(
                         "nodes",
                         JSONArray().apply {
@@ -79,6 +84,8 @@ object WorkflowStore {
                                         .put("title", node.title)
                                         .put("detail", node.detail)
                                         .put("enabled", node.enabled)
+                                        .put("kind", node.kind)
+                                        .put("id", node.id)
                                         .put("params", JSONObject(node.params)),
                                 )
                             }
@@ -105,6 +112,8 @@ private fun JSONArray?.toNodeList(): List<WorkflowNode> {
             detail = item.optString("detail", "执行自动化操作"),
             params = item.optJSONObject("params").toStringMap(),
             enabled = item.optBoolean("enabled", true),
+            kind = item.optString("kind"),
+            id = item.optString("id"),
         )
     }.ifEmpty {
         listOf(WorkflowNode("触发器", "手动启动", "点击运行或绑定到自动化触发器"))

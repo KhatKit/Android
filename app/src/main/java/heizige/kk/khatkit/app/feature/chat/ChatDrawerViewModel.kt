@@ -8,6 +8,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.filter
 import androidx.paging.cachedIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.model.Folder
+import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.feature.chat.ChatManager
@@ -46,6 +48,13 @@ class ChatDrawerViewModel @Inject constructor(
     private val _searchKeyword = MutableStateFlow("")
     val searchKeyword: StateFlow<String> = _searchKeyword.asStateFlow()
 
+    private val _typeFilter = MutableStateFlow(GroupChat.FILTER_ALL)
+    val typeFilter: StateFlow<String> = _typeFilter.asStateFlow()
+
+    fun updateTypeFilter(filter: String) {
+        _typeFilter.value = filter
+    }
+
     fun updateSearchKeyword(keyword: String) {
         _searchKeyword.value = keyword
     }
@@ -57,12 +66,21 @@ class ChatDrawerViewModel @Inject constructor(
 
     // 主列表展示当前助手下未归入任何文件夹的会话，按时间分组
     val conversations: Flow<PagingData<ConversationListItem>> =
-        combine(assistantIdFlow, _searchKeyword) { assistantId, keyword -> assistantId to keyword }
-            .flatMapLatest { (assistantId, keyword) ->
-                if (keyword.isNotBlank()) {
+        combine(assistantIdFlow, _searchKeyword, _typeFilter) { assistantId, keyword, type ->
+                Triple(assistantId, keyword, type)
+            }
+            .flatMapLatest { (assistantId, keyword, type) ->
+                val paging = if (keyword.isNotBlank()) {
                     conversationRepo.searchConversationsOfAssistantPaging(assistantId, keyword)
                 } else {
-                    conversationRepo.getUnfiledConversationsOfAssistantPaging(assistantId)
+                    conversationRepo.getUnfiledConversationsOfAssistantPaging(
+                        assistantId,
+                        type.takeUnless { it == GroupChat.FILTER_ALL }.orEmpty(),
+                    )
+                }
+                paging.map { data ->
+                    if (keyword.isBlank() || type == GroupChat.FILTER_ALL) data
+                    else data.filter { conversation -> conversation.type == type }
                 }
             }
             .map { pagingData ->
@@ -78,6 +96,12 @@ class ChatDrawerViewModel @Inject constructor(
     fun saveScrollPosition(index: Int, offset: Int) {
         savedStateHandle["scrollIndex"] = index
         savedStateHandle["scrollOffset"] = offset
+    }
+
+    fun createGroup(onCreated: (Uuid) -> Unit) {
+        viewModelScope.launch {
+            onCreated(chatService.createGroup())
+        }
     }
 
     fun createFolder(name: String) {

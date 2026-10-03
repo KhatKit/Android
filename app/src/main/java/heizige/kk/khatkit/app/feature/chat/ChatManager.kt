@@ -41,6 +41,8 @@ import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.ai.GenerationChunk
+import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
+import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
@@ -68,6 +70,10 @@ import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.GroupChat
+import heizige.kk.khatkit.app.core.data.model.GroupConfig
+import heizige.kk.khatkit.app.core.data.model.GroupRole
+import heizige.kk.khatkit.app.core.data.model.SpeakerStep
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantAffectScope
 import heizige.kk.khatkit.app.core.data.model.MessageNode
@@ -151,6 +157,8 @@ class ChatManager(
     private val ocrTransformer: OcrTransformer,
     private val base64ImageToLocalFileTransformer: Base64ImageToLocalFileTransformer,
 ) {
+    private val groupTurns = java.util.concurrent.ConcurrentHashMap<Uuid, PendingGroupTurn>()
+
     private val inputTransformers = listOf(
         TavernMacroTransformer,
         TimeReminderTransformer,
@@ -273,8 +281,9 @@ class ChatManager(
                     Conversation.ofId(
                         id = conversationId,
                         assistantId = assistant.id,
-                        newConversation = true
-                    ).updateCurrentMessages(assistant.presetMessages)
+                        messages = heizige.kk.khatkit.app.core.data.ai.tavern.tavernSeedNodes(assistant),
+                        newConversation = true,
+                    )
                 }
             }
             settingsStore.updateAssistant(session.state.value.assistantId)
@@ -397,10 +406,16 @@ class ChatManager(
                 val processedContent = preprocessUserInputParts(content, assistant)
 
                 // 添加消息到列表
+                val mentionText = processedContent.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+                val mentions = currentConversation.groupConfig
+                    ?.let { GroupChat.parseMentions(mentionText, it.roles) }
+                    .orEmpty()
+                if (currentConversation.groupConfig != null) groupTurns.remove(conversationId)
                 val newConversation = currentConversation.copy(
                     messageNodes = currentConversation.messageNodes + UIMessage(
                         role = MessageRole.USER,
                         parts = processedContent,
+                        mentions = mentions,
                     ).toMessageNode(),
                 )
                 saveConversation(conversationId, newConversation)
@@ -606,10 +621,10 @@ class ChatManager(
     ) {
         val settings = settingsStore.settingsFlow.first()
         val initialConversation = getConversationFlow(conversationId).value
-        val assistant = settings.getAssistantById(initialConversation.assistantId)
+        var assistant = settings.getAssistantById(initialConversation.assistantId)
             ?: settings.getCurrentAssistant()
-        val model = settings.findModelById(assistant.chatModelId ?: settings.chatModelId)
-            ?: throw IllegalStateException("No chat model selected")
+        var groupStep: SpeakerStep? = null
+        var model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
 
         val senderName = if (assistant.useAssistantAvatar) {
             assistant.name.ifEmpty { context.getString(R.string.assistant_page_default_assistant) }
@@ -637,6 +652,18 @@ class ChatManager(
             // check invalid messages
             checkInvalidMessages(conversationId)
             val conversation = getConversationFlow(conversationId).value
+            groupStep = takeGroupSpeaker(conversation)
+            val step = groupStep
+            if (step != null) {
+                settings.getAssistantById(Uuid.parse(step.role.assistantId))?.let { assistant = it }
+                model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
+                conversation.groupConfig?.roles?.forEach { role ->
+                    memoryRepository.ensureSpace(
+                        GroupChat.memorySpaceId(conversationId.toString(), role.id),
+                        role.name,
+                    )
+                }
+            }
 
             val tools = try {
                 chatToolFactory.createTools(
@@ -679,10 +706,10 @@ class ChatManager(
                 conversationLorebookIds = conversation.lorebookIds,
                 workspaceCwd = conversation.workspaceCwd,
                 memories = memoryRepository.searchMemories(
-                    assistantId = if (assistant.useGlobalMemory) {
-                        MemoryRepository.GLOBAL_MEMORY_ID
-                    } else {
-                        assistant.id.toString()
+                    assistantId = when {
+                        step != null -> GroupChat.memorySpaceId(conversationId.toString(), step.role.id)
+                        assistant.useGlobalMemory -> MemoryRepository.GLOBAL_MEMORY_ID
+                        else -> assistant.id.toString()
                     },
                     query = conversation.currentMessages
                         .takeLast(6)
@@ -692,6 +719,17 @@ class ChatManager(
                     limit = 8,
                 ),
                 inputTransformers = buildList {
+                    val groupConfig = conversation.groupConfig
+                    if (step != null && groupConfig != null) {
+                        add(
+                            GroupPerspectiveTransformer(
+                                config = groupConfig,
+                                viewerId = step.role.id,
+                                predecessorId = step.predecessorId,
+                                chairRound = step.chairRound,
+                            ),
+                        )
+                    }
                     addAll(inputTransformers)
                     add(templateTransformer)
                     add(workspaceReminderTransformer)
@@ -706,10 +744,10 @@ class ChatManager(
 
                 // A2 自动记忆抽取
                 if (assistant.enableMemory && assistant.autoExtractMemory) {
-                    val memSpace = if (assistant.useGlobalMemory) {
-                        MemoryRepository.GLOBAL_MEMORY_ID
-                    } else {
-                        assistant.id.toString()
+                    val memSpace = when {
+                        groupStep != null -> GroupChat.memorySpaceId(conversationId.toString(), groupStep!!.role.id)
+                        assistant.useGlobalMemory -> MemoryRepository.GLOBAL_MEMORY_ID
+                        else -> assistant.id.toString()
                     }
                     appScope.launch {
                         runCatching {
@@ -748,6 +786,7 @@ class ChatManager(
                     }
                 }
             }
+            groupStep?.let { stampGroupRole(conversationId, it.role.id) }
         }.onFailure {
             // 兜底取消 Live Update 通知（生成开始前失败时 onCompletion 不会执行）
             appEventBus.tryEmit(AppEvent.ChatGenerationEnded(conversationId, senderName, null))
@@ -760,7 +799,7 @@ class ChatManager(
             Logging.log(TAG, it.stackTraceToString())
         }.onSuccess {
             val finalConversation = getConversationFlow(conversationId).value
-
+            if (continueGroupTurn(conversationId, finalConversation)) return@onSuccess
             sessionManager.launchWithSession(conversationId) {
                 generateTitle(conversationId, finalConversation)
             }
@@ -862,7 +901,7 @@ class ChatManager(
 
         runCatching {
             val settings = settingsStore.settingsFlow.first()
-            val model = settings.findModelById(settings.fastModelId)
+            val model = runCatching { TaskRoutes.resolve(settings, ModelTaskType.TITLE) }.getOrNull()
                 ?: return@runCatching
             val provider = model.findProvider(settings.providers) ?: return@runCatching
 
@@ -908,9 +947,7 @@ class ChatManager(
         keepRecentMessages: Int = 32
     ): Result<Unit> = runCatching {
         val settings = settingsStore.settingsFlow.first()
-        val model = settings.findModelById(settings.compressModelId)
-            ?: settings.getCurrentChatModel()
-            ?: throw IllegalStateException("No model available for compression")
+        val model = TaskRoutes.resolve(settings, ModelTaskType.SUMMARY)
         val provider = model.findProvider(settings.providers)
             ?: throw IllegalStateException("Provider not found")
 
@@ -1359,6 +1396,94 @@ class ChatManager(
         updateConversation(conversationId, currentConversation.copy(messageNodes = updatedNodes))
     }
 
+    suspend fun createGroup(): Uuid {
+        val settings = settingsStore.settingsFlow.value
+        val current = settings.getCurrentAssistant()
+        val members = (listOf(current) + settings.assistants.filter { it.id != current.id }.take(2))
+        val roles = members.map { assistant ->
+            GroupRole(
+                id = assistant.id.toString(),
+                name = assistant.name.ifBlank { "角色" },
+                assistantId = assistant.id.toString(),
+                chair = assistant.id == current.id,
+            )
+        }
+        val conversation = Conversation(
+            assistantId = current.id,
+            title = "群聊",
+            messageNodes = emptyList(),
+            type = GroupChat.TYPE_GROUP,
+            groupConfig = GroupConfig(roles, GroupChat.MODE_PIPELINE, tokenBudget = 2000),
+        )
+        conversationRepo.insertConversation(conversation)
+        return conversation.id
+    }
+
+    private fun takeGroupSpeaker(conversation: Conversation): SpeakerStep? {
+        val config = conversation.groupConfig ?: return null
+        if (conversation.type != GroupChat.TYPE_GROUP) return null
+        if (groupTurns[conversation.id] == null) {
+            val last = conversation.currentMessages.lastOrNull() ?: return null
+            if (last.role != MessageRole.USER) return null
+            val planned = GroupChat.plan(config, last.mentions)
+            if (planned.isEmpty()) return null
+            groupTurns[conversation.id] = PendingGroupTurn(ArrayDeque(planned))
+        }
+        val turn = groupTurns[conversation.id] ?: return null
+        if (!GroupChat.speakersAfterBudget(turn.steps.size, turn.spent, config.tokenBudget)) {
+            groupTurns.remove(conversation.id)
+            return null
+        }
+        return turn.steps.removeFirstOrNull().also {
+            if (it == null) groupTurns.remove(conversation.id)
+        }
+    }
+
+    private fun stampGroupRole(conversationId: Uuid, roleId: String) {
+        val conversation = getConversationFlow(conversationId).value
+        val nodes = conversation.messageNodes.toMutableList()
+        val last = nodes.lastOrNull() ?: return
+        val index = last.messages.indexOfFirst { it.id == last.currentMessage.id }
+        if (index < 0) return
+        val current = last.messages[index]
+        if (current.role != MessageRole.ASSISTANT || current.roleId != null) return
+        val messages = last.messages.toMutableList()
+        messages[index] = current.copy(roleId = roleId)
+        nodes[nodes.lastIndex] = last.copy(messages = messages)
+        updateConversation(conversationId, conversation.copy(messageNodes = nodes))
+    }
+
+    private suspend fun continueGroupTurn(conversationId: Uuid, conversation: Conversation): Boolean {
+        val config = conversation.groupConfig ?: return false
+        val turn = groupTurns[conversationId] ?: return false
+        val usage = conversation.currentMessages.lastOrNull()?.usage?.totalTokens ?: 0
+        turn.spent += usage
+        if (turn.steps.isNotEmpty() && GroupChat.speakersAfterBudget(1, turn.spent, config.tokenBudget)) {
+            handleMessageComplete(conversationId)
+            return true
+        }
+        if (config.mode == GroupChat.MODE_VOTE) appendVoteSummary(conversationId, config)
+        groupTurns.remove(conversationId)
+        return false
+    }
+
+    private fun appendVoteSummary(conversationId: Uuid, config: GroupConfig) {
+        val conversation = getConversationFlow(conversationId).value
+        val lastUser = conversation.currentMessages.indexOfLast { it.role == MessageRole.USER }
+        val options = conversation.currentMessages.drop(lastUser.coerceAtLeast(0) + 1)
+            .filter { it.role == MessageRole.ASSISTANT && it.roleId in config.roles.map { role -> role.id } }
+            .map { it.toText() }
+        val winner = GroupChat.majority(options) ?: return
+        updateConversation(
+            conversationId,
+            conversation.copy(
+                messageNodes = conversation.messageNodes + UIMessage.assistant(winner)
+                    .copy(roleId = GroupChat.SUMMARY_ID)
+                    .toMessageNode(),
+            ),
+        )
+    }
+
     // 停止当前会话生成任务（不清理会话缓存）
     suspend fun stopGeneration(conversationId: Uuid) {
         val session = sessionManager.get(conversationId) ?: return
@@ -1371,3 +1496,8 @@ class ChatManager(
         finishInterruptedPendingTools(conversationId)
     }
 }
+
+private data class PendingGroupTurn(
+    val steps: ArrayDeque<SpeakerStep>,
+    var spent: Int = 0,
+)

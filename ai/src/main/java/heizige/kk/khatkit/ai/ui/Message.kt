@@ -3,6 +3,7 @@ package heizige.kk.khatkit.ai.ui
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import heizige.kk.khatkit.ai.core.MessageRole
@@ -25,6 +26,17 @@ data class UIMessage(
     val modelId: Uuid? = null,
     val usage: TokenUsage? = null,
     val translation: String? = null,
+    val roleId: String? = null,
+    /**
+     * 契约字段 `mention_role_ids`。保留 `mentions` 作为序列化键，使 C1 之前落库的行
+     * 仍能读出 @ 目标；这里只改属性名，不改线上数据形状。
+     */
+    @SerialName("mentions")
+    val mentionRoleIds: List<String> = emptyList(),
+    /** 契约字段 `round_id`：本条消息所属的群聊轮次。单聊恒为 null。 */
+    val roundId: String? = null,
+    /** 契约字段 `turn_kind`：`user` / `speaker` / `chair` / `vote_summary` / `error`。 */
+    val turnKind: String? = null,
     // 请求期间生成的内部消息；该标记仅在内存中使用
     @Transient
     val isSynthetic: Boolean = false,

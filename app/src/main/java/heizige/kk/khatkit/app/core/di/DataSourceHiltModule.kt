@@ -51,6 +51,8 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import heizige.kk.khatkit.app.core.data.db.dao.FavoriteDAO
+import heizige.kk.khatkit.app.core.data.db.dao.WorkflowDao
+import heizige.kk.khatkit.app.feature.workflow.WorkflowRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -119,6 +121,17 @@ object DataSourceHiltModule {
 
     @Provides
     fun provideFavoriteDao(database: AppDatabase): FavoriteDAO = database.favoriteDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkflowDao(database: AppDatabase): WorkflowDao = database.workflowDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkflowRepository(
+        @ApplicationContext context: Context,
+        dao: WorkflowDao,
+    ): WorkflowRepository = WorkflowRepository(context, dao)
 
     @Provides
     @Singleton

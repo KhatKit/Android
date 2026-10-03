@@ -32,4 +32,8 @@ data class ConversationEntity(
     val workspaceCwd: String = "",
     @ColumnInfo("folder_id", defaultValue = "")
     val folderId: String = "",
+    @ColumnInfo("type", defaultValue = "DIRECT")
+    val type: String = "DIRECT",
+    @ColumnInfo("group_config", defaultValue = "")
+    val groupConfig: String = "",
 )

@@ -32,6 +32,9 @@
   <string name="assistant_extensions_page_tab_quick_messages">快速訊息</string>
   <string name="assistant_extensions_page_tab_skills">技能</string>
   <string name="assistant_extensions_page_title">擴充功能</string>
+  <string name="assistant_importer_export_failed">匯出失敗</string>
+  <string name="assistant_importer_export_tavern_json">匯出酒館角色卡 (JSON)</string>
+  <string name="assistant_importer_export_tavern_png">匯出酒館角色卡 (PNG)</string>
   <string name="assistant_importer_import_failed">匯入失敗</string>
   <string name="assistant_importer_import_tavern_json">匯入酒館角色卡 (JSON)</string>
   <string name="assistant_importer_import_tavern_png">匯入酒館角色卡 (PNG)</string>

@@ -14,6 +14,7 @@ import heizige.kk.khatkit.app.core.data.db.dao.MemoryChunkDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MemoryGraphDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MemorySpaceDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MessageNodeDAO
+import heizige.kk.khatkit.app.core.data.db.dao.WorkflowDao
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
 import heizige.kk.khatkit.app.core.data.db.entity.FolderEntity
@@ -24,6 +25,9 @@ import heizige.kk.khatkit.app.core.data.db.entity.MemoryEdgeEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryMentionEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemorySpaceEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MessageNodeEntity
+import heizige.kk.khatkit.app.core.data.db.entity.WorkflowEntity
+import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunEntity
+import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunStepEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_16_17
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_22_23
@@ -46,8 +50,11 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         WorkspaceEntity::class,
         FolderEntity::class,
         FavoriteEntity::class,
+        WorkflowEntity::class,
+        WorkflowRunEntity::class,
+        WorkflowRunStepEntity::class,
     ],
-    version = 28,
+    version = 30,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -69,6 +76,8 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         AutoMigration(from = 23, to = 24),
         AutoMigration(from = 24, to = 25),
         AutoMigration(from = 26, to = 27),
+        AutoMigration(from = 28, to = 29),
+        AutoMigration(from = 29, to = 30),
     ]
 )
 @TypeConverters(TokenUsageConverter::class)
@@ -92,6 +101,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun folderDao(): FolderDAO
 
     abstract fun favoriteDao(): FavoriteDAO
+
+    abstract fun workflowDao(): WorkflowDao
 }
 
 object TokenUsageConverter {

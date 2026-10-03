@@ -164,6 +164,20 @@ class GenerationLoop(
                     } catch (error: Throwable) {
                         val hasNext = chainIndex < failoverChain.lastIndex &&
                             settings.networkSetting.enableAutoRetry
+                        TaskRoutes.router.reportFailure(
+                            ModelRouteCandidate(
+                                candidateProvider.id.toString(),
+                                candidateModel.id.toString(),
+                            ),
+                            System.currentTimeMillis(),
+                        )
+                        if (ProviderFailover.isEligible(error)) {
+                            heizige.kk.khatkit.ai.util.KeyPool.shared.failLast(
+                                candidateProvider.id.toString(),
+                                if ((error.message ?: "").contains("429")) 429 else 500,
+                                System.currentTimeMillis(),
+                            )
+                        }
                         if (!hasNext || !ProviderFailover.isEligible(error)) throw error
                         Log.w(
                             TAG,
@@ -296,7 +310,12 @@ class GenerationLoop(
                                 error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
                             }
                             Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
-                            val result = toolDef.execute(args)
+                            val hookedArgs = heizige.kk.khatkit.app.core.data.ai.toolpkg.ToolPkgHooks.prepareToolArgs(
+                                enabled = settings.featureFlags.pluginHooksEnabled,
+                                toolName = tool.toolName,
+                                args = args,
+                            )
+                            val result = toolDef.execute(hookedArgs)
                             val hasShellAccess = tools.any { it.name == "workspace_shell" }
                             executedTools += tool.copy(
                                 output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess)
