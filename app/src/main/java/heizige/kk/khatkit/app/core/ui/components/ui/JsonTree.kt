@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -68,15 +69,18 @@ fun JsonTree(
             onDismiss = { selectedString = null },
             scrollable = false,
         ) { _ ->
-            Text(
-                text = content,
-                fontFamily = JetbrainsMono,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                style = KedgeTextStyles.body()
-            )
+            // Sheet 在独立窗口中，需要自己的 SelectionContainer，否则会沿用外层的 SelectionRegistrar 导致崩溃
+            SelectionContainer {
+                Text(
+                    text = content,
+                    fontFamily = JetbrainsMono,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    style = KedgeTextStyles.body()
+                )
+            }
         }
     }
 }
