@@ -19,7 +19,7 @@ class GroupChatTest {
         val mentions = GroupChat.parseMentions("@Bob 看一下", roles)
         assertEquals(listOf("b"), mentions)
         val messages = listOf(
-            UIMessage.user("@Bob 看一下").copy(mentions = mentions),
+            UIMessage.user("@Bob 看一下").copy(mentionRoleIds = mentions),
             UIMessage.assistant("Bob 的回复").copy(roleId = "b"),
             UIMessage.assistant("Alice 的私话").copy(roleId = "a"),
         )
@@ -74,16 +74,47 @@ class GroupChatTest {
         ).map { it.toText() }
         assertTrue(chairSees.any { it.contains("甲") })
         assertTrue(chairSees.any { it.contains("乙") })
-        assertEquals("甲", GroupChat.majority(listOf("甲", "甲", "乙")))
-        assertNull(GroupChat.majority(listOf("甲", "乙")))
+        // 投票改成结构化选票：正文里的 `VOTE:<候选id>|<理由>` 才是票，候选集外的行不算票。
+        val candidates = listOf("甲", "乙")
+        assertNull(GroupChat.parseBallot("VOTE:丙|不在候选集", "a", candidates))
+        val ballots = listOf("a" to "甲", "b" to "甲", "c" to "乙")
+            .mapNotNull { (roleId, picked) -> GroupChat.parseBallot("VOTE:$picked", roleId, candidates) }
+        val decided = GroupChat.tally(ballots, candidates, GroupChat.TIE_FAIL)
+        assertTrue(decided is VoteOutcome.Decided)
+        assertEquals("甲", (decided as VoteOutcome.Decided).winner)
+        // 甲乙各一票：没有多数，平票按 fail 判本轮失败，不产出胜者。
+        val tied = GroupChat.tally(
+            listOf(VoteBallot("a", "甲"), VoteBallot("b", "乙")),
+            candidates,
+            GroupChat.TIE_FAIL,
+        )
+        assertTrue(tied is VoteOutcome.Tie)
+        assertEquals(listOf("甲", "乙"), (tied as VoteOutcome.Tie).candidates)
     }
 
     @Test
     fun `budget stops later speakers and keeps earlier output`() {
-        assertTrue(GroupChat.speakersAfterBudget(planned = 1, spent = 0, budget = 100))
-        assertTrue(GroupChat.speakersAfterBudget(planned = 1, spent = 80, budget = 100))
-        assertFalse(GroupChat.speakersAfterBudget(planned = 1, spent = 100, budget = 100))
-        assertFalse(GroupChat.speakersAfterBudget(planned = 1, spent = 0, budget = 0))
+        val remaining = listOf("c")
+        assertEquals(
+            RoundBudget.Continue,
+            GroupChat.budgetDecision(spent = 0, limit = 100, remainingRoleIds = remaining),
+        )
+        assertEquals(
+            RoundBudget.Continue,
+            GroupChat.budgetDecision(spent = 80, limit = 100, remainingRoleIds = remaining),
+        )
+        val stopped = GroupChat.budgetDecision(spent = 100, limit = 100, remainingRoleIds = remaining)
+        assertTrue(stopped is RoundBudget.Stop)
+        assertEquals(remaining, (stopped as RoundBudget.Stop).skippedRoleIds)
+        // 新契约把 limit<=0 视为「不限预算」而不是「立刻停」；这种配置由 validate 直接拒收。
+        assertEquals(
+            RoundBudget.Continue,
+            GroupChat.budgetDecision(spent = 0, limit = 0, remainingRoleIds = remaining),
+        )
+        assertTrue(
+            GroupChat.validate(config(GroupChat.MODE_PIPELINE).copy(tokenBudgetPerRound = 0))
+                .any { it.field == "token_budget_per_round" },
+        )
         assertEquals(listOf("c"), GroupChat.pendingSpeakers(
             GroupChat.plan(config(GroupChat.MODE_PIPELINE), emptyList()),
             setOf("a", "b"),
@@ -92,7 +123,7 @@ class GroupChatTest {
 
     @Test
     fun `qr round trip and per role memory spaces`() {
-        val config = config(GroupChat.MODE_PIPELINE).copy(tokenBudget = 400)
+        val config = config(GroupChat.MODE_PIPELINE).copy(tokenBudgetPerRound = 400)
         val restored = GroupChat.decodeQr(GroupChat.encodeQr(config))
         assertEquals(config, restored)
         assertNull(GroupChat.decodeQr("""{"kind":"other"}"""))
@@ -110,5 +141,9 @@ class GroupChatTest {
         assertEquals(source, GroupChat.filterType(source, GroupChat.FILTER_ALL))
     }
 
-    private fun config(mode: String) = GroupConfig(roles, mode, tokenBudget = 1000)
+    private fun config(mode: String) = GroupConfig(
+        roles = roles,
+        mode = mode,
+        tokenBudgetPerRound = 1000,
+    )
 }
