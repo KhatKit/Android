@@ -104,7 +104,7 @@ fun GroupChatPage(id: Uuid, vm: GroupChatViewModel = hiltViewModel()) {
                 text = buildString {
                     append(config?.mode ?: GroupChat.MODE_PIPELINE)
                     append(" · 预算 ")
-                    append(config?.tokenBudget ?: 0)
+                    append(config?.tokenBudgetPerRound ?: 0)
                 },
                 style = KedgeTextStyles.footnoteSmall(),
             )
