@@ -7,7 +7,9 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -638,12 +640,18 @@ object GroupChat {
 object GroupConfigSerializer : KSerializer<GroupConfig> {
     override val descriptor = buildClassSerialDescriptor("heizige.kk.khatkit.app.core.data.model.GroupConfig")
 
+    // kotlinx-serialization 1.11 起 `Encoder.encodeJsonElement` / `Decoder.decodeJsonElement`
+    // 不再是顶层扩展函数，只剩 JsonEncoder / JsonDecoder 的接口成员，因此显式取 JSON 编码器。
     override fun serialize(encoder: Encoder, value: GroupConfig) {
-        encoder.encodeJsonElement(GroupChat.encodeConfigObject(value))
+        val jsonEncoder = encoder as? JsonEncoder
+            ?: error("GroupConfigSerializer 只支持 JSON 编码器，实际为 ${encoder::class.simpleName}")
+        jsonEncoder.encodeJsonElement(GroupChat.encodeConfigObject(value))
     }
 
     override fun deserialize(decoder: Decoder): GroupConfig {
-        val element = decoder.decodeJsonElement()
+        val jsonDecoder = decoder as? JsonDecoder
+            ?: error("GroupConfigSerializer 只支持 JSON 解码器，实际为 ${decoder::class.simpleName}")
+        val element = jsonDecoder.decodeJsonElement()
         return GroupChat.decodeConfigObject(element as? JsonObject) ?: GroupConfig()
     }
 }
