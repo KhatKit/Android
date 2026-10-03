@@ -241,7 +241,7 @@ private fun SkillCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = if (skill.builtin) 16.dp else 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -274,31 +274,41 @@ private fun SkillCard(
                     )
                 }
             }
-            Box {
-                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(
-                        imageVector = moreVert,
-                        contentDescription = stringResource(R.string.skills_page_more_actions),
-                    )
-                }
-                KedgeDropdownMenuSlots(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    KedgeDropdownItemSlot(
-                        text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onDelete()
-                        },
-                    )
+            if (skill.builtin) {
+                Text(
+                    text = stringResource(R.string.skills_page_builtin_badge),
+                    style = KedgeTextStyles.footnoteSmall(),
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+            // 内置技能只读，不提供删除
+            if (!skill.builtin) {
+                Box {
+                    KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(
+                            imageVector = moreVert,
+                            contentDescription = stringResource(R.string.skills_page_more_actions),
+                        )
+                    }
+                    KedgeDropdownMenuSlots(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        KedgeDropdownItemSlot(
+                            text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onDelete()
+                            },
+                        )
+                    }
                 }
             }
         }

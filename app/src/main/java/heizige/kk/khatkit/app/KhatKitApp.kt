@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import heizige.kk.khatkit.common.android.appTempFolder
 import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.sync.BackupManager
 import heizige.kk.khatkit.app.core.data.sync.RestoreFailedException
@@ -65,6 +66,9 @@ class KhatKitApp : Application() {
 
     @Inject
     lateinit var filesManager: FilesManager
+
+    @Inject
+    lateinit var skillManager: SkillManager
 
     @Inject
     lateinit var khatKitToolProvider: KhatKitToolProvider
@@ -111,6 +115,9 @@ class KhatKitApp : Application() {
         // sync upload files to DB
         syncManagedFiles()
 
+        // 从 assets 解压内置技能（安装/更新后刷新）
+        extractBuiltinSkills()
+
         // Start WebServer if enabled in settings
         startWebServerIfEnabled()
 
@@ -132,6 +139,16 @@ class KhatKitApp : Application() {
                 Log.i(TAG, "incrementLaunchCount: ${settingsStore.settingsFlowRaw.first().launchCount}")
             }.onFailure {
                 Log.e(TAG, "incrementLaunchCount failed", it)
+            }
+        }
+    }
+
+    private fun extractBuiltinSkills() {
+        appScope.launch(Dispatchers.IO) {
+            runCatching {
+                skillManager.ensureBuiltinSkillsExtracted()
+            }.onFailure {
+                Log.e(TAG, "extractBuiltinSkills failed", it)
             }
         }
     }

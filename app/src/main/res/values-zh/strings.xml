@@ -1027,6 +1027,7 @@
   <string name="skills_page_import_from_github">从 GitHub 导入</string>
   <string name="skills_page_import_success">技能已导入：%s</string>
   <string name="skills_page_more_actions">更多操作</string>
+  <string name="skills_page_builtin_badge">内置</string>
   <string name="skills_page_name_error">找不到名称字段，请检查 frontmatter 格式</string>
   <string name="skills_page_paste_hint">粘贴完整的SKILL.md文件内容</string>
   <string name="skills_page_repo_url_hint">支持 /tree/branch 或子目录路径</string>

@@ -963,6 +963,7 @@
   <string name="skills_page_import_from_github">GitHubからインポート</string>
   <string name="skills_page_import_success">スキルをインポートしました: %s</string>
   <string name="skills_page_more_actions">その他のアクション</string>
+  <string name="skills_page_builtin_badge">組み込み</string>
   <string name="skills_page_name_error">名前フィールドが見つかりません。フロントマター形式を確認してください</string>
   <string name="skills_page_paste_hint">SKILL.mdファイルの内容全体を貼り付けてください</string>
   <string name="skills_page_repo_url_hint">/tree/branchまたはサブディレクトリパスをサポート</string>

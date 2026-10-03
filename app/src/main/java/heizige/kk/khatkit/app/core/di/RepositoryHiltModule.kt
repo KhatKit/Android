@@ -95,6 +95,10 @@ object RepositoryHiltModule {
                 target = "/skills",
             ),
             WorkspaceBindMount(
+                source = File(context.filesDir, FileFolders.BUILTIN_SKILLS).apply { mkdirs() },
+                target = "/builtin_skills",
+            ),
+            WorkspaceBindMount(
                 source = File(context.filesDir, FileFolders.TOOL_OUTPUTS).apply { mkdirs() },
                 target = "/tool_outputs",
             ),

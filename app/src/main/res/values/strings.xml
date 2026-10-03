@@ -1072,6 +1072,7 @@
   <string name="skills_page_import_from_github">Import from GitHub</string>
   <string name="skills_page_import_success">Skill imported: %s</string>
   <string name="skills_page_more_actions">More actions</string>
+  <string name="skills_page_builtin_badge">Built-in</string>
   <string name="skills_page_name_error">Cannot find the name field, please check the frontmatter format</string>
   <string name="skills_page_paste_hint">Paste the full SKILL.md file content</string>
   <string name="skills_page_repo_url_hint">Supports /tree/branch or subdirectory paths</string>

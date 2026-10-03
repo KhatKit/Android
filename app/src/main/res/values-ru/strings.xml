@@ -963,6 +963,7 @@
   <string name="skills_page_import_from_github">Импорт из GitHub</string>
   <string name="skills_page_import_success">Навык импортирован: %s</string>
   <string name="skills_page_more_actions">Дополнительные действия</string>
+  <string name="skills_page_builtin_badge">Встроенный</string>
   <string name="skills_page_name_error">Не удаётся найти поле name, проверьте формат frontmatter</string>
   <string name="skills_page_paste_hint">Вставьте полное содержимое файла SKILL.md</string>
   <string name="skills_page_repo_url_hint">Поддерживает пути /tree/branch или подкаталоги</string>

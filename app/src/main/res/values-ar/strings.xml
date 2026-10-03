@@ -1174,6 +1174,7 @@
   <string name="skills_page_import_from_github">استيراد من GitHub</string>
   <string name="skills_page_import_success">تم استيراد المهارة: %s</string>
   <string name="skills_page_more_actions">المزيد من الإجراءات</string>
+  <string name="skills_page_builtin_badge">مدمج</string>
   <string name="skills_page_name_error">تعذر العثور على حقل الاسم، يرجى التحقق من تنسيق frontmatter</string>
   <string name="skills_page_paste_hint">الصق محتوى ملف SKILL.md كاملاً</string>
   <string name="skills_page_repo_url_hint">يدعم مسارات /tree/branch أو مسارات الدلائل الفرعية</string>
