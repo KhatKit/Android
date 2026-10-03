@@ -56,6 +56,7 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.RegexOutputTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.ThinkTagTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.TimeReminderTransformer
+import heizige.kk.khatkit.app.core.data.ai.tavern.TavernMacroTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.WorkspaceReminderTransformer
 import heizige.kk.khatkit.app.core.data.event.AppEvent
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
@@ -149,6 +150,7 @@ class ChatManager(
     private val base64ImageToLocalFileTransformer: Base64ImageToLocalFileTransformer,
 ) {
     private val inputTransformers = listOf(
+        TavernMacroTransformer,
         TimeReminderTransformer,
         PromptInjectionTransformer,
         placeholderTransformer,

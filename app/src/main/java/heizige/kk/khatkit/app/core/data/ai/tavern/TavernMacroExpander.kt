@@ -7,7 +7,7 @@ fun expandTavernMacros(
     template: String,
     userName: String,
     characterName: String,
-    randomValue: () -> String = { "" },
+    randomValue: () -> String = { Random.nextInt(0, 101).toString() },
     roll: (count: Int, sides: Int) -> Int = { count, sides ->
         (1..count).sumOf { Random.nextInt(1, sides + 1) }
     },

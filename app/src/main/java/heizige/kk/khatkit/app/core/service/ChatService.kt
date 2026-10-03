@@ -84,6 +84,7 @@ import java.util.Locale
 import kotlin.uuid.Uuid
 import javax.inject.Inject
 import heizige.kk.khatkit.app.core.data.ai.transformers.InputMessageTransformer
+import heizige.kk.khatkit.app.core.data.ai.tavern.TavernMacroTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OutputMessageTransformer
 
 private const val TAG = "ChatService"
@@ -164,6 +165,7 @@ class ChatService @Inject constructor(
 ) {
     private val inputTransformers: List<InputMessageTransformer> by lazy {
         listOf(
+            TavernMacroTransformer,
             TimeReminderTransformer,
             PromptInjectionTransformer,
             placeholderTransformer,
