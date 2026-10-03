@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -27,10 +28,16 @@ fun FormItem(
     label: @Composable () -> Unit,
     description: @Composable (() -> Unit)? = null,
     tail: @Composable () -> Unit = {},
+    /**
+     * 整行点击。开关行必须传（等于翻转开关），否则「点卡片不动、只能点开关」。
+     */
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

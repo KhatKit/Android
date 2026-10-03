@@ -103,34 +103,6 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
 
-    if (settings.launchCount > 100 && (settings.launchCount - settings.sponsorAlertDismissedAt) >= 50) {
-        AppAlertDialog(
-            onDismissRequest = {
-                vm.updateSettings(settings.copy(sponsorAlertDismissedAt = settings.launchCount))
-            },
-            icon = { Icon(wavingHand, null) },
-            title = { Text(stringResource(R.string.setting_page_sponsor_alert_title)) },
-            text = { Text(stringResource(R.string.setting_page_sponsor_alert_desc)) },
-            confirmButton = {
-                KedgeButton(onClick = {
-                    vm.updateSettings(settings.copy(sponsorAlertDismissedAt = settings.launchCount))
-                    navController.navigate(Screen.SettingDonate)
-                },
-                     shapes = ButtonDefaults.shapes(),) {
-                    Text(stringResource(R.string.setting_page_sponsor_alert_confirm))
-                }
-            },
-            dismissButton = {
-                KedgeTextButton(onClick = {
-                    vm.updateSettings(settings.copy(sponsorAlertDismissedAt = settings.launchCount))
-                },
-                     shapes = ButtonDefaults.shapes(),) {
-                    Text(stringResource(R.string.setting_page_sponsor_alert_dismiss))
-                }
-            },
-        )
-    }
-
     Scaffold(
         topBar = {
             KedgePageLargeTopBar(
@@ -234,13 +206,11 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     item(
                         onClick = { navController.navigate(Screen.SettingProvider) },
                         leadingContent = { Icon(psychology, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_providers_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_providers)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingSearch) },
                         leadingContent = { Icon(travelExplore, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_search_service_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_search_service)) },
                     )
                     item(
@@ -252,7 +222,6 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     item(
                         onClick = { navController.navigate(Screen.SettingMcp) },
                         leadingContent = { Icon(dns, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_mcp_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_mcp)) },
                     )
                     item(
@@ -329,7 +298,6 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     item(
                         onClick = { navController.navigate(Screen.SettingAbout) },
                         leadingContent = { Icon(celebration, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_about_desc)) },
                         trailingContent = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -434,7 +402,6 @@ internal fun ProviderConfigWarningCard(navController: Navigator) {
                     Icon(warning, null)
                 },
                 titleContent = { Text(stringResource(R.string.setting_page_config_api_title)) },
-                supportingContent = { Text(stringResource(R.string.setting_page_config_api_desc)) },
             )
 
             KedgeTextButton(

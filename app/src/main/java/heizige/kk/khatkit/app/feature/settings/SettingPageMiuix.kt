@@ -126,13 +126,11 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             )
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_providers),
-                summary = stringResource(R.string.setting_page_providers_desc),
                 icon = psychology,
                 onClick = { navController.navigate(Screen.SettingProvider) },
             )
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_search_service),
-                summary = stringResource(R.string.setting_page_search_service_desc),
                 icon = travelExplore,
                 onClick = { navController.navigate(Screen.SettingSearch) },
             )
@@ -144,7 +142,6 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             )
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_mcp),
-                summary = stringResource(R.string.setting_page_mcp_desc),
                 icon = dns,
                 onClick = { navController.navigate(Screen.SettingMcp) },
             )
@@ -200,7 +197,6 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         miuixGroup {
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_about),
-                summary = stringResource(R.string.setting_page_about_desc),
                 icon = celebration,
                 onClick = { navController.navigate(Screen.SettingAbout) },
             )

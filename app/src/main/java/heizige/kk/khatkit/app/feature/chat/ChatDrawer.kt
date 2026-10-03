@@ -10,6 +10,7 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.download
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -104,6 +105,7 @@ import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -267,21 +269,22 @@ fun ChatDrawerContent(
                 // TitlePadding 而 actions 侧只有 16dp ActionIconPadding，左右留白
                 // 不对称（实测 43.7dp vs 27.7dp）。抽屉顶栏要的是左右对齐。
                 KedgeBlurredBar(backdrop = backdrop) {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    // 有 backdrop 时透明，让 KedgeBlurredBar 的模糊透出来；
-                    // 没有 backdrop 时退回 surface，避免出现无底的栏。
-                    containerColor = KedgeOverlayBarColor(
-                        backdrop = backdrop,
-                        // MD3Exp 下没有 MiuixTheme，取它会拿到全 0 的透明色，
-                        // 所以退回 MD3 的 surface。
-                        fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                            MiuixTheme.colorScheme.surface
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                    ),
-                ),
+                TopAppBar(
+                    colors = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                        TopAppBarDefaults.topAppBarColors(
+                            // 有 backdrop 时透明，让 KedgeBlurredBar 的模糊透出来；
+                            // 没有 backdrop 时退回 surface，避免出现无底的栏。
+                            containerColor = KedgeOverlayBarColor(
+                                backdrop = backdrop,
+                                fallback = MiuixTheme.colorScheme.surface,
+                            ),
+                        )
+                    } else {
+                        // MD3Exp：走 CustomColors.topBarColors（surfaceContainer），
+                        // 顶栏才有自己的颜色；TopAppBar 的默认容器色是 surface，
+                        // 与抽屉底色同色，顶栏会整个「消失」。
+                        CustomColors.topBarColors
+                    },
                 navigationIcon = {
                     if (searchVisible) {
                         KedgeIconButton(
@@ -388,9 +391,24 @@ fun ChatDrawerContent(
             bottomBar = {
                 // KedgeOverlayScaffold 内部是普通 Box，顶/底栏各自负责对齐；
                 // 不写 align 的话底栏会被摆在 Box 的左上角（表现为"浮在天上"）。
+                //
+                // 底色与顶栏同一套来源：Miuix 有 backdrop 时透明走毛玻璃，否则退回
+                // Miuix surface；MD3Exp 用 BottomAppBar 的默认容器色
+                // （BottomAppBarTokens.ContainerColor = surfaceContainer），
+                // 不再靠抽屉底色透出来。
+                val bottomBarColor = KedgeOverlayBarColor(
+                    backdrop = backdrop,
+                    fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                        MiuixTheme.colorScheme.surface
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    },
+                )
                 KedgeBlurredBar(
                     backdrop = backdrop,
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .background(bottomBarColor),
                 ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -596,12 +614,13 @@ fun ChatDrawerContent(
     }
 
     // 抽屉底色不能依赖 ModalDrawerSheet 的默认值：material3 1.5.0-alpha29 改了
-    // DrawerDefaults 的容器色，MD3Exp 下会漏出灰紫底，和下面的白底分组卡片对不上。
-    // 这里显式给色：Miuix 用 surface（页面底色），MD3Exp 用 surfaceContainerLow。
+    // DrawerDefaults 的容器色，MD3Exp 下会漏出灰紫底。
+    // 这里显式给色，且两种风格都与聊天页同底色（页面用 KedgeColors.surface）：
+    // 有色的一档只留给顶/底栏，抽屉本身跟正文同色。
     val drawerContainerColor = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
         MiuixTheme.colorScheme.surface
     } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
+        MaterialTheme.colorScheme.surface
     }
 
     // 有 drawerState 时用带预测返回的 ModalDrawerSheet（返回手势跟手关闭抽屉）

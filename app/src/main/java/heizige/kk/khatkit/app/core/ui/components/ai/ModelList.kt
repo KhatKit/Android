@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -30,11 +31,13 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -335,6 +338,8 @@ private fun ColumnScope.ModelList(
     }
 
     var searchKeywords by remember { mutableStateOf("") }
+    // 搜索框展开态（KSU SuperSearchBar 那种全屏搜索）
+    var searchExpanded by remember { mutableStateOf(false) }
 
     // 折叠的供应商（持久化），搜索时全部展开
     var collapsedProvidersPref by rememberSharedPreferenceString("model_list_collapsed_providers", "")
@@ -465,81 +470,142 @@ private fun ColumnScope.ModelList(
         }.toMap()
     }
 
-    KedgeSurface(
-        shape = RoundedCornerShape(50),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-    ) {
-        KedgeOutlinedTextFieldWithSlots(
-            value = searchKeywords,
-            onValueChange = { searchKeywords = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    text = stringResource(R.string.model_list_search_placeholder),
-                )
-            },
-            shape = RoundedCornerShape(16.dp),
-            colors = TextFieldDefaults.colors(
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-            ),
-            leadingIcon = {
-                Icon(search, null)
-            },
-            maxLines = 1,
-        )
-    }
-
-    LazyColumn(
-        state = lazyListState,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(8.dp),
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth(),
-    ) {
-        if (providers.isEmpty()) {
-            item {
-                Text(
-                    text = stringResource(R.string.model_list_no_providers),
-                    style = KedgeTextStyles.body(),
-                    color = MaterialTheme.extendColors.gray6,
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
-        }
-
-        if (favoriteModels.isNotEmpty()) {
-            stickyHeader {
-                Text(
-                    text = stringResource(R.string.model_list_favorite),
-                    style = KedgeTextStyles.body(),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(bottom = 4.dp, top = 8.dp)
-                )
+    // 模型列表：折叠态挂在面板里，展开态搬进搜索框的全屏槽，所以抽成一个 lambda 复用。
+    val modelList: @Composable (Modifier) -> Unit = { listModifier ->
+        LazyColumn(
+            state = lazyListState,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(8.dp),
+            modifier = listModifier,
+        ) {
+            if (providers.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.model_list_no_providers),
+                        style = KedgeTextStyles.body(),
+                        color = MaterialTheme.extendColors.gray6,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
             }
 
-            items(
-                items = favoriteModels,
-                key = { "favorite:" + it.first.id.toString() }
-            ) { (model, provider) ->
-                ReorderableItem(
-                    state = reorderableState,
-                    key = "favorite:" + model.id.toString()
-                ) { isDragging ->
+            if (favoriteModels.isNotEmpty()) {
+                stickyHeader {
+                    Text(
+                        text = stringResource(R.string.model_list_favorite),
+                        style = KedgeTextStyles.body(),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp, top = 8.dp)
+                    )
+                }
+
+                items(
+                    items = favoriteModels,
+                    key = { "favorite:" + it.first.id.toString() }
+                ) { (model, provider) ->
+                    ReorderableItem(
+                        state = reorderableState,
+                        key = "favorite:" + model.id.toString()
+                    ) { isDragging ->
+                        ModelItem(
+                            model = model,
+                            onSelect = onSelect,
+                            modifier = Modifier
+                                .scale(if (isDragging) 0.95f else 1f)
+                                .animateItem(),
+                            providerSetting = provider,
+                            select = model.id == currentModel,
+                            onDismiss = {
+                                onDismiss()
+                            },
+                            tail = {
+                                KedgeIconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            settingsStore.update { settings ->
+                                                settings.copy(
+                                                    favoriteModels = settings.favoriteModels.filter { it != model.id }
+                                                )
+                                            }
+                                        }
+                                    },
+                                    shapes = IconButtonDefaults.shapes(),
+                                ) {
+                                    Icon(
+                                        HeartIcon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            },
+                            dragHandle = {
+                                Icon(
+                                    imageVector = dragIndicator,
+                                    contentDescription = null,
+                                    modifier = Modifier.longPressDraggableHandle(
+                                        onDragStarted = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                        },
+                                        onDragStopped = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            providers.fastForEach { providerSetting ->
+                val collapsed = isCollapsed(providerSetting)
+                stickyHeader(key = "header:${providerSetting.id}") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable { toggleCollapsed(providerSetting) }
+                            .padding(horizontal = 8.dp)
+                            .padding(bottom = 4.dp, top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (collapsed) chevronRight else keyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+
+                        Text(
+                            text = providerSetting.name,
+                            style = KedgeTextStyles.body(),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        ProviderBalanceText(
+                            providerSetting = providerSetting,
+                            style = KedgeTextStyles.body(),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+
+                items(
+                    items = visibleModelsByProvider[providerSetting.id].orEmpty(),
+                    key = { it.id }
+                ) { model ->
+                    val favorite = settings.value.favoriteModels.contains(model.id)
                     ModelItem(
                         model = model,
                         onSelect = onSelect,
-                        modifier = Modifier
-                            .scale(if (isDragging) 0.95f else 1f)
-                            .animateItem(),
-                        providerSetting = provider,
-                        select = model.id == currentModel,
+                        modifier = Modifier.animateItem(),
+                        providerSetting = providerSetting,
+                        select = currentModel == model.id,
                         onDismiss = {
                             onDismiss()
                         },
@@ -548,130 +614,65 @@ private fun ColumnScope.ModelList(
                                 onClick = {
                                     coroutineScope.launch {
                                         settingsStore.update { settings ->
-                                            settings.copy(
-                                                favoriteModels = settings.favoriteModels.filter { it != model.id }
-                                            )
+                                            if (favorite) {
+                                                settings.copy(
+                                                    favoriteModels = settings.favoriteModels.filter { it != model.id }
+                                                )
+
+                                            } else {
+                                                settings.copy(
+                                                    favoriteModels = settings.favoriteModels + model.id
+                                                )
+                                            }
                                         }
                                     }
                                 },
                                 shapes = IconButtonDefaults.shapes(),
                             ) {
-                                Icon(
-                                    HeartIcon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        },
-                        dragHandle = {
-                            Icon(
-                                imageVector = dragIndicator,
-                                contentDescription = null,
-                                modifier = Modifier.longPressDraggableHandle(
-                                    onDragStarted = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                    },
-                                    onDragStopped = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                    }
-                                )
-                            )
-                        }
-                    )
-                }
-            }
-        }
-
-        providers.fastForEach { providerSetting ->
-            val collapsed = isCollapsed(providerSetting)
-            stickyHeader(key = "header:${providerSetting.id}") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable { toggleCollapsed(providerSetting) }
-                        .padding(horizontal = 8.dp)
-                        .padding(bottom = 4.dp, top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        imageVector = if (collapsed) chevronRight else keyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-
-                    Text(
-                        text = providerSetting.name,
-                        style = KedgeTextStyles.body(),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    ProviderBalanceText(
-                        providerSetting = providerSetting,
-                        style = KedgeTextStyles.body(),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-
-            items(
-                items = visibleModelsByProvider[providerSetting.id].orEmpty(),
-                key = { it.id }
-            ) { model ->
-                val favorite = settings.value.favoriteModels.contains(model.id)
-                ModelItem(
-                    model = model,
-                    onSelect = onSelect,
-                    modifier = Modifier.animateItem(),
-                    providerSetting = providerSetting,
-                    select = currentModel == model.id,
-                    onDismiss = {
-                        onDismiss()
-                    },
-                    tail = {
-                        KedgeIconButton(
-                            onClick = {
-                                coroutineScope.launch {
-                                    settingsStore.update { settings ->
-                                        if (favorite) {
-                                            settings.copy(
-                                                favoriteModels = settings.favoriteModels.filter { it != model.id }
-                                            )
-
-                                        } else {
-                                            settings.copy(
-                                                favoriteModels = settings.favoriteModels + model.id
-                                            )
-                                        }
-                                    }
+                                if (favorite) {
+                                    Icon(
+                                        HeartIcon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = favoriteIcon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
-                            },
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            if (favorite) {
-                                Icon(
-                                    HeartIcon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = favoriteIcon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
+    }
+
+    // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，展开成
+    // 铺满全屏的搜索页 + 取消键；返回键收起，关键词同时清空。
+    KedgeSearchBar(
+        value = searchKeywords,
+        onValueChange = { searchKeywords = it },
+        placeholder = stringResource(R.string.model_list_search_placeholder),
+        active = searchExpanded,
+        onActiveChange = { searchExpanded = it },
+        cancelLabel = stringResource(R.string.cancel),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        expandedContent = { NoHeroTransition { NoHeroTransition { modelList(Modifier.fillMaxSize()) } } },
+    )
+
+    // 展开期间模型列表整个抽掉（KSU 的 SearchBox 同款），只在搜索框的全屏槽里出现一次。
+    if (!searchExpanded) {
+        modelList(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        )
     }
 
     // 供应商Badge行

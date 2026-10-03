@@ -1,6 +1,8 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,10 +36,12 @@ import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +67,7 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -88,7 +93,11 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }
-    var selectedPage by remember { mutableIntStateOf(0) }
+    // 底部导航 + 横向 Pager：点底栏与左右滑动共用同一个 pagerState，
+    // 之前是 selectedPage 整数 + when() 直接换内容，手指划不动。
+    val pagerState = rememberPagerState { 2 }
+    val scope = rememberCoroutineScope()
+    val selectedPage by remember { derivedStateOf { pagerState.currentPage } }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -129,13 +138,13 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
                         selected = selectedPage == 0,
                         icon = volumeUp,
                         label = stringResource(R.string.speech_tab_tts),
-                        onClick = { selectedPage = 0 },
+                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
                     ),
                     KedgeNavItem(
                         selected = selectedPage == 1,
                         icon = mic,
                         label = stringResource(R.string.speech_tab_asr),
-                        onClick = { selectedPage = 1 },
+                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
                     ),
                 ),
             )
@@ -143,22 +152,27 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = CustomColors.pageContainerColor,
     ) { innerPadding ->
-        when (selectedPage) {
-            0 -> Column(modifier = Modifier.padding(innerPadding)) {
-                TTSProviderList(
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) { page ->
+            when (page) {
+                0 -> TTSProviderList(
                     settings = settings,
                     onUpdateSettings = vm::updateSettings,
                     onEdit = { editingTTSProvider = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+                else -> ASRProviderList(
+                    settings = settings,
+                    onUpdateSettings = vm::updateSettings,
+                    onEdit = { editingASRProvider = it },
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
-
-            1 -> ASRProviderList(
-                settings = settings,
-                onUpdateSettings = vm::updateSettings,
-                onEdit = { editingASRProvider = it },
-                modifier = Modifier.padding(innerPadding)
-            )
         }
     }
 

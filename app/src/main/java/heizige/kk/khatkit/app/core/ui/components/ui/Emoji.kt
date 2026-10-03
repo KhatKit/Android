@@ -21,14 +21,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.kedge.components.KedgeCard
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeSearchBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -40,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,9 +47,9 @@ import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.util.Emoji
+import heizige.kk.khatkit.app.core.util.EmojiCategory
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 
@@ -66,6 +63,7 @@ fun EmojiPicker(
 ) {
     val emojiData = rememberAppEntryPoint().emojiData()
     var searchQuery by remember { mutableStateOf("") }
+    var searchExpanded by remember { mutableStateOf(false) }
     var selectedCategoryIndex by remember { mutableIntStateOf(0) }
     var showModifierPicker by remember { mutableStateOf(false) }
     var selectedEmojiForModifier by remember { mutableStateOf<Emoji?>(null) }
@@ -86,96 +84,18 @@ fun EmojiPicker(
                     )
                     .padding(8.dp)
             ) {
-                // Search bar
-                if (showSearch) {
-                    KedgeOutlinedTextFieldWithSlots(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text(stringResource(R.string.emoji_picker_search_placeholder)) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = search,
-                                contentDescription = "Search"
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.Search
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onSearch = { /* Handle search */ }
-                        ),
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp))
-                }
-
-                // Category tabs
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(data.categories.size) { index ->
-                        val category = data.categories[index]
-                        val isSelected = selectedCategoryIndex == index
-
-                        KedgeCard(
-                            modifier = Modifier
-                                .clickable {
-                                    selectedCategoryIndex = index
-                                    coroutineScope.launch {
-                                        lazyListState.animateScrollToItem(0)
-                                    }
-                                }
-                                .clip(RoundedCornerShape(20.dp)),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                }
-                            )
-                        ) {
-                            Text(
-                                text = when (category.name) {
-                                    "Smileys & Emotion" -> "\uD83D\uDE03"
-                                    "People & Body" -> "\uD83D\uDC64"
-                                    "Component" -> "\uD83E\uDDF4"
-                                    "Animals & Nature" -> "\uD83D\uDC3B"
-                                    "Food & Drink" -> "\uD83C\uDF5B"
-                                    "Travel & Places" -> "\uD83C\uDF04"
-                                    "Activities" -> "\uD83C\uDFA3"
-                                    "Objects" -> "\uD83D\uDCBB"
-                                    "Symbols" -> "\uD83C\uDF00"
-                                    "Flags" -> "\uD83D\uDEA9"
-                                    else -> category.name
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                style = KedgeTextStyles.body(),
-                            )
-                        }
-                    }
-                }
-
-                // Emoji grid
-                val selectedCategory = data.categories[selectedCategoryIndex]
+                // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
+                // 展开成铺满全屏的搜索页；取消键/返回键收起，关键词同时清空。
+                // 展开期间分类栏与表情网格整个抽掉（KSU 的 SearchBox 同款），
+                // 只在搜索框的全屏槽里出现一次。
                 val emojiVariants = remember(selectedCategoryIndex, data) {
-                    selectedCategory.getEmojiVariants()
+                    data.categories[selectedCategoryIndex].getEmojiVariants()
                 }
-
                 val filteredEmojiVariants = remember(searchQuery, emojiVariants) {
                     if (searchQuery.isBlank()) {
                         emojiVariants
                     } else {
-                        emojiVariants.filter { (baseEmoji, variants) ->
+                        emojiVariants.filter { (_, variants) ->
                             variants.any { emoji ->
                                 emoji.name.contains(searchQuery, ignoreCase = true) ||
                                     emoji.emoji.contains(searchQuery)
@@ -183,31 +103,55 @@ fun EmojiPicker(
                         }
                     }
                 }
+                val emojiGrid: @Composable (Modifier) -> Unit = { gridModifier ->
+                    EmojiGrid(
+                        modifier = gridModifier,
+                        variants = filteredEmojiVariants,
+                        gridState = lazyListState,
+                        onEmojiSelected = onEmojiSelected,
+                        onRequestModifierPicker = { baseEmoji, variants ->
+                            selectedEmojiForModifier = baseEmoji
+                            modifierVariants = variants
+                            showModifierPicker = true
+                        },
+                    )
+                }
+                val categoryRow: @Composable () -> Unit = {
+                    EmojiCategoryRow(
+                        categories = data.categories,
+                        selectedCategoryIndex = selectedCategoryIndex,
+                        gridState = lazyListState,
+                        onSelect = { selectedCategoryIndex = it },
+                    )
+                }
 
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 40.dp),
-                    state = lazyListState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(filteredEmojiVariants.toList(), key = { it.first.emoji }) { (baseEmoji, variants) ->
-                        EmojiItem(
-                            emoji = baseEmoji,
-                            hasVariants = variants.size > 1,
-                            onClick = {
-                                onEmojiSelected(baseEmoji)
-                            },
-                            onLongClick = if (variants.size > 1) {
-                                {
-                                    selectedEmojiForModifier = baseEmoji
-                                    modifierVariants = variants
-                                    showModifierPicker = true
+                if (showSearch) {
+                    KedgeSearchBar(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = stringResource(R.string.emoji_picker_search_placeholder),
+                        active = searchExpanded,
+                        onActiveChange = { searchExpanded = it },
+                        cancelLabel = stringResource(R.string.cancel),
+                        modifier = Modifier.fillMaxWidth(),
+                        expandedContent = {
+                            // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
+                            NoHeroTransition {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    categoryRow()
+                                    emojiGrid(Modifier.fillMaxSize())
                                 }
-                            } else null
-                        )
-                    }
+                            }
+                        },
+                    )
+                }
+
+                if (!searchExpanded) {
+                    // Category tabs
+                    categoryRow()
+
+                    // Emoji grid
+                    emojiGrid(Modifier.fillMaxSize())
                 }
             }
 
@@ -226,6 +170,101 @@ fun EmojiPicker(
                     }
                 )
             }
+        }
+    }
+}
+
+/**
+ * 表情分类栏。折叠态与搜索展开态共用一份实现，只有宿主容器不同。
+ */
+@Composable
+private fun EmojiCategoryRow(
+    categories: List<EmojiCategory>,
+    selectedCategoryIndex: Int,
+    gridState: LazyGridState,
+    onSelect: (Int) -> Unit,
+) {
+    val coroutineScope = rememberCoroutineScope()
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(categories.size) { index ->
+            val category = categories[index]
+            val isSelected = selectedCategoryIndex == index
+
+            KedgeCard(
+                modifier = Modifier
+                    .clickable {
+                        onSelect(index)
+                        coroutineScope.launch { gridState.animateScrollToItem(0) }
+                    }
+                    .clip(RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
+                )
+            ) {
+                Text(
+                    text = when (category.name) {
+                        "Smileys & Emotion" -> "\uD83D\uDE03"
+                        "People & Body" -> "\uD83D\uDC64"
+                        "Component" -> "\uD83E\uDDF4"
+                        "Animals & Nature" -> "\uD83C\uDC3B"
+                        "Food & Drink" -> "\uD83C\uDF5B"
+                        "Travel & Places" -> "\uD83C\uDF04"
+                        "Activities" -> "\uD83C\uDFA3"
+                        "Objects" -> "\uD83D\uDCBB"
+                        "Symbols" -> "\uD83C\uDF00"
+                        "Flags" -> "\uD83D\uDEA9"
+                        else -> category.name
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    style = KedgeTextStyles.body(),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 表情网格。折叠态与搜索展开态共用一份实现，只有 [modifier] 不同。
+ */
+@Composable
+private fun EmojiGrid(
+    variants: Map<Emoji, List<Emoji>>,
+    gridState: LazyGridState,
+    onEmojiSelected: (Emoji) -> Unit,
+    onRequestModifierPicker: (Emoji, List<Emoji>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 40.dp),
+        state = gridState,
+        modifier = modifier,
+        contentPadding = PaddingValues(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(variants.toList(), key = { it.first.emoji }) { (baseEmoji, emojiGroup) ->
+            EmojiItem(
+                emoji = baseEmoji,
+                hasVariants = emojiGroup.size > 1,
+                onClick = { onEmojiSelected(baseEmoji) },
+                onLongClick = if (emojiGroup.size > 1) {
+                    { onRequestModifierPicker(baseEmoji, emojiGroup) }
+                } else null
+            )
         }
     }
 }

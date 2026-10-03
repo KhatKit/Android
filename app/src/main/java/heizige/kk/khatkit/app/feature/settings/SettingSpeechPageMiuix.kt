@@ -2,15 +2,21 @@ package heizige.kk.khatkit.app.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,8 +44,10 @@ import top.yukonga.miuix.kmp.basic.NavigationBarItem
 @Composable
 fun SettingSpeechPageMiuix(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
-    val pageState = remember { mutableIntStateOf(0) }
-    val page = pageState.intValue
+    // 与 MD3 版一致：底栏点击与左右滑动共用同一个 pagerState。
+    val pagerState = rememberPagerState { 2 }
+    val scope = rememberCoroutineScope()
+    val page by remember { derivedStateOf { pagerState.currentPage } }
     var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }
 
@@ -65,13 +73,13 @@ fun SettingSpeechPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             NavigationBar {
                 NavigationBarItem(
                     selected = page == 0,
-                    onClick = { pageState.intValue = 0 },
+                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
                     icon = volumeUp,
                     label = stringResource(R.string.speech_tab_tts),
                 )
                 NavigationBarItem(
                     selected = page == 1,
-                    onClick = { pageState.intValue = 1 },
+                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
                     icon = mic,
                     label = stringResource(R.string.speech_tab_asr),
                 )
@@ -79,19 +87,26 @@ fun SettingSpeechPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         },
     ) {
         item {
+            // 高度必须定死：Pager 要横向滑动，里面又是可竖向滚动的列表，
+            // 放进 LazyColumn 的 item 后高度不能是 Infinity。
             Box(modifier = Modifier.fillParentMaxHeight(0.92f)) {
-                if (page == 0) {
-                    TTSProviderList(
-                        settings = settings,
-                        onUpdateSettings = vm::updateSettings,
-                        onEdit = { editingTTSProvider = it },
-                    )
-                } else {
-                    ASRProviderList(
-                        settings = settings,
-                        onUpdateSettings = vm::updateSettings,
-                        onEdit = { editingASRProvider = it },
-                    )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                ) { p ->
+                    if (p == 0) {
+                        TTSProviderList(
+                            settings = settings,
+                            onUpdateSettings = vm::updateSettings,
+                            onEdit = { editingTTSProvider = it },
+                        )
+                    } else {
+                        ASRProviderList(
+                            settings = settings,
+                            onUpdateSettings = vm::updateSettings,
+                            onEdit = { editingASRProvider = it },
+                        )
+                    }
                 }
             }
         }

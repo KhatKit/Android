@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import android.net.Uri
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -348,7 +349,7 @@ private fun ChatPageContent(
     val activeNestedScroll = activeNestedScroll(scrollBehavior)
 
     KedgeSurface(
-        color = heizige.kk.kedge.theme.KedgeColors.background,
+        color = heizige.kk.kedge.theme.KedgeColors.surface,
         modifier = Modifier.fillMaxSize()
     ) {
         // 用 KedgePageScaffold：Miuix 下自动建立 backdrop 并只包住内容槽，
@@ -821,8 +822,12 @@ private fun TopBar(
     // 行可见，收起时只有小标题行可见），任何时刻只有一行能看见，所以原地 morph 成立。
     // 唯一要处理的是焦点：两行各有一份输入框，FocusRequester 只能挂一份，见
     // focusLargeTitleRow。
+    // MD3Exp 下走 CustomColors.topBarColors（surfaceContainer，比页面底色 surface
+    // 深一档，顶栏才有自己的颜色）；LargeFlexibleTopAppBar 的默认容器色是 surface，
+    // 与页面底色同色，顶栏会整个「消失」。
+    // Miuix 分支不读 colors，仍是现在的透明顶栏。
     KedgePageLargeTopBar(
-        colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = Color.Transparent),
+        colors = CustomColors.topBarColors,
         scrollBehavior = scrollBehavior,
         navigationIcon = {
             // 菜单 ↔ 返回在**同一个槽位**交叉淡化：返回箭头替换菜单图标。

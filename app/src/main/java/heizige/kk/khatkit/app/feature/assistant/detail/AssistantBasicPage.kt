@@ -59,6 +59,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.data.model.Tag as DataTag
 import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
@@ -239,7 +240,15 @@ internal fun AssistantBasicContent(
 
             KedgeFormDivider()
 
-            KedgeFormRow(
+            KedgeSwitchFormRow(
+                checked = assistant.useAssistantAvatar,
+                onCheckedChange = {
+                    onUpdate(
+                        assistant.copy(
+                            useAssistantAvatar = it
+                        )
+                    )
+                },
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar))
@@ -247,18 +256,6 @@ internal fun AssistantBasicContent(
                 description = {
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar_desc))
                 },
-                tail = {
-                    KedgeSwitch(
-                        checked = assistant.useAssistantAvatar,
-                        onCheckedChange = {
-                            onUpdate(
-                                assistant.copy(
-                                    useAssistantAvatar = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
         }
 
@@ -475,7 +472,15 @@ internal fun AssistantBasicContent(
                 }
             }
             KedgeFormDivider()
-            KedgeFormRow(
+            KedgeSwitchFormRow(
+                checked = assistant.streamOutput,
+                onCheckedChange = {
+                    onUpdate(
+                        assistant.copy(
+                            streamOutput = it
+                        )
+                    )
+                },
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_stream_output))
@@ -483,18 +488,6 @@ internal fun AssistantBasicContent(
                 description = {
                     Text(stringResource(R.string.assistant_page_stream_output_desc))
                 },
-                tail = {
-                    KedgeSwitch(
-                        checked = assistant.streamOutput,
-                        onCheckedChange = {
-                            onUpdate(
-                                assistant.copy(
-                                    streamOutput = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
             KedgeFormDivider()
             KedgeFormRow(
@@ -551,7 +544,15 @@ internal fun AssistantBasicContent(
         }
 
         KedgeFormCard {
-            KedgeFormRow(
+            KedgeSwitchFormRow(
+                checked = assistant.useGradientBackground,
+                onCheckedChange = {
+                    onUpdate(
+                        assistant.copy(
+                            useGradientBackground = it
+                        )
+                    )
+                },
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_gradient_background))
@@ -559,18 +560,6 @@ internal fun AssistantBasicContent(
                 description = {
                     Text(stringResource(R.string.assistant_page_gradient_background_desc))
                 },
-                tail = {
-                    KedgeSwitch(
-                        checked = assistant.useGradientBackground,
-                        onCheckedChange = {
-                            onUpdate(
-                                assistant.copy(
-                                    useGradientBackground = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
 
             if (!assistant.useGradientBackground) {

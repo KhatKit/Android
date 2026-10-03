@@ -57,13 +57,11 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         miuixGroup {
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_user_avatar_title),
-                summary = stringResource(R.string.setting_display_page_show_user_avatar_desc),
                 checked = displaySetting.showUserAvatar,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_assistant_bubble_title),
-                summary = stringResource(R.string.setting_display_page_show_assistant_bubble_desc),
                 checked = displaySetting.showAssistantBubble,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
             )
@@ -77,19 +75,16 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_chat_list_model_icon_title),
-                summary = stringResource(R.string.setting_display_page_chat_list_model_icon_desc),
                 checked = displaySetting.showModelIcon,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_model_name_title),
-                summary = stringResource(R.string.setting_display_page_show_model_name_desc),
                 checked = displaySetting.showModelName,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelName = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_datetime_in_message_title),
-                summary = stringResource(R.string.setting_display_page_show_datetime_in_message_desc),
                 checked = displaySetting.showDateTimeInMessage,
                 onCheckedChange = {
                     updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it))
@@ -97,25 +92,21 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_token_usage_title),
-                summary = stringResource(R.string.setting_display_page_show_token_usage_desc),
                 checked = displaySetting.showTokenUsage,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_thinking_content_title),
-                summary = stringResource(R.string.setting_display_page_show_thinking_content_desc),
                 checked = displaySetting.showThinkingContent,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_auto_collapse_thinking_title),
-                summary = stringResource(R.string.setting_display_page_auto_collapse_thinking_desc),
                 checked = displaySetting.autoCloseThinking,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_enable_latex_rendering_title),
-                summary = stringResource(R.string.setting_display_page_enable_latex_rendering_desc),
                 checked = displaySetting.enableLatexRendering,
                 onCheckedChange = {
                     updateDisplaySetting(displaySetting.copy(enableLatexRendering = it))

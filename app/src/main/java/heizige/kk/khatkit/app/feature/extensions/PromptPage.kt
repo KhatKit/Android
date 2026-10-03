@@ -103,6 +103,7 @@ import heizige.kk.khatkit.app.core.ui.icons.iosShare
 import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.kedge.adaptive.KedgeBottomBar
 import heizige.kk.kedge.adaptive.KedgeNavItem
@@ -426,14 +427,10 @@ private fun ModeInjectionEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeFormRow(
+                KedgeSwitchFormRow(
+                    checked = injection.enabled,
+                    onCheckedChange = { onEdit(injection.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
-                    tail = {
-                        KedgeSwitch(
-                            checked = injection.enabled,
-                            onCheckedChange = { onEdit(injection.copy(enabled = it)) }
-                        )
-                    }
                 )
 
                 KedgeOutlinedTextFieldWithSlots(
@@ -846,14 +843,10 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeFormRow(
+                KedgeSwitchFormRow(
+                    checked = book.enabled,
+                    onCheckedChange = { onEdit(book.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
-                    tail = {
-                        KedgeSwitch(
-                            checked = book.enabled,
-                            onCheckedChange = { onEdit(book.copy(enabled = it)) }
-                        )
-                    }
                 )
 
                 // 条目列表
@@ -979,14 +972,10 @@ private fun RegexInjectionEditDialog(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeFormRow(
+                KedgeSwitchFormRow(
+                    checked = entry.enabled,
+                    onCheckedChange = { onEdit(entry.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
-                    tail = {
-                        KedgeSwitch(
-                            checked = entry.enabled,
-                            onCheckedChange = { onEdit(entry.copy(enabled = it)) }
-                        )
-                    }
                 )
 
                 KedgeOutlinedTextFieldWithSlots(
@@ -1073,35 +1062,23 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                KedgeFormRow(
+                KedgeSwitchFormRow(
+                    checked = entry.useRegex,
+                    onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
                     label = { Text(stringResource(R.string.prompt_page_use_regex)) },
-                    tail = {
-                        KedgeSwitch(
-                            checked = entry.useRegex,
-                            onCheckedChange = { onEdit(entry.copy(useRegex = it)) }
-                        )
-                    }
                 )
 
-                KedgeFormRow(
+                KedgeSwitchFormRow(
+                    checked = entry.caseSensitive,
+                    onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
-                    tail = {
-                        KedgeSwitch(
-                            checked = entry.caseSensitive,
-                            onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) }
-                        )
-                    }
                 )
 
-                KedgeFormRow(
+                KedgeSwitchFormRow(
+                    checked = entry.constantActive,
+                    onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_constant_active)) },
                     description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
-                    tail = {
-                        KedgeSwitch(
-                            checked = entry.constantActive,
-                            onCheckedChange = { onEdit(entry.copy(constantActive = it)) }
-                        )
-                    }
                 )
 
                 KedgeOutlinedTextFieldWithSlots(

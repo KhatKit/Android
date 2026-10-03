@@ -54,13 +54,11 @@ fun SettingPreferencesGeneralPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         miuixGroup {
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_create_new_conversation_on_start_title),
-                summary = stringResource(R.string.setting_display_page_create_new_conversation_on_start_desc),
                 checked = createNewConversationOnStart,
                 onCheckedChange = { createNewConversationOnStart = it },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_send_on_enter_title),
-                summary = stringResource(R.string.setting_display_page_send_on_enter_desc),
                 checked = displaySetting.sendOnEnter,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(sendOnEnter = it)) },
             )
@@ -82,13 +80,11 @@ fun SettingPreferencesGeneralPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             }
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_enable_auto_scroll_title),
-                summary = stringResource(R.string.setting_display_page_enable_auto_scroll_desc),
                 checked = displaySetting.enableAutoScroll,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableAutoScroll = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_use_app_icon_style_loading_indicator_title),
-                summary = stringResource(R.string.setting_display_page_use_app_icon_style_loading_indicator_desc),
                 checked = displaySetting.useAppIconStyleLoadingIndicator,
                 onCheckedChange = {
                     updateDisplaySetting(displaySetting.copy(useAppIconStyleLoadingIndicator = it))
@@ -96,7 +92,6 @@ fun SettingPreferencesGeneralPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_background_effect_title),
-                summary = stringResource(R.string.setting_display_page_background_effect_desc),
                 checked = displaySetting.enableBlurEffect,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableBlurEffect = it)) },
             )
@@ -131,7 +126,6 @@ fun SettingPreferencesGeneralPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_skip_crop_image_title),
-                summary = stringResource(R.string.setting_display_page_skip_crop_image_desc),
                 checked = displaySetting.skipCropImage,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(skipCropImage = it)) },
             )
@@ -187,13 +181,11 @@ fun SettingPreferencesGeneralPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_tts_only_read_quoted_title),
-                summary = stringResource(R.string.setting_display_page_tts_only_read_quoted_desc),
                 checked = displaySetting.ttsOnlyReadQuoted,
                 onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadQuoted = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_tts_read_outside_brackets_title),
-                summary = stringResource(R.string.setting_display_page_tts_read_outside_brackets_desc),
                 checked = displaySetting.ttsOnlyReadOutsideBrackets,
                 onCheckedChange = {
                     updateDisplaySetting(displaySetting.copy(ttsOnlyReadOutsideBrackets = it))

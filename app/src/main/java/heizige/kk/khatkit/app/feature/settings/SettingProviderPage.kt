@@ -18,9 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -34,7 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeCard
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
@@ -53,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
@@ -75,15 +76,14 @@ import heizige.kk.khatkit.app.core.util.ImageUtils
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
-import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.dragIndicator
 import heizige.kk.khatkit.app.core.ui.icons.image
-import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -95,6 +95,7 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var searchQuery by remember { mutableStateOf("") }
+    var searchExpanded by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val newProviders = settings.providers.toMutableList().apply {
@@ -145,79 +146,108 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding())
         ) {
-            // Search bar
-            KedgeOutlinedTextFieldWithSlots(
+            // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
+            // 展开成铺满全屏的搜索页；取消键/返回键收起，关键词同时清空。
+            // 展开期间页面正文整个抽掉（KSU 的 SearchBox 同款），列表只在全屏槽里出现一次。
+            KedgeSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text(stringResource(R.string.setting_provider_page_search_providers)) },
-                leadingIcon = {
-                    Icon(search, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        KedgeIconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(close, contentDescription = "Clear")
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-            )
-
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .imePadding(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) +
-                    PaddingValues(
-                        bottom = innerPadding.calculateBottomPadding() +
-                            PageMetrics.BottomContentPadding,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                state = lazyListState,
-            ) {
-                items(filteredProviders, key = { it.id }) { provider ->
-                    ReorderableItem(
-                        state = reorderableState,
-                        key = provider.id
-                    ) { isDragging ->
-                        ProviderItem(
-                            modifier = Modifier
-                                .scale(if (isDragging) 0.95f else 1f)
-                                .fillMaxWidth(),
-                            provider = provider,
-                            dragHandle = {
-                                val haptic = LocalHapticFeedback.current
-                                KedgeIconButton(
-                                    onClick = {},
-                                    modifier = Modifier
-                                        .longPressDraggableHandle(
-                                            onDragStarted = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                            },
-                                            onDragStopped = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                            }
-                                        ),
-                                    shapes = IconButtonDefaults.shapes(),
-                                ) {
-                                    Icon(
-                                        imageVector = dragIndicator,
-                                        contentDescription = null
-                                    )
-                                }
+                placeholder = stringResource(R.string.setting_provider_page_search_providers),
+                active = searchExpanded,
+                onActiveChange = { searchExpanded = it },
+                cancelLabel = stringResource(R.string.cancel),
+                modifier = Modifier.fillMaxWidth(),
+                expandedContent = {
+                    // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
+                    NoHeroTransition {
+                        ProviderList(
+                            providers = filteredProviders,
+                            modifier = Modifier.fillMaxSize(),
+                            listState = lazyListState,
+                            reorderableState = reorderableState,
+                            bottomPadding = innerPadding.calculateBottomPadding() +
+                                PageMetrics.BottomContentPadding,
+                            onClick = { provider ->
+                                navController.navigate(Screen.SettingProviderDetail(provider.id.toString()))
                             },
-                            onClick = {
-                                navController.navigate(Screen.SettingProviderDetail(providerId = provider.id.toString()))
-                            }
                         )
                     }
-                }
+                },
+            )
+
+            if (!searchExpanded) {
+                ProviderList(
+                    providers = filteredProviders,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .imePadding(),
+                    listState = lazyListState,
+                    reorderableState = reorderableState,
+                    bottomPadding = innerPadding.calculateBottomPadding() +
+                        PageMetrics.BottomContentPadding,
+                    onClick = { provider ->
+                        navController.navigate(Screen.SettingProviderDetail(provider.id.toString()))
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 供应商列表。折叠态挂在页面正文里，展开态搬进搜索框的全屏槽，所以两处共用一份实现，
+ * 只有 [modifier] 不同（页面里用 `weight(1f)` 跟着 Column 走，全屏槽里 `fillMaxSize`）。
+ */
+@Composable
+private fun ProviderList(
+    providers: List<ProviderSetting>,
+    onClick: (ProviderSetting) -> Unit,
+    modifier: Modifier = Modifier,
+    listState: LazyListState,
+    reorderableState: ReorderableLazyListState,
+    bottomPadding: Dp,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) +
+            PaddingValues(bottom = bottomPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        state = listState,
+    ) {
+        items(providers, key = { it.id }) { provider ->
+            ReorderableItem(
+                state = reorderableState,
+                key = provider.id
+            ) { isDragging ->
+                ProviderItem(
+                    modifier = Modifier
+                        .scale(if (isDragging) 0.95f else 1f)
+                        .fillMaxWidth(),
+                    provider = provider,
+                    dragHandle = {
+                        val haptic = LocalHapticFeedback.current
+                        KedgeIconButton(
+                            onClick = {},
+                            modifier = Modifier
+                                .longPressDraggableHandle(
+                                    onDragStarted = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                    },
+                                    onDragStopped = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    }
+                                ),
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(
+                                imageVector = dragIndicator,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    onClick = { onClick(provider) },
+                )
             }
         }
     }

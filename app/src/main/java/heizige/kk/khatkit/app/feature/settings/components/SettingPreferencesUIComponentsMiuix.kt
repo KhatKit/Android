@@ -26,19 +26,16 @@ fun CodeDisplaySettingsGroupMiuix(
 ) {
     PreferenceSwitch(
         title = stringResource(R.string.setting_display_page_code_block_auto_wrap_title),
-        summary = stringResource(R.string.setting_display_page_code_block_auto_wrap_desc),
         checked = codeBlockAutoWrap,
         onCheckedChange = onUpdateCodeBlockAutoWrap,
     )
     PreferenceSwitch(
         title = stringResource(R.string.setting_display_page_code_block_auto_collapse_title),
-        summary = stringResource(R.string.setting_display_page_code_block_auto_collapse_desc),
         checked = codeBlockAutoCollapse,
         onCheckedChange = onUpdateCodeBlockAutoCollapse,
     )
     PreferenceSwitch(
         title = stringResource(R.string.setting_display_page_show_line_numbers_title),
-        summary = stringResource(R.string.setting_display_page_show_line_numbers_desc),
         checked = showLineNumbers,
         onCheckedChange = onUpdateShowLineNumbers,
     )
@@ -74,7 +71,6 @@ fun BlurToggleGroupMiuix() {
 
     PreferenceSwitch(
         title = stringResource(R.string.setting_page_blur_title),
-        summary = stringResource(R.string.setting_page_blur_desc),
         checked = enabled,
         onCheckedChange = { khatKitProvider.enableBlur = it },
     )

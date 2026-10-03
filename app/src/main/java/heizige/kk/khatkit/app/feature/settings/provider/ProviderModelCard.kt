@@ -247,22 +247,12 @@ internal fun BuiltInToolsSettings(
         )
 
         val availableTools = listOf(
-            BuiltInTools.Search to Pair(
-                stringResource(R.string.setting_page_built_in_tools_search),
-                stringResource(R.string.setting_page_built_in_tools_search_desc)
-            ),
-            BuiltInTools.UrlContext to Pair(
-                stringResource(R.string.setting_page_built_in_tools_url_context),
-                stringResource(R.string.setting_page_built_in_tools_url_context_desc)
-            ),
-            BuiltInTools.ImageGeneration to Pair(
-                stringResource(R.string.setting_page_built_in_tools_image_generation),
-                stringResource(R.string.setting_page_built_in_tools_image_generation_desc)
-            )
+            BuiltInTools.Search to stringResource(R.string.setting_page_built_in_tools_search),
+            BuiltInTools.UrlContext to stringResource(R.string.setting_page_built_in_tools_url_context),
+            BuiltInTools.ImageGeneration to stringResource(R.string.setting_page_built_in_tools_image_generation),
         )
 
-        availableTools.forEach { (tool, info) ->
-            val (title, description) = info
+        availableTools.forEach { (tool, title) ->
             KedgeCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -273,20 +263,11 @@ internal fun BuiltInToolsSettings(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
+                    Text(
+                        text = title,
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = title,
-                            style = KedgeTextStyles.title()
-                        )
-                        Text(
-                            text = description,
-                            style = KedgeTextStyles.body(),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        style = KedgeTextStyles.title()
+                    )
                     OptionSwitch(
                         checked = tool in tools,
                         onCheckedChange = { checked ->

@@ -44,7 +44,6 @@ fun TTSProviderConfigure(
 
         KedgeFormRow(
             label = { Text(stringResource(R.string.setting_tts_page_provider_type)) },
-            description = { Text(stringResource(R.string.setting_tts_page_provider_type_description)) },
         ) {
             SelectTextField(
                 value = when (setting) {
@@ -150,7 +149,6 @@ fun TTSProviderConfigure(
         // Name
         KedgeFormRow(
             label = { Text(stringResource(R.string.setting_tts_page_name)) },
-            description = { Text(stringResource(R.string.setting_tts_page_name_description)) }
         ) {
             KedgeTextField(
                 value = setting.name,
@@ -189,7 +187,6 @@ private fun OpenAITTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -205,7 +202,6 @@ private fun OpenAITTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -221,7 +217,6 @@ private fun OpenAITTSConfiguration(
     // Model
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         KedgeTextField(
             value = setting.model,
@@ -239,7 +234,6 @@ private fun OpenAITTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
         SelectTextField(
             value = setting.voice,
@@ -264,7 +258,6 @@ private fun MiMoTTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -280,7 +273,6 @@ private fun MiMoTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -296,7 +288,6 @@ private fun MiMoTTSConfiguration(
     // Model
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         KedgeTextField(
             value = setting.model,
@@ -324,7 +315,6 @@ private fun MiMoTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
         SelectTextField(
             value = setting.voice,
@@ -349,7 +339,6 @@ private fun MiniMaxTTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -364,7 +353,6 @@ private fun MiniMaxTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -380,7 +368,6 @@ private fun MiniMaxTTSConfiguration(
     // Model
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         KedgeTextField(
             value = setting.model,
@@ -410,7 +397,6 @@ private fun MiniMaxTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_id)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_id_description)) }
     ) {
         SelectTextField(
             value = setting.voiceId,
@@ -451,7 +437,6 @@ private fun GeminiTTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -467,7 +452,6 @@ private fun GeminiTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -483,7 +467,6 @@ private fun GeminiTTSConfiguration(
     // Model
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         KedgeTextField(
             value = setting.model,
@@ -499,7 +482,6 @@ private fun GeminiTTSConfiguration(
     // Voice Name
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_name)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_name_description)) }
     ) {
         KedgeTextField(
             value = setting.voiceName,
@@ -561,7 +543,6 @@ private fun QwenTTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -577,7 +558,6 @@ private fun QwenTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -598,7 +578,6 @@ private fun QwenTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         SelectTextField(
             value = setting.model,
@@ -634,7 +613,6 @@ private fun QwenTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
         SelectTextField(
             value = setting.voice,
@@ -694,7 +672,6 @@ private fun GroqTTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -710,7 +687,6 @@ private fun GroqTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -726,7 +702,6 @@ private fun GroqTTSConfiguration(
     // Model
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         KedgeTextField(
             value = setting.model,
@@ -744,7 +719,6 @@ private fun GroqTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
         SelectTextField(
             value = setting.voice,
@@ -768,7 +742,6 @@ private fun XAITTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -784,7 +757,6 @@ private fun XAITTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -808,7 +780,6 @@ private fun XAITTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
         SelectTextField(
             value = setting.voiceId,
@@ -873,7 +844,6 @@ private fun ElevenLabsTTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -889,7 +859,6 @@ private fun ElevenLabsTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -911,7 +880,6 @@ private fun ElevenLabsTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         SelectTextField(
             value = setting.model,
@@ -930,7 +898,6 @@ private fun ElevenLabsTTSConfiguration(
     // Voice ID
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
         KedgeTextField(
             value = setting.voiceId,
@@ -982,7 +949,6 @@ private fun FishAudioTTSConfiguration(
     // API Key
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text(stringResource(R.string.setting_tts_page_api_key_description)) }
     ) {
         KedgeTextField(
             value = setting.apiKey,
@@ -998,7 +964,6 @@ private fun FishAudioTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -1021,7 +986,6 @@ private fun FishAudioTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         SelectTextField(
             value = setting.model,
@@ -1040,7 +1004,6 @@ private fun FishAudioTTSConfiguration(
     // Voice ID (reference_id)
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_id)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_id_description)) }
     ) {
         KedgeTextField(
             value = setting.referenceId,
@@ -1108,7 +1071,6 @@ private fun StepTTSConfiguration(
     // Base URL
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-        description = { Text(stringResource(R.string.setting_tts_page_base_url_description)) }
     ) {
         KedgeTextField(
             value = setting.baseUrl,
@@ -1131,7 +1093,6 @@ private fun StepTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
-        description = { Text(stringResource(R.string.setting_tts_page_model_description)) }
     ) {
         SelectTextField(
             value = setting.model,
@@ -1186,7 +1147,6 @@ private fun StepTTSConfiguration(
 
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-        description = { Text(stringResource(R.string.setting_tts_page_voice_description)) }
     ) {
         SelectTextField(
             value = setting.voice,

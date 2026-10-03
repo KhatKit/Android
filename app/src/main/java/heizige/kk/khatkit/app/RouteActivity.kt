@@ -69,6 +69,9 @@ import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalSharedTransitionScope
+import heizige.kk.kedge.components.KedgeSearchOverlayLayer
+import heizige.kk.kedge.components.LocalKedgeSearchOverlayState
+import heizige.kk.kedge.components.rememberKedgeSearchOverlayState
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
@@ -320,6 +323,11 @@ class RouteActivity : ComponentActivity() {
             Screen.Greeting
         }
 
+        // 全屏搜索层（KSU `Scaffold(popupHost)` 的等价物）必须和页面在**同一个
+        // window**，所以只能挂在 NavDisplay 之上 —— 这正是 KSU popupHost 的位置。
+        // 有了它，展开/收起不涉及任何 window 增删，也就没有窗口动画。
+        val searchOverlayState = rememberKedgeSearchOverlayState()
+
         val backStack = rememberNavBackStack(startScreen)
         SideEffect {
             navStack = backStack
@@ -330,6 +338,7 @@ class RouteActivity : ComponentActivity() {
 
         SharedTransitionLayout {
             CompositionLocalProvider(
+                LocalKedgeSearchOverlayState provides searchOverlayState,
                 LocalNavController provides Navigator(backStack),
                 LocalSharedTransitionScope provides this,
                 LocalSettings provides settings,
@@ -658,6 +667,10 @@ class RouteActivity : ComponentActivity() {
                             }
                         }
                     }
+
+                    // 全屏搜索层：必须是这个 Box 的**最后一个**子项，才能盖在 NavDisplay 之上。
+                    // 折叠态它自身全透明、也没有 pointer input，不吃触摸，命中测试落到下面的页面。
+                    KedgeSearchOverlayLayer(searchOverlayState)
                 }
             }
         }

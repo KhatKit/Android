@@ -131,9 +131,6 @@ internal fun McpCommonOptionsConfigure(
         KedgeFormRow(
             label = {
                 Text(stringResource(R.string.setting_mcp_page_enable))
-            },
-            description = {
-                Text(stringResource(R.string.setting_mcp_page_enable_desc))
             }
         ) {
             Row(
@@ -168,9 +165,6 @@ internal fun McpCommonOptionsConfigure(
         KedgeFormRow(
             label = {
                 Text(stringResource(R.string.setting_mcp_page_name))
-            },
-            description = {
-                Text(stringResource(R.string.setting_mcp_page_name_desc))
             }
         ) {
             val nameInvalid = !isValidMcpName(config.commonOptions.name)
@@ -206,9 +200,6 @@ internal fun McpCommonOptionsConfigure(
         KedgeFormRow(
             label = {
                 Text(stringResource(R.string.setting_mcp_page_transport_type))
-            },
-            description = {
-                Text(stringResource(R.string.setting_mcp_page_transport_type_desc))
             }
         ) {
             val transportTypes = listOf(

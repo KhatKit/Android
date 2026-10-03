@@ -29,12 +29,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -43,6 +43,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.kedge.components.KedgeBadge
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.components.KedgeCard
@@ -171,6 +172,8 @@ fun ExploreMarketPage() {
     val dependencies by vm.dependencies.collectAsStateWithLifecycle()
 
     var query by rememberSaveable { mutableStateOf("") }
+    // 搜索框展开态（KSU SuperSearchBar 那种全屏搜索）
+    var searchExpanded by remember { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf(ExploreFilter.ALL.name) }
     var cardFilter by rememberSaveable { mutableStateOf(CardFilter.ALL.name) }
     val selectedFilter = remember(filter) { ExploreFilter.valueOf(filter) }
@@ -215,6 +218,406 @@ fun ExploreMarketPage() {
         installed.keys.filterNot { name -> cards.any { it.name == name } }.sorted()
     }
 
+    // 市场内容：折叠态挂在页面列表里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
+    val marketList: @Composable (Modifier, PaddingValues) -> Unit = { listModifier, listPadding ->
+        LazyColumn(
+            modifier = listModifier,
+            contentPadding = listPadding,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+
+                item(key = "market_overview") {
+                    KedgeCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+                        ),
+                        shape = AutoCornersShape(22.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            IconTile(
+                                icon = package2,
+                                container = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                size = 44.dp,
+                            )
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = stringResource(R.string.explore_market_source_badge),
+                                    style = KedgeTextStyles.footnoteSmall(),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    text = stringResource(R.string.explore_market_overview),
+                                    style = KedgeTextStyles.body(),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                                Text(
+                                    text = stringResource(R.string.explore_market_card_count, cards.size, installed.size),
+                                    style = KedgeTextStyles.body(),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item(key = "filter_chips") {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(ExploreFilter.entries) { option ->
+                            KedgeFilterChip(
+                                selected = selectedFilter == option,
+                                onClick = { filter = option.name },
+                                label = { Text(option.label) },
+                            )
+                        }
+                    }
+                }
+
+                if (selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.CARDS) {
+                    item(key = "dependency_cache") {
+                        SectionHeader(
+                            title = "原生依赖包",
+                            icon = heizige.kk.khatkit.app.core.ui.icons.extension,
+                            supporting = if (dependencies.isEmpty()) "暂无已下载依赖" else "已缓存 ${dependencies.size} 个版本",
+                            actionLabel = dependencies.takeIf { it.isNotEmpty() }?.let { "清空" },
+                            onAction = {
+                                vm.clearDependencyCache { count ->
+                                    scope.launch { Toast.show(if (count > 0) "已清理 $count 个依赖包" else "没有可清理的依赖包") }
+                                }
+                            },
+                        )
+                        if (dependencies.isNotEmpty()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                dependencies.forEach { dependency ->
+                                    KedgeCard(modifier = Modifier.fillMaxWidth()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text("${dependency.name} ${dependency.version}", fontWeight = FontWeight.SemiBold)
+                                                Text(
+                                                    "${formatBytes(dependency.sizeBytes)} · SHA-256 ${dependency.sha256.take(12)}…",
+                                                    style = KedgeTextStyles.body(),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                            KedgeIconButton(onClick = {
+                                                vm.deleteDependency(dependency) { ok ->
+                                                    scope.launch { Toast.show(if (ok) "已删除 ${dependency.name} ${dependency.version}" else "删除失败", !ok) }
+                                                }
+                                            }) {
+                                                Icon(deleteForever, contentDescription = "删除依赖包")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val cardsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.CARDS
+                val cardsMatched = filteredCards.filter { matches(it.name + it.summary + it.description) }
+
+                if (cardsVisible && featuredCards.isNotEmpty() && matches("卡片 精选 推荐")) {
+                    item(key = "featured") {
+                        SectionHeader(
+                            title = "精选推荐",
+                            icon = travelExplore,
+                            supporting = "${featuredCards.size} 张优选卡片",
+                        )
+                        val pagerState = rememberPagerState(pageCount = { featuredCards.size })
+                        HorizontalPager(
+                            state = pagerState,
+                            contentPadding = PaddingValues(horizontal = 24.dp),
+                            pageSpacing = 12.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                        ) { page ->
+                            FeaturedCard(
+                                entry = featuredCards[page],
+                                installedVersion = installed[featuredCards[page].name],
+                                hubInfo = hubInfo[featuredCards[page].name],
+                                onClick = { selectedCard = featuredCards[page] },
+                            )
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            repeat(featuredCards.size) { index ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 3.dp)
+                                        .size(if (pagerState.currentPage == index) 8.dp else 6.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                        )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (cardsVisible && cardsMatched.isNotEmpty()) {
+                    item(key = "card_filters") {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(CardFilter.entries) { option ->
+                                KedgeFilterChip(
+                                    selected = selectedCardFilter == option,
+                                    onClick = { cardFilter = option.name },
+                                    label = { Text(option.label) },
+                                )
+                            }
+                        }
+                    }
+                    item(key = "card_grid") {
+                        SectionHeader(
+                            title = stringResource(R.string.explore_market_external_cards),
+                            icon = package2,
+                            supporting = "共 ${cardsMatched.size} 张卡片 · 已安装 ${installed.size}",
+                            actionLabel = if (loading) null else "刷新",
+                            onAction = { vm.refresh(query) },
+                        )
+                        if (loading) {
+                            KedgeProgressIndicator(
+                            modifier = Modifier.padding(16.dp),
+                        )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                cardsMatched.chunked(2).forEach { chunk ->
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        chunk.forEach { entry ->
+                                            CompactCard(
+                                                entry = entry,
+                                                installedVersion = installed[entry.name],
+                                                triggers = triggers[entry.name] ?: entry.triggers,
+                                                hubInfo = hubInfo[entry.name],
+                                                busy = busyCard == entry.name,
+                                                onClick = { selectedCard = entry },
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                        }
+                                        if (chunk.size == 1) Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (cardsVisible && localOnly.isNotEmpty() && matches("本机 本地 local")) {
+                    item(key = "local_cards") {
+                        SectionHeader(
+                            title = "本机卡片",
+                            icon = bolt,
+                            supporting = "${localOnly.size} 张仅存在于本机",
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            localOnly.forEach { name ->
+                                PressableCard(
+                                    onClick = {
+                                        selectedCard = CardIndexEntry(
+                                            name = name,
+                                            version = installed[name].orEmpty(),
+                                            url = "",
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    ) {
+                                        IconTile(
+                                            icon = package2,
+                                            container = MaterialTheme.colorScheme.primaryContainer.harmonizeWithPrimary(),
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(text = name, style = KedgeTextStyles.title())
+                                            Text(
+                                                text = "v${installed[name].orEmpty()} · 未在市场索引中",
+                                                style = KedgeTextStyles.body(),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                                            Text(triggers[name]?.joinToString("/") ?: "local")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val toolsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.TOOLS
+                val tools = localToolCatalog.filter { matches(it.title + it.desc) }
+                if (toolsVisible && tools.isNotEmpty()) {
+                    item(key = "tools") {
+                        SectionHeader(
+                            title = "本地工具",
+                            icon = bolt,
+                            supporting = "${tools.size} 项 · 当前助手启用 ${tools.count { it.option in currentAssistantLocalTools }} 项",
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            tools.forEach { tool ->
+                                ToolCard(
+                                    tool = tool,
+                                    enabled = tool.option in currentAssistantLocalTools,
+                                    onClick = {
+                                        navController.navigate(
+                                            Screen.AssistantLocalTool(settings.assistantId.toString())
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                val skillsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.SKILLS
+                val visibleSkills = skills.filter { matches(it.name + it.description) }
+                if (skillsVisible && visibleSkills.isNotEmpty()) {
+                    item(key = "skills") {
+                        SectionHeader(
+                            title = "代理技能",
+                            icon = extension,
+                            supporting = "${visibleSkills.size} 个技能包",
+                            actionLabel = "管理",
+                            onAction = { navController.navigate(Screen.Skills) },
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            visibleSkills.take(6).forEach { skill ->
+                                PressableCard(
+                                    onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(18.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    ) {
+                                        IconTile(
+                                            icon = extension,
+                                            container = MaterialTheme.colorScheme.secondaryContainer.harmonizeWithPrimary(),
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = skill.name,
+                                                style = KedgeTextStyles.title(),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                text = skill.description,
+                                                style = KedgeTextStyles.body(),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val mcpVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.MCP
+                val visibleMcp = mcpServers.filter { matches(it.commonOptions.name + it.serverUrl) }
+                if (mcpVisible && visibleMcp.isNotEmpty()) {
+                    item(key = "mcp") {
+                        SectionHeader(
+                            title = "MCP 服务器",
+                            icon = dns,
+                            supporting = "${visibleMcp.size} 个服务器",
+                            actionLabel = "管理",
+                            onAction = { navController.navigate(Screen.SettingMcp) },
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            visibleMcp.forEach { server ->
+                                McpCard(
+                                    server = server,
+                                    status = mcpStatus[server.id],
+                                    onClick = { navController.navigate(Screen.SettingMcp) },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                val modelsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.MODELS
+                val visibleModels = models.filter { (providerName, model) ->
+                    matches(providerName + model.displayName + model.modelId)
+                }
+                if (modelsVisible && visibleModels.isNotEmpty()) {
+                    item(key = "models") {
+                        SectionHeader(
+                            title = "模型能力",
+                            icon = autoAwesome,
+                            supporting = "${visibleModels.size} 个模型 · ${enabledProviders.size} 个供应商",
+                            actionLabel = "管理",
+                            onAction = { navController.navigate(Screen.SettingModels) },
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            visibleModels.take(8).forEach { (providerName, model) ->
+                                ModelCard(
+                                    providerName = providerName,
+                                    model = model,
+                                    onClick = { navController.navigate(Screen.SettingModels) },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                val isEmpty = cardsMatched.isEmpty() && visibleSkills.isEmpty() && visibleMcp.isEmpty() &&
+                    visibleModels.isEmpty() && tools.filter { matches(it.title + it.desc) }.isEmpty()
+                if (isEmpty) {
+                    item(key = "empty") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = search,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = "没有找到相关内容",
+                                style = KedgeTextStyles.body(),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+        }
+    }
+
     KedgePageScaffold(
         topBar = {
             KedgePageLargeTopBar(
@@ -239,431 +642,49 @@ fun ExploreMarketPage() {
         md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
         val pullToRefreshState = rememberPullToRefreshState()
-        KedgePullToRefreshBox(
-            isRefreshing = loading,
-            onRefresh = { vm.refresh(query) },
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = innerPadding + PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-            item(key = "search") {
-                KedgeOutlinedTextFieldWithSlots(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AutoCornersShape(28.dp),
-                    singleLine = true,
-                    placeholder = { Text("搜索卡片、工具、技能、MCP、模型…") },
-                    leadingIcon = { Icon(search, contentDescription = null) },
-                    trailingIcon = {
-                        if (query.isNotEmpty()) {
-                            KedgeIconButton(onClick = {
-                                query = ""
-                                vm.refresh("")
-                            }) {
-                                Icon(heizige.kk.khatkit.app.core.ui.icons.close, contentDescription = "清除")
-                            }
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
-                )
-            }
 
-            item(key = "market_overview") {
-                KedgeCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
-                    ),
-                    shape = AutoCornersShape(22.dp),
+        Column(modifier = Modifier.fillMaxSize()) {
+            // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
+            // 展开成铺满全屏的搜索页 + 取消键；返回键收起，关键词同时清空。
+            // 药丸提到列表外面（KSU 也是挂在顶栏 bottomContent 上，不跟着正文滚），
+            // 展开期间市场内容整个抽掉，只在全屏槽里出现一次。
+            KedgeSearchBar(
+                value = query,
+                onValueChange = { new ->
+                    // 清空时要把远端结果集也刷回全量，跟原来的清除按钮一致
+                    if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
+                    query = new
+                },
+                placeholder = "搜索卡片、工具、技能、MCP、模型…",
+                active = searchExpanded,
+                onActiveChange = { searchExpanded = it },
+                cancelLabel = stringResource(R.string.cancel),
+                modifier = Modifier.fillMaxWidth(),
+                expandedContent = {
+                    // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
+                    NoHeroTransition {
+                        marketList(
+                            Modifier.fillMaxSize(),
+                            PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
+                        )
+                    }
+                },
+            )
+
+            if (!searchExpanded) {
+                KedgePullToRefreshBox(
+                    isRefreshing = loading,
+                    onRefresh = { vm.refresh(query) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        IconTile(
-                            icon = package2,
-                            container = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            size = 44.dp,
-                        )
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = stringResource(R.string.explore_market_source_badge),
-                                style = KedgeTextStyles.footnoteSmall(),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                text = stringResource(R.string.explore_market_overview),
-                                style = KedgeTextStyles.body(),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                            Text(
-                                text = stringResource(R.string.explore_market_card_count, cards.size, installed.size),
-                                style = KedgeTextStyles.body(),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
-                            )
-                        }
-                    }
-                }
-            }
-
-            item(key = "filter_chips") {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(ExploreFilter.entries) { option ->
-                        KedgeFilterChip(
-                            selected = selectedFilter == option,
-                            onClick = { filter = option.name },
-                            label = { Text(option.label) },
-                        )
-                    }
-                }
-            }
-
-            if (selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.CARDS) {
-                item(key = "dependency_cache") {
-                    SectionHeader(
-                        title = "原生依赖包",
-                        icon = heizige.kk.khatkit.app.core.ui.icons.extension,
-                        supporting = if (dependencies.isEmpty()) "暂无已下载依赖" else "已缓存 ${dependencies.size} 个版本",
-                        actionLabel = dependencies.takeIf { it.isNotEmpty() }?.let { "清空" },
-                        onAction = {
-                            vm.clearDependencyCache { count ->
-                                scope.launch { Toast.show(if (count > 0) "已清理 $count 个依赖包" else "没有可清理的依赖包") }
-                            }
-                        },
+                    marketList(
+                        Modifier.fillMaxSize(),
+                        innerPadding +
+                            PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
                     )
-                    if (dependencies.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            dependencies.forEach { dependency ->
-                                KedgeCard(modifier = Modifier.fillMaxWidth()) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("${dependency.name} ${dependency.version}", fontWeight = FontWeight.SemiBold)
-                                            Text(
-                                                "${formatBytes(dependency.sizeBytes)} · SHA-256 ${dependency.sha256.take(12)}…",
-                                                style = KedgeTextStyles.body(),
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                        KedgeIconButton(onClick = {
-                                            vm.deleteDependency(dependency) { ok ->
-                                                scope.launch { Toast.show(if (ok) "已删除 ${dependency.name} ${dependency.version}" else "删除失败", !ok) }
-                                            }
-                                        }) {
-                                            Icon(deleteForever, contentDescription = "删除依赖包")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
-            }
-
-            val cardsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.CARDS
-            val cardsMatched = filteredCards.filter { matches(it.name + it.summary + it.description) }
-
-            if (cardsVisible && featuredCards.isNotEmpty() && matches("卡片 精选 推荐")) {
-                item(key = "featured") {
-                    SectionHeader(
-                        title = "精选推荐",
-                        icon = travelExplore,
-                        supporting = "${featuredCards.size} 张优选卡片",
-                    )
-                    val pagerState = rememberPagerState(pageCount = { featuredCards.size })
-                    HorizontalPager(
-                        state = pagerState,
-                        contentPadding = PaddingValues(horizontal = 24.dp),
-                        pageSpacing = 12.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                    ) { page ->
-                        FeaturedCard(
-                            entry = featuredCards[page],
-                            installedVersion = installed[featuredCards[page].name],
-                            hubInfo = hubInfo[featuredCards[page].name],
-                            onClick = { selectedCard = featuredCards[page] },
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        repeat(featuredCards.size) { index ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 3.dp)
-                                    .size(if (pagerState.currentPage == index) 8.dp else 6.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                                    )
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (cardsVisible && cardsMatched.isNotEmpty()) {
-                item(key = "card_filters") {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(CardFilter.entries) { option ->
-                            KedgeFilterChip(
-                                selected = selectedCardFilter == option,
-                                onClick = { cardFilter = option.name },
-                                label = { Text(option.label) },
-                            )
-                        }
-                    }
-                }
-                item(key = "card_grid") {
-                    SectionHeader(
-                        title = stringResource(R.string.explore_market_external_cards),
-                        icon = package2,
-                        supporting = "共 ${cardsMatched.size} 张卡片 · 已安装 ${installed.size}",
-                        actionLabel = if (loading) null else "刷新",
-                        onAction = { vm.refresh(query) },
-                    )
-                    if (loading) {
-                        KedgeProgressIndicator(
-                        modifier = Modifier.padding(16.dp),
-                    )
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            cardsMatched.chunked(2).forEach { chunk ->
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    chunk.forEach { entry ->
-                                        CompactCard(
-                                            entry = entry,
-                                            installedVersion = installed[entry.name],
-                                            triggers = triggers[entry.name] ?: entry.triggers,
-                                            hubInfo = hubInfo[entry.name],
-                                            busy = busyCard == entry.name,
-                                            onClick = { selectedCard = entry },
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                    }
-                                    if (chunk.size == 1) Spacer(Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (cardsVisible && localOnly.isNotEmpty() && matches("本机 本地 local")) {
-                item(key = "local_cards") {
-                    SectionHeader(
-                        title = "本机卡片",
-                        icon = bolt,
-                        supporting = "${localOnly.size} 张仅存在于本机",
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        localOnly.forEach { name ->
-                            PressableCard(
-                                onClick = {
-                                    selectedCard = CardIndexEntry(
-                                        name = name,
-                                        version = installed[name].orEmpty(),
-                                        url = "",
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(18.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                    IconTile(
-                                        icon = package2,
-                                        container = MaterialTheme.colorScheme.primaryContainer.harmonizeWithPrimary(),
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(text = name, style = KedgeTextStyles.title())
-                                        Text(
-                                            text = "v${installed[name].orEmpty()} · 未在市场索引中",
-                                            style = KedgeTextStyles.body(),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                                        Text(triggers[name]?.joinToString("/") ?: "local")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            val toolsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.TOOLS
-            val tools = localToolCatalog.filter { matches(it.title + it.desc) }
-            if (toolsVisible && tools.isNotEmpty()) {
-                item(key = "tools") {
-                    SectionHeader(
-                        title = "本地工具",
-                        icon = bolt,
-                        supporting = "${tools.size} 项 · 当前助手启用 ${tools.count { it.option in currentAssistantLocalTools }} 项",
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        tools.forEach { tool ->
-                            ToolCard(
-                                tool = tool,
-                                enabled = tool.option in currentAssistantLocalTools,
-                                onClick = {
-                                    navController.navigate(
-                                        Screen.AssistantLocalTool(settings.assistantId.toString())
-                                    )
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-
-            val skillsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.SKILLS
-            val visibleSkills = skills.filter { matches(it.name + it.description) }
-            if (skillsVisible && visibleSkills.isNotEmpty()) {
-                item(key = "skills") {
-                    SectionHeader(
-                        title = "代理技能",
-                        icon = extension,
-                        supporting = "${visibleSkills.size} 个技能包",
-                        actionLabel = "管理",
-                        onAction = { navController.navigate(Screen.Skills) },
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        visibleSkills.take(6).forEach { skill ->
-                            PressableCard(
-                                onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(18.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                    IconTile(
-                                        icon = extension,
-                                        container = MaterialTheme.colorScheme.secondaryContainer.harmonizeWithPrimary(),
-                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = skill.name,
-                                            style = KedgeTextStyles.title(),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                        Text(
-                                            text = skill.description,
-                                            style = KedgeTextStyles.body(),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            val mcpVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.MCP
-            val visibleMcp = mcpServers.filter { matches(it.commonOptions.name + it.serverUrl) }
-            if (mcpVisible && visibleMcp.isNotEmpty()) {
-                item(key = "mcp") {
-                    SectionHeader(
-                        title = "MCP 服务器",
-                        icon = dns,
-                        supporting = "${visibleMcp.size} 个服务器",
-                        actionLabel = "管理",
-                        onAction = { navController.navigate(Screen.SettingMcp) },
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        visibleMcp.forEach { server ->
-                            McpCard(
-                                server = server,
-                                status = mcpStatus[server.id],
-                                onClick = { navController.navigate(Screen.SettingMcp) },
-                            )
-                        }
-                    }
-                }
-            }
-
-            val modelsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.MODELS
-            val visibleModels = models.filter { (providerName, model) ->
-                matches(providerName + model.displayName + model.modelId)
-            }
-            if (modelsVisible && visibleModels.isNotEmpty()) {
-                item(key = "models") {
-                    SectionHeader(
-                        title = "模型能力",
-                        icon = autoAwesome,
-                        supporting = "${visibleModels.size} 个模型 · ${enabledProviders.size} 个供应商",
-                        actionLabel = "管理",
-                        onAction = { navController.navigate(Screen.SettingModels) },
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        visibleModels.take(8).forEach { (providerName, model) ->
-                            ModelCard(
-                                providerName = providerName,
-                                model = model,
-                                onClick = { navController.navigate(Screen.SettingModels) },
-                            )
-                        }
-                    }
-                }
-            }
-
-            val isEmpty = cardsMatched.isEmpty() && visibleSkills.isEmpty() && visibleMcp.isEmpty() &&
-                visibleModels.isEmpty() && tools.filter { matches(it.title + it.desc) }.isEmpty()
-            if (isEmpty) {
-                item(key = "empty") {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = search,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = "没有找到相关内容",
-                            style = KedgeTextStyles.body(),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
             }
         }
     }

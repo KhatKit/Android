@@ -149,7 +149,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_user_avatar_title,
-                            R.string.setting_display_page_show_user_avatar_desc,
+                            null,
                             checked = displaySetting.showUserAvatar,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
                         )
@@ -157,7 +157,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_assistant_bubble_title,
-                            R.string.setting_display_page_show_assistant_bubble_desc,
+                            null,
                             checked = displaySetting.showAssistantBubble,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
                         )
@@ -186,7 +186,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_chat_list_model_icon_title,
-                            R.string.setting_display_page_chat_list_model_icon_desc,
+                            null,
                             checked = displaySetting.showModelIcon,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
                         )
@@ -194,7 +194,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_model_name_title,
-                            R.string.setting_display_page_show_model_name_desc,
+                            null,
                             checked = displaySetting.showModelName,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelName = it)) },
                         )
@@ -202,7 +202,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_datetime_in_message_title,
-                            R.string.setting_display_page_show_datetime_in_message_desc,
+                            null,
                             checked = displaySetting.showDateTimeInMessage,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it)) },
                         )
@@ -210,7 +210,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_token_usage_title,
-                            R.string.setting_display_page_show_token_usage_desc,
+                            null,
                             checked = displaySetting.showTokenUsage,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
                         )
@@ -218,7 +218,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_thinking_content_title,
-                            R.string.setting_display_page_show_thinking_content_desc,
+                            null,
                             checked = displaySetting.showThinkingContent,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
                         )
@@ -226,7 +226,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_auto_collapse_thinking_title,
-                            R.string.setting_display_page_auto_collapse_thinking_desc,
+                            null,
                             checked = displaySetting.autoCloseThinking,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
                         )
@@ -234,7 +234,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_enable_latex_rendering_title,
-                            R.string.setting_display_page_enable_latex_rendering_desc,
+                            null,
                             checked = displaySetting.enableLatexRendering,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLatexRendering = it)) },
                         )
@@ -356,7 +356,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_code_block_auto_wrap_title,
-                            R.string.setting_display_page_code_block_auto_wrap_desc,
+                            null,
                             checked = displaySetting.codeBlockAutoWrap,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoWrap = it)) },
                         )
@@ -364,7 +364,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_code_block_auto_collapse_title,
-                            R.string.setting_display_page_code_block_auto_collapse_desc,
+                            null,
                             checked = displaySetting.codeBlockAutoCollapse,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoCollapse = it)) },
                         )
@@ -372,7 +372,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_line_numbers_title,
-                            R.string.setting_display_page_show_line_numbers_desc,
+                            null,
                             checked = displaySetting.showLineNumbers,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showLineNumbers = it)) },
                         )
@@ -389,7 +389,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_page_blur_title,
-                            R.string.setting_page_blur_desc,
+                            null,
                             checked = khatKitProvider.enableBlur,
                             onCheckedChange = { khatKitProvider.enableBlur = it },
                         )

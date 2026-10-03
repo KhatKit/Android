@@ -13,7 +13,6 @@ import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
-import heizige.kk.khatkit.app.core.data.api.SponsorAPI
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.event.AppEventBus
@@ -56,7 +55,6 @@ interface AppEntryPoint {
     fun ttsManager(): TTSManager
     fun okHttpClient(): OkHttpClient
     fun templateTransformer(): TemplateTransformer
-    fun sponsorApi(): SponsorAPI
     fun webServerManager(): WebServerManager
     fun triggerController(): TriggerController
 }

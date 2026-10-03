@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -34,6 +35,7 @@ import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -106,6 +108,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
 
     // 搜索关键词状态
     var searchQuery by remember { mutableStateOf("") }
+    // 搜索框展开态（KSU SuperSearchBar 的全屏搜索）
+    var searchExpanded by remember { mutableStateOf(false) }
     // 标签过滤状态
     var selectedTagIds by remember { mutableStateOf(emptySet<Uuid>()) }
     // 操作菜单状态
@@ -174,137 +178,121 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             }
             val haptic = LocalHapticFeedback.current
 
-            // 搜索框：Miuix 下用 KedgeTextField（双风格组件，内部按 style 分支）
-            if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                KedgeTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    placeholder = stringResource(R.string.assistant_page_search_placeholder),
-                    leadingIcon = {
-                        MiuixIcon(search, contentDescription = null)
-                    },
-                    trailingIcon = if (searchQuery.isNotBlank()) {
-                        {
-                            MiuixIconButton(onClick = { searchQuery = "" }) {
-                                MiuixIcon(close, contentDescription = null)
-                            }
-                        }
-                    } else null,
-                    singleLine = true,
-                )
-            } else KedgeOutlinedTextFieldWithSlots(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                placeholder = { Text(stringResource(R.string.assistant_page_search_placeholder)) },
-                leadingIcon = {
-                    Icon(search, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotBlank()) {
-                        KedgeIconButton(onClick = { searchQuery = "" }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(close, contentDescription = null)
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp))
-
-            // 标签过滤器
-            AssistantTagsFilterRow(
-                settings = settings,
-                vm = vm,
-                selectedTagIds = selectedTagIds,
-                onUpdateSelectedTagIds = { ids ->
-                    selectedTagIds = ids
-                }
-            )
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding(),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                state = lazyListState,
-            ) {
-                lazyItems(filteredAssistants, key = { assistant -> assistant.id }) { assistant ->
-                    ReorderableItem(
-                        state = reorderableState,
-                        key = assistant.id,
-                    ) { isDragging ->
-                        val memories by vm.getMemories(assistant).collectAsStateWithLifecycle(
-                            initialValue = emptyList(),
-                        )
-                        AssistantItem(
-                            assistant = assistant,
-                            settings = settings,
-                            memories = memories,
-                            onEdit = {
-                                navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
-                            },
-                            onShowActions = {
-                                actionSheetAssistant = assistant
-                            },
-                            modifier = Modifier
-                                .scale(if (isDragging) 0.95f else 1f)
-                                .fillMaxWidth()
-                                .animateItem()
-                                .then(
-                                    if (!isFiltering) {
-                                        Modifier.longPressDraggableHandle(
-                                            onDragStarted = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                            },
-                                            onDragStopped = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                            }
-                                        )
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                        )
-                    }
-                }
-
-                item(key = "new_assistant") {
-                    // 双风格：Miuix 走 PreferenceArrow（miuix-preference 原生行），
-                    // MD3 保持原 Surface。
-                    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                        PreferenceArrow(
-                            title = stringResource(R.string.assistant_page_new),
-                            icon = add,
-                            onClick = { createState.open(Assistant()) },
-                        )
-                    } else {
-                    KedgeSurface(
-                        onClick = { createState.open(Assistant()) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(add, contentDescription = null)
-                            Text(
-                                text = stringResource(R.string.assistant_page_new),
-                                style = KedgeTextStyles.title(),
+            // 助手列表：折叠态挂在页面里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
+            val assistantList: @Composable (Modifier) -> Unit = { listModifier ->
+                LazyColumn(
+                    modifier = listModifier,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    state = lazyListState,
+                ) {
+                    lazyItems(filteredAssistants, key = { assistant -> assistant.id }) { assistant ->
+                        ReorderableItem(
+                            state = reorderableState,
+                            key = assistant.id,
+                        ) { isDragging ->
+                            val memories by vm.getMemories(assistant).collectAsStateWithLifecycle(
+                                initialValue = emptyList(),
+                            )
+                            AssistantItem(
+                                assistant = assistant,
+                                settings = settings,
+                                memories = memories,
+                                onEdit = {
+                                    navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
+                                },
+                                onShowActions = {
+                                    actionSheetAssistant = assistant
+                                },
+                                modifier = Modifier
+                                    .scale(if (isDragging) 0.95f else 1f)
+                                    .fillMaxWidth()
+                                    .animateItem()
+                                    .then(
+                                        if (!isFiltering) {
+                                            Modifier.longPressDraggableHandle(
+                                                onDragStarted = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                },
+                                                onDragStopped = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                }
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
                             )
                         }
                     }
+
+                    item(key = "new_assistant") {
+                        // 双风格：Miuix 走 PreferenceArrow（miuix-preference 原生行），
+                        // MD3 保持原 Surface。
+                        if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                            PreferenceArrow(
+                                title = stringResource(R.string.assistant_page_new),
+                                icon = add,
+                                onClick = { createState.open(Assistant()) },
+                            )
+                        } else {
+                        KedgeSurface(
+                            onClick = { createState.open(Assistant()) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.large,
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(add, contentDescription = null)
+                                Text(
+                                    text = stringResource(R.string.assistant_page_new),
+                                    style = KedgeTextStyles.title(),
+                                )
+                            }
+                        }
+                        }
                     }
                 }
+            }
+
+            // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
+            // 展开成铺满全屏的搜索页 + 取消键；返回键收起，关键词同时清空。
+            // 展开期间标签过滤行与助手列表整个抽掉（KSU 的 SearchBox 同款）。
+            KedgeSearchBar(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = stringResource(R.string.assistant_page_search_placeholder),
+                active = searchExpanded,
+                onActiveChange = { searchExpanded = it },
+                cancelLabel = stringResource(R.string.cancel),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                expandedContent = { NoHeroTransition { NoHeroTransition { assistantList(Modifier.fillMaxSize()) } } },
+            )
+
+            if (!searchExpanded) {
+                // 标签过滤器
+                AssistantTagsFilterRow(
+                    settings = settings,
+                    vm = vm,
+                    selectedTagIds = selectedTagIds,
+                    onUpdateSelectedTagIds = { ids ->
+                        selectedTagIds = ids
+                    }
+                )
+
+                assistantList(
+                    Modifier
+                        .fillMaxSize()
+                        .imePadding(),
+                )
             }
         }
     }

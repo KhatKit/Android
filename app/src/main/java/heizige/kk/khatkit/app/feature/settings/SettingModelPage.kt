@@ -138,7 +138,6 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentP
         item {
             ModelSettingItem(
                 title = stringResource(R.string.setting_model_page_translate_model),
-                description = stringResource(R.string.setting_model_page_translate_model_desc),
                 modelId = settings.translateModeId,
                 providers = settings.providers,
                 onSelect = { vm.updateSettings(settings.copy(translateModeId = it.id)) },
@@ -168,7 +167,7 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentP
 @Composable
 private fun ModelSettingItem(
     title: String,
-    description: String,
+    description: String? = null,
     modelId: Uuid?,
     providers: List<ProviderSetting>,
     onSelect: (Model) -> Unit,
@@ -219,12 +218,14 @@ private fun ModelSettingItem(
                 )
             }
         }
-        Text(
-            text = description,
-            style = KedgeTextStyles.body(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-        )
+        if (description != null) {
+            Text(
+                text = description,
+                style = KedgeTextStyles.body(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
     }
 
     ModelListSheet(state = state, onSelect = onSelect)

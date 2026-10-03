@@ -106,6 +106,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
@@ -234,7 +235,15 @@ private fun AssistantPromptContent(
         }
 
         KedgeFormCard {
-            KedgeFormRow(
+            KedgeSwitchFormRow(
+                checked = assistant.allowConversationSystemPrompt,
+                onCheckedChange = {
+                    onUpdate(
+                        assistant.copy(
+                            allowConversationSystemPrompt = it
+                        )
+                    )
+                },
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt))
@@ -242,23 +251,19 @@ private fun AssistantPromptContent(
                 description = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt_desc))
                 },
-                tail = {
-                    KedgeSwitch(
-                        checked = assistant.allowConversationSystemPrompt,
-                        onCheckedChange = {
-                            onUpdate(
-                                assistant.copy(
-                                    allowConversationSystemPrompt = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
         }
 
         KedgeFormCard {
-            KedgeFormRow(
+            KedgeSwitchFormRow(
+                checked = assistant.allowConversationPromptInjection,
+                onCheckedChange = {
+                    onUpdate(
+                        assistant.copy(
+                            allowConversationPromptInjection = it
+                        )
+                    )
+                },
                 modifier = Modifier.padding(8.dp),
                 label = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection))
@@ -266,18 +271,6 @@ private fun AssistantPromptContent(
                 description = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection_desc))
                 },
-                tail = {
-                    KedgeSwitch(
-                        checked = assistant.allowConversationPromptInjection,
-                        onCheckedChange = {
-                            onUpdate(
-                                assistant.copy(
-                                    allowConversationPromptInjection = it
-                                )
-                            )
-                        }
-                    )
-                }
             )
         }
 

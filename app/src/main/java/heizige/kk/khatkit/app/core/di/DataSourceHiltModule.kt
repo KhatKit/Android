@@ -23,7 +23,6 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.AssistantTemplateLoader
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
-import heizige.kk.khatkit.app.core.data.api.SponsorAPI
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.sync.BackupManager
 import heizige.kk.khatkit.app.core.data.db.AppDatabaseFactory
@@ -219,9 +218,6 @@ object DataSourceHiltModule {
         return client
     }
 
-    @Provides
-    @Singleton
-    fun provideSponsorAPI(client: OkHttpClient): SponsorAPI = SponsorAPI.create(client)
 
     @Provides
     @Singleton

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -67,12 +68,46 @@ fun KedgeFormCard(
  * MD3Exp：左边标题+描述、右边内容（原来的样子）。
  * Miuix：整行一张圆角卡片，标题/描述/内容自上而下，和设置页的选项卡一致。
  */
+/**
+ * 开关行：整行点击等价于翻转开关。
+ *
+ * 之前所有这类行都只把 `KedgeSwitch` 塞进 [KedgeFormRow] 的 `tail`，行本身不可点，
+ * 于是「点卡片不动、只能点右侧那个小开关」。这里统一收口，别再逐处接 onClick。
+ */
+@Composable
+fun KedgeSwitchFormRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    label: @Composable () -> Unit = {},
+    description: (@Composable (() -> Unit))? = null,
+) {
+    KedgeFormRow(
+        modifier = modifier,
+        label = label,
+        description = description,
+        tail = {
+            KedgeSwitch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+            )
+        },
+        onClick = { onCheckedChange(!checked) },
+    )
+}
+
 @Composable
 fun KedgeFormRow(
     modifier: Modifier = Modifier,
     label: @Composable () -> Unit = {},
     description: (@Composable (() -> Unit))? = null,
     tail: @Composable () -> Unit = {},
+    /**
+     * 整行点击。开关行传 `onClick = { onCheckedChange(!checked) }` —— 否则
+     * Miuix 下卡片点不动（`KedgeCard` 不给 onClick 就只是块背景），用户只能去点
+     * 右侧那个小开关。传进来的开关自己消费点击，不会冒泡回来，所以不会翻两次。
+     */
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     when (LocalKedgeStyle.current) {
@@ -81,10 +116,12 @@ fun KedgeFormRow(
             label = label,
             description = description,
             tail = tail,
+            onClick = onClick,
             content = content,
         )
 
         KedgeStyle.Miuix -> KedgeCard(
+            onClick = onClick,
             modifier = modifier.fillMaxWidth(),
             shape = androidx.compose.foundation.shape.RoundedCornerShape(MiuixFormMetrics.ItemShape),
             color = MiuixTheme.colorScheme.surfaceContainer,

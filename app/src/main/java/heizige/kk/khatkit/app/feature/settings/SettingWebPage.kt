@@ -252,7 +252,7 @@ fun SettingWebPage() {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_page_web_server_jwt_enable,
-                            R.string.setting_page_web_server_jwt_enable_desc,
+                            null,
                             checked = settings.webServerJwtEnabled,
                             onCheckedChange = { checked ->
                                     scope.launch {
@@ -266,7 +266,6 @@ fun SettingWebPage() {
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_password)) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_web_server_password_desc)) },
                         trailingContent = {
                             KedgeTextField(
                                 value = accessPasswordText,

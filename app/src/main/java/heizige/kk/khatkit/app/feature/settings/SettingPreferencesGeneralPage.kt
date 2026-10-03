@@ -96,7 +96,6 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                 ) {
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_create_new_conversation_on_start_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_create_new_conversation_on_start_desc)) },
                         trailingContent = {
                             OptionSwitch(
                                 checked = createNewConversationOnStart,
@@ -107,7 +106,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_send_on_enter_title,
-                            R.string.setting_display_page_send_on_enter_desc,
+                            null,
                             checked = displaySetting.sendOnEnter,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(sendOnEnter = it)) },
                         )
@@ -133,16 +132,13 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_enable_auto_scroll_title,
-                            R.string.setting_display_page_enable_auto_scroll_desc,
+                            null,
                             checked = displaySetting.enableAutoScroll,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableAutoScroll = it)) },
                         )
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_use_app_icon_style_loading_indicator_title)) },
-                        supportingContent = {
-                            Text(stringResource(R.string.setting_display_page_use_app_icon_style_loading_indicator_desc))
-                        },
                         trailingContent = {
                             OptionSwitch(
                                 checked = displaySetting.useAppIconStyleLoadingIndicator,
@@ -155,7 +151,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_background_effect_title,
-                            R.string.setting_display_page_background_effect_desc,
+                            null,
                             checked = displaySetting.enableBlurEffect,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableBlurEffect = it)) },
                         )
@@ -192,7 +188,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_skip_crop_image_title,
-                            R.string.setting_display_page_skip_crop_image_desc,
+                            null,
                             checked = displaySetting.skipCropImage,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(skipCropImage = it)) },
                         )
@@ -300,7 +296,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_tts_only_read_quoted_title,
-                            R.string.setting_display_page_tts_only_read_quoted_desc,
+                            null,
                             checked = displaySetting.ttsOnlyReadQuoted,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadQuoted = it)) },
                         )
@@ -308,7 +304,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_tts_read_outside_brackets_title,
-                            R.string.setting_display_page_tts_read_outside_brackets_desc,
+                            null,
                             checked = displaySetting.ttsOnlyReadOutsideBrackets,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadOutsideBrackets = it)) },
                         )

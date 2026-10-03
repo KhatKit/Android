@@ -143,6 +143,9 @@ private fun RequestLoggingSwitchCard(
     onEnabledChange: (Boolean) -> Unit
 ) {
     KedgeCard(
+        // 整行可点 = 翻转开关（之前只能点右侧那个小开关）。
+        // 挂在 KedgeCard 上而不是内部 Row：卡片自己的按压回弹才有反馈。
+        onClick = { onEnabledChange(!enabled) },
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

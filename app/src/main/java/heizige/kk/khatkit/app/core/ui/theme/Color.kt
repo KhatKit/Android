@@ -176,17 +176,24 @@ object CustomColors {
     var black = false
 
     /**
-     * 页面底色。Miuix 下用不透明的 [MiuixTheme.colorScheme.surface]：
+     * 页面底色。Miuix 与 MD3Exp 都用不透明的 surface：
      * 顶栏色是半透明的（surface@0.87，供毛玻璃透出内容），若拿它当页面底色，
      * 整页会透出下层背景导致正文比顶栏暗，看起来像顶栏/背景配色反了。
+     * MD3Exp 下也不能取 [topBarColors]：那是 surfaceContainer，比正文深一档，
+     * 页面底色会比顶栏深，正好又成了「配色反了」。
      */
     val pageContainerColor: Color
         @Composable get() = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
             MiuixTheme.colorScheme.surface
         } else {
-            @Suppress("UNUSED_EXPRESSION") topBarColors.containerColor
+            colorScheme.surface
         }
 
+    /**
+     * 顶栏配色。MD3Exp 下**深浅主题都给 surfaceContainer**：顶栏必须比页面底色
+     * （surface）深一档才有自己的颜色；暗色下退回 MD3 默认（AppBarTokens 的
+     * ContainerColor = surface）会与页面底色同色，顶栏就「消失」了。
+     */
     val topBarColors: TopAppBarColors
         @Composable get() {
             // Miuix 风格：顶栏与页面背景同为 Miuix surface（对齐 KernelSU：
@@ -199,10 +206,10 @@ object CustomColors {
                     scrolledContainerColor = miuixSurface,
                 )
             }
-            return if (!LocalDarkMode.current) TopAppBarDefaults.topAppBarColors(
+            return TopAppBarDefaults.topAppBarColors(
                 containerColor = colorScheme.surfaceContainer,
                 scrolledContainerColor = colorScheme.surfaceContainer
-            ) else TopAppBarDefaults.topAppBarColors()
+            )
         }
 
     // 以下三个在 Miuix 风格下取 Miuix 的表面色，否则深色 Miuix 主题下
