@@ -257,6 +257,15 @@ private fun AssistantMemoryContent(
                 enabled = assistant.enableMemory,
             )
             PreferenceSwitch(
+                title = stringResource(R.string.assistant_page_auto_extract_memory),
+                summary = stringResource(R.string.assistant_page_auto_extract_memory_desc),
+                checked = assistant.autoExtractMemory,
+                onCheckedChange = {
+                    onUpdateAssistant(assistant.copy(autoExtractMemory = it))
+                },
+                enabled = assistant.enableMemory,
+            )
+            PreferenceSwitch(
                 title = stringResource(R.string.assistant_page_recent_chats),
                 summary = stringResource(R.string.assistant_page_recent_chats_desc),
                 checked = assistant.enableRecentChatsReference,
@@ -382,6 +391,27 @@ private fun MemoryItem(
                     overflow = TextOverflow.Ellipsis,
                     style = KedgeTextStyles.body(),
                 )
+                // 来源与置信度（可溯源）
+                val provenance = buildList {
+                    if (memory.sourceMessageId != null) {
+                        add("${stringResource(R.string.memory_source_message)}: ${memory.sourceMessageId.take(8)}")
+                    }
+                    if (memory.confidence < 1f) {
+                        add("${stringResource(R.string.memory_confidence)}: ${(memory.confidence * 100).toInt()}%")
+                    }
+                    if (memory.sourceKind.isNotEmpty()) {
+                        add(memory.sourceKind)
+                    }
+                }
+                if (provenance.isNotEmpty()) {
+                    Text(
+                        text = provenance.joinToString(" · "),
+                        style = KedgeTextStyles.footnoteSmall(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             KedgeIconButton(
                 onClick = { onEditMemory(memory) },

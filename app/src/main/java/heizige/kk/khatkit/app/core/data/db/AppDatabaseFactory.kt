@@ -11,13 +11,17 @@ import heizige.kk.khatkit.app.core.data.db.migrations.Migration_13_14
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_14_15
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_15_16
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_25_26
+import heizige.kk.khatkit.app.core.data.db.migrations.Migration_27_28
 
 /** Shared schema, migrations and extensions for the app and staged backup validation. */
 internal object AppDatabaseFactory {
     fun create(context: Context, name: String = SQLiteConfiguration.DATABASE_NAME): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, name)
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-            .addMigrations(Migration_6_7, Migration_11_12, Migration_13_14, Migration_14_15, Migration_15_16, Migration_25_26)
+            .addMigrations(
+                Migration_6_7, Migration_11_12, Migration_13_14,
+                Migration_14_15, Migration_15_16, Migration_25_26, Migration_27_28,
+            )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
                     val dictDir = SimpleDictManager.extractDict(context)
@@ -47,24 +51,51 @@ internal object AppDatabaseFactory {
                         )
                         """.trimIndent()
                     )
+                    // A2: 外部内容 FTS5 + 触发器同步（旧 memory_fts 随 MemoryEntity 一起废弃）
+                    db.execSQL("DROP TABLE IF EXISTS memory_fts")
                     db.execSQL(
                         """
-                        CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+                        CREATE VIRTUAL TABLE IF NOT EXISTS memory_chunk_fts USING fts5(
                             content,
-                            assistant_id UNINDEXED,
-                            memory_id UNINDEXED,
-                            tokenize = 'unicode61'
+                            content='memory_chunks', content_rowid='id',
+                            tokenize='unicode61 remove_diacritics 2'
                         )
                         """.trimIndent()
                     )
                     db.execSQL(
                         """
-                        INSERT INTO memory_fts(content, assistant_id, memory_id)
-                        SELECT content, assistant_id, CAST(id AS TEXT)
-                        FROM memoryentity
-                        WHERE NOT EXISTS (SELECT 1 FROM memory_fts LIMIT 1)
+                        CREATE TRIGGER IF NOT EXISTS memory_chunks_ai AFTER INSERT ON memory_chunks BEGIN
+                          INSERT INTO memory_chunk_fts(rowid, content) VALUES (new.id, new.content);
+                        END
                         """.trimIndent()
                     )
+                    db.execSQL(
+                        """
+                        CREATE TRIGGER IF NOT EXISTS memory_chunks_ad AFTER DELETE ON memory_chunks BEGIN
+                          INSERT INTO memory_chunk_fts(memory_chunk_fts, rowid, content)
+                          VALUES ('delete', old.id, old.content);
+                        END
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        """
+                        CREATE TRIGGER IF NOT EXISTS memory_chunks_au AFTER UPDATE OF content ON memory_chunks BEGIN
+                          INSERT INTO memory_chunk_fts(memory_chunk_fts, rowid, content)
+                          VALUES ('delete', old.id, old.content);
+                          INSERT INTO memory_chunk_fts(rowid, content) VALUES (new.id, new.content);
+                        END
+                        """.trimIndent()
+                    )
+                    // 确保 FTS 覆盖迁移过来的历史行（触发器只管迁移后的增量）
+                    db.execSQL(
+                        """
+                        INSERT INTO memory_chunk_fts(rowid, content)
+                        SELECT id, content FROM memory_chunks
+                        WHERE id NOT IN (SELECT rowid FROM memory_chunk_fts)
+                        """.trimIndent()
+                    )
+                    // sqlite-vector：注册向量列（失败静默，检索层有 Kotlin 暴力余弦兜底）
+                    MemoryVectorIndex.ensure(db, context)
                 }
             })
             .openHelperFactory(SQLiteConfiguration.openHelperFactory(context))

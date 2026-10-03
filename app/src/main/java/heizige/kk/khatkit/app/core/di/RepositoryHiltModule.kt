@@ -13,7 +13,9 @@ import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
 import heizige.kk.khatkit.app.core.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GenMediaDAO
 import heizige.kk.khatkit.app.core.data.db.dao.ManagedFileDAO
-import heizige.kk.khatkit.app.core.data.db.dao.MemoryDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemoryChunkDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemoryGraphDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemorySpaceDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.db.fts.MessageFtsManager
@@ -25,6 +27,8 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.FilesRepository
 import heizige.kk.khatkit.app.core.data.repository.GenMediaRepository
+import heizige.kk.khatkit.ai.provider.ProviderManager
+import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.ProotShellRunner
@@ -69,9 +73,23 @@ object RepositoryHiltModule {
     @Provides
     @Singleton
     fun provideMemoryRepository(
-        memoryDAO: MemoryDAO,
+        memorySpaceDAO: MemorySpaceDAO,
+        memoryChunkDAO: MemoryChunkDAO,
+        memoryGraphDAO: MemoryGraphDAO,
         database: AppDatabase,
-    ): MemoryRepository = MemoryRepository(memoryDAO, database.openHelper.writableDatabase)
+    ): MemoryRepository = MemoryRepository(
+        spaceDao = memorySpaceDAO,
+        chunkDao = memoryChunkDAO,
+        graphDao = memoryGraphDAO,
+        database = database.openHelper.writableDatabase,
+    )
+
+    @Provides
+    @Singleton
+    fun provideMemoryExtractor(
+        memoryRepository: MemoryRepository,
+        providerManager: ProviderManager,
+    ): MemoryExtractor = MemoryExtractor(memoryRepository, providerManager)
 
     @Provides
     @Singleton

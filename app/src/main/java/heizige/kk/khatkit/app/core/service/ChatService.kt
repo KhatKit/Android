@@ -75,6 +75,7 @@ import heizige.kk.khatkit.app.core.data.model.replaceRegexes
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
+import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.network.BadRequestException
@@ -153,6 +154,7 @@ class ChatService @Inject constructor(
     private val settingsStore: SettingsRepository,
     private val conversationRepo: ConversationRepository,
     private val memoryRepository: MemoryRepository,
+    private val memoryExtractor: MemoryExtractor,
     private val generationLoop: GenerationLoop,
     private val translationHandler: TranslationHandler,
     private val templateTransformer: TemplateTransformer,
@@ -684,11 +686,18 @@ class ChatService @Inject constructor(
                 conversationModeInjectionIds = conversation.modeInjectionIds,
                 conversationLorebookIds = conversation.lorebookIds,
                 workspaceCwd = conversation.workspaceCwd,
-                memories = if (assistant.useGlobalMemory) {
-                    memoryRepository.getGlobalMemories()
-                } else {
-                    memoryRepository.getMemoriesOfAssistant(assistant.id.toString())
-                },
+                memories = memoryRepository.searchMemories(
+                    assistantId = if (assistant.useGlobalMemory) {
+                        MemoryRepository.GLOBAL_MEMORY_ID
+                    } else {
+                        assistant.id.toString()
+                    },
+                    query = conversation.currentMessages
+                        .takeLast(6)
+                        .joinToString("\n") { it.toText() }
+                        .takeLast(4_000),
+                    limit = 8,
+                ),
                 inputTransformers = buildList {
                     addAll(inputTransformers)
                     add(templateTransformer)
@@ -700,6 +709,24 @@ class ChatService @Inject constructor(
                 // 可能被取消了，或者意外结束，兜底更新
                 val updatedConversation = session.finishGeneration { conversation ->
                     saveConversation(conversationId, conversation)
+                }
+
+                // A2 自动记忆抽取
+                if (assistant.enableMemory && assistant.autoExtractMemory) {
+                    val memSpace = if (assistant.useGlobalMemory) {
+                        MemoryRepository.GLOBAL_MEMORY_ID
+                    } else {
+                        assistant.id.toString()
+                    }
+                    appScope.launch {
+                        runCatching {
+                            memoryExtractor.extractFromTurn(
+                                spaceId = memSpace,
+                                messages = updatedConversation.currentMessages.takeLast(6),
+                                settings = settingsStore.settingsFlow.first(),
+                            )
+                        }
+                    }
                 }
 
                 // 生成结束：取消 Live Update 通知，后台时发送完成通知

@@ -793,7 +793,11 @@
   <string name="setting_page_sponsor_alert_dismiss">稍後再說</string>
   <string name="setting_page_sponsor_alert_title">支援開發者</string>
   <string name="setting_page_theme_setting">主題</string>
-  <string name="setting_page_theme_setting_desc">自訂配色</string>
+  <string name="setting_page_themes">主題</string>
+  <string name="setting_page_themes_desc">主題管理、主題偏好設定</string>
+  <string name="setting_page_theme_manage">主題管理</string>
+  <string name="setting_page_theme_manage_desc">自訂主題的新增、編輯與匯入匯出</string>
+  <string name="setting_page_theme_preferences">主題偏好設定</string>
   <string name="setting_theme_page_preset_themes">預設主題</string>
   <string name="setting_theme_page_custom_themes">自訂主題</string>
   <string name="setting_theme_page_add_theme">新增</string>

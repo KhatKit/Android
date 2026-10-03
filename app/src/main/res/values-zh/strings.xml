@@ -852,7 +852,11 @@
   <string name="setting_page_sponsor_alert_dismiss">暂不</string>
   <string name="setting_page_sponsor_alert_title">支持开发者</string>
   <string name="setting_page_theme_setting">主题</string>
-  <string name="setting_page_theme_setting_desc">自定义配色</string>
+  <string name="setting_page_themes">主题</string>
+  <string name="setting_page_themes_desc">主题管理、主题偏好设置</string>
+  <string name="setting_page_theme_manage">主题管理</string>
+  <string name="setting_page_theme_manage_desc">自定义主题的新建、编辑与导入导出</string>
+  <string name="setting_page_theme_preferences">主题偏好设置</string>
   <string name="setting_theme_page_preset_themes">预设主题</string>
   <string name="setting_theme_page_custom_themes">自定义主题</string>
   <string name="setting_theme_page_add_theme">新建</string>
@@ -933,6 +937,7 @@
   <string name="setting_provider_page_model_id_placeholder">例如：gpt-3.5-turbo</string>
   <string name="setting_provider_page_model_name">模型名称</string>
   <string name="setting_provider_page_model_type">模型类型</string>
+  <string name="setting_provider_page_model_info">基本信息</string>
   <string name="setting_provider_page_models">模型</string>
   <string name="setting_provider_page_name">名称</string>
   <string name="setting_provider_page_no_models">暂无模型</string>
@@ -1002,6 +1007,9 @@
   <string name="setting_tts_page_voice_name">语音名称</string>
   <string name="setting_tts_page_voice_name_placeholder">Kore</string>
   <string name="settings">设置</string>
+  <string name="setting_anim_play_page">动画试验</string>
+  <string name="setting_anim_play_page_replay">播放一次</string>
+  <string name="setting_anim_play">圆形揭幕动画</string>
   <string name="share">分享</string>
   <string name="share_handler_page_title">选择一个助手处理分享</string>
   <string name="shortcut_take_picture">拍照提问</string>

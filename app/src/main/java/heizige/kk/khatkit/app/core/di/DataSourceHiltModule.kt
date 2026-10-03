@@ -31,7 +31,9 @@ import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
 import heizige.kk.khatkit.app.core.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GenMediaDAO
 import heizige.kk.khatkit.app.core.data.db.dao.ManagedFileDAO
-import heizige.kk.khatkit.app.core.data.db.dao.MemoryDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemoryChunkDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemoryGraphDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemorySpaceDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.db.fts.MessageFtsManager
@@ -85,7 +87,15 @@ object DataSourceHiltModule {
 
     @Provides
     @Singleton
-    fun provideMemoryDao(database: AppDatabase): MemoryDAO = database.memoryDao()
+    fun provideMemorySpaceDao(database: AppDatabase): MemorySpaceDAO = database.memorySpaceDao()
+
+    @Provides
+    @Singleton
+    fun provideMemoryChunkDao(database: AppDatabase): MemoryChunkDAO = database.memoryChunkDao()
+
+    @Provides
+    @Singleton
+    fun provideMemoryGraphDao(database: AppDatabase): MemoryGraphDAO = database.memoryGraphDao()
 
     @Provides
     @Singleton

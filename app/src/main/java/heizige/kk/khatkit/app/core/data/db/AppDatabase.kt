@@ -10,18 +10,24 @@ import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
 import heizige.kk.khatkit.app.core.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GenMediaDAO
 import heizige.kk.khatkit.app.core.data.db.dao.ManagedFileDAO
-import heizige.kk.khatkit.app.core.data.db.dao.MemoryDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemoryChunkDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemoryGraphDAO
+import heizige.kk.khatkit.app.core.data.db.dao.MemorySpaceDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
 import heizige.kk.khatkit.app.core.data.db.entity.FolderEntity
 import heizige.kk.khatkit.app.core.data.db.entity.GenMediaEntity
 import heizige.kk.khatkit.app.core.data.db.entity.ManagedFileEntity
-import heizige.kk.khatkit.app.core.data.db.entity.MemoryEntity
+import heizige.kk.khatkit.app.core.data.db.entity.MemoryChunkEntity
+import heizige.kk.khatkit.app.core.data.db.entity.MemoryEdgeEntity
+import heizige.kk.khatkit.app.core.data.db.entity.MemoryMentionEntity
+import heizige.kk.khatkit.app.core.data.db.entity.MemorySpaceEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MessageNodeEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_16_17
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_22_23
+import heizige.kk.khatkit.app.core.data.db.migrations.Migration_27_28
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_8_9
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.data.db.dao.FavoriteDAO
@@ -30,7 +36,10 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
 @Database(
     entities = [
         ConversationEntity::class,
-        MemoryEntity::class,
+        MemorySpaceEntity::class,
+        MemoryChunkEntity::class,
+        MemoryEdgeEntity::class,
+        MemoryMentionEntity::class,
         GenMediaEntity::class,
         MessageNodeEntity::class,
         ManagedFileEntity::class,
@@ -38,7 +47,7 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         FolderEntity::class,
         FavoriteEntity::class,
     ],
-    version = 27,
+    version = 28,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -66,7 +75,11 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
 abstract class AppDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDAO
 
-    abstract fun memoryDao(): MemoryDAO
+    abstract fun memorySpaceDao(): MemorySpaceDAO
+
+    abstract fun memoryChunkDao(): MemoryChunkDAO
+
+    abstract fun memoryGraphDao(): MemoryGraphDAO
 
     abstract fun genMediaDao(): GenMediaDAO
 

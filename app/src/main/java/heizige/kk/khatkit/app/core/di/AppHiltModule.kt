@@ -19,6 +19,7 @@ import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
+import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
@@ -187,6 +188,7 @@ object AppHiltModule {
         settingsStore: SettingsRepository,
         conversationRepo: ConversationRepository,
         memoryRepository: MemoryRepository,
+        memoryExtractor: MemoryExtractor,
         generationLoop: GenerationLoop,
         translationHandler: TranslationHandler,
         templateTransformer: TemplateTransformer,
@@ -206,6 +208,7 @@ object AppHiltModule {
         settingsStore = settingsStore,
         conversationRepo = conversationRepo,
         memoryRepository = memoryRepository,
+        memoryExtractor = memoryExtractor,
         generationLoop = generationLoop,
         translationHandler = translationHandler,
         templateTransformer = templateTransformer,

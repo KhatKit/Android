@@ -53,18 +53,35 @@ class ChatToolFactory(
             } else {
                 assistant.id.toString()
             }
-            addAll(
-                buildMemoryTools(
-                    json = json,
-                    onCreation = { content -> memoryRepository.addMemory(memoryAssistantId, content) },
-                    onUpdate = { id, content -> memoryRepository.updateContent(id, content) },
-                    onDelete = { id -> memoryRepository.deleteMemory(id) },
-                )
-            )
             add(
                 buildMemorySearchTool(
                     json = json,
                     onSearch = { query, limit -> memoryRepository.searchMemories(memoryAssistantId, query, limit) },
+                )
+            )
+            add(
+                buildMemoryAddTool(
+                    json = json,
+                    onAdd = { content, sourceMessageId, confidence ->
+                        memoryRepository.addMemory(
+                            assistantId = memoryAssistantId,
+                            content = content,
+                            sourceMessageId = sourceMessageId,
+                            confidence = confidence,
+                        )
+                    },
+                )
+            )
+            add(
+                buildMemoryLinkTool(
+                    json = json,
+                    onLink = { src, dst, rel -> memoryRepository.linkMemories(src, dst, rel) },
+                )
+            )
+            add(
+                buildMemoryForgetTool(
+                    json = json,
+                    onForget = { id -> memoryRepository.forgetMemory(id) },
                 )
             )
         }

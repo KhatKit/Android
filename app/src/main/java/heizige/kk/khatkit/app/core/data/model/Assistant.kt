@@ -28,6 +28,7 @@ data class Assistant(
     val streamOutput: Boolean = true,
     val enableMemory: Boolean = false,
     val useGlobalMemory: Boolean = false, // 使用全局共享记忆而非助手隔离记忆
+    val autoExtractMemory: Boolean = false, // 自动生成记忆（LLM 抽取）
     val enableRecentChatsReference: Boolean = false,
     val messageTemplate: String = "{{ message }}",
     val presetMessages: List<UIMessage> = emptyList(),
@@ -64,6 +65,11 @@ data class QuickMessage(
 data class AssistantMemory(
     val id: Int,
     val content: String = "",
+    val spaceId: String = "",
+    val sourceMessageId: String? = null,
+    val sourceKind: String = "",
+    val confidence: Float = 1f,
+    val extractedAt: Long = 0L,
 )
 
 @Serializable

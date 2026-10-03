@@ -111,6 +111,12 @@
   <string name="assistant_page_memory">Memory</string>
   <string name="assistant_page_memory_count">Memory: %d</string>
   <string name="assistant_page_memory_desc">When memory is enabled, the model will try to actively record your information during conversations and use it in subsequent conversations. This feature requires the model to support tool calls to work properly</string>
+  <string name="assistant_page_auto_extract_memory">Auto Memory Extraction</string>
+  <string name="assistant_page_auto_extract_memory_desc">Automatically extract facts from conversations using a fast model after each turn. Requires Memory to be enabled.</string>
+  <string name="memory_source_message">Source</string>
+  <string name="memory_confidence">Confidence</string>
+  <string name="memory_graph_title">Memory Graph</string>
+  <string name="memory_extracted_at">Extracted</string>
   <string name="assistant_page_message_template">Message Content Template</string>
   <string name="assistant_page_message_template_desc">Controls the content format of chat messages before being sent to the LLM, usually no need to modify</string>
   <string name="assistant_page_message_template_missing_message">Template does not contain {{ message }}, user messages will not be sent</string>
@@ -892,7 +898,12 @@
   <string name="setting_page_sponsor_alert_dismiss">Not Now</string>
   <string name="setting_page_sponsor_alert_title">Support the Developer</string>
   <string name="setting_page_theme_setting">Theme</string>
-  <string name="setting_page_theme_setting_desc">Custom color scheme</string>
+  <string name="setting_page_theme_setting_desc">Customize color scheme</string>
+  <string name="setting_page_themes">Theme</string>
+  <string name="setting_page_themes_desc">Theme management and preferences</string>
+  <string name="setting_page_theme_manage">Theme Management</string>
+  <string name="setting_page_theme_manage_desc">Create, edit, import and export custom themes</string>
+  <string name="setting_page_theme_preferences">Theme Preferences</string>
   <string name="setting_theme_page_preset_themes">Preset Themes</string>
   <string name="setting_theme_page_custom_themes">Custom Themes</string>
   <string name="setting_theme_page_add_theme">New</string>
@@ -976,6 +987,7 @@
   <string name="setting_provider_page_model_id_placeholder">e.g.: gpt-3.5-turbo</string>
   <string name="setting_provider_page_model_name">Model Name</string>
   <string name="setting_provider_page_model_type">Model Type</string>
+  <string name="setting_provider_page_model_info">Basic Info</string>
   <string name="setting_provider_page_models">Models</string>
   <string name="setting_provider_page_name">Name</string>
   <string name="setting_provider_page_no_models">No models</string>
@@ -1047,6 +1059,9 @@
   <string name="setting_tts_page_voice_name">Voice Name</string>
   <string name="setting_tts_page_voice_name_placeholder">Kore</string>
   <string name="settings">Settings</string>
+  <string name="setting_anim_play_page">Animation Lab</string>
+  <string name="setting_anim_play_page_replay">Play once</string>
+  <string name="setting_anim_play">Iris reveal</string>
   <string name="share">Share</string>
   <string name="share_handler_page_title">Select an Assistant</string>
   <string name="shortcut_take_picture">Take Picture &amp; Ask</string>

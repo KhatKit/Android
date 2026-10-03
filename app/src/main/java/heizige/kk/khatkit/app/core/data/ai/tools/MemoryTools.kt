@@ -6,6 +6,7 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -18,106 +19,31 @@ import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khatkit.app.core.util.toLocalString
 import java.time.LocalDate
 
-fun buildMemoryTools(
-    json: Json,
-    onCreation: suspend (String) -> AssistantMemory,
-    onUpdate: suspend (Int, String) -> AssistantMemory,
-    onDelete: suspend (Int) -> Unit
-): List<Tool> = listOf(
-    Tool(
-        name = "memory_tool",
-        description = """
-            The memory tool stores long-term information across conversations.
-            Use `action` to control the operation: `create` (add), `edit` (update), `delete` (remove).
-            - No relevant record: `create` + `content`
-            - Existing relevant record: `edit` + `id` + `content`
-            - Outdated/irrelevant record: `delete` + `id`
-            Memories will automatically appear in the <memories> tag in later conversations.
-            Do not store sensitive information (e.g., ethnicity, religion, sexual orientation, political views, sex life, criminal records).
-            You may store: preferred name, preferences, plans, work-related notes, chat style preferences, first chat time, etc.
-            Do not show memory content directly in the conversation unless the user explicitly asks.
-            Today is ${LocalDate.now().toLocalString(true)}.
-            Similar memories should be merged; prefer updating existing records.
-
-            Examples:
-            {"action":"create","content":"User prefers brief replies and is more active on weekends."}
-            {"action":"edit","id":12,"content":"User’s preferred name updated to “A-Xing”, prefers Chinese replies."}
-            {"action":"delete","id":7}
-        """.trimIndent(),
-        parameters = {
-            InputSchema.Obj(
-                properties = buildJsonObject {
-                    put("action", buildJsonObject {
-                        put("type", "string")
-                        put(
-                            "enum",
-                            buildJsonArray {
-                                add("create")
-                                add("edit")
-                                add("delete")
-                            }
-                        )
-                        put("description", "Operation to perform: create, edit, or delete")
-                    })
-                    put("id", buildJsonObject {
-                        put("type", "integer")
-                        put("description", "The id of the memory record (required for edit/delete)")
-                    })
-                    put("content", buildJsonObject {
-                        put("type", "string")
-                        put("description", "The content of the memory record (required for create/edit)")
-                    })
-                },
-                required = listOf("action")
-            )
-        },
-        execute = {
-            val params = it.jsonObject
-            val action = params["action"]?.jsonPrimitive?.contentOrNull ?: error("action is required")
-            val payload = when (action) {
-                "create" -> {
-                    val content = params["content"]?.jsonPrimitive?.contentOrNull ?: error("content is required")
-                    json.encodeToJsonElement(AssistantMemory.serializer(), onCreation(content))
-                }
-
-                "edit" -> {
-                    val id = params["id"]?.jsonPrimitive?.intOrNull ?: error("id is required")
-                    val content = params["content"]?.jsonPrimitive?.contentOrNull ?: error("content is required")
-                    json.encodeToJsonElement(AssistantMemory.serializer(), onUpdate(id, content))
-                }
-
-                "delete" -> {
-                    val id = params["id"]?.jsonPrimitive?.intOrNull ?: error("id is required")
-                    onDelete(id)
-                    buildJsonObject {
-                        put("success", true)
-                        put("id", id)
-                    }
-                }
-
-                else -> error("unknown action: $action, must be one of [create, edit, delete]")
-            }
-            listOf(UIMessagePart.Text(payload.toString()))
-        }
-    )
-)
-
+/**
+ * A2 记忆工具：`memory_search` / `memory_add` / `memory_link` / `memory_forget`。
+ *
+ * 检索结果带 `id` 与来源（sourceMessageId/confidence/extractedAt），100% 可溯源。
+ */
 fun buildMemorySearchTool(
     json: Json,
     onSearch: suspend (String, Int) -> List<AssistantMemory>,
 ): Tool = Tool(
     name = "memory_search",
-    description = "Search stored long-term memories by keyword before deciding whether to create or edit a memory.",
+    description = """
+        Search long-term memories with hybrid retrieval (semantic + keyword + graph).
+        Returns memories with `id`, `content`, `sourceMessageId`, `confidence`, `extractedAt`.
+        Use `id` for memory_link / memory_forget. Always search before deciding to add or forget.
+    """.trimIndent(),
     parameters = {
         InputSchema.Obj(
             properties = buildJsonObject {
                 put("query", buildJsonObject {
                     put("type", "string")
-                    put("description", "Keywords or a short natural-language query")
+                    put("description", "Natural-language query or keywords")
                 })
                 put("limit", buildJsonObject {
                     put("type", "integer")
-                    put("description", "Maximum number of results, from 1 to 20")
+                    put("description", "Maximum results, 1 to 20 (default 8)")
                 })
             },
             required = listOf("query")
@@ -130,4 +56,141 @@ fun buildMemorySearchTool(
         val results = onSearch(query, limit)
         listOf(UIMessagePart.Text(json.encodeToJsonElement(ListSerializer(AssistantMemory.serializer()), results).toString()))
     }
+)
+
+fun buildMemoryAddTool(
+    json: Json,
+    onAdd: suspend (content: String, sourceMessageId: String?, confidence: Float) -> AssistantMemory,
+): Tool = Tool(
+    name = "memory_add",
+    description = """
+        Store a new long-term memory (fact, preference, plan, event).
+        Do not store sensitive information (ethnicity, religion, sexual orientation, political views, sex life, criminal records).
+        Do not show memory content in the conversation unless the user explicitly asks.
+        Similar memories should be merged; prefer memory_search first to avoid duplicates.
+        Today is ${LocalDate.now().toLocalString(true)}.
+        Examples:
+        {"content":"User prefers brief replies and is more active on weekends."}
+        {"content":"User's preferred name is A-Xing.","confidence":0.9}
+    """.trimIndent(),
+    parameters = {
+        InputSchema.Obj(
+            properties = buildJsonObject {
+                put("content", buildJsonObject {
+                    put("type", "string")
+                    put("description", "The memory content to store")
+                })
+                put("confidence", buildJsonObject {
+                    put("type", "number")
+                    put("description", "Confidence 0..1 (default 1.0)")
+                })
+            },
+            required = listOf("content")
+        )
+    },
+    execute = {
+        val params = it.jsonObject
+        val content = params["content"]?.jsonPrimitive?.contentOrNull ?: error("content is required")
+        val confidence = params["confidence"]?.jsonPrimitive?.floatOrNull ?: 1f
+        val result = onAdd(content, null, confidence.coerceIn(0f, 1f))
+        listOf(UIMessagePart.Text(json.encodeToJsonElement(AssistantMemory.serializer(), result).toString()))
+    }
+)
+
+fun buildMemoryLinkTool(
+    json: Json,
+    onLink: suspend (sourceId: Int, targetId: Int, relType: String) -> Int,
+): Tool = Tool(
+    name = "memory_link",
+    description = """
+        Create a typed relation between two stored memories (by their `id` from memory_search).
+        This builds a lightweight knowledge graph used to expand retrieval.
+        Example: {"source_id":3,"target_id":7,"relation":"RELATED"}
+    """.trimIndent(),
+    parameters = {
+        InputSchema.Obj(
+            properties = buildJsonObject {
+                put("source_id", buildJsonObject {
+                    put("type", "integer")
+                    put("description", "Source memory id")
+                })
+                put("target_id", buildJsonObject {
+                    put("type", "integer")
+                    put("description", "Target memory id")
+                })
+                put("relation", buildJsonObject {
+                    put("type", "string")
+                    put("description", "Relation type: RELATED, CAUSES, PART_OF, HAPPENED_AT, MENTIONS, or a custom label")
+                })
+            },
+            required = listOf("source_id", "target_id")
+        )
+    },
+    execute = {
+        val params = it.jsonObject
+        val sourceId = params["source_id"]?.jsonPrimitive?.intOrNull ?: error("source_id is required")
+        val targetId = params["target_id"]?.jsonPrimitive?.intOrNull ?: error("target_id is required")
+        val relType = params["relation"]?.jsonPrimitive?.contentOrNull ?: "RELATED"
+        val edgeId = onLink(sourceId, targetId, relType)
+        listOf(UIMessagePart.Text(
+            buildJsonObject {
+                put("success", true)
+                put("edge_id", edgeId)
+                put("source_id", sourceId)
+                put("target_id", targetId)
+                put("relation", relType)
+            }.toString()
+        ))
+    }
+)
+
+fun buildMemoryForgetTool(
+    json: Json,
+    onForget: suspend (Int) -> Unit,
+): Tool = Tool(
+    name = "memory_forget",
+    description = """
+        Forget (soft-delete) a memory that is outdated or wrong. The record is kept for
+        provenance but no longer retrieved or injected. Use the `id` from memory_search.
+        Example: {"id":7}
+    """.trimIndent(),
+    parameters = {
+        InputSchema.Obj(
+            properties = buildJsonObject {
+                put("id", buildJsonObject {
+                    put("type", "integer")
+                    put("description", "Memory id to forget")
+                })
+            },
+            required = listOf("id")
+        )
+    },
+    execute = {
+        val params = it.jsonObject
+        val id = params["id"]?.jsonPrimitive?.intOrNull ?: error("id is required")
+        onForget(id)
+        listOf(UIMessagePart.Text(
+            buildJsonObject {
+                put("success", true)
+                put("id", id)
+                put("forgotten", true)
+            }.toString()
+        ))
+    }
+)
+
+fun buildMemoryTools(
+    json: Json,
+    onCreation: suspend (String) -> AssistantMemory,
+    onUpdate: suspend (Int, String) -> AssistantMemory,
+    onDelete: suspend (Int) -> Unit,
+    onSearch: suspend (String, Int) -> List<AssistantMemory>,
+    onLink: suspend (Int, Int, String) -> Int,
+): List<Tool> = listOf(
+    buildMemorySearchTool(json, onSearch),
+    buildMemoryAddTool(json) { content, _, confidence ->
+        if (confidence < 1f) onCreation(content) else onCreation(content)
+    },
+    buildMemoryLinkTool(json, onLink),
+    buildMemoryForgetTool(json, onDelete),
 )
