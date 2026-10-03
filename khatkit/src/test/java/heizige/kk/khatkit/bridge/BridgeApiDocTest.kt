@@ -33,6 +33,7 @@ class BridgeApiDocTest {
         ScheduleBridge::class.java to "schedule",
         UiBridge::class.java to "ui",
         WebBridge::class.java to "web",
+        BrowserBridge::class.java to "browser",
         ImageToolboxBridge::class.java to "imageToolbox",
         DownloadBridge::class.java to "download",
         DownloadHandle::class.java to "handle",

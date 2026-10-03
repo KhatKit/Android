@@ -19,11 +19,12 @@ fun buildBrowserDomSnapshot(html: String, maxChars: Int = 20_000): String {
         .trim()
     val suffix = "\n[Snapshot truncated]"
     if (cleaned.toByteArray(Charsets.UTF_8).size <= maxChars) return cleaned
-    val budget = maxChars.coerceAtLeast(0)
+    val marker = suffix.takeWhileWithinUtf8Bytes(maxChars)
+    val budget = (maxChars - marker.toByteArray(Charsets.UTF_8).size).coerceAtLeast(0)
     val truncated = cleaned
         .takeWhileWithinUtf8Bytes(budget)
         .trimEnd()
-    return truncated + suffix
+    return truncated + marker
 }
 
 private fun String.takeWhileWithinUtf8Bytes(maxBytes: Int): String {

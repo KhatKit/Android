@@ -34,6 +34,7 @@ class BridgeRegistry(
     private val root: RootBridge? = null,
     private val accessibility: AccessibilityBridge? = null,
     private val schedule: ScheduleBridge? = null,
+    private val browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
 ) {
     /**
      * 运行期动态注册的 bridge（原生依赖包加载后注册，如 imageToolbox）。
@@ -85,6 +86,7 @@ class BridgeRegistry(
         if (root != null) add("root")
         if (accessibility != null) add("accessibility")
         if (schedule != null) add("schedule")
+        if (browserProvider != null) add("browser")
         addAll(dynamicBridges.keys)
         add(CAPABILITY_DEPENDENCY)
     }
@@ -101,6 +103,7 @@ class BridgeRegistry(
         manifest: CardManifest,
         approvalGate: ApprovalGate? = null,
         deadlineAt: Long = 0L,
+        runResources: MutableList<AutoCloseable>? = null,
     ): Boolean {
         val required = manifest.requiredBridges
         if (!supports(required)) return false
@@ -150,6 +153,9 @@ class BridgeRegistry(
                     }
                 }
                 "web" -> web
+                "browser" -> browserProvider?.invoke(context)?.also {
+                    if (it is AutoCloseable) runResources?.add(it)
+                }
                 "download" -> download
                 "store" -> storeProvider?.invoke(
                     StoreRequest(

@@ -123,6 +123,11 @@ class ScopedWebBridge(
     delegate: WebBridge,
 ) : WebBridge by delegate, ContextAwareBridge
 
+class ScopedBrowserBridge(
+    override val context: BridgeContext,
+    delegate: BrowserBridge,
+) : BrowserBridge by delegate, ContextAwareBridge
+
 /** 透明下载包装器。 */
 class ScopedDownloadBridge(
     override val context: BridgeContext,
@@ -172,6 +177,7 @@ fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = whe
     "mediaPicker" -> ScopedMediaPickerBridge(context, delegate as MediaPickerBridge)
     "ui" -> ScopedUiBridge(context, delegate as UiBridge)
     "web" -> ScopedWebBridge(context, delegate as WebBridge)
+    "browser" -> ScopedBrowserBridge(context, delegate as BrowserBridge)
     "download" -> ScopedDownloadBridge(context, delegate as DownloadBridge)
     "store" -> ScopedStoreBridge(context, delegate as StoreBridge)
     "shizuku" -> ScopedShizukuBridge(context, delegate as ShizukuBridge)

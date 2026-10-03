@@ -220,7 +220,15 @@ interface MediaPickerBridge {
     fun pickMedia(options: Map<String, Any?> = emptyMap()): List<String>
 }
 
-/** WebView 登录与按站点隔离的 Cookie 管理。Cookie 由宿主加密保存，不上传云端。 */
+/** Programmable browser, scoped to a card run with explicit session IDs. */
+interface BrowserBridge {
+    fun open(url: String): String
+    fun snapshot(sessionId: String, selector: String?, offset: Int): String
+    fun act(sessionId: String, action: String, arguments: Map<String, Any?>?): String
+    fun close(sessionId: String): String
+}
+
+/** Interactive login and saved site cookies; independent of the programmable browser. */
 interface WebBridge {
     /**
      * 打开登录 WebView；用户点击动作后返回 JSON 结果。

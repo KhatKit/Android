@@ -10,6 +10,7 @@ class BrowserSessionManager(
     private val sessions = linkedMapOf<String, BrowserSession>()
     private var activeSessionId: String? = null
 
+    @Synchronized
     fun createSession(
         url: String = "about:blank",
         title: String? = null,
@@ -27,6 +28,7 @@ class BrowserSessionManager(
         return session
     }
 
+    @Synchronized
     fun closeSession(id: String): Boolean {
         val removed = sessions.remove(id) ?: return false
         if (activeSessionId == removed.id) {
@@ -35,18 +37,23 @@ class BrowserSessionManager(
         return true
     }
 
+    @Synchronized
     fun getSession(id: String): BrowserSession? = sessions[id]
 
+    @Synchronized
     fun listSessions(): List<BrowserSession> = sessions.values.toList()
 
+    @Synchronized
     fun activeSession(): BrowserSession? = activeSessionId?.let(sessions::get)
 
+    @Synchronized
     fun selectSession(id: String): BrowserSession {
         require(sessions.containsKey(id)) { "Unknown browser session: $id" }
         activeSessionId = id
         return sessions.getValue(id)
     }
 
+    @Synchronized
     fun navigate(id: String, url: String, title: String? = null): BrowserSession {
         require(url.isNotBlank()) { "URL must not be blank" }
         validateBrowserUrl(url)
@@ -62,10 +69,13 @@ class BrowserSessionManager(
         return updated
     }
 
+    @Synchronized
     fun goBack(id: String): BrowserSession? = moveHistory(id, -1)
 
+    @Synchronized
     fun goForward(id: String): BrowserSession? = moveHistory(id, 1)
 
+    @Synchronized
     fun updatePage(
         id: String,
         url: String,

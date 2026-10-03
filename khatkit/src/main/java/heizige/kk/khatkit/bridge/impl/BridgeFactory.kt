@@ -2,6 +2,8 @@ package heizige.kk.khatkit.bridge.impl
 
 import android.content.Context
 import heizige.kk.khatkit.bridge.BridgeRegistry
+import heizige.kk.khatkit.bridge.BridgeContext
+import heizige.kk.khatkit.bridge.BrowserBridge
 import heizige.kk.khatkit.bridge.AiBridge
 import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.bridge.MediaPickerBridge
@@ -54,6 +56,7 @@ object BridgeFactory {
         ai: AiBridge? = null,
         embeddingEngine: EmbeddingEngine? = null,
         schedule: ScheduleBridge? = null,
+        browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -98,6 +101,7 @@ object BridgeFactory {
             root = rootBridge,
             accessibility = accessibilityBridge,
             schedule = schedule ?: UnavailableScheduleBridge(),
+            browserProvider = browserProvider,
         )
 
         // 原生依赖包：随云端卡片下载，校验 sha256 + ECDSA 签名后 DexClassLoader 加载为动态 bridge。

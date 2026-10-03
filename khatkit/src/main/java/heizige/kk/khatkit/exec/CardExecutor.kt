@@ -114,15 +114,20 @@ class CardExecutor(
         val modules = libResolver?.resolve(card.manifest.requires.libs, card.engineKind).orEmpty()
 
         val engine = EngineFactory.create(card.engineKind)
+        val runResources = mutableListOf<AutoCloseable>()
         return try {
-            if (!bridges.inject(engine, card.manifest, approvalGate = approvalGate)) {
+            if (!bridges.inject(engine, card.manifest, approvalGate = approvalGate, runResources = runResources)) {
                 EngineResult.Err("BRIDGE_INJECT_FAILED", "bridge 注入失败")
             } else {
                 modules.forEach { lib -> engine.defineModule(lib.name, lib.source) }
                 engine.eval(card.scriptText, args)
             }
         } finally {
-            engine.close()
+            try {
+                runResources.asReversed().forEach { resource -> runCatching { resource.close() } }
+            } finally {
+                engine.close()
+            }
         }
     }
 
