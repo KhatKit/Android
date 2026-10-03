@@ -244,6 +244,18 @@ dependencies {
     // libbarhopper 已移除，供应商配置改从图片或手动导入)
     implementation(libs.zxing.core)
 
+    // 实时扫码取景（CameraX 1.6.2 + MLKit Barcode Scanning 17.3.0 bundled）
+    // 选型理由：不自己手写 camera2 + 逐帧 ZXing 解码。
+    // - camera-view 提供 PreviewView 承载取景画面；
+    // - camera-core/camera-camera2/camera-lifecycle 提供 Preview + ImageAnalysis 用例与生命周期绑定；
+    // - MLKit barcode-scanning 只开 QR_CODE 格式，缩小检测面、提帧率。
+    // camera-camera2-pipe / camera-video 由 camera-view 传递引入，无需显式声明。
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.mlkit.barcode.scanning)
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

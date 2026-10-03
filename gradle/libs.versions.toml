@@ -42,6 +42,11 @@ firebase-bom = "34.19.0"
 firebase-crashlytics = "3.0.8"
 jsoup = "1.23.2"
 zxing = "3.5.4"
+# 实时扫码：CameraX 取景 + MLKit Barcode Scanning（群聊导入二维码）
+# 版本锁定说明：本地 Gradle 缓存里 camera-* 只有 1.6.2 有 .aar 实体
+# （1.4.2 / 1.6.1 仅 .pom+.module），故必须锁 1.6.2 否则 --offline 会解析失败。
+camerax = "1.6.2"
+mlkit-barcode = "17.3.0"
 sonner = "0.4.0"
 leakcanary = "2.14"
 workmanager = "2.11.2"
@@ -145,6 +150,11 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkit-barcode" }
 sonner = { module = "io.github.dokar3:sonner", version.ref = "sonner" }
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
