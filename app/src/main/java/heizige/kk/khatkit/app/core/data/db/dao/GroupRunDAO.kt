@@ -38,12 +38,18 @@ interface GroupRunDAO {
     @Query("SELECT * FROM group_runs WHERE conversation_id = :conversationId AND round_id = :roundId LIMIT 1")
     fun observeByRound(conversationId: String, roundId: String): Flow<GroupRunEntity?>
 
-    @Query("SELECT * FROM group_runs WHERE conversation_id = :conversationId AND status = :status LIMIT 1")
-    suspend fun findByRoundAndStatus(
+    @Query(
+        """
+        SELECT * FROM group_runs
+        WHERE conversation_id = :conversationId AND status = :status
+        ORDER BY started_at ASC LIMIT :limit
+        """
+    )
+    suspend fun listByConversationAndStatus(
         conversationId: String,
-        roundId: String,
         status: String,
-    ): GroupRunEntity?
+        limit: Int,
+    ): List<GroupRunEntity>
 
     /** 运行日志 UI：按群倒序列出历史运行。 */
     @Query("SELECT * FROM group_runs WHERE conversation_id = :conversationId ORDER BY started_at DESC LIMIT :limit")

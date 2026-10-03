@@ -10,6 +10,8 @@ import androidx.room.PrimaryKey
  *
  * - `embedding` 为 Float32 BLOB（sqlite-vector 可直接扫描；缺省时走 Kotlin 暴力余弦兜底）
  * - `deleted_at` 非空 = 遗忘（软删，保留溯源）
+ * - `role_id` 仅 C1 群聊记忆用（C1-D 起）：群消息写入记忆时记录发言角色，
+ *   检索结果据此再做 viewer 过滤。存量单聊/助手记忆为 NULL，行为完全不变。
  */
 @Entity(
     tableName = "memory_chunks",
@@ -17,6 +19,7 @@ import androidx.room.PrimaryKey
         Index("space_id"),
         Index("source_message_id"),
         Index("deleted_at"),
+        Index("role_id"),
     ],
 )
 data class MemoryChunkEntity(
@@ -46,6 +49,9 @@ data class MemoryChunkEntity(
     val deletedAt: Long? = null,
     @ColumnInfo("embedding")
     val embedding: ByteArray? = null,
+    /** C1 群聊：写入该分块的发言角色 id（`group:<convId>:role:<roleId>` 空间的角色）。 */
+    @ColumnInfo("role_id")
+    val roleId: String? = null,
 ) {
     companion object {
         const val SOURCE_MANUAL = "MANUAL"
@@ -62,7 +68,8 @@ data class MemoryChunkEntity(
             sourceRefId == other.sourceRefId && confidence == other.confidence &&
             extractedAt == other.extractedAt && lastHitAt == other.lastHitAt &&
             createdAt == other.createdAt && updatedAt == other.updatedAt &&
-            deletedAt == other.deletedAt && embedding.contentEquals(other.embedding)
+            deletedAt == other.deletedAt && roleId == other.roleId &&
+            embedding.contentEquals(other.embedding)
     }
 
     override fun hashCode(): Int {
@@ -78,6 +85,7 @@ data class MemoryChunkEntity(
         result = 31 * result + createdAt.hashCode()
         result = 31 * result + updatedAt.hashCode()
         result = 31 * result + (deletedAt?.hashCode() ?: 0)
+        result = 31 * result + (roleId?.hashCode() ?: 0)
         result = 31 * result + (embedding?.contentHashCode() ?: 0)
         return result
     }

@@ -72,6 +72,9 @@ data class AssistantMemory(
     val sourceKind: String = "",
     val confidence: Float = 1f,
     val extractedAt: Long = 0L,
+    // C1-D：群聊记忆写入时记录发言角色，检索结果据此再做 viewer 过滤。
+    // 存量单聊/助手记忆为 null，序列化为显式 null（encodeDefaults=true）不影响旧数据读取。
+    val roleId: String? = null,
 )
 
 @Serializable

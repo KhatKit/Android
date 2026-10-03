@@ -9,6 +9,7 @@ import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
 import heizige.kk.khatkit.app.core.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GenMediaDAO
+import heizige.kk.khatkit.app.core.data.db.dao.GroupRunDAO
 import heizige.kk.khatkit.app.core.data.db.dao.ManagedFileDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MemoryChunkDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MemoryGraphDAO
@@ -19,12 +20,14 @@ import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
 import heizige.kk.khatkit.app.core.data.db.entity.FolderEntity
 import heizige.kk.khatkit.app.core.data.db.entity.GenMediaEntity
+import heizige.kk.khatkit.app.core.data.db.entity.GroupRunEntity
 import heizige.kk.khatkit.app.core.data.db.entity.ManagedFileEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryChunkEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryEdgeEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryMentionEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemorySpaceEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MessageNodeEntity
+import heizige.kk.khatkit.app.core.data.db.entity.StringListConverter
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunStepEntity
@@ -53,8 +56,9 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         WorkflowEntity::class,
         WorkflowRunEntity::class,
         WorkflowRunStepEntity::class,
+        GroupRunEntity::class,
     ],
-    version = 30,
+    version = 31,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -78,9 +82,15 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         AutoMigration(from = 26, to = 27),
         AutoMigration(from = 28, to = 29),
         AutoMigration(from = 29, to = 30),
+        // C1-D：新建 group_runs（run token 幂等表）+ memory_chunks 增 role_id。
+        // Room 生成的 SQL 会走「建 _new_memory_chunks → 全量拷贝 → DROP → RENAME」，
+        // 行内容与 rowid 均保留；被 DROP 掉的 `memory_chunks_*` FTS 触发器由
+        // AppDatabaseFactory.onOpen 的 `CREATE TRIGGER IF NOT EXISTS` 立即重建，
+        // sqlite-vector 也由同处 onOpen 的 MemoryVectorIndex.ensure 重新注册。
+        AutoMigration(from = 30, to = 31),
     ]
 )
-@TypeConverters(TokenUsageConverter::class)
+@TypeConverters(TokenUsageConverter::class, StringListConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDAO
 
@@ -103,6 +113,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDAO
 
     abstract fun workflowDao(): WorkflowDao
+
+    abstract fun groupRunDao(): GroupRunDAO
 }
 
 object TokenUsageConverter {
