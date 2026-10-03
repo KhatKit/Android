@@ -5,6 +5,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.contentOrNull
 import heizige.kk.khatkit.app.core.data.model.InjectionPosition
 import heizige.kk.khatkit.app.core.data.model.Lorebook
@@ -26,14 +28,14 @@ fun parseCharacterCardLorebook(
             id = Uuid.random(),
             name = entry["comment"]?.jsonPrimitive?.contentOrNull
                 ?: entry["keys"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.contentOrNull.orEmpty(),
-            enabled = entry["enabled"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != false,
-            priority = entry["insertion_order"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
+            enabled = entry["enabled"]?.jsonPrimitive?.booleanOrNull != false,
+            priority = entry["insertion_order"]?.jsonPrimitive?.intOrNull ?: 100,
             position = mapCharacterCardPosition(entry["position"]?.jsonPrimitive?.contentOrNull),
             content = entry["content"]?.jsonPrimitive?.contentOrNull.orEmpty(),
             keywords = entry["keys"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull }.orEmpty(),
             useRegex = false,
-            caseSensitive = false,
-            scanDepth = entry["case_sensitive"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
+            caseSensitive = entry["case_sensitive"]?.jsonPrimitive?.booleanOrNull ?: false,
+            scanDepth = entry["scan_depth"]?.jsonPrimitive?.intOrNull ?: 4,
             constantActive = entry["constant"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() == true,
         )
     }
