@@ -145,6 +145,10 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                 onActiveChange = { searchExpanded = it },
                 cancelLabel = stringResource(R.string.cancel),
                 modifier = Modifier.fillMaxWidth(),
+                // 这里**必须**保持 true：SearchPage 进页面就 LaunchedEffect 自动展开
+                // （SearchPage.kt:85），若空关键词不展示，一进来是一片空白，而且范围切换
+                // 段选器（当前助手 / 所有助手）也被结果区一起藏掉、没法切 —— 那是死路。
+                showResultsWhenEmpty = true,
                 expandedContent = {
                     // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
                     NoHeroTransition {

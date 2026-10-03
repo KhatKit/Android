@@ -229,15 +229,18 @@ internal fun ModelPicker(
     }
 }
 
+/**
+ * 模型类型（聊天/图像/嵌入）单选。
+ *
+ * 标题由外层分组卡片给出，这里只出胶囊行；[fillWidth] 传 `false` 让它和下面几个多选组
+ * 一样按文案宽度排布，同一张表单里不会出现「一排等分大药丸 + 一排窄药丸」的错位。
+ */
 @Composable
 internal fun ModelTypeSelector(
     selectedType: ModelType,
-    onTypeSelected: (ModelType) -> Unit
+    onTypeSelected: (ModelType) -> Unit,
+    fillWidth: Boolean = true,
 ) {
-    Text(
-        stringResource(R.string.setting_provider_page_model_type),
-        style = KedgeTextStyles.title()
-    )
     KedgeSingleChoiceSegmentedRow(
         items = ModelType.entries.map { type ->
             SegmentedItem(
@@ -252,83 +255,83 @@ internal fun ModelTypeSelector(
                 onClick = { onTypeSelected(type) },
             )
         },
+        fillWidth = fillWidth,
     )
 }
 
+/**
+ * 输入/输出模态（文本/图片）多选。
+ *
+ * 两组各有自己的标题与卡片，所以这里自己出两个 [ModelFormGroup]；调用方只管传数据。
+ * 只有聊天模型才显示 —— 图像/嵌入模型的模态由类型本身决定。
+ */
 @Composable
 internal fun ModelModalitySelector(
     model: Model,
     inputModalities: List<Modality>,
     onUpdateInputModalities: (List<Modality>) -> Unit,
     outputModalities: List<Modality>,
-    onUpdateOutputModalities: (List<Modality>) -> Unit
+    onUpdateOutputModalities: (List<Modality>) -> Unit,
 ) {
     if (model.type == ModelType.CHAT) {
-        Text(
-            stringResource(R.string.setting_provider_page_input_modality),
-            style = KedgeTextStyles.title()
-        )
-        KedgeMultiChoiceSegmentedRow(
-            items = Modality.entries.map { modality ->
-                SegmentedItem(
-                    label = stringResource(
-                        when (modality) {
-                            Modality.TEXT -> R.string.setting_provider_page_text
-                            Modality.IMAGE -> R.string.setting_provider_page_image
-                        }
-                    ),
-                    selected = modality in inputModalities,
-                    onClick = {
-                        onUpdateInputModalities(
-                            if (modality in inputModalities) {
-                                inputModalities - modality
-                            } else {
-                                inputModalities + modality
+        ModelFormGroup(stringResource(R.string.setting_provider_page_input_modality)) {
+            KedgeMultiChoiceSegmentedRow(
+                items = Modality.entries.map { modality ->
+                    SegmentedItem(
+                        label = stringResource(
+                            when (modality) {
+                                Modality.TEXT -> R.string.setting_provider_page_text
+                                Modality.IMAGE -> R.string.setting_provider_page_image
                             }
-                        )
-                    },
-                )
-            },
-        )
+                        ),
+                        selected = modality in inputModalities,
+                        onClick = {
+                            onUpdateInputModalities(
+                                if (modality in inputModalities) {
+                                    inputModalities - modality
+                                } else {
+                                    inputModalities + modality
+                                }
+                            )
+                        },
+                    )
+                },
+            )
+        }
 
-        Text(
-            stringResource(R.string.setting_provider_page_output_modality),
-            style = KedgeTextStyles.title()
-        )
-        KedgeMultiChoiceSegmentedRow(
-            items = Modality.entries.map { modality ->
-                SegmentedItem(
-                    label = stringResource(
-                        when (modality) {
-                            Modality.TEXT -> R.string.setting_provider_page_text
-                            Modality.IMAGE -> R.string.setting_provider_page_image
-                        }
-                    ),
-                    selected = modality in outputModalities,
-                    onClick = {
-                        onUpdateOutputModalities(
-                            if (modality in outputModalities) {
-                                outputModalities - modality
-                            } else {
-                                outputModalities + modality
+        ModelFormGroup(stringResource(R.string.setting_provider_page_output_modality)) {
+            KedgeMultiChoiceSegmentedRow(
+                items = Modality.entries.map { modality ->
+                    SegmentedItem(
+                        label = stringResource(
+                            when (modality) {
+                                Modality.TEXT -> R.string.setting_provider_page_text
+                                Modality.IMAGE -> R.string.setting_provider_page_image
                             }
-                        )
-                    },
-                )
-            },
-        )
+                        ),
+                        selected = modality in outputModalities,
+                        onClick = {
+                            onUpdateOutputModalities(
+                                if (modality in outputModalities) {
+                                    outputModalities - modality
+                                } else {
+                                    outputModalities + modality
+                                }
+                            )
+                        },
+                    )
+                },
+            )
+        }
     }
 }
 
+/** 能力（工具/推理）多选。标题同样交给外层分组卡片。 */
 @Composable
 fun ModalAbilitySelector(
     abilities: List<ModelAbility>,
-    onUpdateAbilities: (List<ModelAbility>) -> Unit
+    onUpdateAbilities: (List<ModelAbility>) -> Unit,
 ) {
-    Text(
-        stringResource(R.string.setting_provider_page_abilities),
-        style = KedgeTextStyles.title()
-    )
     KedgeMultiChoiceSegmentedRow(
         items = ModelAbility.entries.map { ability ->
             SegmentedItem(

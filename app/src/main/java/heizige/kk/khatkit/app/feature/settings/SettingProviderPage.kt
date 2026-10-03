@@ -157,7 +157,9 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                 onActiveChange = { searchExpanded = it },
                 cancelLabel = stringResource(R.string.cancel),
                 modifier = Modifier.fillMaxWidth(),
-                expandedContent = {
+                // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出列表。
+        // 新增/导入/推荐按钮在 top bar 上，搜索态本来就够不着，收起后就回来了。
+        expandedContent = {
                     // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
                     NoHeroTransition {
                         ProviderList(

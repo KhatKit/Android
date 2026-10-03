@@ -281,6 +281,9 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 expandedContent = { NoHeroTransition { NoHeroTransition { assistantList(Modifier.fillMaxSize()) } } },
+                // 不传 showResultsWhenEmpty，用默认的 false：点开搜索后先是一片空白，
+                // 输入才把助手列表淡入（"不输入就不展示"）。收起后列表回到页面里，
+                // 「新建助手」那一项自然也就回来了。
             )
 
             if (!searchExpanded) {

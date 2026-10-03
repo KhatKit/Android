@@ -8,6 +8,7 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
@@ -29,7 +30,9 @@ import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import coil3.ImageLoader
@@ -67,6 +69,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
 import heizige.kk.khatkit.app.feature.explore.ExploreMarketPage
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.nav.NavViewModel
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalSharedTransitionScope
 import heizige.kk.kedge.components.KedgeSearchOverlayLayer
@@ -109,7 +112,9 @@ import heizige.kk.khatkit.app.feature.imggen.ImageGenPage
 import heizige.kk.khatkit.app.feature.log.LogPage
 import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
+import heizige.kk.khatkit.app.feature.settings.SettingAnimPlayPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesPage
+import heizige.kk.khatkit.app.feature.settings.SettingThemesPage
 import heizige.kk.khatkit.app.feature.settings.SettingPermissionsPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesThemePage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNotificationPage
@@ -157,8 +162,12 @@ class RouteActivity : ComponentActivity() {
 
     @Inject
     lateinit var settingsStore: SettingsRepository
-    private var navStack: MutableList<NavKey>? = null
-    private val pendingIntents = ArrayDeque<Intent>()
+
+    /**
+     * 全局导航栈的所有者。`by viewModels()` 在 `onCreate` 之前就建好，所以
+     * [handleIntent]（`onCreate`/`onNewIntent` 都会调）可以直接压栈。
+     */
+    private val navViewModel: NavViewModel by viewModels()
 
     // Volume key listener registry — last registered handler wins
     internal val volumeKeyListeners = mutableListOf<(isVolumeUp: Boolean) -> Boolean>()
@@ -266,11 +275,6 @@ class RouteActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
-        val backStack = navStack ?: run {
-            // Compose 尚未创建导航栈，待就绪后处理。
-            pendingIntents.addLast(intent)
-            return
-        }
         val destination = when (intent.action) {
             ACTION_TRANSLATE -> Screen.Translator
             Intent.ACTION_SEND -> Screen.ShareHandler(
@@ -282,8 +286,10 @@ class RouteActivity : ComponentActivity() {
             )
             else -> intent.getStringExtra("conversationId")?.let { Screen.Chat(it) }
         }
-        if (destination != null && backStack.lastOrNull() != destination) {
-            backStack.add(destination)
+        // 栈归 NavViewModel 管了，而 ViewModel 在 Activity 的 onCreate 之前就绪，
+        // 所以这里不需要「等 Compose 建栈 + 排队」的中间态了。
+        if (destination != null) {
+            navViewModel.navigateTo(destination)
         }
     }
 
@@ -307,20 +313,20 @@ class RouteActivity : ComponentActivity() {
         }
         val migrationState by DatabaseMigrationTracker.state.collectAsStateWithLifecycle()
 
-        val chatScreen = Screen.Chat(
-            id = if (readBooleanPreference("create_new_conversation_on_start", true)) {
-                Uuid.random().toString()
-            } else {
-                readStringPreference(
-                    "lastConversationId",
+        // 引导页完成时要进的会话页：只在还没完成引导、也就是栈顶确实是引导页时才算一次，
+        // 免得每次重组都生成新的随机 UUID。
+        var greetingChatScreen by remember { mutableStateOf<NavKey?>(null) }
+        if (navViewModel.currentPage == Screen.Greeting && greetingChatScreen == null) {
+            greetingChatScreen = Screen.Chat(
+                id = if (readBooleanPreference("create_new_conversation_on_start", true)) {
                     Uuid.random().toString()
-                ) ?: Uuid.random().toString()
-            }
-        )
-        val startScreen: NavKey = if (readBooleanPreference("greeting_completed", false)) {
-            chatScreen
-        } else {
-            Screen.Greeting
+                } else {
+                    readStringPreference(
+                        "lastConversationId",
+                        Uuid.random().toString()
+                    ) ?: Uuid.random().toString()
+                }
+            )
         }
 
         // 全屏搜索层（KSU `Scaffold(popupHost)` 的等价物）必须和页面在**同一个
@@ -328,13 +334,7 @@ class RouteActivity : ComponentActivity() {
         // 有了它，展开/收起不涉及任何 window 增删，也就没有窗口动画。
         val searchOverlayState = rememberKedgeSearchOverlayState()
 
-        val backStack = rememberNavBackStack(startScreen)
-        SideEffect {
-            navStack = backStack
-            while (pendingIntents.isNotEmpty()) {
-                handleIntent(pendingIntents.removeFirst())
-            }
-        }
+        val backStack = navViewModel.stack
 
         SharedTransitionLayout {
             CompositionLocalProvider(
@@ -367,7 +367,7 @@ class RouteActivity : ComponentActivity() {
                             rememberViewModelStoreNavEntryDecorator(),
                         ),
                         modifier = Modifier.fillMaxSize(),
-                        onBack = { backStack.removeLastOrNull() },
+                        onBack = { navViewModel.popBackStack() },
                         transitionSpec = {
                             if (backStack.size == 1) fadeIn() togetherWith fadeOut()
                             else {
@@ -388,8 +388,7 @@ class RouteActivity : ComponentActivity() {
                                 GreetingPage(
                                     onFinish = {
                                         writeBooleanPreference("greeting_completed", true)
-                                        backStack.add(chatScreen)
-                                        backStack.remove(Screen.Greeting)
+                                        greetingChatScreen?.let(navViewModel::onGreetingFinished)
                                     }
                                 )
                             }
@@ -473,8 +472,16 @@ class RouteActivity : ComponentActivity() {
                                 WebViewPage(key.url, key.contentId)
                             }
 
+                            entry<Screen.SettingAnimPlay> {
+                                SettingAnimPlayPage()
+                            }
+
                             entry<Screen.SettingTheme> {
                                 SettingThemePage()
+                            }
+
+                            entry<Screen.SettingThemes> {
+                                SettingThemesPage()
                             }
 
                             entry<Screen.SettingPreferences> {
@@ -738,7 +745,13 @@ sealed interface Screen : NavKey {
     data class WebView(val url: String = "", val contentId: String = "") : Screen
 
     @Serializable
+    data object SettingAnimPlay : Screen
+
+    @Serializable
     data object SettingTheme : Screen
+
+    @Serializable
+    data object SettingThemes : Screen
 
     @Serializable
     data object SettingPreferences : Screen

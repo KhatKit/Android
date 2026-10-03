@@ -60,6 +60,7 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
@@ -104,65 +105,69 @@ fun SkillsPage() {
         }
     }
 
+    val visibleSkills = skills.filter {
+        searchQuery.isBlank() || it.name.contains(searchQuery, true) || it.description.contains(searchQuery, true)
+    }
+    var searchExpanded by remember { mutableStateOf(false) }
+
+    // 技能列表：折叠态挂在页面里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
+    val skillsList: @Composable (Modifier) -> Unit = { listModifier ->
+        LazyColumn(
+            modifier = listModifier,
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (visibleSkills.isEmpty()) {
+                item { SkillsEmptyState() }
+            } else {
+                items(visibleSkills, key = { it.skillDir.absolutePath }) { skill ->
+                    SkillCard(
+                        skill = skill,
+                        onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
+                        onDelete = { deleteTarget = skill },
+                    )
+                }
+            }
+        }
+    }
+
     KedgeSettingsPageScaffold(
         title = stringResource(R.string.skills_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(
+        val listPadding = Modifier.padding(
+            innerPadding + PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
                 top = 16.dp,
                 bottom = 16.dp + 72.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            val visibleSkills = skills.filter {
-                searchQuery.isBlank() || it.name.contains(searchQuery, true) || it.description.contains(searchQuery, true)
-            }
-            item {
-                KedgeSearchBar(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = stringResource(R.string.skills_page_search_placeholder),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (visibleSkills.isEmpty()) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = extension,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(R.string.skills_page_empty_title),
-                            style = KedgeTextStyles.body(),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(R.string.skills_page_empty_hint),
-                            style = KedgeTextStyles.body(),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+        )
 
-            items(visibleSkills, key = { it.skillDir.absolutePath }) { skill ->
-                SkillCard(
-                    skill = skill,
-                    onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
-                    onDelete = { deleteTarget = skill },
+        Column(modifier = Modifier.fillMaxSize()) {
+            KedgeSearchBar(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = stringResource(R.string.skills_page_search_placeholder),
+                active = searchExpanded,
+                onActiveChange = { searchExpanded = it },
+                cancelLabel = stringResource(R.string.cancel),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出技能列表。
+                expandedContent = {
+                    // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
+                    NoHeroTransition { skillsList(Modifier.fillMaxSize()) }
+                },
+            )
+
+            // 展开期间列表整个抽掉，只在全屏槽里出现一次（其它页同款）。
+            if (!searchExpanded) {
+                skillsList(
+                    Modifier
+                        .fillMaxSize()
+                        .then(listPadding),
                 )
             }
         }
@@ -235,6 +240,35 @@ fun SkillsPage() {
         onDismiss = { deleteTarget = null },
     ) {
         Text(stringResource(R.string.skills_page_delete_message, deleteTarget?.name ?: ""))
+    }
+}
+
+/** 技能列表为空时的占位（图标 + 标题 + 提示），折叠态与展开态共用。 */
+@Composable
+private fun SkillsEmptyState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = extension,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.skills_page_empty_title),
+            style = KedgeTextStyles.body(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.skills_page_empty_hint),
+            style = KedgeTextStyles.body(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

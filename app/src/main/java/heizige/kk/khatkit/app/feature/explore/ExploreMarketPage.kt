@@ -660,6 +660,7 @@ fun ExploreMarketPage() {
                 onActiveChange = { searchExpanded = it },
                 cancelLabel = stringResource(R.string.cancel),
                 modifier = Modifier.fillMaxWidth(),
+                // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出内容。
                 expandedContent = {
                     // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
                     NoHeroTransition {

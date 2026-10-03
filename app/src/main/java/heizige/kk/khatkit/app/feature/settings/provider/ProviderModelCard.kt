@@ -95,7 +95,8 @@ internal fun ModelCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.95f)
+                        // 同 AddModelButton：给标题栏与确认按钮行留出预算，别把按钮挤出屏幕。
+                        .fillMaxHeight(0.72f)
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,

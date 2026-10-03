@@ -24,7 +24,6 @@ import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.icons.language
-import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.settings
@@ -70,12 +69,6 @@ fun SettingPreferencesPage() {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    item(
-                        onClick = { navController.navigate(Screen.SettingPreferencesTheme) },
-                        leadingContent = { Icon(lightMode, null) },
-                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_theme)) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_theme_desc)) },
-                    )
                     item(
                         onClick = { navController.navigate(Screen.SettingPreferencesNotification) },
                         leadingContent = { Icon(notifications, null) },

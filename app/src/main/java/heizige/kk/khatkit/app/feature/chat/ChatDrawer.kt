@@ -882,9 +882,15 @@ private val DrawerTopBarHeight = 64.dp
 // 与原先 MD3 BottomAppBar 的高度一致（去掉它之后曾缩到 64.dp，手感偏挤）。
 private val DrawerBottomBarHeight = 80.dp
 
-private val FolderRowShape = RoundedCornerShape(16.dp)
+/**
+ * 文件夹行的圆角。MD3 下每行各自圆角（[FolderRowShape]），Miuix 下整组收口
+ * （[FolderCorner]，只有首项上圆角、末项下圆角）。
+ *
+ * 取 20dp 与下方历史记录分组（`ConversationSectionShape`）一致，两块区域圆角统一。
+ */
+private val FolderRowShape = RoundedCornerShape(20.dp)
 
-private val FolderCorner = 16.dp
+private val FolderCorner = 20.dp
 
 /**
  * Miuix 组内圆角：**只有第一项上圆角、最后一项下圆角，中间项直角**，项与项之间

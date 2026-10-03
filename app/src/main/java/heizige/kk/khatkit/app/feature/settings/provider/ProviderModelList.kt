@@ -128,8 +128,14 @@ import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixRowLabel
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import androidx.compose.foundation.layout.ColumnScope
 
 
 @Composable
@@ -245,6 +251,42 @@ internal fun ModelList(
     }
 }
 
+/**
+ * 表单分组卡片：一个分组标题 + 一组控件。
+ *
+ * 之前这张表单是「裸标题 Text + 控件」平铺在 sheet 底色上，彼此之间只有 16dp 间距，
+ * 没有任何分组边界看着很散（用户反馈）。这里改回本仓 Miuix 表单的通用形态：一张圆角
+ * `surfaceContainer` 卡片装一组，卡片之间靠间距分隔、没有分割线 —— 与设置页
+ * （`KedgeFormCard` / `MiuixFormMetrics`）以及 KernelSU 的分组偏好一致。
+ *
+ * Miuix 下 `KedgeFormCard` 不带内边距，所以自己补一层；MD3 下卡片自带 16dp，不再叠加。
+ */
+@Composable
+internal fun ModelFormGroup(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    KedgeFormCard(modifier = modifier) {
+        val inner = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+            Modifier.padding(MiuixFormMetrics.ItemPadding + 2.dp)
+        } else {
+            Modifier
+        }
+        Column(
+            modifier = inner,
+            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.ItemSpacing),
+        ) {
+            if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                MiuixRowLabel { Text(title) }
+            } else {
+                Text(title, style = KedgeTextStyles.title())
+            }
+            content()
+        }
+    }
+}
+
 @Composable
 internal fun ModelSettingsForm(
     model: Model,
@@ -262,7 +304,13 @@ internal fun ModelSettingsForm(
         onModelChange(
             model.copy(
                 modelId = id,
-                displayName = id,
+                // 只在显示名还是「空 / 上一个模型 ID」时才跟着改，否则用户自己填好的
+                // 显示名会在继续敲模型 ID 时被反复冲掉。
+                displayName = if (model.displayName.isBlank() || model.displayName == model.modelId) {
+                    id
+                } else {
+                    model.displayName
+                },
                 inputModalities = inputModality,
                 outputModalities = outputModality,
                 abilities = abilities
@@ -283,6 +331,8 @@ internal fun ModelSettingsForm(
                     pagerState.animateScrollToPage(index)
                 }
             },
+            // 三个标题在 Miuix 的固定宽度 TabRow 里会被截成「基本设…」，交给可滚动形态。
+            scrollable = true,
         )
 
         HorizontalPager(
@@ -293,51 +343,66 @@ internal fun ModelSettingsForm(
                 0 -> {
                     // 基本设置页面
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(vertical = 16.dp)
                             .verticalScroll(rememberScrollState())
+                            .padding(16.dp)
                     ) {
-                        KedgeOutlinedTextFieldWithSlots(
-                            value = model.modelId,
-                            onValueChange = {
-                                if (!isEdit) {
-                                    setModelId(it.trim())
-                                }
-                            },
-                            label = { Text(stringResource(R.string.setting_provider_page_model_id)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                if (!isEdit) {
-                                    Text(stringResource(R.string.setting_provider_page_model_id_placeholder))
-                                }
-                            },
-                            enabled = !isEdit,
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                        ModelFormGroup(stringResource(R.string.setting_provider_page_model_info)) {
+                            KedgeOutlinedTextFieldWithSlots(
+                                value = model.modelId,
+                                onValueChange = {
+                                    if (!isEdit) {
+                                        // 不要在这里 trim：中文输入法打字期间 value 会带着拼音
+                                        // 合成区一起回来，trim 掉尾部空格后回传的值就和 IME
+                                        // 里的不一致，光标会被弹到开头。留到确认时再收拾。
+                                        setModelId(it)
+                                    }
+                                },
+                                label = { Text(stringResource(R.string.setting_provider_page_model_id)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = {
+                                    if (!isEdit) {
+                                        Text(stringResource(R.string.setting_provider_page_model_id_placeholder))
+                                    }
+                                },
+                                enabled = !isEdit,
+                                shape = RoundedCornerShape(16.dp)
+                            )
 
-                        KedgeOutlinedTextFieldWithSlots(
-                            value = model.displayName,
-                            onValueChange = {
-                                onModelChange(model.copy(displayName = it))
-                            },
-                            label = { Text(stringResource(if (isEdit) R.string.setting_provider_page_model_name else R.string.setting_provider_page_model_display_name)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                if (!isEdit) {
-                                    Text(stringResource(R.string.setting_provider_page_model_display_name_placeholder))
-                                }
-                            },
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                            KedgeOutlinedTextFieldWithSlots(
+                                value = model.displayName,
+                                onValueChange = {
+                                    onModelChange(model.copy(displayName = it))
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(
+                                            if (isEdit) R.string.setting_provider_page_model_name
+                                            else R.string.setting_provider_page_model_display_name
+                                        )
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = {
+                                    if (!isEdit) {
+                                        Text(stringResource(R.string.setting_provider_page_model_display_name_placeholder))
+                                    }
+                                },
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
 
-                        ModelTypeSelector(
-                            selectedType = model.type,
-                            onTypeSelected = {
-                                onModelChange(model.copy(type = it))
-                            }
-                        )
+                        ModelFormGroup(stringResource(R.string.setting_provider_page_model_type)) {
+                            ModelTypeSelector(
+                                selectedType = model.type,
+                                onTypeSelected = {
+                                    onModelChange(model.copy(type = it))
+                                },
+                                fillWidth = false,
+                            )
+                        }
 
                         ModelModalitySelector(
                             model = model,
@@ -348,16 +413,18 @@ internal fun ModelSettingsForm(
                             outputModalities = model.outputModalities,
                             onUpdateOutputModalities = {
                                 onModelChange(model.copy(outputModalities = it))
-                            }
+                            },
                         )
 
                         if (model.type == ModelType.CHAT) {
-                            ModalAbilitySelector(
-                                abilities = model.abilities,
-                                onUpdateAbilities = {
-                                    onModelChange(model.copy(abilities = it))
-                                }
-                            )
+                            ModelFormGroup(stringResource(R.string.setting_provider_page_abilities)) {
+                                ModalAbilitySelector(
+                                    abilities = model.abilities,
+                                    onUpdateAbilities = {
+                                        onModelChange(model.copy(abilities = it))
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -505,7 +572,11 @@ internal fun AddModelButton(
                 imageVector = memory,
                 confirmText = stringResource(R.string.setting_provider_page_add),
                 onConfirm = {
-                    if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
+                    // 首尾空格留到这里再收拾，不在输入过程中改写 value（会打断 IME 合成）。
+                    val trimmedId = modelState.modelId.trim()
+                    if (trimmedId.isNotBlank() && modelState.displayName.isNotBlank()) {
+                        dialogState.currentState =
+                            modelState.copy(modelId = trimmedId, displayName = modelState.displayName.trim())
                         dialogState.confirm()
                     }
                 },
@@ -517,7 +588,9 @@ internal fun AddModelButton(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.95f)
+                        // 原来按窗口高度的 95% 取，再叠上标题栏和确认按钮行就超出 sheet 的
+                        // 可用高度，确认按钮被挤到屏幕外只剩一条边。这里留出标题与按钮行的预算。
+                        .fillMaxHeight(0.72f)
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,

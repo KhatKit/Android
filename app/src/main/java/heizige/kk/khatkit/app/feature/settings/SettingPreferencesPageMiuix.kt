@@ -10,7 +10,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.language
-import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.settings
@@ -20,6 +19,8 @@ import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 /**
  * 偏好设置首页的 Miuix 风格版（对照 KernelSU `SettingsMiuix.kt`：
  * Card 分组 + startAction 图标 + 12dp 边距）。
+ *
+ * 「主题」原本在这里，现在移到设置主页的 [Screen.SettingThemes] hub 下面去了。
  */
 @Composable
 fun SettingPreferencesPageMiuix() {
@@ -31,12 +32,6 @@ fun SettingPreferencesPageMiuix() {
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {
-            PreferenceArrow(
-                title = stringResource(R.string.setting_page_preferences_theme),
-                summary = stringResource(R.string.setting_page_preferences_theme_desc),
-                icon = lightMode,
-                onClick = { navController.navigate(Screen.SettingPreferencesTheme) },
-            )
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_preferences_notification),
                 summary = stringResource(R.string.setting_page_preferences_notification_desc),

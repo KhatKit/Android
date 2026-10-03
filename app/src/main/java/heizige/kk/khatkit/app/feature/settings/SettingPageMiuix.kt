@@ -16,7 +16,6 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceDropdown
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
@@ -25,19 +24,17 @@ import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.campaign
 import heizige.kk.khatkit.app.core.ui.icons.celebration
+import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.inventory2
-import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.share as shareIcon
 import heizige.kk.khatkit.app.core.ui.icons.shelves
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
-import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
-import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
@@ -57,7 +54,6 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
     val entryPoint = rememberAppEntryPoint()
     val filesManager = entryPoint.filesManager()
     val settings by vm.settings.collectAsStateWithLifecycle()
-    val colorMode = rememberColorMode()
 
     val shareText = stringResource(R.string.setting_page_share_text)
     val share = stringResource(R.string.setting_page_share)
@@ -79,20 +75,14 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         }
 
         miuixGroup {
-            PreferenceDropdown(
-                title = stringResource(R.string.setting_page_color_mode),
-                icon = lightMode,
-                items = ColorMode.entries.map {
-                    stringResource(
-                        when (it) {
-                            ColorMode.SYSTEM -> R.string.setting_page_color_mode_system
-                            ColorMode.LIGHT -> R.string.setting_page_color_mode_light
-                            ColorMode.DARK -> R.string.setting_page_color_mode_dark
-                        }
-                    )
-                },
-                selectedIndex = ColorMode.entries.indexOf(colorMode.value),
-                onSelectedIndexChange = { colorMode.value = ColorMode.entries[it] },
+            // 原来这里是「颜色模式」三选下拉。现在换成主题 hub 的入口：主题模式
+            // （跟随系统/浅色/深色）连同动态取色、主题配色、AMOLED 一起收进
+            // 「设置 → 主题 → 主题偏好设置」，颜色模式本身没有丢，只是多一跳。
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_themes),
+                summary = stringResource(R.string.setting_page_themes_desc),
+                icon = dashboard,
+                onClick = { navController.navigate(Screen.SettingThemes) },
             )
         }
 
@@ -224,6 +214,12 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 summary = stringResource(R.string.setting_page_donate_desc),
                 icon = favorite,
                 onClick = { navController.navigate(Screen.SettingDonate) },
+            )
+            // 圆形揭幕动画的试验页，点一下播一次。
+            PreferenceArrow(
+                title = stringResource(R.string.setting_anim_play),
+                icon = bolt,
+                onClick = { navController.navigate(Screen.SettingAnimPlay) },
             )
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_share),

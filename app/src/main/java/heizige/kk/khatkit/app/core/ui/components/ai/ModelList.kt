@@ -660,6 +660,8 @@ private fun ColumnScope.ModelList(
         active = searchExpanded,
         onActiveChange = { searchExpanded = it },
         cancelLabel = stringResource(R.string.cancel),
+        // 模型表本身就是主 UI，空关键词时也要摊开，不走「先输入再展示」。
+        showResultsWhenEmpty = true,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp),
