@@ -20,6 +20,7 @@ import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
 import heizige.kk.khatkit.app.feature.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.AutomationTracer
 import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
 import heizige.kk.khatkit.app.feature.automation.UiAutomationSnapshotProvider
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
@@ -30,6 +31,8 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
 import heizige.kk.khatkit.app.feature.automation.CardScheduleStore
 import heizige.kk.khatkit.app.feature.automation.ScheduleBridgeImpl
+import heizige.kk.khatkit.record.UiBBox
+import heizige.kk.khatkit.record.VisualGrounding
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.card.CardParser
@@ -203,6 +206,11 @@ class KhatKitToolProvider(
 
     /** OCR 走 tool bridge；只有 device_screen 需要时才懒加载，避免多养一个 HttpClient。 */
     private val ocrBridge by lazy { AndroidToolBridge(appContext, HttpClient(CIO.create())) }
+
+    /** A4 轨迹落盘：每次 device_act 记录截图帧 + 动作 + 目标 + 结果，可回放审计。 */
+    private val automationTracer by lazy {
+        AutomationTracer(File(rootDir, "traces").apply { mkdirs() })
+    }
 
     @Volatile
     private var executor: CardExecutor? = null
@@ -387,6 +395,7 @@ class KhatKitToolProvider(
                 // store.embed* 用用户已配置的 embedding 模型；没有模型时方法返回中文错误
                 embeddingEngine = CardEmbeddingEngine(providerManager, { settingsRepository.settingsFlow.value }),
                 schedule = scheduleImpl,
+                browserProvider = { heizige.kk.khatkit.app.core.data.browser.CardBrowserBridge.create(appContext, it) },
             ).also {
                 executor = it
                 bindDownloadCenter(it)
@@ -569,12 +578,12 @@ class KhatKitToolProvider(
             .filter { it.supportsAi() && !(isVflowCard(it.name) && !vflowReady) }
             .take(TOOL_CANDIDATE_LIMIT)
             .map { spec -> spec.toTool() } + cloudScriptsTool() + runFlowTool()
-        // 无障碍可用时额外挂两个内置工具：看屏幕 + 直接动作，让纯文本模型也能驱动手机
+        // 无障碍可用时挂宿主专用内置工具（overlay/screen_state/unlock）；
+        // 看屏幕与基本动作已外置为 a11y_screen / a11y_act / a11y_visual_act 卡片
         if (AccessibilityBridgeHolder.current() == null) {
             cardTools
         } else {
-            val supportsVision = model?.inputModalities?.contains(Modality.IMAGE) == true
-            cardTools + listOf(deviceScreenTool(supportsVision), deviceActTool())
+            cardTools + listOf(deviceActTool())
         }
     }
 
@@ -1029,83 +1038,20 @@ class KhatKitToolProvider(
      * [supportsVision] 为 true（当前模型 inputModalities 含 IMAGE）时，工具结果在文本之外
      * 额外附带压缩后的截图图片（[UIMessagePart.Image]），多模态模型可直接查看；否则只返回文本。
      */
-    private fun deviceScreenTool(supportsVision: Boolean): Tool = Tool(
-        name = "khatkit__device_screen",
-        description = "读取当前手机屏幕并返回视图：截图 PNG 路径、截图 OCR 文本、当前窗口无障碍节点清单。" +
-            if (supportsVision) {
-                "当前模型支持图片输入：截图会压缩后作为图片随结果一并返回，可直接观察界面细节；" +
-                    "include_image 默认 true，设为 false 可只返回文本。"
-            } else {
-                "当前模型不支持图片输入，仅返回文本；请依据 OCR 与节点信息判断界面内容。"
-            } +
-            "再用 khatkit__device_act 操作。" +
-            "节点每行格式：文本 | 描述 | #viewId [类名] (左,上,右,下) @中心X,中心Y 标记，" +
-            "标记 click=可点击、edit=可输入、scroll=可滚动、long=可长按。" +
-            "include_ocr / include_nodes 默认 true，可按需关闭以减少输出。" +
-            "注意：截图可能包含 KhatKit 的自动化悬浮看板；若看板遮挡了要读取的内容，" +
-            "可先调用 khatkit__device_act 的 overlay_hide 临时隐藏看板（到时自动恢复）。",
-        parameters = {
-            InputSchema.Obj(
-                properties = buildJsonObject {
-                    put("include_ocr", buildJsonObject {
-                        put("type", "boolean")
-                        put("description", "是否对截图做本地 OCR，默认 true。")
-                    })
-                    put("include_nodes", buildJsonObject {
-                        put("type", "boolean")
-                        put("description", "是否附带当前窗口节点清单，默认 true。")
-                    })
-                    put("include_image", buildJsonObject {
-                        put("type", "boolean")
-                        put(
-                            "description",
-                            if (supportsVision) {
-                                "是否附带压缩后的截图图片供模型直接查看，默认 true；设为 false 只返回文本。"
-                            } else {
-                                "当前模型不支持图片输入，此参数无效。"
-                            }
-                        )
-                    })
-                },
-            )
-        },
-        execute = { args ->
-            val params = jsonToMap(args)
-            val includeOcr = params.bool("include_ocr", true)
-            val includeNodes = params.bool("include_nodes", true)
-            val includeImage = supportsVision && params.bool("include_image", true)
-            val capture = withContext(Dispatchers.IO) {
-                captureDeviceScreen(includeOcr, includeNodes, includeImage)
-            }
-            buildList {
-                add(UIMessagePart.Text(capture.text))
-                capture.imagePath?.let { path ->
-                    add(UIMessagePart.Image(url = Uri.fromFile(File(path)).toString()))
-                }
-            }
-        },
-    )
-
-    /** 内置工具：一步执行一个无障碍动作，省去为每步操作编写卡片。 */
+    /**
+     * 宿主专用内置工具：仅暴露卡片拿不到的自动化会话动作（看板显隐 / 屏幕状态 / root 解锁）。
+     * 看屏幕与基本动作（click/tap/swipe/setText/global/open_app/wait/wake/ui_snapshot）
+     * 已外置为 a11y_screen / a11y_act / a11y_visual_act 卡片，由卡片经 accessibility 桥调用。
+     */
     private fun deviceActTool(): Tool = Tool(
         name = "khatkit__device_act",
-        description = "对当前手机界面执行一个无障碍动作，返回简短中文结果（已点击…/未找到…/已输入…）。" +
-            "action 取值：click_text（按文本点击）、click_id（按 viewId 点击）、tap（坐标点击）、" +
-            "swipe（坐标滑动）、press（坐标长按，duration_ms 默认 600）、set_text（写入 id 指定或首个可编辑输入框）、" +
-            "back / home / recents / notifications（系统全局动作）、open_app（包名用 text 传）、" +
-            "wait_text（等待文本出现，timeout_ms 默认 5000；找到会返回节点 bounds/centerX/centerY 的 JSON，可据此 tap）、" +
-            "wake（点亮屏幕）、screen_state（返回屏幕是否点亮/锁定）、" +
-            "ui_snapshot（返回结构化的当前无障碍 UI 节点快照，供 Agent 做元素定位）、" +
-            "unlock（root/Shizuku 下执行 KEYCODE_WAKEUP + 上滑解锁；安全锁屏无法绕过，会返回中文说明）、" +
+        description = "宿主专用自动化会话动作（需要 AutomationBus 审批 + 看板）：\n" +
             "overlay_hide（临时隐藏自动化悬浮看板，duration_ms 默认 5000、范围 1000..30000，到时自动恢复；" +
-            "用户授权请求会强制重新显示看板，且 update/新步骤不会提前恢复）、" +
-            "overlay_show（立即恢复看板显示）。" +
-            "自动重试：click_text / click_id / set_text 首次未找到目标时会等待约 400ms 再试（最多重试 2 次，共 3 次尝试）；" +
-            "wait_text 保持自身超时等待语义，超时预算按 3 次尝试均分。仍失败时返回当前窗口按文本相似度排序的候选节点" +
-            "（最多 5 条，含类名/bounds/中心坐标/edit 标记），可据此改用 click_id 或 tap 坐标。" +
-            "熄屏保护：tap / swipe / press / click_text / click_id / set_text 执行前若屏幕熄灭，会自动调用 wakeScreen 点亮并重试一次，" +
-            "仍失败则返回中文错误。wake / unlock / 触屏动作需要用户授权（ui_action 类别）；screen_state 与 " +
-            "overlay_hide / overlay_show 不操作屏幕，无需用户授权。",
+            "用户授权请求会强制重新显示看板）、overlay_show（立即恢复看板显示）、" +
+            "screen_state（返回屏幕是否点亮/锁定，无需授权）、" +
+            "unlock（root/Shizuku 下执行 KEYCODE_WAKEUP + 上滑解锁；安全锁屏无法绕过，会返回中文说明）。\n" +
+            "点击/输入/滑动/打开应用/等待/截图/节点快照等基本操作请改用 a11y_act / a11y_screen / a11y_visual_act 卡片。" +
+            "overlay_hide / overlay_show 不操作屏幕，无需用户授权；screen_state 只读同理；unlock 需要用户授权（ui_action）。",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -1114,37 +1060,15 @@ class KhatKitToolProvider(
                         put(
                             "enum",
                             JsonArray(
-                                listOf(
-                                    "click_text", "click_id", "tap", "swipe", "press", "set_text",
-                                    "back", "home", "recents", "notifications", "open_app", "wait_text",
-                                    "wake", "screen_state", "unlock",
-                                    "ui_snapshot",
-                                    "overlay_hide", "overlay_show",
-                                ).map { JsonPrimitive(it) }
+                                listOf("overlay_hide", "overlay_show", "screen_state", "unlock")
+                                    .map { JsonPrimitive(it) }
                             )
                         )
-                        put("description", "要执行的动作。")
+                        put("description", "要执行的宿主动作。")
                     })
-                    put("text", buildJsonObject {
-                        put("type", "string")
-                        put("description", "click_text / set_text / wait_text 的目标文本；open_app 时为包名。")
-                    })
-                    put("id", buildJsonObject {
-                        put("type", "string")
-                        put("description", "click_id 的 viewId；set_text 时用它指定输入框。")
-                    })
-                    put("x", buildJsonObject { put("type", "number"); put("description", "tap / press 的 X 坐标；swipe 的起点 X。") })
-                    put("y", buildJsonObject { put("type", "number"); put("description", "tap / press 的 Y 坐标；swipe 的起点 Y。") })
-                    put("x2", buildJsonObject { put("type", "number"); put("description", "swipe 的终点 X。") })
-                    put("y2", buildJsonObject { put("type", "number"); put("description", "swipe 的终点 Y。") })
                     put("duration_ms", buildJsonObject {
                         put("type", "integer")
-                        put("description", "press / swipe 的手势时长毫秒，默认 press 600、swipe 300；" +
-                            "overlay_hide 的隐藏时长毫秒，默认 5000，范围 1000..30000。")
-                    })
-                    put("timeout_ms", buildJsonObject {
-                        put("type", "integer")
-                        put("description", "wait_text 的超时毫秒，默认 5000。")
+                        put("description", "overlay_hide 的隐藏时长毫秒，默认 5000，范围 1000..30000。")
                     })
                 },
                 required = listOf("action"),
@@ -1152,7 +1076,16 @@ class KhatKitToolProvider(
         },
         execute = { args ->
             val params = jsonToMap(args)
-            listOf(UIMessagePart.Text(withContext(Dispatchers.IO) { deviceAct(params) }))
+            val action = params.str("action")?.lowercase().orEmpty()
+            if (action !in HOST_DEVICE_ACTIONS) {
+                listOf(UIMessagePart.Text(
+                    "动作「$action」已移出内置工具。点击/输入/滑动/打开应用/等待/截图/节点快照请改用 " +
+                        "a11y_act（基本动作）、a11y_screen（截图+节点）、a11y_visual_act（视觉定位+动作）卡片；" +
+                        "本工具仅保留 overlay_hide / overlay_show / screen_state / unlock。"
+                ))
+            } else {
+                listOf(UIMessagePart.Text(withContext(Dispatchers.IO) { deviceAct(params) }))
+            }
         },
     )
 
@@ -1185,6 +1118,16 @@ class KhatKitToolProvider(
             val text = buildJsonObject {
                 if (captured) put("screenshot", shot) else put("screenshot_error", shot)
                 bridge.currentPackage()?.let { put("package", it) }
+                // A4：坐标空间尺寸（bbox 用原始屏幕坐标）
+                if (captured) {
+                    runCatching {
+                        android.graphics.BitmapFactory.decodeFile(shot)?.let { bmp ->
+                            put("image_width", bmp.width)
+                            put("image_height", bmp.height)
+                            bmp.recycle()
+                        }
+                    }
+                }
                 ocr?.let { text ->
                     if (text.contains("\"error\"")) {
                         put("ocr_error", text)
@@ -1308,6 +1251,14 @@ class KhatKitToolProvider(
         if (action in TOUCH_ACTIONS) {
             ensureScreenInteractive()?.let { return it }
         }
+        // A4 视觉双通道：bbox 目标先解析到无障碍节点（命中节点中心误差 0，否则 bbox 中心 ≤8dp）
+        val bbox = params.bbox()
+        val grounding = if (bbox != null && action in TOUCH_ACTIONS) {
+            resolveVisualTarget(bridge, bbox)
+        } else {
+            null
+        }
+        val traceScreenshot = runCatching { bridge.captureScreen() }.getOrNull()?.takeIf { it.startsWith("/") }
         val result = runCatching {
             when (action) {
                 "click_text" -> {
@@ -1331,9 +1282,13 @@ class KhatKitToolProvider(
                 }
 
                 "tap" -> {
-                    val x = params.float("x") ?: return@runCatching "缺少参数：x"
-                    val y = params.float("y") ?: return@runCatching "缺少参数：y"
-                    if (bridge.tap(x, y)) "已点击：($x, $y)" else "点击失败：($x, $y)"
+                    // A4：bbox 目标经双通道解析后优先用节点中心
+                    val resolvedX = grounding?.x ?: params.float("x")?.toInt()
+                    val resolvedY = grounding?.y ?: params.float("y")?.toInt()
+                    val x = resolvedX?.toFloat() ?: return@runCatching "缺少参数：x（或 bbox）"
+                    val y = resolvedY?.toFloat() ?: return@runCatching "缺少参数：y（或 bbox）"
+                    val methodNote = grounding?.let { "，双通道=${it.method}，误差≤${it.errorDp}dp" } ?: ""
+                    if (bridge.tap(x, y)) "已点击：($x, $y)$methodNote" else "点击失败：($x, $y)"
                 }
 
                 "swipe" -> {
@@ -1401,8 +1356,71 @@ class KhatKitToolProvider(
                 else -> "不支持的动作：$action"
             }
         }.getOrElse { "操作失败：${it.message ?: it.javaClass.simpleName}" }
+        // A4 轨迹落盘：截图帧 + 动作 + 目标 + 结果（回放审计用）
+        recordTraceStep(action, params, grounding, traceScreenshot, result, bridge.currentPackage())
         // 会话中步骤：本步结束只保留看板状态，整段 AI 工具序列由看板空闲判定结束
         return result
+    }
+
+    /** A4：把视觉 bbox 解析到无障碍节点（双通道）。 */
+    private fun resolveVisualTarget(
+        bridge: heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl,
+        bbox: UiBBox,
+    ): VisualGrounding.Resolution {
+        val candidates = runCatching { bridge.dumpWindow() }.getOrDefault(emptyList())
+            .mapNotNull { raw ->
+                val b = raw["bounds"] as? Map<*, *> ?: return@mapNotNull null
+                fun n(key: String): Int = (b[key] as? Number)?.toInt() ?: 0
+                val bounds = UiBBox(n("left"), n("top"), n("right"), n("bottom"))
+                if (bounds.area <= 0) return@mapNotNull null
+                VisualGrounding.NodeCandidate(
+                    index = raw["index"] as? Int ?: 0,
+                    viewId = raw["viewId"]?.toString().orEmpty(),
+                    text = raw["text"]?.toString().orEmpty(),
+                    desc = raw["desc"]?.toString().orEmpty(),
+                    className = raw["className"]?.toString().orEmpty(),
+                    bounds = bounds,
+                    clickable = raw["clickable"] as? Boolean ?: false,
+                )
+            }
+        return VisualGrounding.resolve(bbox, candidates)
+    }
+
+    /** A4：动作入轨迹（失败静默，不影响主流程）。 */
+    private fun recordTraceStep(
+        action: String,
+        params: Map<String, Any?>,
+        grounding: VisualGrounding.Resolution?,
+        screenshot: String?,
+        result: String,
+        packageName: String?,
+    ) {
+        runCatching {
+            val bboxDto = params.bbox()?.let { AutomationTracer.BBoxDto(it.left, it.top, it.right, it.bottom) }
+            automationTracer.record(
+                action = AutomationTracer.UiActionDto(
+                    type = action.uppercase(),
+                    packageName = packageName.orEmpty(),
+                    viewId = grounding?.viewId.orEmpty(),
+                    text = params.str("text").orEmpty(),
+                    desc = grounding?.desc.orEmpty(),
+                    x = grounding?.x ?: (params.float("x")?.toInt() ?: 0),
+                    y = grounding?.y ?: (params.float("y")?.toInt() ?: 0),
+                    x2 = params.float("x2")?.toInt() ?: 0,
+                    y2 = params.float("y2")?.toInt() ?: 0,
+                    direction = params.str("direction").orEmpty(),
+                    inputText = params.str("text").orEmpty(),
+                    durationMs = params.long("duration_ms") ?: 0L,
+                    bbox = bboxDto,
+                    origin = if (grounding != null) "vision" else "agent",
+                ),
+                screenshotBefore = screenshot,
+                result = result,
+                success = !result.startsWith("操作失败") && !result.startsWith("用户拒绝") && !result.contains("失败"),
+                packageName = packageName,
+                resolutionMethod = grounding?.method,
+            )
+        }
     }
 
     /** 熄屏保护：屏幕熄灭时调用工具 bridge 唤醒并等待一次；仍熄灭返回中文错误。 */
@@ -1991,6 +2009,9 @@ private const val RECURSION_PLACEHOLDER = "[嵌套过深]"
 /** device_act 触屏 / 手势动作（执行前需确认屏幕点亮） */
 private val TOUCH_ACTIONS = setOf("click_text", "click_id", "tap", "swipe", "press", "set_text")
 
+/** 宿主专用内置动作：看板显隐 / 屏幕状态 / root 解锁。其余动作已外置为 a11y_* 卡片。 */
+private val HOST_DEVICE_ACTIONS = setOf("overlay_hide", "overlay_show", "screen_state", "unlock")
+
 /** 查找失败重试：等待 400ms，最多 2 次（共 3 次尝试） */
 private const val FIND_MAX_RETRIES = 2
 private const val FIND_RETRY_DELAY_MS = 400L
@@ -2166,6 +2187,18 @@ private fun Map<String, Any?>.long(key: String): Long? = when (val value = this[
     is Number -> value.toLong()
     is String -> value.toLongOrNull()
     else -> null
+}
+
+/** A4：解析 `bbox` 参数 {"left","top","right","bottom"} 为 [UiBBox]。 */
+private fun Map<String, Any?>.bbox(): UiBBox? {
+    val raw = this["bbox"] as? Map<*, *> ?: return null
+    fun n(key: String): Int = when (val v = raw[key]) {
+        is Number -> v.toInt()
+        is String -> v.toIntOrNull() ?: 0
+        else -> 0
+    }
+    val b = UiBBox(n("left"), n("top"), n("right"), n("bottom"))
+    return b.takeIf { it.area > 0 }
 }
 
 internal fun jsonToMap(element: JsonElement): Map<String, Any?> =
