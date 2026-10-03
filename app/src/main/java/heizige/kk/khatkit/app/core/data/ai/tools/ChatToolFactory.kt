@@ -61,6 +61,12 @@ class ChatToolFactory(
                     onDelete = { id -> memoryRepository.deleteMemory(id) },
                 )
             )
+            add(
+                buildMemorySearchTool(
+                    json = json,
+                    onSearch = { query, limit -> memoryRepository.searchMemories(memoryAssistantId, query, limit) },
+                )
+            )
         }
         if (shouldUseExternalWebSearch(assistant, model)) {
             addAll(createSearchTools(settings))

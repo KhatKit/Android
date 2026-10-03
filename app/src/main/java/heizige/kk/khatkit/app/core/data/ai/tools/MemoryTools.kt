@@ -10,6 +10,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.builtins.ListSerializer
 import heizige.kk.khatkit.ai.core.InputSchema
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessagePart
@@ -99,4 +100,34 @@ fun buildMemoryTools(
             listOf(UIMessagePart.Text(payload.toString()))
         }
     )
+)
+
+fun buildMemorySearchTool(
+    json: Json,
+    onSearch: suspend (String, Int) -> List<AssistantMemory>,
+): Tool = Tool(
+    name = "memory_search",
+    description = "Search stored long-term memories by keyword before deciding whether to create or edit a memory.",
+    parameters = {
+        InputSchema.Obj(
+            properties = buildJsonObject {
+                put("query", buildJsonObject {
+                    put("type", "string")
+                    put("description", "Keywords or a short natural-language query")
+                })
+                put("limit", buildJsonObject {
+                    put("type", "integer")
+                    put("description", "Maximum number of results, from 1 to 20")
+                })
+            },
+            required = listOf("query")
+        )
+    },
+    execute = {
+        val params = it.jsonObject
+        val query = params["query"]?.jsonPrimitive?.contentOrNull ?: error("query is required")
+        val limit = (params["limit"]?.jsonPrimitive?.intOrNull ?: 8).coerceIn(1, 20)
+        val results = onSearch(query, limit)
+        listOf(UIMessagePart.Text(json.encodeToJsonElement(ListSerializer(AssistantMemory.serializer()), results).toString()))
+    }
 )

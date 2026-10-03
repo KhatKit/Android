@@ -28,6 +28,27 @@ class MemoryRepository(private val memoryDAO: MemoryDAO) {
                 entities.map { AssistantMemory(it.id, it.content) }
             }
 
+    suspend fun searchMemories(assistantId: String, query: String, limit: Int = 8): List<AssistantMemory> {
+        val normalizedQuery = query.trim().lowercase()
+        if (normalizedQuery.isBlank() || limit <= 0) return emptyList()
+        val terms = normalizedQuery.split(Regex("\\s+"))
+            .map(String::trim)
+            .filter { it.length >= 2 }
+            .distinct()
+        return getMemoriesOfAssistant(assistantId)
+            .map { memory ->
+                val normalizedContent = memory.content.lowercase()
+                val score = if (terms.isEmpty()) 0 else terms.sumOf { term ->
+                    if (normalizedContent.contains(term)) 1 else 0
+                }
+                memory to score
+            }
+            .filter { (_, score) -> score > 0 }
+            .sortedByDescending { (_, score) -> score }
+            .take(limit)
+            .map { (memory, _) -> memory }
+    }
+
     suspend fun getGlobalMemories(): List<AssistantMemory> {
         return memoryDAO.getMemoriesOfAssistant(GLOBAL_MEMORY_ID)
             .map { AssistantMemory(it.id, it.content) }
