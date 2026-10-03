@@ -19,6 +19,7 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -37,14 +38,40 @@ class DebugViewModel @Inject constructor(
     private val _conversationCount = MutableStateFlow<Int?>(null)
     val conversationCount: StateFlow<Int?> = _conversationCount.asStateFlow()
 
+    private val _conversationAssistants = MutableStateFlow<Map<Uuid, Int>?>(null)
+    val conversationAssistants: StateFlow<Map<Uuid, Int>?> = _conversationAssistants.asStateFlow()
+
     init {
         refreshConversationCount()
+        scanConversationAssistants()
     }
 
     fun refreshConversationCount() {
         viewModelScope.launch {
             _conversationCount.value = conversationRepository.countConversations()
         }
+    }
+
+    fun scanConversationAssistants() {
+        viewModelScope.launch {
+            _conversationAssistants.value = conversationRepository.countConversationsByAssistant()
+        }
+    }
+
+    suspend fun recoverAssistantsFromConversations(): Int? {
+        val current = settingsStore.settingsFlow.value
+        if (current.init) return null
+        val references = conversationRepository.countConversationsByAssistant()
+        _conversationAssistants.value = references
+        val existingIds = current.assistants.map { it.id }.toSet()
+        val missing = references.filterKeys { it !in existingIds }
+            .entries.sortedByDescending { it.value }
+        if (missing.isEmpty()) return 0
+        val recovered = missing.mapIndexed { index, (id, _) ->
+            Assistant(id = id, name = "恢复的助手 ${index + 1}")
+        }
+        settingsStore.update(current.copy(assistants = current.assistants + recovered))
+        return recovered.size
     }
 
     fun updateSettings(settings: Settings) {

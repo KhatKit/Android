@@ -40,6 +40,11 @@ class ConversationRepository(
     suspend fun hasFileReference(fileUrl: String): Boolean =
         messageNodeDAO.hasFileReference(JsonInstant.encodeToString(fileUrl))
 
+    suspend fun countConversationsByAssistant(): Map<Uuid, Int> =
+        conversationDAO.countByAssistant().mapNotNull { row ->
+            runCatching { Uuid.parse(row.assistantId) }.getOrNull()?.let { it to row.count }
+        }.toMap()
+
     suspend fun getRecentConversations(assistantId: Uuid, limit: Int = 10): List<Conversation> {
         return conversationDAO.getRecentConversationsOfAssistant(
             assistantId = assistantId.toString(),

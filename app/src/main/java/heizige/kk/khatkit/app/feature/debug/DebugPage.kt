@@ -69,11 +69,11 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val state = rememberPagerState { 3 }
+    val state = rememberPagerState { 4 }
     // Tab 页统一骨架：MD3 下保持 SecondaryTabRow，Miuix 下换原生 TabRow。
     KedgeTabPageScaffold(
         title = "Debug Mode",
-        titles = listOf("Main", "Colors", "Logging"),
+        titles = listOf("Main", "Colors", "Logging", "Recovery"),
         selectedTabIndex = state.currentPage,
         onTabSelected = { scope.launch { state.animateScrollToPage(it) } },
     ) { pagerModifier ->
@@ -85,7 +85,40 @@ fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
                 0 -> MainPage(vm)
                 1 -> ColorsPage()
                 2 -> Box {}
+                3 -> RecoveryPage(vm)
             }
+        }
+    }
+}
+
+@Composable
+private fun RecoveryPage(vm: DebugViewModel) {
+    val references by vm.conversationAssistants.collectAsStateWithLifecycle()
+    val settings by vm.settings.collectAsStateWithLifecycle()
+    val missing = references.orEmpty().filterKeys { id -> settings.assistants.none { it.id == id } }
+    val scope = rememberCoroutineScope()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("聊天记录引用的助手")
+        Text("扫描到 ${references?.size ?: 0} 个助手 ID，其中 ${missing.size} 个在当前设置中缺失。")
+        KedgeButton(
+            onClick = {
+                scope.launch {
+                    val count = vm.recoverAssistantsFromConversations()
+                    Toast.show(if (count == null) "设置仍在加载" else "恢复了 $count 个助手")
+                }
+            },
+            shapes = ButtonDefaults.shapes(),
+        ) {
+            Text("恢复缺失的助手")
+        }
+        missing.entries.sortedByDescending { it.value }.forEach { (id, count) ->
+            Text("$id: $count 条对话", style = KedgeTextStyles.body())
         }
     }
 }
