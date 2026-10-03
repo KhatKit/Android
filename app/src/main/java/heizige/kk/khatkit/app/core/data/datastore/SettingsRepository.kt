@@ -3,7 +3,10 @@ package heizige.kk.khatkit.app.core.data.datastore
 import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.IOException
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -12,12 +15,13 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import io.pebbletemplates.pebble.PebbleEngine
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.delay
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -57,22 +61,44 @@ import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
 private const val TAG = "PreferencesStore"
+private const val SETTINGS_STORE_NAME = "settings"
+private const val READ_MAX_RETRIES = 3
 
-private val Context.settingsStore by preferencesDataStore(
-    name = "settings",
-    produceMigrations = { context ->
-        listOf(
+@Volatile
+private var settingsDataStore: DataStore<Preferences>? = null
+
+private val Context.settingsStore: DataStore<Preferences>
+    get() = settingsDataStore ?: synchronized(SettingsRepository::class) {
+        settingsDataStore ?: createSettingsDataStore(applicationContext).also { settingsDataStore = it }
+    }
+
+private fun createSettingsDataStore(context: Context): DataStore<Preferences> {
+    val file = File(context.filesDir, "datastore/$SETTINGS_STORE_NAME.preferences_pb").also {
+        it.parentFile?.mkdirs()
+    }
+    return PreferenceDataStoreFactory.create(
+        corruptionHandler = ReplaceFileCorruptionHandler { exception ->
+            Log.e(TAG, "Settings datastore corrupted, resetting", exception)
+            runCatching {
+                file.copyTo(File(file.parentFile, "${file.name}.corrupt-${System.currentTimeMillis()}"))
+            }.onFailure { Log.e(TAG, "Failed to backup corrupted settings file", it) }
+            emptyPreferences()
+        },
+        migrations = listOf(
             PreferenceStoreV1Migration(),
             PreferenceStoreV2Migration(),
             PreferenceStoreV3Migration(),
             PreferenceStoreV4Migration(),
-            PreferenceStoreV5Migration()
-        )
-    }
-)
+            PreferenceStoreV5Migration(),
+        ),
+        produceFile = { file },
+    )
+}
 
 @Singleton
 class SettingsRepository @Inject constructor(
@@ -228,12 +254,13 @@ class SettingsRepository @Inject constructor(
     private val dataStore = context.settingsStore
 
     val settingsFlowRaw = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
+        .retryWhen { cause, attempt ->
+            val shouldRetry = cause is IOException && cause !is CorruptionException && attempt < READ_MAX_RETRIES
+            if (shouldRetry) {
+                Log.w(TAG, "Failed to read settings, retrying (${attempt + 1}/$READ_MAX_RETRIES)", cause)
+                delay((100L shl attempt.toInt()).milliseconds)
             }
+            shouldRetry
         }.map { preferences ->
             Settings(
                 favoriteModels = preferences[FAVORITE_MODELS]?.let {
@@ -420,6 +447,15 @@ class SettingsRepository @Inject constructor(
         }
         settingsFlow.value = settings
         persistSettings(dataStore, settings)
+    }
+
+    suspend fun incrementLaunchCount(): Int {
+        var count = 0
+        dataStore.edit { preferences ->
+            count = (preferences[LAUNCH_COUNT] ?: 0) + 1
+            preferences[LAUNCH_COUNT] = count
+        }
+        return count
     }
 
     suspend fun update(fn: (Settings) -> Settings) {

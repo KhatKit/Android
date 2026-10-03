@@ -134,9 +134,8 @@ class KhatKitApp : Application() {
     private fun incrementLaunchCount() {
         appScope.launch {
             runCatching {
-                val current = settingsStore.settingsFlowRaw.first()
-                settingsStore.update(current.copy(launchCount = current.launchCount + 1))
-                Log.i(TAG, "incrementLaunchCount: ${settingsStore.settingsFlowRaw.first().launchCount}")
+                val count = settingsStore.incrementLaunchCount()
+                Log.i(TAG, "incrementLaunchCount: $count")
             }.onFailure {
                 Log.e(TAG, "incrementLaunchCount failed", it)
             }
