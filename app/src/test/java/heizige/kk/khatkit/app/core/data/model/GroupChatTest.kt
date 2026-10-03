@@ -89,7 +89,9 @@ class GroupChatTest {
             GroupChat.TIE_FAIL,
         )
         assertTrue(tied is VoteOutcome.Tie)
-        assertEquals(listOf("甲", "乙"), (tied as VoteOutcome.Tie).candidates)
+        // 平票名单按 id 字典序返回，不依赖中文码位顺序，所以按集合断言。
+        assertEquals(2, (tied as VoteOutcome.Tie).candidates.size)
+        assertEquals(setOf("甲", "乙"), tied.candidates.toSet())
     }
 
     @Test
