@@ -2,11 +2,15 @@ package heizige.kk.khatkit.app.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import androidx.sqlite.db.SupportSQLiteDatabase
 import heizige.kk.khatkit.app.core.data.db.dao.MemoryDAO
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryEntity
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 
-class MemoryRepository(private val memoryDAO: MemoryDAO) {
+class MemoryRepository(
+    private val memoryDAO: MemoryDAO,
+    private val database: SupportSQLiteDatabase? = null,
+) {
     companion object {
         const val GLOBAL_MEMORY_ID = "__global__"
     }
@@ -64,6 +68,7 @@ class MemoryRepository(private val memoryDAO: MemoryDAO) {
             content = content
         )
         memoryDAO.updateMemory(newMemory)
+        updateMemoryFts(newMemory)
         return AssistantMemory(
             id = newMemory.id,
             content = newMemory.content,
@@ -75,18 +80,33 @@ class MemoryRepository(private val memoryDAO: MemoryDAO) {
             id = 0,
             content = content,
         )
-        val newMemory = memory.copy(
-            id = memoryDAO.insertMemory(
-                MemoryEntity(
-                    assistantId = assistantId,
-                    content = memory.content
-                )
-            ).toInt()
+        val id = memoryDAO.insertMemory(
+            MemoryEntity(
+                assistantId = assistantId,
+                content = memory.content
+            )
+        )
+        val newMemory = memory.copy(id = id.toInt())
+        updateMemoryFts(
+            MemoryEntity(
+                id = newMemory.id,
+                assistantId = assistantId,
+                content = newMemory.content,
+            )
         )
         return newMemory
     }
 
     suspend fun deleteMemory(id: Int) {
+        database?.execSQL("DELETE FROM memory_fts WHERE memory_id = ?", arrayOf(id.toString()))
         memoryDAO.deleteMemory(id)
+    }
+
+    private fun updateMemoryFts(memory: MemoryEntity) {
+        database?.execSQL("DELETE FROM memory_fts WHERE memory_id = ?", arrayOf(memory.id.toString()))
+        database?.execSQL(
+            "INSERT INTO memory_fts(content, assistant_id, memory_id) VALUES (?, ?, ?)",
+            arrayOf(memory.content, memory.assistantId, memory.id.toString()),
+        )
     }
 }

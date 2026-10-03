@@ -285,6 +285,8 @@ dependencies {
 
     // sqlite-android (requery SQLite for Android)
     implementation(libs.sqlite.android)
+    // sqlite-vector provides the vector extension used by memory retrieval.
+    implementation(libs.sqlite.vector)
 
     // modules
     implementation(project(":ai"))
