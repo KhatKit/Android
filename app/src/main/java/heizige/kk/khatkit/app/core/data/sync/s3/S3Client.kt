@@ -23,6 +23,7 @@ import java.io.InputStream
 import java.io.StringReader
 import java.security.MessageDigest
 import java.time.Instant
+import kotlin.time.Duration
 
 private const val TAG = "S3Client"
 
@@ -127,6 +128,13 @@ class S3Client(
             channel.toInputStream().readBytes()
         }
     }
+
+    fun presignGetUrl(key: String, expires: Duration): String =
+        AwsSignatureV4.presignGetUrl(
+            config = config,
+            path = "/${key.trimStart('/')}",
+            expires = expires,
+        )
 
     suspend fun getObjectStream(key: String): Result<InputStream> = withContext(Dispatchers.IO) {
         runCatching {
