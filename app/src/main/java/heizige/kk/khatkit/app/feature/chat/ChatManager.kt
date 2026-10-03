@@ -77,6 +77,8 @@ import heizige.kk.khatkit.app.core.data.model.SpeakerStep
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantAffectScope
 import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.RoundBudget
+import heizige.kk.khatkit.app.core.data.model.VoteOutcome
 import heizige.kk.khatkit.app.core.data.model.localFileUrls
 import heizige.kk.khatkit.app.core.data.model.replaceRegexes
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
@@ -415,7 +417,7 @@ class ChatManager(
                     messageNodes = currentConversation.messageNodes + UIMessage(
                         role = MessageRole.USER,
                         parts = processedContent,
-                        mentions = mentions,
+                        mentionRoleIds = mentions,
                     ).toMessageNode(),
                 )
                 saveConversation(conversationId, newConversation)
@@ -1413,7 +1415,11 @@ class ChatManager(
             title = "群聊",
             messageNodes = emptyList(),
             type = GroupChat.TYPE_GROUP,
-            groupConfig = GroupConfig(roles, GroupChat.MODE_PIPELINE, tokenBudget = 2000),
+            groupConfig = GroupConfig(
+                roles = roles,
+                mode = GroupChat.MODE_PIPELINE,
+                tokenBudgetPerRound = 2000,
+            ),
         )
         conversationRepo.insertConversation(conversation)
         return conversation.id
@@ -1425,12 +1431,25 @@ class ChatManager(
         if (groupTurns[conversation.id] == null) {
             val last = conversation.currentMessages.lastOrNull() ?: return null
             if (last.role != MessageRole.USER) return null
-            val planned = GroupChat.plan(config, last.mentions)
-            if (planned.isEmpty()) return null
-            groupTurns[conversation.id] = PendingGroupTurn(ArrayDeque(planned))
+            // 用 newRound 取整轮计划：内部调 plan 排发言顺序，并按契约算出候选集
+            // （config.voteCandidates 优先，否则从这条触发消息严格解析），投票阶段直接复用。
+            val round = GroupChat.newRound(
+                triggerMessageId = last.id.toString(),
+                config = config,
+                mentionRoleIds = last.mentionRoleIds,
+                userText = last.toText(),
+            )
+            if (round.plan.isEmpty()) return null
+            groupTurns[conversation.id] = PendingGroupTurn(
+                steps = ArrayDeque(round.plan),
+                candidates = round.candidates,
+            )
         }
         val turn = groupTurns[conversation.id] ?: return null
-        if (!GroupChat.speakersAfterBudget(turn.steps.size, turn.spent, config.tokenBudget)) {
+        val remainingRoleIds = turn.steps.map { it.role.id }
+        val decision = GroupChat.budgetDecision(turn.spent, config.tokenBudgetPerRound, remainingRoleIds)
+        if (decision is RoundBudget.Stop) {
+            // 预算用尽：剩余角色本轮不再发言（decision.skippedRoleIds 为被跳过名单）。
             groupTurns.remove(conversation.id)
             return null
         }
@@ -1458,26 +1477,43 @@ class ChatManager(
         val turn = groupTurns[conversationId] ?: return false
         val usage = conversation.currentMessages.lastOrNull()?.usage?.totalTokens ?: 0
         turn.spent += usage
-        if (turn.steps.isNotEmpty() && GroupChat.speakersAfterBudget(1, turn.spent, config.tokenBudget)) {
+        val decision = GroupChat.budgetDecision(
+            spent = turn.spent,
+            limit = config.tokenBudgetPerRound,
+            remainingRoleIds = turn.steps.map { it.role.id },
+        )
+        if (turn.steps.isNotEmpty() && decision !is RoundBudget.Stop) {
             handleMessageComplete(conversationId)
             return true
         }
-        if (config.mode == GroupChat.MODE_VOTE) appendVoteSummary(conversationId, config)
+        if (config.mode == GroupChat.MODE_VOTE) appendVoteSummary(conversationId, config, turn.candidates)
         groupTurns.remove(conversationId)
         return false
     }
 
-    private fun appendVoteSummary(conversationId: Uuid, config: GroupConfig) {
+    /**
+     * 收票并追加多数决摘要。
+     *
+     * 候选集来自轮次开始时 [GroupChat.newRound] 算出的 `RoundPlan.candidates`
+     * （`config.voteCandidates` 优先，否则从触发消息严格解析），所以这里不再从自由文本里猜选项：
+     * 只接受各角色正文中 `VOTE:<候选id>|<理由>` 的整行选票，候选集外的票由
+     * [GroupChat.parseBallot] 判为无票丢弃。平票（含交议长）或无有效票按契约判本轮失败，不追加摘要。
+     */
+    private fun appendVoteSummary(conversationId: Uuid, config: GroupConfig, candidates: List<String>) {
         val conversation = getConversationFlow(conversationId).value
         val lastUser = conversation.currentMessages.indexOfLast { it.role == MessageRole.USER }
-        val options = conversation.currentMessages.drop(lastUser.coerceAtLeast(0) + 1)
-            .filter { it.role == MessageRole.ASSISTANT && it.roleId in config.roles.map { role -> role.id } }
-            .map { it.toText() }
-        val winner = GroupChat.majority(options) ?: return
+        val roleIds = config.roles.map { role -> role.id }.toSet()
+        val ballots = conversation.currentMessages.drop(lastUser.coerceAtLeast(0) + 1)
+            .filter { it.role == MessageRole.ASSISTANT && it.roleId in roleIds }
+            .mapNotNull { message ->
+                message.roleId?.let { GroupChat.parseBallot(message.toText(), it, candidates) }
+            }
+        val outcome = GroupChat.tally(ballots, candidates, config.tiePolicy)
+        if (outcome !is VoteOutcome.Decided) return
         updateConversation(
             conversationId,
             conversation.copy(
-                messageNodes = conversation.messageNodes + UIMessage.assistant(winner)
+                messageNodes = conversation.messageNodes + UIMessage.assistant(outcome.winner)
                     .copy(roleId = GroupChat.SUMMARY_ID)
                     .toMessageNode(),
             ),
@@ -1500,4 +1536,6 @@ class ChatManager(
 private data class PendingGroupTurn(
     val steps: ArrayDeque<SpeakerStep>,
     var spent: Int = 0,
+    /** 本轮候选集，由 [GroupChat.newRound] 从触发消息算出，投票阶段不再重算。 */
+    val candidates: List<String> = emptyList(),
 )
