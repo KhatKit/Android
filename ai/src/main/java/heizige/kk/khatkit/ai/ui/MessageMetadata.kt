@@ -53,6 +53,9 @@ enum class ServerToolProtocol {
 
     @SerialName("google_generate_content")
     GOOGLE_GENERATE_CONTENT,
+
+    @SerialName("google_interactions")
+    GOOGLE_INTERACTIONS,
 }
 
 /**
@@ -90,6 +93,12 @@ data class OpenRouterReasoningMetadata(
 @Serializable
 data class GoogleThoughtMetadata(
     val thoughtSignature: String? = null,
+) : PartMetadata
+
+@Serializable
+data class GoogleInteractionsMetadata(
+    @SerialName("interactions_signature")
+    val signature: String? = null,
 ) : PartMetadata
 
 /**

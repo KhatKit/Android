@@ -112,7 +112,8 @@ fun ProviderSetting.convertTo(type: KClass<out ProviderSetting>): ProviderSettin
             id = this.id, enabled = this.enabled, name = this.name, models = this.models,
             balanceOption = this.balanceOption, customHeaders = this.customHeaders, builtIn = this.builtIn,
             description = this.description, shortDescription = this.shortDescription,
-            apiKey = apiKey, baseUrl = convertedBaseUrl
+            apiKey = apiKey, baseUrl = convertedBaseUrl,
+            useInteractionsApi = (this as? ProviderSetting.Google)?.useInteractionsApi ?: false,
         )
         ProviderSetting.Claude::class -> ProviderSetting.Claude(
             id = this.id, enabled = this.enabled, name = this.name, models = this.models,
@@ -425,6 +426,18 @@ private fun ProviderConfigureGoogle(
             } else null,
             shape = RoundedCornerShape(16.dp)
         )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Interactions API (Beta)")
+            androidx.compose.material3.Switch(
+                checked = provider.useInteractionsApi,
+                onCheckedChange = { onEdit(provider.copy(useInteractionsApi = it)) },
+            )
+        }
     }
 
     SwitchRow(

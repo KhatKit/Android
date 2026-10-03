@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonArrayBuilder
@@ -168,6 +169,10 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
         messages: List<UIMessage>,
         params: TextGenerationParams,
     ): TextGenerationResult = withContext(Dispatchers.IO) {
+        if (providerSetting.useInteractionsApi) {
+            return@withContext InteractionsAPI(client, keyRoulette)
+                .generateText(providerSetting, messages, params)
+        }
         val requestBody = buildCompletionRequestBody(messages, params)
 
         val url = buildUrl(
@@ -216,6 +221,13 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
         messages: List<UIMessage>,
         params: TextGenerationParams,
     ): Flow<StreamChunk> = callbackFlow {
+        if (providerSetting.useInteractionsApi) {
+            InteractionsAPI(client, keyRoulette)
+                .streamText(providerSetting, messages, params)
+                .collect { trySend(it).onFailure { error -> Log.w(TAG, "Interactions chunk dropped", error) } }
+            close()
+            return@callbackFlow
+        }
         val requestBody = buildCompletionRequestBody(messages, params)
 
         val url = buildUrl(
