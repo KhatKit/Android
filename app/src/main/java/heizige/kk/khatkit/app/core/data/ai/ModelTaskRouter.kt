@@ -1,5 +1,10 @@
 package heizige.kk.khatkit.app.core.data.ai
 
+import heizige.kk.khatkit.ai.provider.Model
+import heizige.kk.khatkit.ai.provider.ModelType
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.findModelById
+import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -64,4 +69,41 @@ class ModelTaskRouter(
         failures[key(candidate)]?.let { nowMillis - it < cooldown.inWholeMilliseconds } == true
 
     private fun key(candidate: ModelRouteCandidate): String = "${candidate.providerId}:${candidate.modelId}"
+}
+
+/**
+ * Builds task bindings from the model slots already exposed by Settings.
+ * This keeps routing backward compatible while the UI for explicit per-task
+ * pools is developed.
+ */
+fun Settings.taskBinding(task: ModelTaskType): ModelTaskBinding {
+    val selectedId = when (task) {
+        ModelTaskType.CHAT,
+        ModelTaskType.UI_CONTROL -> chatModelId
+        ModelTaskType.MEMORY,
+        ModelTaskType.SUMMARY,
+        ModelTaskType.TITLE -> fastModelId
+        ModelTaskType.OCR -> ocrModelId
+        ModelTaskType.TRANSLATION -> translateModeId
+    }
+    val selected = findModelById(selectedId)
+    val candidates = buildList<ModelRouteCandidate> {
+        selected?.findProvider(providers)?.let { provider ->
+            add(ModelRouteCandidate(provider.id.toString(), selected.id.toString(), priority = 100))
+        }
+        providers.filter { it.enabled }.forEach { provider ->
+            provider.models
+                .filter { it.type == ModelType.CHAT && it.id != selected?.id }
+                .forEachIndexed { index, model ->
+                    add(
+                        ModelRouteCandidate(
+                            providerId = provider.id.toString(),
+                            modelId = model.id.toString(),
+                            priority = 90 - index,
+                        )
+                    )
+                }
+        }
+    }
+    return ModelTaskBinding(candidates = candidates.distinctBy { it.providerId to it.modelId })
 }
