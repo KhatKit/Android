@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import heizige.kk.khatkit.ai.provider.CustomBody
 import heizige.kk.khatkit.ai.provider.CustomHeader
+import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.common.http.okhttp.Headers
 import heizige.kk.khatkit.common.http.okhttp.toHttpUrl
 import heizige.kk.khatkit.common.http.okhttp.Request
@@ -18,6 +19,13 @@ fun List<CustomHeader>.toHeaders(): Headers {
                 add(it.name, it.value)
             }
     }.build()
+}
+
+fun ProviderSetting.mergeCustomHeaders(headers: List<CustomHeader> = emptyList()): Headers {
+    val providerHeaders = customHeaders.filter { providerHeader ->
+        headers.none { it.name.equals(providerHeader.name, ignoreCase = true) }
+    }
+    return (providerHeaders + headers).toHeaders()
 }
 
 fun Request.Builder.configureReferHeaders(url: String): Request.Builder {

@@ -167,7 +167,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
         return
     }
 
-    val pager = rememberPagerState { 2 }
+    val pager = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
@@ -216,6 +216,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
                         onClick = { scope.launch { pager.animateScrollToPage(0) } },
                     ),
                     KedgeNavItem(
+                        selected = pager.currentPage == 2,
+                        icon = build,
+                        label = stringResource(R.string.setting_provider_page_advanced_settings),
+                        onClick = { scope.launch { pager.animateScrollToPage(2) } },
+                    ),
+                    KedgeNavItem(
                         selected = pager.currentPage == 1,
                         icon = package2,
                         label = stringResource(id = R.string.setting_provider_page_models),
@@ -256,8 +262,29 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
                         onEdit = onEdit
                     )
                 }
+                2 -> SettingProviderAdvancedPage(provider = provider, onEdit = onEdit)
             }
         }
+    }
+}
+
+@Composable
+private fun SettingProviderAdvancedPage(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        CustomHeaders(
+            headers = provider.customHeaders,
+            onUpdate = { headers -> onEdit(provider.copyProvider(customHeaders = headers)) },
+        )
     }
 }
 

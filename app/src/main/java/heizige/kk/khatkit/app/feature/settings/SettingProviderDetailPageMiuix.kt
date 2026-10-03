@@ -31,6 +31,7 @@ import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.ShareSheet
+import heizige.kk.khatkit.app.feature.assistant.detail.CustomHeaders
 import heizige.kk.khatkit.app.core.ui.components.ui.rememberShareSheetState
 import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.package2
@@ -60,7 +61,7 @@ fun SettingProviderDetailPageMiuix(
 
     val settingProviderPageSaveSuccess = stringResource(R.string.setting_provider_page_save_success)
     val scope = rememberCoroutineScope()
-    val pager = rememberPagerState { 2 }
+    val pager = rememberPagerState { 3 }
     val shareSheetState = rememberShareSheetState()
     ShareSheet(shareSheetState)
 
@@ -84,6 +85,15 @@ fun SettingProviderDetailPageMiuix(
                     },
                     icon = build,
                     label = stringResource(R.string.setting_provider_page_configuration),
+                )
+                NavigationBarItem(
+                    selected = page == 2,
+                    onClick = {
+                        page = 2
+                        scope.launch { pager.animateScrollToPage(2) }
+                    },
+                    icon = build,
+                    label = stringResource(R.string.setting_provider_page_advanced_settings),
                 )
                 NavigationBarItem(
                     selected = page == 1,
@@ -113,13 +123,26 @@ fun SettingProviderDetailPageMiuix(
                     )
                 }
             }
-        } else {
+        } else if (page == 1) {
             item {
                 Box(modifier = Modifier.fillParentMaxHeight(0.9f)) {
                     SettingProviderModelPage(
                         provider = provider,
                         onEdit = onEdit,
                     )
+                }
+            }
+        } else {
+            item {
+                Box(modifier = Modifier.fillParentMaxHeight(0.9f)) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                    ) {
+                        CustomHeaders(
+                            headers = provider.customHeaders,
+                            onUpdate = { headers -> onEdit(provider.copyProvider(customHeaders = headers)) },
+                        )
+                    }
                 }
             }
         }

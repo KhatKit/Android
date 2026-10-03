@@ -27,6 +27,7 @@ import heizige.kk.khatkit.ai.ui.ImageGenerationItem
 import heizige.kk.khatkit.ai.ui.StreamChunk
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.util.KeyRoulette
+import heizige.kk.khatkit.ai.util.mergeCustomHeaders
 import heizige.kk.khatkit.ai.util.configureReferHeaders
 import heizige.kk.khatkit.ai.util.json
 import heizige.kk.khatkit.ai.util.mergeCustomBody
@@ -60,6 +61,7 @@ class OpenAIProvider(
             val key = keyRoulette.next(providerSetting.apiKey, providerSetting.id.toString())
             val request = Request.Builder()
                 .url("${providerSetting.baseUrl}/models")
+                .headers(providerSetting.mergeCustomHeaders())
                 .addHeader("Authorization", "Bearer $key")
                 .get()
                 .build()
@@ -93,6 +95,7 @@ class OpenAIProvider(
         }
         val request = Request.Builder()
             .url(url)
+            .headers(providerSetting.mergeCustomHeaders())
             .addHeader("Authorization", "Bearer $key")
             .get()
             .build()
@@ -171,7 +174,7 @@ class OpenAIProvider(
 
         val request = Request.Builder()
             .url("${providerSetting.baseUrl}/embeddings")
-            .headers(params.customHeaders.toHeaders())
+            .headers(providerSetting.mergeCustomHeaders(params.customHeaders))
             .addHeader("Authorization", "Bearer $key")
             .addHeader("Content-Type", "application/json")
             .post(requestBody.toRequestBody("application/json".toMediaType()))
@@ -231,7 +234,7 @@ class OpenAIProvider(
 
         val request = Request.Builder()
             .url("${providerSetting.baseUrl}/images/generations")
-            .headers(params.customHeaders.toHeaders())
+            .headers(providerSetting.mergeCustomHeaders(params.customHeaders))
             .addHeader("Authorization", "Bearer $key")
             .addHeader("Content-Type", "application/json")
             .post(requestBody.toRequestBody("application/json".toMediaType()))
@@ -296,7 +299,7 @@ class OpenAIProvider(
 
         val request = Request.Builder()
             .url("${providerSetting.baseUrl}/images/edits")
-            .headers(params.customHeaders.toHeaders())
+            .headers(providerSetting.mergeCustomHeaders(params.customHeaders))
             .addHeader("Authorization", "Bearer $key")
             .post(bodyBuilder.build())
             .configureReferHeaders(providerSetting.baseUrl)

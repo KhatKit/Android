@@ -39,6 +39,19 @@ import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.components.ui.SelectTextField
+
+private val COMMON_HEADER_NAMES = listOf(
+    "User-Agent", "HTTP-Referer", "X-Title", "Referer", "Origin",
+    "Accept-Language", "Cookie", "anthropic-beta", "OpenAI-Organization", "OpenAI-Project",
+)
+
+private fun commonHeaderNames(input: String): List<String> {
+    val keyword = input.trim()
+    return COMMON_HEADER_NAMES.filter {
+        it.contains(keyword, ignoreCase = true) && !it.equals(keyword, ignoreCase = true)
+    }.ifEmpty { COMMON_HEADER_NAMES }
+}
 
 private val jsonLenient = Json {
     ignoreUnknownKeys = true
@@ -66,17 +79,23 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            KedgeOutlinedTextFieldWithSlots(
+                            SelectTextField(
                                 value = headerName,
-                                onValueChange = {
-                                    headerName = it
+                                options = commonHeaderNames(headerName),
+                                onValueChange = { name ->
+                                    headerName = name
                                     val updatedHeaders = headers.toMutableList()
-                                    updatedHeaders[index] = updatedHeaders[index].copy(name = it.trim())
+                                    updatedHeaders[index] = updatedHeaders[index].copy(name = name.trim())
+                                    onUpdate(updatedHeaders)
+                                },
+                                onOptionSelected = { name ->
+                                    headerName = name
+                                    val updatedHeaders = headers.toMutableList()
+                                    updatedHeaders[index] = updatedHeaders[index].copy(name = name.trim())
                                     onUpdate(updatedHeaders)
                                 },
                                 label = { Text(stringResource(R.string.assistant_page_header_name)) },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp)
                             )
                             KedgeOutlinedTextFieldWithSlots(
                                 value = headerValue,
