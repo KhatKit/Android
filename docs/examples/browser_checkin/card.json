@@ -1,0 +1,21 @@
+{
+  "name": "browser_checkin",
+  "version": "1.0.0",
+  "description": "在已登录的网站点击签到并等待成功提示；需先配置站点域名和选择器。",
+  "engine": "js",
+  "entry": {"js": "main.js"},
+  "requires": {"bridges": ["browser"]},
+  "network": {"allow": ["browser-fixture.test"]},
+  "permissions": {"methods": {"browser.open": "ask", "browser.act": "ask", "browser.close": "allow"}},
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "url": {"type": "string"},
+      "button_selector": {"type": "string"},
+      "result_selector": {"type": "string"},
+      "success_text": {"type": "string"}
+    },
+    "required": ["url", "button_selector", "result_selector", "success_text"]
+  },
+  "tags": {"domain": "net", "action": "control", "scene": "daily"}
+}

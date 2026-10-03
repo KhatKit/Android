@@ -124,7 +124,7 @@ return { message: "Hello, " + name };
 | AI 调用 | `triggers` 含 `ai` 的卡片会以 `khatkit__<name>` 暴露给模型，AI 按 `parameters` 填参调用；云端未安装的卡片会在首次调用时按需下载。 |
 | 用户手动 | `triggers` 含 `user` 的卡片在市场卡片上有「运行」按钮；不带参数运行，缺参数时由脚本自己弹 `ui.form`。 |
 | 事件触发 | manifest 里声明 `events` 的卡片，在系统事件（定时/通知/应用启动/充电/Wi-Fi/网络/电量/屏幕/剪贴板/蓝牙/位置）发生时自动运行；总开关在「设置 → 自动化触发器」。 |
-| AI 设备工具 | 无障碍服务在线时，AI 额外获得 `khatkit__device_screen`、`khatkit__device_act` 两个内置工具（不写卡片也能驱动手机）。 |
+| AI 设备工具 | 无障碍服务在线时，AI 获得宿主专用 `khatkit__device_act`（`overlay_hide/show`、`screen_state`、`unlock`）；截图/点击等基本操作改由 a11y 卡片（`a11y_screen`、`a11y_act`、`a11y_visual_act`、`a11y_trace_replay`）承担。 |
 
 `triggers` 与 `events` 相互独立：事件触发不要求声明 `["ai"]` 或 `["user"]`。
 
@@ -1180,16 +1180,26 @@ schedule.cancel(job)
 
 触发器前台服务在总开关打开后常驻，开机/应用升级后由 `TriggerBootReceiver` 自动拉起。脚本失败只记录日志并（在重试耗尽后）发通知，不会打断宿主。
 
-### 5.5 AI 设备工具（无需写卡片的自动化）
+### 5.5 AI 设备工具（宿主专用 + a11y 卡片）
 
-无障碍服务在线时，AI 会额外获得两个内置工具，适合一次性操作而非可复用卡片：
+无障碍服务在线时的设备能力分两层：
 
-- `khatkit__device_screen`：截屏 + 本地 OCR + 当前窗口节点清单（可用 `include_ocr` / `include_nodes` 关闭）。
-- `khatkit__device_act`：执行单个无障碍动作，`action` 取值 `click_text`、`click_id`、`tap`、`swipe`、`press`、`set_text`、`back`、`home`、`recents`、`notifications`、`open_app`、`wait_text`、`wake`、`screen_state`、`unlock`。
+**宿主内置** `khatkit__device_act`（仅 4 个宿主动作，其余动作调用会被拒绝并提示改用卡片）：
 
-`device_act` 每次执行前同样请求「操作手机屏幕」授权（放手模式/本次已授权则跳过），取消与看板行为与卡片一致；`screen_state` 只读、`overlay_hide` / `overlay_show` 不操作屏幕，无需授权。
+- `overlay_hide` / `overlay_show`：临时隐藏/恢复自动化悬浮看板（`overlay_hide` 的 `duration_ms` 默认 5000、范围 1000..30000，到时自动恢复；用户授权请求会强制重新显示看板）。
+- `screen_state`：只读返回屏幕是否点亮/锁定，无需授权。
+- `unlock`：root/Shizuku 下 `KEYCODE_WAKEUP` + 上滑解锁；安全锁屏无法绕过，返回中文说明，需用户授权。
 
-自愈与屏幕处理：
+**a11y 卡片**（经 `accessibility` 桥，卡片级授权；经卡片市场安装/Hub 分发）：
+
+- `a11y_screen`：截屏 PNG（随结果附图，模型可直接观察）+ 本地 OCR + 节点清单（`include_ocr` / `include_nodes` / `include_image` 可关）。
+- `a11y_act`：`click_text`、`click_id`、`tap`、`swipe`、`press`、`set_text`、`back`、`home`、`recents`、`notifications`、`open_app`、`wait_text`、`wake`、`ui_snapshot`。
+- `a11y_visual_act`：视觉 bbox 双通道定位 + 动作 + 轨迹落盘。
+- `a11y_trace_replay`：轨迹列表 / 审计 / 重放。
+
+**流步骤例外**：`flow.md` 里的 `device_screen` / `device_act` 步骤仍走宿主完整函数（全动作可用），与流的既有行为保持兼容。
+
+自愈与屏幕处理（宿主 `deviceAct`，供流步骤使用；`a11y_act` 卡片内含同等重试逻辑）：
 
 - **自动重试**：`click_text` / `click_id` / `set_text` 首次找不到目标会等待约 400ms 重试，最多 2 次（共 3 次尝试）；`wait_text` 保持自身超时语义，等待预算按 3 次尝试均分。仍失败时从当前窗口（`dumpWindow`）返回按文本相似度排序的 top 5 候选节点（含类名 / bounds / 中心坐标 / click、edit 标记），模型可据此改用 `click_id` 或 `tap` 坐标。
 - **熄屏唤醒**：`tap` / `swipe` / `press` / `click_text` / `click_id` / `set_text` 执行前检查 `PowerManager.isInteractive`，屏幕熄灭时调用工具 bridge `wakeScreen()` 并重试一次，仍失败返回中文错误。

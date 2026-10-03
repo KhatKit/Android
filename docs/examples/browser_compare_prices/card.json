@@ -1,0 +1,20 @@
+{
+  "name": "browser_compare_prices",
+  "version": "1.0.0",
+  "description": "从同币种商品页读取价格并比价，保留 URL 和原始价格文本；不会购买。",
+  "engine": "js",
+  "entry": {"js": "main.js"},
+  "requires": {"bridges": ["browser"]},
+  "network": {"allow": ["browser-fixture.test"]},
+  "permissions": {"methods": {"browser.open": "ask", "browser.act": "ask", "browser.close": "allow"}},
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "urls": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 3},
+      "price_selector": {"type": "string"},
+      "currency": {"type": "string", "description": "所有页面共有的币种标识，例如 CNY"}
+    },
+    "required": ["urls", "price_selector", "currency"]
+  },
+  "tags": {"domain": "net", "action": "read", "scene": "daily"}
+}

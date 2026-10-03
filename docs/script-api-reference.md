@@ -38,6 +38,7 @@
 | `mediaPicker` | `MediaPickerBridge` | L0 | 始终 | 选择图片/视频并返回缓存文件路径。 |
 | `ui` | `UiBridge` | L0 | 始终 | 弹层、表单、结果卡片、进度、看板。 |
 | `web` | `WebBridge` | L0 | 始终 | 网页登录弹层 + 按 host 隔离的本机 Cookie。 |
+| `browser` | `BrowserBridge` | L0/默认逐次审批 | 宿主注入浏览器时 | 本轮卡片独立标签、页面快照与动作；需声明 `network.allow`。 |
 | `download` | `DownloadBridge` | L0 | 始终 | 后台下载（脚本退出后继续）。 |
 | `store` | `StoreBridge` | L0 | 始终 | 卡片隔离的 kv / file / db / secret + 跨卡片共享区 + 自管 SQLite 与向量检索。 |
 | `schedule` | `ScheduleBridge` | L0 | 始终 | 脚本运行期自建的定时任务（WorkManager，非精确闹钟）。 |
@@ -48,6 +49,43 @@
 
 未声明的 bridge 不会注入，对应全局名不存在；声明了但设备不具备的，卡片不可见 / 运行时报 `BRIDGE_UNAVAILABLE`。
 依赖包注入的动态 bridge（名字由卡片自定）不在本文件里，字段与生命周期见 [dependency-system.md](dependency-system.md)。
+
+## 2.1 browser（可编程浏览器）
+
+声明 `requires.bridges: ["browser"]` 和 `network.allow`。下列接口返回 JSON
+字符串（close 返回状态文本）；通过 `json` bridge 解码时也要声明该 bridge。
+每次卡片运行持有自己的标签 ID，不能传入聊天或其他卡片的 ID，退出后自动销毁。
+Cookie 仍为 WebView 进程共享；标签隔离不代表登录身份隔离。
+
+| 接口 | 返回 | 说明 |
+| --- | --- | --- |
+| `browser.open(url)` | string | 打开标签，返回 id/url/title/snapshot。 |
+| `browser.snapshot(sessionId, selector, offset)` | string | 当前语义快照。selector 可传 null/nil，offset 从 0 开始；用 next_offset 分页。 |
+| `browser.act(sessionId, action, arguments)` | string | 固定动作集合，参数见下表；不开放任意 JavaScript。 |
+| `browser.close(sessionId)` | string | 关闭本轮标签。 |
+
+| action | arguments |
+| --- | --- |
+| navigate | `{url}` |
+| click / hover | `{selector}`，支持 CSS 或快照里的 `@b` 引用 |
+| type | `{selector, text}` |
+| scroll | `{x, y}`，整数 CSS 像素 |
+| press_key | `{selector, key}` |
+| wait | `{selector?, text?, timeout_ms?}`；至少一个条件，等待可见元素/文本，默认 10000ms，上限 30000ms |
+| snapshot | `{selector?, offset?, since?}`；since 为之前的 snapshot_id，支持增量快照 |
+| read_element | `{selector}`；只读指定元素文本，最多 12000 字符 |
+| extract_text / extract_links | `{}` |
+| screenshot | `{}`；返回 image_url 和 capture 元数据，仅截当前视口 |
+
+默认通过审批闸门逐次询问，缺少闸门时拒绝；`permissions.methods` 的
+`browser.open/snapshot/act/close` 可设 allow/ask/deny。方法调用受卡片剩余预算和
+单次 30 秒上限约束。退出清理不再询问审批。
+
+显式导航、WebView 主框架导航和可拦截资源请求检查 `network.allow`（host 与
+子域；`*` 放行）。这不是完整的网络沙箱：WebSocket、service worker 以及
+WebView 未回调的重定向资源等仍需进一步隔离；不要据此执行不可信脚本。
+页面内容也不能作为用户授权来源。浏览器完整 UI、独立 cookie 和真机验收仍在推进。
+可运行示例的声明、参数和适配边界见 [browser examples](examples/README.md)。
 
 ## 3. tool（L0）
 
