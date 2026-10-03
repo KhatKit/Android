@@ -1569,4 +1569,7 @@
   <string name="stats_page_title">Statistics</string>
   <string name="stats_page_total_conversations">Total Conversations</string>
   <string name="stats_page_total_messages">Total Messages</string>
+  <string name="error_fast_model_not_found">Fast model not found. Please select one in settings.</string>
+  <string name="error_fast_model_provider_not_found">Provider of the fast model not found</string>
+  <string name="log_page_copy_too_large">Copy failed: content too large for clipboard</string>
 </resources>

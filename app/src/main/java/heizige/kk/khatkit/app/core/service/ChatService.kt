@@ -84,6 +84,7 @@ import java.util.Locale
 import kotlin.uuid.Uuid
 import javax.inject.Inject
 import heizige.kk.khatkit.app.core.data.ai.transformers.InputMessageTransformer
+import heizige.kk.khatkit.app.core.data.ai.tavern.TavernMacroTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OutputMessageTransformer
 
 private const val TAG = "ChatService"
@@ -164,6 +165,7 @@ class ChatService @Inject constructor(
 ) {
     private val inputTransformers: List<InputMessageTransformer> by lazy {
         listOf(
+            TavernMacroTransformer,
             TimeReminderTransformer,
             PromptInjectionTransformer,
             placeholderTransformer,
@@ -844,8 +846,9 @@ class ChatService @Inject constructor(
         runCatching {
             val settings = settingsStore.settingsFlow.first()
             val model = settings.findModelById(settings.fastModelId)
-                ?: return@runCatching
-            val provider = model.findProvider(settings.providers) ?: return@runCatching
+                ?: throw IllegalStateException(context.getString(R.string.error_fast_model_not_found))
+            val provider = model.findProvider(settings.providers)
+                ?: throw IllegalStateException(context.getString(R.string.error_fast_model_provider_not_found))
 
             val providerHandler = providerManager.getProviderByType(provider)
             val result = providerHandler.generateText(

@@ -104,7 +104,7 @@ class HttpUrl private constructor(
     val host: String,
     val port: Int,
     private val path: String,
-    private val query: String?,
+    val query: String?,
     private val fragment: String?,
     private val userInfo: String?,
 ) {

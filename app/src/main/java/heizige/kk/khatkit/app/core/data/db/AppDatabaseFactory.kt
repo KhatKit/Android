@@ -47,6 +47,24 @@ internal object AppDatabaseFactory {
                         )
                         """.trimIndent()
                     )
+                    db.execSQL(
+                        """
+                        CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+                            content,
+                            assistant_id UNINDEXED,
+                            memory_id UNINDEXED,
+                            tokenize = 'unicode61'
+                        )
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        """
+                        INSERT INTO memory_fts(content, assistant_id, memory_id)
+                        SELECT content, assistant_id, CAST(id AS TEXT)
+                        FROM memoryentity
+                        WHERE NOT EXISTS (SELECT 1 FROM memory_fts LIMIT 1)
+                        """.trimIndent()
+                    )
                 }
             })
             .openHelperFactory(SQLiteConfiguration.openHelperFactory(context))

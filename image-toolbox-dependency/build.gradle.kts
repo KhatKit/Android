@@ -52,10 +52,11 @@ val sdkDirectory: File = run {
     }
 }
 
+// Windows 上 SDK 只发 d8.bat，Unix 上才是无扩展名的 d8
 val d8Executable: File = sdkDirectory.resolve("build-tools")
     .listFiles().orEmpty()
-    .map { File(it, "d8") }
-    .filter { it.isFile }
+    .map { dir -> listOf(File(dir, "d8"), File(dir, "d8.bat"), File(dir, "d8.cmd")).firstOrNull { it.isFile } }
+    .filterNotNull()
     .maxByOrNull { it.parentFile.name }
     ?: error("未找到 D8：${sdkDirectory.absolutePath}/build-tools/*/d8")
 

@@ -68,7 +68,10 @@ object RepositoryHiltModule {
 
     @Provides
     @Singleton
-    fun provideMemoryRepository(memoryDAO: MemoryDAO): MemoryRepository = MemoryRepository(memoryDAO)
+    fun provideMemoryRepository(
+        memoryDAO: MemoryDAO,
+        database: AppDatabase,
+    ): MemoryRepository = MemoryRepository(memoryDAO, database.openHelper.writableDatabase)
 
     @Provides
     @Singleton

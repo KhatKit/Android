@@ -21,6 +21,7 @@ import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
 import heizige.kk.khatkit.app.feature.automation.AutomationBus
 import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
+import heizige.kk.khatkit.app.feature.automation.UiAutomationSnapshotProvider
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.ai.CardAiEngine
 import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
@@ -1094,6 +1095,7 @@ class KhatKitToolProvider(
             "back / home / recents / notifications（系统全局动作）、open_app（包名用 text 传）、" +
             "wait_text（等待文本出现，timeout_ms 默认 5000；找到会返回节点 bounds/centerX/centerY 的 JSON，可据此 tap）、" +
             "wake（点亮屏幕）、screen_state（返回屏幕是否点亮/锁定）、" +
+            "ui_snapshot（返回结构化的当前无障碍 UI 节点快照，供 Agent 做元素定位）、" +
             "unlock（root/Shizuku 下执行 KEYCODE_WAKEUP + 上滑解锁；安全锁屏无法绕过，会返回中文说明）、" +
             "overlay_hide（临时隐藏自动化悬浮看板，duration_ms 默认 5000、范围 1000..30000，到时自动恢复；" +
             "用户授权请求会强制重新显示看板，且 update/新步骤不会提前恢复）、" +
@@ -1116,6 +1118,7 @@ class KhatKitToolProvider(
                                     "click_text", "click_id", "tap", "swipe", "press", "set_text",
                                     "back", "home", "recents", "notifications", "open_app", "wait_text",
                                     "wake", "screen_state", "unlock",
+                                    "ui_snapshot",
                                     "overlay_hide", "overlay_show",
                                 ).map { JsonPrimitive(it) }
                             )
@@ -1274,7 +1277,12 @@ class KhatKitToolProvider(
                 return "看板已恢复显示"
             }
 
-            "screen_state" -> return screenStateJson()
+                "screen_state" -> return screenStateJson()
+            "ui_snapshot" -> {
+                val snapshot = UiAutomationSnapshotProvider.capture()
+                    ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
+                return json.encodeToString(snapshot)
+            }
         }
         // wake / unlock 走 tool / root / shizuku bridge，不依赖无障碍服务，但仍是设备动作走 ui_action 授权
         if (action == "wake" || action == "unlock") {
