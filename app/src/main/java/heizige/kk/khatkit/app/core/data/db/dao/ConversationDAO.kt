@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
+import heizige.kk.khatkit.app.core.data.repository.CONVERSATION_LIKE_ESCAPE_SQL
 import heizige.kk.khatkit.app.core.data.repository.LightConversationEntity
 
 /**
@@ -17,6 +18,23 @@ import heizige.kk.khatkit.app.core.data.repository.LightConversationEntity
  * 不会各自长出一个空串含义不同的写法。抽成常量也是为了能在 JVM 单测里直接核对这份文本。
  */
 internal const val CONVERSATION_TYPE_PREDICATE_SQL = " AND (:type = '' OR type = :type)"
+
+/**
+ * 本文件里**每一条**用 `:searchText` 做 LIKE 的查询都必接 [CONVERSATION_LIKE_ESCAPE_SQL]。
+ *
+ * 不接的话，SQLite 会把用户输入里的 `%` / `_` 当通配符：`LIKE '%' || :searchText || '%'`
+ * 搜 `100%` 会连不含 `%` 的会话一起命中，搜 `a_b` 会命中 `axbxc`，搜单个 `%` 命中全部 ——
+ * **只多命中、不漏命中**，所以是「搜出来的比想搜的多」这种很难被用户当成 bug 报上来的坑。
+ *
+ * 转义字符选 `~` 的理由见 `CONVERSATION_LIKE_ESCAPE_CHAR` 的 KDoc（不用 `\`/`%`/`_`）。
+ * 转义本身由 `escapeConversationLikePattern` 在**进 DAO 之前**完成，`ConversationRepository`
+ * 是唯一收敛点，DAO 的形参约定因此收紧为：**`:searchText` 必须是已转义片段**。
+ *
+ * ESCAPE 子句在 SQL 里的位置是被 SQLite 的文法钉死的：它必须紧跟在 LIKE 的右操作数后面，
+ * 而 type 谓词是另一个 AND 合取项，所以拼接顺序是 `LIKE ... '%'` + `ESCAPE '~'` +
+ * `CONVERSATION_TYPE_PREDICATE_SQL`；反过来写（谓词在前、ESCAPE 收尾）实测直接报
+ * `near "ESCAPE": syntax error`。
+ */
 
 @Dao
 interface ConversationDAO {
@@ -44,16 +62,16 @@ interface ConversationDAO {
     @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId ORDER BY is_pinned DESC, update_at DESC LIMIT :limit")
     suspend fun getRecentConversationsOfAssistant(assistantId: String, limit: Int): List<ConversationEntity>
 
-    @Query("SELECT * FROM conversationentity WHERE title LIKE '%' || :searchText || '%' ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT * FROM conversationentity WHERE title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
     fun searchConversations(searchText: String): Flow<List<ConversationEntity>>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE title LIKE '%' || :searchText || '%' ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
     fun searchConversationsPaging(searchText: String): PagingSource<Int, LightConversationEntity>
 
-    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%' ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
     fun searchConversationsOfAssistant(assistantId: String, searchText: String): Flow<List<ConversationEntity>>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%' ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
     fun searchConversationsOfAssistantPaging(assistantId: String, searchText: String): PagingSource<Int, LightConversationEntity>
 
     /**
@@ -62,8 +80,12 @@ interface ConversationDAO {
      * type 的空串语义与 [getUnfiledConversationsOfAssistantByType] 完全一致：`''` = 不筛，
      * 只有一个筛选维度（搜索 / 类型）在同一条 SQL 里判定，不存在两套口径。
      * 默认值 `''` 让旧的单聊调用点（不传 type）行为不变。
+     *
+     * `searchText` 必须是 [heizige.kk.khatkit.app.core.data.repository.escapeConversationLikePattern]
+     * 转义过的片段（由 `ConversationRepository` 统一转义）：没有 ESCAPE 时用户输入的
+     * `%` / `_` 会被当通配符，「只多命中不漏命中」。
      */
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
     fun searchConversationsOfAssistantByType(
         assistantId: String,
         searchText: String,
