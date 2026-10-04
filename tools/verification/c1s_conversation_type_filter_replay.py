@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-C1-S 主机侧 SQL 重放证据（抽屉类型筛选，非 instrumentation）。
+C1-S 主机侧 SQL 重放证据（抽屉类型筛选 + 会话搜索的 LIKE 转义 + ORDER BY 兜底，非 instrumentation）。
 
 背景：C1-10「单聊/群聊共存」的验收要求是「类型筛选只过滤、来回切换不丢数据」。仓库里
 已有的两层证据都只到「纯函数」和「源码文本」这一层：
@@ -16,17 +16,34 @@ C1-S 主机侧 SQL 重放证据（抽屉类型筛选，非 instrumentation）。
 本脚本用 Python 标准库 `sqlite3`（真实 SQLite 引擎，不是 mock、不起服务、不读设备）
 重放这两条查询，把「SQL 层面的行为」补成主机侧可复现的断言。
 
+本轮又接手两个**真实缺陷**，它们都只有 SQL 层能证，所以一并在这里覆盖（见 G0 / G4 / G7 / G11）：
+
+  * 缺陷一（LIKE 通配符未转义）：改动前 `title LIKE '%' || :searchText || '%'` 没有 `ESCAPE`，
+    用户输入里的 `%` / `_` 被 SQLite 当通配符 —— 搜 `100%` 会连不含 `%` 的会话一起命中，
+    搜 `a_b` 会命中 `axbxc`，搜单个 `%` 命中全部（**只多命中、不漏命中**）。现在 5 条
+    `:searchText` 查询都带 `ESCAPE '~'`，入参在 `ConversationRepository` 里由
+    `escapeConversationLikePattern` 统一转义。
+  * 缺陷二（`ORDER BY` 缺 tiebreaker）：`ORDER BY is_pinned DESC, update_at DESC` 没有兜底，
+    而 `update_at` 是毫秒时间戳，同毫秒更新两个会话是可能的；没有兜底时同值行的相对次序
+    只由引擎决定、**不是 SQL 契约**，`LIMIT/OFFSET` 分页理论上可能重复或漏行。现在全部
+    14 条 `ORDER BY` 都以 `id ASC`（本表主键）收尾。
+
 数据源全部来自仓库里的真实产物，**不手抄 SQL**：
-  - 两条 `@Query` 的 SQL（含 `"..." + CONVERSATION_TYPE_PREDICATE_SQL + "..."` 的
-    Kotlin 字符串拼接折叠）、形参声明顺序：
+  - 全部 `@Query` 的 SQL（含 `"..." + CONVERSATION_TYPE_PREDICATE_SQL + "..."`、
+    `"..." + CONVERSATION_LIKE_ESCAPE_SQL + "..."` 的 Kotlin 字符串拼接折叠）、形参声明顺序：
         app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt
   - `CONVERSATION_TYPE_PREDICATE_SQL` 常量原文：同一个文件
-  - 投影列 → Kotlin 字段的别名映射：
+  - LIKE 转义字符 `CONVERSATION_LIKE_ESCAPE_CHAR` 与 ESCAPE 子句
+    `CONVERSATION_LIKE_ESCAPE_SQL`：同一个模块的
+        app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationSearchLikePattern.kt
+  - 投影列 → Kotlin 字段的别名映射，以及「每个交给 DAO 的搜索调用点都过了转义函数」：
         app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationRepository.kt
-        的 `data class LightConversationEntity`
+  - 两条外部调用路「传原始用户输入、自己不转义」：
+        app/.../feature/chat/ChatDrawerViewModel.kt（抽屉搜索框）
+        app/.../core/network/routes/ConversationRoutes.kt（GET /api/conversations/paged?query=）
   - 类型字面量 `TYPE_DIRECT` / `TYPE_GROUP` / `FILTER_ALL`：
         app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt
-  - 建表 DDL（列名/类型/默认值/主键）：
+  - 建表 DDL（列名/类型/默认值/主键 —— `id` 就是主键，tiebreaker 就靠它）：
         app/schemas/heizige.kk.khatkit.app.core.data.db.AppDatabase/32.json 的 createSql
 
 ---------------------------------------------------------------------------
@@ -37,6 +54,10 @@ Room 把 `:name` 按**形参名**绑定（`@Query` 的 SQL 里出现 `:type` 就
 所以**主路径不做任何文本改写**，直接把
     {"assistantId": ..., "searchText": ..., "type": ...}
 交给 `conn.execute(sql, mapping)`。这是与 Room 逐字节同构的绑定。
+
+`searchText` 传的是**转义后**的片段：生产路径是「调用方传原词 → Repository 转义 → DAO」，
+脚本的 `s_args()` 照抄同一形状（传原词、内部过 `like_escape`），所以验的是真实生产路径
+「转义后的串被 LIKE 正确匹配」这件事，而不是「没转义的串碰巧对上」。
 
 但「按名绑定」会**掩盖绑定顺序问题**，所以脚本同时把两种绑定模型都跑一遍并互相校验：
 
@@ -57,37 +78,54 @@ Room 把 `:name` 按**形参名**绑定（`@Query` 的 SQL 里出现 `:type` 就
 ---------------------------------------------------------------------------
 范围边界（不要把这份证据读成比它更大的东西）
 ---------------------------------------------------------------------------
-* 这是**宿主 CPython 捆绑的 SQLite**，不是 Android 的 `android.database.sqlite.SQLiteDatabase`。
-  LIKE 大小写折叠、类型亲和性、`ORDER BY` 同值时的稳定性等行为**两处都可能不同**，
-  真机口径需要 instrumentation 另取证。
+* 这是**宿主 CPython 捆绑的 SQLite**（实测 3.51.2），不是 Android 的
+  `android.database.sqlite.SQLiteDatabase`。LIKE 大小写折叠、类型亲和性、`ORDER BY`
+  同值时的稳定性、`ESCAPE` 的处理等行为**两处都可能不同**，真机口径需要 instrumentation
+  另取证。**特别是：`ESCAPE` 与 `id` tiebreaker 在真机 Android SQLite 上的行为，本脚本
+  没有取证**（Android 的 SQLite 版本、ICU / 大小写折叠表都可能不同）。
+* 转义纯函数 `escapeConversationLikePattern` 的**语义**（逐字符输出）由
+  `ConversationSearchLikePatternTest`（JVM 单测）覆盖；本脚本只验「转义后的串在真实
+  SQLite 上的行为」+「每个调用点都过了转义」+「ESCAPE 子句在不在 SQL 里」。
 * 本脚本只验 SQL 层。「走哪条查询」是 `planConversationListQuery` 的纯函数契约，
   由 `ConversationListQueryPlanTest` 覆盖；内存过滤已删由 `ConversationTypeFilterSourceGuardTest`
   覆盖。这里不重复那两层，也不声称 Room 的编译期 SQL 校验（列名拼错会在编译期报错，
-  不可能跑到引擎上）。
+  不可能跑到引擎上）。`ESCAPE` 子句能不能过 Room/KSP 的 SQL 解析，同样只能靠
+  `assembleDebug` 编译成功与否来间接说明。
 * 第 6 组只**观测** `folder_id` 口径差异（未归档路有 `AND folder_id = ''`、搜索路没有），
   这是 B2 待产品决策项：脚本把事实钉住，不替谁做判断，也不改任何生产代码。
+* 缺陷一**对 HTTP API 消费者是可感知的行为变化**：`GET /api/conversations/paged?query=`
+  的 query 里带 `%` / `_` 时，改动前会返回「多出来的」会话，改动后只返回标题里真含该
+  字符的会话。抽屉的搜索框同理（用户输入 `100%` 只会再筛一遍）。
 
 ---------------------------------------------------------------------------
-变异检验（脚本有牙齿的证据；影子仓库在 /tmp，用文件备份 + sha256sum -c 还原，
-全程不使用任何 git 命令）
+变异检验（脚本有牙齿的证据；用文件备份 + sha256sum -c 还原，全程不使用任何 git 命令）
 ---------------------------------------------------------------------------
-在 `/tmp` 建影子仓库（把本脚本 + `ConversationDAO.kt` 副本 + 它读的那几个产物一起复制
-过去，脚本按 `__file__` 的 `parents[2]` 定位 ROOT，所以影子仓库里跑的是**未改动**的脚本），
-逐个注入下列缺陷，每次都要求退出码非 0：
+逐个注入下列缺陷，每次都要求退出码非 0；每次跑完立刻用 `cp` 还原并 `sha256sum -c` 校验。
+下表的退出码与「首条报红断言」是**实测**记录（本轮 12/12 全红）：
 
-  | 变异 | 注入什么| 退出码 | 报红断言（首条）                          |
-  |------|----------|--------|-------------------------------------------|
-  | M1   | `AND (:type = '' OR type = :type)` -> `AND type = :type` | 1 | 抠到的谓词原文不符 / 未归档路 type='' 返回空 |
-  | M2   | 谓词里 `OR` -> `AND`                      | 1 | 抠到的谓词原文不符 / type='' 返回空          |
-  | M3   | 未归档路删掉 `AND folder_id = ''`         | 1 | 未归档路 WHERE 段不含 `folder_id = ''`       |
-  | M4   | `ORDER BY ... DESC, ... DESC` -> `ASC, ASC` | 1 | ORDER BY 子句不符 / 返回顺序与期望不同        |
-  | M5   | Kotlin 形参声明顺序改成 type, searchText, assistantId | 1 | 形参顺序不符 / 占位符顺序 != 形参顺序 |
-  | M6   | 搜索路 `:searchText` -> `:assistantId`    | 1 | 占位符顺序 != 形参顺序 / 搜索命中变空         |
+  | 变异 | 注入对象 | 注入什么 | 退出码 | 报红断言（首条） |
+  |------|---------|----------|--------|------------------|
+  | M1 | DAO | `AND (:type = '' OR type = :type)` -> `AND type = :type` | 1 | 抠到的谓词原文不符 |
+  | M2 | DAO | 谓词里 `OR` -> `AND` | 1 | 抠到的谓词原文不符 |
+  | M3 | DAO | 未归档路删掉 `AND folder_id = ''` | 1 | 未归档路 WHERE 段不含 `folder_id = ''` |
+  | M4 | DAO | `ORDER BY ... DESC, ... DESC, id ASC` -> `ASC, ASC` | 1 | 两条查询的 ORDER BY 逐字节相同 |
+  | M5 | DAO | Kotlin 形参声明顺序改成 type, searchText, assistantId | 1 | 形参顺序不符 |
+  | M6 | DAO | 搜索路 `:searchText` -> `:assistantId` | 1 | 用 :searchText 的查询数不符 |
+  | N1 | DAO | **去掉 ESCAPE 子句**（5 条 `:searchText` 查询全去掉） | 1 | 0 条 `@Query` 引用 ESCAPE 常量 |
+  | N2 | DAO | **去掉 ORDER BY 的 id 兜底**（14 条全去掉） | 1 | 「每条 ORDER BY 都以 id ASC 收尾」不符 |
+  | N3 | 转义文件 | **转义字符选错**：`~` -> `%`（字符常量与 SQL 子句一起改） | 1 | ESCAPE 子句原文不符 |
+  | N4 | Repository | **去掉转义纯函数的调用**（`searchConversationsOfAssistantPage` 那条） | 1 | 该调用实参里没有转义调用 |
+  | N5 | Repository | **转义替换漏掉某个调用方**（抽屉那条 `ByType`） | 1 | 该调用实参里没有转义调用 |
+  | N6 | Repository | 转义替换漏掉某个调用方（`searchConversations` 那条，换行写法） | 1 | 该调用实参里没有转义调用 |
 
-复现步骤（不碰真仓库、不用 git）：
-    cp ConversationDAO.kt /tmp/backup.kt && sha256sum ConversationDAO.kt > /tmp/dao.sha
-    # 改 DAO，跑 python3 tools/verification/c1s_conversation_type_filter_replay.py
-    cp /tmp/backup.kt ConversationDAO.kt && sha256sum -c /tmp/dao.sha
+复现步骤（不碰 git）：
+    D=app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt
+    R=app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationRepository.kt
+    E=app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationSearchLikePattern.kt
+    cp $D /tmp/d.bak; cp $R /tmp/r.bak; cp $E /tmp/e.bak
+    sha256sum $D $R $E > /tmp/c1s.sha
+    # 改其中一个文件，跑 python3 tools/verification/c1s_conversation_type_filter_replay.py
+    cp /tmp/d.bak $D; cp /tmp/r.bak $R; cp /tmp/e.bak $E; sha256sum -c /tmp/c1s.sha
 
 不写任何文件（`sqlite3.connect(":memory:")`），只 print 到 stdout。
 """
@@ -103,11 +141,29 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 DAO = (ROOT / "app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt")
 REPO = (ROOT / "app/src/main/java/heizige/kk/khatkit/app/core/data/repository"
         "/ConversationRepository.kt")
+LIKE_ESCAPE = (ROOT / "app/src/main/java/heizige/kk/khatkit/app/core/data/repository"
+               "/ConversationSearchLikePattern.kt")
+DRAWER_VM = (ROOT / "app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatDrawerViewModel.kt")
+API_ROUTES = (ROOT / "app/src/main/java/heizige/kk/khatkit/app/core/network/routes"
+              "/ConversationRoutes.kt")
 GROUP_CHAT = (ROOT / "app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt")
 SCHEMA_JSON = (ROOT / "app/schemas/heizige.kk.khatkit.app.core.data.db.AppDatabase/32.json")
 
 UNFILED_FUN = "getUnfiledConversationsOfAssistantByType"
 SEARCH_FUN = "searchConversationsOfAssistantByType"
+
+# ---------------------------------------------------------------------------
+# 缺陷一：LIKE 转义（纯函数的 Python 镜像）
+# ---------------------------------------------------------------------------
+# Kotlin 侧的真身是 `escapeConversationLikePattern` + `CONVERSATION_LIKE_ESCAPE_CHAR`，
+# 语义由 `ConversationSearchLikePatternTest`（JVM 单测）逐字符钉死。本脚本**不复用**那份
+# 实现（跨语言），而是镜像同一套规则，并把「转义字符」这个唯一的自由参数**从 Kotlin 源码里
+# 抠出来**（`CONVERSATION_LIKE_ESCAPE_CHAR`）—— 所以 Kotlin 换了转义字符，G0 的
+# 「ESCAPE 子句 == " ESCAPE '~' "」断言当场变红，镜像不会被悄悄留在旧字符上。
+ESCAPE_FUNC = "escapeConversationLikePattern"
+
+# 由 extract() 从 Kotlin 源码填入（module 级，镜像与断言共用同一个字符）
+_ESCAPE_CHAR = None
 
 # --------------------------------------------------------------------------
 # 断言统计（带分组，供最后汇总）
@@ -256,6 +312,25 @@ def where_clause(sql):
     return sql[start:end if end > 0 else len(sql)].strip()
 
 
+def paren_end(text, open_idx):
+    """从 `text[open_idx] == '('` 找配对的 `)`（转义覆盖检查用；跳过双引号串）。"""
+    depth, i, n = 0, open_idx, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            j = text.find('"', i + 1)
+            i = n if j < 0 else j + 1
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    raise SystemExit(f"位置 {open_idx} 的括号在文本里配不平")
+
+
 def placeholder_occurrences(sql):
     """SQL 里 `:name` 占位符的**出现序列**（保留重复 —— `:type` 在谓词里出现两次）。"""
     return [m.group(1) for m in re.finditer(r":([A-Za-z_]\w*)", sql)]
@@ -291,10 +366,39 @@ def light_entity_fields():
 
 
 def kotlin_const(text, name):
-    m = re.search(r'const val\s+' + re.escape(name) + r'\s*=\s*"((?:[^"\\]|\\.)*)"', text)
+    # 类型标注可写可不写（`const val X = "..."` 与 `const val X: String = "..."` 两种都收）
+    m = re.search(r'const val\s+' + re.escape(name) + r'(?:\s*:\s*\w+)?\s*=\s*"((?:[^"\\]|\\.)*)"',
+                  text)
     if not m:
         raise SystemExit(f"找不到 const val {name}")
     return decode_kotlin_literal(m.group(1))
+
+
+def like_escape_char():
+    """抠出 Kotlin 的转义字符常量（唯一自由参数，镜像据此工作）。"""
+    text = LIKE_ESCAPE.read_text(encoding="utf-8")
+    m = re.search(r"const val\s+CONVERSATION_LIKE_ESCAPE_CHAR\s*:\s*Char\s*=\s*'(.)'", text)
+    if not m:
+        raise SystemExit("ConversationSearchLikePattern.kt 里找不到 "
+                         "const val CONVERSATION_LIKE_ESCAPE_CHAR: Char = '...'")
+    return m.group(1)
+
+
+def like_escape(raw):
+    """LIKE 转义的 Python 镜像（语义与 Kotlin 的 escapeConversationLikePattern 逐条相同）。
+
+    顺序与 Kotlin 侧一样：转义字符**最先**处理，且只在一次遍历里做，所以不存在二次转义。
+    调用方一律传**原始用户输入**（真实生产路径就是这样：调用方传原词，Repository 转义）。
+    """
+    if _ESCAPE_CHAR is None:
+        raise SystemExit("like_escape 在 extract() 之前被调用了（转义字符还没从 Kotlin 抠出来）")
+    esc = _ESCAPE_CHAR
+    out = []
+    for ch in raw:
+        if ch in (esc, "%", "_"):
+            out.append(esc)
+        out.append(ch)
+    return "".join(out)
 
 
 def extract():
@@ -308,7 +412,17 @@ def extract():
         raise SystemExit("ConversationDAO.kt 里找不到 CONVERSATION_TYPE_PREDICATE_SQL 常量")
     predicate = decode_kotlin_literal(cm.group(1))
 
-    literals = {"CONVERSATION_TYPE_PREDICATE_SQL": predicate}
+    like_text = LIKE_ESCAPE.read_text(encoding="utf-8")
+    escape_char = like_escape_char()
+    escape_sql = kotlin_const(like_text, "CONVERSATION_LIKE_ESCAPE_SQL")
+    global _ESCAPE_CHAR
+    _ESCAPE_CHAR = escape_char
+
+    # DAO 的 @Query 里还会引用 `CONVERSATION_LIKE_ESCAPE_SQL`，折叠时也要能替换
+    literals = {
+        "CONVERSATION_TYPE_PREDICATE_SQL": predicate,
+        "CONVERSATION_LIKE_ESCAPE_SQL": escape_sql,
+    }
     queries = {}
     for name, body, params in iter_queries(dao_text):
         queries[name] = {
@@ -321,10 +435,14 @@ def extract():
                    for n in ("TYPE_DIRECT", "TYPE_GROUP", "FILTER_ALL")}
     return {
         "predicate": predicate,
+        "like_escape_char": escape_char,
+        "like_escape_sql": escape_sql,
+        "like_source": like_text,
         "queries": queries,
         "light_fields": light_entity_fields(),
         "type_consts": type_consts,
         "predicate_ref_count": len(re.findall(r"CONVERSATION_TYPE_PREDICATE_SQL", dao_text)),
+        "escape_ref_count": len(re.findall(r"CONVERSATION_LIKE_ESCAPE_SQL", dao_text)),
     }
 
 
@@ -349,12 +467,17 @@ FIXTURE = [
     ("d-share-f1", "A1", "DIRECT", "f1", 0, 2800, "共享词 单聊在f1"),
     ("g-share-uf", "A1", "GROUP",  "",  0, 2600, "共享词 群聊未归档"),
     ("g-share-f1", "A1", "GROUP",  "f1", 0, 2400, "共享词 群聊在f1"),
-    # --- LIKE 通配符：字面量 '%' / '_'，各配一个「只靠通配符才会误命中」的诱饵 ---
+    # --- LIKE 转义（缺陷一）：字面量 '%' / '_' / 转义字符 '~' 的靶行，各配一个
+    #     「只有把通配符当通配符才会误命中」的诱饵行 ---
     ("d-pct",      "A1", "DIRECT", "",  0, 2200, "百分号 100% 完成"),
     ("d-decoy100", "A1", "DIRECT", "",  0, 2150, "诱饵 版本 100 记录"),
     ("d-under",    "A1", "DIRECT", "",  0, 2100, "下划线 a_b_c"),
     ("d-decoy_axb","A1", "DIRECT", "",  0, 2050, "诱饵 axbxc"),
     ("g-pct",      "A1", "GROUP",  "",  0, 1400, "群聊 %50 折扣"),
+    # 三种特殊字符同时出现在一个标题里（放 f2：只有搜索路能看见它）
+    ("d-mix",      "A1", "DIRECT", "f2", 0, 2300, "混合 50% off a_b ~x"),
+    # 只有转义字符本身的标题：搜 '~' 必须命中它，且不能因此把别的行也吃进来
+    ("d-tilde",    "A1", "DIRECT", "f2", 0, 2350, "波浪号 ~ 标记"),
     # --- LIKE 大小写：ASCII 一对（大小写不同、其余相同） ---
     ("d-case-up",  "A1", "DIRECT", "",  0, 1950, "Case Sensitive Probe"),
     ("d-case-lo",  "A1", "DIRECT", "",  0, 1900, "case sensitive probe"),
@@ -364,8 +487,14 @@ FIXTURE = [
     # --- 空标题 / 纯空格标题 ---
     ("d-empty",    "A1", "DIRECT", "",  0, 1600, ""),
     ("d-space",    "A1", "DIRECT", "",  0, 1500, "   "),
-    # --- 故意造一组 (is_pinned, update_at) 完全相同的行（都放 f2，未归档路看不到它们）——
-    #     用来实测「ORDER BY 同值时行序由引擎决定、不是 SQL 契约」这件事本身 ---
+    # --- 故意造一组 (is_pinned, update_at) 完全相同的 4 行（都放 f2，未归档路看不到它们）——
+    #     用来实测「ORDER BY 同值时行序由引擎决定、不是 SQL 契约」这件事本身。
+    #     **插入顺序（= 引擎 rowid 顺序）刻意与 id 升序相反**：ding 先于 bing 入库，
+    #     所以没有 id 兜底时结果是 [ding, bing, jia, yi]、有 id 兜底时是
+    #     [bing, ding, jia, yi] —— 断言对「去掉 id tiebreaker」这条变异有牙，
+    #     而不是只靠「本机碰巧稳定」蒙对。 ---
+    ("d-tie-ding", "A1", "DIRECT", "f2", 0, 2000, "同刻 Delta 丁"),
+    ("d-tie-bing", "A1", "DIRECT", "f2", 0, 2000, "同刻 Delta 丙"),
     ("d-tie-jia",  "A1", "DIRECT", "f2", 0, 2000, "同刻 Delta 甲"),
     ("d-tie-yi",   "A1", "DIRECT", "f2", 0, 2000, "同刻 Delta 乙"),
     # --- 另一个助手：跨助手隔离 ---
@@ -507,6 +636,94 @@ def main():
           re.findall(r"ORDER BY.*$", u_sql) == re.findall(r"ORDER BY.*$", s_sql),
           str(re.findall(r"ORDER BY.*$", u_sql)))
 
+    # ---- 缺陷一：转义字符 / ESCAPE 子句 / 转义调用点（抽取自检） ----
+    esc_char, esc_sql = facts["like_escape_char"], facts["like_escape_sql"]
+    check(f"转义字符常量抠到 == '~'（实际 {esc_char!r}）", esc_char == "~", repr(esc_char))
+    check("转义字符不是 LIKE 通配符自己（否则包夹用的 % 也会变转义符，整条查询坏掉）",
+          esc_char not in ("%", "_"), repr(esc_char))
+    check("转义字符不是反斜杠（SQL/Kotlin/JSON 四层各有一套写法，可读性会被毁）",
+          esc_char != "\\", repr(esc_char))
+    check("转义字符是单个 ASCII 可见字符（SQLite 要求 ESCAPE 恰好 1 字符）",
+          len(esc_char) == 1 and 0x20 <= ord(esc_char) <= 0x7E, repr(esc_char))
+    check("ESCAPE 子句原文 == \" ESCAPE '~'\"（首部带空格、尾部不带）",
+          esc_sql == " ESCAPE '~'", repr(esc_sql))
+    check("ESCAPE 子句与转义字符常量逐字节自洽（两份 const 漂移会在这里变红）",
+          esc_sql == " ESCAPE '" + esc_char + "'", repr(esc_sql))
+
+    dao_lines = DAO.read_text(encoding="utf-8").splitlines()
+    esc_ref_lines = [l for l in dao_lines
+                     if l.strip().startswith("@Query(") and "CONVERSATION_LIKE_ESCAPE_SQL" in l]
+    check(f"DAO 里恰好 {len(esc_ref_lines)} 条 @Query 引用 ESCAPE 子句常量"
+          "（按 @Query 行统计，不被 KDoc 里的提及次数影响）",
+          len(esc_ref_lines) == 5, str(len(esc_ref_lines)))
+
+    search_queries = {n: q for n, q in facts["queries"].items()
+                      if q["sql"] and ":searchText" in q["sql"]}
+    check(f"DAO 里用 :searchText 做 LIKE 的查询恰好 {len(search_queries)} 条"
+          f"（{sorted(search_queries)}）", len(search_queries) == 5, str(sorted(search_queries)))
+    for n, q in sorted(search_queries.items()):
+        like_span = q["sql"][q["sql"].index("title LIKE"):q["sql"].index("ORDER BY")] \
+            if "ORDER BY" in q["sql"] else q["sql"][q["sql"].index("title LIKE"):]
+        check(f"{n}：LIKE 段带 ESCAPE 子句（SQL 原文可见，不是靠记忆）",
+              f"LIKE '%' || :searchText || '%' ESCAPE '{esc_char}'" in q["sql"],
+              repr(like_span))
+        check(f"{n}：ESCAPE 出现在 WHERE 段里（不是被甩到别处的死文本）",
+              "ESCAPE" in where_clause(q["sql"]), repr(where_clause(q["sql"])))
+    check("带 type 谓词的搜索路：ESCAPE 在 AND (:type ...) 之前（合取项顺序）",
+          s_sql.index("ESCAPE") < s_sql.index("AND (:type"), repr(s_sql))
+    check("DAO 里没有「LIKE ... :searchText 却没接 ESCAPE」的查询",
+          all(f"LIKE '%' || :searchText || '%' ESCAPE '{esc_char}'" in q["sql"]
+              for q in search_queries.values()),
+          str([n for n, q in search_queries.items()
+               if f"ESCAPE '{esc_char}'" not in q["sql"]]))
+
+    # 转义实现的 Python 镜像自检（与 Kotlin 纯函数的规则一致；语义本身由 JVM 单测钉死）
+    check("镜像自检：'100%' -> '100~%'", like_escape("100%") == "100" + esc_char + "%",
+          repr(like_escape("100%")))
+    check("镜像自检：'a_b' -> 'a~_b'", like_escape("a_b") == "a" + esc_char + "_b",
+          repr(like_escape("a_b")))
+    check("镜像自检：'~' -> '~~'（转义字符自己也转义，无二次转义）",
+          like_escape("~") == esc_char * 2, repr(like_escape("~")))
+    check("镜像自检：'~%' -> '~~~%'（转义字符与 % 相邻时不多不少）",
+          like_escape("~%") == esc_char * 2 + esc_char + "%",
+          repr(like_escape("~%")))
+    check("镜像自检：空串 -> 空串、纯空白 -> 原样（空搜索词行为不变）",
+          like_escape("") == "" and like_escape("   ") == "   ")
+    check("镜像自检：反斜杠与单引号不转义（不是 LIKE 特殊字符）",
+          like_escape("a\\b") == "a\\b" and like_escape("it's") == "it's",
+          repr(like_escape("a\\b")) + " " + repr(like_escape("it's")))
+    check("镜像自检：中文与 emoji 原样透传",
+          like_escape("中文 100% 👩‍💻") == "中文 100" + esc_char + "% 👩‍💻",
+          repr(like_escape("中文 100% 👩‍💻")))
+
+    # ---- 缺陷二：ORDER BY 的 id tiebreaker（抽取自检） ----
+    # `ORDER BY ... LIMIT :limit`（getRecentConversationsOfAssistant）的 LIMIT 不属于排序子句，
+    # 判「是否以 id 收尾」之前先把它摘掉
+    order_by_all = {n: re.findall(r"ORDER BY[^\"]*", q["sql"])[0].strip()
+                    for n, q in facts["queries"].items() if q["sql"] and "ORDER BY" in q["sql"]}
+    order_by_cols = {n: re.sub(r"\s+LIMIT\b.*$", "", c) for n, c in order_by_all.items()}
+    check(f"DAO 里带 ORDER BY 的查询共 {len(order_by_all)} 条，每条都以 'id ASC' 收尾"
+          "（没有 id 兜底时同毫秒行的相对次序只由引擎决定，不是 SQL 契约）",
+          all(c.endswith("id ASC") for c in order_by_cols.values()),
+          str([(n, c) for n, c in sorted(order_by_cols.items()) if not c.endswith("id ASC")]))
+    check("ORDER BY 子句里带 LIMIT 的那条（getRecentConversationsOfAssistant）"
+          "摘掉 LIMIT 之后同样以 id ASC 收尾",
+          order_by_all["getRecentConversationsOfAssistant"].startswith(
+              "ORDER BY is_pinned DESC, update_at DESC, id ASC LIMIT"),
+          str(order_by_all["getRecentConversationsOfAssistant"]))
+    check("两条重放查询的 ORDER BY == "
+          "'ORDER BY is_pinned DESC, update_at DESC, id ASC'",
+          re.findall(r"ORDER BY.*$", u_sql) == ["ORDER BY is_pinned DESC, update_at DESC, id ASC"]
+          and re.findall(r"ORDER BY.*$", s_sql) == ["ORDER BY is_pinned DESC, update_at DESC, id ASC"],
+          str(re.findall(r"ORDER BY.*$", u_sql)))
+    check("id 兜底用的是 id 列本身（不是 conversation_id 之类的别名）",
+          all(re.search(r"(?:,\s*|^ORDER BY\s+)id (?:ASC|DESC)$", c)
+              for c in order_by_cols.values()),
+          str(sorted(set(order_by_cols.values()))))
+    check("DAO 里除 getConversationCountPerDay（GROUP BY 聚合、无排序语义）外，"
+          "每条 @Query 的 ORDER BY 都带 id 兜底",
+          len(order_by_cols) == 14, str(len(order_by_cols)))
+
     proj_u, alias_u = projection_of(u_sql)
     proj_s = projection_of(s_sql)[0]
     # 投影列下标：从抠出来的投影顺序算，不写死（SQL 里投影顺序变了这里跟着变）
@@ -566,8 +783,26 @@ def main():
                       and (type_arg == "" or r[2] == type_arg))
 
     def expected_order(ids):
-        rows = {r[0]: (r[4], BASE_AT + r[5]) for r in FIXTURE}
-        return sorted(ids, key=lambda i: (-rows[i][0], -rows[i][1]))
+        """SQL 契约里的全序：(is_pinned DESC, update_at DESC, id ASC)。"""
+        rows = {r[0]: (r[4], BASE_AT + r[5], r[0]) for r in FIXTURE}
+        return sorted(ids, key=lambda i: (-rows[i][0], -rows[i][1], rows[i][2]))
+
+    def ascii_fold(s):
+        """只折叠 ASCII A-Z —— 与 SQLite LIKE 的 case_sensitive_like=OFF 同口径。"""
+        return "".join(c.lower() if "A" <= c <= "Z" else c for c in s)
+
+    def oracle_like_literal(assistant, keyword, type_arg=""):
+        """独立 oracle：标题里**字面量**包含 keyword（完全不做通配符解释）。
+
+        这是缺陷一的期望值来源：不复用 LIKE 语义、不复用转义实现，只用 Python 的
+        `in` 逐字符比。ASCII 大小写按 SQLite LIKE 的口径折叠，非 ASCII 不折叠。
+        """
+        needle = ascii_fold(keyword)
+        return sorted(
+            r[0] for r in FIXTURE
+            if r[1] == assistant and (type_arg == "" or r[2] == type_arg)
+            and needle in ascii_fold(r[6])
+        )
 
     # 「共享词」4 行的手工枚举（不写 LIKE 模拟，避免与 SQL 同源自我循环）
     SHARE_ALL = ["d-share-f1", "d-share-uf", "g-share-f1", "g-share-uf"]
@@ -576,7 +811,12 @@ def main():
         return {"assistantId": assistant, "type": type_arg}
 
     def s_args(assistant, keyword, type_arg):
-        return {"assistantId": assistant, "searchText": keyword, "type": type_arg}
+        """搜索路的实参。**keyword 是原始用户输入**，转义在传参前做（与生产一致）。
+
+        生产路径：调用方（抽屉 / HTTP API）传原词 -> Repository 里 escapeConversationLikePattern
+        -> DAO。这里照抄同一形状，所以脚本验的是「转义后的串真的能被 LIKE 正确匹配」。
+        """
+        return {"assistantId": assistant, "searchText": like_escape(keyword), "type": type_arg}
 
     print("== 1. :type = '' 不筛选（两条路都返回该 assistant 的全部命中）==")
     group("G1 type 空串不筛")
@@ -679,15 +919,19 @@ def main():
           and predicate not in u_sql.replace(predicate, "", 1)
           and predicate not in s_sql.replace(predicate, "", 1))
 
-    print("== 4. 排序 `ORDER BY is_pinned DESC, update_at DESC` 真实生效 ==")
+    print("== 4. 排序 `ORDER BY is_pinned DESC, update_at DESC, id ASC` 真实生效 ==")
     group("G4 排序")
     order_clause = re.findall(r"ORDER BY.*$", u_sql)[0].strip()
-    check("ORDER BY 子句抠出来就是 is_pinned DESC, update_at DESC",
-          order_clause == "ORDER BY is_pinned DESC, update_at DESC", repr(order_clause))
+    check("ORDER BY 子句抠出来就是 is_pinned DESC, update_at DESC, id ASC",
+          order_clause == "ORDER BY is_pinned DESC, update_at DESC, id ASC", repr(order_clause))
     check("两条查询的 ORDER BY 都带两个 DESC（不会只降序一列）",
           all(c.count("DESC") == 2 for c in
               re.findall(r"ORDER BY.*$", u_sql) + re.findall(r"ORDER BY.*$", s_sql)),
           str(re.findall(r"ORDER BY.*$", u_sql) + re.findall(r"ORDER BY.*$", s_sql)))
+    check("id 兜底是 ASC（主键升序；不是 DESC，也不会写成别的列名）",
+          re.findall(r"ORDER BY.*$", u_sql) == re.findall(r"ORDER BY.*$", s_sql)
+          and re.findall(r"ORDER BY.*$", u_sql)[0].endswith("id ASC"),
+          repr(re.findall(r"ORDER BY.*$", u_sql)))
     for label, sql, args, want_ids, mixed in (
             ("未归档路 type=''", u_sql, u_args("A1", ""), oracle_unfiled("A1", ""), True),
             ("未归档路 type='GROUP'", u_sql, u_args("A1", t_group),
@@ -725,25 +969,43 @@ def main():
           [r[0] for r in conn.execute(u_sql, u_args("A1", "")).fetchall()
            if r[IDX_PIN]] == ["d-pinned", "g-pinned"],
           str([r[0] for r in conn.execute(u_sql, u_args("A1", "")).fetchall() if r[IDX_PIN]]))
-    # 故意同值的 2 行（都在 f2）：实测「ORDER BY 同值时行序由引擎决定」这件事
+    # 故意同值的 4 行（都在 f2，`(is_pinned, update_at)` 两列完全相同）：
+    # 实测「ORDER BY 同值时行序由引擎决定、不是 SQL 契约」这件事，并用 id 兜底把它钉死
     tie = run_rows_ids(conn, s_sql, s_args("A1", "同刻 Delta", ""))
-    check("同值对照组：fixture 里 (is_pinned, update_at) 完全相同的两行都能被搜到",
-          sorted(tie) == ["d-tie-jia", "d-tie-yi"], f"{tie}")
+    check("同值对照组：fixture 里 (is_pinned, update_at) 全同的 4 行都能被搜到",
+          sorted(tie) == ["d-tie-bing", "d-tie-ding", "d-tie-jia", "d-tie-yi"], f"{tie}")
+    check("同值对照组：这 4 行的 update_at 与 is_pinned 确实两两相同（否则本组是恒真的）",
+          len({(ROW[i]["is_pinned"], ROW[i]["update_at"]) for i in tie}) == 1,
+          str({i: (ROW[i]["is_pinned"], ROW[i]["update_at"]) for i in tie}))
+    check("同值对照组：返回顺序 == 按 id 升序（= SQL 契约里写的 tiebreaker）",
+          tie == sorted(tie), f"{tie}")
+    check("同值对照组：这 4 行的**插入顺序**与 id 升序相反，所以断言对「去掉 id 兜底」"
+          "这条变异有牙（无兜底时引擎给的是插入顺序，结果会不同）",
+          [r[0] for r in FIXTURE if r[0] in set(tie)] != sorted(tie),
+          str([r[0] for r in FIXTURE if r[0] in set(tie)]))
+    check("同值对照组：按 id 升序 == Python 侧 oracle 的 (pin DESC, upd DESC, id ASC) 全序",
+          tie == expected_order(tie), f"{tie}")
     orders = {tuple(run_rows_ids(conn, s_sql, s_args("A1", "同刻 Delta", "")))
               for _ in range(3)}
     check("同值对照组：本机上重复执行 3 次，同值行的相对行序完全一致"
-          "（观测事实：确定性来自引擎的稳定排序，不是 SQL 保证的）",
+          "（现在这个「确定」来自 SQL 契约里的 id，不再依赖引擎碰巧稳定）",
           len(orders) == 1, str(orders))
-    check("同值对照组：同值行在结果里相邻（中间没插别的行）",
-          len(tie) == 2, f"{tie}")
-    check("同值对照组：ORDER BY 两列都相同的两行，仍能靠引擎的稳定排序拿到确定顺序"
-          "（真机 Android SQLite 是否同样确定 —— 本脚本未取证）",
-          list(orders)[0] == tuple(tie))
-    note("ORDER BY 只有 (is_pinned, update_at) 两列，**没有 id 之类的兜底 tiebreaker**。"
-         "fixture 里除上面这 2 行外 update_at 互不相同，所以排序断言不受同值影响。")
-    note("风险如实标出（不断言它是 bug）：LIMIT/OFFSET 分页在同值行上翻页理论上可能重复"
-         "或漏行（真库 update_at 是毫秒时间戳，同毫秒的两会话是可能的），需要稳定 "
-         "tiebreaker 或 keyset 分页才能排除；真机口径需 instrumentation 另取证。")
+    check("同值对照组：4 行同值行在结果里连续相邻（中间没插别的行）",
+          tie == [i for i in run_rows_ids(conn, s_sql, s_args("A1", "同刻 Delta", ""))
+                  if i in set(tie)], f"{tie}")
+    pages_tie, count_tie = paged(conn, s_sql, s_args("A1", "同刻 Delta", ""), 1)
+    check("同值对照组：pageSize=1 逐页翻 4 页，4 行各出现一次、无重复无遗漏"
+          "（没有 id 兜底时翻页理论上可能重复或漏行）",
+          [p[0] for p in pages_tie] == sorted(tie) and count_tie == 4,
+          f"pages={[p[0] for p in pages_tie]} count={count_tie}")
+    check("同值对照组：页边界处的 id 严格递增（说明翻页走的是同一个全序，不是各页各自排）",
+          all(a < b for a, b in zip([p[0] for p in pages_tie], [p[0] for p in pages_tie][1:])),
+          str([p[0] for p in pages_tie]))
+    note("ORDER BY 现在是 (is_pinned DESC, update_at DESC, id ASC)：`id` 是本表主键"
+         "（TEXT NOT NULL PRIMARY KEY，见 32.json），所以任意两行之间都有全序，"
+         "LIMIT/OFFSET 分页在同毫秒行上不再有重复/漏行的余地。")
+    note("fixture 里有 4 行 (is_pinned, update_at) 完全相同、且**插入顺序与 id 升序相反**"
+         "（ding 先于 bing），所以这条断言是被行为驱动的：去掉 id 兜底后本脚本的 G4 立刻红。")
 
     print("== 5. 分页（模拟 Room LimitOffsetPagingSource：LIMIT n OFFSET m）==")
     group("G5 分页")
@@ -813,29 +1075,111 @@ def main():
          "会混进文件夹内的会话（实测 +2 行）。这是 B2 条目待产品决策的已知差异；")
     note("本脚本只把事实钉住，不判定哪个口径是对的，也没有改任何 Kotlin 代码。")
 
-    print("== 7. LIKE 通配符：% 与 _ 作为字面量出现在标题里 ==")
-    group("G7 LIKE 通配符")
+    print("== 7. LIKE 转义：% / _ / 转义字符作为**字面量**匹配（缺陷一）==")
+    group("G7 LIKE 转义")
+    check("搜索路的 SQL 里带 ESCAPE 子句（实测：真的转义了，不是文本装饰）",
+          f"ESCAPE '{esc_char}'" in s_sql, repr(where_clause(s_sql)))
+    check("转义后的模式串拼出的前后通配仍然是首尾 %（包含匹配语义没被破坏）",
+          s_sql.startswith("SELECT") and "'%' || :searchText || '%'" in s_sql,
+          repr(s_sql[s_sql.index("WHERE"):s_sql.index("ORDER BY")]))
+
+    # --- 表驱动：每个关键词都与「标题字面量包含它」这个独立 oracle 比（不多不少） ---
+    LIKE_KEYWORDS = [
+        "%", "_", "100%", "a_b", "%50", "50%", "0% ", "% 完成",
+        "off a_b", "~", "~x", "波浪号", "混合", "波浪号 ~",
+        "\\", "it's", "中文", "", "   ", "Alpha",
+    ]
+    for kw in LIKE_KEYWORDS:
+        got = run(conn, s_sql, s_args("A1", kw, ""))
+        want = oracle_like_literal("A1", kw)
+        check(f"搜 {kw!r}（转义后传入）：命中集合 == 「标题字面量包含它」的 oracle {want}",
+              got == want, f"got={got}")
+    for kw in LIKE_KEYWORDS:
+        got = run(conn, s_sql, s_args("A1", kw, t_group))
+        want = oracle_like_literal("A1", kw, t_group)
+        check(f"搜 {kw!r} + type='GROUP'：同样等于「同 type 下标题字面量包含它」{want}",
+              got == want, f"got={got}")
+
+    # --- 三个历史 bug 逐个钉住（改动前这三条都会多命中） ---
     pct = run(conn, s_sql, s_args("A1", "100%", ""))
-    check("搜字面量 '100%'：命中含 '%' 的 d-pct，**也**命中不含 '%' 的 d-decoy100"
-          "（实测：% 被当通配符，不是字面量）",
-          pct == ["d-decoy100", "d-pct"], f"{pct}")
-    check("搜字面量 '100%'：命中 2 行，而仅含字面量 '100%' 的只有 1 行 —— "
-          "差的那行就是通配符多吃进来的",
-          len(pct) == 2 and "d-decoy100" in pct, f"{pct}")
+    check("搜字面量 '100%'：命中 d-pct，且**不再**命中不含 '%' 的 d-decoy100"
+          "（改动前 % 被当通配符，这一行是多余的命中）",
+          pct == ["d-pct"], f"{pct}")
     us = run(conn, s_sql, s_args("A1", "a_b", ""))
-    check("搜字面量 'a_b'：命中含 '_' 的 d-under，**也**命中 axbxc"
-          "（实测：_ 被当单字符通配符）",
-          us == ["d-decoy_axb", "d-under"], f"{us}")
-    check("搜字面量 '%50'：命中 g-pct，且 '%50' 里 5 0 被当字面、% 当通配",
+    check("搜字面量 'a_b'：命中含 '_' 的行，**不再**命中 axbxc"
+          "（改动前 _ 被当单字符通配符）",
+          us == ["d-mix", "d-under"], f"{us}")
+    check("搜字面量 'a_b'：诱饵 axbxc 一个都不中（只多命中不漏命中的老行为被掐断）",
+          "d-decoy_axb" not in us, f"{us}")
+    check("搜字面量 '%50'：只命中 g-pct（% 已是字面量，5 0 照旧是字面）",
           run(conn, s_sql, s_args("A1", "%50", "")) == ["g-pct"],
           f"{run(conn, s_sql, s_args('A1', '%50', ''))}")
-    check("搜 '%'（单个百分号）几乎命中全部标题 —— 若产品期望字面量匹配则语义完全相反",
-          len(run(conn, s_sql, s_args("A1", "%", ""))) >= 10,
-          f"{len(run(conn, s_sql, s_args('A1', '%', '')))} 行")
-    check("SQL 里没有 ESCAPE 子句（实测：真的没有转义）",
-          "ESCAPE" not in u_sql.upper() and "ESCAPE" not in s_sql.upper())
-    note("实测事实：SQL 用的是 `title LIKE '%' || :searchText || '%'`，没有 ESCAPE，"
-         "所以用户输入的 % / _ 会被 SQLite 当通配符。这是当前行为，脚本不断言对错。")
+    only_pct = run(conn, s_sql, s_args("A1", "%", ""))
+    n_a1_all = len([r for r in FIXTURE if r[1] == "A1"])
+    check("搜单个 '%'：只命中标题里真含 '%' 的行，**不是**全部行"
+          f"（改动前单个 % 命中全部 {n_a1_all} 行，语义完全相反）",
+          only_pct == ["d-mix", "d-pct", "g-pct"], f"{only_pct}")
+    check("搜单个 '%' 的命中条数远小于全表行数（证明通配符没再被当通配符）",
+          len(only_pct) == 3 and len(only_pct) < n_a1_all, f"{len(only_pct)}/{n_a1_all}")
+    only_us = run(conn, s_sql, s_args("A1", "_", ""))
+    check("搜单个 '_'：只命中标题里真含 '_' 的行（d-mix / d-under），不含 axbxc",
+          only_us == ["d-mix", "d-under"], f"{only_us}")
+
+    # --- 转义字符本身作为用户输入（漏了这条就是「漏命中」，比多命中更严重） ---
+    tilde = run(conn, s_sql, s_args("A1", "~", ""))
+    check("转义字符 '~' 作为搜索词：只命中标题里真含 '~' 的行",
+          tilde == ["d-mix", "d-tilde"], f"{tilde}")
+    check("转义字符作为搜索词：不会把不含 '~' 的行也吃进来（不是通配符）",
+          "d-pct" not in tilde and "d-space" not in tilde, f"{tilde}")
+    check("转义字符与 '%' 相邻（搜 '~x'）：命中 d-mix 一个（无二次转义、无通配符）",
+          run(conn, s_sql, s_args("A1", "~x", "")) == ["d-mix"],
+          f"{run(conn, s_sql, s_args('A1', '~x', ''))}")
+    check("转义字符与 '~' 相邻（搜 '波浪号 ~'）：命中 d-tilde",
+          run(conn, s_sql, s_args("A1", "波浪号 ~", "")) == ["d-tilde"],
+          f"{run(conn, s_sql, s_args('A1', '波浪号 ~', ''))}")
+    check("搜 '%%'（两个百分号）：命中标题里真含 '%%' 的行 = 空集（不是全表）",
+          run(conn, s_sql, s_args("A1", "%%", "")) == [],
+          f"{run(conn, s_sql, s_args('A1', '%%', ''))}")
+    check("搜 '~~'：同样为空集（两个转义字符不是转义字符本身）",
+          run(conn, s_sql, s_args("A1", "~~", "")) == [],
+          f"{run(conn, s_sql, s_args('A1', '~~', ''))}")
+
+    # --- 空搜索词 / 纯空白：行为必须与改动前逐字不变 ---
+    check("空搜索词：LIKE '%%' 仍命中该 assistant 全部行（转义不改变空串，"
+          "所以「SQL 层不拦空词」这条老行为原样保留）",
+          len(run(conn, s_sql, s_args("A1", "", ""))) == n_a1_all,
+          f"{len(run(conn, s_sql, s_args('A1', '', '')))} vs {n_a1_all}")
+    check("纯空白搜索词：仍命中 d-space 一个（空白不被转义、不被 trim）",
+          run(conn, s_sql, s_args("A1", "   ", "")) == ["d-space"],
+          f"{run(conn, s_sql, s_args('A1', '   ', ''))}")
+
+    # --- 「不做转义」时的行为被记下来当对照（证明这组断言确实依赖转义） ---
+    raw_pct = sorted(r[0] for r in conn.execute(
+        s_sql.replace(f" ESCAPE '{esc_char}'", ""),
+        {"assistantId": "A1", "searchText": "100%", "type": ""}).fetchall())
+    check("对照组：同一条 SQL 去掉 ESCAPE 子句后，'100%' 会多命中 "
+          f"{[i for i in raw_pct if i not in pct]} —— 证明上面那些断言依赖 ESCAPE",
+          raw_pct == ["d-decoy100", "d-pct"], f"{raw_pct}")
+    raw_tilde = sorted(r[0] for r in conn.execute(
+        s_sql.replace(f" ESCAPE '{esc_char}'", ""),
+        {"assistantId": "A1", "searchText": "~", "type": ""}).fetchall())
+    check("对照组：去掉 ESCAPE 后搜 '~' 的结果与转义后**相同** —— '~' 本身既不是通配符、"
+          "也不是 LIKE 的特殊字符，两边都是字面匹配（所以这组断言的牙齿在 % / _ 那几条，"
+          "不在转义字符这条上）",
+          raw_tilde == tilde, f"raw={raw_tilde} escaped={tilde}")
+    raw_us = sorted(r[0] for r in conn.execute(
+        s_sql.replace(f" ESCAPE '{esc_char}'", ""),
+        {"assistantId": "A1", "searchText": "a_b", "type": ""}).fetchall())
+    check("对照组：去掉 ESCAPE 后搜 'a_b' 会多命中 axbxc —— "
+          f"改动后 [{', '.join(us)}]，证明转义调用是这组断言的牙齿",
+          "d-decoy_axb" in raw_us and "d-decoy_axb" not in us,
+          f"raw={raw_us} escaped={us}")
+    note("修掉的缺陷：SQL 原来是 `title LIKE '%' || :searchText || '%'` 且没有 ESCAPE，"
+         "所以用户输入的 % / _ 被 SQLite 当通配符（只多命中、不漏命中）。")
+    note("修法：每条 :searchText 的 @Query 加 `ESCAPE '~'`，入参在 Repository 里由"
+         "escapeConversationLikePattern 统一转义；转义字符选 ~ 的理由写在该常量的 KDoc 里。")
+    note("边界：这里是宿主 CPython 的 SQLite。真机 Android SQLiteDatabase 对 ESCAPE 的"
+         "处理、以及大小写折叠是否与宿主同口径，仍需 instrumentation 另取证。")
 
     print("== 8. LIKE 的大小写敏感性（ASCII vs 非 ASCII）==")
     group("G8 LIKE 大小写")
@@ -975,6 +1319,48 @@ def main():
           set(run(conn, s_sql, s_args("A1", "", t_group)))
           == {r[0] for r in FIXTURE if r[1] == "A1" and r[2] == t_group},
           f"{sorted(run(conn, s_sql, s_args('A1', '', t_group)))}")
+
+    print("== 11. 转义覆盖：每个交给 DAO 的搜索调用点都过了转义纯函数 ==")
+    group("G11 转义调用方覆盖")
+    repo_text = REPO.read_text(encoding="utf-8")
+    # 两种写法都要抓到：`conversationDAO.searchX(` 与换行缩进后的 `.searchX(`
+    sites = list(re.finditer(r"(?:conversationDAO\s*\.\s*|\n\s*\.\s*)(search\w*)\(", repo_text))
+    check(f"Repository 里交给 DAO 的搜索调用点恰好 5 个（实际 {len(sites)} 个："
+          f"{[m.group(1) for m in sites]}）", len(sites) == 5, str(len(sites)))
+    dao_search_names = {n for n, q in facts["queries"].items()
+                        if q["sql"] and ":searchText" in q["sql"]}
+    check("这 5 个调用点覆盖了 DAO 里全部 5 条 :searchText 查询（没有漏掉某条查询）",
+          {m.group(1) for m in sites} == dao_search_names,
+          f"{sorted({m.group(1) for m in sites})} vs {sorted(dao_search_names)}")
+    decls = ["\n    fun ", "\n    suspend fun "]
+    for m in sites:
+        name = m.group(1)
+        start = max(repo_text.rfind(d, 0, m.start()) for d in decls)
+        end = min((i for d in decls for i in [repo_text.find(d, m.end())] if i >= 0),
+                  default=len(repo_text))
+        body = repo_text[start:end]
+        call_at = body.index("." + name + "(")
+        call_end = paren_end(body, body.index("(", call_at))
+        esc_at = body.index(ESCAPE_FUNC + "(") if ESCAPE_FUNC + "(" in body else -1
+        check(f".{name}( 的实参里出现 {ESCAPE_FUNC}（含命名的 searchText = ...）",
+              call_at < esc_at < call_end, f"callAt={call_at} escapeAt={esc_at} end={call_end}")
+    check(f"{ESCAPE_FUNC} 在 Repository 里的调用次数 == DAO 搜索调用点数"
+          "（不会「一处转了、另一处漏了」也照样是 5 次的假象）",
+          repo_text.count(ESCAPE_FUNC + "(") == len(sites),
+          f"{repo_text.count(ESCAPE_FUNC + '(')} vs {len(sites)}")
+    check("抽屉 ViewModel **不**自己转义（转义收敛在 Repository，两边都转=二次转义）",
+          ESCAPE_FUNC + "(" not in DRAWER_VM.read_text(encoding="utf-8"))
+    check("HTTP API ConversationRoutes **不**自己转义（同一个理由）",
+          ESCAPE_FUNC + "(" not in API_ROUTES.read_text(encoding="utf-8"))
+    check("抽屉与 HTTP API 两条路都把**原始**用户输入交给 Repository 的搜索方法",
+          "searchConversationsOfAssistantPaging(" in DRAWER_VM.read_text(encoding="utf-8")
+          and "searchConversationsOfAssistantPage(" in API_ROUTES.read_text(encoding="utf-8"))
+    note("收敛点只有一个：ConversationRepository 的 5 个搜索方法里各过一次 "
+         f"{ESCAPE_FUNC}，调用方（抽屉 ChatDrawerViewModel、HTTP API ConversationRoutes）"
+         "传原始用户输入。谁都不许自己转 —— 两边都转会把 a%b 变成 a~~~%b。")
+    note("HTTP API 这条路（GET /api/conversations/paged?query=...）对消费者是**可感知的"
+         "行为变化**：query 里带 % 或 _ 的调用方，改动前会拿到「多出来的」会话，"
+         "改动后只拿到标题里真含该字符的会话。")
 
     conn.close()
     print()
