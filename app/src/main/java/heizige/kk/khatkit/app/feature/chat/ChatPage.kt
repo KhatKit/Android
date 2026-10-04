@@ -293,7 +293,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
  * C1 之前群聊页（`GroupChatPage`）自己手写了一套 `LazyColumn` + `Text` 气泡 +
  * `KedgeOutlinedTextFieldWithSlots` 输入框，单聊这一侧已经调通的行为——抽屉、大屏分栏、
  * 语音模式、停止生成、毛玻璃、键盘跟随、@ 选择器插槽——一个都没接过去，两套页面各自漂移。
- * 这里把原先 `private` 的 `ChatPageContent` 提成 [ChatScaffold] 并开出三个**带默认值**的
+ * 这里把原先 `private` 的 `ChatPageContent` 提成 [ChatScaffold] 并开出五个**带默认值**的
  * 注入缝，让群聊页复用同一条消息管线，而不是复制一份再各自改。
  *
  * ## 纯加法：单聊零行为变化
