@@ -261,7 +261,17 @@ object GroupChat {
 
     // ---------------- 配置编解码（无损，未知字段保留） ----------------
 
-    fun encodeConfig(config: GroupConfig): String = json.encodeToString(GroupConfigSerializer, config)
+    /**
+     * 写库用的群配置编码。与 [encodeQr] 同一道密钥闸门：命中
+     * [FORBIDDEN_EXPORT_KEYS] 的配置直接拒收。不补这道检查的话，分享路径拦得住、
+     * 写库路径却照样把 `extras` 里的密钥写进 `conversation.groupConfig`。
+     */
+    fun encodeConfig(config: GroupConfig): String {
+        val element = json.encodeToString(GroupConfigSerializer, config)
+        val offending = findForbiddenKeys(json.parseToJsonElement(element))
+        check(offending.isEmpty()) { "群配置包含禁止导出的字段：$offending" }
+        return element
+    }
 
     fun decodeConfig(raw: String?): GroupConfig? {
         if (raw.isNullOrBlank()) return null
