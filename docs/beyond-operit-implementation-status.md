@@ -203,8 +203,8 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 **B. 已知遗留与风险（代码层，需要产品/架构决策）**
 
 - **B1「角色卡只显示不落库」已作废——现在是真落库**（2026-10-05，8 个 commit
-  `20581bcb..b7025665`）。早前那句「只显示（`GroupChatPage.kt:799-803`），不入库」
-  与「要落库得动 `Conversation` + `ConversationEntity` + Room 迁移」**都已完成**，
+  `20581bcb..b7025665`）。早前那条「扫码/粘贴后只显示、不入库」与「要落库得动
+  `Conversation` + `ConversationEntity` + `ConversationDAO` + Room 31→32」**都已完成**，
   别再照抄旧描述。
   `GroupSharePayload.cards`（`core/data/model/GroupChat.kt:115`）里的 `RoleCardMeta`
   （同文件 `:96`）现在随群配置一起入库：
