@@ -71,6 +71,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.provider.Model
+import heizige.kk.khatkit.app.core.data.model.GroupRole
 import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.zIndex
 import dev.chrisbanes.haze.HazeState
@@ -161,6 +163,7 @@ fun ChatList(
                 onSearchQueryChange = onPreviewSearchQueryChange,
                 onJumpToMessage = onJumpToMessage,
                 animatedVisibilityScope = this@AnimatedContent,
+                groupChat = groupChat,
             )
         } else {
             ChatListNormal(
@@ -188,6 +191,37 @@ fun ChatList(
             )
         }
     }
+}
+
+/**
+ * 气泡上显示的模型（模型名 + 模型图标 + 「更多」面板里的模型行）。
+ *
+ * ## 口径
+ *
+ * - **群聊优先看角色绑定**：[GroupRole.modelId] 绑了就用那个模型，群配置的 `model_id`
+ *   本来就是「每个角色用哪个模型」这条契约的落点（`docs/beyond-orit-client-changes.md` 的
+ *   `roles[]` 最小 schema 里含「模型绑定」）。
+ * - **绑不上就回落到 [messageModelId]**：`model_id` 为 null / 空串 / 不是合法 Uuid /
+ *   指向一个已被删掉的模型，四种都回落——角色配置里的一个坏 id 不该让整条消息不显示模型名。
+ * - **单聊完全不受影响**：[role] 为 null 时结果就是 `messageModelId?.let(modelById::get)`，
+ *   与 C1 之前 `ChatList.kt` 里那一句逐字等价。
+ *
+ * 纯函数：不碰 Compose / 数据库，因此可用 JVM 单测钉死（见 `GroupMessageModelTest`）。
+ *
+ * @param messageModelId 消息自己记的 `modelId`（生成侧写进去的**实际**调用模型）。
+ * @param role 这条消息的发言角色；单聊与群聊里的用户消息都是 null。
+ * @param modelById `Model.id` → `Model` 的索引。
+ */
+internal fun resolveMessageModel(
+    messageModelId: Uuid?,
+    role: GroupRole?,
+    modelById: Map<Uuid, Model>,
+): Model? {
+    val roleModel = role?.modelId
+        ?.takeIf { it.isNotBlank() }
+        ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
+        ?.let(modelById::get)
+    return roleModel ?: messageModelId?.let(modelById::get)
 }
 
 @Composable
@@ -356,9 +390,24 @@ private fun ChatListNormal(
                                 ?.let { assistantById[it] }
                             roleAssistantId ?: assistant
                         }
+                        // 群聊气泡显示的模型：角色自己的绑定优先，绑不上才回落这条消息实际记的
+                        // modelId。单聊 role 恒为 null，走的就是原来那一句，一字不差。
+                        val messageModel = remember(
+                            currentMessage.modelId,
+                            speaker?.roleId,
+                            groupConfig,
+                            modelById,
+                        ) {
+                            resolveMessageModel(
+                                messageModelId = currentMessage.modelId,
+                                role = speaker?.roleId
+                                    ?.let { roleId -> groupConfig?.roles?.firstOrNull { it.id == roleId } },
+                                modelById = modelById,
+                            )
+                        }
                         ChatMessage(
                             node = node,
-                            model = currentMessage.modelId?.let(modelById::get),
+                            model = messageModel,
                             assistant = messageAssistant,
                             loading = loading && index == lastMessageIndex,
                             speakerName = speaker?.displayName,
@@ -712,8 +761,15 @@ private fun ChatListPreview(
     animatedVisibilityScope: AnimatedVisibilityScope,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onJumpToMessage: (Int) -> Unit
+    onJumpToMessage: (Int) -> Unit,
+    /**
+     * 群聊会话。与 [ChatList] 的同名参数同一口径（[isGroupConversation]），单聊恒为 false。
+     *
+     * false 时下面每一条群聊分支都不成立（说话者恒为 null），预览与 C1 之前逐字相同。
+     */
+    groupChat: Boolean = isGroupConversation(conversation),
 ) {
+    val groupConfig = conversation.groupConfig
     // 过滤消息，同时保留原始 index 避免后续 O(n) indexOf 查找
     val filteredMessages = remember(conversation.messageNodes, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -744,6 +800,15 @@ private fun ChatListPreview(
             ) { _, (originalIndex, node) ->
                 val message = node.currentMessage
                 val isUser = message.role == heizige.kk.khatkit.ai.core.MessageRole.USER
+                // 群聊：预览片段必须带说话者，否则搜出来的三段话长得一模一样，谁说的完全分不出来。
+                // 口径与气泡层共用同一个解析器（`GroupSpeakerResolver.resolve`），单聊恒为 null。
+                val speaker = remember(message, groupConfig, groupChat) {
+                    if (groupChat) {
+                        GroupSpeakerResolver.resolve(message, groupConfig) as? GroupSpeakerIdentity.Group
+                    } else {
+                        null
+                    }
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -752,6 +817,22 @@ private fun ChatListPreview(
                         ),
                     horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
                 ) {
+                    // 显示名 + 性质徽章（议长 / 投票小结 / 错误）。徽章错误时染 error 色，
+                    // 和气泡层 `ChatMessage` 的 `ChatMessageSpeakerBadge` 同一套语义。
+                    speaker?.let { who ->
+                        Text(
+                            text = who.badge?.let { "${who.displayName} · $it" } ?: who.displayName,
+                            style = KedgeTextStyles.footnoteSmall(),
+                            color = if (who.isError) {
+                                KedgeColors.error
+                            } else {
+                                KedgeColors.onSurfaceVariant
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                        )
+                    }
                     KedgeSurface(
                         shape = MaterialTheme.shapes.medium,
                         color = if (isUser) KedgeColors.primaryContainer else KedgeColors.secondaryContainer,
