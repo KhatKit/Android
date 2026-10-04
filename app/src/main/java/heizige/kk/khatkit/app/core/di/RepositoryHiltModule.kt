@@ -12,6 +12,7 @@ import heizige.kk.khatkit.app.core.data.db.AppDatabase
 import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
 import heizige.kk.khatkit.app.core.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GenMediaDAO
+import heizige.kk.khatkit.app.core.data.db.dao.GroupRunDAO
 import heizige.kk.khatkit.app.core.data.db.dao.ManagedFileDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MemoryChunkDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MemoryGraphDAO
@@ -69,6 +70,18 @@ object RepositoryHiltModule {
     @Singleton
     fun provideFavoriteRepository(favoriteDAO: FavoriteDAO): FavoriteRepository =
         FavoriteRepository(favoriteDAO)
+
+    /**
+     * 群聊轮次运行记录（run token / 运行日志）。
+     *
+     * C1-R 的 `ChatManager` 需要它做「同一 conversationId + roundId 只允许一个运行实例」的
+     * 抢占式幂等：`group_runs` 的复合主键 + `insert(ABORT)` 是权威判定，进程内状态只是缓存。
+     * DAO 本身是 Room 生成的 stateless 代理，这里只补一个注入入口（`AppDatabase` 已有
+     * `abstract fun groupRunDao()`，无需改数据库定义）。
+     */
+    @Provides
+    @Singleton
+    fun provideGroupRunDAO(database: AppDatabase): GroupRunDAO = database.groupRunDao()
 
     @Provides
     @Singleton
