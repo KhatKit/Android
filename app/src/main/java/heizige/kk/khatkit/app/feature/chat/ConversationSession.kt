@@ -43,7 +43,13 @@ class ConversationSession(
             val conversation = load()
             synchronized(this) {
                 // 加载挂起期间可能已经通过保存或编辑写入了更新的状态。
-                if (!initialized) updateConversation(conversation)
+                if (!initialized) {
+                    updateConversation(conversation)
+                    // 加载进来的都是存量消息，不能被后续生成的空消息过滤误伤。
+                    existingMessageIds =
+                        existingMessageIds + conversation.messageNodes
+                            .flatMap { node -> node.messages }.map { it.id }
+                }
             }
         }
     }
@@ -68,7 +74,26 @@ class ConversationSession(
         }
     }
 
+    /**
+     * 本次生成之前就已经存在的消息 ID（存量）。
+     *
+     * 落库前用它区分「本次生成新增的消息」与「历史消息」：只允许丢弃前者里没产出的助手消息，
+     * 这样历史遗留的空助手消息不会在某次无关生成后被静默删掉。
+     *
+     * 只在两个时刻推进：会话初始化加载历史之后、以及每次 [finishGeneration] 落库之后。
+     * 流式过程中 ChatManager 会通过 [updateConversation] 反复把半截内容写进内存状态，
+     * 所以这里绝不能跟着刷新，否则本次生成的消息会被当成存量而逃过过滤。
+     */
+    @Volatile
+    private var existingMessageIds: Set<Uuid> =
+        initial.messageNodes.flatMap { node -> node.messages }.mapTo(mutableSetOf()) { it.id }
+
     // 失败和取消也必须保存已收到的内容，且保存完成前不能释放生成任务。
+    //
+    // 契约条款「取消/超时不得写入未生成的消息」在这里落地：正常结束、失败、取消、超时四条路径
+    // 口径一致——有内容就保留，一个 token 都没产出才丢弃。GenerationLoop 在发起流式请求前会预建
+    // 一条 parts = emptyList() 的助手消息（该设计保留，重试需要复用同一 ID），用户在首个 chunk
+    // 之前停止生成时，这条占位消息不能进数据库。
     suspend fun finishGeneration(save: suspend (Conversation) -> Unit): Conversation =
         withContext(NonCancellable) {
             val current = state.value
@@ -78,9 +103,16 @@ class ConversationSession(
                 },
                 updateAt = Instant.now(),
             )
-            updateConversation(conversation)
-            save(conversation)
-            conversation
+            val filtered = conversation.copy(
+                messageNodes = conversation.messageNodes
+                    .dropUngeneratedAssistantMessages(existingMessageIds)
+            )
+            // 落库成功即成为存量：本次保存过的消息不属于下一次生成的「新增」。
+            existingMessageIds =
+                filtered.messageNodes.flatMap { node -> node.messages }.mapTo(mutableSetOf()) { it.id }
+            updateConversation(filtered)
+            save(filtered)
+            filtered
         }
 
     // 从队列取出到写入会话历史之间，附件仍需作为有效引用保留。
