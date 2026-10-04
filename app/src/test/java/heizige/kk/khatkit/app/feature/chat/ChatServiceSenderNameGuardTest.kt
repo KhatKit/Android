@@ -105,16 +105,8 @@ class ChatServiceSenderNameGuardTest {
         val source = code(File(repoRoot(), CHAT_SERVICE_FILE).readText())
         val groupMarkers = GROUP_MARKERS.filter { source.contains(it) }
 
-        // 现状：无群聊路径。这条断言记录「炸弹尚未引爆」这个前提本身。
-        assertEquals(
-            "$CHAT_SERVICE_FILE 不该有群聊上下文。若这是有意新增的群聊路径，" +
-                "请先确认本测试的「重算」分支对新的标记词生效，并把标记词补进 GROUP_MARKERS。",
-            emptyList<String>(),
-            groupMarkers,
-        )
-
-        // 触发器：下面这段在今天不可达，但它就是这条护栏的牙齿所在 —— 一旦有人写了群聊
-        // 分支而没重算，第一个命中它的就是它。
+        // 触发器，**先跑**：一旦有人写了群聊分支而没重算，这条就是要拦下的那次 —— 失败信息
+        // 直接告诉他要做什么。今天 `ChatService` 没有任何群聊标记，所以这个分支空转。
         if (groupMarkers.isNotEmpty()) {
             assertTrue(
                 "$CHAT_SERVICE_FILE 出现群聊上下文（$groupMarkers）后，senderName 必须改成 " +
@@ -124,11 +116,33 @@ class ChatServiceSenderNameGuardTest {
                 source.contains("var senderName"),
             )
             val groupIndex = groupMarkers.minOf { source.indexOf(it) }
+            // 必须是**第二次**赋值，不能只靠初值那一次：群聊分支若排在初值之前，光检查
+            // 「标记之后有没有 `senderName = `」会被初值本身满足，护栏就漏了。所以先卡总数
+            // ≥2（初值 + 重算），再卡位置。位置检查放在其后，这样失败信息指向的是真正
+            // 缺的那一半。
+            val assigns = Regex("""senderName\s*=\s*resolveNotificationSenderName\s*\(""")
+                .findAll(source).count()
+            assertTrue(
+                "$CHAT_SERVICE_FILE 有群聊上下文（$groupMarkers）就必须把 senderName 至少重算一次" +
+                    "（即总共 ≥2 处 `senderName = resolveNotificationSenderName(`，现在 $assigns 处）。" +
+                    "只有初值一处 = 通知标题用的是会话级模型。",
+                assigns >= 2,
+            )
             assertTrue(
                 "$CHAT_SERVICE_FILE 里群聊分支之后必须重算 senderName（命中标记 $groupMarkers）",
                 source.indexOf("senderName = resolveNotificationSenderName(", groupIndex) > groupIndex,
             )
         }
+
+        // 现状锚点，**后跑**：上面那条拦的是「搬了群聊却忘了重算」；这一条拦的是「搬了群聊、
+        // 也重算了，但没让人显式确认过第二个生成入口现在也带群聊语义」。两次搬运、两次红，
+        // 逼着改动者在这条测试里显式登记，而不是悄悄让护栏失去覆盖。
+        assertEquals(
+            "$CHAT_SERVICE_FILE 不该有群聊上下文。若这是有意新增的群聊路径，" +
+                "请先确认本测试的「重算」分支对新的标记词生效，并把标记词补进 GROUP_MARKERS。",
+            emptyList<String>(),
+            groupMarkers,
+        )
     }
 
     companion object {
