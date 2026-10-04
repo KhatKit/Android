@@ -298,9 +298,10 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
  *
  * ## 纯加法：单聊零行为变化
  *
- * 三个新参数都有默认值，因此 [ChatPage] 里那两个调用点（`isBigScreen` 的
+ * 五个新参数都有默认值，因此 [ChatPage] 里那两个调用点（`isBigScreen` 的
  * `PermanentNavigationDrawer` 分支与 `else` 的 `ModalNavigationDrawer` 分支）**一行都不用改**：
- * 不传即 `listOverlay = {}`、`bottomBarAboveInput = {}`、`extraCompletionProviders = emptyList()`，
+ * 不传即 `listOverlay = {}`、`bottomBarAboveInput = {}`、`extraCompletionProviders = emptyList()`、
+ * `topBar = null`、`canEditMessage = { true }`，
  * 渲染结果与 C1 之前完全相同。**以后给本函数加参数，一律追加到列表末尾并给默认值，
  * 不要动这两个调用点的既有参数顺序。**
  *
