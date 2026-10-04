@@ -10,6 +10,14 @@ import kotlinx.coroutines.flow.Flow
 import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
 import heizige.kk.khatkit.app.core.data.repository.LightConversationEntity
 
+/**
+ * 会话类型筛选谓词，`:type` 传空串表示不筛（抽屉的「全部」chip）。
+ *
+ * 「按助手取未归档」和「按助手搜索」两条查询共用同一份文本，两条路只有一套 type 语义，
+ * 不会各自长出一个空串含义不同的写法。抽成常量也是为了能在 JVM 单测里直接核对这份文本。
+ */
+internal const val CONVERSATION_TYPE_PREDICATE_SQL = " AND (:type = '' OR type = :type)"
+
 @Dao
 interface ConversationDAO {
     @Query("SELECT * FROM conversationentity ORDER BY is_pinned DESC, update_at DESC")
@@ -27,7 +35,7 @@ interface ConversationDAO {
     @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND folder_id = '' ORDER BY is_pinned DESC, update_at DESC")
     fun getUnfiledConversationsOfAssistantPaging(assistantId: String): PagingSource<Int, LightConversationEntity>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND folder_id = '' AND (:type = '' OR type = :type) ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND folder_id = ''" + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
     fun getUnfiledConversationsOfAssistantByType(assistantId: String, type: String): PagingSource<Int, LightConversationEntity>
 
     @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE folder_id = :folderId ORDER BY is_pinned DESC, update_at DESC")
@@ -55,7 +63,7 @@ interface ConversationDAO {
      * 只有一个筛选维度（搜索 / 类型）在同一条 SQL 里判定，不存在两套口径。
      * 默认值 `''` 让旧的单聊调用点（不传 type）行为不变。
      */
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%' AND (:type = '' OR type = :type) ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
     fun searchConversationsOfAssistantByType(
         assistantId: String,
         searchText: String,
