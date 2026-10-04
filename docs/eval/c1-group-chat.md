@@ -591,6 +591,211 @@ PASS  ALTER 路径：message_node 的存量行一行没少
   做成文本护栏，**但仍不是运行时证据**。
 - **UI 一行都没上屏**：导入后刷新页面，「已导入的角色卡」是否真在，仍然零证据。
 
+### C1-P 群聊导出确定性哈希（零设备）
+
+登记于 commit `d2b5c05c`（测试）、`eef6efb3`（跨 JVM 比对脚本）、`bbe2e558`
+（golden 清单护栏）。**这一节同样不改变任何用例的判定**：契约 `:206` 点名的四类
+证据里，「**酒馆本体打开**」、viewer 可见消息 ID、模型调用序列、token 计数
+**仍然一份都没有**；「导出 SHA-256」这一类现在有了一份，但它是**零设备 fixture 的**
+哈希，不是真机经 IO 分发导出的那份文件，更不代表酒馆读得进去。**C1-09 状态仍是
+`unverified`。**
+
+**为什么这条契约以前一直写「无证据」——那个理由不成立。**
+C1-09 行的备注曾写「需要真机导出才能算哈希」。可
+`TavernChatCodec.exportGroupJsonl` / `TavernChatCodec.exportGroup` /
+`GroupChat.encodeQr` 全是**纯函数**，输入只有 `List<MessageNode>` + `GroupConfig` +
+`List<RoleCardMeta>` + 几个字符串，**不碰数据库、不碰 `Context`、不碰设备**。所以
+「导出 SHA-256 算不出来」是错的，零设备就能算。真正需要真机的从来不是「算哈希」，
+而是「这份文件酒馆认不认」。
+
+**命令**：
+
+```
+python3 tools/verification/c1p_group_export_hash.py
+```
+
+| 项 | 实测值 |
+|---|---|
+| 真实退出码 | **0**（默认严格比对模式） |
+| 脚本规模 | `tools/verification/c1p_group_export_hash.py`，500 行 |
+| golden 清单 | `tools/verification/c1p_group_export_hash.golden.json`，67 行 / 3,016 字节（**入库**） |
+| 测试类规模 | `app/src/test/java/heizige/kk/khatkit/app/core/data/ai/tavern/C1pGroupExportHashTest.kt`，829 行 / `tests="5"` |
+| 产物目录 | `app/build/c1p-group-export-hash/*.txt`（**构建目录，未入库**） |
+| 运行方式 | 脚本连跑 **2 次** `gradlew --offline :app:testDebugUnitTest --rerun --tests …C1pGroupExportHashTest`，每次都是**全新的测试 JVM** |
+| 覆盖变体 | 9 个 fixture 变体 + 2 个 `encodeQr` 载荷（按 `mode`） |
+
+#### 9 个变体的字节数与 SHA-256（本机实测，逐条复核过）
+
+| variant | bytes | sha256 |
+|---|---:|---|
+| `empty_messages_jsonl` | 1518 | `0ae10ea537e112c7f4d98ebd275b26a86e1b30952f1de8274f0cccf670f11e80` |
+| `image_part_jsonl` | 1711 | `c07d7e6ead7f06143ceae05fa5082be04af1fabc333edb60125ee337c9cbd9e9` |
+| `pipeline_3roles_2rounds_array` | 3617 | `b8d57a6c4f15e87d1a9d0a181022ba28410a36527075e71b0daf77976c1a3653` |
+| `pipeline_3roles_2rounds_jsonl` | 3615 | `36e6585f9aa4a028eb8277bc70578fd2c802cdd730e3981f0d52b02430f0c8b9` |
+| `pipeline_with_explicit_create_date_jsonl` | 3652 | `92ce04902dc0c8e5bd822020e3df885b30a89adb9fef2fcd0fb712ae9faeee5e` |
+| `roundtable_3roles_2rounds_jsonl` | 3616 | `33c51124e5421ae46a002f025a2e61dc5712b73ddc413ca9dea3b9777ccc0fb3` |
+| `vote_3roles_2rounds_jsonl` | 3619 | `ad9e3fb119cbc4bea05b7e917eb180aabeb230bbbf89dfe1addcfd0040217c35` |
+| `qr_payload_pipeline` | 1348 | `2d65ec04dded8a8fc29d3b7cb2d235bea908ee779b0568a6f644f34670cd2ff5` |
+| `qr_payload_vote` | 1352 | `8b49d47b225f32f6ad6032b1ab49eb1d6122a3af3c97652936adf7df13c2e9bf` |
+
+`C1P-QR` 那两条（按 `mode` 命名）是同一份字节的第二次独立打印：
+`pipeline` 1348 / `2d65ec04…`、`vote` 1352 / `8b49d47b…`，与上表的
+`qr_payload_pipeline` / `qr_payload_vote` **完全相同**——所以 QR 载荷的字节也被
+`hashlib` 交叉复算覆盖到了（落盘文件 `qr_pipeline.txt` / `qr_vote.txt` 与
+`qr_payload_*.txt` 逐字节同哈希）。
+
+⚠️ 落盘目录里另有 `qr_pipeline.txt` / `qr_vote.txt` 两个文件，是 QR 那条用例自己写的
+副本，**不是第 10、第 11 个变体**。
+
+#### fixture 覆盖点
+
+- **3 个角色**（`a`/`b`/`c`，其中 `c` 是 `chair = true`）× **3 种 `mode`**
+  （`pipeline` / `roundtable` / `vote`）；**2 个 `round_id`**（`r1`/`r2`）。
+- **五种 `turn_kind` 齐全**：`user` / `speaker` / `chair` / `vote_summary` / `error`。
+- 两条**不同**的 `mention_role_ids`（`["a","b"]` 与 `["c"]`）。
+- 一个 `selectIndex = 1` 的**双 swipe 节点**（契约四件套取选中那条，`swipes` 全量保留）。
+- `RoleCardMeta` **六字段**齐全，persona 含非 ASCII 且**必须 JSON 转义**的字符：
+  `「」`、`C:\Users\ada`、换行、tab、`🎭`；`card_id` 与 `avatar_ref` **各有「有值」与
+  「为 null」两种**（为 null 的必须整个键消失，不能变成字符串 `"null"`）。
+- **双层 `extras`**：群配置层（含一个**嵌套对象** `nested.depth`）与角色层（`a` 带
+  `tone` + `vendor_note`），往返两层都不许丢。
+- **空消息列表**（文件只剩一行表头）、**非文本 part**（图片退化成 `toText()`）、**显式
+  `createDate`**（唯一一个时间入口）。
+
+#### 三重确定性验证
+
+| 层 | 做法 | 结论 |
+|---|---|---|
+| ① 进程内 | 同一 JVM 里对每个变体导出两遍，`assertEquals` 比**字节列表**再比 SHA-256 | 9/9 一致 |
+| ② 跨 JVM | 脚本连起**两次全新的测试 JVM**，抓各自 `println` 的 `C1P-HASH` 行比对 | 9/9 + 2/2 一致 |
+| ③ 独立复算 | Python `hashlib` 重算落在 `app/build/c1p-group-export-hash/` 的文件，与 JVM 打印值对照 | 9/9 一致 |
+
+第 ③ 层是关键：**JVM 自己算的哈希只跟 JVM 自己算的哈希对上是不够的**，那是自己给自己
+作证；用另一套实现（CPython 的 `hashlib`）重算磁盘上那份字节，才能证明「打印出来的
+那个哈希确实对应真正落盘的那份文件」。
+
+另外静态核过一遍：`exportGroupJsonl` / `exportGroup` / `encodeQr` 里**未发现非确定性
+来源**——不写时间戳、不写消息 `id` / `createdAt`、不写随机值；`createDate` 不显式传
+就整个键不存在（`pipeline_with_explicit_create_date_jsonl` 这个变体就是专门钉这条的）。
+
+#### 往返幂等清单（7 个 Tavern 变体逐条断言，全过）
+
+导出 → 导入 → **用导入回来的值**再导出（不是拿原 fixture 重算一遍）：
+
+- `groupName` / `userName` / `characterNames` 相等；
+- `GroupConfig` **整体**往返相等；群配置层与角色层 `extras` 都保留（含嵌套对象）；
+  `chair` 保留。
+- `RoleCardMeta` 列表与**六字段逐个**相等；persona 的非 ASCII / 引号 / 反斜杠 / 换行 /
+  emoji **原样回来**；`avatarRef = null` 往返后**仍是 `null`**（不是字符串 `"null"`）；
+  `cardId = null` 同理。
+- 契约四件套 `role_id` / `round_id` / `turn_kind` / `mention_role_ids` **逐条**相等；
+  `mes` / `name` 逐条相等；**每行**都有 `swipes` 与 `swipe_id`，且 `swipe_id` 落在
+  `swipes` 范围内。
+- 多 swipe 节点**两条 swipe 全量保留**且 `selectIndex = 1`（契约字段取选中那条）。
+- 非文本 part 只留 `toText()`，字节里**没有任何图片痕迹**。
+- 空消息列表往返后**仍只有表头**。
+- **再导出的 SHA-256 与第一次逐字节相同**（9/9，含字节数相等）。
+
+#### 与 SillyTavern 的离线结构对照（⚠️ **不是真机打开**）
+
+依据 `docs/beyond-orit-open-source-references.md` 已登记的 SillyTavern `release` @
+`06bde939fb1e9c4c8d8641d810f0a916b5bce127`，以及读过的
+`public/scripts/group-chats.js:268,272`（读 `data[0].chat_metadata`，且**只在首行带
+这个键**时才 `shift()` 掉表头）。本轮**没有联网重新 clone 上游**。
+
+酒馆**认**的：表头 `spec:"st_chat_v1"` / `user_name` / `character_name` /
+`create_date`（**仅显式传时**） / `chat_metadata:{is_group:true}`；每条消息 `name` /
+`is_user` / `is_system` / `mes` / `swipes` / `swipe_id`。
+酒馆**不解释但原样保留**的：`khatkit_group`、`khatkit_character_names`、`role_id`、
+`round_id`、`turn_kind`、`mention_role_ids`（后两个落在 `khatkit_` 私有命名空间）。
+
+测试的判据是**封闭集合**：表头与消息对象的**每一个键**都必须落在「酒馆已知键 ∪ 契约
+私有键」集合内，**出现第三类键就失败**。这样「我们没往酒馆的 JSON 里塞它不认的东西」
+是被断言出来的，不是被观察出来的。
+
+#### ⭐ golden 清单：把「确定性」升级成「格式没变」的长期护栏
+
+原脚本 `eef6efb3` 版有个**真缺口**：它只比「两次运行之间一致」，**不比对任何期望值**。
+后果是——哪天有人悄悄改了 `exportGroupJsonl` 的输出格式（多写一个键、少写一个
+`create_date`、换字段顺序、调换行符），两次运行**照样完全一致**、测试**照样全绿**、
+导出文件**却已经不兼容了**。「确定性」和「格式没变」是两件完全不同的事，前者推不出
+后者。
+
+`bbe2e558` 补上 **golden 清单** `tools/verification/c1p_group_export_hash.golden.json`
+（**入库**，与脚本同目录）：
+
+- **默认就是严格比对**。任何变体的 `bytes` 或 `sha256` 对不上即退出码 1，并逐个变体
+  打印**变了哪个 / golden 旧值 / 实测新值**。
+- **变体集合也参与比对**：清单里有而这次没跑到、这次跑到而清单里没有，各算一条失败——
+  否则「顺手加一个变体」就能绕过比对。
+- **严格 schema**：只允许 `_comment` / `variants` / `qr_payloads` 三个顶层键；每条必须
+  恰好有 `bytes`（非负整数，`bool` 显式排除）与 `sha256`（64 位**小写**十六进制）。
+  解析失败或 schema 不符**一律硬失败**，**绝不**降级成「读不出来就只做跨 JVM 比对」——
+  那个静默失效正是这道护栏要防的。
+- **更新必须是显式动作**：`--update-golden` 是**唯一**的写盘路径，没有自动接受。而且
+  它仍然要先跑完两次独立 JVM——跨 JVM 不一致或落盘对不上时**拒绝写盘**，避免把非确定性
+  一次性固化成「期望值」。
+- **清单里也写了更新流程**，改护栏的人就地能读到，不必去翻脚本。
+
+**变异测试：护栏确实有牙齿。** 只改 `TavernChatCodec.kt` 的导出格式、跑**未改动**的
+脚本与清单，两次变异都被抓住（还原用文件备份 + sha256 校验，全程零 git 命令）：
+
+| 变异 | 改法 | 脚本退出码 | 报红变体数 | 谁没报红（正确地没报红） |
+|---|---:|---:|---:|---|
+| 基线（未改动） | — | **0** | 0 | — |
+| `mutA` 窄 | 把 `create_date` 这个 `put` **真正挪**到 `chat_metadata` 之后（只改键序、不改键值） | **1** | **1** | 其余 8 个变体 + 2 个 QR 载荷 |
+| `mutB` 宽 | 消息对象里 `mes` 提到 `name` 之前 | **1** | **6** | `empty_messages_jsonl`（无消息行）+ 2 个 QR 载荷（走 `GroupChat.encodeQr`） |
+
+两次变异里 **Gradle 都退出码 0**（既有 82 条用例的结构断言**全绿**）——也就是说
+**既有测试没抓住这两处漂移，是 golden 清单抓住的**。这正是加这道护栏的全部理由。
+`mutA` 的失败信息原文：
+
+```
+失败 1 项：
+  - 导出字节变了 variants.pipeline_with_explicit_create_date_jsonl：SHA-256
+    92ce04902dc0c8e5bd822020e3df885b30a89adb9fef2fcd0fb712ae9faeee5e ->
+    f4a6687bea2048a962ee7d95e9c69b75ddb7bb38a2d203dad8489a445232b85b（golden 旧值
+    bytes=3652 sha256=92ce0490… / 实测新值 bytes=3652 sha256=f4a6687b…）
+```
+
+⚠️ 诚实记一笔：**第一次跑 `mutA` 时退出码是 0**，因为那个「变异」只在那行加了句
+Kotlin 行尾注释、**没真挪**（注释不改行为，等于没变异）。重做成真挪之后才报红。所以
+「变异 A 抓到了」这句话的前提是**变异本身真的改了行为**——这也是为什么变异测试表
+必须连「怎么改的」一起记，只记 EXIT 码没有意义。
+
+#### ⚠️ 这一节仍然不能证明什么（5 条，逐条照记）
+
+1. **酒馆真机 / 桌面端能不能打开这个文件——零证据。** 上面那份对照是**离线结构比对**，
+   依据的是已核实并登记的上游源码行为，**不是**真机打开。真机打开需设备。
+2. **文件没有经过真实 IO 分发。** `writeExportTempFile` + `ACTION_SEND`（分享面板）
+   一次没跑过；测试路径是**内存 → 字节 → `java.io.File.writeBytes`**，**不是** Android
+   `ContentResolver` / `MediaStore`。真机上经 Uri 分享出去的字节是否逐字节相同，
+   **未验**。
+3. **扫码链路零证据。** `QrScannerSheet` 要相机。QR 侧只证明了 `encodeQr` 的**载荷
+   确定**（2 条哈希 + golden 护栏），**完全没涉及**二维码图像的生成与识别（MLKit 侧）。
+4. **fixture 与真实用户数据不同分布。** persona、群名、消息文本都是为覆盖边界条件
+   手写的（含转义字符、emoji、双 swipe），**不代表**真实群聊的字符分布或长度分布。
+   「9 个变体哈希稳定」**推不出**「真实导出的文件哈希稳定」。
+5. **跨机器 / 跨 JDK 版本一致性未验。** 本机只有一个 JDK（脚本两次独立 JVM 是**同一台
+   机器同一个 JDK**）。`kotlinx.serialization` 的输出在别的 JDK / 别的版本上是否逐字节
+   相同，**没测过**。真机上的 ART 与本机 JDK 也不是同一个运行时。
+
+#### 本次同时新增的 JVM 测试（5 条，全过）
+
+`:app:testDebugUnitTest` 从 **86 类 678 例** 变成 **87 类 683 例**（0 失败 / 0 错误 /
+0 跳过，逐个 XML `tests` 属性汇总实测）。既有测试文件**零删改**：
+`f444a714..eef6efb3` 的 `git diff --numstat` 只有两行、都是纯新增（`829 0` 测试文件 +
+`245 0` 脚本），**没有任何删除或修改**。C1 相关测试类因此 **24 类 291 例 → 25 类
+296 例**。仪器测试**仍是 25 条不变**（本节没加任何 `androidTest`）。
+
+#### 三条命令的真实退出码
+
+`:app:testDebugUnitTest --rerun` **0**（87 类 / 683 例 / 0 失败 0 错误 0 跳过）/
+`:app:assembleDebug` **0** / `:app:lintAnalyzeDebug --rerun :app:lintReportDebug --rerun
+:app:lintDebug --rerun` **0**（app 单模块仍 **596 条 issue、0 Error**，590 Warning +
+6 Hint；`TavernChatCodec.kt` 与本次新增的 `C1pGroupExportHashTest.kt` 命中数都是 **0**）/
+`python3 tools/verification/c1p_group_export_hash.py` **0**。
+
 ## 仪器测试状态
 
 - **C1 相关仪器测试 25 个注解，执行结果为零，需设备。**（C1-D 之后新增了
