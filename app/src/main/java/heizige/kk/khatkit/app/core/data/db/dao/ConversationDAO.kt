@@ -48,6 +48,20 @@ interface ConversationDAO {
     @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%' ORDER BY is_pinned DESC, update_at DESC")
     fun searchConversationsOfAssistantPaging(assistantId: String, searchText: String): PagingSource<Int, LightConversationEntity>
 
+    /**
+     * 按助手 + 标题关键字搜索会话，可再按会话类型收窄。
+     *
+     * type 的空串语义与 [getUnfiledConversationsOfAssistantByType] 完全一致：`''` = 不筛，
+     * 只有一个筛选维度（搜索 / 类型）在同一条 SQL 里判定，不存在两套口径。
+     * 默认值 `''` 让旧的单聊调用点（不传 type）行为不变。
+     */
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%' AND (:type = '' OR type = :type) ORDER BY is_pinned DESC, update_at DESC")
+    fun searchConversationsOfAssistantByType(
+        assistantId: String,
+        searchText: String,
+        type: String = "",
+    ): PagingSource<Int, LightConversationEntity>
+
     @Query("SELECT * FROM conversationentity WHERE id = :id")
     fun getConversationFlowById(id: String): Flow<ConversationEntity?>
 

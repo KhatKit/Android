@@ -259,7 +259,18 @@ class ConversationRepository(
             }
     }
 
-    fun searchConversationsOfAssistantPaging(assistantId: Uuid, titleKeyword: String): Flow<PagingData<Conversation>> =
+    /**
+     * 按助手 + 标题关键字分页搜索会话。
+     *
+     * [type] 透传给 DAO 的同一条 SQL（空串 = 不筛），与 [getUnfiledConversationsOfAssistantPaging]
+     * 语义一致：类型筛选在 DB 层一次完成，调用方不需要（也不应该）再对 PagingData 做内存过滤。
+     * 默认值 `''` 保证旧调用点（单聊列表、不筛类型）一行不改。
+     */
+    fun searchConversationsOfAssistantPaging(
+        assistantId: Uuid,
+        titleKeyword: String,
+        type: String = "",
+    ): Flow<PagingData<Conversation>> =
         Pager(
             config = PagingConfig(
                 pageSize = PAGE_SIZE,
@@ -267,9 +278,10 @@ class ConversationRepository(
                 enablePlaceholders = false
             ),
             pagingSourceFactory = {
-                conversationDAO.searchConversationsOfAssistantPaging(
-                    assistantId.toString(),
-                    titleKeyword
+                conversationDAO.searchConversationsOfAssistantByType(
+                    assistantId = assistantId.toString(),
+                    searchText = titleKeyword,
+                    type = type
                 )
             }
         ).flow.map { pagingData ->
