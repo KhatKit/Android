@@ -34,44 +34,59 @@ internal const val CONVERSATION_TYPE_PREDICATE_SQL = " AND (:type = '' OR type =
  * 而 type 谓词是另一个 AND 合取项，所以拼接顺序是 `LIKE ... '%'` + `ESCAPE '~'` +
  * `CONVERSATION_TYPE_PREDICATE_SQL`；反过来写（谓词在前、ESCAPE 收尾）实测直接报
  * `near "ESCAPE": syntax error`。
+ *
+ * ---
+ *
+ * 本文件里**每一条** ORDER BY 都以 `id ASC` 收尾，作为确定性的 tiebreaker。
+ *
+ * `update_at` 是毫秒时间戳，同毫秒更新两个会话是完全可能的（批量置顶、批量移动文件夹、
+ * 先批量插入再逐条改标题……）。没有 tiebreaker 时那几行的相对次序只由引擎决定 ——
+ * **不是 SQL 契约**，所以 `LIMIT/OFFSET` 分页（Room 的 `LimitOffsetPagingSource`）在同值行
+ * 上翻页理论上可能重复或漏行。`id` 是本表主键（`TEXT NOT NULL, PRIMARY KEY`，见
+ * `schemas/.../32.json`）且唯一，所以拼上它之后任意两行之间都有全序，分页结果可复现。
+ *
+ * `id` 恒定存在且与业务无关，所以这是**纯改善**：`update_at` 不同时结果逐字不变，
+ * `update_at` 相同时把「引擎碰巧怎么排」换成「按 id 升序」这一条写进契约。
+ * 顺便也让「最近 N 条」（`getRecentConversationsOfAssistant` 的 `LIMIT :limit`）在并列时
+ * 不再随机换人。
  */
 
 @Dao
 interface ConversationDAO {
-    @Query("SELECT * FROM conversationentity ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT * FROM conversationentity ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getAll(): Flow<List<ConversationEntity>>
 
-    @Query("SELECT * FROM conversationentity ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT * FROM conversationentity ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getAllPaging(): PagingSource<Int, ConversationEntity>
 
-    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getConversationsOfAssistant(assistantId: String): Flow<List<ConversationEntity>>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getConversationsOfAssistantPaging(assistantId: String): PagingSource<Int, LightConversationEntity>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND folder_id = '' ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND folder_id = '' ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getUnfiledConversationsOfAssistantPaging(assistantId: String): PagingSource<Int, LightConversationEntity>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND folder_id = ''" + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND folder_id = ''" + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getUnfiledConversationsOfAssistantByType(assistantId: String, type: String): PagingSource<Int, LightConversationEntity>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE folder_id = :folderId ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE folder_id = :folderId ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getConversationsOfFolderPaging(folderId: String): PagingSource<Int, LightConversationEntity>
 
-    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId ORDER BY is_pinned DESC, update_at DESC LIMIT :limit")
+    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId ORDER BY is_pinned DESC, update_at DESC, id ASC LIMIT :limit")
     suspend fun getRecentConversationsOfAssistant(assistantId: String, limit: Int): List<ConversationEntity>
 
-    @Query("SELECT * FROM conversationentity WHERE title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT * FROM conversationentity WHERE title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun searchConversations(searchText: String): Flow<List<ConversationEntity>>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun searchConversationsPaging(searchText: String): PagingSource<Int, LightConversationEntity>
 
-    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT * FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun searchConversationsOfAssistant(assistantId: String, searchText: String): Flow<List<ConversationEntity>>
 
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + " ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun searchConversationsOfAssistantPaging(assistantId: String, searchText: String): PagingSource<Int, LightConversationEntity>
 
     /**
@@ -85,7 +100,7 @@ interface ConversationDAO {
      * 转义过的片段（由 `ConversationRepository` 统一转义）：没有 ESCAPE 时用户输入的
      * `%` / `_` 会被当通配符，「只多命中不漏命中」。
      */
-    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC")
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity WHERE assistant_id = :assistantId AND title LIKE '%' || :searchText || '%'" + CONVERSATION_LIKE_ESCAPE_SQL + CONVERSATION_TYPE_PREDICATE_SQL + " ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun searchConversationsOfAssistantByType(
         assistantId: String,
         searchText: String,
@@ -122,7 +137,7 @@ interface ConversationDAO {
     @Query("DELETE FROM conversationentity")
     suspend fun deleteAll()
 
-    @Query("SELECT * FROM conversationentity WHERE is_pinned = 1 ORDER BY update_at DESC")
+    @Query("SELECT * FROM conversationentity WHERE is_pinned = 1 ORDER BY update_at DESC, id ASC")
     fun getPinnedConversations(): Flow<List<ConversationEntity>>
 
     @Query("UPDATE conversationentity SET is_pinned = :isPinned WHERE id = :id")
