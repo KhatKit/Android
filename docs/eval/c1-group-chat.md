@@ -5,7 +5,7 @@
 `beyond-operit-client-changes.md` 的 C1 实施契约（该文件 `:193-206` 是规格原文，
 `:232-235` 是「验收记录格式」）。
 
-## 现状（2026-10-05 复核，基线 `d45ebd10`，本轮验收证据登记于本文件所在 commit）
+## 现状（2026-10-05 复核，基线 `d45ebd10`，C1-D 重放证据登记于锚点 commit `1b0e04a9`）
 
 - **十条用例仍然全部 `unverified`。** C1 的代码层已实现并落在仓库里，离线
   `testDebugUnitTest` / `lint` / `packageDebug` 三条命令本轮都真跑过且退出码 0，
@@ -78,7 +78,7 @@ C1 相关共 **22 个测试类 / 277 个用例**，全类名带包名前缀为
 
 | 用例 | commit | 命令·退出码 | 设备·Android | 输入或 fixture | viewer 可见消息 ID | 模型调用序列 | token (prompt+completion) | 导出 SHA-256 | 证据路径 | 状态 |
 |---|---|---|---|---|---|---|---:|---|---|---|
-| C1-01 三角色显式 @ | `4534f02a` 新增 GroupTurnCoordinator 纯判定内核<br>`be41fdc9` 补 63 条内核用例（含视角隔离）<br>`6c8d4932` 新增 GroupRoleCompletionProvider<br>`e5dde832` 补 8 条防伪 @ 边界用例<br>（4 个 SHA 均在 `d45ebd10~1..HEAD` 内，已 `git cat-file -t` 逐个核过） | `CMD-1` 退出码 **0**<br>2026-10-04 23:48 强制 `--rerun`，84 个 XML 全部重写<br>`CMD-2` 退出码 **0**（该例无 lint 命中，见下） | **无设备**。`adb devices` 输出为空列表；磁盘上唯一 app 仪器测试记录是 2026-10-03 12:58:29 的 `Process crashed`（`tests="0"`），早于基线 13.5 小时；Android 版本无记录 | 输入 = JVM 测试类：<br>`feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupRoleCompletionProviderTest`（8）<br>fixture 为 Kotlin 内联构造的 `GroupConfig`/`UIMessage` 列表，无外部文件 | **无证据（需真机）**。JVM 只断言 `viewerMessages(...)` 返回的 `UIMessage` 列表内容，没有把断言里的消息落成带真实 `message.id` 的台账，磁盘上没有「角色 A 可见 = [id1,id3]」这种记录 | **无证据（需真机）**。仓库里被 git 跟踪的 `*.jsonl` 全部在 `ai/src/test/resources/stream-traces/generated/`（10 个文件），是 AI SDK 的桩事件流，与 C1 无关；没有真实 provider 的调用序列 | **无证据（需真实模型）**。`GroupTurnCoordinatorTest` 的预算断言喂的是构造出来的 token 数，不是真实 completion 计数 | **无证据**。C1-01 不产出群聊导出文件；`app/build/outputs/apk/debug/*.apk` 的 SHA-256 是安装包哈希，与「群聊导出文件哈希」不是一回事，不能填进本列 | `app/build/test-results/testDebugUnitTest/TEST-heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinatorTest.xml`<br>`…GroupChatTest.xml`<br>`…GroupRoleCompletionProviderTest.xml`<br>主源码：`app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt` | `unverified` |
+| C1-01 三角色显式 @ | `4534f02a` 新增 GroupTurnCoordinator 纯判定内核<br>`be41fdc9` 补 63 条内核用例（含视角隔离）<br>`6c8d4932` 新增 GroupRoleCompletionProvider<br>`e5dde832` 补 8 条防伪 @ 边界用例<br>（4 个 SHA 均在锚定区间 `d45ebd10~1..1b0e04a9` 内，已 `git cat-file -t` 逐个核过） | `CMD-1` 退出码 **0**<br>2026-10-04 23:48 强制 `--rerun`，84 个 XML 全部重写<br>`CMD-2` 退出码 **0**（该例无 lint 命中，见下） | **无设备**。`adb devices` 输出为空列表；磁盘上唯一 app 仪器测试记录是 2026-10-03 12:58:29 的 `Process crashed`（`tests="0"`），早于基线 13.5 小时；Android 版本无记录 | 输入 = JVM 测试类：<br>`feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupRoleCompletionProviderTest`（8）<br>fixture 为 Kotlin 内联构造的 `GroupConfig`/`UIMessage` 列表，无外部文件 | **无证据（需真机）**。JVM 只断言 `viewerMessages(...)` 返回的 `UIMessage` 列表内容，没有把断言里的消息落成带真实 `message.id` 的台账，磁盘上没有「角色 A 可见 = [id1,id3]」这种记录 | **无证据（需真机）**。仓库里被 git 跟踪的 `*.jsonl` 全部在 `ai/src/test/resources/stream-traces/generated/`（10 个文件），是 AI SDK 的桩事件流，与 C1 无关；没有真实 provider 的调用序列 | **无证据（需真实模型）**。`GroupTurnCoordinatorTest` 的预算断言喂的是构造出来的 token 数，不是真实 completion 计数 | **无证据**。C1-01 不产出群聊导出文件；`app/build/outputs/apk/debug/*.apk` 的 SHA-256 是安装包哈希，与「群聊导出文件哈希」不是一回事，不能填进本列 | `app/build/test-results/testDebugUnitTest/TEST-heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinatorTest.xml`<br>`…GroupChatTest.xml`<br>`…GroupRoleCompletionProviderTest.xml`<br>主源码：`app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt` | `unverified` |
 | C1-02 无 @ 的 pipeline | `4534f02a` 新增 GroupTurnCoordinator<br>`dd7b3c79` ChatManager 接上协调器 + `group_runs` 运行日志<br>`b752a310` 更新 ChatScaffold KDoc（modelId 已参与解析）<br>`139a91ba` 图片导出的模型名与气泡同口径 | `CMD-1` 退出码 **0**（同上，强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupTurnModel.kt` lint 零命中） | **无设备**，同 C1-01（`adb devices` 空；唯一仪器记录 2026-10-03 崩溃且 `tests="0"`） | 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupTurnModelTest`（14） | **无证据（需真机）**。同 C1-01：只有纯函数返回集合的内容断言，没有真实 `message.id` 可见台账 | **无证据（需真实 provider）**。契约要求「实际模型调用序列与日志一致」，JVM 侧只能断言 `SpeakerStep` 顺序，没有一次真实请求的 provider/model/顺序记录可导出 | **无证据**。pipeline 的 prompt+completion 实际计数未采集 | **无证据**。pipeline 路径本轮不导出群聊文件 | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-…GroupTurnModelTest.xml`<br>接线点：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt:705-741`（群分支取 `GroupTurnEntry.Speak` 并按 `resolveGroupTurnModelId` 选模型） | `unverified` |
 | C1-03 roundtable | `4534f02a` 新增 GroupTurnCoordinator<br>`be41fdc9` 补 63 条内核用例<br>`ab5cddb9` 新增 GroupSpeakerResolver（说话者解成纯函数）<br>`d934c4d2` 气泡上方显示说话者 + 关掉群聊不适用的三个动作 | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupSpeakerResolver.kt` / `ChatMessage.kt` lint 零命中） | **无设备**，同 C1-01 | 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupSpeakerResolverTest`（8） | **无证据（需真机）**。「议长前看不到未完成输出」只有集合内容断言，没有逐 viewer 的真实消息 ID 清单 | **无证据**。roundtable 的「全员完成 → 仅议长汇总」两段调用序列未实跑 | **无证据** | **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-…GroupSpeakerResolverTest.xml`<br>主源码：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/GroupSpeakerResolver.kt` | `unverified` |
 | C1-04 vote | `4534f02a` 新增 GroupTurnCoordinator<br>`aa771637` `parseBallot` 截断选票前缀改忽略大小写（修小写 `vote:` 被静默丢票）<br>`be41fdc9` 补 63 条内核用例（含投票平票） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupChat.kt` lint 零命中） | **无设备**，同 C1-01 | 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>选票文本是测试内联的 `vote:` 前缀字符串 | **无证据（需真机）** | **无证据**。三角色各自投票请求的真实调用序列未采集 | **无证据** | **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>判定入口：`app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt:605`（`parseBallot`） | `unverified` |
@@ -420,10 +420,25 @@ PASS  对照：那行数据确实写进了 memory_chunks（表本身没坏，坏
 
 ## C1 commit 台账
 
-统计区间 `d45ebd10~1..本文件所在 commit`（`--no-merges`），**共 78 个 commit**。
-口径是**截至本文件当前 commit**，且已把本轮两次订正提交计入：改本文件与另两份
-docs 的 `docs(c1)`，以及改 `ChatPage.kt` KDoc 的 `fix(c1-p)`
-（`32c9e8f8 fix(c1-p): ChatScaffold KDoc 注入缝数量与默认实参清单订正为五个`）。
+统计区间 `d45ebd10~1..1b0e04a9`（`--no-merges`），**共 78 个 commit**。
+
+口径**锚定在固定 SHA `1b0e04a9`**，不是「截至本文件当前 commit」。
+**为什么锚在这一个 SHA**：早前几版台账拿「本文件当前 commit」当区间右端，而每改
+一次文档本身就产生一个新 commit，右端跟着右移、数字当场过期，已经反复了好几轮
+（71→72→74→78→79）。`1b0e04a9`
+（`docs(c1): 登记 C1-D 迁移重放证据并订正过期引用与台账数字`）之后本文件只做文字
+订正，不再改动功能代码的 commit 构成，所以把它当右端，下面**所有计数在后续文档提交
+中保持不变**，不必再追数字。核验命令（换任何 SHA 都能复现）：
+
+```
+git log --oneline d45ebd10~1..1b0e04a9 | wc -l          # 78
+git log --oneline --merges d45ebd10~1..1b0e04a9 | wc -l # 0，区间内无 merge
+```
+
+区间内已含 `32c9e8f8 fix(c1-p): ChatScaffold KDoc 注入缝数量与默认实参清单订正为五个`
+（改 `ChatPage.kt` KDoc）。**锚点之后的纯文档提交不计入本台账任何计数**——包括本文件
+这次提交自己（本次文档提交不计入台账口径）。所以下文的 78 / 6 / 17 都不是「当前
+commit 数」，而是「截至 `1b0e04a9` 的数」，改文档不会让它变。
 
 **类型前缀分布**：`feat` 25、`fix` 20、`test` 14、`coder` 7、`refactor` 5、
 `docs` 5、`chore` 1、`build` 1 = 78。
@@ -444,10 +459,13 @@ docs 的 `docs(c1)`，以及改 `ChatPage.kt` KDoc 的 `fix(c1-p)`
 | **合计** | **78** | |
 
 ⚠️ **`c1-p` / `c1-s` / `c1-q` 共 31 个 commit 用了 `client-changes.md:214-221`
-未定义的标签**（`c1-p` 16 + `c1-s` 9 + `c1-q` 6）。契约只定义了 C1-D / C1-R /
+未定义的标签**（`c1-p` 16 + `c1-s` 9 + `c1-q` 6）。口径：同一区间
+`d45ebd10~1..1b0e04a9` 内、只数这三个标签之和，**裸 `c1` 标签不计入这 31**（另算）。
+契约只定义了 C1-D / C1-R /
 C1-M / C1-U / C1-X / C1-E 六个子包；这三个标签的实际含义（`c1-p` 群聊页与
 模型选型、`c1-s` 说话者显示与抽屉筛选、`c1-q` QR 导入导出接线）是实施过程中
-长出来的，**没有回填到契约表**。另加 11 个裸 `c1` 标签 commit 未标子包。下次
+长出来的，**没有回填到契约表**。另加 11 个裸 `c1` 标签 commit 未标子包（这 11 个
+才是 78 减去 67 个带子标签 commit 的余数）。下次
 整理台账时应把这四个标签正式并入契约表，或重新归并到既有六个子包。
 
 **改 `docs/` 的 commit**：6 个。
@@ -461,10 +479,10 @@ C1-M / C1-U / C1-X / C1-E 六个子包；这三个标签的实际含义（`c1-p`
 - `5a66837f docs(c1): 重写 C1 交接小节，如实反映代码已落地但验收证据为零`
   —— 纯文档，只改 `docs/beyond-operit-implementation-status.md`（把「C1 交给下一位」
   重写成 2026-10-05 版，也就是本文 `:19` 与 `client-changes.md:195` 现在引用的那版）。
-- 本文件当前 HEAD 上的 `docs(c1): 登记 C1-D 迁移重放证据并订正过期引用与台账数字`
-  —— 纯文档，只改本文 + `client-changes.md:195` 的日期 + `implementation-status.md:226`
-  的方位词；即上面统计里最新的那个 docs commit，SHA 用
-  `git log --oneline -1 -- docs/eval/c1-group-chat.md` 现查（写这段时它还没生成）。
+- `1b0e04a9 docs(c1): 登记 C1-D 迁移重放证据并订正过期引用与台账数字` —— 纯文档，
+  只改本文 + `client-changes.md:195` 的日期 + `implementation-status.md:226` 的方位词。
+  **它同时就是本台账锚定的那个 SHA**，也是区间内最后一个改本文件的 commit。锚点之后
+  本文件只做文字订正，所以「改 `docs/` 的 commit」固定为 **6 个**，不再逐次追加。
 
 **只改测试 / 验证工具、不动任何 main 源码的 commit**：17 个，拆开看：
 
@@ -582,9 +600,10 @@ SHA-256。
    其二：契约 `:214-221` 未定义 `c1-p` / `c1-s` / `c1-q` / 裸 `c1` 四个标签，
    这四个标签的子包归属需要回填或重新归并，实测合计 **42 个 commit**
    （`c1-p` 16 + `c1-s` 9 + `c1-q` 6 = 31，加 11 个裸 `c1` 标签 = 42；
-   前一版这里写的 36 是漏算了裸 `c1`，已订正）。口径同「C1 commit 台账」：
-   统计区间 `d45ebd10~1..本文件所在 commit`，`--no-merges`。⚠️ 本文件所属的这次
-   订正提交自身是 `docs(c1)`（裸标签），提交后裸 `c1` 变 12 个、合计 43。
+   再前一版这里写的 36 是漏算了裸 `c1`，已订正）。口径同「C1 commit 台账」：
+   统计区间锚定在固定 SHA `d45ebd10~1..1b0e04a9`，`--no-merges`。**42 是截至
+   `1b0e04a9` 的数**——锚点之后的纯文档提交（含本文件此次提交）不计入，所以不需要
+   再预告「提交后会变成几」。
 
 ## 判定规则
 

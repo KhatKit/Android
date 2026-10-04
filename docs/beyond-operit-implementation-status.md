@@ -34,10 +34,12 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 现状一句话：**代码层七项缺口全部落地，验收证据 0/10。**
 
 - **代码已实现。** 上节（2026-10-04）列的七条缺口已在 `d45ebd10` 之后补进仓库，
-  截至**本文件当前 commit** 基线附近共 **79 个 commit**
-  （`git log --oneline d45ebd10~1..HEAD | wc -l`，已把本文件这次订正提交计入。
-  `docs/eval/c1-group-chat.md` 台账记的 78 是上一版统计，差的就是本文件这次提交）。
-  子包标签与分布见该文件「C1 commit 台账」。
+  统计区间 `d45ebd10~1..1b0e04a9`（**锚定在固定 SHA**，不随本文后续提交变动）
+  共 **78 个 commit**：`git log --oneline d45ebd10~1..1b0e04a9 | wc -l` = 78，
+  区间内 `--merges` 命中 0。锚点选在「C1-D 迁移重放证据登记」那次提交，
+  因为它之后只做文字订正、不再改功能代码的 commit 构成——早前用「本文当前 commit」
+  当右端，每改一次文档数字就自己过期一次（71→72→74→78→79）。
+  前缀分布、子包标签与各子计数见 `docs/eval/c1-group-chat.md` 台账「C1 commit 台账」。
   「已实现」只描述代码写到哪一步，不等于任何用例通过。
 - **构建与 JVM 测试层全绿，有硬证据。** 三条离线命令都强制重跑、退出码 0：
   `:app:testDebugUnitTest`（84 类 664 例 0 失败 0 错误 0 跳过）、
@@ -135,9 +137,14 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 
 **A. 需要设备的（拿不到就无法验收）**
 
-- 契约 `:206` 点名的四类硬证据，磁盘上**一项都没有**：各 viewer 可见消息 ID 台账、
-  真实模型调用序列、真实 token（prompt+completion）计数、群聊导出文件 SHA-256。
-  采集手段见 `docs/eval/c1-group-chat.md` 的「下一位怎么把 unverified 变成 verified」。
+- 契约 `:206` 点名的**那四类**硬证据，磁盘上确实**零份**：各 viewer 可见消息 ID
+  台账、真实模型调用序列、真实 token（prompt+completion）计数、群聊导出文件
+  SHA-256——**这四类一件都不存在**。采集手段见 `docs/eval/c1-group-chat.md` 的
+  「下一位怎么把 unverified 变成 verified」。
+  ⚠️ 别把这条读成「C1 全仓零证据」，那也不对：本节末条另登记了 C1-D 迁移侧的
+  **一条主机侧部分**证据（30→31 迁移 SQL 重放 85 条断言全过）。两者不矛盾——
+  **四类零份**说的是 `:206` 点名的产物清单，**主机侧部分**说的是迁移正确性，
+  后者**不覆盖这四类中的任何一类**，所以十个用例状态仍是全 `unverified`。
 - 仪器测试 **19 条从未跑过**：`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAOTest.kt`
   12 条 + `.../core/data/db/migrations/Migration_30_31_Test.kt` 7 条（已 grep 计数确认）。
   磁盘上唯一的 app 仪器记录是 2026-10-03 12:58:29 的一次 `Process crashed`
