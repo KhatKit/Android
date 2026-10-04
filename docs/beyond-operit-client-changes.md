@@ -192,7 +192,7 @@
 
 #### C1 实施契约（先定数据与边界，再写 UI）
 
-> 2026-10-04 进度与缺口写在 `beyond-operit-implementation-status.md` 的「C1 交给下一位」。
+> 2026-10-05 进度与缺口写在 `beyond-operit-implementation-status.md` 的「C1 交给下一位」。
 > 验收证据只认 `docs/eval/c1-group-chat.md`。那里仍全部是 `unverified`。
 
 - **持久化模型**：复用 `Conversation`、`MessageNode` 与现有 sync/搜索管线；仅新增 `Conversation.type = GROUP`、`Conversation.group_config`（版本化 JSON）以及消息 `role_id`、`mention_role_ids`、`round_id`、`turn_kind` 字段。`type` 缺失或未知值按 `DIRECT` 读取，旧数据库零迁移；群配置未知字段必须保留，导出/恢复不得丢失。
