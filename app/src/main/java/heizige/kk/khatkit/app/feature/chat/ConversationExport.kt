@@ -98,6 +98,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessageServerToolStep
 import heizige.kk.khatkit.app.core.ui.components.message.MessagePartBlock
 import heizige.kk.khatkit.app.core.ui.components.message.ThinkingStep
@@ -111,7 +112,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.common.android.appTempFolder
 import heizige.kk.khatkit.ai.util.encodeBase64
 import heizige.kk.khatkit.ai.ui.isEmptyUIMessage
-import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.message.groupMessageParts
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -524,7 +524,8 @@ private fun ExportedChatImage(
                         ExportedChatMessage(
                             message = message,
                             options = options,
-                            prevMessage = messages.getOrNull(index - 1)
+                            prevMessage = messages.getOrNull(index - 1),
+                            groupConfig = conversation.groupConfig,
                         )
                     }
 
@@ -547,7 +548,8 @@ private fun ExportedChatImage(
 private fun ExportedChatMessage(
     message: UIMessage,
     prevMessage: UIMessage? = null,
-    options: ExportOptions = ExportOptions()
+    options: ExportOptions = ExportOptions(),
+    groupConfig: GroupConfig? = null
 ) {
     val parts = remember(message.parts, options.includeReasoning) {
         if (options.includeReasoning) message.parts else message.parts.filterNot { it is UIMessagePart.Reasoning }
@@ -555,7 +557,22 @@ private fun ExportedChatMessage(
     if (parts.isEmptyUIMessage()) return
     val context = LocalContext.current
     val settings = LocalSettings.current
-    val model = message.modelId?.let { settings.findModelById(it) }
+    val modelById = remember(settings.providers) {
+        settings.providers
+            .flatMap { it.models }
+            .associateBy { it.id }
+    }
+    // 导出的模型名与气泡同一口径：群聊看角色自己的绑定（`GroupRole.modelId`），绑不上才回落这条
+    // 消息实际记的 modelId。单聊 `groupConfig` 恒为 null，走的就是 `message.modelId` 那一句。
+    val model = remember(message.modelId, groupConfig, modelById) {
+        val speaker = GroupSpeakerResolver.resolve(message, groupConfig) as? GroupSpeakerIdentity.Group
+        val role = speaker?.roleId?.let { roleId -> groupConfig?.roles?.firstOrNull { it.id == roleId } }
+        resolveMessageModel(
+            messageModelId = message.modelId,
+            role = role,
+            modelById = modelById,
+        )
+    }
     // Always show model icon for assistant messages in exported images
     val showModelIcon = message.role == MessageRole.ASSISTANT && prevMessage?.role == MessageRole.USER
     val iconLabel = when {
