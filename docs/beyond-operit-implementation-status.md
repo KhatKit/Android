@@ -309,9 +309,30 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   `GroupRole.modelId` 是用户可改的配置，拿它做数据迁移回填**零信息增量**。
   两侧判据从此**故意**不一致。遗留：真机上验证「改过绑定后老消息仍显示老模型」
   **零设备证据**。
-- B4 `ChatManager.kt:681` / `:686` 的 `senderName` 与 `useExternalWebSearch` 仍是
-  会话级模型（都在群分支 `:705` 之前算好，群聊分支只重算了 `model` 本身）。
-  后台通知标题可能显示错模型。
+- B4 ~~`ChatManager.kt:681` / `:686` 的 `senderName` 与 `useExternalWebSearch` 仍是
+  会话级模型~~ **已关闭（`ed21db6e`）：这是真 bug，但只有 `senderName` 那一半。**
+  - **`senderName` 确实是 bug，已修**：它唯一的**显示**消费点是后台「生成完成」通知的标题
+    （`ChatNotificationManager.kt:121` `title = senderName`，由 `:889` / `:923` 两处
+    `AppEvent.ChatGenerationEnded` 带出）。群聊一轮里每个角色的 `assistant_id` /
+    `model_id` 都可能不同，会话级的值只说明「这个群属于谁」，不说明「这条回复是谁写的」
+    ——三个角色各用一个模型时，通知标题会永远显示同一个名字。现已把取值抽成纯函数
+    `resolveNotificationSenderName`（`ChatManager.kt`，公式逐字来自 `d61eefde`，与气泡
+    头像区 `ChatMessageAvatar.kt:86-131` 同一口径），并在群聊分支重算完 `assistant` /
+    `model` **之后**重新赋值。单聊走不到那个分支，取值与 C1 之前逐字相同。
+  - **`useExternalWebSearch` 不是 bug，不改**：它唯一的消费点是群聊分支**之前**的
+    「工具不可用」告警，那里的 `model` 同为会话级，两者自洽。真正决定「本轮要不要下发
+    外部搜索工具」的是 `chatToolFactory.createTools(...)` 内部按传入的 `(assistant, model)`
+    再算一次（`ChatToolFactory.kt:151`），而那个调用点在群聊分支**之后**、拿的是本轮
+    真实的模型——工具下发本身没有错位。要改只能把告警整体挪到群聊分支之后，那会改变
+    「群聊但本轮无发言者时是否还弹这条告警」的行为，属于未授权变更。
+  - **仍未验证**：这条路径（`handleMessageComplete`）是 `private suspend` + 一堆 Hilt 协作者，
+    JVM 单测构造不出来，所以纯函数只能证明**公式**，证明不了「调用点在正确位置」——
+    位置用一条**源码文本护栏**钉住（`ChatManagerNotificationSenderNameTest.
+    groupBranch_recomputesSenderName_afterResolvingModel`，已做变异检验：删掉重算即 FAIL）。
+    **真机后台通知标题在群聊下是否正确显示，仍零设备证据。**
+    另外 `ChatService.kt:624` 有一份**逐字相同**的 `senderName` 计算，但那个类的
+    `handleMessageComplete` 里**完全没有群聊分支**（`grep -c groupConfig` = 0），
+    走不到群聊路径，因此不需要改；将来若把群聊能力搬进那个类，这条会重新变成 bug。
 - B5 vote 选票仍靠 `VOTE:` 前缀正则匹配模型自由文本（`GroupChat.kt:605-617`），
   不是 tool-call 强约束。契约 `:201` 说「只接受结构化候选/票」——**数据结构层面
   已满足**（`VoteBallot` / `VoteOutcome` 在 `GroupChat.kt:133` / `:141`，
