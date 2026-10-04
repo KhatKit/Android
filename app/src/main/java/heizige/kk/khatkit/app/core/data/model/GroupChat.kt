@@ -682,18 +682,24 @@ object GroupChat {
         )
     }
 
-    /** 载荷里的角色卡元数据。缺 `role_id` 的条目直接丢掉，不猜它属于谁。 */
+    /**
+     * 载荷里的角色卡元数据。缺 `role_id` 的条目直接丢掉，不猜它属于谁。
+     *
+     * 取值一律走 [string] 而不是裸 `content`：`JsonNull` 本身也是 `JsonPrimitive`
+     * 且 `content == "null"`，裸取会把 `encodeQr` 写出的 `card_id: null` 读成字符串
+     * `"null"`，再导出一次就把这个假引用带进下一份载荷。
+     */
     private fun decodeCards(raw: JsonElement?): List<RoleCardMeta> =
         (raw as? JsonArray)?.mapNotNull { element ->
             val card = element as? JsonObject ?: return@mapNotNull null
-            val roleId = (card["role_id"] as? JsonPrimitive)?.content ?: return@mapNotNull null
+            val roleId = card.string("role_id") ?: return@mapNotNull null
             RoleCardMeta(
                 roleId = roleId,
-                name = (card["name"] as? JsonPrimitive)?.content.orEmpty(),
-                assistantId = (card["assistant_id"] as? JsonPrimitive)?.content.orEmpty(),
-                cardId = (card["card_id"] as? JsonPrimitive)?.content,
-                persona = (card["persona"] as? JsonPrimitive)?.content.orEmpty(),
-                avatarRef = (card["avatar_ref"] as? JsonPrimitive)?.content,
+                name = card.string("name").orEmpty(),
+                assistantId = card.string("assistant_id").orEmpty(),
+                cardId = card.string("card_id"),
+                persona = card.string("persona").orEmpty(),
+                avatarRef = card.string("avatar_ref"),
             )
         }.orEmpty()
 
