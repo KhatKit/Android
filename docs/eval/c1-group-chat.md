@@ -64,13 +64,13 @@ C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`）
 | C1-09 | Tavern/QR 往返 | 群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token | `GroupTavernExportTest` 22<br>`TavernCompatTest` 21<br>`QrScannerSheetTest` 16<br>`GroupChatTest` 18<br>`C1pGroupExportHashTest` 5 | `unverified` |
 | C1-10 | 单聊/群聊共存 | 同一列表混排；类型筛选只过滤；切换后消息与会话数据不丢 | `ConversationListQueryPlanTest` 7<br>`ConversationTypeFilterSourceGuardTest` 2<br>`GroupChatTest` 18 | `unverified` |
 
-C1 相关共 **25 个测试类 / 296 个用例**，全类名带包名前缀为
+C1 相关共 **25 个测试类 / 304 个用例**，全类名带包名前缀为
 `heizige.kk.khatkit.app.`。逐类用例数（`tests` 属性实测）：
 `feature.chat.GroupTurnCoordinatorTest` 63、`feature.chat.GroupTavernExportTest` 22、
 `core.data.ai.tavern.TavernCompatTest` 21、`core.data.model.GroupChatTest` 18、
 `feature.chat.UngeneratedMessageFilterTest` 18、
 `core.ui.components.ui.QrScannerSheetTest` 16、`feature.chat.GroupTurnModelTest` 14、
-`feature.chat.GroupMessageModelTest` 10、`core.data.db.migrations.GroupRunSchemaTest` 10、
+`feature.chat.GroupMessageModelTest` 18、`core.data.db.migrations.GroupRunSchemaTest` 10、
 `core.data.repository.MemorySpaceGateTest` 9、
 `core.data.repository.MemoryAttributionTest` 9、
 `core.data.repository.MemoryRetrievalEngineTest` 9、
@@ -231,6 +231,14 @@ BuiltinCardSampleTest` 1、`khatkit/engine/RustEngineTest` 5、
 「测试结果」段），而**合计那一行本轮没有重跑全仓 `test`、因此不更新**——上表的
 **180 / 1291** 与「182 / 1305」两个合计都按各自窗口的实测值原样保留，别拿 `app`
 的增量去加。
+
+⚠️ **再往后一批（`c7535ca8` 把气泡显示改成 `message.modelId` 优先）之后，`app`
+实测是 87 个测试类 / 691 tests / 0 failures / 0 errors / 0 skipped**
+（`./gradlew --offline :app:testDebugUnitTest --rerun` 退出码 **0**，87 个 XML 全部重写，
+逐个 `tests` 属性汇总实测：87 / 683 → **87 / 691**，即 `+0 类 / +8 例`，全部落在
+`feature.chat.GroupMessageModelTest` 10 → 18）。`feature.chat.GroupTurnModelTest` 仍是
+14（改的是第 14 条断言的内容，用例数不变）。**合计那一行同样没重跑全仓 `test`、
+不更新。**
 
 ⚠️ 有测试结果和有 lint 报告的是**两批不同的 15 个模块**：`card-validator` 有测试
 结果（4 类 77 例）但**没有 lint 报告**（见下）；`image-toolbox-dependency` 有 lint
@@ -1117,14 +1125,22 @@ SHA-256。
    （调用点 `core/data/repository/ConversationRepository.kt:92` 与 `:281`）。
    DAO 层已把 type 过滤下沉（`ConversationListQueryPlanTest` 7 条钉住），但
    **folder 口径要不要对齐是产品决策**，本文不擅自改。
-4. **`GroupRole.modelId`：生成侧已接，历史消息未回填。**
-   `GroupRole.modelId`（`GroupChat.kt:50`）现在生成侧已生效——`ChatManager`
-   群分支用 `resolveGroupTurnModelId`（定义在
-   `app/src/main/java/heizige/kk/khatkit/app/feature/chat/GroupTurnModel.kt:54`，
-   调用点 `ChatManager.kt:726`）按角色绑定选模型，气泡显示侧用
-   `resolveMessageModel`（`ChatList.kt:215`），两边同口径（`139a91ba`）。
-   **但本包之前生成的历史消息，`message.modelId` 记的是助手绑的模型**，与现在
-   气泡显示的角色绑定不一致。要不要写数据迁移回填，是独立决定，本包未做。
+4. ~~**`GroupRole.modelId`：生成侧已接，历史消息未回填。**~~ **已由 `c7535ca8` 关闭：
+   不做数据迁移，改显示侧口径。** 原文记的是「生成侧按角色绑定选模型、显示侧也按
+   角色绑定显示，两边同口径（`139a91ba`）」，并把「历史消息未回填」列为遗留。
+   那个同口径结论本身是错的：`GroupRole.modelId` 是**用户可改的配置**，今天的绑定
+   不等于当初那次调用；`41642ecd` 之前生成的群聊消息 `message.modelId` 记的是
+   **助手**绑的模型（那才是当时的真相），按角色绑定显示就是给这批历史消息显示一个
+   当时没被调用过的模型。
+   数据迁移**不可行**且**无信息增量**：`GroupRole.modelId` 会被用户改，用它回填
+   等于把配置猜成历史。正确解法是把两侧拆成两个问题——生成侧 `resolveGroupTurnModelId`
+   （`GroupTurnModel.kt:54`，调用点 `ChatManager.kt:726`）答「**现在要用哪个**」，
+   显示侧 `resolveMessageModel`（`ChatList.kt:215`）答「**当时用了哪个**」，后者改成
+   `message.modelId` 优先、缺失时才回落角色绑定。
+   **两侧判据从此故意不一致**，`GroupTurnModelTest` 第 14 条原来那条「两侧结果必须
+   相等」的断言已随之重设计（14 条数量不变）。
+   仍未验的部分：真机上「老消息显示老模型」需要造一批改过绑定的群聊会话看气泡，
+   **零设备证据**。
 5. **`ChatManager.kt:681` / `:686` 仍是会话级模型口径。**
    `val senderName = if (assistant.useAssistantAvatar) {...} else { model.displayName }`
    （`:681`）和 `val useExternalWebSearch = shouldUseExternalWebSearch(assistant, model)`
