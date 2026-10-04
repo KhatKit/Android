@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
@@ -73,7 +74,6 @@ import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
-import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -92,10 +92,10 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
 import heizige.kk.khatkit.app.core.ui.components.ai.FilesPicker
 import heizige.kk.khatkit.app.core.ui.components.ai.SearchMode
+import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionProvider
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.WorkspaceCompletionProvider
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberChatAttachmentPickerActions
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
@@ -228,7 +228,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
                     )
                 }
             ) {
-                ChatPageContent(
+                ChatScaffold(
                     onStartVoiceMode = startVoiceMode,
                     inputState = inputState,
                     loadingJob = loadingJob,
@@ -262,7 +262,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
                     )
                 }
             ) {
-                ChatPageContent(
+                ChatScaffold(
                     onStartVoiceMode = startVoiceMode,
                     inputState = inputState,
                     loadingJob = loadingJob,
@@ -285,8 +285,37 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
     }
 }
 
+/**
+ * 单聊页和群聊页共用的消息区骨架。
+ *
+ * C1 之前群聊页（`GroupChatPage`）自己手写了一套 `LazyColumn` + `Text` 气泡 +
+ * `KedgeOutlinedTextFieldWithSlots` 输入框，单聊这一侧已经调通的行为——抽屉、大屏分栏、
+ * 语音模式、停止生成、毛玻璃、键盘跟随、@ 选择器插槽——一个都没接过去，两套页面各自漂移。
+ * 这里把原先 `private` 的 `ChatPageContent` 提成 [ChatScaffold] 并开出三个**带默认值**的
+ * 注入缝，让群聊页复用同一条消息管线，而不是复制一份再各自改。
+ *
+ * ## 纯加法：单聊零行为变化
+ *
+ * 三个新参数都有默认值，因此 [ChatPage] 里那两个调用点（`isBigScreen` 的
+ * `PermanentNavigationDrawer` 分支与 `else` 的 `ModalNavigationDrawer` 分支）**一行都不用改**：
+ * 不传即 `listOverlay = {}`、`bottomBarAboveInput = {}`、`extraCompletionProviders = emptyList()`，
+ * 渲染结果与 C1 之前完全相同。**以后给本函数加参数，一律追加到列表末尾并给默认值，
+ * 不要动这两个调用点的既有参数顺序。**
+ *
+ * @param listOverlay 画在 [ChatList] **之后**、仍在内容槽那个 `Box` 里的浮层。
+ *   位置是硬要求：同一个 `Box` 里前面依次是 `AssistantBackground` 与 `ChatList`，
+ *   插在它们之前会被消息列表整块压住（`AssistantBackground` 还是 `fillMaxSize`）。
+ * @param bottomBarAboveInput 画在输入框正上方、仍在 `bottomBar` 槽里的内容（成员头像组等）。
+ *   在 `ChatInput` 之前调用，这样它在布局上就在输入框上方，且同样被输入框的毛玻璃 backdrop
+ *   覆盖（`ChatInput` 自己会 `hazeSource` 采样上方内容）。
+ * @param extraCompletionProviders 追加到 `ChatInput` 的 @ 选择器 provider 列表**尾部**。
+ *   ⚠️ 已知坑：`ChatInput` 里是 `val primary = lists.firstOrNull()`，多 provider 合并时
+ *   **只认第一个非空列表的 `replacementRange`**，只有 `replacementRange` 相同的列表才会被
+ *   合并进候选。所以追加的 provider 必须排在 workspace provider 之后，并且只在
+ *   workspace provider 不触发时才给出候选，否则插入范围会错位。
+ */
 @Composable
-private fun ChatPageContent(
+internal fun ChatScaffold(
     onStartVoiceMode: () -> Unit,
     inputState: ChatInputState,
     loadingJob: Job?,
@@ -303,9 +332,11 @@ private fun ChatPageContent(
     errors: List<ChatError>,
     onDismissError: (Uuid) -> Unit,
     onClearAllErrors: () -> Unit,
+    listOverlay: @Composable BoxScope.() -> Unit = {},
+    bottomBarAboveInput: @Composable () -> Unit = {},
+    extraCompletionProviders: List<ChatCompletionProvider> = emptyList(),
 ) {
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     var previewMode by rememberSaveable { mutableStateOf(false) }
     var previewSearchQuery by rememberSaveable { mutableStateOf("") }
@@ -326,11 +357,14 @@ private fun ChatPageContent(
         setting = setting,
         onAttachmentAdded = { showFilesSheet = false },
     )
-    val allowAudioVideoAttachments =
-        setting.getCurrentChatModel()?.findProvider(setting.providers) is ProviderSetting.Google
 
-    val completionProviders = remember(assistant.workspaceId, conversation.workspaceCwd, workspaceRepository) {
-        assistant.workspaceId?.let { workspaceId ->
+    val completionProviders = remember(
+        assistant.workspaceId,
+        conversation.workspaceCwd,
+        workspaceRepository,
+        extraCompletionProviders,
+    ) {
+        val workspace = assistant.workspaceId?.let { workspaceId ->
             listOf(
                 WorkspaceCompletionProvider(
                     workspaceId = workspaceId.toString(),
@@ -339,6 +373,10 @@ private fun ChatPageContent(
                 )
             )
         }.orEmpty()
+        // extra 只能追加在**尾部**：ChatInput 合并多 provider 时只认第一个非空列表的
+        // replacementRange（ChatInput.kt 的 lists.firstOrNull()）。把群聊的 @ 角色选择器
+        // 排到 workspace 文件补全前面，会让它篡改文件补全的插入范围。
+        workspace + extraCompletionProviders
     }
 
     TTSAutoPlay(vm = vm, setting = setting, conversation = conversation)
@@ -395,6 +433,9 @@ private fun ChatPageContent(
             bottomBar = {
                 val messageQueue by vm.messageQueue.collectAsStateWithLifecycle()
                 val voiceState by vm.voiceSession.state.collectAsStateWithLifecycle()
+                // 输入框正上方的额外内容（群聊的成员头像组）。必须排在 ChatInput 之前：
+                // ChatInput 自己 hazeSource 采样上方子树，画在它之后就采不到了。
+                bottomBarAboveInput()
                 ChatInput(
                     onStartVoiceMode = onStartVoiceMode,
                     voiceState = voiceState,
@@ -575,6 +616,9 @@ private fun ChatPageContent(
                     vm.handleToolAnswer(toolCallId, answer)
                 },
                 )
+                // 浮层插槽排在 ChatList **之后**：同 Box 里 AssistantBackground 是
+                // fillMaxSize、ChatList 也是 fillMaxSize，插在它们之前会被整块压住。
+                listOverlay()
             }
         }
 
@@ -689,7 +733,6 @@ private fun TopBar(
     onUpdateTitle: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
     val navController = LocalNavController.current
     val titleState = useEditState<String> {
         onUpdateTitle(it)
