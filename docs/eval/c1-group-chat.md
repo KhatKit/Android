@@ -5,12 +5,16 @@
 `beyond-operit-client-changes.md` 的 C1 实施契约（该文件 `:193-206` 是规格原文，
 `:232-235` 是「验收记录格式」）。
 
-## 现状（2026-10-05 复核，基线 `d45ebd10`，C1-D 重放证据登记于锚点 commit `1b0e04a9`）
+## 现状（2026-10-05 复核，基线 `d45ebd10`，C1-D 重放证据登记于锚点 commit `1b0e04a9`，
+C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`）
 
 - **十条用例仍然全部 `unverified`。** C1 的代码层已实现并落在仓库里，离线
   `testDebugUnitTest` / `lint` / `packageDebug` 三条命令本轮都真跑过且退出码 0，
   但契约 `:206` 点名要的四类证据——**各角色可见消息集合、实际模型调用序列、
   token 计数、导出 SHA-256**——本机磁盘上**一项都没有**，所以用例不能算通过。
+  ⚠️ 2026-10-05 又补了两条**迁移侧**证据（30→31 重放 85 条断言、31→32 重放
+  49 条断言，见下方两节），它们**不覆盖上述四类中的任何一类**，因此**一条用例都没
+  改成通过**，仍是 0/10。
 - 本机 `adb devices` 为空（无真机无模拟器）。磁盘上唯一的 app 仪器测试记录是
   **2026-10-03 12:58:29 的一次崩溃**（`tests="0"`，`Process crashed`，设备 OnePlus
   `PKG110`），比 C1 基线 `d45ebd10`（2026-10-04 02:30:01）**早 13.5 小时**，因此不能
@@ -24,7 +28,17 @@
   扫码 `TavernChatCodec.kt` + `GroupChatPage.kt` + `QrScannerSheet`；群页复用
   `ChatScaffold`，`GroupChatPage.kt:251`）。**代码层已实现 ≠ 用例通过**——缺的是运行
   证据，不是代码。
-- 不要把已有 `GroupChat.kt` / `GroupChatPage` / 277 条 JVM 用例当成验收通过。
+- 不要把已有 `GroupChat.kt` / `GroupChatPage` / 291 条 JVM 用例当成验收通过。
+- **角色卡元数据已经真落库了**（`20581bcb..b7025665` 8 个 commit）：Room **31→32**
+  显式迁移 `Migration_31_32`（DDL 只有一句
+  `ALTER TABLE ConversationEntity ADD COLUMN group_cards TEXT NOT NULL DEFAULT ''`），
+  `Conversation.groupCards` → `ConversationEntity.group_cards`，导入时把
+  `payload.cards` 一起写库、刷新后由 `ImportedRoleCardsView` 展示。**「导入的卡片」vs
+  「现场生成的卡片」的分工已定案：导出永远用现场生成的**（`groupExportRoleCards`），
+  导入快照只落库 + 展示，**不合并、不静默替换**。证据与未验证清单见下方
+  「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」。
+  ⚠️ 这**不改变**任何用例判定：真机迁移、6 条仪器用例、`ConversationDAO` 真实
+  SQLite 行为、UI 刷新后卡片是否真在，四样全未验。
 
 ## 用例矩阵
 
@@ -45,7 +59,7 @@
 | C1-09 | Tavern/QR 往返 | 群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token | `GroupTavernExportTest` 22<br>`TavernCompatTest` 21<br>`QrScannerSheetTest` 16<br>`GroupChatTest` 18 | `unverified` |
 | C1-10 | 单聊/群聊共存 | 同一列表混排；类型筛选只过滤；切换后消息与会话数据不丢 | `ConversationListQueryPlanTest` 7<br>`ConversationTypeFilterSourceGuardTest` 2<br>`GroupChatTest` 18 | `unverified` |
 
-C1 相关共 **22 个测试类 / 277 个用例**，全类名带包名前缀为
+C1 相关共 **24 个测试类 / 291 个用例**，全类名带包名前缀为
 `heizige.kk.khatkit.app.`。逐类用例数（`tests` 属性实测）：
 `feature.chat.GroupTurnCoordinatorTest` 63、`feature.chat.GroupTavernExportTest` 22、
 `core.data.ai.tavern.TavernCompatTest` 21、`core.data.model.GroupChatTest` 18、
@@ -58,13 +72,18 @@ C1 相关共 **22 个测试类 / 277 个用例**，全类名带包名前缀为
 `feature.chat.GroupSpeakerResolverTest` 8、
 `feature.chat.GroupRoleCompletionProviderTest` 8、`feature.chat.ChatManagerTest` 8、
 `core.data.ai.tools.MemoryToolScopeTest` 7、
+**`core.data.model.GroupRoleCardsPersistenceTest` 7**、
+**`core.data.db.migrations.ConversationGroupCardsSchemaTest` 7**、
 `core.data.repository.MemoryExtractorParseTest` 7、
 `feature.chat.ConversationListQueryPlanTest` 7、
 `core.data.repository.GroupMemorySpacePolicyTest` 6、
 `core.data.ai.tools.MemoryToolsSearchTest` 3、
 `feature.chat.ConversationTypeFilterSourceGuardTest` 2、
 `core.data.db.MemoryRoleIdMappingTest` 2。
-合计 277，`failures=0 errors=0 skipped=0`（逐个 XML 汇总实测）。
+合计 291，`failures=0 errors=0 skipped=0`（逐个 XML 汇总实测）。
+⚠️ 加粗那两个是 C1-P（`20581bcb..b7025665`）新增的，早前版本这里写的
+「22 个测试类 / 277 个用例」已过期（`+2 类 / +14 例`）。仪器测试另有
+**25 条**同样一次没跑（12 + 7 + 6），见「仪器测试状态」。
 
 ## 证据登记
 
@@ -86,7 +105,7 @@ C1 相关共 **22 个测试类 / 277 个用例**，全类名带包名前缀为
 | C1-06 取消与超时 | `60e9f055` 新增未产出助手消息过滤纯函数<br>`97b0fa1c` `finishGeneration` 落库前丢弃本次新增空气泡<br>`adc8a0ff` 补 18 条用例（空气泡丢弃/部分产出保留/存量不清洗）<br>`be41fdc9` 补 63 条内核用例（失败取消超时） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`ChatManager.kt` lint 零命中） | **无设备**，同 C1-01。这是**最需要真机**的一条：取消与超时只能在真实协程取消 + 真实流式响应下复现，JVM 只能测纯函数 | 输入 = `feature.chat.UngeneratedMessageFilterTest`（18）<br>`feature.chat.GroupTurnCoordinatorTest`（63） | **无证据（需真机）** | **无证据**。取消/超时发生在流式响应中途，没有真实 provider 的部分响应记录 | **无证据**。取消时已消耗的 token 无采集 | **无证据** | `…TEST-heizige.kk.khatkit.app.feature.chat.UngeneratedMessageFilterTest.xml`<br>`…TEST-…GroupTurnCoordinatorTest.xml`<br>纯函数：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/UngeneratedMessageFilter.kt:78`（`dropUngeneratedAssistantMessages`）<br>落库前调用点：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/ConversationSession.kt:108`（`finishGeneration` 内） | `unverified` |
 | C1-07 失败续跑/幂等 | `d976aa61` 新增 `group_runs` 表与运行 token 幂等<br>`007e4173` 改复合主键 `(conversation_id, round_id)` + `run_token/updated_at`<br>`70ed043d` `GroupRunDAO` 按 `(conversationId, roundId)` 定位 + `upsertRun` 事务<br>`892577a3` 30→31 改显式 `Migration_30_31` 并在工厂注册<br>`cc01d78d` androidTest 迁移到复合主键/`run_token` 并补幂等与 upsert 用例<br>`be41fdc9` 补 63 条内核用例（幂等/续跑）<br>`1649f5c7` 迁移重放脚本补 FTS5 触发器存活证据与对照实验 | `CMD-1` 退出码 **0**（强制 `--rerun`，JVM 侧覆盖 app 模块全部 664 个用例，含本例相关的 `GroupTurnCoordinatorTest` 63 + `GroupRunSchemaTest` 10）<br>**仪器侧未跑**：`adb devices` 空，`connectedDebugAndroidTest` 无法执行<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同） | **无设备**。C1 相关仪器测试源码共 **19 个注解**（`GroupRunDAOTest` 12 + `Migration_30_31_Test` 7），**执行结果为零**。唯一 app 仪器记录 2026-10-03 12:58:29 崩溃且 `tests="0"`，早于基线<br>**部分证据（仅迁移侧）**：零设备主机侧重放已把 C1-D 的 30→31 迁移钉住 85 条断言 0 失败，覆盖 `group_runs` 复合主键 `(conversation_id, round_id)`、`run_token` UNIQUE 索引、同 `round_id` 第二条被主键拒绝、同 `runToken` 第二次被唯一索引拒绝、`group_runs` 仍只有 1 行（见「C1-D 迁移 30→31 主机侧重放」）。**这只是部分证据，不改状态** | 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.db.migrations.GroupRunSchemaTest`（10）<br>仪器侧 fixture 未采集：`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAOTest.kt`、`…/core/data/db/migrations/Migration_30_31_Test.kt`（源码在库，执行证据不在库） | **无证据（需真机）** | **无证据** | **无证据** | **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>仪器记录（崩溃，早于基线）：`app/build/outputs/androidTest-results/connected/debug/TEST-PKG110 - 16-_app-.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAO.kt`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`）<br>重放日志（仓库外）：`/tmp/opencode/c1-replay2/run1.log`、`run2.log`（sha256 `093981c4…4d2e7d5`）<br>变异测试驱动（仓库外）：`/tmp/opencode/c1-replay2/mutate.py` | `unverified` |
 | C1-08 记忆隔离 | `966792d6` `memory_chunks` 加 `role_id` + 注册 `group_runs`（Room 30→31）<br>`63502610` `addMemory` 透传 `roleId` 且 `toModel` 带出发言角色<br>`8e5457dc` `getMentionsOfEntity` 改带 `spaceId` 的 JOIN<br>`e7606912` 检索层加 `MemorySpaceGate` 空间闸门（FTS/向量/图谱三路）<br>`68b92146` `forgetMemory/linkMemories` 加 `expectedSpaceId` 归属校验<br>`6504f023` 记忆工具接群空间（无全局/助手回退），群聊不下发 `recent_chats`<br>`2031c409` `MemoryExtractor` 写入带 `roleId`，`sourceMessageId` 按 `source_line` 归因<br>`495b5e3a` `ChatManager` 接群记忆作用域（懒建空间、只读 viewer 可见消息）<br>`58b129c7` 补 31 条用例（空间闸门/工具空间/抽取归属/懒建/跨空间泄漏回归） | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖本例 7 个类的 50 个用例）<br>`CMD-2` 退出码 **0**（`MemoryRepository.kt` / `MemoryExtractor.kt` lint 零命中）<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同） | **无设备**，同 C1-01。三空间互不串需要真实检索栈 + 真实写入，JVM 只能测纯函数闸门<br>**部分证据（仅迁移与 FTS 侧）**：主机侧重放已钉住 `memory_chunks` 加可空 `role_id`（存量 2 行 `role_id IS NULL` 不被改写、新行可写 `'r1'`）、`role_id` 索引存在、存量 `content`/`source_message_id`/`source_ref_id`/`confidence`/时间戳/`embedding` BLOB 全保留，且 3 个 FTS5 触发器在迁移后逐字节存活、INSERT/UPDATE/DELETE 三向真同步到索引（见「C1-D 迁移 30→31 主机侧重放」）。**这不覆盖三空间互不串本身，也不改状态** | 输入 = `core.data.repository.MemorySpaceGateTest`（9）<br>`core.data.ai.tools.MemoryToolScopeTest`（7）<br>`core.data.repository.MemoryAttributionTest`（9）<br>`core.data.repository.GroupMemorySpacePolicyTest`（6）<br>`core.data.repository.MemoryExtractorParseTest`（7）<br>`core.data.db.MemoryRoleIdMappingTest`（2）<br>`core.data.db.migrations.GroupRunSchemaTest`（10） | **无证据（需真机）**。三个 `group:<conv>:role:<role>` 空间的真实检索结果可见性没有跨 viewer 的实跑记录 | **无证据**。「检索 query 只用 viewer 过滤结果」要对照真实请求的 query 文本，未采集 | **无证据** | **无证据**。契约 `:203` 要求记忆内容不进包，但没有导出文件可算哈希 | `…TEST-heizige.kk.khatkit.app.core.data.repository.MemorySpaceGateTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeTest.xml`<br>`…TEST-…MemoryAttributionTest.xml`<br>`…TEST-…GroupMemorySpacePolicyTest.xml`<br>`…TEST-…MemoryExtractorParseTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.db.MemoryRoleIdMappingTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`），日志 `/tmp/opencode/c1-replay2/run1.log`、`run2.log`（仓库外） | `unverified` |
-| C1-09 Tavern/QR 往返 | `f921a02f` `GroupRole` 补 `extras` 无损往返 + `validate` 校 `schemaVersion`<br>`b3d9bf44` `TavernChatCodec` 加群聊导出/导入（保留 `role_id/round_id/turn_kind/群配置/角色卡`）<br>`efa1c27c` `encodeConfig` 写库路径补跑密钥黑名单检查<br>`53563c8c` 补 Tavern 群聊往返与密钥过滤用例<br>`a1616b6b` 群聊页接上生成二维码（载荷与文本分享共用一份）<br>`7d4a6596` 群聊页接上扫码导入，统一走 `importShare`<br>`f5212df2` 角色卡解码走 null 安全取值<br>`b548025e` 补 `importShare` 五道闸门与 `cards` 保留用例<br>`88c850ef` 群聊导出面板接入 Tavern 群聊导出卡片，打通 `exportGroupJsonl`<br>`2c9aa2e4` 补群聊导出入口纯逻辑用例（面板到可回导文件的往返）<br>`aeab5550` 新增 CameraX + MLKit 扫码弹层与入口决策单测 | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 77 个用例：22+21+16+18）<br>`CMD-3` 退出码 **0**（打出了 3 个可安装 APK，但那是安装包不是群聊导出文件）<br>`CMD-2` 退出码 **0**（`TavernChatCodec.kt` lint 零命中） | **无设备**，同 C1-01。相机扫码（`QrScannerSheet`）与 Tavern 本体打开文件**都必须真机/桌面端**，JVM 的 16 条只测入口决策 | 输入 = `feature.chat.GroupTavernExportTest`（22）<br>`core.data.ai.tavern.TavernCompatTest`（21）<br>`core.ui.components.ui.QrScannerSheetTest`（16）<br>`core.data.model.GroupChatTest`（18）<br>往返在 JVM 里是内存对象 → JSON → 内存对象 | **无证据（需真机）** | **无证据** | **无证据** | **无证据（需真机/桌面端）**。这是四条缺失里唯一「能靠一次真机导出就补齐」的：<br>① APK 的 SHA-256 已有（见构建段），但**安装包哈希不是群聊导出文件哈希**，不能填本列；<br>② 本轮没有任何 `.jsonl` / `.json` 群聊导出产物落在仓库或 `/tmp/opencode/c1-hard/`；<br>③ `/tmp/opencode/sample-group.json` / `.jsonl`（各约 1.7 KB）**被仓库零引用**（`git grep sample-group` 无结果）、无 SHA-256、来源不明，**不作为 fixture** | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTavernExportTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.TavernCompatTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheetTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>编解码：`app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernChatCodec.kt` | `unverified` |
+| C1-09 Tavern/QR 往返 | `f921a02f` `GroupRole` 补 `extras` 无损往返 + `validate` 校 `schemaVersion`<br>`b3d9bf44` `TavernChatCodec` 加群聊导出/导入（保留 `role_id/round_id/turn_kind/群配置/角色卡`）<br>`efa1c27c` `encodeConfig` 写库路径补跑密钥黑名单检查<br>`53563c8c` 补 Tavern 群聊往返与密钥过滤用例<br>`a1616b6b` 群聊页接上生成二维码（载荷与文本分享共用一份）<br>`7d4a6596` 群聊页接上扫码导入，统一走 `importShare`<br>`f5212df2` 角色卡解码走 null 安全取值<br>`b548025e` 补 `importShare` 五道闸门与 `cards` 保留用例<br>`88c850ef` 群聊导出面板接入 Tavern 群聊导出卡片，打通 `exportGroupJsonl`<br>`2c9aa2e4` 补群聊导出入口纯逻辑用例（面板到可回导文件的往返）<br>`aeab5550` 新增 CameraX + MLKit 扫码弹层与入口决策单测 | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 77 个用例：22+21+16+18）<br>`CMD-3` 退出码 **0**（打出了 3 个可安装 APK，但那是安装包不是群聊导出文件）<br>`CMD-2` 退出码 **0**（`TavernChatCodec.kt` lint 零命中） | **无设备**，同 C1-01。相机扫码（`QrScannerSheet`）与 Tavern 本体打开文件**都必须真机/桌面端**，JVM 的 16 条只测入口决策 | 输入 = `feature.chat.GroupTavernExportTest`（22）<br>`core.data.ai.tavern.TavernCompatTest`（21）<br>`core.ui.components.ui.QrScannerSheetTest`（16）<br>`core.data.model.GroupChatTest`（18）<br>往返在 JVM 里是内存对象 → JSON → 内存对象 | **无证据（需真机）** | **无证据** | **无证据** | **无证据（需真机/桌面端）**。这是四条缺失里唯一「能靠一次真机导出就补齐」的：<br>① APK 的 SHA-256 已有（见构建段），但**安装包哈希不是群聊导出文件哈希**，不能填本列；<br>② 本轮没有任何 `.jsonl` / `.json` 群聊导出产物落在仓库或 `/tmp/opencode/c1-hard/`；<br>③ `/tmp/opencode/sample-group.json` / `.jsonl`（各约 1.7 KB）**被仓库零引用**（`git grep sample-group` 无结果）、无 SHA-256、来源不明，**不作为 fixture** | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTavernExportTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.TavernCompatTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheetTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>编解码：`app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernChatCodec.kt`<br>C1-P 补的「QR 携带角色卡最小元数据」落库证据见下方「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」（**只覆盖契约那四类之外的迁移正确性，四类仍零份，状态不变**） | `unverified` |
 | C1-10 单聊/群聊共存 | `2f1d04a2` 搜索路新增按 `type` 的 DAO 查询，空串语义与未归档路对齐<br>`c84256a1` 抽屉类型筛选下沉到 SQL，删掉只作用于已加载页的内存过滤<br>`35ea0762` `type` 谓词抽成两条查询共用的常量<br>`34493507` 补抽屉列表查询判定与「内存过滤已删」的护栏用例<br>`8528ecda` 抽出 `ChatScaffold` 共用消息区骨架<br>`4e97ff57` 群聊页复用 `ChatScaffold`，接成员头像组、@ 选择器与群配置面板 | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 27 个用例：7+2+18）<br>`CMD-2` 退出码 **0**（`ChatList.kt` 有 3 条 `FrequentlyChangingValue`，见「已知遗留与风险」第 3 条；`ChatScaffold` 侧零命中） | **无设备**，同 C1-01。「筛选只过滤、来回切换不丢数据」是交互行为，JVM 的 9 条只钉住查询判定 | 输入 = `feature.chat.ConversationListQueryPlanTest`（7）<br>`feature.chat.ConversationTypeFilterSourceGuardTest`（2）<br>`core.data.model.GroupChatTest`（18）<br>fixture 是 SQL 谓词常量 `CONVERSATION_TYPE_PREDICATE_SQL` | **无证据（需真机）** | **无证据** | **无证据** | **无证据** | `…TEST-heizige.kk.khatkit.app.feature.chat.ConversationListQueryPlanTest.xml`<br>`…TEST-heizige.kk.khatkit.app.feature.chat.ConversationTypeFilterSourceGuardTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt:19/38/66`<br>仓储：`app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationRepository.kt:92/281` | `unverified` |
 
 原始日志、JSONL 运行记录、截图/录屏和导出文件放在未提交的大文件目录或 CI artifact；
@@ -147,6 +166,16 @@ CMD-3 另跑过一次只有 `:app:packageDebug --rerun` 的对照（`BUILD SUCCE
 `:app:testDebugUnitTest` = **84 个测试类 / 664 tests / 0 failures / 0 errors /
 0 skipped**。
 
+⚠️ **这组数字是 2026-10-04 23:47 那个验证窗口的实测值，保留原样不覆写。** C1-P
+（`20581bcb..b7025665`）新增 2 个测试类 14 条用例之后，`:app:testDebugUnitTest`
+实测已是 **86 个测试类 / 678 tests**（0 失败 / 0 错误 / 0 跳过），全仓
+`./gradlew --offline test` 已是 **15 个模块 / 182 个测试类 / 1305 tests**
+（逐个 `*/build/test-results/*/TEST-*.xml` 求和实测，只有 `app` 那一行变了：
+84→86 类、664→678 例；下表其余 14 行与 12 个 skip 全不变）。
+新增的两个类是 `core.data.model.GroupRoleCardsPersistenceTest`（7）与
+`core.data.db.migrations.ConversationGroupCardsSchemaTest`（7）。**2026-10-05 那次
+复跑的命令与逐组证据见下方「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」。**
+
 全仓 `./gradlew --offline test` = **15 个模块 / 180 个测试类 / 1291 tests /
 0 failures / 0 errors / 12 skipped**。12 个 skip 全在非 app 模块，且都是环境依赖型
 `@Ignore`：`common/http/okhttp/KtorLiveTest` 5 个联网用例、`khatkit/card/
@@ -174,6 +203,10 @@ BuiltinCardSampleTest` 1、`khatkit/engine/RustEngineTest` 5、
 | material3 | 1 | 1 | 0 |
 | web | 1 | 1 | 0 |
 | **合计** | **180** | **1291** | **12** |
+
+⚠️ 上表（含 `app` 那行 84 / 664 与合计 180 / 1291）是 **2026-10-04 窗口**的实测值，
+按上面说的口径**保留不覆写**。C1-P 之后的当前值是 `app` **86 / 678**、合计
+**182 / 1305**，其余 14 行与 12 个 skip 不变。
 
 ⚠️ 有测试结果和有 lint 报告的是**两批不同的 15 个模块**：`card-validator` 有测试
 结果（4 类 77 例）但**没有 lint 报告**（见下）；`image-toolbox-dependency` 有 lint
@@ -387,15 +420,182 @@ PASS  对照：那行数据确实写进了 memory_chunks（表本身没坏，坏
 - **对照实验是主机侧手写的 AutoMigration 等价序列**，不是 Room 生成的真实产物——
   本轮**没有跑 gradle** 去生成/比对 Room 真正的迁移脚本。
 - **`memory_chunks` 上没有外键指向它**，`PRAGMA foreign_keys=ON` 下的级联行为
-  **未覆盖**。
+  **未覆盖**。（⚠️ 这一条正是下面 C1-P 那节要补上的洞：`ConversationEntity` **有**
+  外键指向它，级联行为**已覆盖**，见「C1-P」的对照实验。）
+
+### C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）
+
+登记于 commit `b7025665`（`test(c1-p): 31→32 迁移主机侧 SQLite 重放脚本（49 条断言，
+退出码 0）`），实现侧是 `20581bcb..b7025665` 这 8 个 commit。**这一节不改变任何用例
+的判定**：契约 `:206` 点名的四类证据（viewer 可见消息 ID / 模型调用序列 / token /
+导出 SHA-256）**仍然一份都没有**，十例状态仍全 `unverified`。它补的是「导入的角色卡
+真的落库」这一条**代码层 + 迁移正确性**证据。
+
+**命令**：
+
+```
+python3 tools/verification/c1p_migration_31_32_replay.py
+```
+
+| 项 | 实测值 |
+|---|---|
+| 真实退出码 | **0** |
+| 结论行 | `RESULT: 全部断言通过（共 49 条）` |
+| 输出规模 | 62 行 / 6,122 字节 |
+| 日志位置 | `/tmp/opencode/c1p_run1.log`（**仓库外，未入库**） |
+| 脚本规模 | `tools/verification/c1p_migration_31_32_replay.py`，21,613 字节 / 387 行 |
+| 宿主环境 | Python 3.14.5 的 `sqlite3` 模块，SQLite **3.51.2**，支持 FTS5 |
+| 脚本定位 | 复用 C1-D 脚本的 SQL 拆分器与断言收集器（`import c1d_migration_30_31_replay`），只换迁移文件路径 |
+
+**迁移 DDL 只有一句**（`Migration_31_32.kt:26-27` 的 `CONVERSATION_ADD_GROUP_CARDS_SQL`，
+`migrate()` 里只 `execSQL` 一次——脚本第 2 组断言「迁移 SQL 条数 = 1」与「实际执行
+语句数 = 拆分出的语句数」各钉一条）：
+
+```
+ALTER TABLE `ConversationEntity` ADD COLUMN `group_cards` TEXT NOT NULL DEFAULT ''
+```
+
+**`31.json` → `32.json` 差异**（Room `TableInfo` 同口径，脚本第 8 组 + 1 条断言；
+`32.json` 由 `:app:kspDebugKotlin` 真实导出，已入库）：
+
+| 项 | 31 | 32 |
+|---|---|---|
+| `version` | 31 | 32 |
+| `identityHash` | `b5fee805907e4754211836b77e78e3c7` | `9f1437f7e85ba5c591a31a3c5cb73de1` |
+| 表集合 | 15 张 | 15 张（**同一集合**，只有 `ConversationEntity` 变） |
+| `ConversationEntity` 列数 | 15 | 16 |
+| 主键 / 索引 / 外键 | — | **三者全部不变** |
+| 新增字段 | — | `{fieldPath: groupCards, columnName: group_cards, affinity: TEXT, notNull: true, defaultValue: ''}` |
+
+**断言总数 49 条，0 失败**，逐组分布：
+
+| 组 | 覆盖 | 条数 |
+|---|---|---:|
+| 0 | 环境与工具自检（SQLite/FTS5 能力 + 从 `AppDatabaseFactory.kt` 抠虚表与 3 个触发器 DDL；1 条 NOTE 说明 Room schema 里没有 ftsVersion 实体） | 3 |
+| 1 | 建 31 版真库（31.json 结构 + `onOpen` 的 FTS5 虚表与 3 个触发器 + 存量数据；`message_node` 外键指向 `ConversationEntity`） | 5 |
+| 2 | 执行 `Migration_31_32.kt` 里手写的迁移 SQL（条数 = 1、0 条报错、无语句被静默丢弃） | 3 |
+| 3 | 原地 ADD COLUMN 的两条判据 + 新列属性（列存在 / `TEXT` / `NOT NULL` / 默认 `''` / 非主键 / 列数 16 / `_new_ConversationEntity` 不存在 / `sqlite_master` 逐字节 == 原 SQL + ALTER 追加段 / **b-tree `rootpage` 前后不变 `2→2`**） | 10 |
+| 4 | 旧行数据不丢 + `group_cards` 是**空串而不是 NULL**（2 行仍在、群会话标题/`type`/`group_config` 保留、无一行 IS NULL） | 7 |
+| 5 | 角色卡 blob 可写可读回（**含非 ASCII persona 逐字节读回** / `'[]'` 与 `''` 区分得开 / blob 能被 sqlite 读成 JSON） | 3 |
+| 6 | FTS5 触发器迁移后逐字节存活（3 个 `sqlite_master.sql` 不变 + 新写入记忆仍镜像进索引）+ **`message_node` 外键迁移后仍指向 `ConversationEntity`** | 9 |
+| 7 | **DROP TABLE 对照实验**（见下节） | 8 |
+| 8 | 迁移后结构与 `32.json` 逐字段一致（Room `TableInfo` 同口径） | 1 |
+
+#### ⭐ 核心结论：这次 AutoMigration 会把消息删光，不只是丢触发器
+
+C1-D 那节的对照实验结论是「`DROP TABLE memory_chunks` 丢 3 个 FTS5 触发器」。**这一节
+的对照实验结论严重得多**，也是本次改动最重要的技术结论：
+
+C1-D 重建的是 `memory_chunks`（无子表指向它）；**31→32 要重建的是父表
+`ConversationEntity`**，而 `message_node` 上有
+
+```sql
+FOREIGN KEY (conversation_id) REFERENCES ConversationEntity(id) ON DELETE CASCADE
+```
+
+（`app/src/main/java/heizige/kk/khatkit/app/core/data/db/migrations/Migration_11_12.kt:32`）
+——C1-D 那节末尾「`memory_chunks` 上没有外键指向它，级联行为未覆盖」这条缺口就是这里。
+脚本第 7 组拿 `PRAGMA foreign_keys=ON` 实测 AutoMigration 的等价序列
+（`CREATE _new_ConversationEntity` → `INSERT…SELECT` → `DROP TABLE` → `RENAME`）：
+
+```
+PASS  对照：DROP 父表（foreign_keys=ON）等价于隐式 DELETE，ON DELETE CASCADE 把
+      message_node 的存量行全部删掉——重建路径真丢消息  -> before=1 after=0
+PASS  对照：重建路径换了 ConversationEntity 的 b-tree（rootpage 变了）  -> before=2 对照=62
+PASS  对照：父表数据本身被拷回去了（丢的只是子表行）
+PASS  ALTER 路径：message_node 的存量行一行没少
+```
+
+也就是说：`DROP TABLE` 父表在开启外键时等价于对父表做一次隐式 `DELETE`，CASCADE 把
+`message_node` 的**存量消息行全部删光**，而父表数据又被拷回去——用户看到的是
+**「会话还在、消息全没了」**。这是静默数据丢失，不是可恢复的错误。加上 C1-D 已经
+实测的触发器丢失（`DROP TABLE` 连带删掉 `memory_chunks_ai/ad/au`），两条合起来就是
+`Migration_31_32` 必须手写 `ALTER TABLE ADD COLUMN` 的完整理由。
+
+#### 变异测试有牙齿的证据
+
+只看「全绿」不能证明断言有判别力。在 `/tmp` 的影子仓库里**只改 `Migration_31_32.kt`
+的 DDL，跑未改动的脚本**（影子仓库只含只读输入副本 + 脚本自身，仓库文件全程零改动）：
+
+| 变异 | 改法 | EXIT | 失败断言数 |
+|---|---|---:|---:|
+| 基线（未改动） | — | 0 | 0 |
+| `m1_nullable_no_default` | `TEXT NOT NULL DEFAULT ''` → `TEXT`（可空、无默认） | **1** | **6** |
+
+失败的 6 条：`group_cards NOT NULL`、`group_cards 默认 ''`、
+`旧行 group_cards 是空串（NOT NULL DEFAULT '' 的语义）`、`单聊旧行 group_cards 也是空串`、
+`没有任何行 group_cards IS NULL`、
+`全部表/列/主键/索引/默认值与 32.json 一致`（`want="''" got=None` +
+`notNull want=True got=False`）。这条变异同时证明脚本确实在读真实的迁移 SQL，而不是
+把预期硬编码在脚本里。
+
+#### 本次同时新增的 JVM 测试（14 条，全过）
+
+`:app:testDebugUnitTest` 从 **84 类 664 例** 变成 **86 类 678 例**
+（0 失败 / 0 错误 / 0 跳过，逐个 XML `tests` 属性汇总实测）。既有测试文件**零删改**，
+`20581bcb~1..b7025665` 的 `git diff --stat` 里测试侧只有 3 个**新增**文件：
+
+| 新增测试类 | 用例数 | 钉住什么 |
+|---|---:|---|
+| `core.data.model.GroupRoleCardsPersistenceTest` | 7 | 六字段往返、blob 与分享载荷 `cards` 同形、`null` 与空列表可区分、**旧行空串解码回 `null`**、损坏列值降级成 `null` 而不抛、自由文本 persona 不被误判成密钥、角色卡键名全在 `FORBIDDEN_EXPORT_KEYS` 黑名单之外 |
+| `core.data.db.migrations.ConversationGroupCardsSchemaTest` | 7 | 31↔32 只有 `ConversationEntity` 变、`version = 32` 且 31→32 走显式迁移、`group_cards` 列与实体声明一致、**DDL 与 Room 自己生成的 `createSql` 逐项一致**、迁移注册在工厂且**不在** `autoMigrations` 里、Repository **只在整行映射**编解码、导入路存 `payload.cards` 而导出路仍现场生成 |
+
+#### 新增仪器用例 6 条——**未跑设备**
+
+`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/migrations/Migration_31_32_Test.kt`
+**6 条 `@Test`**（已 grep 计数确认），全部是 `MigrationTestHelper` 往返测试：
+`migrate31To32_opensLegacyDatabaseWithoutCrash`、
+`migrate31To32_legacyRowsGetEmptyStringAndKeepEverythingElse`、
+`groupCardsBlobRoundTripsThroughRealSqlite`、
+`migrate31To32_usesAlterAndDoesNotRebuildTheTable`、
+`migrate31To32_keepsMessageNodeForeignKey`、
+`migrate31To32_groupCardsIsNotNullWithEmptyDefault`。
+**一条都没跑过**：`app/build.gradle.kts` 单测只有 `libs.junit`，无 Robolectric /
+`room-testing`，JVM 上跑不了；本机 `adb devices` 为空。**不要因为这节就把任何用例
+勾掉。**
+
+#### 四条命令的真实退出码
+
+`:app:testDebugUnitTest --rerun` **0** / `:app:assembleDebug` **0** / `:app:lint` **0** /
+`python3 tools/verification/c1p_migration_31_32_replay.py` **0**。lint 全仓仍
+**596 条 issue（0 Error**，590 Warning + 6 Hint，app 单模块），15 模块聚合 630；
+本次碰过的 11 个 Kotlin 文件命中数**全是 0 → 0**（含 `GroupChatPage.kt`、
+`ConversationRepository.kt`、`Migration_31_32.kt`、`ConversationEntity.kt`、
+`Conversation.kt`、`GroupChat.kt`、`AppDatabase.kt`、`AppDatabaseFactory.kt` 与 3 个新测试文件）。
+
+#### ⚠️ 这次验证仍然不能替代的部分
+
+- **契约 `:206` 的四类证据一份都没有。** viewer 可见消息 ID 台账、真实模型调用序列、
+  真实 token 计数、群聊导出文件 SHA-256，磁盘上仍然**零份**。本节全部内容都在这四类
+  **之外**（迁移正确性 + 纯函数往返），因此**十例状态仍全 `unverified`**。
+  C1-09（Tavern/QR 往返）另四类证据同样零份，**仍是 `unverified`**。
+- **`Migration_31_32_Test` 的 6 条一次没跑过，需设备。** 与 C1-D 那节同样的道理：
+  主机侧重放**不能替代**仪器往返。
+- **`rootpage` / `sqlite_master` 两条判据依赖宿主 SQLite ≥ 3.35 的
+  `ALTER TABLE ADD COLUMN` 原地快路径**（本机 3.51.2 满足；脚本第 3 组自己写了这条
+  NOTE）。若真机 Android 捆绑的 SQLite 是 3.25–3.34，`ADD COLUMN` 同样是整表重写 /
+  重建，**手写 ALTER 的优势不成立**，甚至可能丢触发器。真机 SQLite 版本未知。
+- **对照实验仍是主机侧手写的 AutoMigration 等价序列**，不是 Room 生成的真实产物；
+  本轮**没有跑 gradle** 去生成/比对 Room 真正的迁移脚本（`32.json` 是 KSP 导出的
+  schema 快照，不含迁移语句）。
+- **`ConversationDAO.kt` 零改动，但它的 SQL 在真实 SQLite 上的行为仍未验**
+  （`:type = ''` 不筛、`itemCount` 正确性）。抽屉轻量投影**刻意不含**
+  `group_cards`（`ConversationRepository.kt:464-474` / `:539-545` 有 KDoc），这条
+  「不读不会抹掉已落库的卡片」的判断由子代理核实抽屉侧写路径得出、并由
+  `ConversationGroupCardsSchemaTest.repositoryMapsGroupCardsOnTheFullRowOnly`
+  做成文本护栏，**但仍不是运行时证据**。
+- **UI 一行都没上屏**：导入后刷新页面，「已导入的角色卡」是否真在，仍然零证据。
 
 ## 仪器测试状态
 
-- **C1 相关仪器测试 19 个注解，执行结果为零，需设备。**
+- **C1 相关仪器测试 25 个注解，执行结果为零，需设备。**（C1-D 之后新增了
+  `Migration_31_32_Test` 6 条，早前版本记的 19 已过期。）
   `app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAOTest.kt`
   **12 条 `@Test`**；
   `app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/migrations/Migration_30_31_Test.kt`
-  **7 条 `@Test`**。源码在库，但**没有任何执行证据**。
+  **7 条 `@Test`**；
+  `app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/migrations/Migration_31_32_Test.kt`
+  **6 条 `@Test`**。源码在库，但**没有任何执行证据**。
 - 本机 `adb devices` 为空（`List of devices attached` 后面没有条目），无真机无模拟器。
 - 磁盘上唯一的 app 仪器测试记录是
   `app/build/outputs/androidTest-results/connected/debug/TEST-PKG110 - 16-_app-.xml`
@@ -436,9 +636,14 @@ git log --oneline --merges d45ebd10~1..1b0e04a9 | wc -l # 0，区间内无 merge
 ```
 
 区间内已含 `32c9e8f8 fix(c1-p): ChatScaffold KDoc 注入缝数量与默认实参清单订正为五个`
-（改 `ChatPage.kt` KDoc）。**锚点之后的纯文档提交不计入本台账任何计数**——包括本文件
-这次提交自己（本次文档提交不计入台账口径）。所以下文的 78 / 6 / 17 都不是「当前
-commit 数」，而是「截至 `1b0e04a9` 的数」，改文档不会让它变。
+（改 `ChatPage.kt` KDoc）。**锚点之后的提交不计入本台账任何计数**——包括本文件
+这次提交自己。所以下文的 78 / 6 / 17 都不是「当前 commit 数」，而是「截至
+`1b0e04a9` 的数」，改文档不会让它变。
+⚠️ 早前这里写的是「锚点之后的**纯文档**提交不计入」，那句话**已过期**：锚点之后
+确实又出现了 8 个**功能/测试**提交（`20581bcb..b7025665`，C1-P 角色卡元数据落库 +
+Room 31→32 迁移）。它们**同样不计入**——理由不是「纯文档」，而是**不改统计基线**，
+逐条列在下面「锚点之后的后续提交」小节。台账口径（78 / 6 / 17 / 前缀分布 / 子包
+分布）**一个数都没动**。
 
 **类型前缀分布**：`feat` 25、`fix` 20、`test` 14、`coder` 7、`refactor` 5、
 `docs` 5、`chore` 1、`build` 1 = 78。
@@ -483,6 +688,9 @@ C1-M / C1-U / C1-X / C1-E 六个子包；这三个标签的实际含义（`c1-p`
   只改本文 + `client-changes.md:195` 的日期 + `implementation-status.md:226` 的方位词。
   **它同时就是本台账锚定的那个 SHA**，也是区间内最后一个改本文件的 commit。锚点之后
   本文件只做文字订正，所以「改 `docs/` 的 commit」固定为 **6 个**，不再逐次追加。
+  ⚠️ 「锚点之后本文件只做文字订正」这句现在需要加限定：锚点之后本文件**又**被改过
+  （20581bcb、1e20f6ce，以及本次登记 C1-P 的提交），但那些提交**同样不计入**本台账
+  任何计数——理由见下面「锚点之后的后续提交」。**6 个这个数不变。**
 
 **只改测试 / 验证工具、不动任何 main 源码的 commit**：17 个，拆开看：
 
@@ -494,6 +702,46 @@ C1-M / C1-U / C1-X / C1-E 六个子包；这三个标签的实际含义（`c1-p`
 
 唯一的「`test(...)` 前缀但同时改 main 源码」是 `58b129c7`（`test(c1-m)`，除 4 个
 测试文件外还改了 `core/data/repository/MemoryExtractor.kt`），它不算在上述 17 个里。
+
+### 锚点之后的后续提交（不计入本台账任何计数）
+
+上面所有数字的右端**仍然是固定的 `1b0e04a9`**，一个都没动。锚点之后又出现了提交，
+它们**不计入**本台账——**理由不是「纯文档提交」（那个说法已过期），而是它们不改
+统计基线**：不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或子包标签，
+所以 78 / 6 / 17、前缀分布、子包分布全部保持不变。下次重整台账时，若要把这些 commit
+并进区间，只需改右端一个 SHA，但**必须同时重算所有计数**，不能只改总数。
+
+核验命令（`20581bcb..b7025665` = 本次角色卡落库这批的 8 个）：
+
+```
+git log --oneline 1b0e04a9..b7025665   # 10 个（含下面两个纯文档提交）
+git log --oneline 20581bcb..b7025665   # 8 个，就是这一批功能/测试提交
+```
+
+⚠️ 两个区间**差 2 个 commit**，别混用：`1b0e04a9..b7025665` 是 10 个（多出
+`20581bcb`——就是「把台账口径锚定到 `1b0e04a9` 并订正四类证据措辞」那次——与
+`1e20f6ce`「定点订正四处过期表述」，这两个都是纯文档）；本次要登记的是
+`20581bcb..b7025665` 那 **8** 个。
+
+`20581bcb..b7025665` 实测输出（`git log --oneline 20581bcb..b7025665`，倒序）：
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `79d95af7` | `feat(c1-p): GroupChat 增加角色卡元数据落库编解码（encodeRoleCards/decodeRoleCards）` | 功能（main 源码） |
+| `14a0f384` | `feat(c1-p): Conversation/ConversationEntity 增加 groupCards 与 group_cards 列` | 功能（main 源码） |
+| `99b046e5` | `feat(c1-p): Room 31→32 显式迁移（ConversationEntity 增 group_cards）+ 工厂注册 + 32.json 入库` | 功能（main 源码 + schema 快照） |
+| `fe6cd530` | `feat(c1-p): ConversationRepository 整行映射带上 group_cards，抽屉轻量投影刻意不读` | 功能（main 源码） |
+| `4594d462` | `feat(c1-p): 群聊导入时把 payload.cards 落库，并在面板显示已落库的导入快照` | 功能（main 源码） |
+| `62b62744` | `test(c1-p): 角色卡元数据落库往返 + 31→32 schema 一致性（14 条）` | 测试（2 个新增 JVM 类） |
+| `b92e3323` | `test(c1-p): 新增 Migration_31_32_Test 仪器用例（6 条，未跑设备）` | 测试（1 个新增仪器类） |
+| `b7025665` | `test(c1-p): 31→32 迁移主机侧 SQLite 重放脚本（49 条断言，退出码 0）` | 测试（1 个新增验证脚本） |
+
+这 8 个的净效果：`app` 模块 JVM 测试 **84 类 664 例 → 86 类 678 例**（+2 类 / +14 例，
+0 失败 0 错误 0 跳过）；C1 相关仪器测试 **19 → 25 条**（+6，未跑）；Room
+**31 → 32**；`ConversationDAO.kt` **零改动**；既有测试文件**零删改**。证据登记见上方
+「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」。
+⚠️ 这批提交**没有产生任何契约 `:206` 意义上的验收证据**，所以**十例状态仍全
+`unverified`**。
 
 ## 下一位怎么把 unverified 变成 verified
 
@@ -527,13 +775,19 @@ SHA-256。
    `/sdcard/Download/` 后 `adb pull`，然后 `sha256sum`。二维码载荷另外存一份
    base64 PNG 及其哈希。**提交前按本文件「证据登记」段的脱敏要求检查**：不得含
    密钥、隐私记忆、工具授权 token。APK 的 SHA-256 不能拿来填这一列。
-5. **仪器测试 19 个注解**：接上设备后
+5. **仪器测试 25 个注解**：接上设备后
    `./gradlew --offline :app:connectedDebugAndroidTest`，
    产物会落到 `app/build/outputs/androidTest-results/connected/debug/`。
    零成本的前置那一步（`python3 tools/verification/c1d_migration_30_31_replay.py`）
    **已完成**，输出与结论见上方「C1-D 迁移 30→31 主机侧重放（零设备）」。
    它把 C1-07 的**迁移侧**钉住了，但 `Migration_30_31_Test` 那 7 条仪器用例
    仍需设备，**别拿它把仪器那条勾掉**。
+   C1-P 的第二个零成本前置（`python3 tools/verification/c1p_migration_31_32_replay.py`）
+   也**已完成**，输出与结论见「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」；
+   同样**不能替代** `Migration_31_32_Test` 那 6 条仪器用例。
+   ⚠️ 顺带一条设备侧专属动作：拿一个**从 Room 31 升上来**的旧库装上去（不是全新
+   安装），确认 31→32 升级不崩、旧行 `group_cards` 是空串、群聊页刷新后导入的角色卡
+   还在。这是 B1 剩下的最后一块。
 
 ### 逐例要补什么
 
@@ -545,7 +799,7 @@ SHA-256。
 | C1-04 | 模型调用序列、平票证据 | `mode=vote`，给 3 个结构化候选。贴出各角色选票原文与多数决结果；**平票按配置失败的路径要单独跑一次**并贴错误节点 |
 | C1-05 | token 计数（日志含已用/上限/未运行角色） | 把 `token_budget_per_round` 设成让第 2 个角色被截断的值。贴真实 token 累计值 + `group_runs` 里「已用 / 上限 / 未运行角色」三个字段的库内取值 |
 | C1-06 | 模型调用序列（部分响应） | 边流式边点停止，再跑一次触发超时。贴：没有空气泡助手消息落库、已生成消息与错误节点都在、已消耗 token 数 |
-| C1-07 | 仪器 19 条的结果 + 幂等台账 | 先 `connectedDebugAndroidTest` 拿 19 条结果；再真机让第 2 个角色失败后重试同一 `round_id`，贴库内 `committed_role_ids` 与实际消息条数对得上（不重复） |
+| C1-07 | 仪器 25 条的结果 + 幂等台账 | 先 `connectedDebugAndroidTest` 拿 25 条结果；再真机让第 2 个角色失败后重试同一 `round_id`，贴库内 `committed_role_ids` 与实际消息条数对得上（不重复） |
 | C1-08 | 三个空间的检索结果可见性 + 来源消息 id | 三角色各发一轮后，逐角色检索记忆。贴每个空间的命中列表（消息 id / 角色）与 `source_message_id` 归因，确认互不串、无全局/助手回退 |
 | C1-09 | 导出文件 SHA-256 + Tavern 本体互操作 | 真机导出 → `adb pull` → `sha256sum`；用 Tavern 本体打开该文件截图/录屏；再用 QR 扫码导回另一台设备，贴往返前后 `role_id/round_id/turn_kind/群配置/角色卡` 的逐字段 diff 与两端哈希；**单独验证不含密钥/记忆/授权 token** |
 | C1-10 | 筛选只过滤 + 切换不丢数据的真机记录 | 同一助手下混建单聊与群聊，录屏走「全部 → 群聊 → 单聊 → 全部」四个 chip 切换，贴切换前后两侧会话的消息数与最后一条消息 id |
@@ -555,17 +809,23 @@ SHA-256。
 
 ## 已知遗留与风险
 
-1. **角色卡 `RoleCardMeta` 只在导入后显示、不落库。**
-   `RoleCardMeta` 定义在
-   `app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt:95`，
-   是 `GroupSharePayload.cards`（同文件 `:114`）的成员。但 `Conversation` 只有
-   `groupConfig`（`app/src/main/java/heizige/kk/khatkit/app/core/data/model/Conversation.kt:35`，
-   类型 `GroupConfig?`），而 `ConversationEntity.groupConfig` 是
-   `@ColumnInfo("group_config", defaultValue = "")` 的**单列 String**
-   （`core/data/db/entity/ConversationEntity.kt:37-38`），
-   `GroupConfigSerializer` 的契约里没有 cards 的位置。`GroupChatPage.kt:440-446`
-   的 KDoc 已写明这一点，`:799-803` 只把 cards 列出来给用户看。**落库要动
-   `Conversation` + `ConversationEntity` + 一次 Room 迁移**，超出本包范围。
+1. ~~**角色卡 `RoleCardMeta` 只在导入后显示、不落库。**~~ **这条已作废——现在真落库。**
+   （2026-10-05，`20581bcb..b7025665` 8 个 commit。登记见上方「C1-P 角色卡元数据落库与
+   Room 31→32 迁移（零设备）」。）早前描述的四点现状全部变了：`Conversation` 除了
+   `groupConfig`（`core/data/model/Conversation.kt:35`）现在还有
+   `groupCards: List<RoleCardMeta>? = null`（同文件 `:48`）；
+   `ConversationEntity.groupConfig` 那条**单列 String**
+   （`core/data/db/entity/ConversationEntity.kt:37-38`）**旁边多了第二列**
+   `groupCards`（`:52-53`，`@ColumnInfo("group_cards", defaultValue = "")`）；
+   导入成功后的当场回执仍在 `GroupChatPage.kt:852-868`（⚠️ 早前版本这里引的
+   `:799-803` 已随本次改动**行号漂移**，现在那几行是一个通用 `TextField` 组合函数），
+   而面板里另有 `ImportedRoleCardsView`（`:731`）专门显示**从库里读回来的**导入快照；
+   `GroupChatPage.kt:438-443` 那段「导入绝不在校验失败时落库」的 KDoc 仍然有效，
+   `:445-460` 则已由实现改写成「导入的 cards 落库，与『现场生成的 cards』是两件事」。**剩下的尾巴全是零设备验不到的**：真机 31→32 升级、
+   `Migration_31_32_Test` 6 条仪器用例、`ConversationDAO` 真实 SQLite 行为、
+   UI 刷新后卡片是否真在。真要盯的是「导入快照 vs 现场生成」的分工——
+   **导出永远用现场生成的**（`groupExportRoleCards`），导入快照只落库 + 展示，
+   **不合并、不静默替换**，理由见 `beyond-operit-implementation-status.md` 的 B1。
 2. **`GroupChatPage` 的 `onEdit` 只放行 USER。**
    `GroupChatPage.kt:292` 是 `canEditMessage = { it.role == MessageRole.USER }`
    （KDoc 在 `:137-138`）。这挡住了改写角色发言，但一旦放开，改写会让
@@ -602,8 +862,12 @@ SHA-256。
    （`c1-p` 16 + `c1-s` 9 + `c1-q` 6 = 31，加 11 个裸 `c1` 标签 = 42；
    再前一版这里写的 36 是漏算了裸 `c1`，已订正）。口径同「C1 commit 台账」：
    统计区间锚定在固定 SHA `d45ebd10~1..1b0e04a9`，`--no-merges`。**42 是截至
-   `1b0e04a9` 的数**——锚点之后的纯文档提交（含本文件此次提交）不计入，所以不需要
-   再预告「提交后会变成几」。
+   `1b0e04a9` 的数**——锚点之后的提交（含那 8 个 C1-P 功能/测试提交与本文件此次提交）
+   都不计入，因为它们不改统计基线，逐条见「锚点之后的后续提交」，所以不需要
+   再预告「提交后会变成几」。⚠️ 顺带提醒：`c1-p` 的 16 这个数也是截至 `1b0e04a9`
+   的数。C1-P 又追加了 **8 个 `c1-p` 标签**提交（`git log --format=%s
+   20581bcb..b7025665` 实测：`feat(c1-p)` 5 + `test(c1-p)` 3），但按上面的口径
+   **不计入**，所以子包分布表与前缀分布表都不变。
 
 ## 判定规则
 
