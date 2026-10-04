@@ -531,7 +531,9 @@ object GroupChat {
             .map { it.trim() }
             .firstOrNull { it.startsWith(BALLOT_PREFIX, ignoreCase = true) }
             ?: return null
-        val body = line.removePrefix(BALLOT_PREFIX).trim()
+        // 前缀是忽略大小写匹配的，截断也必须同样忽略大小写：否则 `vote: opt-a` 会因为
+        // removePrefix 大小写敏感而整行留在 body 里，被判成集外票静默丢弃。
+        val body = line.substring(BALLOT_PREFIX.length).trim()
         val id = body.substringBefore('|').trim()
         if (id !in candidates) return null
         val reason = body.substringAfter('|', "").trim()
