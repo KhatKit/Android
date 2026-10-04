@@ -10,9 +10,7 @@ import heizige.kk.khromia.helper.Toast as KhromiaToast
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.Conversation
-import heizige.kk.khatkit.app.core.data.model.GroupRole
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import heizige.kk.khatkit.app.core.ui.icons.groups
@@ -142,40 +140,9 @@ internal fun groupExportUserName(settings: Settings): String =
     settings.displaySetting.userNickname.ifBlank { GROUP_EXPORT_FALLBACK_USER }
 
 /**
- * 群成员摊成角色卡元数据（[RoleCardMeta]），交给 [TavernChatCodec.exportGroupJsonl] 写进
- * 顶层 `khatkit_group.cards`。
- *
- * **实际取到什么**（逐字段）：
- * - `role_id` / `assistant_id` / `card_id`：直接来自群配置的 [GroupRole]，不加工；
- * - `name`：优先 `role.name`，为空时退回它绑定的助手的 `name`；
- * - `persona`：取 `role.assistantId` 指向的助手的 `systemPrompt`，解析方式
- *   （`Uuid.parse(role.assistantId)` → `settings.getAssistantById`）与 `ChatManager`
- *   发言时挑角色助手完全一致，所以导出文件里的 persona 就是该角色真正会用的那段系统提示词；
- * - `avatar_ref`：恒为 null。助手头像存的是 `Avatar`（本地文件 URI 或远程 URL），
- *   不是可移植引用，写进去只会让对方拿到一个指不到东西的路径。
- *
- * `role.cardId` 只是**原样透传**的 Tavern 引用：全仓库没有任何地方把 `cardId` 解析成角色卡
- * 实体（`grep -rn "cardId" --include=*.kt app/src/main` 只命中 `GroupChatPage.kt:101` 这一处
- * 赋值），真正能拿到的「真实角色卡」只有 `assistantId` 指向的助手。助手已被删除或
- * `assistantId` 不是合法 Uuid 时**照样导出**，退化成 `role.name` + 空 `persona`，
- * 不因为缺角色卡就把整个导出入口禁掉。
- *
- * ⚠️ **已知重复**：`GroupChatPage.kt` 里那个私有 `roleCards` 做的是同一件事（同样按
- * `assistantId` 取 `systemPrompt`、同样 `avatar_ref` 留空）。那个文件属于并行子包，
- * 本次不跨文件统一；两份口径目前一致，后续应合成一份。
+ * 群成员摊成角色卡元数据（[RoleCardMeta]）的实现**不在本文件**：二维码 / 文本分享与酒馆导出
+ * 两条路径共用同一份，见 [groupExportRoleCards]（`GroupRoleCards.kt`）。
  */
-internal fun groupExportRoleCards(roles: List<GroupRole>, settings: Settings): List<RoleCardMeta> =
-    roles.map { role ->
-        val assistant = runCatching { Uuid.parse(role.assistantId) }.getOrNull()
-            ?.let { settings.getAssistantById(it) }
-        RoleCardMeta(
-            roleId = role.id,
-            name = role.name.ifBlank { assistant?.name.orEmpty() },
-            assistantId = role.assistantId,
-            cardId = role.cardId,
-            persona = assistant?.systemPrompt.orEmpty(),
-        )
-    }
 
 /**
  * 一条都没反查到时的提示。这不是「导出成功」，必须明确报错并说明为什么。

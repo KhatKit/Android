@@ -45,13 +45,11 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupConfigError
 import heizige.kk.khatkit.app.core.data.model.GroupImportResult
 import heizige.kk.khatkit.app.core.data.model.GroupRole
-import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
@@ -105,39 +103,6 @@ fun GroupOrDirectPage(
 }
 
 /**
- * 把群成员摊成角色卡元数据（[RoleCardMeta]），随 [GroupChat.encodeQr] 一起写进分享载荷。
- *
- * **实际取到什么**（逐字段）：
- * - `role_id` / `assistant_id` / `card_id`：直接来自群配置的 `GroupRole`，不加工；
- * - `name`：优先群配置里的 `role.name`，为空时退回它指向的助手的 `name`；
- * - `persona`：取 `role.assistantId` 指向的助手的 `systemPrompt`。解析方式与 `ChatManager`
- *   发言时挑角色助手完全一致（`Settings.getAssistantById(Uuid.parse(role.assistantId))`），
- *   所以二维码里的 persona 就是该角色真正会用的那段系统提示词；
- * - `avatar_ref`：留 null——助手头像存的是 `Avatar`（本地文件 URI 或远程 URL），
- *   不是可移植引用，写进载荷会让对方拿到一个指不到东西的路径。
- *
- * 取不到真实角色卡时（`assistantId` 不是合法 Uuid、助手已被删除）**照样生成二维码**，
- * 退化成 `role.name` + 空 `persona`，不因为缺角色卡就把整个二维码入口禁掉。
- *
- * 行为与位置都保持 C1 之前的原样（重写群聊页时它被搬到了本文件末尾，逻辑一个字没改）。
- * ⚠️ 已知重复：另一个子包在 `ConversationExport.kt` 里**另外实现了一份**同样的
- * `RoleCardMeta` 构造（因为它不能碰本文件）。两份**故意不合并**——跨文件统一要动
- * `ConversationExport.kt`（禁区），且收益只是去掉十来行重复，不值得在这个包里引入冲突。
- */
-private fun roleCards(roles: List<GroupRole>, settings: Settings): List<RoleCardMeta> =
-    roles.map { role ->
-        val assistant = runCatching { Uuid.parse(role.assistantId) }.getOrNull()
-            ?.let { settings.getAssistantById(it) }
-        RoleCardMeta(
-            roleId = role.id,
-            name = role.name.ifBlank { assistant?.name.orEmpty() },
-            assistantId = role.assistantId,
-            cardId = role.cardId,
-            persona = assistant?.systemPrompt.orEmpty(),
-        )
-    }
-
-/**
  * 群聊页：**复用单聊页的消息管线**（[ChatScaffold]），只把单聊语义换掉。
  *
  * C1 之前这里自己手写了一套 `LazyColumn` + `Text` 气泡 + `KedgeOutlinedTextFieldWithSlots` 输入框，
@@ -162,14 +127,18 @@ private fun roleCards(roles: List<GroupRole>, settings: Settings): List<RoleCard
  * [ChatDrawerContent] 的 `vm` 参数类型锁定 [ChatViewModel]，没有替代品；好消息是它只用到
  * `.id`（当前会话高亮），所以群聊可以原样复用。
  *
- * ## 已知的两个残留（UI 层改不动，只能记录）
+ * ## 会改写消息内容的动作，只放行编辑用户自己那条
  *
- * - `onEdit` 本页只放行**用户自己那条**（见下面的 `onEdit` 注释）。角色发言的编辑会改写
- *   节点内容，与重新生成/删除同类的「账面与实际轮次错位」风险。
- * - [androidx.compose.material3.TopAppBarScrollBehavior] 无关的
- *   `ChatMessageBranchSelector`（分支切换）在群聊下**仍然可用**且本页无法关闭：它由
- *   `ChatMessage` 内部弹出，而 `ChatMessage.kt` / `ChatList.kt` / `ChatMessageActions.kt`
- *   都不在本包可改范围内。切分支同样会换掉某个角色那条消息的内容，风险与上面一条同级。
+ * 群聊的轮次进度记在 `group_runs` 的 `committed_role_ids` / `last_user_message_id` 里，任何
+ * 改写**角色发言**内容的动作都会让这两张账面和实际消息错位（账面说该角色已提交、界面上
+ * 那条却是另一个版本，续跑还会跳过没人再发言的角色）。所以：
+ *
+ * - 重新生成 / 删除 / 创建分支 / 切分支：群聊下整个入口都不出现
+ *   （`ChatList` 按 `groupChat` 关门，见 `ChatMessageActions.kt`）。
+ * - 编辑：`canEditMessage` 本页只放行 `it.role == MessageRole.USER`。改用户提问是合法且常用的，
+ *   轮次由新的 user 消息重新派生，不会错位；改角色发言则与上面四个同级。
+ *
+ * 也就是说「角色发言不可改写」这条现在**没有已知残留**了。
  */
 @Composable
 fun GroupChatPage(
@@ -390,8 +359,8 @@ fun GroupChatPage(
  *
  * **不复用** `ChatPage.kt` 里的 `TopBar`（394 行）：那个顶栏含「点标题切模型」
  * （`onModelClick` → `ModelListSheet`）与「长按改标题」等交互，「切换模型」在群聊里
- * 没有定义——群配置的 9 个字段里没有模型字段，每个角色用哪个模型由 `GroupRole.modelId`
- * 决定，而它当前**不参与模型解析**。挂一个点了没定义的入口比不挂更糟。
+ * 没有定义——群配置**会话级**没有模型字段，每个角色用哪个模型由 `GroupRole.modelId` 决定
+ * （气泡显示的模型按它解析，见 [resolveMessageModel]）。挂一个点了没定义的入口比不挂更糟。
  *
  * 视觉走仓里现成的 [KedgePageLargeTopBar]：它内部已经按 `LocalKedgeStyle` 分流
  * Miuix / MD3，这里不另造一套。
@@ -496,7 +465,7 @@ private fun GroupConfigSheet(
     // 分享载荷只算一次：二维码与 ACTION_SEND 文本分享共用同一份，不各算各的。
     val sharePayload = remember(draft, settings) {
         // encodeQr 命中密钥黑名单会抛 IllegalStateException（check），这里兜住不让面板崩。
-        runCatching { GroupChat.encodeQr(draft, roleCards(draft.roles, settings)) }.getOrNull()
+        runCatching { GroupChat.encodeQr(draft, groupExportRoleCards(draft.roles, settings)) }.getOrNull()
     }
 
     // 扫码与粘贴共用这一个入口：两条路径的校验口径必须完全一致。
@@ -751,7 +720,7 @@ private fun RoleEditor(
             onValueChange = { onChange(role.copy(assistantId = it.trim())) },
         )
         TextField(
-            label = "model_id（当前不参与模型解析）",
+            label = "model_id",
             value = role.modelId.orEmpty(),
             onValueChange = { onChange(role.copy(modelId = it.trim().ifBlank { null })) },
         )
