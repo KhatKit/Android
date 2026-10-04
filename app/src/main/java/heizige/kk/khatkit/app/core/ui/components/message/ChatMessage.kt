@@ -51,6 +51,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
@@ -121,6 +122,22 @@ fun ChatMessage(
     onClearTranslation: (UIMessage) -> Unit = {},
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
+    /**
+     * 说话者名字（群聊里是角色名，由 `GroupSpeakerResolver` 算出）。null = 不显示，
+     * 单聊路径保持原样：两个既有调用点（`ChatList` / `AssistantPromptPage`）不传就是旧行为。
+     */
+    speakerName: String? = null,
+    /** 性质徽章文本（议长 / 投票小结 / 错误）。null = 不显示。 */
+    speakerBadge: String? = null,
+    /** [speakerBadge] 是否是错误节点——错误徽章染成 error 色，一眼能挑出来。 */
+    speakerBadgeIsError: Boolean = false,
+    /**
+     * 群聊会话。true 时关掉「重新生成 / 删除 / 创建分支」：这三个回调打到
+     * `ChatManager.regenerateAtMessage` / `deleteMessage` / `forkConversationAtMessage`，
+     * 都不是群聊感知的，会让群运行日志的账面和实际轮次错位。判定口径由调用方用
+     * `isGroupConversation(conversation)` 给出，不在这里另立一套。
+     */
+    groupChat: Boolean = false,
 ) {
     val message = node.messages[node.selectIndex]
     val settings = LocalSettings.current.displaySetting
@@ -135,11 +152,63 @@ fun ChatMessage(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
+
+    // 气泡上方的身份行。C1 之前这层完全不存在：群聊里 3 个角色 + 议长 + 投票小结 + 错误节点
+    // 复用同一个气泡后长得一模一样。渲染条件只有一条——**真有东西可显示**才占位：
+    // 单聊路径下 speakerName / speakerBadge 都是 null，这一行要么不渲染、要么只渲染原本
+    // 就该显示却一直没被接上的头像（`showUserAvatar` / `showModelIcon` / `showModelName`
+    // 三个开关因此重新生效），不会出现凭空多出来的空隙。
+    val showUserAvatarLine = shouldShowUserAvatar(message, settings.showUserAvatar)
+    val showAssistantAvatarLine = shouldShowAssistantAvatar(message, model, assistant)
+    val showSpeakerLine = speakerName != null || speakerBadge != null ||
+            showUserAvatarLine || showAssistantAvatarLine
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        if (showSpeakerLine) {
+            if (message.role == MessageRole.USER) {
+                // 用户侧组件自带「名字 + 头像」右对齐的排版，直接用。
+                ChatMessageUserAvatar(
+                    message = message,
+                    avatar = settings.userAvatar,
+                    nickname = settings.userNickname,
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    ChatMessageAssistantAvatar(
+                        message = message,
+                        loading = loading,
+                        model = model,
+                        assistant = assistant,
+                        // 群聊已经有角色名了，别再并排挂一个助手名。
+                        showName = speakerName == null,
+                        // fill = false：头像行按内容宽占位，剩下的宽度留给徽章，
+                        // 名字再长也不会把徽章挤出屏幕。
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    speakerName?.let { name ->
+                        Text(
+                            text = name,
+                            style = KedgeTextStyles.footnoteSmall(),
+                            fontWeight = FontWeight.SemiBold,
+                            color = KedgeColors.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    speakerBadge?.let { badge ->
+                        ChatMessageSpeakerBadge(text = badge, isError = speakerBadgeIsError)
+                    }
+                }
+            }
+        }
+
         ProvideTextStyle(textStyle) {
             MessagePartsBlock(
                 assistant = assistant,
@@ -184,7 +253,8 @@ fun ChatMessage(
                         showActionsSheet = true
                     },
                     onTranslate = onTranslate,
-                    onClearTranslation = onClearTranslation
+                    onClearTranslation = onClearTranslation,
+                    groupChat = groupChat,
                 )
             }
         }
@@ -207,6 +277,7 @@ fun ChatMessage(
             onShare = onShare,
             onFork = onFork,
             model = model,
+            groupChat = groupChat,
             onSelectAndCopy = {
                 showSelectCopySheet = true
             },
@@ -616,5 +687,31 @@ private fun MessagePartsBlock(
                 Text(stringResource(R.string.citations_count, annotations.size))
             }
         }
+    }
+}
+
+/**
+ * 身份行右侧那枚小徽章：议长裁决 / 投票小结 / 错误。
+ *
+ * 刻意做得比正文更轻——脚注字号、小圆角、低饱和底色——一眼能看出这条消息是什么性质，
+ * 但不能喧宾夺主。错误用 error 色，因为它是唯一需要人立刻处理的性质。
+ */
+@Composable
+private fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
+    KedgeSurface(
+        shape = RoundedCornerShape(6.dp),
+        color = if (isError) {
+            KedgeColors.errorContainer.copy(alpha = 0.7f)
+        } else {
+            KedgeColors.surfaceContainerHigh
+        },
+    ) {
+        Text(
+            text = text,
+            style = KedgeTextStyles.footnoteSmall(),
+            color = if (isError) KedgeColors.onErrorContainer else KedgeColors.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+        )
     }
 }

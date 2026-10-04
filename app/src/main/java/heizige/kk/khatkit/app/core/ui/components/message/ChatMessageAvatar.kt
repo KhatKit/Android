@@ -23,6 +23,20 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.kedge.theme.KedgeTextStyles
 
+/**
+ * 气泡上方要不要给用户头像留一行。与 [ChatMessageUserAvatar] 的渲染条件是同一份：
+ * 调用方靠它决定这一行渲不渲染，否则会出现「留了空隙却没有内容」的行。
+ */
+internal fun shouldShowUserAvatar(message: UIMessage, showUserAvatar: Boolean): Boolean =
+    message.role == MessageRole.USER && !message.parts.isEmptyUIMessage() && showUserAvatar
+
+/**
+ * 气泡上方要不要给助手头像 / 模型图标留一行。与 [ChatMessageAssistantAvatar] 的渲染条件是
+ * 同一份：必须是助手消息，且要么有模型、要么助手开了「用助手头像」。
+ */
+internal fun shouldShowAssistantAvatar(message: UIMessage, model: Model?, assistant: Assistant?): Boolean =
+    message.role == MessageRole.ASSISTANT && (model != null || assistant?.useAssistantAvatar == true)
+
 @Composable
 fun ChatMessageUserAvatar(
     message: UIMessage,
@@ -31,7 +45,7 @@ fun ChatMessageUserAvatar(
     modifier: Modifier = Modifier,
 ) {
     val settings = LocalSettings.current
-    if (message.role == MessageRole.USER && !message.parts.isEmptyUIMessage() && settings.displaySetting.showUserAvatar) {
+    if (shouldShowUserAvatar(message, settings.displaySetting.showUserAvatar)) {
         Row(
             modifier = modifier,
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
@@ -52,6 +66,12 @@ fun ChatMessageUserAvatar(
     }
 }
 
+/**
+ * 助手侧的头像 + 名字行。渲染与否由 [shouldShowAssistantAvatar] 决定，别处不要再写一遍。
+ *
+ * [showName] 只管名字那一段：群聊里气泡上方已经有角色名（说话者是谁），这时关掉它，
+ * 免得同一条消息上并排出现「角色名」和「助手名」两个名字。单聊传 true，行为不变。
+ */
 @Composable
 fun ChatMessageAssistantAvatar(
     message: UIMessage,
@@ -59,11 +79,12 @@ fun ChatMessageAssistantAvatar(
     model: Model?,
     assistant: Assistant?,
     modifier: Modifier = Modifier,
+    showName: Boolean = true,
 ) {
     val settings = LocalSettings.current
     val showIcon = settings.displaySetting.showModelIcon
     val useAssistantAvatar = assistant?.useAssistantAvatar == true
-    if (message.role == MessageRole.ASSISTANT && (model != null || useAssistantAvatar)) {
+    if (shouldShowAssistantAvatar(message, model, assistant)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -83,7 +104,7 @@ fun ChatMessageAssistantAvatar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    if (settings.displaySetting.showModelName) {
+                    if (showName && settings.displaySetting.showModelName) {
                         Text(
                             text = assistant.name.ifEmpty { stringResource(R.string.assistant_page_default_assistant) },
                             style = KedgeTextStyles.body(),
@@ -104,7 +125,7 @@ fun ChatMessageAssistantAvatar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    if (settings.displaySetting.showModelName) {
+                    if (showName && settings.displaySetting.showModelName) {
                         Text(
                             text = model.displayName,
                             style = KedgeTextStyles.body(),

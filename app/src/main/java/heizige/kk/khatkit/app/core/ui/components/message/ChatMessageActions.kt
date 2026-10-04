@@ -73,6 +73,11 @@ fun ColumnScope.ChatMessageActionButtons(
     onOpenActionSheet: () -> Unit,
     onTranslate: ((UIMessage, Locale) -> Unit)? = null,
     onClearTranslation: (UIMessage) -> Unit = {},
+    /**
+     * 群聊会话：关掉「重新生成」。它打到 `ChatManager.regenerateAtMessage`，不是群聊感知的，
+     * 会让群运行日志的账面和实际轮次错位（重跑一轮却仍标着上一轮已提交）。
+     */
+    groupChat: Boolean = false,
 ) {
     val context = LocalContext.current
     val settings = LocalSettings.current
@@ -104,22 +109,24 @@ fun ColumnScope.ChatMessageActionButtons(
             tint = actionIconColor
         )
 
-        Icon(
-            imageVector = sync,
-            contentDescription = stringResource(R.string.regenerate),
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable {
-                    if (message.role == MessageRole.USER) {
-                        showRegenerateConfirm = true
-                    } else {
-                        onRegenerate()
+        if (!groupChat) {
+            Icon(
+                imageVector = sync,
+                contentDescription = stringResource(R.string.regenerate),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable {
+                        if (message.role == MessageRole.USER) {
+                            showRegenerateConfirm = true
+                        } else {
+                            onRegenerate()
+                        }
                     }
-                }
-                .padding(8.dp)
-                .size(16.dp),
-            tint = actionIconColor
-        )
+                    .padding(8.dp)
+                    .size(16.dp),
+                tint = actionIconColor
+            )
+        }
 
         if (message.role == MessageRole.ASSISTANT) {
             val tts = LocalTTSState.current
@@ -250,7 +257,13 @@ fun ChatMessageActionsSheet(
     onFork: () -> Unit,
     onSelectAndCopy: () -> Unit,
     onWebViewPreview: () -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    /**
+     * 群聊会话：关掉「创建分支」与「删除」。前者打到 `forkConversationAtMessage`、后者打到
+     * `deleteMessage`，都不是群聊感知的：删掉一条角色发言后，运行日志里那一轮仍声称该角色
+     * 已提交，续跑就会跳过没人再发言的角色。
+     */
+    groupChat: Boolean = false,
 ) {
     PrimaryBottomSheet(
         visible = true,
@@ -378,60 +391,64 @@ fun ChatMessageActionsSheet(
                 }
             }
 
-            // Create a Fork
-            KedgeCard(
-                onClick = {
-                    dismiss()
-                    onFork()
-                },
-                shape = MaterialTheme.shapes.medium,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
+            // Create a Fork（群聊下不显示，见 groupChat）
+            if (!groupChat) {
+                KedgeCard(
+                    onClick = {
+                        dismiss()
+                        onFork()
+                    },
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Icon(
-                        imageVector = conversionPath,
-                        contentDescription = null,
-                        modifier = Modifier.padding(4.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.create_fork),
-                        style = KedgeTextStyles.title(),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = conversionPath,
+                            contentDescription = null,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.create_fork),
+                            style = KedgeTextStyles.title(),
+                        )
+                    }
                 }
             }
 
-            // Delete
-            KedgeCard(
-                onClick = {
-                    dismiss()
-                    onDelete()
-                },
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor = KedgeColors.errorContainer
-                )
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
+            // Delete（群聊下不显示，见 groupChat）
+            if (!groupChat) {
+                KedgeCard(
+                    onClick = {
+                        dismiss()
+                        onDelete()
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = KedgeColors.errorContainer
+                    )
                 ) {
-                    Icon(
-                        imageVector = delete,
-                        contentDescription = null,
-                        modifier = Modifier.padding(4.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.delete),
-                        style = KedgeTextStyles.title(),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = delete,
+                            contentDescription = null,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.delete),
+                            style = KedgeTextStyles.title(),
+                        )
+                    }
                 }
             }
 
