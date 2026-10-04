@@ -317,8 +317,8 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
  *   workspace provider 不触发时才给出候选，否则插入范围会错位。
  * @param topBar 替换默认的单聊 [TopBar]。为 null（单聊的默认值）时行为与 C1 之前完全相同。
  *   群聊页传自己的轻量顶栏：单聊那个 `TopBar` 有 394 行、含「点标题切模型」「长按改标题」
- *   「搜索预览」等一堆单聊语义，其中「切换模型」在群聊里根本没有定义（群配置里没有模型字段，
- *   每个角色的模型由 `GroupRole.modelId` 决定，且它当前不参与模型解析）。
+ *   「搜索预览」等一堆单聊语义，其中「切换模型」在群聊里根本没有定义（群配置里没有会话级模型字段，
+ *   每个角色的模型由 `GroupRole.modelId` 决定，绑不上时才回落该角色所属助手的 `chatModelId`）。
  *   回调把本函数建的 [TopAppBarScrollBehavior] 传回去，需要折叠行为的调用方可以接。
  * @param canEditMessage 气泡「编辑」动作的门禁，默认恒 true（单聊行为与 C1 之前完全相同）。
  *   群聊传 `{ it.role == MessageRole.USER }`：改写**角色发言**会让群运行日志里的
