@@ -136,6 +136,39 @@ internal fun backgroundTextGenerationParams(
     sessionId = conversationId.toString(),
 )
 
+/**
+ * 后台「生成完成」通知的标题：这一轮**实际**由谁答的。
+ *
+ * 公式逐字取自 `d61eefde`「feat(notification): 通知标题改为模型名或助手名」，
+ * 那条 commit 的原话是「与消息列表中头像区域的名称显示逻辑保持一致」——
+ * 气泡侧那段逻辑在 `ChatMessageAvatar.kt:86-131`：助手开了 `useAssistantAvatar` 就显示
+ * 助手名，否则显示模型 `displayName`。本函数是它的纯函数版，抽出来是为了能在 JVM 单测里
+ * 钉死（见 `ChatManagerNotificationSenderNameTest`）。
+ *
+ * ## 为什么必须是「这一轮的」助手/模型，而不是会话级的
+ *
+ * 群聊一轮里每个角色的 `assistant_id` / `model_id` 都可能不同（契约 `roles[]` 的最小
+ * schema 就含模型绑定）。会话级的助手/模型只描述「这个群属于谁」，不描述「这条回复是谁
+ * 写的」。若通知标题用会话级值，用户在后台收到通知看到的是**没答这条消息**的模型名 ——
+ * 群聊里三个角色各用一个模型时，标题会永远显示同一个名字。
+ *
+ * 因此调用点必须在群聊分支重算完 `assistant` / `model` **之后**才求这个值。
+ *
+ * @param assistant 这一轮实际使用的助手（群聊下是**发言角色**的助手）。
+ * @param model 这一轮实际调用的模型（群聊下由 `resolveGroupTurnModelId` 选出的那个）。
+ * @param defaultAssistantName 助手名为空时的兜底文案（由调用方注入，KDoc 引用它的
+ *   资源字符串，纯函数不碰 `Context`）。
+ */
+internal fun resolveNotificationSenderName(
+    assistant: Assistant,
+    model: Model,
+    defaultAssistantName: String,
+): String = if (assistant.useAssistantAvatar) {
+    assistant.name.ifEmpty { defaultAssistantName }
+} else {
+    model.displayName
+}
+
 internal fun createForkConversation(
     source: Conversation,
     messageNodes: List<MessageNode>,
@@ -678,11 +711,18 @@ class ChatManager(
         var groupStep: SpeakerStep? = null
         var model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
 
-        val senderName = if (assistant.useAssistantAvatar) {
-            assistant.name.ifEmpty { context.getString(R.string.assistant_page_default_assistant) }
-        } else {
-            model.displayName
-        }
+        // 群聊分支会在下面把 `assistant` / `model` 换成**本轮发言角色**的那一套，所以这里
+        // 是 `var` 且在群聊分支里重算一次。单聊走不到那个分支，值与 C1 之前逐字相同。
+        var senderName = resolveNotificationSenderName(
+            assistant = assistant,
+            model = model,
+            defaultAssistantName = context.getString(R.string.assistant_page_default_assistant),
+        )
+        // 这个局部量唯一的消费点是下面群聊分支**之前**的「工具不可用」告警（`:694`），它与
+        // 同一处的 `model` 同为会话级，两者自洽。真正决定「本轮要不要下发外部搜索工具」的是
+        // `chatToolFactory.createTools(...)` 内部按传入的 (assistant, model) 再算一次
+        // （`ChatToolFactory.kt:151`），而那个调用点在群聊分支**之后**，拿的是本轮真实的模型 ——
+        // 所以工具下发本身没有这个错位问题，不需要跟着改。
         val useExternalWebSearch = shouldUseExternalWebSearch(assistant, model)
 
         runCatching {
@@ -728,6 +768,14 @@ class ChatManager(
                         assistantChatModelId = assistant.chatModelId,
                         isKnownModel = { settings.findModelById(it) != null },
                     ),
+                )
+                // 后台通知标题必须跟着本轮走：上面刚把 assistant / model 换成发言角色那一套，
+                // 这里就得按新值重算，否则通知标题显示的是一个**没答这条消息**的模型名
+                // （或助手名）。公式见 resolveNotificationSenderName，与气泡头像区同一口径。
+                senderName = resolveNotificationSenderName(
+                    assistant = assistant,
+                    model = model,
+                    defaultAssistantName = context.getString(R.string.assistant_page_default_assistant),
                 )
                 // C1-M：只为本轮发言角色建空间（契约「首次发言懒创建」），不再一次建全部
                 // 角色——没开口的角色不该在库里留下空间。未发言角色的空间由其第一次
