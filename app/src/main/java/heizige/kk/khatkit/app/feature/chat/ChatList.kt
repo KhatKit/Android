@@ -249,6 +249,83 @@ internal fun resolveMessageModel(
         ?.let(modelById::get)
 }
 
+/**
+ * 滚动条滑块需要的三份读数，收成一份**不可变快照**，供 `derivedStateOf` 缓存。
+ *
+ * 抽成 data class 而不是三个散值，是为了让 `derivedStateOf` 的相等判定有意义：三个
+ * Int/Float 组成一个值对象，滚动期间它只在真正变化时（索引/偏移量真的动了）才产生
+ * 新实例，不会因为「每帧重新算了一遍同样的数」而把下游全部叫醒。
+ *
+ * @param total 列表总条数（下限 1）。
+ * @param visible 当前可见条数（下限 1）。
+ * @param progress 0f = 顶部，1f = 底部；已到底为 1f、已到顶为 0f。
+ */
+internal data class ScrollbarMetrics(
+    val total: Int,
+    val visible: Int,
+    val progress: Float,
+)
+
+/**
+ * 从 [LazyListState] 读出滚动条几何量。**只能在非组合作用域调用**（这里是
+ * `derivedStateOf` 的计算体与 draw lambda）——组合期直读 `layoutInfo` /
+ * `firstVisibleItemIndex` / `firstVisibleItemScrollOffset` 会触发 lint 的
+ * `FrequentlyChangingValue`，且会让整个聊天列表每滚一帧重组一次。
+ *
+ * 算法与 `d2be1c3f` / `2dd06a06` 落地的版本逐字一致：纯索引比例，首项按像素高度折算
+ * 成 0f..1f 的偏移分数，端点由 `canScrollForward` / `canScrollBackward` 强制贴边。
+ */
+private fun LazyListState.scrollbarMetrics(): ScrollbarMetrics {
+    val info = layoutInfo
+    val total = info.totalItemsCount.coerceAtLeast(1)
+    val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
+    val firstIndex = firstVisibleItemIndex
+    val firstSize = info.visibleItemsInfo.firstOrNull { it.index == firstIndex }
+        ?.size?.coerceAtLeast(1) ?: 1
+    val offsetFraction = (firstVisibleItemScrollOffset.toFloat() / firstSize).coerceIn(0f, 1f)
+    return ScrollbarMetrics(
+        total = total,
+        visible = visible,
+        progress = resolveScrollbarProgress(
+            total = total,
+            firstIndex = firstIndex,
+            offsetFraction = offsetFraction,
+            canScrollForward = canScrollForward,
+            canScrollBackward = canScrollBackward,
+        ),
+    )
+}
+
+/**
+ * 滑块进度：`(首项索引 + 首项内偏移分数) / (总条数 - 1)`，再由两个端点标志强制贴边。
+ *
+ * 单独抽成纯函数是为了能在 JVM 单测里逐条钉死这套算术（见 `ChatListScrollbarTest`）——
+ * 它决定滑块画在哪，没法靠仪器测试之外的手段验证，只能把公式本身变成可断言的输入输出。
+ * 公式逐字取自 `d2be1c3f` 落地的版本，**没有**改成别的口径。
+ *
+ * @param total 总条数，至少为 1。
+ * @param firstIndex 当前首个可见项的索引。
+ * @param offsetFraction 首项内部的滚动偏移，占首项高度的比例，已夹在 0f..1f。
+ * @param canScrollForward 是否还能继续往下滚（false 表示已到底）。
+ * @param canScrollBackward 是否还能往上滚（false 表示已到顶）。
+ */
+internal fun resolveScrollbarProgress(
+    total: Int,
+    firstIndex: Int,
+    offsetFraction: Float,
+    canScrollForward: Boolean,
+    canScrollBackward: Boolean,
+): Float {
+    var progress = if (total > 1) {
+        ((firstIndex + offsetFraction) / (total - 1)).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    if (!canScrollForward) progress = 1f
+    if (!canScrollBackward) progress = 0f
+    return progress
+}
+
 @Composable
 private fun ChatListNormal(
     innerPadding: PaddingValues,
@@ -607,35 +684,21 @@ private fun ChatListNormal(
             val frozenTotal = remember { androidx.compose.runtime.mutableIntStateOf(0) }
             val frozenVisible = remember { androidx.compose.runtime.mutableIntStateOf(1) }
             val frozenProgress = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            val sbInfo = state.layoutInfo
-            val liveTotal = sbInfo.totalItemsCount.coerceAtLeast(1)
-            val liveVisible = sbInfo.visibleItemsInfo.size.coerceAtLeast(1)
-            val firstIndex = state.firstVisibleItemIndex
-            val firstSize = sbInfo.visibleItemsInfo.firstOrNull { it.index == firstIndex }
-                ?.size?.coerceAtLeast(1) ?: 1
-            val offsetFraction = (state.firstVisibleItemScrollOffset.toFloat() / firstSize)
-                .coerceIn(0f, 1f)
-            var liveProgress = if (liveTotal > 1) {
-                ((firstIndex + offsetFraction) / (liveTotal - 1)).coerceIn(0f, 1f)
-            } else {
-                0f
-            }
-            if (!state.canScrollForward) liveProgress = 1f
-            if (!state.canScrollBackward) liveProgress = 0f
+            // layoutInfo / firstVisibleItemIndex / firstVisibleItemScrollOffset 都带
+            // @FrequentlyChangingValue：在组合期直读会让整个 ChatListNormal 每滚一帧重组一次。
+            // 这里 derivedStateOf 收敛成一份不可变快照，只在下面两处读——LaunchedEffect 体与
+            // Canvas 的 draw lambda，两者都不是组合作用域，于是滚动只重绘滚动条，不再重组列表。
+            val scrollbarMetrics by remember(state) { derivedStateOf { state.scrollbarMetrics() } }
 
             LaunchedEffect(loading) {
                 if (loading) {
-                    frozenTotal.intValue = liveTotal
-                    frozenVisible.intValue = liveVisible
-                    frozenProgress.floatValue = liveProgress
+                    val m = scrollbarMetrics
+                    frozenTotal.intValue = m.total
+                    frozenVisible.intValue = m.visible
+                    frozenProgress.floatValue = m.progress
                 }
             }
 
-            val sbTotal = if (loading) frozenTotal.intValue.coerceAtLeast(1) else liveTotal
-            val sbVisible = if (loading) frozenVisible.intValue.coerceAtLeast(1) else liveVisible
-            val thumbRatio = ((sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f) * 20f)
-                .let { kotlin.math.round(it) / 20f }
-            val scrollProgress = if (loading) frozenProgress.floatValue else liveProgress
             val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             val scrollbarThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             val scrollbarDotColor = MaterialTheme.colorScheme.primary
@@ -668,6 +731,15 @@ private fun ChatListNormal(
                 val thickness = 4.dp.toPx()
                 val radius = androidx.compose.ui.geometry.CornerRadius(thickness / 2f)
                 val x = size.width - thickness
+
+                // 滑块比例与位置在这里（draw 作用域）才算，不在组合期算：
+                // 组合期算会让每帧滚动都重组 ChatListNormal，读快照走 draw 只重绘这一个 Canvas。
+                val metrics = scrollbarMetrics
+                val sbTotal = if (loading) frozenTotal.intValue.coerceAtLeast(1) else metrics.total
+                val sbVisible = if (loading) frozenVisible.intValue.coerceAtLeast(1) else metrics.visible
+                val thumbRatio = ((sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f) * 20f)
+                    .let { kotlin.math.round(it) / 20f }
+                val scrollProgress = if (loading) frozenProgress.floatValue else metrics.progress
 
                 // 轨道
                 drawRoundRect(
