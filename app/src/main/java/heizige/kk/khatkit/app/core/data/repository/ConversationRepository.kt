@@ -402,6 +402,7 @@ class ConversationRepository(
             folderId = conversation.folderId?.toString() ?: "",
             type = conversation.type,
             groupConfig = conversation.groupConfig?.let { GroupChat.encodeConfig(it) }.orEmpty(),
+            groupCards = conversation.groupCards?.let { GroupChat.encodeRoleCards(it) }.orEmpty(),
         )
     }
 
@@ -425,6 +426,7 @@ class ConversationRepository(
             folderId = conversationEntity.folderId.ifEmpty { null }?.let { Uuid.parse(it) },
             type = conversationEntity.type.ifBlank { GroupChat.TYPE_DIRECT },
             groupConfig = GroupChat.decodeConfig(conversationEntity.groupConfig),
+            groupCards = GroupChat.decodeRoleCards(conversationEntity.groupCards),
         )
     }
 
@@ -459,6 +461,17 @@ class ConversationRepository(
         )
     }
 
+    /**
+     * 抽屉列表用的轻量投影 → [Conversation]。
+     *
+     * **刻意不读 `group_cards`**（[LightConversationEntity] 与那 7 条手写列名列表里都没有
+     * 这一列）：抽屉一行不显示角色卡，把可能很大的 persona blob 拉进每一行只是白付内存与
+     * 带宽。代价是这里产出的 [Conversation] 的 `groupCards` 恒为 `null`——这不会把已落库的
+     * 卡片抹掉，因为抽屉侧的写操作（置顶 / 移助手 / 移文件夹）全是**单列 UPDATE**
+     * （`ConversationDAO.updatePinStatus` / `updateAssistantId` / `updateFolderId`），
+     * 重生成标题也先用 `getConversationById` 取回完整会话，没有任何一条路径会拿这份轻量对象
+     * 去整行覆盖。
+     */
     private fun conversationSummaryToConversation(entity: LightConversationEntity): Conversation {
         return Conversation(
             id = Uuid.parse(entity.id),
@@ -524,7 +537,11 @@ class ConversationRepository(
 }
 
 /**
- * 轻量级的会话查询结果，不包含 nodes 和 suggestions 字段
+ * 轻量级的会话查询结果，不包含 nodes 和 suggestions 字段。
+ *
+ * 同样**不含 `group_cards`**：抽屉列表不显示角色卡，`persona` 可能有整段系统提示词那么长，
+ * 把它拉进每一行只是白付内存与带宽。抽屉侧的全部写操作都是单列 UPDATE，不会用这份投影
+ * 整行覆盖会话行（见 [conversationSummaryToConversation] 的说明）。
  */
 data class LightConversationEntity(
     val id: String,
