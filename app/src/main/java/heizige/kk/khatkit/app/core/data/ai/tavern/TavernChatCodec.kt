@@ -2,7 +2,10 @@ package heizige.kk.khatkit.app.core.data.ai.tavern
 
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
+import heizige.kk.khatkit.app.core.data.model.GroupChat
+import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -21,9 +24,54 @@ import kotlinx.serialization.json.put
  * SillyTavern chat files are JSONL: the first line is metadata without `mes`,
  * and each later line is one message. A JSON array with the same objects is also accepted.
  * Swipes map onto [MessageNode] branches. Fields outside this subset are copied back.
+ *
+ * 群聊（[exportGroup] / [importGroup]）在上面的子集上加一层：C1 契约字段
+ * `role_id` / `round_id` / `turn_kind` / `mention_role_ids` 逐条消息平铺，群配置与角色卡
+ * 收在顶层 [GROUP_FIELD] 里。
+ *
+ * 字段命名的依据（SillyTavern `release` @ `06bde939`，AGPL-3.0 同协议可参照，只按行为对齐）：
+ *
+ * - `name` / `is_user` / `is_system` / `mes` / `swipes` / `swipe_id` / `user_name` /
+ *   `character_name` / `create_date` / `spec` 都是酒馆聊天文件的真实字段，沿用。
+ * - 群聊文件首行放 `chat_metadata`：`public/scripts/group-chats.js:268,272` 读
+ *   `data[0].chat_metadata`，L272 只在首行**带这个键**时才 `shift()` 掉表头，
+ *   否则整行会被当成一条消息渲染。所以群聊导出必须带它，带了酒馆也才认这是群聊文件。
+ * - 群名与成员名单**不在**聊天文件里：`/api/chats/group/save` 把它们存在服务端的
+ *   `groups/<id>.json`（`{id, name, avatar, members, chats}`），该 SHA 的聊天文件
+ *   没有 `group_name` / `character_names` 字段。因此这两项落在私有命名空间
+ *   [GROUP_FIELD] 与 [GROUP_CHARACTER_NAMES_FIELD]，不借用酒馆字段名，免得臆造。
+ * - 消息级 `role_id` / `round_id` / `turn_kind` / `mention_role_ids` 是 C1 契约键，
+ *   酒馆不解释但会原样保留在消息对象里；它们也是 KhatKit 自己的落库键，沿用同一拼写。
  */
 object TavernChatCodec {
     private val json = Json { encodeDefaults = false }
+
+    /**
+     * 角色卡元数据专用编解码：`encodeDefaults` 保证默认字段显式写出（形状稳定），
+     * `explicitNulls = false` 让 null 字段整个键消失——否则 `JsonNull` 会被
+     * `(x as? JsonPrimitive).content` 读成字符串 `"null"`。
+     */
+    private val cardJson = Json {
+        encodeDefaults = true
+        explicitNulls = false
+        ignoreUnknownKeys = true
+    }
+
+    /** 顶层群配置字段。私有命名空间，不与酒馆任何字段重名。 */
+    const val GROUP_FIELD = "khatkit_group"
+
+    /** 群成员显示名（按发言顺序）。酒馆聊天文件里没有对应字段，见类注释。 */
+    const val GROUP_CHARACTER_NAMES_FIELD = "khatkit_character_names"
+
+    /** 消息级契约键，与 [UIMessage] 的群聊字段一一对应。 */
+    const val FIELD_ROLE_ID = "role_id"
+
+    const val FIELD_ROUND_ID = "round_id"
+    const val FIELD_TURN_KIND = "turn_kind"
+    const val FIELD_MENTION_ROLE_IDS = "mention_role_ids"
+
+    /** 合成节点（[GroupChat.SUMMARY_ID]）没有角色名，用与群聊页一致的显示名兜底。 */
+    private const val SUMMARY_DISPLAY_NAME = "多数决"
 
     fun import(raw: String): TavernChatDocument {
         val trimmed = raw.trim()
@@ -163,6 +211,206 @@ object TavernChatCodec {
             },
         )
     )
+
+    // ---------------- 群聊 ----------------
+
+    /**
+     * 群聊导出：酒馆能打开的群聊 JSON（数组形态，与 [exportNodes] 同族）。
+     *
+     * 相对 [exportNodes] 的单角色语义，这里把「谁在说」拆成四个契约字段而不是塞进
+     * `name`：`role_id` 是发言者、`round_id` 是轮次、`turn_kind` 是发言类型、
+     * `mention_role_ids` 是被 @ 的角色。`name` 只负责显示，取 `GroupRole.name`，
+     * 空名回落到 role id，再回落到群名。
+     *
+     * 群配置与角色卡最小元数据（[RoleCardMeta] 六个字段）收在顶层 [GROUP_FIELD]，
+     * 成员显示名单收在 [GROUP_CHARACTER_NAMES_FIELD]。
+     *
+     * **确定性**：不写时间戳、不写消息 id、不写任何随机值，`createDate` 由调用方显式传入
+     * （默认不写）。同样的输入连跑两次字节完全相同，可以直接算 SHA-256。
+     *
+     * 密钥闸门：整份导出再扫一遍 [GroupChat.findForbiddenKeys]，命中即抛异常，与
+     * [GroupChat.encodeQr] 同一口径。因此 [GroupConfig.extras] 里塞了 `api_key` 之类的键
+     * 时这里写不出去。
+     *
+     * UI 入口（本子包不接）：`ConversationExport.kt` 的 `ChatExportSheet` 里，
+     * `conversation.groupConfig != null` 时加一个「Tavern 群聊」选项调本函数，
+     * `selectedMessages` 反查成 [MessageNode] 后传进来。
+     */
+    fun exportGroup(
+        nodes: List<MessageNode>,
+        config: GroupConfig,
+        cards: List<RoleCardMeta> = emptyList(),
+        userName: String,
+        groupName: String,
+        createDate: String? = null,
+    ): String = json.encodeToString(
+        JsonElement.serializer(),
+        groupArray(nodes, config, cards, userName, groupName, createDate),
+    )
+
+    /** 群聊导出的 JSONL 形态，即酒馆写在 `groupChats/<id>.jsonl` 下的原样。 */
+    fun exportGroupJsonl(
+        nodes: List<MessageNode>,
+        config: GroupConfig,
+        cards: List<RoleCardMeta> = emptyList(),
+        userName: String,
+        groupName: String,
+        createDate: String? = null,
+    ): String = groupArray(nodes, config, cards, userName, groupName, createDate)
+        .joinToString("\n") { json.encodeToString(JsonElement.serializer(), it) }
+
+    /**
+     * 群聊导入。只认带 [GROUP_FIELD] 的导出：不是 KhatKit 群聊导出（含解析失败）一律返回
+     * null，语义与 [GroupChat.decodeQr] 一致，不猜。
+     *
+     * 消息复用 [import] 的解析，因此 `mes` / `swipes` / `swipe_id` / `is_user` / `is_system`
+     * 的读法与单聊完全一致，四个契约字段再从原对象上取回并写回 [UIMessage]，因此
+     * `exportGroup` → `importGroup` 之后 `role_id` / `round_id` / `turn_kind` /
+     * `mention_role_ids` / 群配置 / 角色卡元数据都相等。
+     */
+    fun importGroup(raw: String): TavernGroupChatDocument? {
+        val document = runCatching { import(raw) }.getOrNull() ?: return null
+        val payload = document.header[GROUP_FIELD] as? JsonObject ?: return null
+        return TavernGroupChatDocument(
+            header = document.header,
+            messages = document.messages.map(::groupMessageOf),
+            groupName = payload.string("name").orEmpty(),
+            userName = document.header.string("user_name").orEmpty(),
+            characterNames = (document.header[GROUP_CHARACTER_NAMES_FIELD] as? JsonArray)
+                ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+                .orEmpty(),
+            config = GroupChat.decodeConfigObject(payload["config"] as? JsonObject),
+            cards = (payload["cards"] as? JsonArray).orEmpty().mapNotNull { element ->
+                val card = element as? JsonObject ?: return@mapNotNull null
+                runCatching { cardJson.decodeFromJsonElement(RoleCardMeta.serializer(), card) }
+                    .getOrNull()
+            },
+        )
+    }
+
+    private fun groupArray(
+        nodes: List<MessageNode>,
+        config: GroupConfig,
+        cards: List<RoleCardMeta>,
+        userName: String,
+        groupName: String,
+        createDate: String?,
+    ): JsonArray {
+        val names = roleDisplayNames(config, cards)
+        val header = buildJsonObject {
+            put("spec", "st_chat_v1")
+            put("user_name", userName)
+            // 酒馆只有 {{char}} 一个宏位，群聊里给它群名，角色名走每条消息的 name。
+            put("character_name", groupName)
+            createDate?.let { put("create_date", it) }
+            // 酒馆 `group-chats.js:272` 只在首行带 chat_metadata 时才把这行当表头丢掉，
+            // 缺了它整行会被渲染成一条空消息。
+            put("chat_metadata", buildJsonObject { put("is_group", true) })
+            put(GROUP_FIELD, groupPayload(config, cards, groupName))
+            put(GROUP_CHARACTER_NAMES_FIELD, JsonArray(names.values.map { JsonPrimitive(it) }))
+        }
+        val array = JsonArray(listOf(header) + nodes.map { groupMessageOf(it, names, userName, groupName) })
+        val offending = GroupChat.findForbiddenKeys(array)
+        check(offending.isEmpty()) { "群聊导出包含禁止导出的字段：$offending" }
+        return array
+    }
+
+    private fun groupPayload(config: GroupConfig, cards: List<RoleCardMeta>, groupName: String): JsonObject =
+        buildJsonObject {
+            put("kind", GroupChat.QR_KIND)
+            put("schema_version", config.schemaVersion)
+            put("name", groupName)
+            // 群配置走 GroupChat 自己的编解码，未知字段（extras）平铺在 config 里，
+            // encodeConfigObject 与 decodeConfigObject 互为逆运算。
+            put("config", GroupChat.encodeConfigObject(config))
+            put("cards", JsonArray(cards.map { cardJson.encodeToJsonElement(RoleCardMeta.serializer(), it) }))
+        }
+
+    /** 群成员显示名。`GroupRole.name` 是显示名的唯一来源，角色卡只在配置缺名时兜底。 */
+    private fun roleDisplayNames(config: GroupConfig, cards: List<RoleCardMeta>): Map<String, String> =
+        buildMap {
+            config.roles.forEach { role ->
+                if (role.id.isNotBlank()) put(role.id, role.name.ifBlank { role.id })
+            }
+            cards.forEach { card ->
+                if (card.roleId.isNotBlank()) putIfAbsent(card.roleId, card.name.ifBlank { card.roleId })
+            }
+        }
+
+    private fun groupMessageOf(
+        node: MessageNode,
+        names: Map<String, String>,
+        userName: String,
+        groupName: String,
+    ): JsonObject {
+        val index = node.selectIndex.coerceIn(0, node.messages.lastIndex.coerceAtLeast(0))
+        val selected = node.messages.getOrNull(index)
+        val roleId = selected?.roleId
+        val turnKind = selected?.let {
+            it.turnKind ?: if (it.role == MessageRole.USER) GroupChat.TURN_USER else GroupChat.TURN_SPEAKER
+        }
+        return buildJsonObject {
+            put("name", groupMessageName(selected, roleId, names, userName, groupName))
+            put("is_user", selected?.role == MessageRole.USER)
+            put("is_system", selected?.role == MessageRole.SYSTEM)
+            put("mes", selected?.toText().orEmpty())
+            if (node.messages.isNotEmpty()) {
+                put("swipes", JsonArray(node.messages.map { JsonPrimitive(it.toText()) }))
+                put("swipe_id", index)
+            }
+            roleId?.let { put(FIELD_ROLE_ID, it) }
+            selected?.roundId?.let { put(FIELD_ROUND_ID, it) }
+            turnKind?.let { put(FIELD_TURN_KIND, it) }
+            put(
+                FIELD_MENTION_ROLE_IDS,
+                JsonArray((selected?.mentionRoleIds ?: emptyList()).map { JsonPrimitive(it) }),
+            )
+        }
+    }
+
+    private fun groupMessageName(
+        selected: UIMessage?,
+        roleId: String?,
+        names: Map<String, String>,
+        userName: String,
+        groupName: String,
+    ): String = when {
+        selected == null -> groupName
+        selected.role == MessageRole.USER -> userName
+        roleId == null -> groupName
+        roleId == GroupChat.SUMMARY_ID -> names[roleId] ?: SUMMARY_DISPLAY_NAME
+        else -> names[roleId] ?: roleId
+    }
+
+    private fun groupMessageOf(message: TavernChatMessage): TavernGroupMessage {
+        val raw = message.raw
+        val roleId = raw.string(FIELD_ROLE_ID)
+        val roundId = raw.string(FIELD_ROUND_ID)
+        val turnKind = raw.string(FIELD_TURN_KIND)
+        val mentions = (raw[FIELD_MENTION_ROLE_IDS] as? JsonArray)
+            ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+            .orEmpty()
+        return TavernGroupMessage(
+            // 契约字段同时写回消息本身：调用方拿 node 就能直接用，不必再解一遍 raw。
+            node = MessageNode(
+                messages = message.node.messages.map {
+                    it.copy(
+                        roleId = roleId,
+                        roundId = roundId,
+                        turnKind = turnKind,
+                        mentionRoleIds = mentions,
+                    )
+                },
+                selectIndex = message.node.selectIndex,
+            ),
+            name = raw.string("name").orEmpty(),
+            roleId = roleId,
+            roundId = roundId,
+            turnKind = turnKind,
+            mentionRoleIds = mentions,
+            raw = raw,
+        )
+    }
 }
 
 data class TavernChatDocument(
@@ -172,6 +420,31 @@ data class TavernChatDocument(
 
 data class TavernChatMessage(
     val node: MessageNode,
+    val raw: JsonObject,
+)
+
+/**
+ * 群聊导入结果。[config] 为 null 表示文件里没有可解的群配置（例如别人导出的纯酒馆群聊，
+ * 那种文件本来就没有 KhatKit 的字段），其余字段照常可用。
+ */
+data class TavernGroupChatDocument(
+    val header: JsonObject,
+    val messages: List<TavernGroupMessage>,
+    val groupName: String,
+    val userName: String,
+    val characterNames: List<String>,
+    val config: GroupConfig?,
+    val cards: List<RoleCardMeta>,
+)
+
+/** 一条群消息：酒馆字段在 [raw]，C1 契约字段既在 [raw] 也已写回 [node] 的消息上。 */
+data class TavernGroupMessage(
+    val node: MessageNode,
+    val name: String,
+    val roleId: String?,
+    val roundId: String?,
+    val turnKind: String?,
+    val mentionRoleIds: List<String>,
     val raw: JsonObject,
 )
 
