@@ -562,8 +562,9 @@ private fun ExportedChatMessage(
             .flatMap { it.models }
             .associateBy { it.id }
     }
-    // 导出的模型名与气泡同一口径：群聊看角色自己的绑定（`GroupRole.modelId`），绑不上才回落这条
-    // 消息实际记的 modelId。单聊 `groupConfig` 恒为 null，走的就是 `message.modelId` 那一句。
+    // 导出的模型名与气泡同一口径：消息自己记的 modelId（= 当时实际调用的模型）优先，
+    // 缺失时才回落角色的 `GroupRole.modelId`。单聊 `groupConfig` 恒为 null，走的就是
+    // `message.modelId` 那一句。
     val model = remember(message.modelId, groupConfig, modelById) {
         val speaker = GroupSpeakerResolver.resolve(message, groupConfig) as? GroupSpeakerIdentity.Group
         val role = speaker?.roleId?.let { roleId -> groupConfig?.roles?.firstOrNull { it.id == roleId } }
