@@ -34,8 +34,11 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 现状一句话：**代码层七项缺口全部落地，验收证据 0/10。**
 
 - **代码已实现。** 上节（2026-10-04）列的七条缺口已在 `d45ebd10` 之后补进仓库，
-  基线附近 74 个 commit（子包标签与分布见 `docs/eval/c1-group-chat.md` 的
-  「C1 commit 台账」）。「已实现」只描述代码写到哪一步，不等于任何用例通过。
+  截至**本文件当前 commit** 基线附近共 **79 个 commit**
+  （`git log --oneline d45ebd10~1..HEAD | wc -l`，已把本文件这次订正提交计入。
+  `docs/eval/c1-group-chat.md` 台账记的 78 是上一版统计，差的就是本文件这次提交）。
+  子包标签与分布见该文件「C1 commit 台账」。
+  「已实现」只描述代码写到哪一步，不等于任何用例通过。
 - **构建与 JVM 测试层全绿，有硬证据。** 三条离线命令都强制重跑、退出码 0：
   `:app:testDebugUnitTest`（84 类 664 例 0 失败 0 错误 0 跳过）、
   lint 三连（全仓 0 Error）、`:app:packageDebug` + `:app:assembleDebug`
@@ -47,6 +50,9 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   导出哈希」，`:232-235` 规定缺任一项就标 `unverified`。磁盘上这四类产物
   **零份**，`docs/eval/c1-group-chat.md` 十例仍全 `unverified`。本机
   `adb devices` 为空，一行 Compose 都没在屏幕上跑过。
+  唯一的例外是 C1-D 迁移侧多了一条**主机侧部分**证据（30→31 迁移重放 85 条断言
+  全过，见下 A 节末条），它**不覆盖上述四类产物中的任何一类**，因此不改变
+  「0/10」这个结论，也**不把任何用例改成通过**。
 
 这不是保守，是契约自己定的规则。**验收证据只认 `docs/eval/c1-group-chat.md`**；
 本节只描述现状与下一步，不代替证据、不改判定。
@@ -143,10 +149,19 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   SQLite 上验过——`app/build.gradle.kts` 单测只有 `libs.junit`（无 Robolectric /
   room-testing / coroutines-test），`ConversationRepository` 是 class 直接依赖 DAO，
   没法注入 fake。
-- **有一份零成本动作现在就能做**：`tools/verification/c1d_migration_30_31_replay.py`
-  （16,005 字节，已 grep 确认大小；用真实 SQLite 重放 30→31 迁移 SQL）
-  **从未运行过**，磁盘上找不到它的输出产物。它不需要设备就能给 C1-D 补一条主机侧
-  证据，但它自己的 KDoc 写明**不能替代 `Migration_30_31_Test`**——别拿它把仪器那条勾掉。
+- **有一份零成本动作已经做完**：`tools/verification/c1d_migration_30_31_replay.py`
+  （39,231 字节 / 776 行，sha256 `7cd9c3fbc22c5e8da9248c061feda8fe860bb86c5011eba1c2399b405e8199c6`；
+  用真实 SQLite 重放 30→31 迁移 SQL）**已运行两次，退出码都是 0**，两次输出逐字节
+  相同（各 9,236 字节 / 104 行，sha256 `093981c461d2533285e3f2a0a635d1b0d4519e6bfcb9be39c8f4f71a74d2e7d5`）。
+  脚本在 `1649f5c7` 里从 45 条断言扩到 **85 条并修掉 4 个弱点**（含一条恒真断言、
+  一条硬编码 `True` 的假断言），实测 85 条全过：其中 **FTS5 触发器相关 12 条**
+  （第 4 组「迁移后逐字节存活 + INSERT/UPDATE/DELETE 三向真同步」10 条，
+  加第 1 组迁移前基线 2 条：3 个触发器在 `sqlite_master` 里、且与 `onOpen` 逐字节相同），
+  另含第 5 组 **7 条 DROP TABLE 对照实验断言**（证明对照路径确实丢触发器）。
+  命令原文、退出码、逐组条数分布与变异测试证据见 `docs/eval/c1-group-chat.md` 的
+  「C1-D 迁移 30→31 主机侧重放」。
+  ⚠️ 但它**不能替代 `Migration_30_31_Test`** 的 7 条仪器用例（仍需设备）——
+  别拿它把仪器那条勾掉。
 
 **B. 已知遗留与风险（代码层，需要产品/架构决策）**
 
@@ -183,12 +198,14 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 
 ### 下一位的行动顺序
 
-按「零设备就能做 → 需要设备才能做」排。前三项今天就能落。
+按「零设备就能做 → 需要设备才能做」排。第 1 项**已完成**，其余今天就能落。
 
 1. **零设备，立刻可做**
-   1. 跑 `python3 tools/verification/c1d_migration_30_31_replay.py`，把命令、退出码、
-      输出路径登记进 `docs/eval/c1-group-chat.md` 的 C1-D / C1-07 行。
-      注明它不能替代仪器测试。
+   1. ✅ **已完成（2026-10-05）**：`python3 tools/verification/c1d_migration_30_31_replay.py`
+      已跑（退出码 0，两次输出逐字节相同），命令、退出码、输出路径与逐组断言分布
+      已登记进 `docs/eval/c1-group-chat.md` 的「C1-D 迁移 30→31 主机侧重放」小节，
+      C1-D / C1-07 行同步更新。**它不能替代仪器测试**这一句也一并登记了：
+      `Migration_30_31_Test` 的 7 条仍需设备，C1-07 仍是 `unverified`。
    2. 给 `ConversationDAO` 的 SQL 补仪器测试源码（`androidTest`，用已有的
       `androidx.room.testing`）：`:type = ''` 时不筛、`itemCount` 正确、
       搜索路与未归档路口径一致。写好先不跑，等接设备。
