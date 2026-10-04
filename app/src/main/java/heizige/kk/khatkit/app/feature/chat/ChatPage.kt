@@ -74,6 +74,8 @@ import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
+import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -313,6 +315,16 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
  *   **只认第一个非空列表的 `replacementRange`**，只有 `replacementRange` 相同的列表才会被
  *   合并进候选。所以追加的 provider 必须排在 workspace provider 之后，并且只在
  *   workspace provider 不触发时才给出候选，否则插入范围会错位。
+ * @param topBar 替换默认的单聊 [TopBar]。为 null（单聊的默认值）时行为与 C1 之前完全相同。
+ *   群聊页传自己的轻量顶栏：单聊那个 `TopBar` 有 394 行、含「点标题切模型」「长按改标题」
+ *   「搜索预览」等一堆单聊语义，其中「切换模型」在群聊里根本没有定义（群配置里没有模型字段，
+ *   每个角色的模型由 `GroupRole.modelId` 决定，且它当前不参与模型解析）。
+ *   回调把本函数建的 [TopAppBarScrollBehavior] 传回去，需要折叠行为的调用方可以接。
+ * @param canEditMessage 气泡「编辑」动作的门禁，默认恒 true（单聊行为与 C1 之前完全相同）。
+ *   群聊传 `{ it.role == MessageRole.USER }`：改写**角色发言**会让群运行日志里的
+ *   `committed_role_ids` / `last_user_message_id` 与实际消息错位——这与重新生成、删除、
+ *   切分支是同一类风险（那三个在 `ChatList` 里已按 `groupChat` 关掉）。
+ *   而改用户自己那条提问是合法且常用的操作：轮次由新的 user 消息重新派生，不会错位。
  */
 @Composable
 internal fun ChatScaffold(
@@ -335,6 +347,8 @@ internal fun ChatScaffold(
     listOverlay: @Composable BoxScope.() -> Unit = {},
     bottomBarAboveInput: @Composable () -> Unit = {},
     extraCompletionProviders: List<ChatCompletionProvider> = emptyList(),
+    topBar: (@Composable (TopAppBarScrollBehavior) -> Unit)? = null,
+    canEditMessage: (UIMessage) -> Boolean = { true },
 ) {
     val scope = rememberCoroutineScope()
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
@@ -403,32 +417,36 @@ internal fun ChatScaffold(
         KedgePageScaffold(
             modifier = activeNestedScroll,
             topBar = {
-                TopBar(
-                    settings = setting,
-                    conversation = conversation,
-                    bigScreen = bigScreen,
-                    drawerState = drawerState,
-                    previewMode = previewMode,
-                    searchQuery = previewSearchQuery,
-                    onSearchQueryChange = { previewSearchQuery = it },
-                    onCollapseSearch = {
-                        previewMode = false
-                        previewSearchQuery = ""
-                    },
-                    scrollBehavior = scrollBehavior,
-                    onNewChat = {
-                        navigateToChatPage(navController)
-                    },
-                    onClickMenu = {
-                        previewMode = !previewMode
-                    },
-                    onModelClick = {
-                        modelListState.open()
-                    },
-                    onUpdateTitle = {
-                        vm.updateTitle(it)
-                    }
-                )
+                if (topBar != null) {
+                    topBar(scrollBehavior)
+                } else {
+                    TopBar(
+                        settings = setting,
+                        conversation = conversation,
+                        bigScreen = bigScreen,
+                        drawerState = drawerState,
+                        previewMode = previewMode,
+                        searchQuery = previewSearchQuery,
+                        onSearchQueryChange = { previewSearchQuery = it },
+                        onCollapseSearch = {
+                            previewMode = false
+                            previewSearchQuery = ""
+                        },
+                        scrollBehavior = scrollBehavior,
+                        onNewChat = {
+                            navigateToChatPage(navController)
+                        },
+                        onClickMenu = {
+                            previewMode = !previewMode
+                        },
+                        onModelClick = {
+                            modelListState.open()
+                        },
+                        onUpdateTitle = {
+                            vm.updateTitle(it)
+                        }
+                    )
+                }
             },
             bottomBar = {
                 val messageQueue by vm.messageQueue.collectAsStateWithLifecycle()
@@ -567,9 +585,12 @@ internal fun ChatScaffold(
                 onRegenerate = {
                     vm.regenerateAtMessage(it)
                 },
-                onEdit = {
-                    inputState.editingMessage = it.id
-                    inputState.setContents(it.parts)
+                onEdit = { message ->
+                    // 群聊通过 canEditMessage 关掉「改写角色发言」，单聊默认恒放行。
+                    if (canEditMessage(message)) {
+                        inputState.editingMessage = message.id
+                        inputState.setContents(message.parts)
+                    }
                 },
                 onForkMessage = {
                     scope.launch {
