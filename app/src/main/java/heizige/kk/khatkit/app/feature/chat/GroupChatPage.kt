@@ -50,6 +50,7 @@ import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupConfigError
 import heizige.kk.khatkit.app.core.data.model.GroupImportResult
 import heizige.kk.khatkit.app.core.data.model.GroupRole
+import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
@@ -331,8 +332,9 @@ fun GroupChatPage(
         GroupConfigSheet(
             conversationId = id,
             config = config,
+            importedCards = conversation.groupCards,
             settings = setting,
-            onSave = { newConfig ->
+            onSave = { newConfig, importedCards ->
                 // 落库前必须过一遍 validate，失败绝不入库。与 importShare 同一份判定口径。
                 val errors = GroupChat.validate(newConfig, id.toString())
                 if (errors.isNotEmpty()) {
@@ -343,6 +345,9 @@ fun GroupChatPage(
                             type = GroupChat.TYPE_GROUP,
                             groupConfig = newConfig,
                             title = conversation.title.ifBlank { "群聊" },
+                            // null = 这次保存与角色卡无关（手动编辑配置），保留库里已有的一份；
+                            // 非 null = 导入带来的卡片，整体替换（含空列表：载荷里确实一张都没有）。
+                            groupCards = importedCards ?: conversation.groupCards,
                         )
                     )
                     vm.saveConversationAsync()
@@ -437,21 +442,34 @@ private fun GroupInfoChip(
  * 绝不能用来导入）。只有 [GroupImportResult.Accepted] 才写库；[GroupImportResult.Rejected]
  * 一律只显示 `reason` 与逐条 `fieldErrors`（`field` 已经是契约 snake_case 键，直接展示）。
  *
- * ## 遗留：导入的 cards 暂未落库
+ * ## 导入的 cards 落库，与「现场生成的 cards」是两件事
  *
- * [GroupChat.importShare] 成功时返回的 `payload.cards`（角色卡元数据）**只显示、不持久化**。
- * 原因：`Conversation` 只有 `groupConfig: GroupConfig?` 一个群相关字段，数据库侧也只有
- * `conversationentity.group_config` 一列，`GroupConfigSerializer` 的契约里没有 cards 的位置。
- * 要落库就得动 `Conversation` / `ConversationEntity` / `ConversationDAO` 与迁移脚本，
- * 超出本包范围。因此这里把 cards 列出来让用户至少能确认「导入了什么」，
- * 群配置的落库内容仍然是纯 `GroupConfig`。
+ * [GroupChat.importShare] 成功时返回的 `payload.cards` 现在**随群配置一起落库**
+ * （`Conversation.groupCards` → `conversationentity.group_cards`，Room 31→32 加的列）。
+ * 刷新页面 / 重启进程后再打开这个面板，「已导入的角色卡」那一段仍在。
+ *
+ * 导出方向则**一个字都没变**：二维码 / 文本分享 / 酒馆群聊文件三条路径仍然只用
+ * `groupExportRoleCards` 从当前群配置与本地助手**现场生成**卡片。两条来源的分工是：
+ *
+ * - **现场生成**（`GroupRoleCards.kt`）：`persona` 取本机助手的 `systemPrompt`，是这个角色
+ *   真正会用的那段提示词。导出一律走它。
+ * - **导入快照**（本面板落库的 `groupCards`）：对方那台机器上的 persona，搬过来多半已经
+ *   过期，还可能指向本机不存在的助手。只作为「这次导入了什么」的记录展示，不参与导出。
+ *
+ * 因此 [GroupConfigSheet] 不去合并两者：面板里两段信息分开呈现，各自标注来源，
+ * 现场生成那条链路（`GroupTavernExportTest` 钉着）不受任何影响。
+ *
+ * @param importedCards 已落库的导入快照（`conversation.groupCards`），null = 从没导入过。
+ * @param onSave 第二个实参是「本次导入带进来的角色卡」，null 表示这次保存与角色卡无关
+ *   （手动编辑配置），调用方据此保留库里已有的一份；非 null 则整体替换，空列表也替换。
  */
 @Composable
 private fun GroupConfigSheet(
     conversationId: Uuid,
     config: GroupConfig?,
+    importedCards: List<RoleCardMeta>?,
     settings: Settings,
-    onSave: (GroupConfig) -> List<GroupConfigError>?,
+    onSave: (GroupConfig, List<RoleCardMeta>?) -> List<GroupConfigError>?,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -475,7 +493,9 @@ private fun GroupConfigSheet(
                 importResult = result
                 draft = result.payload.config
                 // Accepted 才落库；Rejected 一律不落库（见 KDoc）。
-                onSave(result.payload.config)
+                // 第二个实参把 payload.cards 一起交出去落库——只在导入这一条路上传，
+                // 「保存群配置」按钮传 null，保留库里已有的一份（见 KDoc 的两来源分工）。
+                onSave(result.payload.config, result.payload.cards)
             }
 
             is GroupImportResult.Rejected -> {
@@ -625,8 +645,9 @@ private fun GroupConfigSheet(
             ) { Text("添加成员") }
 
             // ---------- 保存（校验不过不落库） ----------
+            // 手动编辑配置：第二个实参 null = 与角色卡无关，保留库里已有的导入快照。
             KedgeTextButton(
-                onClick = { saveErrors = onSave(draft) ?: emptyList() },
+                onClick = { saveErrors = onSave(draft, null) ?: emptyList() },
             ) { Text("保存群配置") }
             saveErrors.forEach { error ->
                 Text(
@@ -691,6 +712,42 @@ private fun GroupConfigSheet(
                 KedgeTextButton(onClick = { showScanner = true }) { Text("扫码导入") }
             }
             ImportResultView(importResult)
+
+            // ---------- 已落库的导入快照（刷新页面后仍在；导出不用它） ----------
+            ImportedRoleCardsView(importedCards)
+        }
+    }
+}
+
+/**
+ * 已落库的导入角色卡（`conversation.groupCards`）。
+ *
+ * 这一段展示的是**导入那一刻带进来的快照**，persona 来自导出方那台机器；
+ * 二维码 / 文本分享 / 酒馆群聊文件三条导出路径仍然只用现场生成的卡片
+ * （见 [GroupConfigSheet] 的 KDoc）。`null`（从没导入过）整段不渲染，
+ * 空列表（导入过但载荷里一张都没有）明确写出来，不让用户以为「卡片丢了」。
+ */
+@Composable
+private fun ImportedRoleCardsView(cards: List<RoleCardMeta>?) {
+    if (cards == null) return
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("已导入的角色卡（${cards.size} 张）", style = MaterialTheme.typography.labelLarge)
+        Text(
+            text = "下面是导入时带进来的快照，导出二维码 / 酒馆文件时仍按当前群配置与本机助手现场生成。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (cards.isEmpty()) {
+            Text(
+                text = "本次导入的载荷里没有角色卡。",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        cards.forEach { card ->
+            Text(
+                text = "· ${card.name.ifBlank { card.roleId }}（${card.roleId}）" +
+                    if (card.persona.isBlank()) "" else " · 含 persona",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
@@ -799,7 +856,7 @@ private fun ImportResultView(result: GroupImportResult?) {
                     text = "已导入 ${payload.config.roles.size} 个角色 · ${payload.cards.size} 张角色卡",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                // cards 目前没有落库位置（见 GroupConfigSheet 的 KDoc），至少让用户看见导入了什么。
+                // cards 同一次导入的结果显示；落库由 onSave 负责，这里只是当场再报一次。
                 payload.cards.forEach { card ->
                     Text(
                         text = "· ${card.name.ifBlank { card.roleId }}（${card.roleId}）" +
