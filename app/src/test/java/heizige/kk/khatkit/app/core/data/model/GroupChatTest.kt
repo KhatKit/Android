@@ -13,6 +13,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GroupChatTest {
+    /** 拼 JSON 片段用的引号占位，避免一堆四连引号把 raw string 边界搞糊。 */
+    private val Q = "\""
+
     private val alice = GroupRole("a", "Alice", "asst-a")
     private val bob = GroupRole("b", "Bob", "asst-b")
     private val cara = GroupRole("c", "Cara", "asst-c", chair = true)
@@ -289,6 +292,167 @@ class GroupChatTest {
         )
         assertEquals(config, GroupChat.decodeQr(GroupChat.encodeQr(config)))
     }
+
+    @Test
+    fun `importShare rejects a payload from a newer schema version and names the supported one`() {
+        val future = GroupChat.SCHEMA_VERSION + 1
+        val result = GroupChat.importShare(payloadJson(future))
+        assertTrue(result is GroupImportResult.Rejected)
+        val rejected = result as GroupImportResult.Rejected
+        // reason 必须写明「载荷版本 X，当前只支持到 Y」，两个版本号都要在里面。
+        assertTrue(rejected.reason.contains("$future"))
+        assertTrue(rejected.reason.contains("${GroupChat.SCHEMA_VERSION}"))
+        assertTrue(rejected.fieldErrors.any { it.field == "schema_version" })
+        // 口径与 validate 一致：validate 同样判非法。
+        assertTrue(
+            GroupChat.validate(config(GroupChat.MODE_PIPELINE).copy(schemaVersion = future))
+                .any { it.field == "schema_version" },
+        )
+    }
+
+    @Test
+    fun `importShare rejects zero and negative schema versions`() {
+        listOf(0, -1, -7).forEach { bad ->
+            val result = GroupChat.importShare(payloadJson(bad))
+            assertTrue("schema_version=$bad 应被拒", result is GroupImportResult.Rejected)
+            val rejected = result as GroupImportResult.Rejected
+            assertTrue(rejected.fieldErrors.any { it.field == "schema_version" })
+            assertTrue(
+                GroupChat.validate(config(GroupChat.MODE_PIPELINE).copy(schemaVersion = bad))
+                    .any { it.field == "schema_version" },
+            )
+        }
+    }
+
+    @Test
+    fun `importShare keeps the role cards that decodeQr drops`() {
+        val config = config(GroupChat.MODE_PIPELINE).copy(roles = listOf(alice, bob))
+        val cards = listOf(
+            RoleCardMeta(roleId = "a", name = "Alice", assistantId = "asst-a", persona = "冷面顾问"),
+            RoleCardMeta(roleId = "b", name = "Bob", assistantId = "asst-b", persona = "热血解说"),
+        )
+        val raw = GroupChat.encodeQr(config, cards)
+
+        // 这是 B1 的核心证据：导入方拿得到角色卡元数据。
+        val result = GroupChat.importShare(raw)
+        assertTrue(result is GroupImportResult.Accepted)
+        val payload = (result as GroupImportResult.Accepted).payload
+        assertEquals(2, payload.cards.size)
+        assertEquals(listOf("a", "b"), payload.cards.map { it.roleId })
+        assertEquals(listOf("Alice", "Bob"), payload.cards.map { it.name })
+        assertEquals(listOf("asst-a", "asst-b"), payload.cards.map { it.assistantId })
+        assertEquals(listOf("冷面顾问", "热血解说"), payload.cards.map { it.persona })
+        // 整份 cards 逐字段等价：cardId / avatarRef 为 null 时不许被读成字符串 "null"。
+        assertEquals(cards, payload.cards)
+        // config 也照样回来了。
+        assertEquals(config, payload.config)
+        // 反证：老解码器 decodeQr 拿得到 config，但 cards 全被丢掉。
+        assertEquals(config, GroupChat.decodeQr(raw))
+    }
+
+    @Test
+    fun `importShare rejects wrong kind empty string and malformed json`() {
+        assertTrue(GroupChat.importShare("") is GroupImportResult.Rejected)
+        assertTrue(GroupChat.importShare("   ") is GroupImportResult.Rejected)
+        assertTrue(GroupChat.importShare("not json at all") is GroupImportResult.Rejected)
+        assertTrue(GroupChat.importShare("""{"kind":""") is GroupImportResult.Rejected)
+        assertTrue(GroupChat.importShare("[1,2,3]") is GroupImportResult.Rejected)
+        // kind 不是自家的：合法 JSON 也不行。
+        val wrongKind = GroupChat.importShare("""{"kind":"other","schema_version":1}""")
+        assertTrue(wrongKind is GroupImportResult.Rejected)
+        assertEquals("不是 KhatKit 群聊分享载荷", (wrongKind as GroupImportResult.Rejected).reason)
+        // 空串与脏 JSON 的 reason 要能让人看懂不是「校验失败」。
+        assertTrue(
+            (GroupChat.importShare("") as GroupImportResult.Rejected).reason.contains("无法解析"),
+        )
+    }
+
+    @Test
+    fun `importShare rejects a payload carrying a forbidden key`() {
+        // api_key 在 FORBIDDEN_EXPORT_KEYS 名单里，藏在 config 的未知键（落进 extras）里。
+        // extraConfigKeys 由调用方自带前导逗号（见 payloadJson 的 roles 之后那一行）。
+        val apiKeyPair = ",\n" + Q + "api_key" + Q + ":" + Q + "sk-should-never-be-read" + Q
+        val leaked = GroupChat.importShare(
+            payloadJson(GroupChat.SCHEMA_VERSION, extraConfigKeys = apiKeyPair)
+        )
+        assertTrue(leaked is GroupImportResult.Rejected)
+        val rejected = leaked as GroupImportResult.Rejected
+        // reason 里必须点名那个键，否则用户不知道该删什么。
+        assertTrue(rejected.reason.contains("api_key"))
+        // 同名单里的其它键、且藏在角色层也一样拦住。
+        val leakedInRole = GroupChat.importShare(
+            payloadJson(
+                GroupChat.SCHEMA_VERSION,
+                roles = """[{"role_id":"a","name":"Alice","assistant_id":"asst-a","refresh_token":"rt-1"}]""",
+            )
+        )
+        assertTrue(leakedInRole is GroupImportResult.Rejected)
+        assertTrue((leakedInRole as GroupImportResult.Rejected).reason.contains("refresh_token"))
+    }
+
+    @Test
+    fun `importShare reports field level errors for an invalid config`() {
+        // roles 为空。
+        val noRoles = GroupChat.importShare(
+            payloadJson(GroupChat.SCHEMA_VERSION, roles = "[]")
+        )
+        assertTrue(noRoles is GroupImportResult.Rejected)
+        var rejected = noRoles as GroupImportResult.Rejected
+        assertEquals("群配置校验未通过", rejected.reason)
+        assertTrue(rejected.fieldErrors.isNotEmpty())
+        assertTrue(rejected.fieldErrors.any { it.field == "roles" })
+
+        // 每轮预算超上限。
+        val tooBig = GroupChat.importShare(
+            payloadJson(
+                GroupChat.SCHEMA_VERSION,
+                extraConfigKeys = ""","token_budget_per_round":${GroupChat.MAX_TOKEN_BUDGET_PER_ROUND + 1}""",
+            )
+        )
+        assertTrue(tooBig is GroupImportResult.Rejected)
+        rejected = tooBig as GroupImportResult.Rejected
+        assertEquals("群配置校验未通过", rejected.reason)
+        assertTrue(rejected.fieldErrors.isNotEmpty())
+        // field 必须是契约 snake_case 键，不是 Kotlin 属性名。
+        val budgetError = rejected.fieldErrors.firstOrNull { it.field == "token_budget_per_round" }
+        assertTrue("field 应为契约键 token_budget_per_round", budgetError != null)
+        assertTrue(budgetError!!.message.contains("${GroupChat.MAX_TOKEN_BUDGET_PER_ROUND}"))
+        // 每个 field 都得是契约里的小写 snake_case，不许冒出 camelCase。
+        rejected.fieldErrors.forEach { error ->
+            assertTrue(
+                "field 应为 snake_case：${error.field}",
+                error.field.none { it.isUpperCase() },
+            )
+        }
+    }
+
+    /**
+     * 造一份指定 `schema_version` 的分享载荷。
+     *
+     * 不能用 [GroupChat.encodeQr]：它总是写当前版本，改不了版本号，也塞不进
+     * 违规键（命中密钥黑名单会直接抛）。
+     *
+     * @param extraConfigKeys 追加到 `config` 末尾的原始 JSON 片段，**自带前导逗号**。
+     */
+    private fun payloadJson(
+        schemaVersion: Int,
+        roles: String = """[{"role_id":"a","name":"Alice","assistant_id":"asst-a"}]""",
+        extraConfigKeys: String = "",
+    ): String = """
+        {
+          "kind": "${GroupChat.QR_KIND}",
+          "schema_version": $schemaVersion,
+          "config": {
+            "schema_version": $schemaVersion,
+            "mode": "pipeline",
+            "token_budget_per_round": 1000,
+            "revision": 1,
+            "tie_policy": "fail",
+            "roles": $roles
+            $extraConfigKeys
+          }
+        }
+    """.trimIndent()
 
     private fun config(mode: String) = GroupConfig(
         roles = roles,
