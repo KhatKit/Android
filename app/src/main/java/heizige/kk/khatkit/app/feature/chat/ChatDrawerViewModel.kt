@@ -8,7 +8,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
-import androidx.paging.filter
 import androidx.paging.cachedIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,23 +63,27 @@ class ChatDrawerViewModel @Inject constructor(
         .flatMapLatest { folderRepo.getFoldersOfAssistant(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // 主列表展示当前助手下未归入任何文件夹的会话，按时间分组
+    // 主列表展示当前助手下未归入任何文件夹的会话，按时间分组。
+    // 类型筛选整个下沉给 SQL（见 planConversationListQuery）：type 只作为查询参数传下去，
+    // 不再对 PagingData 做内存过滤——内存过滤只作用在已加载的那几页，翻页会漏出别的类型，
+    // 而且 PagingData 的 itemCount 会算错。
     val conversations: Flow<PagingData<ConversationListItem>> =
         combine(assistantIdFlow, _searchKeyword, _typeFilter) { assistantId, keyword, type ->
                 Triple(assistantId, keyword, type)
             }
             .flatMapLatest { (assistantId, keyword, type) ->
-                val paging = if (keyword.isNotBlank()) {
-                    conversationRepo.searchConversationsOfAssistantPaging(assistantId, keyword)
-                } else {
-                    conversationRepo.getUnfiledConversationsOfAssistantPaging(
+                val plan = planConversationListQuery(keyword, type)
+                when (plan.query) {
+                    ConversationListQuery.SEARCH -> conversationRepo.searchConversationsOfAssistantPaging(
                         assistantId,
-                        type.takeUnless { it == GroupChat.FILTER_ALL }.orEmpty(),
+                        keyword,
+                        plan.typeArgument,
                     )
-                }
-                paging.map { data ->
-                    if (keyword.isBlank() || type == GroupChat.FILTER_ALL) data
-                    else data.filter { conversation -> conversation.type == type }
+
+                    ConversationListQuery.UNFILED -> conversationRepo.getUnfiledConversationsOfAssistantPaging(
+                        assistantId,
+                        plan.typeArgument,
+                    )
                 }
             }
             .map { pagingData ->
@@ -142,3 +145,44 @@ class ChatDrawerViewModel @Inject constructor(
         }
     }
 }
+
+/** 抽屉会话列表走哪条 DB 查询：搜索路，还是未归档路。 */
+internal enum class ConversationListQuery {
+    SEARCH,
+    UNFILED,
+}
+
+/**
+ * 抽屉会话列表的一次查询判定结果：[query] 是走哪条 DB 查询，[typeArgument] 是传给它的 type 参数。
+ */
+internal data class ConversationListQueryPlan(
+    val query: ConversationListQuery,
+    val typeArgument: String,
+)
+
+/**
+ * 抽屉会话列表的查询判定，纯函数（不碰 Repository / Room），抽出来是为了能在 JVM 单测里
+ * 直接钉死契约「type 只作为 SQL 参数传下去，筛选只过滤、不丢数据」。
+ *
+ * 判定规则：
+ * - 关键字非空 → [ConversationListQuery.SEARCH]（与改动前一致）
+ * - 关键字为空 → [ConversationListQuery.UNFILED]（与改动前一致）
+ * - 切类型筛选**不改变**走哪条查询，只改变传下去的 type 参数，所以切 chip 不会把
+ *   底层数据源换成另一张表/另一个 DAO 查询
+ */
+internal fun planConversationListQuery(
+    keyword: String,
+    typeFilter: String,
+): ConversationListQueryPlan = ConversationListQueryPlan(
+    query = if (keyword.isNotBlank()) ConversationListQuery.SEARCH else ConversationListQuery.UNFILED,
+    typeArgument = typeFilter.asConversationTypeArgument(),
+)
+
+/**
+ * 抽屉 chip 的筛选值 → DAO 的 type 参数。
+ *
+ * `FILTER_ALL`（以及任何空白值）折成空串，即 DAO 里 `AND (:type = '' OR type = :type)`
+ * 的「不筛」分支——和未归档路同一套语义，不在这里发明第二种表达。
+ */
+internal fun String.asConversationTypeArgument(): String =
+    takeUnless { it == GroupChat.FILTER_ALL || it.isBlank() }.orEmpty()
