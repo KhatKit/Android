@@ -62,6 +62,12 @@ data class GroupRole(
     val skillIds: List<String> = emptyList(),
     @SerialName("mcp_server_ids")
     val mcpServerIds: List<String> = emptyList(),
+    /**
+     * 未知字段原样保留。角色层以前只读下面 11 个已知键，别人文档里多写的字段
+     * 会在往返时静默丢失；这里兜住：读进 [extras]，写回时平铺回角色对象顶层。
+     */
+    @SerialName("extras")
+    val extras: JsonObject = JsonObject(emptyMap()),
 )
 
 /**
@@ -233,6 +239,13 @@ object GroupChat {
     private val KNOWN_ROLE_KEYS = LEGACY_ROLE_KEYS.values.toSet() + setOf("name", "chair")
 
     /**
+     * 读库时算「已识别」的键 = 契约键 + 旧 camelCase 键。
+     * [normalizeKeys] 会把旧键的值搬到契约键上但**不删旧键**，所以收 [GroupRole.extras]
+     * 时必须把旧键一起排掉，否则同一份值既落进已知字段又落进 extras，等于写了两遍。
+     */
+    private val RESERVED_ROLE_KEYS = KNOWN_ROLE_KEYS + LEGACY_ROLE_KEYS.keys
+
+    /**
      * 导出/分享载荷里禁止出现的键。命中即视为不安全载荷，不允许写出。
      * 覆盖密钥、记忆内容与工具授权三类硬约束。
      */
@@ -301,6 +314,11 @@ object GroupChat {
         put("tool_package_ids", JsonArray(role.toolPackageIds.map { JsonPrimitive(it) }))
         put("skill_ids", JsonArray(role.skillIds.map { JsonPrimitive(it) }))
         put("mcp_server_ids", JsonArray(role.mcpServerIds.map { JsonPrimitive(it) }))
+        // 未知字段平铺回角色对象顶层，与 encodeConfigObject 对 config 的做法同一口径；
+        // 命中已知键的以已知字段为准，一个键只写一次。
+        role.extras.forEach { (key, value) ->
+            if (key !in KNOWN_ROLE_KEYS) put(key, value)
+        }
     }
 
     private fun decodeRole(raw: JsonObject): GroupRole? {
@@ -317,6 +335,8 @@ object GroupChat {
             toolPackageIds = normalized.stringList("tool_package_ids"),
             skillIds = normalized.stringList("skill_ids"),
             mcpServerIds = normalized.stringList("mcp_server_ids"),
+            // 归一化之后剩下的键原样保留，导出/恢复不得丢失。
+            extras = JsonObject(normalized.filterKeys { it !in RESERVED_ROLE_KEYS }),
         )
     }
 
@@ -348,6 +368,18 @@ object GroupChat {
      * 因为群配置本身无法得知会话 id。
      */
     fun validate(config: GroupConfig, conversationId: String? = null): List<GroupConfigError> = buildList {
+        // 版本闸门放最前面：未知版本不能盲解，宁可拒收也不要按 v1 语义猜字段。
+        // field 命名与下面各项一致，用契约键 schema_version。
+        if (config.schemaVersion < 1) {
+            add(GroupConfigError("schema_version", "schema_version 必须为正整数，当前 ${config.schemaVersion}"))
+        } else if (config.schemaVersion > SCHEMA_VERSION) {
+            add(
+                GroupConfigError(
+                    "schema_version",
+                    "schema_version ${config.schemaVersion} 高于当前支持的 $SCHEMA_VERSION，拒绝盲解",
+                )
+            )
+        }
         if (config.roles.isEmpty()) {
             add(GroupConfigError("roles", "至少需要一个成员"))
         }
