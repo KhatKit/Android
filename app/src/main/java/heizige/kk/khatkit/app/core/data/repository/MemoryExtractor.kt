@@ -38,8 +38,21 @@ class MemoryExtractor(
         private const val TAG = "MemoryExtractor"
         private const val MAX_EXTRACT_CHARS = 4_000
 
-        /** 抽取窗口最多取多少条消息（调用方一般已截断，这里是兜底上限）。 */
+/** 抽取窗口最多取多少条消息（调用方一般已截断，这里是兜底上限）。 */
         const val MAX_EXTRACT_WINDOW = 6
+
+        /**
+         * 把消息窗口编成带 `[n]` 行号的文本，行号即模型要回填的 `source_line`。
+         *
+         * 超长时从**头部**截断（`takeLast` 保尾），保留最近的消息 = 行号大的那些，
+         * 编号仍然对得上原窗口，所以 `source_line` 可以直接映射回消息 id。
+         */
+        internal fun buildExtractWindow(window: List<UIMessage>): String = window
+            .mapIndexed { index, message ->
+                "[${index + 1}] ${message.role.name.lowercase()}: ${message.toText().take(500)}"
+            }
+            .joinToString("\n")
+            .takeLast(MAX_EXTRACT_CHARS)
 
         fun parseFacts(response: String, json: Json = Json { ignoreUnknownKeys = true }): List<ExtractedFact> {
             val text = response.trim()
@@ -198,10 +211,7 @@ class MemoryExtractor(
      *
      * 超长时从**头部**截断（保留最近的消息 = 行号大的那些，编号仍然对得上原窗口）。
      */
-    internal fun buildExtractWindow(window: List<UIMessage>): String = window
-        .mapIndexed { index, message -> "[${index + 1}] ${message.role.name.lowercase()}: ${message.toText().take(500)}" }
-        .joinToString("\n")
-        .takeLast(MAX_EXTRACT_CHARS)
+    internal fun buildExtractWindow(window: List<UIMessage>): String = Companion.buildExtractWindow(window)
 
     private val EXTRACT_PROMPT = """
         Extract durable facts from the conversation as a JSON array.
