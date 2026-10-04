@@ -151,6 +151,25 @@ configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configu
     }
 }
 
+// 统一 exifinterface / guava 的版本，保证 --offline 构建能取到 artifact。
+//
+// 这两个是既有依赖树里就存在的坑（不是本次扫码依赖引入的：把本次改动 stash 掉后
+// 同样报这两条），但它会让 :app:debugCompileClasspath 在 --offline 下直接失败，
+// 因此必须在此处钉死。
+//
+// - exifinterface：app 显式声明了 1.4.1（ImageUtils 读 EXIF 方向、UCrop 用），
+//   而 debugRuntimeClasspath 实际解析到的是 1.4.2。编译期与运行期选到不同版本，
+//   离线时编译期找不到 1.4.1 的 aar 就整包失败。这里统一顶到 1.4.2（补丁版本，
+//   API 兼容），顺带消除这个长期存在的编译/运行不一致。
+// - guava：camera-camera2-pipe 会引入 32.0.1-android，本地缓存只有 32.0.1-jre，
+//   没有 -android 的 jar。运行期本来就经 ktor 解析到 33.6.0-jre，统一到它即可。
+configurations.configureEach {
+    resolutionStrategy {
+        force("androidx.exifinterface:exifinterface:1.4.2")
+        force("com.google.guava:guava:33.6.0-jre")
+    }
+}
+
 dependencies {
     implementation(libs.quickjs)
     implementation(libs.androidx.core.ktx)
