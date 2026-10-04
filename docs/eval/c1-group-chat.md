@@ -5,7 +5,7 @@
 `beyond-operit-client-changes.md` 的 C1 实施契约（该文件 `:193-206` 是规格原文，
 `:232-235` 是「验收记录格式」）。
 
-## 现状（2026-10-05 复核，基线 `d45ebd10` / HEAD `139a91ba`）
+## 现状（2026-10-05 复核，基线 `d45ebd10`，本轮验收证据登记于本文件所在 commit）
 
 - **十条用例仍然全部 `unverified`。** C1 的代码层已实现并落在仓库里，离线
   `testDebugUnitTest` / `lint` / `packageDebug` 三条命令本轮都真跑过且退出码 0，
@@ -263,37 +263,44 @@ app 报告里 `severity` 属性只出现过 `Warning` 和 `Hint` 两种值，dis
 
 ## C1 commit 台账
 
-统计区间 `d45ebd10~1..139a91ba`（`--no-merges`），**共 71 个 commit**。
+统计区间 `d45ebd10~1..本文件所在 commit`（`--no-merges`），**共 74 个 commit**。
+口径是**截至本文件当前 commit**，且已把本轮两次订正提交计入：改本文件的
+`docs(c1)` 与改 `ChatPage.kt` KDoc 的 `fix(c1-p)`。
 
-**类型前缀分布**：`feat` 25、`fix` 18、`test` 13、`coder` 7、`refactor` 5、
-`docs` 1、`build` 1、`chore` 1 = 71。
+**类型前缀分布**：`feat` 25、`fix` 19、`test` 13、`coder` 7、`refactor` 5、
+`docs` 3、`build` 1、`chore` 1 = 74。
 
 **子包标签分布**（`type(tag): subject` 里的 `tag`）：
 
 | 标签 | commit 数 | 契约 `:214-221` 是否定义 |
 |---|---:|---|
-| `c1-p` | 14 | ❌ 未定义 |
+| `c1-p` | 15 | ❌ 未定义 |
 | `c1-d` | 10 | ✅ C1-D 数据与迁移 |
 | `c1-s` | 9 | ❌ 未定义 |
 | `c1-m` | 8 | ✅ C1-M 记忆与工具接线 |
 | `c1-r` | 8 | ✅ C1-R 视角与协作内核 |
-| `c1`（裸标签） | 7 | ❌ 未指定子包 |
+| `c1`（裸标签） | 9 | ❌ 未指定子包 |
 | `c1-q` | 6 | ❌ 未定义 |
 | `c1-u` | 6 | ✅ C1-U 会话 UI |
 | `c1-x` | 3 | ✅ C1-X 导出与恢复 |
-| **合计** | **71** | |
+| **合计** | **74** | |
 
-⚠️ **`c1-p` / `c1-s` / `c1-q` 共 29 个 commit 用了 `client-changes.md:214-221`
-未定义的标签**（`c1-p` 14 + `c1-s` 9 + `c1-q` 6）。契约只定义了 C1-D / C1-R /
+⚠️ **`c1-p` / `c1-s` / `c1-q` 共 30 个 commit 用了 `client-changes.md:214-221`
+未定义的标签**（`c1-p` 15 + `c1-s` 9 + `c1-q` 6）。契约只定义了 C1-D / C1-R /
 C1-M / C1-U / C1-X / C1-E 六个子包；这三个标签的实际含义（`c1-p` 群聊页与
 模型选型、`c1-s` 说话者显示与抽屉筛选、`c1-q` QR 导入导出接线）是实施过程中
-长出来的，**没有回填到契约表**。另加 7 个裸 `c1` 标签 commit 未标子包。下次
+长出来的，**没有回填到契约表**。另加 9 个裸 `c1` 标签 commit 未标子包。下次
 整理台账时应把这四个标签正式并入契约表，或重新归并到既有六个子包。
 
-**改 `docs/` 的 commit**：2 个。
+**改 `docs/` 的 commit**：4 个。
 - `d45ebd10 chore(c1): 群聊内核与 UI 草稿落基线` —— 同时改代码与文档。
 - `d45cdda4 docs(c1): 补 C1 多角色群聊的开源对照记录` —— **纯文档**，
   唯一只改 `docs/beyond-operit-open-source-references.md` 的 commit。
+- `d28218ae docs(c1): 重写 C1 验收记录，登记本轮硬证据并保持十例 unverified`
+  —— 纯文档，只改本文件。
+- 本文件当前 HEAD 上的 `docs(c1): 定点订正台账过期数字与 ChatPage KDoc 笔误`
+  —— 纯文档，只改本文件；即上面统计里最新的那个 docs commit，SHA 用
+  `git log --oneline -1 -- docs/eval/c1-group-chat.md` 现查（写这段时它还没生成）。
 
 **只改测试 / 验证工具、不动任何 main 源码的 commit**：16 个，拆开看：
 
