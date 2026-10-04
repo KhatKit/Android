@@ -55,6 +55,7 @@ import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
+import heizige.kk.khatkit.app.core.data.ai.tools.GroupMemoryScope
 import heizige.kk.khatkit.app.core.data.ai.tools.InvalidMcpServerNamesException
 import heizige.kk.khatkit.app.core.data.ai.tools.shouldUseExternalWebSearch
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
@@ -94,6 +95,7 @@ import heizige.kk.khatkit.app.core.data.model.replaceRegexes
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
+import heizige.kk.khatkit.app.core.data.repository.GroupMemorySpacePolicy
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
@@ -715,11 +717,14 @@ class ChatManager(
             if (step != null && groupConfig != null) {
                 settings.getAssistantById(Uuid.parse(step.role.assistantId))?.let { assistant = it }
                 model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
-                groupConfig.roles.forEach { role ->
-                    memoryRepository.ensureSpace(
-                        GroupChat.memorySpaceId(conversationId.toString(), role.id),
-                        role.name,
-                    )
+                // C1-M：只为本轮发言角色建空间（契约「首次发言懒创建」），不再一次建全部
+                // 角色——没开口的角色不该在库里留下空间。未发言角色的空间由其第一次
+                // 发言时的同一处代码创建。
+                GroupMemorySpacePolicy.spacesToProvision(
+                    conversationId = conversationId.toString(),
+                    speakingRoleId = step.role.id,
+                ).forEach { spaceId ->
+                    memoryRepository.ensureSpace(spaceId, step.role.name)
                 }
             }
 
@@ -737,6 +742,9 @@ class ChatManager(
                     assistant = assistant,
                     model = model,
                     workspaceCwd = conversation.workspaceCwd,
+                    // C1-M：群聊时记忆工具绑定本轮发言角色的群空间
+                    // `group:<conv>:role:<role>`，不回退到助手/全局空间。
+                    groupMemory = step?.let { GroupMemoryScope(conversationId.toString(), it.role.id) },
                 )
             } catch (error: InvalidMcpServerNamesException) {
                 sessionManager.get(conversationId)?.messageQueue?.pause()
@@ -835,16 +843,27 @@ class ChatManager(
 
                 // A2 自动记忆抽取
                 if (assistant.enableMemory && assistant.autoExtractMemory) {
+                    val speakingRole = groupStep?.role
                     val memSpace = when {
-                        groupStep != null -> GroupChat.memorySpaceId(conversationId.toString(), groupStep!!.role.id)
+                        speakingRole != null -> GroupChat.memorySpaceId(conversationId.toString(), speakingRole.id)
                         assistant.useGlobalMemory -> MemoryRepository.GLOBAL_MEMORY_ID
                         else -> assistant.id.toString()
+                    }
+                    // C1-M：抽取的输入也必须是 viewer 可见集合——直接喂完整历史会把同群
+                    // 其他角色的发言抽进本角色空间，与检索/工具侧同一口径。这里刻意不传
+                    // `predecessorId`：pipeline 里上一位的输出属于别人的发言，由他自己
+                    // 写进自己的空间，记忆才真正一角色一份。
+                    val extractScope = if (speakingRole != null && groupConfig != null) {
+                        GroupChat.buildContext(speakingRole.id, updatedConversation.currentMessages, groupConfig)
+                    } else {
+                        updatedConversation.currentMessages
                     }
                     appScope.launch {
                         runCatching {
                             memoryExtractor.extractFromTurn(
                                 spaceId = memSpace,
-                                messages = updatedConversation.currentMessages.takeLast(6),
+                                messages = extractScope.takeLast(MemoryExtractor.MAX_EXTRACT_WINDOW),
+                                roleId = speakingRole?.id,
                                 settings = settingsStore.settingsFlow.first(),
                             )
                         }

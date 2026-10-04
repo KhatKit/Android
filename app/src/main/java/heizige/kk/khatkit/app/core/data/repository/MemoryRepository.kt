@@ -14,6 +14,7 @@ import heizige.kk.khatkit.app.core.data.db.entity.MemoryEdgeEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemoryMentionEntity
 import heizige.kk.khatkit.app.core.data.db.entity.MemorySpaceEntity
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+import heizige.kk.khatkit.app.core.data.model.GroupChat
 
 /**
  * A2 记忆系统：空间 / 分块 / 图谱 / 提及 + 混合检索。
@@ -512,4 +513,23 @@ internal object MemorySpaceGate {
         require(!spaceId.isNullOrBlank()) { "记忆检索必须显式指定空间键（不得回退到全局/助手空间）" }
         return spaceId
     }
+}
+
+/**
+ * C1-M：群聊记忆空间的**建空间时机**（纯函数，可 JVM 单测）。
+ *
+ * 契约：「记忆空间键固定 `group:<conversationId>:role:<roleId>`，**首次发言懒创建**」。
+ * 所以只有本轮发言角色的空间会被建，其余角色第一次开口时才建。
+ *
+ * 旧实现在打开群页面时就把全部角色空间建出来（`GroupChatPage.ensureSpaces`），那让
+ * 从没说过一句话的角色在库里留下空空间，也让「空间是否存在」泄露成员是否开过口。
+ */
+internal object GroupMemorySpacePolicy {
+
+    /** 本轮需要确保存在的空间键；单聊（无发言角色）返回空。 */
+    fun spacesToProvision(conversationId: String, speakingRoleId: String?): List<String> =
+        speakingRoleId
+            ?.takeIf { it.isNotBlank() && conversationId.isNotBlank() }
+            ?.let { listOf(GroupChat.memorySpaceId(conversationId, it)) }
+            .orEmpty()
 }
