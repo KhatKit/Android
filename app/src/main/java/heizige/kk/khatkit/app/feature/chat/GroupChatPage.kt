@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
@@ -34,8 +33,6 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.model.GroupChat
-import heizige.kk.khatkit.app.core.data.model.GroupConfig
-import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import kotlinx.coroutines.launch
@@ -67,16 +64,7 @@ fun GroupOrDirectPage(
 @HiltViewModel
 class GroupChatViewModel @Inject constructor(
     val chat: ChatManager,
-    private val memories: MemoryRepository,
-) : ViewModel() {
-    fun ensureSpaces(conversationId: Uuid, config: GroupConfig) {
-        viewModelScope.launch {
-            config.roles.forEach { role ->
-                memories.ensureSpace(GroupChat.memorySpaceId(conversationId.toString(), role.id), role.name)
-            }
-        }
-    }
-}
+) : ViewModel()
 
 @Composable
 fun GroupChatPage(id: Uuid, vm: GroupChatViewModel = hiltViewModel()) {
@@ -86,9 +74,6 @@ fun GroupChatPage(id: Uuid, vm: GroupChatViewModel = hiltViewModel()) {
     var importText by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    LaunchedEffect(config, id) {
-        config?.let { vm.ensureSpaces(id, it) }
-    }
     KedgeSettingsPageScaffold(
         title = conversation.title.ifBlank { "群聊" },
         navigationIcon = { BackButton() },
