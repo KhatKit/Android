@@ -74,6 +74,9 @@ class MemoryRepository(
         sourceRefId: String? = null,
         confidence: Float = 1f,
         embedding: FloatArray? = null,
+        // C1-D：群聊记忆写入时带上发言角色 id（契约「群消息写入记忆时带 source_message_id 与
+        // role_id」）。默认 null ⇒ 现有调用点（单聊 / 助手 / 全局空间）一行不用改，行为不变。
+        roleId: String? = null,
     ): AssistantMemory {
         ensureSpace(assistantId)
         val now = System.currentTimeMillis()
@@ -90,6 +93,7 @@ class MemoryRepository(
                 createdAt = now,
                 updatedAt = now,
                 embedding = embedding?.let { MemoryVectorIndex.floatArrayToBlob(it) },
+                roleId = roleId,
             )
         ).toInt()
         return chunkDao.getChunkById(id)!!.toModel()
@@ -415,4 +419,7 @@ internal fun MemoryChunkEntity.toModel(): AssistantMemory = AssistantMemory(
     sourceKind = sourceKind,
     confidence = confidence,
     extractedAt = extractedAt,
+    // C1-D：群聊记忆的发言角色 id 必须带出来，否则检索结果无法再做 viewer 过滤。
+    // 存量单聊/助手记忆为 null，与库里的 NULL 一致。
+    roleId = roleId,
 )
