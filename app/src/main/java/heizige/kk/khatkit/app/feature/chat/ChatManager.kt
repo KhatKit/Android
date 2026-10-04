@@ -1,14 +1,20 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import android.app.Application
+import android.database.sqlite.SQLiteException
 import android.util.Log
 import androidx.core.net.toUri
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -25,8 +31,10 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.ReasoningLevel
+import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelAbility
 import heizige.kk.khatkit.ai.provider.ProviderManager
@@ -68,17 +76,19 @@ import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
+import heizige.kk.khatkit.app.core.data.db.dao.GroupRunDAO
+import heizige.kk.khatkit.app.core.data.db.entity.GroupRunEntity
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
+import heizige.kk.khatkit.app.core.data.model.RoundBudget
+import heizige.kk.khatkit.app.core.data.model.RoundPlan
 import heizige.kk.khatkit.app.core.data.model.SpeakerStep
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantAffectScope
 import heizige.kk.khatkit.app.core.data.model.MessageNode
-import heizige.kk.khatkit.app.core.data.model.RoundBudget
-import heizige.kk.khatkit.app.core.data.model.VoteOutcome
 import heizige.kk.khatkit.app.core.data.model.localFileUrls
 import heizige.kk.khatkit.app.core.data.model.replaceRegexes
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
@@ -91,9 +101,26 @@ import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.NotFoundException
 import heizige.kk.khatkit.app.core.util.applyPlaceholders
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
 
 private const val TAG = "ChatManager"
+
+/**
+ * 单个群聊角色的墙钟上限。超时后本轮按 `TIMEOUT` 收尾（只写运行日志，不写未生成的消息）。
+ *
+ * 只包住「一次角色发言」，不包住整轮：一轮要串行跑完所有角色，每位角色各自计时。
+ */
+private const val GROUP_ROUND_STEP_TIMEOUT_MS = 15 * 60 * 1000L
+
+/**
+ * 只取 [GroupRunDAO] 一个依赖的窄入口，避免为一个 DAO 去动 `core/di` 下别人的文件。
+ */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface GroupRunDaoEntryPoint {
+    fun groupRunDAO(): GroupRunDAO
+}
 
 internal fun backgroundTextGenerationParams(
     model: Model,
@@ -159,7 +186,28 @@ class ChatManager(
     private val ocrTransformer: OcrTransformer,
     private val base64ImageToLocalFileTransformer: Base64ImageToLocalFileTransformer,
 ) {
-    private val groupTurns = java.util.concurrent.ConcurrentHashMap<Uuid, PendingGroupTurn>()
+    /**
+     * 群聊轮次运行日志（`group_runs`）读写。
+     *
+     * `ChatManager` 是由 `core/di/AppHiltModule.provideChatService` **手工装配**的（不是 `@Inject`
+     * 构造），而那个文件不在本包可改范围内，所以这里用 Hilt 的 `@EntryPoint` 取已有的单例 provider
+     * （`RepositoryHiltModule.provideGroupRunDAO`）。若之后允许改 DI，应改回构造注入。
+     */
+    private val groupRunDAO: GroupRunDAO by lazy {
+        EntryPointAccessors.fromApplication(context, GroupRunDaoEntryPoint::class.java).groupRunDAO()
+    }
+    /**
+     * 群聊轮次的**非权威**进程内镜像，只回答一件事：「本进程此刻是否正在驱动某个群的一轮」。
+     *
+     * 权威状态全在 `group_runs`（run token / `committed_role_ids` / `spent_tokens` / `status`），
+     * 每次判定都重新读库，所以进程被杀后这里自然清空而数据库仍能判定「这轮已跑过」并从
+     * 失败角色续跑。C1 之前的 `PendingGroupTurn`（纯内存 `ArrayDeque` + 内存 `spent`）已删除：
+     * 待发言角色每次都由 `plan - committedRoleIds` 现算，从根上消除「内存态与库不一致导致重复发言」。
+     *
+     * key 是 `conversationId`，**不同群互不阻塞**（没有全局锁，房间自带的 per-conversation 串行
+     * 之外不再引入任何共享可变状态），也不共享任何 prompt buffer。
+     */
+    private val groupRunsInFlight = ConcurrentHashMap<Uuid, InFlightGroupRun>()
 
     private val inputTransformers = listOf(
         TavernMacroTransformer,
@@ -412,7 +460,7 @@ class ChatManager(
                 val mentions = currentConversation.groupConfig
                     ?.let { GroupChat.parseMentions(mentionText, it.roles) }
                     .orEmpty()
-                if (currentConversation.groupConfig != null) groupTurns.remove(conversationId)
+                if (isGroupConversation(currentConversation)) abandonDanglingGroupRuns(conversationId)
                 val newConversation = currentConversation.copy(
                     messageNodes = currentConversation.messageNodes + UIMessage(
                         role = MessageRole.USER,
@@ -654,17 +702,33 @@ class ChatManager(
             // check invalid messages
             checkInvalidMessages(conversationId)
             val conversation = getConversationFlow(conversationId).value
-            groupStep = takeGroupSpeaker(conversation)
+            val groupConfig = conversation.groupConfig
+            val groupEntry = if (groupConfig != null) takeGroupTurn(conversation, groupConfig) else null
+            // 群聊但本轮没有可执行的发言者（已完成 / 被并发拒绝 / 预算已停 / 全员已提交）：
+            // 绝不能退化成「不过滤的普通生成」，否则当前视角会收到别人的发言。
+            if (groupEntry is GroupTurnEntry.Idle) {
+                Logging.log(TAG, "handleMessageComplete: group round idle, skip generation")
+                return
+            }
+            groupStep = (groupEntry as? GroupTurnEntry.Speak)?.step
             val step = groupStep
-            if (step != null) {
+            if (step != null && groupConfig != null) {
                 settings.getAssistantById(Uuid.parse(step.role.assistantId))?.let { assistant = it }
                 model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
-                conversation.groupConfig?.roles?.forEach { role ->
+                groupConfig.roles.forEach { role ->
                     memoryRepository.ensureSpace(
                         GroupChat.memorySpaceId(conversationId.toString(), role.id),
                         role.name,
                     )
                 }
+            }
+
+            // 契约「工具调用、检索与记忆注入均使用同一 viewer 过滤结果」：
+            // 这一份可见集合是 prompt 组装、工具 systemPrompt、记忆检索 query 的**唯一**来源。
+            val viewerMessages = if (step != null && groupConfig != null) {
+                GroupTurnCoordinator.viewerMessages(groupConfig, conversation.currentMessages, step)
+            } else {
+                null
             }
 
             val tools = try {
@@ -686,11 +750,48 @@ class ChatManager(
                     conversationId = conversationId,
                 )
                 return
+            }.let { created ->
+                // 工具的 systemPrompt 拿到的是「本视角可见消息」而不是完整历史：契约禁止
+                // UI 层隐藏但仍发送，而 GenerationLoop 的 tool.systemPrompt(model, messages)
+                // 用的是未过滤的形参，所以过滤必须由这里（生成管线的调用点）注入。
+                if (step != null && groupConfig != null) {
+                    viewerScopedTools(created, groupConfig, step)
+                } else {
+                    created
+                }
+            }
+
+            // 记忆检索：query 只取 viewer 可见的消息，检索结果再按 roleId 收紧一次。
+            val memoryScope = when {
+                step != null -> GroupChat.memorySpaceId(conversationId.toString(), step.role.id)
+                assistant.useGlobalMemory -> MemoryRepository.GLOBAL_MEMORY_ID
+                else -> assistant.id.toString()
+            }
+            val memoryQuery = viewerMessages?.let(GroupTurnCoordinator::memoryQuery)
+                ?: conversation.currentMessages
+                    .takeLast(6)
+                    .filter { it.role == MessageRole.USER }
+                    .joinToString("\n") { it.toText() }
+                    .takeLast(4_000)
+            val memories = memoryRepository.searchMemories(
+                assistantId = memoryScope,
+                query = memoryQuery,
+                limit = 8,
+            ).let { found ->
+                if (step != null && viewerMessages != null) {
+                    GroupTurnCoordinator.memoriesForViewer(
+                        viewerRoleId = step.role.id,
+                        viewerMessageIds = viewerMessages.mapTo(mutableSetOf()) { it.id.toString() },
+                        memories = found,
+                    )
+                } else {
+                    found
+                }
             }
 
             // start generating
             val session = sessionManager.getOrCreate(conversationId)
-            generationLoop.generateText(
+            val generationFlow = generationLoop.generateText(
                 settings = settings,
                 model = model,
                 processingStatus = session.processingStatus,
@@ -707,19 +808,7 @@ class ChatManager(
                 conversationModeInjectionIds = conversation.modeInjectionIds,
                 conversationLorebookIds = conversation.lorebookIds,
                 workspaceCwd = conversation.workspaceCwd,
-                memories = memoryRepository.searchMemories(
-                    assistantId = when {
-                        step != null -> GroupChat.memorySpaceId(conversationId.toString(), step.role.id)
-                        assistant.useGlobalMemory -> MemoryRepository.GLOBAL_MEMORY_ID
-                        else -> assistant.id.toString()
-                    },
-                    query = conversation.currentMessages
-                        .takeLast(6)
-                        .filter { it.role == MessageRole.USER }
-                        .joinToString("\n") { it.toText() }
-                        .takeLast(4_000),
-                    limit = 8,
-                ),
+                memories = memories,
                 inputTransformers = buildList {
                     val groupConfig = conversation.groupConfig
                     if (step != null && groupConfig != null) {
@@ -771,27 +860,44 @@ class ChatManager(
                             ?.toText()?.take(50)?.trim() ?: "",
                     )
                 )
-            }.collect { chunk ->
-                when (chunk) {
-                    is GenerationChunk.Messages -> {
-                        val updatedConversation = getConversationFlow(conversationId).value
-                            .updateCurrentMessages(chunk.messages)
-                        updateConversation(conversationId, updatedConversation)
+            }
+            val consume: suspend () -> Unit = {
+                generationFlow.collect { chunk ->
+                    when (chunk) {
+                        is GenerationChunk.Messages -> {
+                            val updatedConversation = getConversationFlow(conversationId).value
+                                .updateCurrentMessages(chunk.messages)
+                            updateConversation(conversationId, updatedConversation)
 
-                        // 通知等边缘副作用由 ChatNotificationManager 消费；
-                        // tryEmit 不挂起，事件丢失只影响单次通知更新，不能反压生成链
-                        chunk.messages.lastOrNull()?.let { lastMessage ->
-                            appEventBus.tryEmit(
-                                AppEvent.ChatGenerationUpdate(conversationId, lastMessage, senderName)
-                            )
+                            // 通知等边缘副作用由 ChatNotificationManager 消费；
+                            // tryEmit 不挂起，事件丢失只影响单次通知更新，不能反压生成链
+                            chunk.messages.lastOrNull()?.let { lastMessage ->
+                                appEventBus.tryEmit(
+                                    AppEvent.ChatGenerationUpdate(conversationId, lastMessage, senderName)
+                                )
+                            }
                         }
                     }
                 }
             }
-            groupStep?.let { stampGroupRole(conversationId, it.role.id) }
+            if (step != null) {
+                // 群聊角色发言有墙钟上限：超时抛 TimeoutCancellationException，
+                // 由下面的 onFailure 落成 STATUS_TIMEOUT，轮次不会无限悬挂。
+                withTimeout(GROUP_ROUND_STEP_TIMEOUT_MS) { consume() }
+            } else {
+                consume()
+            }
         }.onFailure {
             // 兜底取消 Live Update 通知（生成开始前失败时 onCompletion 不会执行）
             appEventBus.tryEmit(AppEvent.ChatGenerationEnded(conversationId, senderName, null))
+            val step = groupStep
+            if (step != null && it is TimeoutCancellationException) {
+                // 超时不是用户取消：外层协程仍然存活，可以安全地把运行日志写成 TIMEOUT。
+                failGroupTurn(conversationId, step, errorDetailOf(it), timedOut = true)
+            } else if (step != null && it !is CancellationException) {
+                // 单角色失败：写错误节点 + FAILED/role_failed，轮次保持可续跑。
+                failGroupTurn(conversationId, step, errorDetailOf(it), timedOut = false)
+            }
             if (it is CancellationException) throw it
             sessionManager.get(conversationId)?.messageQueue?.pause()
 
@@ -800,8 +906,37 @@ class ChatManager(
             Logging.log(TAG, "handleMessageComplete: $it")
             Logging.log(TAG, it.stackTraceToString())
         }.onSuccess {
+            val step = groupStep
+            if (step == null) {
+                val finalConversation = getConversationFlow(conversationId).value
+                sessionManager.launchWithSession(conversationId) {
+                    generateTitle(conversationId, finalConversation)
+                }
+                return@onSuccess
+            }
+            val conversation = getConversationFlow(conversationId).value
+            val config = conversation.groupConfig ?: return@onSuccess
+            val plan = GroupTurnCoordinator.roundPlanFor(config, conversation.currentMessages)
+                ?: return@onSuccess
+            when (val advance = commitGroupTurn(conversationId, step, plan, config)) {
+                null -> groupRunsInFlight.remove(conversationId)
+
+                is GroupTurnCoordinator.Advance.More -> {
+                    // 还有角色没发言：续跑下一位。已提交角色在库里，pendingSpeakers 会跳过。
+                    handleMessageComplete(conversationId)
+                    return@onSuccess
+                }
+
+                is GroupTurnCoordinator.Advance.BudgetStopped -> {
+                    // 预算用尽：spent/limit/skippedRoleIds/reason 四项已在运行日志里。
+                    groupRunsInFlight.remove(conversationId)
+                }
+
+                is GroupTurnCoordinator.Advance.Finished -> {
+                    completeGroupRound(conversationId, config, plan, advance.state)
+                }
+            }
             val finalConversation = getConversationFlow(conversationId).value
-            if (continueGroupTurn(conversationId, finalConversation)) return@onSuccess
             sessionManager.launchWithSession(conversationId) {
                 generateTitle(conversationId, finalConversation)
             }
@@ -1425,117 +1560,493 @@ class ChatManager(
         return conversation.id
     }
 
-    private fun takeGroupSpeaker(conversation: Conversation): SpeakerStep? {
-        val config = conversation.groupConfig ?: return null
-        if (conversation.type != GroupChat.TYPE_GROUP) return null
-        if (groupTurns[conversation.id] == null) {
-            val last = conversation.currentMessages.lastOrNull() ?: return null
-            if (last.role != MessageRole.USER) return null
-            // 用 newRound 取整轮计划：内部调 plan 排发言顺序，并按契约算出候选集
-            // （config.voteCandidates 优先，否则从这条触发消息严格解析），投票阶段直接复用。
-            val round = GroupChat.newRound(
-                triggerMessageId = last.id.toString(),
-                config = config,
-                mentionRoleIds = last.mentionRoleIds,
-                userText = last.toText(),
-            )
-            if (round.plan.isEmpty()) return null
-            groupTurns[conversation.id] = PendingGroupTurn(
-                steps = ArrayDeque(round.plan),
-                candidates = round.candidates,
-            )
-        }
-        val turn = groupTurns[conversation.id] ?: return null
-        val remainingRoleIds = turn.steps.map { it.role.id }
-        val decision = GroupChat.budgetDecision(turn.spent, config.tokenBudgetPerRound, remainingRoleIds)
-        if (decision is RoundBudget.Stop) {
-            // 预算用尽：剩余角色本轮不再发言（decision.skippedRoleIds 为被跳过名单）。
-            groupTurns.remove(conversation.id)
-            return null
-        }
-        return turn.steps.removeFirstOrNull().also {
-            if (it == null) groupTurns.remove(conversation.id)
-        }
-    }
+    /**
+     * 轮次准入：**落库成功之后**才可能返回 [GroupTurnEntry.Speak]，也就是「run token 必须持久化
+     * 后才可执行」（契约硬约束）。
+     *
+     * 返回 [GroupTurnEntry.Idle] 表示这一轮**不允许**再发起模型调用（已完成 / 并发被拒 /
+     * 预算已停 / 全员已提交 / 触发消息不是用户消息）：调用方必须放弃生成，绝不能退化成
+     * 「不过滤的普通生成」，否则当前视角会收到别人的发言。
+     */
+    private suspend fun takeGroupTurn(
+        conversation: Conversation,
+        config: GroupConfig,
+    ): GroupTurnEntry {
+        val conversationId = conversation.id
+        val key = conversationId.toString()
+        // 触发消息固定为最后一条 USER 消息，所以整轮期间 roundId 稳定，重试必然落回同一轮。
+        val plan = GroupTurnCoordinator.roundPlanFor(config, conversation.currentMessages)
+            ?: return GroupTurnEntry.Idle
 
-    private fun stampGroupRole(conversationId: Uuid, roleId: String) {
-        val conversation = getConversationFlow(conversationId).value
-        val nodes = conversation.messageNodes.toMutableList()
-        val last = nodes.lastOrNull() ?: return
-        val index = last.messages.indexOfFirst { it.id == last.currentMessage.id }
-        if (index < 0) return
-        val current = last.messages[index]
-        if (current.role != MessageRole.ASSISTANT || current.roleId != null) return
-        val messages = last.messages.toMutableList()
-        messages[index] = current.copy(roleId = roleId)
-        nodes[nodes.lastIndex] = last.copy(messages = messages)
-        updateConversation(conversationId, conversation.copy(messageNodes = nodes))
-    }
+        // 平票裁决（TIE_CHAIR）是同一轮里的额外一步：run token 已在库，不必再 claim。
+        val inFlight = groupRunsInFlight[conversationId]
+        inFlight?.forcedStep?.let { forced ->
+            val running = groupRunDAO.findByRound(key, plan.roundId)
+            if (running != null &&
+                running.runToken == inFlight.runToken &&
+                !GroupRunEntity.isTerminal(running.status)
+            ) {
+                groupRunsInFlight[conversationId] = InFlightGroupRun(runToken = inFlight.runToken)
+                return GroupTurnEntry.Speak(forced)
+            }
+            groupRunsInFlight.remove(conversationId)
+        }
 
-    private suspend fun continueGroupTurn(conversationId: Uuid, conversation: Conversation): Boolean {
-        val config = conversation.groupConfig ?: return false
-        val turn = groupTurns[conversationId] ?: return false
-        val usage = conversation.currentMessages.lastOrNull()?.usage?.totalTokens ?: 0
-        turn.spent += usage
-        val decision = GroupChat.budgetDecision(
-            spent = turn.spent,
-            limit = config.tokenBudgetPerRound,
-            remainingRoleIds = turn.steps.map { it.role.id },
+        var existing = groupRunDAO.findByRound(key, plan.roundId)?.let(GroupTurnCoordinator::fromEntity)
+        if (existing != null &&
+            !roundOutputPresent(conversation.currentMessages, plan.roundId, existing.committedRoleIds)
+        ) {
+            // 运行日志说这一轮跑过，但会话里已经没有这些角色的产出（用户删除/切分支/重新生成）：
+            // committed 集合已失效，删掉这行按新轮次重跑，否则会留下「跳过了一个谁都没发言的角色」的空洞。
+            groupRunDAO.deleteByRound(key, plan.roundId)
+            existing = null
+        }
+
+        val active = groupRunsInFlight[conversationId]?.runToken
+        val claim = GroupTurnCoordinator.claimRound(
+            conversationId = key,
+            plan = plan,
+            tokenLimit = config.tokenBudgetPerRound,
+            existing = existing,
+            // 只有「本进程正在驱动这一轮」才允许当续跑，重复触发无法伪装成续跑。
+            expectedRunToken = active?.takeIf { it == existing?.runToken },
+            activeRunToken = active,
+            newRunToken = Uuid.random().toString(),
+            now = System.currentTimeMillis(),
         )
-        if (turn.steps.isNotEmpty() && decision !is RoundBudget.Stop) {
-            handleMessageComplete(conversationId)
-            return true
+        val state = when (claim) {
+            is GroupTurnCoordinator.Claim.Acquired -> {
+                if (!persistClaim(claim.state, claim.freshRow)) {
+                    // 并发抢占失败（主键冲突）：库里已有别的实例的运行日志，本进程不得驱动这一轮。
+                    return GroupTurnEntry.Idle
+                }
+                claim.state
+            }
+
+            is GroupTurnCoordinator.Claim.Continued -> {
+                persistRoundState(claim.state)
+                claim.state
+            }
+
+            is GroupTurnCoordinator.Claim.Rejected -> {
+                claim.state?.let { persistRoundState(it) }
+                Logging.log(TAG, "group round rejected: ${claim.code} round=${plan.roundId}")
+                return GroupTurnEntry.Idle
+            }
         }
-        if (config.mode == GroupChat.MODE_VOTE) appendVoteSummary(conversationId, config, turn.candidates)
-        groupTurns.remove(conversationId)
-        return false
+
+        val pending = GroupChat.pendingSpeakers(plan.plan, state.committedRoleIds.toSet())
+        if (pending.isEmpty()) {
+            // 全员已提交（典型：全员发言后带着待审批工具重新进入）：本轮已跑完，不重复发言。
+            persistRoundState(GroupTurnCoordinator.completeRound(state, System.currentTimeMillis()))
+            groupRunsInFlight.remove(conversationId)
+            return GroupTurnEntry.Idle
+        }
+        // 续跑时先按本轮累计判定：预算已用尽就别浪费一次模型调用，直接把剩余角色记为未运行。
+        val stop = GroupChat.budgetDecision(
+            spent = state.spentTokens,
+            limit = state.tokenLimit,
+            remainingRoleIds = pending.map { it.role.id },
+        )
+        if (stop is RoundBudget.Stop) {
+            persistRoundState(
+                state.copy(
+                    status = GroupRunEntity.STATUS_BUDGET_STOPPED,
+                    reason = stop.reason,
+                    skippedRoleIds = stop.skippedRoleIds,
+                    spentTokens = stop.spent,
+                    tokenLimit = stop.limit,
+                    endedAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis(),
+                )
+            )
+            groupRunsInFlight.remove(conversationId)
+            return GroupTurnEntry.Idle
+        }
+        groupRunsInFlight[conversationId] = InFlightGroupRun(runToken = state.runToken)
+        return GroupTurnEntry.Speak(pending.first())
     }
 
     /**
-     * 收票并追加多数决摘要。
-     *
-     * 候选集来自轮次开始时 [GroupChat.newRound] 算出的 `RoundPlan.candidates`
-     * （`config.voteCandidates` 优先，否则从触发消息严格解析），所以这里不再从自由文本里猜选项：
-     * 只接受各角色正文中 `VOTE:<候选id>|<理由>` 的整行选票，候选集外的票由
-     * [GroupChat.parseBallot] 判为无票丢弃。平票（含交议长）或无有效票按契约判本轮失败，不追加摘要。
+     * 抢占落库。`freshRow` 走 `insert`（主键冲突抛 `SQLiteConstraintException`），
+     * **catch 必须在事务外**——所以这里直接调 `insert`，不走 `upsertRun`。
      */
-    private fun appendVoteSummary(conversationId: Uuid, config: GroupConfig, candidates: List<String>) {
-        val conversation = getConversationFlow(conversationId).value
-        val lastUser = conversation.currentMessages.indexOfLast { it.role == MessageRole.USER }
-        val roleIds = config.roles.map { role -> role.id }.toSet()
-        val ballots = conversation.currentMessages.drop(lastUser.coerceAtLeast(0) + 1)
-            .filter { it.role == MessageRole.ASSISTANT && it.roleId in roleIds }
-            .mapNotNull { message ->
-                message.roleId?.let { GroupChat.parseBallot(message.toText(), it, candidates) }
+    private suspend fun persistClaim(
+        state: GroupTurnCoordinator.RoundState,
+        freshRow: Boolean,
+    ): Boolean {
+        if (freshRow) {
+            return try {
+                groupRunDAO.insert(GroupTurnCoordinator.toEntity(state))
+                true
+            } catch (e: SQLiteException) {
+                Log.w(TAG, "group round already claimed: ${state.roundId}", e)
+                false
             }
-        val outcome = GroupChat.tally(ballots, candidates, config.tiePolicy)
-        if (outcome !is VoteOutcome.Decided) return
-        updateConversation(
-            conversationId,
-            conversation.copy(
-                messageNodes = conversation.messageNodes + UIMessage.assistant(outcome.winner)
-                    .copy(roleId = GroupChat.SUMMARY_ID)
-                    .toMessageNode(),
-            ),
+        }
+        groupRunDAO.updateStatus(
+            conversationId = state.conversationId,
+            roundId = state.roundId,
+            status = state.status,
+            errorMessage = state.errorMessage,
+            updatedAt = state.updatedAt,
         )
+        persistRoundState(state)
+        return true
+    }
+
+    /** 运行日志落库：已用/上限/未运行角色/原因始终写，`ended_at` 只在终态写。 */
+    private suspend fun persistRoundState(state: GroupTurnCoordinator.RoundState) {
+        val key = state.conversationId
+        val now = state.updatedAt
+        groupRunDAO.updateBudget(
+            conversationId = key,
+            roundId = state.roundId,
+            spent = state.spentTokens,
+            tokenLimit = state.tokenLimit,
+            skippedRoleIds = state.skippedRoleIds,
+            reason = state.reason,
+            status = state.status,
+            updatedAt = now,
+        )
+        groupRunDAO.updateCommittedRoles(key, state.roundId, state.committedRoleIds, now)
+        if (GroupRunEntity.isTerminal(state.status)) {
+            groupRunDAO.finish(
+                conversationId = key,
+                roundId = state.roundId,
+                status = state.status,
+                endedAt = state.endedAt ?: now,
+                errorMessage = state.errorMessage,
+                updatedAt = now,
+            )
+        }
+    }
+
+    /**
+     * 一次发言成功后的提交：给产出打上 `role_id` / `round_id` / `turn_kind`，把角色追加进
+     * `committed_role_ids`，再按 **prompt + completion** 累加本轮已用并判停。
+     */
+    private suspend fun commitGroupTurn(
+        conversationId: Uuid,
+        step: SpeakerStep,
+        plan: RoundPlan,
+        config: GroupConfig,
+    ): GroupTurnCoordinator.Advance? {
+        val key = conversationId.toString()
+        val produced = stampGroupTurn(conversationId, step, plan.roundId)
+        if (produced == null) {
+            // 一个 token 都没产出（空助手消息已被丢弃）：不算提交，本轮按失败收尾，
+            // 下次触发同一 round_id 时这个角色还会被轮到。
+            failGroupTurn(conversationId, step, "本轮没有产出内容", timedOut = false)
+            return null
+        }
+        val state = groupRunDAO.findByRound(key, plan.roundId)?.let(GroupTurnCoordinator::fromEntity)
+            ?: return null
+        val advance = GroupTurnCoordinator.advance(
+            state = state,
+            finishedRoleId = step.role.id,
+            usage = GroupTurnCoordinator.usageOf(produced) ?: (0 to 0),
+            plan = plan,
+            tokenLimit = config.tokenBudgetPerRound,
+            now = System.currentTimeMillis(),
+        )
+        val advanced = when (advance) {
+            is GroupTurnCoordinator.Advance.More -> advance.state
+            is GroupTurnCoordinator.Advance.BudgetStopped -> advance.state
+            is GroupTurnCoordinator.Advance.Finished -> advance.state
+        }
+        persistRoundState(advanced)
+        return advance
+    }
+
+    /** 给本次产出的助手消息盖上群聊三元组；找不到未署名助手消息时返回 null。 */
+    private suspend fun stampGroupTurn(
+        conversationId: Uuid,
+        step: SpeakerStep,
+        roundId: String,
+    ): UIMessage? {
+        val conversation = getConversationFlow(conversationId).value
+        val nodes = conversation.messageNodes
+        var nodeIndex = -1
+        var messageIndex = -1
+        loop@ for (i in nodes.indices.reversed()) {
+            val messages = nodes[i].messages
+            for (j in messages.indices.reversed()) {
+                val message = messages[j]
+                if (message.role == MessageRole.ASSISTANT &&
+                    message.roleId == null &&
+                    message.roundId == null
+                ) {
+                    nodeIndex = i
+                    messageIndex = j
+                    break@loop
+                }
+            }
+        }
+        if (nodeIndex < 0) return null
+        val node = nodes[nodeIndex]
+        val stamped = node.messages[messageIndex].copy(
+            roleId = step.role.id,
+            roundId = roundId,
+            turnKind = GroupTurnCoordinator.turnKindOf(step),
+        )
+        val newNodes = nodes.toMutableList()
+        newNodes[nodeIndex] = node.copy(
+            messages = node.messages.toMutableList().also { it[messageIndex] = stamped },
+        )
+        saveConversation(conversationId, conversation.copy(messageNodes = newNodes))
+        return stamped
+    }
+
+    /** 全员发言完成后的收尾：pipeline/roundtable 直接完成，vote 计票。 */
+    private suspend fun completeGroupRound(
+        conversationId: Uuid,
+        config: GroupConfig,
+        plan: RoundPlan,
+        state: GroupTurnCoordinator.RoundState,
+    ) {
+        val now = System.currentTimeMillis()
+        if (config.mode != GroupChat.MODE_VOTE) {
+            persistRoundState(GroupTurnCoordinator.completeRound(state, now))
+            groupRunsInFlight.remove(conversationId)
+            return
+        }
+        val conversation = getConversationFlow(conversationId).value
+        val roundMessages = GroupTurnCoordinator.roundMessages(conversation.currentMessages)
+        val chairRoleId = GroupTurnCoordinator.chairRoleIdOf(config)
+        val resolution = GroupTurnCoordinator.resolveVote(
+            state = state,
+            config = config,
+            plan = plan,
+            roundMessages = roundMessages,
+            // 议长裁决过就只数它自己那一票，保证收敛，不会二次平票。
+            chairAlreadyDecided = chairRoleId != null &&
+                GroupTurnCoordinator.chairAlreadyDecided(roundMessages, chairRoleId),
+            now = now,
+        )
+        when (resolution) {
+            is GroupTurnCoordinator.VoteResolution.Decided -> {
+                appendGroupMessages(conversationId, listOf(resolution.summary))
+                persistRoundState(resolution.state)
+                dropTieBreakScaffolding(conversationId)
+                groupRunsInFlight.remove(conversationId)
+            }
+
+            is GroupTurnCoordinator.VoteResolution.NeedsChairTieBreak -> {
+                // TIE_CHAIR：裁决指令挂进本轮，议长以 chairRound 视角（看得见全部票）再跑一轮。
+                appendGroupMessages(conversationId, listOf(resolution.instruction))
+                groupRunsInFlight[conversationId] = InFlightGroupRun(
+                    runToken = state.runToken,
+                    forcedStep = SpeakerStep(
+                        role = config.roles.first { it.id == resolution.chairRoleId },
+                        chairRound = true,
+                    ),
+                )
+                handleMessageComplete(conversationId)
+            }
+
+            is GroupTurnCoordinator.VoteResolution.Undecided -> {
+                // 只有 Decided 才写摘要；未决只留错误节点 + 运行日志，不伪造结论。
+                appendGroupMessages(conversationId, listOf(voteFailureNode(plan.roundId, resolution.detail)))
+                persistRoundState(resolution.state)
+                dropTieBreakScaffolding(conversationId)
+                groupRunsInFlight.remove(conversationId)
+            }
+        }
+    }
+
+    /**
+     * 单角色失败 / 超时：写一条 `turn_kind = error` 的节点（**只记错误，不伪造助手回复正文**），
+     * 运行日志落 FAILED/TIMEOUT；已完成角色留在 `committed_role_ids` 里，所以轮次仍可续跑。
+     */
+    private suspend fun failGroupTurn(
+        conversationId: Uuid,
+        step: SpeakerStep?,
+        detail: String,
+        timedOut: Boolean,
+    ) {
+        val conversation = getConversationFlow(conversationId).value
+        val config = conversation.groupConfig ?: return
+        val plan = GroupTurnCoordinator.roundPlanFor(config, conversation.currentMessages) ?: return
+        val failedRoleId = step?.role?.id ?: return
+        val state = groupRunDAO.findByRound(conversationId.toString(), plan.roundId)
+            ?.let(GroupTurnCoordinator::fromEntity)
+            ?: return
+        val remaining = GroupChat.pendingSpeakers(plan.plan, state.committedRoleIds.toSet())
+            .map { it.role.id }
+            .filter { it != failedRoleId }
+        val now = System.currentTimeMillis()
+        val failed = if (timedOut) {
+            GroupTurnCoordinator.timeoutRound(state, detail, now)
+        } else {
+            GroupTurnCoordinator.fail(state, failedRoleId, remaining, detail, now)
+        }
+        appendGroupMessages(
+            conversationId,
+            listOf(GroupTurnCoordinator.errorNode(state, config, failedRoleId, detail)),
+        )
+        persistRoundState(failed)
+        groupRunsInFlight.remove(conversationId)
+    }
+
+    /** 用户取消：只把运行日志写成 CANCELLED，不写任何未生成的消息。 */
+    private suspend fun cancelActiveGroupRun(conversationId: Uuid) {
+        val token = groupRunsInFlight.remove(conversationId)?.runToken ?: return
+        val entity = groupRunDAO.getByRunToken(token) ?: return
+        if (entity.conversationId != conversationId.toString()) return
+        if (GroupRunEntity.isTerminal(entity.status)) return
+        persistRoundState(
+            GroupTurnCoordinator.cancelRound(
+                GroupTurnCoordinator.fromEntity(entity),
+                System.currentTimeMillis(),
+            )
+        )
+    }
+
+    /**
+     * 用户发了新消息：上一轮若还挂在 RUNNING（进程被杀 / 异常中断 / 取消未收尾），按「用户放弃」
+     * 收尾，保证任何群聊轮次都不会永久悬挂、也不会被下一轮挪用预算。
+     */
+    private suspend fun abandonDanglingGroupRuns(conversationId: Uuid) {
+        groupRunsInFlight.remove(conversationId)
+        val now = System.currentTimeMillis()
+        groupRunDAO.listByConversationAndStatus(
+            conversationId = conversationId.toString(),
+            status = GroupRunEntity.STATUS_RUNNING,
+            limit = 8,
+        ).forEach { entity ->
+            persistRoundState(GroupTurnCoordinator.cancelRound(GroupTurnCoordinator.fromEntity(entity), now))
+        }
+    }
+
+    private suspend fun appendGroupMessages(conversationId: Uuid, messages: List<UIMessage>) {
+        if (messages.isEmpty()) return
+        val conversation = getConversationFlow(conversationId).value
+        saveConversation(
+            conversationId,
+            conversation.copy(messageNodes = conversation.messageNodes + messages.map { it.toMessageNode() }),
+        )
+    }
+
+    /** 回收平票裁决脚手架：它是给议长看的提示，不属于对话内容。 */
+    private suspend fun dropTieBreakScaffolding(conversationId: Uuid) {
+        val conversation = getConversationFlow(conversationId).value
+        val nodes = GroupTurnCoordinator.withoutTieBreakInstruction(conversation.messageNodes)
+        if (nodes == conversation.messageNodes) return
+        saveConversation(conversationId, conversation.copy(messageNodes = nodes))
+    }
+
+    private fun voteFailureNode(roundId: String, detail: String): UIMessage = UIMessage(
+        role = MessageRole.ASSISTANT,
+        parts = listOf(UIMessagePart.Text("[投票] 本轮未能得出结论：$detail")),
+        roleId = GroupChat.SUMMARY_ID,
+        roundId = roundId,
+        turnKind = GroupChat.TURN_ERROR,
+    )
+
+    /** 运行日志里的错误摘要：类名 + 消息，避免只留一句没有线索的话。 */
+    private fun errorDetailOf(error: Throwable): String {
+        val type = error::class.simpleName ?: "Error"
+        val message = error.message?.take(200).orEmpty()
+        return if (message.isBlank()) type else "$type: $message"
     }
 
     // 停止当前会话生成任务（不清理会话缓存）
     suspend fun stopGeneration(conversationId: Uuid) {
-        val session = sessionManager.get(conversationId) ?: return
-        val jobs = synchronized(session) {
-            session.messageQueue.pause()
-            session.cancelJobs()
+        val session = sessionManager.get(conversationId)
+        val jobs = if (session == null) {
+            emptyList()
+        } else {
+            synchronized(session) {
+                session.messageQueue.pause()
+                session.cancelJobs()
+            }
         }
-        if (jobs.isEmpty()) return
+        if (jobs.isEmpty()) {
+            cancelActiveGroupRun(conversationId)
+            return
+        }
         jobs.forEach { it.join() }
         finishInterruptedPendingTools(conversationId)
+        cancelActiveGroupRun(conversationId)
     }
 }
 
-private data class PendingGroupTurn(
-    val steps: ArrayDeque<SpeakerStep>,
-    var spent: Int = 0,
-    /** 本轮候选集，由 [GroupChat.newRound] 从触发消息算出，投票阶段不再重算。 */
-    val candidates: List<String> = emptyList(),
+/**
+ * 群聊轮次的**非权威**进程内镜像（内容）。
+ *
+ * 只有 [runToken] 与「本轮内的额外一步（平票裁决）」是进程内状态；权威的
+ * `committed_role_ids` / `spent_tokens` / `status` 每次都重新读 `group_runs`。
+ */
+private data class InFlightGroupRun(
+    val runToken: String,
+    /** `TIE_CHAIR` 平票裁决这类同一轮内的额外一步；null = 按 `plan - committed` 现算下一位。 */
+    val forcedStep: SpeakerStep? = null,
 )
+
+/** 轮次准入结果。 */
+private sealed interface GroupTurnEntry {
+    /** 落库成功，可以发起模型调用。 */
+    data class Speak(val step: SpeakerStep) : GroupTurnEntry
+
+    /** 本轮不允许再发起模型调用，调用方必须放弃生成。 */
+    data object Idle : GroupTurnEntry
+}
+
+/**
+ * 工具的 `systemPrompt` 与模型上下文、记忆检索 query 共用同一份 viewer 过滤结果。
+ *
+ * 契约明写「工具调用、检索与记忆注入均使用同一 viewer 过滤结果，禁止 UI 层隐藏但仍发送」。
+ * `GenerationLoop.generateInternal` 里 `tool.systemPrompt(model, messages)` 用的是**调用方传入的
+ * 完整历史**（`core/data/ai/GenerationLoop.kt` 归别的包所有，不能改），所以过滤必须在
+ * ChatManager 这个调用点注入：把每个工具的 `systemPrompt` 包一层，先按当前 viewer 裁剪再交给它。
+ *
+ * 模型自身看到的上下文由 `GroupPerspectiveTransformer`（inputTransformers）保证，二者口径相同、
+ * 重复过滤幂等。记忆检索 query 与检索结果过滤见 `GroupTurnCoordinator.memoryQuery` /
+ * `memoriesForViewer`。
+ */
+internal fun viewerScopedTools(
+    tools: List<Tool>,
+    config: GroupConfig,
+    step: SpeakerStep,
+): List<Tool> = tools.map { viewerScopedTool(it, config, step) }
+
+internal fun viewerScopedTool(tool: Tool, config: GroupConfig, step: SpeakerStep): Tool {
+    val delegate = tool.systemPrompt
+    return tool.copy(
+        systemPrompt = { model, messages ->
+            delegate(model, GroupTurnCoordinator.viewerMessages(config, messages, step))
+        },
+    )
+}
+
+/**
+ * 群聊会话判定：`group_config` 非空**且** `type == GROUP` 才算群聊。
+ *
+ * 与轮次内核同一口径（`GroupTurnCoordinator.roundPlanFor` 只在群聊轮次里被调用）。
+ * 两个条件缺一不可：老数据可能残留 `group_config` 却已被改回单聊，这时绝不能让
+ * [abandonDanglingGroupRuns] 去动运行日志——否则一次普通单聊发言会误伤同 id 的群聊行。
+ */
+internal fun isGroupConversation(conversation: Conversation): Boolean =
+    conversation.groupConfig != null && conversation.type == GroupChat.TYPE_GROUP
+
+/**
+ * 运行日志声称已提交的角色，其产出是否还在会话里。
+ *
+ * 不在（用户删除消息、切分支、重新生成）说明 `committed_role_ids` 已失效，必须重新抢占这一轮，
+ * 否则续跑会跳过一个谁都没发言的角色。
+ */
+internal fun roundOutputPresent(
+    messages: List<UIMessage>,
+    roundId: String,
+    committedRoleIds: List<String>,
+): Boolean {
+    if (committedRoleIds.isEmpty()) return true
+    return messages.any { message ->
+        message.role == MessageRole.ASSISTANT &&
+            message.roundId == roundId &&
+            message.roleId in committedRoleIds &&
+            message.turnKind != GroupChat.TURN_ERROR
+    }
+}
+
