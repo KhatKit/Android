@@ -137,6 +137,12 @@ fun ChatList(
     onJumpToMessage: (Int) -> Unit = {},
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
+    /**
+     * 群聊会话。默认走 [isGroupConversation] 的严格口径（`group_config` 非空**且**
+     * `type == GROUP`），调用方一般不用显式传——这个默认值本身就是单聊零影响的保证：
+     * 单聊会话算出来恒为 false，行为与 C1 之前逐字相同。
+     */
+    groupChat: Boolean = isGroupConversation(conversation),
 ) {
     AnimatedContent(
         targetState = previewMode,
@@ -178,6 +184,7 @@ fun ChatList(
                 animatedVisibilityScope = this@AnimatedContent,
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
+                groupChat = groupChat,
             )
         }
     }
@@ -205,6 +212,7 @@ private fun ChatListNormal(
     animatedVisibilityScope: AnimatedVisibilityScope,
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
+    groupChat: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val loadingState by rememberUpdatedState(loading)
@@ -263,11 +271,15 @@ private fun ChatListNormal(
     val assistant = remember(settings.assistants, conversation.assistantId) {
         settings.getAssistantById(conversation.assistantId)
     }
+    val assistantById = remember(settings.assistants) {
+        settings.assistants.associateBy { it.id }
+    }
     val modelById = remember(settings.providers) {
         settings.providers
             .flatMap { it.models }
             .associateBy { it.id }
     }
+    val groupConfig = conversation.groupConfig
     val lastMessageIndex = conversation.messageNodes.lastIndex
 
     Box(
@@ -329,22 +341,42 @@ private fun ChatListNormal(
                         selectedKeys = selectedItems,
                         enabled = selecting,
                     ) {
+                        val currentMessage = node.currentMessage
+                        // 群聊：这条消息是谁说的由 role_id 决定，不是会话级助手。
+                        val groupSpeaker = remember(currentMessage, groupConfig) {
+                            GroupSpeakerResolver.resolve(currentMessage, groupConfig)
+                        }
+                        val speaker = groupSpeaker as? GroupSpeakerIdentity.Group
+                        // 群聊切角色必须换助手（头像/名字跟着角色走）；单聊保持会话级助手原样。
+                        // 解析口径与发言时挑角色助手一致（`Uuid.parse(role.assistantId)`），
+                        // 但这里必须 runCatching：配置里的 assistantId 非法不能让列表崩掉。
+                        val messageAssistant = remember(speaker?.assistantId, assistant, assistantById) {
+                            val roleAssistantId = speaker?.assistantId
+                                ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
+                                ?.let { assistantById[it] }
+                            roleAssistantId ?: assistant
+                        }
                         ChatMessage(
                             node = node,
-                            model = node.currentMessage.modelId?.let(modelById::get),
-                            assistant = assistant,
+                            model = currentMessage.modelId?.let(modelById::get),
+                            assistant = messageAssistant,
                             loading = loading && index == lastMessageIndex,
+                            speakerName = speaker?.displayName,
+                            speakerBadge = speaker?.badge,
+                            speakerBadgeIsError = speaker?.isError == true,
+                            groupChat = groupChat,
+                            // 群聊下这三个动作既不显示（见 ChatMessage）也不触发，双保险。
                             onRegenerate = {
-                                onRegenerate(node.currentMessage)
+                                if (!groupChat) onRegenerate(currentMessage)
                             },
                             onEdit = {
-                                onEdit(node.currentMessage)
+                                onEdit(currentMessage)
                             },
                             onFork = {
-                                onForkMessage(node.currentMessage)
+                                if (!groupChat) onForkMessage(currentMessage)
                             },
                             onDelete = {
-                                onDelete(node.currentMessage)
+                                if (!groupChat) onDelete(currentMessage)
                             },
                             onShare = {
                                 selecting = true  // 使用 CoroutineScope 延迟状态更新
