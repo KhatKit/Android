@@ -7,14 +7,26 @@ import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalToolOption
 import heizige.kk.khatkit.app.core.data.export.parseCharacterCardLorebook
+import heizige.kk.khatkit.app.core.data.model.GroupChat
+import heizige.kk.khatkit.app.core.data.model.GroupConfig
+import heizige.kk.khatkit.app.core.data.model.GroupRole
 import heizige.kk.khatkit.app.core.data.model.InjectionPosition
 import heizige.kk.khatkit.app.core.data.model.LorebookKeyLogic
 import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
@@ -259,6 +271,352 @@ class TavernCompatTest {
         )
         assertEquals("Ada Khat alpha 4 previous 2026-10-03 12:00 {{nope}}", expanded)
     }
+
+    // ---------------- C1 群聊导出 / 导入 ----------------
+
+    @Test
+    fun `group export round trips three roles two rounds with contract fields intact`() {
+        val restored = TavernChatCodec.importGroup(
+            TavernChatCodec.exportGroup(
+                nodes = groupNodes(),
+                config = groupConfig(),
+                cards = groupCards(),
+                userName = "Ada",
+                groupName = "三人组",
+            )
+        )
+        assertNotNull(restored)
+        // role_id / round_id / turn_kind / mention_role_ids 四件套逐条相等
+        assertEquals(turnsOf(groupNodes()), turnsOfMessages(requireNotNull(restored).messages))
+        // 消息文本与 swipe 分支也还在
+        assertEquals(groupNodes().map { it.currentMessage.toText() }, requireNotNull(restored).messages.map { it.node.currentMessage.toText() })
+        assertEquals(1, requireNotNull(restored).messages[3].node.selectIndex)
+        assertEquals(listOf("轮一发言", "重掷的轮一发言"), requireNotNull(restored).messages[3].node.messages.map { it.toText() })
+        // 群配置（含 extras 未知字段）与角色卡元数据原样回来
+        assertEquals(groupConfig(), requireNotNull(restored).config)
+        assertEquals(groupCards(), requireNotNull(restored).cards)
+        assertEquals("Ada", requireNotNull(restored).userName)
+        assertEquals("三人组", requireNotNull(restored).groupName)
+        assertEquals(listOf("Alice", "Bob", "Cara"), requireNotNull(restored).characterNames)
+    }
+
+    @Test
+    fun `group export keeps the tavern fields and the metadata header tavern strips`() {
+        val exported = TavernChatCodec.exportGroup(
+            nodes = groupNodes(),
+            config = groupConfig(),
+            cards = groupCards(),
+            userName = "Ada",
+            groupName = "三人组",
+        )
+        val array = json.parseToJsonElement(exported).jsonArray
+        val header = array.first().jsonObject
+        // SillyTavern group-chats.js:272 只在首行带 chat_metadata 时才把这行当表头丢掉
+        assertEquals(true, header["chat_metadata"]!!.jsonObject["is_group"]!!.jsonPrimitive.booleanOrNull)
+        assertEquals("st_chat_v1", header["spec"]!!.jsonPrimitive.content)
+        assertEquals("Ada", header["user_name"]!!.jsonPrimitive.content)
+        val payload = header[TavernChatCodec.GROUP_FIELD]!!.jsonObject
+        assertEquals(GroupChat.QR_KIND, payload["kind"]!!.jsonPrimitive.content)
+        assertEquals("三人组", payload["name"]!!.jsonPrimitive.content)
+        assertEquals(GroupChat.SCHEMA_VERSION, payload["schema_version"]!!.jsonPrimitive.content.toInt())
+        // 角色卡最小元数据：RoleCardMeta 那六个字段，逐个落在 payload.cards 上
+        val card = payload["cards"]!!.jsonArray[1].jsonObject
+        assertEquals("b", card["role_id"]!!.jsonPrimitive.content)
+        assertEquals("asst-b", card["assistant_id"]!!.jsonPrimitive.content)
+        assertEquals("card-b", card["card_id"]!!.jsonPrimitive.content)
+        assertEquals("画师 B", card["persona"]!!.jsonPrimitive.content)
+        assertEquals("file://avatar-b", card["avatar_ref"]!!.jsonPrimitive.content)
+        // 酒馆认识的消息字段：角色靠 name 显示，归属靠 role_id
+        val user = array[1].jsonObject
+        assertEquals("Ada", user["name"]!!.jsonPrimitive.content)
+        assertEquals(true, user["is_user"]!!.jsonPrimitive.booleanOrNull)
+        assertEquals(false, user["is_system"]!!.jsonPrimitive.booleanOrNull)
+        assertEquals("群聊导出", user["mes"]!!.jsonPrimitive.content)
+        val speaker = array[2].jsonObject
+        assertEquals("Alice", speaker["name"]!!.jsonPrimitive.content)
+        assertEquals("a", speaker["role_id"]!!.jsonPrimitive.content)
+        assertEquals(false, speaker["is_user"]!!.jsonPrimitive.booleanOrNull)
+        assertEquals("r1", speaker["round_id"]!!.jsonPrimitive.content)
+        assertEquals(GroupChat.TURN_SPEAKER, speaker["turn_kind"]!!.jsonPrimitive.content)
+        assertEquals(
+            emptyList<String>(),
+            speaker[TavernChatCodec.FIELD_MENTION_ROLE_IDS]!!.jsonArray.map { it.jsonPrimitive.content },
+        )
+        assertEquals(
+            listOf("a"),
+            array[3].jsonObject[TavernChatCodec.FIELD_MENTION_ROLE_IDS]!!.jsonArray.map { it.jsonPrimitive.content },
+        )
+        assertEquals(listOf("轮一发言", "重掷的轮一发言"), array[4].jsonObject["swipes"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(1, array[4].jsonObject["swipe_id"]!!.jsonPrimitive.content.toInt())
+    }
+
+    @Test
+    fun `group export jsonl keeps one object per line and imports back`() {
+        val jsonl = TavernChatCodec.exportGroupJsonl(
+            nodes = groupNodes(),
+            config = groupConfig(),
+            cards = groupCards(),
+            userName = "Ada",
+            groupName = "三人组",
+        )
+        val lines = jsonl.lines()
+        assertEquals(groupNodes().size + 1, lines.size)
+        assertEquals(true, json.parseToJsonElement(lines.first()).jsonObject["chat_metadata"] != null)
+        val restored = TavernChatCodec.importGroup(jsonl)
+        assertNotNull(restored)
+        assertEquals(groupConfig(), requireNotNull(restored).config)
+        assertEquals(turnsOf(groupNodes()), turnsOfMessages(requireNotNull(restored).messages))
+        // 单聊导入路径照旧把首行当表头，群聊文件不会污染它
+        val plain = TavernChatCodec.import(jsonl)
+        assertEquals(groupNodes().size, plain.messages.size)
+        // 不是群聊导出就返回 null，不猜
+        assertNull(TavernChatCodec.importGroup("""{"user_name":"Ada"}"""))
+        assertNull(TavernChatCodec.importGroup("not a chat"))
+    }
+
+    @Test
+    fun `group export is byte identical across runs`() {
+        val first = TavernChatCodec.exportGroup(
+            nodes = groupNodes(),
+            config = groupConfig(),
+            cards = groupCards(),
+            userName = "Ada",
+            groupName = "三人组",
+        )
+        val second = TavernChatCodec.exportGroup(
+            nodes = groupNodes(),
+            config = groupConfig(),
+            cards = groupCards(),
+            userName = "Ada",
+            groupName = "三人组",
+        )
+        assertEquals(first, second)
+        val jsonl = TavernChatCodec.exportGroupJsonl(
+            nodes = groupNodes(),
+            config = groupConfig(),
+            cards = groupCards(),
+            userName = "Ada",
+            groupName = "三人组",
+        )
+        assertEquals(
+            jsonl,
+            TavernChatCodec.exportGroupJsonl(
+                nodes = groupNodes(),
+                config = groupConfig(),
+                cards = groupCards(),
+                userName = "Ada",
+                groupName = "三人组",
+            ),
+        )
+    }
+
+    @Test
+    fun `group export carries no forbidden key and refuses a smuggled api key`() {
+        val clean = TavernChatCodec.exportGroup(
+            nodes = groupNodes(),
+            config = groupConfig(),
+            cards = groupCards(),
+            userName = "Ada",
+            groupName = "三人组",
+        )
+        assertEquals(emptySet<String>(), GroupChat.findForbiddenKeys(json.parseToJsonElement(clean)))
+        val smuggled = groupConfig().copy(
+            extras = buildJsonObject {
+                put("vendor_note", "keep")
+                put("api_key", "sk-should-never-leave")
+            },
+        )
+        assertThrows(IllegalStateException::class.java) {
+            TavernChatCodec.exportGroup(
+                nodes = groupNodes(),
+                config = smuggled,
+                cards = groupCards(),
+                userName = "Ada",
+                groupName = "三人组",
+            )
+        }
+        // 角色层的 extras 同样过闸门
+        assertThrows(IllegalStateException::class.java) {
+            TavernChatCodec.exportGroup(
+                nodes = groupNodes(),
+                config = groupConfig().copy(
+                    roles = groupConfig().roles.map { role ->
+                        if (role.id != "a") role else role.copy(
+                            extras = buildJsonObject { put("memoryContent", "私有记忆") }
+                        )
+                    },
+                ),
+                cards = groupCards(),
+                userName = "Ada",
+                groupName = "三人组",
+            )
+        }
+    }
+
+    @Test
+    fun `vote summary and error turns survive the group round trip`() {
+        val nodes = listOf(
+            MessageNode.of(
+                UIMessage.user("投给 a").copy(
+                    roundId = "r9",
+                    turnKind = GroupChat.TURN_USER,
+                )
+            ),
+            MessageNode.of(
+                UIMessage.assistant("本轮投票结果：a").copy(
+                    roleId = GroupChat.SUMMARY_ID,
+                    roundId = "r9",
+                    turnKind = GroupChat.TURN_VOTE_SUMMARY,
+                )
+            ),
+            MessageNode.of(
+                UIMessage.assistant("[Alice] 本轮生成失败：超时").copy(
+                    roleId = "a",
+                    roundId = "r9",
+                    turnKind = GroupChat.TURN_ERROR,
+                )
+            ),
+            MessageNode.of(
+                UIMessage.assistant("[投票] 本轮未能得出结论：平票").copy(
+                    roleId = GroupChat.SUMMARY_ID,
+                    roundId = "r9",
+                    turnKind = GroupChat.TURN_ERROR,
+                )
+            ),
+        )
+        val restored = TavernChatCodec.importGroup(
+            TavernChatCodec.exportGroup(
+                nodes = nodes,
+                config = groupConfig(),
+                cards = groupCards(),
+                userName = "Ada",
+                groupName = "三人组",
+            )
+        )
+        assertEquals(turnsOf(nodes), turnsOfMessages(requireNotNull(restored).messages))
+        assertEquals(GroupChat.SUMMARY_ID, requireNotNull(restored).messages[1].roleId)
+        assertEquals(GroupChat.TURN_VOTE_SUMMARY, requireNotNull(restored).messages[1].turnKind)
+        // 合成节点没有角色名，用与群聊页一致的显示名兜底
+        assertEquals("多数决", requireNotNull(restored).messages[1].name)
+        assertEquals("Alice", requireNotNull(restored).messages[2].name)
+        assertEquals(GroupChat.TURN_ERROR, requireNotNull(restored).messages[3].turnKind)
+        // 契约字段也写回了消息本身，调用方拿 node 就能直接用
+        assertEquals(GroupChat.TURN_ERROR, requireNotNull(restored).messages[3].node.currentMessage.turnKind)
+        assertEquals("r9", requireNotNull(restored).messages[3].node.currentMessage.roundId)
+    }
+
+    private fun turnsOf(nodes: List<MessageNode>): List<List<Any?>> = nodes.map { node ->
+        val message = node.currentMessage
+        listOf(message.roleId, message.roundId, message.turnKind, message.mentionRoleIds)
+    }
+
+    private fun turnsOfMessages(messages: List<TavernGroupMessage>): List<List<Any?>> = messages.map { message ->
+        val node = message.node.currentMessage
+        listOf(node.roleId, node.roundId, node.turnKind, node.mentionRoleIds)
+    }
+
+    private fun groupConfig() = GroupConfig(
+        roles = listOf(
+            GroupRole(
+                id = "a",
+                name = "Alice",
+                assistantId = "asst-a",
+                cardId = "card-a",
+                extras = buildJsonObject {
+                    put("tone", "cold")
+                    put("taboos", JsonArray(listOf(JsonPrimitive("emoji"))))
+                },
+            ),
+            GroupRole(id = "b", name = "Bob", assistantId = "asst-b", cardId = "card-b"),
+            GroupRole(id = "c", name = "Cara", assistantId = "asst-c", chair = true),
+        ),
+        mode = GroupChat.MODE_VOTE,
+        chairRoleId = "c",
+        tokenBudgetPerRound = 400,
+        revision = 3,
+        voteCandidates = listOf("a", "b"),
+        tiePolicy = GroupChat.TIE_CHAIR,
+        extras = buildJsonObject {
+            put("vendor_note", "未知字段要原样带回")
+            put("nested", buildJsonObject { put("depth", 2) })
+        },
+    )
+
+    private fun groupCards() = listOf(
+        RoleCardMeta(roleId = "a", name = "Alice", assistantId = "asst-a", cardId = "card-a", persona = "画师 A"),
+        RoleCardMeta(
+            roleId = "b",
+            name = "Bob",
+            assistantId = "asst-b",
+            cardId = "card-b",
+            persona = "画师 B",
+            avatarRef = "file://avatar-b",
+        ),
+        // cardId / avatarRef 都是 null：导出必须整个键省略，不能变成字符串 "null"
+        RoleCardMeta(roleId = "c", name = "Cara", assistantId = "asst-c"),
+    )
+
+    /** 三个角色、两轮消息，含 @、议长、vote_summary、error 与一条重掷（多 swipe）分支。 */
+    private fun groupNodes(): List<MessageNode> = listOf(
+        MessageNode.of(
+            UIMessage.user("群聊导出").copy(
+                roundId = "r1",
+                turnKind = GroupChat.TURN_USER,
+                mentionRoleIds = emptyList(),
+            )
+        ),
+        MessageNode.of(
+            UIMessage.assistant("Alice 发言").copy(
+                roleId = "a",
+                roundId = "r1",
+                turnKind = GroupChat.TURN_SPEAKER,
+            )
+        ),
+        MessageNode.of(
+            UIMessage.assistant("Bob 发言").copy(
+                roleId = "b",
+                roundId = "r1",
+                turnKind = GroupChat.TURN_SPEAKER,
+                mentionRoleIds = listOf("a"),
+            )
+        ),
+        MessageNode(
+            messages = listOf(
+                UIMessage.assistant("轮一发言").copy(
+                    roleId = "a",
+                    roundId = "r1",
+                    turnKind = GroupChat.TURN_SPEAKER,
+                ),
+                UIMessage.assistant("重掷的轮一发言").copy(
+                    roleId = "a",
+                    roundId = "r1",
+                    turnKind = GroupChat.TURN_SPEAKER,
+                ),
+            ),
+            selectIndex = 1,
+        ),
+        MessageNode.of(
+            UIMessage.assistant("Cara 收尾").copy(
+                roleId = "c",
+                roundId = "r1",
+                turnKind = GroupChat.TURN_CHAIR,
+            )
+        ),
+        MessageNode.of(
+            UIMessage.user("再来一轮").copy(
+                roundId = "r2",
+                turnKind = GroupChat.TURN_USER,
+                mentionRoleIds = listOf("b", "c"),
+            )
+        ),
+        MessageNode.of(
+            UIMessage.assistant("本轮投票结果：a").copy(
+                roleId = GroupChat.SUMMARY_ID,
+                roundId = "r2",
+                turnKind = GroupChat.TURN_VOTE_SUMMARY,
+            )
+        ),
+    )
 
     private fun decodeChunk(chunks: List<Pair<String, String>>, keyword: String): String {
         val payload = chunks.first { it.first.equals(keyword, ignoreCase = true) }.second
