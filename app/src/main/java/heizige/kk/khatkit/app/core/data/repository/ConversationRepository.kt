@@ -28,6 +28,18 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
 import java.time.Instant
 import kotlin.uuid.Uuid
 
+/**
+ * 会话数据的唯一入口。
+ *
+ * **搜索词的转义收敛在这一层**：本类里每一条把 `titleKeyword` 交给 `ConversationDAO` 搜索查询
+ * 的路径（`searchConversationsOfAssistantPage` / `searchConversations` /
+ * `searchConversationsPaging` / `searchConversationsOfAssistant` /
+ * `searchConversationsOfAssistantPaging`）都先过
+ * [escapeConversationLikePattern]，因为那些 DAO 查询的 `ESCAPE` 子句要求入参是**已转义片段**。
+ * 调用方（抽屉 `ChatDrawerViewModel`、HTTP API `ConversationRoutes`）传进来的都是**原始用户
+ * 输入**，谁也不许自己转 —— 两边都转就成二次转义（`a%b` → `a~~~%b`，搜索结果直接错）。
+ * 因此新增搜索入口时，**先在本类里过一遍转义函数**再调 DAO。
+ */
 class ConversationRepository(
     private val conversationDAO: ConversationDAO,
     private val messageNodeDAO: MessageNodeDAO,
@@ -149,7 +161,7 @@ class ConversationRepository(
     ): ConversationPageResult {
         val pagingSource = conversationDAO.searchConversationsOfAssistantPaging(
             assistantId = assistantId.toString(),
-            searchText = titleKeyword
+            searchText = escapeConversationLikePattern(titleKeyword)
         )
         return try {
             when (
@@ -228,7 +240,7 @@ class ConversationRepository(
 
     fun searchConversations(titleKeyword: String): Flow<List<Conversation>> {
         return conversationDAO
-            .searchConversations(titleKeyword)
+            .searchConversations(escapeConversationLikePattern(titleKeyword))
             .map { flow ->
                 flow.map { entity ->
                     conversationEntityToConversation(entity, emptyList())
@@ -242,7 +254,9 @@ class ConversationRepository(
             initialLoadSize = INITIAL_LOAD_SIZE,
             enablePlaceholders = false
         ),
-        pagingSourceFactory = { conversationDAO.searchConversationsPaging(titleKeyword) }
+        pagingSourceFactory = {
+            conversationDAO.searchConversationsPaging(escapeConversationLikePattern(titleKeyword))
+        }
     ).flow.map { pagingData ->
         pagingData.map { entity ->
             conversationSummaryToConversation(entity)
@@ -251,7 +265,10 @@ class ConversationRepository(
 
     fun searchConversationsOfAssistant(assistantId: Uuid, titleKeyword: String): Flow<List<Conversation>> {
         return conversationDAO
-            .searchConversationsOfAssistant(assistantId.toString(), titleKeyword)
+            .searchConversationsOfAssistant(
+                assistantId.toString(),
+                escapeConversationLikePattern(titleKeyword)
+            )
             .map { flow ->
                 flow.map { entity ->
                     conversationEntityToConversation(entity, emptyList())
@@ -280,7 +297,7 @@ class ConversationRepository(
             pagingSourceFactory = {
                 conversationDAO.searchConversationsOfAssistantByType(
                     assistantId = assistantId.toString(),
-                    searchText = titleKeyword,
+                    searchText = escapeConversationLikePattern(titleKeyword),
                     type = type
                 )
             }
