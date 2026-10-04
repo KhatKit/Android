@@ -76,19 +76,65 @@ class StringListConverterTest {
 
     @Test
     fun groupRunStatusConstantsCoverTheContractStates() {
+        // 契约要求的状态集合：RUNNING / COMPLETED / FAILED / CANCELLED / BUDGET_STOPPED，
+        // 另加 TIMEOUT（「取消/超时只写运行日志」里超时是独立的终态）。
         assertEquals(
-            setOf("RUNNING", "COMMITTED", "FAILED", "CANCELLED", "TIMEOUT"),
+            setOf("RUNNING", "COMPLETED", "FAILED", "CANCELLED", "BUDGET_STOPPED", "TIMEOUT"),
             GroupRunEntity.ALL_STATUSES,
         )
         assertTrue(GroupRunEntity.isStaleRunning(GroupRunEntity.STATUS_RUNNING))
         listOf(
-            GroupRunEntity.STATUS_COMMITTED,
+            GroupRunEntity.STATUS_COMPLETED,
             GroupRunEntity.STATUS_FAILED,
             GroupRunEntity.STATUS_CANCELLED,
+            GroupRunEntity.STATUS_BUDGET_STOPPED,
             GroupRunEntity.STATUS_TIMEOUT,
         ).forEach { assertTrue("$it 应为终态", GroupRunEntity.isTerminal(it)) }
         assertTrue(!GroupRunEntity.isTerminal(GroupRunEntity.STATUS_RUNNING))
+        // 兼容别名与 COMPLETED 同值，落库不会产生第二种「正常收尾」字面量
+        assertEquals(GroupRunEntity.STATUS_COMPLETED, GroupRunEntity.STATUS_COMMITTED)
         // 与 GroupChat.budgetDecision 写下的超预算原因字面量保持一致
         assertEquals("token_budget_exceeded", GroupRunEntity.REASON_TOKEN_BUDGET_EXCEEDED)
+        assertEquals(
+            GroupRunEntity.REASON_TOKEN_BUDGET_EXCEEDED,
+            GroupRunEntity.REASON_BUDGET_EXCEEDED,
+        )
+    }
+
+    @Test
+    fun groupRunDefaultsMatchTheColumnDefaults() {
+        // 未显式赋值的字段必须落到 DDL 里声明的默认值上，否则 Room 校验/读回会不一致
+        val run = GroupRunEntity(
+            conversationId = "conv-1",
+            roundId = "round-msg-1",
+            runToken = "token-1",
+            status = GroupRunEntity.STATUS_RUNNING,
+            startedAt = 1_700_000_000_000L,
+        )
+        assertEquals(0, run.spentTokens)
+        assertEquals(0, run.tokenLimit)
+        assertEquals(emptyList<String>(), run.skippedRoleIds)
+        assertEquals(emptyList<String>(), run.committedRoleIds)
+        assertEquals("", run.reason)
+        assertEquals("", run.errorMessage)
+        assertEquals(null, run.endedAt)
+        assertEquals("updated_at 默认跟随 startedAt", run.startedAt, run.updatedAt)
+    }
+
+    @Test
+    fun memoryChunkRoleIdDefaultsToNullForLegacyRows() {
+        val legacy = MemoryChunkEntity(
+            spaceId = "__global__",
+            content = "存量记忆",
+            sourceKind = MemoryChunkEntity.SOURCE_MANUAL,
+            extractedAt = 1L,
+            createdAt = 1L,
+            updatedAt = 1L,
+        )
+        assertNull("存量单聊记忆没有角色", legacy.roleId)
+
+        val group = legacy.copy(spaceId = "group:c1:role:r1", roleId = "r1")
+        assertEquals("r1", group.roleId)
+        assertEquals(legacy, legacy.copy(roleId = null))
     }
 }

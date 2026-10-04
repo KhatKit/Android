@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 31,
-    "identityHash": "babc826eacd63fff3b506cf941318408",
+    "identityHash": "b5fee805907e4754211836b77e78e3c7",
     "entities": [
       {
         "tableName": "ConversationEntity",
@@ -1101,14 +1101,8 @@
       },
       {
         "tableName": "group_runs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `conversation_id` TEXT NOT NULL, `round_id` TEXT NOT NULL, `status` TEXT NOT NULL, `spent_tokens` INTEGER NOT NULL, `limit_tokens` INTEGER NOT NULL, `skipped_role_ids` TEXT NOT NULL, `reason` TEXT, `committed_role_ids` TEXT NOT NULL, `error_message` TEXT, `started_at` INTEGER NOT NULL, `ended_at` INTEGER, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversation_id` TEXT NOT NULL, `round_id` TEXT NOT NULL, `run_token` TEXT NOT NULL, `status` TEXT NOT NULL, `started_at` INTEGER NOT NULL, `spent_tokens` INTEGER NOT NULL DEFAULT 0, `token_limit` INTEGER NOT NULL DEFAULT 0, `skipped_role_ids` TEXT NOT NULL DEFAULT '', `committed_role_ids` TEXT NOT NULL DEFAULT '', `reason` TEXT NOT NULL DEFAULT '', `error_message` TEXT NOT NULL DEFAULT '', `updated_at` INTEGER NOT NULL, `ended_at` INTEGER, PRIMARY KEY(`conversation_id`, `round_id`))",
         "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
           {
             "fieldPath": "conversationId",
             "columnName": "conversation_id",
@@ -1122,48 +1116,68 @@
             "notNull": true
           },
           {
+            "fieldPath": "runToken",
+            "columnName": "run_token",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
             "fieldPath": "status",
             "columnName": "status",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "spentTokens",
-            "columnName": "spent_tokens",
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "limitTokens",
-            "columnName": "limit_tokens",
+            "fieldPath": "spentTokens",
+            "columnName": "spent_tokens",
             "affinity": "INTEGER",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "tokenLimit",
+            "columnName": "token_limit",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
           },
           {
             "fieldPath": "skippedRoleIds",
             "columnName": "skipped_role_ids",
             "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "reason",
-            "columnName": "reason",
-            "affinity": "TEXT"
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "committedRoleIds",
             "columnName": "committed_role_ids",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "errorMessage",
             "columnName": "error_message",
-            "affinity": "TEXT"
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
-            "fieldPath": "startedAt",
-            "columnName": "started_at",
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -1176,19 +1190,19 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "id"
+            "conversation_id",
+            "round_id"
           ]
         },
         "indices": [
           {
-            "name": "index_group_runs_conversation_id_round_id",
+            "name": "index_group_runs_run_token",
             "unique": true,
             "columnNames": [
-              "conversation_id",
-              "round_id"
+              "run_token"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_group_runs_conversation_id_round_id` ON `${TABLE_NAME}` (`conversation_id`, `round_id`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_group_runs_run_token` ON `${TABLE_NAME}` (`run_token`)"
           },
           {
             "name": "index_group_runs_conversation_id_started_at",
@@ -1214,7 +1228,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'babc826eacd63fff3b506cf941318408')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b5fee805907e4754211836b77e78e3c7')"
     ]
   }
 }
