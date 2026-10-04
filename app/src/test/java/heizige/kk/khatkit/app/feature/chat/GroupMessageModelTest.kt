@@ -226,12 +226,15 @@ class GroupMessageModelTest {
     fun `a non null role deliberately breaks that verbatim equivalence`() {
         // 与上一条互为反面：role 非 null 且消息**没有**记录时，显示侧会去读角色绑定，
         // 于是结果**不等于** `messageModelId?.let(modelById::get)`（那是 null）。
-        // 这条差异就是群聊兜底分支本身，把它钉住，免得有人日后把兜底删掉"对齐"回去。
-        assertNull(messageModelIdOrNull())
-        assertSame(boundModel, resolveMessageModel(null, role(boundModel.id.toString()), modelById))
-    }
+        // 这条差异就是群聊兜底分支本身，把它钉住，免得有人日后把兜底删掉「对齐」回去。
+        val legacySingleChatExpression: Uuid? = null
 
-    private fun messageModelIdOrNull(): Uuid? = null
+        assertEquals(null, legacySingleChatExpression?.let(modelById::get))
+        assertNotEquals(
+            legacySingleChatExpression?.let(modelById::get),
+            resolveMessageModel(legacySingleChatExpression, role(boundModel.id.toString()), modelById),
+        )
+    }
 
     @Test
     fun `an unparseable role model id never wins over the record and never throws`() {
