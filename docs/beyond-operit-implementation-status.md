@@ -271,10 +271,15 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 - B2 抽屉搜索路缺 `folder_id = ''`：`core/data/db/dao/ConversationDAO.kt:38`
   的未归档路有，`:66` 的搜索路没有。效果是无搜索词时只显示未归档、一搜就把文件夹内
   会话混进来。**这是产品决策，尚未定**，本轮未擅自改。
-- B3 `GroupRole.modelId` 显示侧与生成侧现在同口径（`ChatManager.kt:726` 的
-  `resolveGroupTurnModelId`，定义在 `feature/chat/GroupTurnModel.kt:54`），但
-  **本轮之前生成的历史消息** `message.modelId` 记的是助手绑的模型，与现在气泡显示的
-  不一致。要不要写数据迁移回填是独立决定。
+- B3 ~~`GroupRole.modelId` 显示侧与生成侧现在同口径~~ **已关闭（`c7535ca8`）：两侧本来
+  就是两个问题，而「同口径」是错的。** 生成侧 `ChatManager.kt:726` 的
+  `resolveGroupTurnModelId`（定义在 `feature/chat/GroupTurnModel.kt:54`）答「现在要用
+  哪个模型」，显示侧 `ChatList.kt:215` 的 `resolveMessageModel` 答「这条消息当时是被
+  哪个模型答的」。后者已改成 `message.modelId` 优先、缺失时才回落角色绑定：
+  `41642ecd` 之前生成的群聊消息记的是**助手**绑的模型（那才是当时的真相），而
+  `GroupRole.modelId` 是用户可改的配置，拿它做数据迁移回填**零信息增量**。
+  两侧判据从此**故意**不一致。遗留：真机上验证「改过绑定后老消息仍显示老模型」
+  **零设备证据**。
 - B4 `ChatManager.kt:681` / `:686` 的 `senderName` 与 `useExternalWebSearch` 仍是
   会话级模型（都在群分支 `:705` 之前算好，群聊分支只重算了 `model` 本身）。
   后台通知标题可能显示错模型。
