@@ -33,6 +33,19 @@ data class Conversation(
     val folderId: Uuid? = null,
     val type: String = GroupChat.TYPE_DIRECT,
     val groupConfig: GroupConfig? = null,
+    /**
+     * 群聊**导入**时带进来的角色卡元数据（`GroupSharePayload.cards`）。
+     *
+     * 与 [groupConfig] 是两个来源、两种语义：[groupConfig] 是用户可编辑的活配置，
+     * 本字段是「扫一次码带进来的附属快照」，只在导入那一刻被整体替换一次。
+     * `null` = 从没导入过角色卡（Room 31 及更早版本的存量行迁移后就是 `null`），
+     * 空列表 = 导入过但载荷里确实一张卡都没有。
+     *
+     * 导出（二维码 / 文本分享 / 酒馆群聊文件）**不读**本字段：那三条路径一律用
+     * `groupExportRoleCards` 从当前群配置与本地助手现场生成，导入快照里的 persona
+     * 属于导出方那台机器，搬到本机只会是过期的、还可能指向不存在的助手。
+     */
+    val groupCards: List<RoleCardMeta>? = null,
     @Transient
     val newConversation: Boolean = false
 ) {
