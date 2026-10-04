@@ -174,6 +174,30 @@ sealed interface RoundBudget {
 
 data class GroupConfigError(val field: String, val message: String)
 
+/**
+ * 受闸门导入的结果（[GroupChat.importShare]）。
+ *
+ * 存在的理由：[decodeSharePayload] 是**裸解码器**——任何 `schema_version` 都照解，也不看密钥，
+ * 直接拿来当 UI 导入入口就等于把别人文档里高版本的字段盲解进来、把带密钥的载荷吃进内存。
+ * 导入路径必须走带闸门的 [GroupChat.importShare]。
+ */
+sealed interface GroupImportResult {
+    /**
+     * 校验通过。[payload] 是**完整**载荷：`config` 与角色卡元数据 `cards` 都在，
+     * 导入方拿得到 [RoleCardMeta]（[decodeQr] 会把 cards 丢掉，不能用于导入）。
+     */
+    data class Accepted(val payload: GroupSharePayload) : GroupImportResult
+
+    /**
+     * 拒收。[reason] 是面向人的一句话原因；[fieldErrors] 是字段级明细，供 UI 逐条显示。
+     * `field` 一律用契约 snake_case 键（如 `token_budget_per_round`），不是 Kotlin 属性名。
+     */
+    data class Rejected(
+        val reason: String,
+        val fieldErrors: List<GroupConfigError> = emptyList(),
+    ) : GroupImportResult
+}
+
 object GroupChat {
     const val TYPE_DIRECT = "DIRECT"
     const val TYPE_GROUP = "GROUP"
@@ -379,17 +403,8 @@ object GroupChat {
      */
     fun validate(config: GroupConfig, conversationId: String? = null): List<GroupConfigError> = buildList {
         // 版本闸门放最前面：未知版本不能盲解，宁可拒收也不要按 v1 语义猜字段。
-        // field 命名与下面各项一致，用契约键 schema_version。
-        if (config.schemaVersion < 1) {
-            add(GroupConfigError("schema_version", "schema_version 必须为正整数，当前 ${config.schemaVersion}"))
-        } else if (config.schemaVersion > SCHEMA_VERSION) {
-            add(
-                GroupConfigError(
-                    "schema_version",
-                    "schema_version ${config.schemaVersion} 高于当前支持的 $SCHEMA_VERSION，拒绝盲解",
-                )
-            )
-        }
+        // 判定口径收敛在 [schemaVersionErrors]，importShare 与这里共用同一份实现。
+        addAll(schemaVersionErrors(config.schemaVersion))
         if (config.roles.isEmpty()) {
             add(GroupConfigError("roles", "至少需要一个成员"))
         }
@@ -435,6 +450,25 @@ object GroupChat {
 
     fun isValid(config: GroupConfig, conversationId: String? = null): Boolean =
         validate(config, conversationId).isEmpty()
+
+    /**
+     * 版本闸门的**唯一**判定口径。[validate]（写库/保存路径）与 [importShare]（导入路径）
+     * 都调它，不允许两套判断各判一次——否则迟早出现「保存拦住了、导入却放行」的漂移。
+     *
+     * `field` 用契约键 `schema_version`。
+     */
+    private fun schemaVersionErrors(schemaVersion: Int): List<GroupConfigError> = buildList {
+        if (schemaVersion < 1) {
+            add(GroupConfigError("schema_version", "schema_version 必须为正整数，当前 $schemaVersion"))
+        } else if (schemaVersion > SCHEMA_VERSION) {
+            add(
+                GroupConfigError(
+                    "schema_version",
+                    "schema_version $schemaVersion 高于当前支持的 $SCHEMA_VERSION，拒绝盲解",
+                )
+            )
+        }
+    }
 
     // ---------------- 视角过滤 ----------------
 
@@ -621,6 +655,16 @@ object GroupChat {
         return element
     }
 
+    /**
+     * 只要群配置的便捷解码，等价于 `decodeSharePayload(raw)?.config`。
+     *
+     * ⚠️ **UI 导入路径禁止直接调用本函数**，请改用 [importShare]。本函数：
+     * - 不校验 `schema_version`（任何版本号都照解，别人文档里高版本的字段会被盲解进来）；
+     * - 不跑 [FORBIDDEN_EXPORT_KEYS] 密钥黑名单（带密钥的载荷会被吃进内存）；
+     * - **不返回 `cards`**，载荷里的角色卡元数据在这里被直接丢掉，导入方拿不到 [RoleCardMeta]。
+     *
+     * 保留它是为了已有调用与纯单元测试，行为一律不变。
+     */
     fun decodeQr(raw: String): GroupConfig? = decodeSharePayload(raw)?.config
 
     fun decodeSharePayload(raw: String): GroupSharePayload? {
@@ -630,7 +674,17 @@ object GroupChat {
         val kind = (obj["kind"] as? JsonPrimitive)?.content ?: return null
         if (kind != QR_KIND) return null
         val config = decodeConfigObject(obj["config"] as? JsonObject) ?: return null
-        val cards = (obj["cards"] as? JsonArray)?.mapNotNull { element ->
+        return GroupSharePayload(
+            kind = kind,
+            schemaVersion = (obj["schema_version"] as? JsonPrimitive)?.content?.toIntOrNull() ?: SCHEMA_VERSION,
+            config = config,
+            cards = decodeCards(obj["cards"]),
+        )
+    }
+
+    /** 载荷里的角色卡元数据。缺 `role_id` 的条目直接丢掉，不猜它属于谁。 */
+    private fun decodeCards(raw: JsonElement?): List<RoleCardMeta> =
+        (raw as? JsonArray)?.mapNotNull { element ->
             val card = element as? JsonObject ?: return@mapNotNull null
             val roleId = (card["role_id"] as? JsonPrimitive)?.content ?: return@mapNotNull null
             RoleCardMeta(
@@ -642,11 +696,82 @@ object GroupChat {
                 avatarRef = (card["avatar_ref"] as? JsonPrimitive)?.content,
             )
         }.orEmpty()
-        return GroupSharePayload(
-            kind = kind,
-            schemaVersion = (obj["schema_version"] as? JsonPrimitive)?.content?.toIntOrNull() ?: SCHEMA_VERSION,
-            config = config,
-            cards = cards,
+
+    /**
+     * **受闸门的导入入口。UI 导入路径（扫码、粘贴、文件）只允许调本函数。**
+     *
+     * 依次过五道闸门，任一不过立刻返回 [GroupImportResult.Rejected]，不会把不安全的数据
+     * 带进内存、更不会交给上层写库：
+     *
+     * 1. 空串 / JSON 解析失败 / 不是 JSON 对象 → 「无法解析分享载荷：…」
+     * 2. `kind != QR_KIND` → 「不是 KhatKit 群聊分享载荷」（不接受任意 JSON）
+     * 3. `schema_version` 闸门：`< 1` 或 `> SCHEMA_VERSION` 一律拒收，reason 写明
+     *    「载荷版本 X，当前只支持到 Y」。判定复用 [schemaVersionErrors]，与 [validate] 同一份实现。
+     * 4. 密钥黑名单：对**整个原始 JSON 元素**跑 [findForbiddenKeys]（含 `config.extras`、
+     *    `roles[].extras`、顶层自定义键与 `cards`，递归下钻），命中即拒收并把键名写进 reason。
+     *    先于解 `config`，避免带密钥的载荷被解进内存。
+     * 5. `config` 解不出来 → 拒收；解出来后再跑 [validate]，非空则返回
+     *    reason =「群配置校验未通过」+ 完整 fieldErrors，供 UI 逐条显示。
+     *
+     * 只有 [GroupImportResult.Accepted] 才允许写库。返回的 [GroupSharePayload] 里 `cards`
+     * 完整保留角色卡元数据（[decodeQr] 会丢掉它们，因此不能用于导入）。
+     *
+     * @param conversationId 传入后会额外核对 `memory_space_id` 是否等于派生值
+     *   `group:<conversationId>:role:<roleId>`；为 null 时跳过该项（群配置本身得知不到会话 id）。
+     */
+    fun importShare(raw: String, conversationId: String? = null): GroupImportResult {
+        if (raw.isBlank()) {
+            return GroupImportResult.Rejected("无法解析分享载荷：内容为空")
+        }
+        val element = runCatching { json.parseToJsonElement(raw) }.getOrNull()
+            ?: return GroupImportResult.Rejected("无法解析分享载荷：不是合法 JSON")
+        val obj = element as? JsonObject
+            ?: return GroupImportResult.Rejected("无法解析分享载荷：不是 JSON 对象")
+
+        // 闸门 2：只认自家载荷，不接受任意 JSON。
+        val kind = (obj["kind"] as? JsonPrimitive)?.content
+        if (kind != QR_KIND) {
+            return GroupImportResult.Rejected("不是 KhatKit 群聊分享载荷")
+        }
+
+        // 闸门 3：版本闸门。缺 schema_version 视为无法判断版本，不猜。
+        val schemaVersion = (obj["schema_version"] as? JsonPrimitive)?.content?.toIntOrNull()
+        if (schemaVersion == null) {
+            return GroupImportResult.Rejected(
+                "无法解析分享载荷：缺少 schema_version",
+                listOf(GroupConfigError("schema_version", "缺少 schema_version，无法判断载荷版本")),
+            )
+        }
+        val versionErrors = schemaVersionErrors(schemaVersion)
+        if (versionErrors.isNotEmpty()) {
+            return GroupImportResult.Rejected(
+                "载荷版本 $schemaVersion，当前只支持到 $SCHEMA_VERSION",
+                versionErrors,
+            )
+        }
+
+        // 闸门 4：密钥黑名单，跑整个原始元素而不是解出来的 config——
+        // 解码会丢掉未知结构，先扫后解才不会漏。
+        val offending = findForbiddenKeys(obj)
+        if (offending.isNotEmpty()) {
+            return GroupImportResult.Rejected("载荷包含禁止导入的字段：${offending.joinToString()}")
+        }
+
+        // 闸门 5：解 config + 字段级校验。
+        val config = decodeConfigObject(obj["config"] as? JsonObject)
+            ?: return GroupImportResult.Rejected("无法解析分享载荷：缺少或无法解析 config")
+        val configErrors = validate(config, conversationId)
+        if (configErrors.isNotEmpty()) {
+            return GroupImportResult.Rejected("群配置校验未通过", configErrors)
+        }
+
+        return GroupImportResult.Accepted(
+            GroupSharePayload(
+                kind = kind,
+                schemaVersion = schemaVersion,
+                config = config,
+                cards = decodeCards(obj["cards"]),
+            ),
         )
     }
 
