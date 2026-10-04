@@ -114,7 +114,7 @@ C1 相关共 **25 个测试类 / 304 个用例**，全类名带包名前缀为
 | C1-07 失败续跑/幂等 | `d976aa61` 新增 `group_runs` 表与运行 token 幂等<br>`007e4173` 改复合主键 `(conversation_id, round_id)` + `run_token/updated_at`<br>`70ed043d` `GroupRunDAO` 按 `(conversationId, roundId)` 定位 + `upsertRun` 事务<br>`892577a3` 30→31 改显式 `Migration_30_31` 并在工厂注册<br>`cc01d78d` androidTest 迁移到复合主键/`run_token` 并补幂等与 upsert 用例<br>`be41fdc9` 补 63 条内核用例（幂等/续跑）<br>`1649f5c7` 迁移重放脚本补 FTS5 触发器存活证据与对照实验 | `CMD-1` 退出码 **0**（强制 `--rerun`，JVM 侧覆盖 app 模块全部 664 个用例，含本例相关的 `GroupTurnCoordinatorTest` 63 + `GroupRunSchemaTest` 10）<br>**仪器侧未跑**：`adb devices` 空，`connectedDebugAndroidTest` 无法执行<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同） | **无设备**。C1 相关仪器测试源码共 **19 个注解**（`GroupRunDAOTest` 12 + `Migration_30_31_Test` 7），**执行结果为零**。唯一 app 仪器记录 2026-10-03 12:58:29 崩溃且 `tests="0"`，早于基线<br>**部分证据（仅迁移侧）**：零设备主机侧重放已把 C1-D 的 30→31 迁移钉住 85 条断言 0 失败，覆盖 `group_runs` 复合主键 `(conversation_id, round_id)`、`run_token` UNIQUE 索引、同 `round_id` 第二条被主键拒绝、同 `runToken` 第二次被唯一索引拒绝、`group_runs` 仍只有 1 行（见「C1-D 迁移 30→31 主机侧重放」）。**这只是部分证据，不改状态** | 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.db.migrations.GroupRunSchemaTest`（10）<br>仪器侧 fixture 未采集：`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAOTest.kt`、`…/core/data/db/migrations/Migration_30_31_Test.kt`（源码在库，执行证据不在库） | **无证据（需真机）** | **无证据** | **无证据** | **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>仪器记录（崩溃，早于基线）：`app/build/outputs/androidTest-results/connected/debug/TEST-PKG110 - 16-_app-.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAO.kt`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`）<br>重放日志（仓库外）：`/tmp/opencode/c1-replay2/run1.log`、`run2.log`（sha256 `093981c4…4d2e7d5`）<br>变异测试驱动（仓库外）：`/tmp/opencode/c1-replay2/mutate.py` | `unverified` |
 | C1-08 记忆隔离 | `966792d6` `memory_chunks` 加 `role_id` + 注册 `group_runs`（Room 30→31）<br>`63502610` `addMemory` 透传 `roleId` 且 `toModel` 带出发言角色<br>`8e5457dc` `getMentionsOfEntity` 改带 `spaceId` 的 JOIN<br>`e7606912` 检索层加 `MemorySpaceGate` 空间闸门（FTS/向量/图谱三路）<br>`68b92146` `forgetMemory/linkMemories` 加 `expectedSpaceId` 归属校验<br>`6504f023` 记忆工具接群空间（无全局/助手回退），群聊不下发 `recent_chats`<br>`2031c409` `MemoryExtractor` 写入带 `roleId`，`sourceMessageId` 按 `source_line` 归因<br>`495b5e3a` `ChatManager` 接群记忆作用域（懒建空间、只读 viewer 可见消息）<br>`58b129c7` 补 31 条用例（空间闸门/工具空间/抽取归属/懒建/跨空间泄漏回归） | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖本例 7 个类的 50 个用例）<br>`CMD-2` 退出码 **0**（`MemoryRepository.kt` / `MemoryExtractor.kt` lint 零命中）<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同） | **无设备**，同 C1-01。三空间互不串需要真实检索栈 + 真实写入，JVM 只能测纯函数闸门<br>**部分证据（仅迁移与 FTS 侧）**：主机侧重放已钉住 `memory_chunks` 加可空 `role_id`（存量 2 行 `role_id IS NULL` 不被改写、新行可写 `'r1'`）、`role_id` 索引存在、存量 `content`/`source_message_id`/`source_ref_id`/`confidence`/时间戳/`embedding` BLOB 全保留，且 3 个 FTS5 触发器在迁移后逐字节存活、INSERT/UPDATE/DELETE 三向真同步到索引（见「C1-D 迁移 30→31 主机侧重放」）。**这不覆盖三空间互不串本身，也不改状态** | 输入 = `core.data.repository.MemorySpaceGateTest`（9）<br>`core.data.ai.tools.MemoryToolScopeTest`（7）<br>`core.data.repository.MemoryAttributionTest`（9）<br>`core.data.repository.GroupMemorySpacePolicyTest`（6）<br>`core.data.repository.MemoryExtractorParseTest`（7）<br>`core.data.db.MemoryRoleIdMappingTest`（2）<br>`core.data.db.migrations.GroupRunSchemaTest`（10） | **无证据（需真机）**。三个 `group:<conv>:role:<role>` 空间的真实检索结果可见性没有跨 viewer 的实跑记录 | **无证据**。「检索 query 只用 viewer 过滤结果」要对照真实请求的 query 文本，未采集 | **无证据** | **无证据**。契约 `:203` 要求记忆内容不进包，但没有导出文件可算哈希 | `…TEST-heizige.kk.khatkit.app.core.data.repository.MemorySpaceGateTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeTest.xml`<br>`…TEST-…MemoryAttributionTest.xml`<br>`…TEST-…GroupMemorySpacePolicyTest.xml`<br>`…TEST-…MemoryExtractorParseTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.db.MemoryRoleIdMappingTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`），日志 `/tmp/opencode/c1-replay2/run1.log`、`run2.log`（仓库外） | `unverified` |
 | C1-09 Tavern/QR 往返 | `f921a02f` `GroupRole` 补 `extras` 无损往返 + `validate` 校 `schemaVersion`<br>`b3d9bf44` `TavernChatCodec` 加群聊导出/导入（保留 `role_id/round_id/turn_kind/群配置/角色卡`）<br>`efa1c27c` `encodeConfig` 写库路径补跑密钥黑名单检查<br>`53563c8c` 补 Tavern 群聊往返与密钥过滤用例<br>`a1616b6b` 群聊页接上生成二维码（载荷与文本分享共用一份）<br>`7d4a6596` 群聊页接上扫码导入，统一走 `importShare`<br>`f5212df2` 角色卡解码走 null 安全取值<br>`b548025e` 补 `importShare` 五道闸门与 `cards` 保留用例<br>`88c850ef` 群聊导出面板接入 Tavern 群聊导出卡片，打通 `exportGroupJsonl`<br>`2c9aa2e4` 补群聊导出入口纯逻辑用例（面板到可回导文件的往返）<br>`aeab5550` 新增 CameraX + MLKit 扫码弹层与入口决策单测<br>`d2b5c05c` 新增导出哈希证据测试（9 变体 + 往返幂等 + SillyTavern 结构对照）<br>`eef6efb3` 新增跨两次独立 JVM 的哈希比对脚本<br>`bbe2e558` 加 golden 清单护栏（把「确定性」升级成「格式没变」） | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 82 个用例：22+21+16+18+5）<br>`CMD-3` 退出码 **0**（打出了 3 个可安装 APK，但那是安装包不是群聊导出文件）<br>`CMD-2` 退出码 **0**（`TavernChatCodec.kt` lint 零命中）<br>**C1-P 哈希校验已跑**：`python3 tools/verification/c1p_group_export_hash.py` 退出码 **0**（两次独立 JVM + 落盘 `hashlib` 复算 + golden 清单，三重全一致） | **无设备**，同 C1-01。相机扫码（`QrScannerSheet`）与 Tavern 本体打开文件**都必须真机/桌面端**，JVM 的 16 条只测入口决策 | 输入 = `feature.chat.GroupTavernExportTest`（22）<br>`core.data.ai.tavern.TavernCompatTest`（21）<br>`core.ui.components.ui.QrScannerSheetTest`（16）<br>`core.data.model.GroupChatTest`（18）<br>**`core.data.ai.tavern.C1pGroupExportHashTest`（5）**<br>前四个类的往返在 JVM 里是内存对象 → JSON → 内存对象；新类把文件**真的落盘**（`build/c1p-group-export-hash/*.txt`）再算 SHA-256 | **无证据（需真机）** | **无证据** | **无证据** | **部分证据（零设备，JVM 层确定性）**——契约 `:206` 这一类现在有真实内容了。9 个 fixture 变体的字节数 + SHA-256 已实测落定（`d2b5c05c` / `eef6efb3` / `bbe2e558`，逐条证据见下方「C1-P 群聊导出确定性哈希（零设备）」）：<br>`pipeline_3roles_2rounds_jsonl` 3615 / `36e6585f9aa4a028eb8277bc70578fd2c802cdd730e3981f0d52b02430f0c8b9`<br>`roundtable_3roles_2rounds_jsonl` 3616 / `33c51124e5421ae46a002f025a2e61dc5712b73ddc413ca9dea3b9777ccc0fb3`<br>`vote_3roles_2rounds_jsonl` 3619 / `ad9e3fb119cbc4bea05b7e917eb180aabeb230bbbf89dfe1addcfd0040217c35`<br>`pipeline_3roles_2rounds_array` 3617 / `b8d57a6c4f15e87d1a9d0a181022ba28410a36527075e71b0daf77976c1a3653`<br>`pipeline_with_explicit_create_date_jsonl` 3652 / `92ce04902dc0c8e5bd822020e3df885b30a89adb9fef2fcd0fb712ae9faeee5e`<br>`empty_messages_jsonl` 1518 / `0ae10ea537e112c7f4d98ebd275b26a86e1b30952f1de8274f0cccf670f11e80`<br>`image_part_jsonl` 1711 / `c07d7e6ead7f06143ceae05fa5082be04af1fabc333edb60125ee337c9cbd9e9`<br>`qr_payload_pipeline` 1348 / `2d65ec04dded8a8fc29d3b7cb2d235bea908ee779b0568a6f644f34670cd2ff5`<br>`qr_payload_vote` 1352 / `8b49d47b225f32f6ad6032b1ab49eb1d6122a3af3c97652936adf7df13c2e9bf`<br>⚠️ **但这是零设备 fixture 的哈希，不是真机导出的文件哈希**：落盘走 `java.io.File.writeBytes`，`writeExportTempFile` + `ACTION_SEND` 真实 IO 分发**一次没跑过**；**酒馆本体打开、viewer 可见消息 ID、模型调用序列、token 计数仍零份**。**四类证据缺三类半，所以状态不变。**<br>① APK 的 SHA-256 已有（见构建段），但**安装包哈希不是群聊导出文件哈希**，不能填本列；<br>② `/tmp/opencode/sample-group.json` / `.jsonl`（各约 1.7 KB）**被仓库零引用**（`git grep sample-group` 无结果）、无 SHA-256、来源不明，**不作为 fixture** | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTavernExportTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.TavernCompatTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheetTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>**`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.C1pGroupExportHashTest.xml`**（`tests="5"`）<br>哈希校验脚本：`tools/verification/c1p_group_export_hash.py`<br>**golden 清单（入库，护栏本体）：`tools/verification/c1p_group_export_hash.golden.json`**<br>落盘产物（构建目录，未入库）：`app/build/c1p-group-export-hash/*.txt`<br>编解码：`app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernChatCodec.kt`<br>C1-P 补的「QR 携带角色卡最小元数据」落库证据见下方「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」 | `unverified` |
-| C1-10 单聊/群聊共存 | `2f1d04a2` 搜索路新增按 `type` 的 DAO 查询，空串语义与未归档路对齐<br>`c84256a1` 抽屉类型筛选下沉到 SQL，删掉只作用于已加载页的内存过滤<br>`35ea0762` `type` 谓词抽成两条查询共用的常量<br>`34493507` 补抽屉列表查询判定与「内存过滤已删」的护栏用例<br>`8528ecda` 抽出 `ChatScaffold` 共用消息区骨架<br>`4e97ff57` 群聊页复用 `ChatScaffold`，接成员头像组、@ 选择器与群配置面板 | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 27 个用例：7+2+18）<br>`CMD-2` 退出码 **0**（`ChatList.kt` 有 3 条 `FrequentlyChangingValue`，见「已知遗留与风险」第 3 条；`ChatScaffold` 侧零命中） | **无设备**，同 C1-01。「筛选只过滤、来回切换不丢数据」是交互行为，JVM 的 9 条只钉住查询判定 | 输入 = `feature.chat.ConversationListQueryPlanTest`（7）<br>`feature.chat.ConversationTypeFilterSourceGuardTest`（2）<br>`core.data.model.GroupChatTest`（18）<br>fixture 是 SQL 谓词常量 `CONVERSATION_TYPE_PREDICATE_SQL` | **无证据（需真机）** | **无证据** | **无证据** | **无证据** | `…TEST-heizige.kk.khatkit.app.feature.chat.ConversationListQueryPlanTest.xml`<br>`…TEST-heizige.kk.khatkit.app.feature.chat.ConversationTypeFilterSourceGuardTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt:19/38/66`<br>仓储：`app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationRepository.kt:92/281` | `unverified` |
+| C1-10 单聊/群聊共存 | `2f1d04a2` 搜索路新增按 `type` 的 DAO 查询，空串语义与未归档路对齐<br>`c84256a1` 抽屉类型筛选下沉到 SQL，删掉只作用于已加载页的内存过滤<br>`35ea0762` `type` 谓词抽成两条查询共用的常量<br>`34493507` 补抽屉列表查询判定与「内存过滤已删」的护栏用例<br>`8528ecda` 抽出 `ChatScaffold` 共用消息区骨架<br>`4e97ff57` 群聊页复用 `ChatScaffold`，接成员头像组、@ 选择器与群配置面板 | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 27 个用例：7+2+18）<br>`CMD-2` 退出码 **0**（`ChatList.kt` 侧现在零命中——曾有的 3 条 `FrequentlyChangingValue` 已由 `366b3fe8` 搬进 `derivedStateOf`/draw 期清掉，见「lint」段；`ChatScaffold` 侧零命中） | **无设备**，同 C1-01。「筛选只过滤、来回切换不丢数据」是交互行为，JVM 的 9 条只钉住查询判定 | 输入 = `feature.chat.ConversationListQueryPlanTest`（7）<br>`feature.chat.ConversationTypeFilterSourceGuardTest`（2）<br>`core.data.model.GroupChatTest`（18）<br>fixture 是 SQL 谓词常量 `CONVERSATION_TYPE_PREDICATE_SQL` | **无证据（需真机）** | **无证据** | **无证据** | **无证据** | `…TEST-heizige.kk.khatkit.app.feature.chat.ConversationListQueryPlanTest.xml`<br>`…TEST-heizige.kk.khatkit.app.feature.chat.ConversationTypeFilterSourceGuardTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt:19/38/66`<br>仓储：`app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationRepository.kt:92/281` | `unverified` |
 
 原始日志、JSONL 运行记录、截图/录屏和导出文件放在未提交的大文件目录或 CI artifact；
 此表只登记稳定路径与哈希，避免把隐私消息、密钥、记忆内容提交进仓库。提交前执行
@@ -240,6 +240,66 @@ BuiltinCardSampleTest` 1、`khatkit/engine/RustEngineTest` 5、
 14（改的是第 14 条断言的内容，用例数不变）。**合计那一行同样没重跑全仓 `test`、
 不更新。**
 
+⚠️ **再往后一批（`366b3fe8` 滚动条 / `b43f7e9f` 抽屉 folder_id / `ed21db6e` 通知标题
+/ 本轮 `88ba63c2` + `8bc28105` + `c940813b` 护栏）之后，`app` 实测是 91 个测试类 /
+710 tests / 0 failures / 0 errors / 0 skipped**（`./gradlew --offline
+:app:testDebugUnitTest --rerun` 退出码 **0**，逐个 XML 的 `tests` 属性汇总实测：
+**87 / 691 → 91 / 710**，即 `+4 类 / +19 例`）。`+4 类` 是
+`ChatListScrollbarTest`（7）、`ConversationDrawerFolderScopeTest`（4）、
+`ChatManagerNotificationSenderNameTest`（5）、`ChatServiceSenderNameGuardTest`（3），
+合计 `7+4+5+3 = 19`。`GroupMessageModelTest` 仍是 18、`GroupTurnModelTest` 仍是 14。
+**合计那一行同样没重跑全仓 `test`、不更新**（`app` 之外的 14 个模块本轮一个测试都没
+重跑，任何外推都不是实测值）。
+
+### C1 相关 JVM 测试类台账
+
+口径：**本文件正文点名引用过、且能在 `app/build/test-results/testDebugUnitTest/*.xml`
+里对上的测试类**（每类的 `tests` 取自该次实测 XML，不是数 `@Test` 注解）。仪器测试
+不在此表（另见「仪器测试状态」）。下面 29 类 / 323 例里，**本轮新增 4 类 19 例**用
+**加粗**标出，其余 25 类 304 例是上一窗口已在册的。
+
+| 测试类 | 例数 | 钉住什么 |
+|---|---:|---|
+| `GroupTurnCoordinatorTest` | 63 | 群聊内核判定（@ / pipeline / roundtable / vote / 预算 / 幂等 / 视角隔离） |
+| `GroupTavernExportTest` | 22 | Tavern 群聊编解码往返 + 密钥过滤 |
+| `TavernCompatTest` | 21 | 酒馆结构兼容 |
+| `GroupChatTest` | 18 | `GroupChat` 数据模型 / `parseBallot` |
+| `GroupMessageModelTest` | 18 | 气泡模型显示（`message.modelId` 优先） |
+| `UngeneratedMessageFilterTest` | 18 | 取消/失败时丢弃空气泡 |
+| `QrScannerSheetTest` | 16 | 扫码弹层入口决策 |
+| `GroupTurnModelTest` | 14 | `resolveGroupTurnModelId` 角色模型选型 |
+| `GroupRunSchemaTest` | 10 | `group_runs` 表 / 复合主键 / `run_token` 幂等 |
+| `MemorySpaceGateTest` | 9 | 群记忆空间闸门 |
+| `MemoryAttributionTest` | 9 | 记忆按 `roleId` 归因 |
+| `MemoryRetrievalEngineTest` | 9 | 检索引擎 |
+| `GroupSpeakerResolverTest` | 8 | 说话者解算 |
+| `GroupRoleCompletionProviderTest` | 8 | 群聊 @ 补全 |
+| `ChatManagerTest` | 8 | `ChatManager` 杂项 |
+| `GroupRoleCardsPersistenceTest` | 7 | 角色卡落库往返 |
+| `ConversationGroupCardsSchemaTest` | 7 | Room 31→32 schema 一致性 |
+| `ConversationListQueryPlanTest` | 7 | 抽屉列表查询判定（`type` 下沉 SQL） |
+| `MemoryExtractorParseTest` | 7 | 抽取解析 |
+| `MemoryToolScopeTest` | 7 | 记忆工具空间作用域 |
+| **`ChatListScrollbarTest`** | **7** | **滚动条进度算式端点语义**（本轮 `31e0a39d`） |
+| `C1pGroupExportHashTest` | 5 | 群聊导出确定性哈希 + golden 清单 |
+| **`ChatManagerNotificationSenderNameTest`** | **5** | **通知标题公式 + 群聊分支必须重算**（`67f49726`） |
+| **`ConversationDrawerFolderScopeTest`** | **4** | **抽屉两条查询的 `folder_id` 口径现状**（`b43f7e9f`） |
+| **`ChatServiceSenderNameGuardTest`** | **3** | **第二生成入口通知标题护栏**（本轮 `8bc28105` / `c940813b`） |
+| `GroupMemorySpacePolicyTest` | 6 | 群记忆空间懒建策略 |
+| `ConversationTypeFilterSourceGuardTest` | 2 | 抽屉类型筛选源码护栏 |
+| `MemoryRoleIdMappingTest` | 2 | `role_id` 映射 |
+| `MemoryToolsSearchTest` | 3 | 记忆工具搜索 |
+| **合计** | **323** | **29 类** |
+
+⚠️ 三个测试类里有两个是**源码文本护栏**而非行为测试，读表时要记这件事：
+`ChatManagerNotificationSenderNameTest` 的第 5 条、
+`ConversationDrawerFolderScopeTest` 的 4 条、
+`ChatServiceSenderNameGuardTest` 的 3 条都读 `.kt` 源码文本。原因是这条路径
+（`handleMessageComplete` / DAO 的 `WHERE`）要么是 `private suspend` + 一堆 Hilt 协作者，
+要么需要真实 SQLite，JVM 单测（仓库 `testImplementation` 只有 junit，没有 Robolectric
+/ room-testing）构造不出来。**文本护栏能钉住「代码没被改回去」，钉不住「运行时行为
+正确」**——后者仍需真机。
+
 ⚠️ 有测试结果和有 lint 报告的是**两批不同的 15 个模块**：`card-validator` 有测试
 结果（4 类 77 例）但**没有 lint 报告**（见下）；`image-toolbox-dependency` 有 lint
 报告（5 Warning）但**没有测试结果目录**。
@@ -252,18 +312,24 @@ BuiltinCardSampleTest` 1、`khatkit/engine/RustEngineTest` 5、
 
 | 范围 | Error | Warning | Hint | 合计 |
 |---|---:|---:|---:|---:|
-| **app 单模块**（`app/build/reports/lint-results-debug.xml`） | **0** | **590** | **6** | **596** |
-| **15 模块聚合** | **0** | **623** | **7** | **630** |
+| **app 单模块**（`app/build/reports/lint-results-debug.xml`） | **0** | **587** | **6** | **593** |
+| **15 模块聚合** | **0** | **620** | **7** | **627** |
 
-15 个模块逐个（`<issue severity>` 计数实测）：app 590W+6H、khatkit 17W、
+⚠️ 上表两个数是 **2026-10-05 复核窗口**的实测值；前一窗口记的是 app 590W+6H=596、
+聚合 623W+7H=630，那两个数**按各自窗口原样保留在上面这段历史里**，别拿 `app` 的差值
+去改聚合（`app` 之外 14 个模块本轮逐个复算，Warning 33、Hint 1，一个数都没动：
+590+33=623 → **587+33=620**，6+1=7 不变）。差值 **-3** 全部来自 `app` 单模块的
+`FrequentlyChangingValue`（见下面「C1 内核 18 个文件」）。
+
+15 个模块逐个（`<issue severity>` 计数实测）：app 587W+6H、khatkit 17W、
 image-toolbox-dependency 5W、ai 2W、workspace 2W、common 1W、oauth 1W、speech 1W、
 khatkit-ui 4W+1H；document / highlight / material3 / mediapicker / search / web
-六个模块 0 条。即 app 之外 Warning 33 条、Hint 1 条，590+33=623、6+1=7。
+六个模块 0 条。即 app 之外 Warning 33 条、Hint 1 条，587+33=620、6+1=7。
 
-即验证代理报的「app 模块 0 error / 52 warning / 6 hint」与「596 issues = 590
+即验证代理报的「app 模块 0 error / 52 warning / 6 hint」与「593 issues = 587
 Warning + 6 Hint / 0 Error」互相矛盾，**后者与本文一致，前者的 52 无法复现**：
 app 报告里 `severity` 属性只出现过 `Warning` 和 `Hint` 两种值，distinct `id` 是 28
-个、distinct `file` 是 61 个，都不是 52。本文采信 590+6=596（app）与 623+7=630
+个、distinct `file` 是 61 个，都不是 52。本文采信 587+6=593（app）与 620+7=627
 （15 模块聚合）这两个可复算的数字。**全仓 0 Error。**
 
 ⚠️ **`card-validator` 模块没有 lint 报告**：`card-validator/build/reports/` 目录
@@ -271,19 +337,46 @@ app 报告里 `severity` 属性只出现过 `Warning` 和 `Hint` 两种值，dis
 **「没跑」不是「0 命中」**，不要在上表里给它记 0。
 
 **C1 内核 18 个文件的 lint 命中**（按 `location/@file` 绝对路径前缀
-`app/src/main/java/heizige/kk/khatkit/app/` 匹配）：
+`app/src/main/java/heizige/kk/khatkit/app/` 匹配，逐文件点算）：
 
-- `feature/chat/ChatList.kt` **3 条**：`FrequentlyChangingValue`，行 `584:32` /
-  `587:36` / `590:41`。`git blame -L 580,595` 显示这三行归属 `d2be1c3fe`
-  （2026-09-13），**早于 C1 基线 `d45ebd10`（2026-10-04）三个星期，不是 C1 引入**。
-- 其余 **17 个文件零命中**：`GroupChatPage.kt`、`GroupSpeakerResolver.kt`、
-  `GroupRoleCompletionProvider.kt`、`GroupMemberBar.kt`、`GroupExportCard.kt`、
-  `GroupRoleCards.kt`、`GroupTurnModel.kt`、`ChatPage.kt`、`ChatManager.kt`、
-  `core/data/model/GroupChat.kt`、`core/data/ai/tavern/TavernChatCodec.kt`、
-  `core/data/repository/MemoryRepository.kt`、`core/data/repository/MemoryExtractor.kt`、
-  `core/data/db/dao/ConversationDAO.kt`、`core/data/db/dao/GroupRunDAO.kt`、
-  `core/ui/components/message/ChatMessage.kt`、
+- ⭐ **18 个文件全部零命中，合计 0 条**（2026-10-05 复核实测，逐个文件数过）。
+  上一窗口记的是「`feature/chat/ChatList.kt` **3 条** `FrequentlyChangingValue`
+  （行 `584:32` / `587:36` / `590:41`）+ 其余 17 个文件零命中」，**那 3 条现在是 0**，
+  合计从 3 降到 0。
+- **这 3 条是怎么没的（`366b3fe8`，真实性能改进，不是消 warning）**：
+  `layoutInfo` / `firstVisibleItemIndex` / `firstVisibleItemScrollOffset` 三个读数
+  都带 `@FrequentlyChangingValue`。原代码在**组合期**（`ChatListNormal` 的 composable
+  体内）直读它们算 `liveTotal` / `liveVisible` / `liveProgress`，后果是**每滚一帧整个
+  `ChatListNormal` 重组一次**——滚动条的几何量被提升成了列表级状态。
+  改法是「**组合期求值 → draw 期求值**」：三份读数收成一个不可变快照
+  `ScrollbarMetrics`（`internal data class`），由
+  `remember(state) { derivedStateOf { state.scrollbarMetrics() } }` 缓存，只在两个
+  **非组合**作用域读——`LaunchedEffect(loading)` 体与 `Canvas` 的 `draw` lambda。
+  于是滚动只重绘那一个 Canvas，不再重组列表。相等判定也才有意义：三个 Int/Float 组成
+  值对象后，滚动期间只在真变化时产生新实例，不会因为「每帧重算了一遍同样的数」把下游
+  叫醒。`derivedStateOf` 顺带把 `FrequentlyChangingValue` 的三个命中一起消掉了 ——
+  **warning 消失是结果，不是目的**。
+- **`resolveScrollbarProgress` 的算法逐字未变**（纯索引比例，首项按像素高度折算成
+  0f..1f 偏移分数，端点由 `canScrollForward` / `canScrollBackward` 强制贴边），只是被
+  抽成纯函数以便在 JVM 里钉住（`31e0a39d` 加 `ChatListScrollbarTest` 7 条）。
+  「端点贴边」这半边尤其不能靠肉眼：它决定滑块画在哪，`ChatListScrollbarTest` 把
+  `total == 1`（无滚动时 progress = 0f）、已到底（= 1f）、已到顶（= 0f）三个端点
+  逐条断言住。
+- 18 个零命中文件（实测逐个点名）：`ChatList.kt`、`GroupChatPage.kt`、
+  `GroupSpeakerResolver.kt`、`GroupRoleCompletionProvider.kt`、`GroupMemberBar.kt`、
+  `GroupExportCard.kt`、`GroupRoleCards.kt`、`GroupTurnModel.kt`、`ChatPage.kt`、
+  `ChatManager.kt`、`core/data/model/GroupChat.kt`、
+  `core/data/ai/tavern/TavernChatCodec.kt`、`core/data/repository/MemoryRepository.kt`、
+  `core/data/repository/MemoryExtractor.kt`、`core/data/db/dao/ConversationDAO.kt`、
+  `core/data/db/dao/GroupRunDAO.kt`、`core/ui/components/message/ChatMessage.kt`、
   `core/ui/components/message/ChatMessageActions.kt`。
+- **零命中 ≠ 零问题**：它只说明这 18 个文件在 Android Lint 的既定规则集下没有命中，
+  不说明行为正确、不说明 Compose 重组行为已实测、不覆盖 KMP / iOS 侧。
+  `ChatList.kt` 那一处尤其要这么读——**真机上滚动是否真的只重绘不重组，本轮零证据**，
+  依据是 Compose 的求值语义与 lint 规则，不是帧率实测。
+- 上面那条 `584:32` / `587:36` / `590:41` 的历史行号与归属（`git blame` → `d2be1c3fe`，
+  2026-09-13，早于 C1 基线 `d45ebd10` 三个星期，**不是 C1 引入**）按各窗口原样保留，
+  仅作「这 3 条曾经存在过」的证据。
 
 ### 三个 APK（CMD-3 产出）
 
@@ -831,6 +924,110 @@ Kotlin 行尾注释、**没真挪**（注释不改行为，等于没变异）。
 6 Hint；`TavernChatCodec.kt` 与本次新增的 `C1pGroupExportHashTest.kt` 命中数都是 **0**）/
 `python3 tools/verification/c1p_group_export_hash.py` **0**。
 
+### C1-P 第二生成入口的通知标题护栏（零设备）
+
+登记于 `88ba63c2` / `8bc28105` / `c940813b`。**这一节不产生任何契约 `:206` 意义上的
+验收证据，十例状态仍全 `unverified`。**
+
+#### 定时炸弹长什么样
+
+仓库里有**两个** `handleMessageComplete` 都发
+`AppEvent.ChatGenerationEnded(conversationId, senderName, null)`，而该事件的
+`senderName` 会被后台通知当**标题**显示（`ChatNotificationManager.kt:121`
+`title = senderName`）：
+
+| 入口 | 文件 | 群聊路径 | `senderName` 怎么求 |
+|---|---|---|---|
+| 主入口 | `feature/chat/ChatManager.kt` | 有（`takeGroupTurn`，`:748`） | 会话级初值 + 群聊分支**重算**（`ed21db6e`） |
+| 次入口 | `core/service/ChatService.kt` | **无**（`grep -c groupConfig` = 0） | 只求一次 |
+
+次入口原先（`ChatService.kt:624` 附近）**逐字抄了第二份**内联
+`if (assistant.useAssistantAvatar) …`。同一个公式两份实现、两份各自漂移——已经发生过
+的漂移就是 B4（通知标题显示会话级模型），`ed21db6e` 在主入口修掉了，但**不会自动覆盖
+次入口那份副本**。当下无害只因为次入口没有群聊路径；一旦有人把群聊能力搬进 `ChatService`
+（或给它加一个群聊分支），`assistant` / `model` 会在群聊分支里被换成**本轮发言角色**
+那一套，而在这之前求出的 `senderName` 不会跟着重算——**同一个 bug 在第二个入口复现，
+且没有任何编译期信号**。
+
+#### 改法：优先抽共享纯函数，不靠「断言重复还在」
+
+`resolveNotificationSenderName` 已经是 `internal` 纯函数，而
+`ChatManager.kt`（`feature.chat` 包）与 `ChatService.kt`（`core.service` 包）**同属
+`:app` 这一个 Gradle 模块**，所以 `internal` 跨包可见、无需改可见性或移动文件。
+次入口因此直接改成调它（`88ba63c2`，`+13 / -5`），**公式全仓只剩一份实现**。
+理由与任务口径一致：「测试断言重复还在」不如「根本不允许重复」——前者只保证有人会
+记得更新断言，后者让第二份实现无法存在。
+
+⚠️ **但抽共享函数本身不足以拆掉这颗炸弹**：如果有人后来给 `ChatService` 加群聊分支，
+他照样会重算 `assistant` / `model` 而忘了重算已求出的 `senderName`——抽函数拦不住
+这个方向。所以护栏分两层（`ChatServiceSenderNameGuardTest`，3 条）：
+
+1. `senderNameFormula_isImplementedExactlyOnce_inAllMainSources` —— **结构层**：
+   遍历全仓所有 `src/main/**/*.kt`（约 1476 个文件），断言「按 `useAssistantAvatar`
+   分支」这个形状**只在 `ChatManager.kt` 一处出现**。任何地方再抄一份内联公式
+   （包括抄回 `ChatService`）立刻红。
+2. `bothGenerationEntryPoints_consumeTheSharedFunction` —— 两个入口都必须调
+   `resolveNotificationSenderName(`，不许自己求值。
+3. `chatService_gainsGroupPath_onlyIfItRecomputesSenderName` —— **触发器**：一旦
+   `ChatService.kt` 里出现任一群聊上下文标记（`groupConfig` / `takeGroupTurn` /
+   `GroupTurnEntry` / `SpeakerStep` / `resolveGroupTurnModelId` / `groupStep`），
+   就要求 `senderName` 改成 `var` 且**至少被重算两次**（初值 + 群聊分支），且重算位置
+   在群聊标记之后。
+
+第 3 条的形状是刻意选的：它拦的是「搬了群聊却忘了重算」这个**具体错法**，
+而不是「不许搬群聊」。一次**正确**的搬运（补上重算）能过，一次漏了重算的搬运必然被拦。
+今天 `ChatService` 里没有任何群聊标记，所以这个分支空转——它的牙齿靠下面第 2 节的
+变异检验证明，不靠「今天就已经在拦」。
+
+⚠️ **护栏本身踩过的两个坑，记在这里免得重犯**：
+- 匹配必须**先剥注释**。抽函数那笔 commit 自己在 `ChatService.kt` 留了注释复述旧写法
+  `if (assistant.useAssistantAvatar) …`，没剥注释时护栏把它当成真命中、当场变红。
+  逼着人删解释文的护栏会被绕着走，所以现在 `code()` 统一剥 `/* */` 与 `//`。
+- 第 3 条最初把「现状锚点」断言放在「重算义务」之前，于是现状断言先红、**重算那条
+  永远执行不到**（死代码）。已改成重算义务先判；顺带发现「标记之后存在一次赋值」能被
+  **初值本身**满足（群聊标记排在初值之前时），所以补了「至少两次赋值」这一条。
+
+#### ⭐ 变异检验有牙齿的证据（3 次变异，全部 FAIL 且退出码 1）
+
+还原方式：**文件备份 + `sha256sum -c` 校验**，**没有用任何 git 命令还原**（守约束）。
+备份 `/tmp/opencode/mut/ChatService.kt.bak` 与工作副本
+`db6449b39cb57ff244379247f2f6a73cf65f3e1c095a6701b80880f6c0b295d6` 一致；每轮变异
+后 `cp` 回备份并 `sha256sum -c` 输出「成功」，`git status --porcelain` 确认
+`ChatService.kt` 已无改动。仓库无 `allWarningsAsErrors`，所以三次变异都是**编译通过、
+测试变红**（不是编译失败冒充的失败）。
+
+| # | 变异内容 | 结果 | 退出码 | 失败用例 | 命中的断言 |
+|---|---|---|---:|---|---|
+| 变异 1 | 给 `handleMessageComplete` 注入一个**能编译**的群聊分支（`val groupConfig = initialConversation.groupConfig` + `if (groupConfig != null) { Logging… }`），**不动** `senderName` | **FAIL** | **1** | `chatService_gainsGroupPath_onlyIfItRecomputesSenderName` | 「不该有群聊上下文…命中 `[groupConfig]`」 |
+| 变异 2 | 变异 1 之上再把 `val senderName` 改成 `var senderName`（模拟「我知道要重算」但仍**没写**重算） | **FAIL** | **1** | 同上 | 「有群聊上下文就必须至少重算一次…**现在 1 处**」 |
+| 变异 3 | 还原群聊标记，改把共享函数调用**换回内联公式副本**（即「有人把公式抄回别处」/ 出现第 3 个计算点） | **FAIL**（2 条同时红） | **1** | `senderNameFormula_isImplementedExactlyOnce_inAllMainSources` + `bothGenerationEntryPoints_consumeTheSharedFunction` | 「只允许在 `ChatManager.kt` 一处实现…实际命中 `[…ChatService.kt, …ChatManager.kt]`」+「必须调用共享纯函数」 |
+
+变异 2 是本轮最有价值的一次：它证明白天那版护栏**确实漏了**这个错法（重算分支被现状
+断言短路成死代码、且单次赋值能满足位置检查），是护栏自己把缺口暴露出来后补的。
+变异 1 与 2 的差别只有 `val` → `var` 一个词，却从「被现状断言拦下」变成「被重算义务
+精确指出 `现在 1 处`」——这说明第 3 条的两半断言各司其职，不是冗余。
+
+#### 三条命令的真实退出码（本轮）
+
+`:app:testDebugUnitTest --rerun` **0**（**91 类 / 710 例 / 0 失败 / 0 错误 / 0 跳过**）/
+`:app:assembleDebug` **0** / `lint` **0**（app 单模块 **593 条 issue、0 Error**，
+**587 Warning + 6 Hint**；15 模块聚合 620W+7H = 627，`FrequentlyChangingValue` 全仓
+**0**）。本轮**没有新增仪器测试**，`Migration_30_31_Test` 7 条、
+`Migration_31_32_Test` 6 条、`GroupRunDAOTest` 12 条仍全部未跑设备。
+
+#### 这一节仍然不能证明什么
+
+1. **真机通知标题零证据。** 护栏钉的是「公式只有一份」「搬运时必须重算」，钉不住
+   「通知栏里真的显示对了」。`ChatManager` / `ChatService` 两条
+   `handleMessageComplete` 都是 `private suspend` + Hilt 协作者，JVM 单测构造不出来。
+2. **护栏是源码文本护栏，会被绕过。** 改文件名、改写法（把公式塞进
+   `when` 而不是 `if`）、或把判定挪进另一个模块，都可能让正则失配。它防的是
+   「顺手抄一份」这个最可能的错法，不是「证明不存在第二份实现」。
+3. **`ChatService` 到底该不该留一个生成入口，本轮没有结论。** 只消掉了重复公式，
+   没有评估两个入口是否该合并——那是未授权的架构变更。
+4. **`FrequentlyChangingValue` 3 → 0 与本节护栏无关**，是两件事（滚动条，
+   `366b3fe8`），只是同一批提交里做的，见「lint」段。
+
 ## 仪器测试状态
 
 - **C1 相关仪器测试 25 个注解，执行结果为零，需设备。**（C1-D 之后新增了
@@ -1024,6 +1221,59 @@ viewer 可见消息 ID 零份、模型调用序列零份、token 计数零份，
 而非真机 IO 分发的产物。换句话说：**四类里三类零份、第四类只有 JVM 层一份**。
 **十例状态仍全 `unverified`，C1-09 也是。**
 
+#### 再往后两批：滚动条 + 抽屉 folder_id + 通知标题（`366b3fe8..0db807d2`）
+
+锚点之后又出现了这两批。**同样不计入本台账**——理由与前几批一致：不改统计区间、
+不改 `--no-merges` 口径、不引入新的类型前缀或子包标签。所以 **78 / 6 / 17、前缀分布、
+子包分布一个数都没动**，`d45ebd10~1..1b0e04a9` 那 78 个 commit **没有重算**。
+
+第一批（`366b3fe8` 起，区间 `90d1dbac..0db807d2`）7 个，
+`git log --oneline 90d1dbac..0db807d2` 实测输出，区间内 `--merges` 为 0：
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `366b3fe8` | `fix(c1-p): 滚动条几何量搬进 derivedStateOf，清掉 3 条 FrequentlyChangingValue` | 功能（`ChatList.kt` +95/-23，组合期求值 → draw 期求值） |
+| `31e0a39d` | `test(c1-p): 滚动条进度算式抽成纯函数并加 7 条断言钉住端点语义` | 测试（1 个新增 JVM 类，7 例） |
+| `b43f7e9f` | `test(c1-p): 钉住抽屉两条查询的 folder_id 口径现状（判为遗漏，但改法待产品决策）` | 测试（1 个新增 JVM 类，4 例） |
+| `b4f4a904` | `docs(c1-p): B2 抽屉搜索 folder_id 口径写清两方案与代价，标注待产品决策` | 纯文档（只改 status） |
+| `ed21db6e` | `fix(c1-p): 后台通知标题按本轮发言角色重算 senderName，不再用会话级模型` | 功能（**关掉 B4**，`ChatManager.kt`） |
+| `67f49726` | `test(c1-p): 通知标题取值抽成纯函数，加 4 条公式断言 + 1 条群聊分支重算文本护栏` | 测试（1 个新增 JVM 类，5 例） |
+| `0db807d2` | `docs(c1-p): 关闭 B4 通知标题错模型，写清 useExternalWebSearch 为何不是 bug` | 纯文档（只改 status） |
+
+第二批（本轮，护栏）3 个：
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `88ba63c2` | `refactor(c1-p): ChatService 的 senderName 改调共享纯函数，消除第二份内联公式` | 功能（`ChatService.kt` +13/-5，**消掉定时炸弹的重复实现**） |
+| `8bc28105` | `test(c1-p): ChatService 通知标题护栏——公式全仓唯一 + 加群聊路径必须重算 senderName` | 测试（1 个新增 JVM 类，3 例） |
+| `c940813b` | `test(c1-p): 护栏加牙齿——重算义务先判、要求至少两次赋值；变异检验证实两次变异均被拦` | 测试（同上文件加严，护栏自身被变异检验打出过一个真实缺口） |
+
+⚠️ 本文件这一批的登记提交同样**不计入**任何计数，且按上面同样的理由**不写自己的
+SHA**：本文件每次被自己提交都会产生一个新 commit，写进去就得再改一次、永远差一个，
+与本台账刻意锚死右端是同一个道理。用 `git log --oneline -1 -- docs/eval/c1-group-chat.md`
+可查。
+
+这 10 个的净效果：`app` 模块 JVM 测试 **87 类 691 例 → 91 类 710 例**（+4 类 / +19 例，
+0 失败 / 0 错误 / 0 跳过，逐个 XML 的 `tests` 属性汇总实测）；**仪器测试仍是 25 条
+不变**（这 10 个里没加任何 `androidTest`）；Room 版本不变（31→32 是上一批的事）；
+lint `app` 单模块 **596 → 593 条 issue**、全仓 `FrequentlyChangingValue` **3 → 0**；
+既有测试文件 **零删改**。证据登记见上方「C1-P 第二生成入口的通知标题护栏（零设备）」
+与「lint」段。
+
+⚠️ **「C1 相关测试类」有两个不同口径，数字不可比，别混**：本文早前几批记的
+「C1 相关 JVM 测试 **24 类 291 例 → 25 类 296 例**」用的是各批作者当时心算的边界；
+本轮新建的「C1 相关 JVM 测试类台账」把口径**定死**为「本文正文点名引用、且能在
+`app/build/test-results/testDebugUnitTest/*.xml` 里对上的类」，按该口径本轮实测是
+**25 类 304 例 → 29 类 323 例**（`+4 类 / +19 例`）。两个口径的分歧来自
+`ChatManagerTest` / `MemoryRetrievalEngineTest` / `MemoryToolsSearchTest` 这类
+「正文提过但当年没算进 C1 相关」的类。**新口径可复算、旧口径不可复算**，往后以台账
+那张表为准。
+
+⚠️ **这批关了 B3 / B4 两条遗留，但一条验收证据都没产出。** `ed21db6e` 改的是**代码层
+正确性**（通知标题按本轮发言角色求值），不是契约 `:206` 点名的四类证据里的任何一类；
+`366b3fe8` 是**性能**改进（滚动不再重组整个列表），也不是。**十例状态仍全
+`unverified`**——遗留项里能关的关掉了，不等于验收通过。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
@@ -1141,11 +1391,34 @@ SHA-256。
    相等」的断言已随之重设计（14 条数量不变）。
    仍未验的部分：真机上「老消息显示老模型」需要造一批改过绑定的群聊会话看气泡，
    **零设备证据**。
-5. **`ChatManager.kt:681` / `:686` 仍是会话级模型口径。**
-   `val senderName = if (assistant.useAssistantAvatar) {...} else { model.displayName }`
-   （`:681`）和 `val useExternalWebSearch = shouldUseExternalWebSearch(assistant, model)`
-   （`:686`）都在群分支（`:705` 起）之前按**会话**算好，群聊分支只重算了 `model`
-   本身、没回填这两个值。后台通知标题可能显示错模型。
+5. ~~**`ChatManager.kt:681` / `:686` 仍是会话级模型口径。**~~ **已关闭（`ed21db6e`）：
+   只有 `senderName` 那一半是真 bug，`useExternalWebSearch` 不是。**
+   - **`senderName` 确实是 bug，已修**：原文记的是「`val senderName = if
+     (assistant.useAssistantAvatar) {...} else { model.displayName }`（`:681`）和
+     `val useExternalWebSearch = shouldUseExternalWebSearch(assistant, model)`（`:686`）
+     都在群分支之前按**会话**算好，群聊分支只重算了 `model`、没回填这两个值，后台通知
+     标题可能显示错模型」。现已把取值抽成纯函数 `resolveNotificationSenderName`
+     （`ChatManager.kt:162`，`internal`，公式逐字来自 `d61eefde`，与气泡头像区
+     `ChatMessageAvatar.kt:86-131` 同一口径），并在群聊分支重算完 `assistant` / `model`
+     **之后**重新赋值；`senderName` 因此是 `var`，群聊分支里被 `.onCompletion{}` /
+     `.onFailure{}` 捕获所以挪不动、只能覆盖。单聊走不到那个分支，取值与 C1 之前逐字
+     相同。**位置**用一条源码文本护栏钉住（`ChatManagerNotificationSenderNameTest.
+     groupBranch_recomputesSenderName_afterResolvingModel`，已做变异检验：删掉重算即 FAIL）。
+   - **`useExternalWebSearch` 不是 bug，不改**：它唯一的消费点是群聊分支**之前**的
+     「工具不可用」告警，那里的 `model` 同为会话级，两者自洽。真正决定「本轮要不要下发
+     外部搜索工具」的是 `chatToolFactory.createTools(...)` 内部按传入的
+     `(assistant, model)` 再算一次（`ChatToolFactory.kt:151`），而那个调用点在群聊分支
+     **之后**、拿的是本轮真实的模型——工具下发本身没有错位。要改只能把告警整体挪到群聊
+     分支之后，那会改变「群聊但本轮无发言者时是否还弹这条告警」的行为，属未授权变更。
+   - **第三个入口的同款副本也一并消掉了（`88ba63c2`）**：`ChatService.kt`（第二个
+     `handleMessageComplete`，同样发 `AppEvent.ChatGenerationEnded`）原先**逐字抄了第二份**
+     内联公式。它当下无害只因为那个类的 `handleMessageComplete` 里没有任何群聊分支
+     （`grep -c groupConfig` = 0）；现已改成调同一个 `resolveNotificationSenderName`
+     （同 `:app` 模块，`internal` 跨包可见）。**公式现在全仓只有一份实现。**
+   - **仍然未验证（别当已完成）**：真机后台通知标题在群聊下是否正确显示，**零设备证据**；
+     `ChatManager` / `ChatService` 两条 `handleMessageComplete` 都是 `private suspend` +
+     一堆 Hilt 协作者，JVM 单测构造不出来，所以纯函数只能证明**公式**，证明不了运行时
+     的实际渲染。护栏见「C1-P 第二生成入口的通知标题护栏（零设备）」。
 6. **`card-validator` 模块没有 lint 报告。**
    `card-validator/build/reports/` 存在但只有 `tests/`，无任何 `lint-results*`。
    这是「没跑」不是「0 命中」，别在 lint 台账里给它记 0。
