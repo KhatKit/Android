@@ -83,6 +83,7 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.NotFoundException
 import heizige.kk.khatkit.app.core.util.applyPlaceholders
+import heizige.kk.khatkit.app.feature.chat.resolveNotificationSenderName
 import java.util.Locale
 import kotlin.uuid.Uuid
 import javax.inject.Inject
@@ -621,11 +622,18 @@ class ChatService @Inject constructor(
             ?: settings.getCurrentAssistant()
         val model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
 
-        val senderName = if (assistant.useAssistantAvatar) {
-            assistant.name.ifEmpty { context.getString(R.string.assistant_page_default_assistant) }
-        } else {
-            model.displayName
-        }
+        // 通知标题口径与 `ChatManager.handleMessageComplete` 共用同一个纯函数，公式全仓
+        // 只此一份（`ChatManager.kt:resolveNotificationSenderName`）。本文件此前逐字抄了
+        // 一份内联的 `if (assistant.useAssistantAvatar) …`，那是个定时炸弹：值在这里求，
+        // 而将来若把群聊能力搬进本文件（或给这里加群聊分支），群聊分支会把 `assistant` /
+        // `model` 换成**本轮发言角色**那一套，却不会重算这个已求出的局部量 —— 通知标题会
+        // 退回显示会话级模型，正是 `ed21db6e` 在 ChatManager 侧修掉的同一个错位。
+        // 护栏见 `ChatServiceSenderNameGuardTest`。
+        val senderName = resolveNotificationSenderName(
+            assistant = assistant,
+            model = model,
+            defaultAssistantName = context.getString(R.string.assistant_page_default_assistant),
+        )
         val useExternalWebSearch = shouldUseExternalWebSearch(assistant, model)
 
         runCatching {
