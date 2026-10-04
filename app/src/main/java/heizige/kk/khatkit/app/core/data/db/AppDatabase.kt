@@ -82,12 +82,11 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         AutoMigration(from = 26, to = 27),
         AutoMigration(from = 28, to = 29),
         AutoMigration(from = 29, to = 30),
-        // C1-D：新建 group_runs（run token 幂等表）+ memory_chunks 增 role_id。
-        // Room 生成的 SQL 会走「建 _new_memory_chunks → 全量拷贝 → DROP → RENAME」，
-        // 行内容与 rowid 均保留；被 DROP 掉的 `memory_chunks_*` FTS 触发器由
-        // AppDatabaseFactory.onOpen 的 `CREATE TRIGGER IF NOT EXISTS` 立即重建，
-        // sqlite-vector 也由同处 onOpen 的 MemoryVectorIndex.ensure 重新注册。
-        AutoMigration(from = 30, to = 31),
+        // C1-D 30→31 **刻意不用 AutoMigration**：Room 的自动迁移会走
+        // 「建 _new_memory_chunks → 全量拷贝 → DROP → RENAME」，DROP 会连带删掉
+        // `memory_chunks_ai/ad/au` 三个 FTS5 触发器。改为显式 Migration_30_31，
+        // 用 `ALTER TABLE memory_chunks ADD COLUMN role_id` 直接加列（不动旧表 / rowid /
+        // 索引 / 触发器）。注册见 AppDatabaseFactory.addMigrations。
     ]
 )
 @TypeConverters(TokenUsageConverter::class, StringListConverter::class)

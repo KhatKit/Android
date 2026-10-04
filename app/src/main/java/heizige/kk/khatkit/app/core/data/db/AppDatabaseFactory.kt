@@ -12,6 +12,7 @@ import heizige.kk.khatkit.app.core.data.db.migrations.Migration_14_15
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_15_16
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_25_26
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_27_28
+import heizige.kk.khatkit.app.core.data.db.migrations.Migration_30_31
 
 /** Shared schema, migrations and extensions for the app and staged backup validation. */
 internal object AppDatabaseFactory {
@@ -21,6 +22,8 @@ internal object AppDatabaseFactory {
             .addMigrations(
                 Migration_6_7, Migration_11_12, Migration_13_14,
                 Migration_14_15, Migration_15_16, Migration_25_26, Migration_27_28,
+                // C1-D 30→31：新建 group_runs + memory_chunks 增 role_id（显式迁移，见 Migration_30_31.kt）
+                Migration_30_31,
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
