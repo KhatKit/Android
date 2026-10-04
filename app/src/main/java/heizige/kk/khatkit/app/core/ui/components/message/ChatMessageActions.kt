@@ -68,14 +68,28 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun ColumnScope.ChatMessageActionButtons(
     message: UIMessage,
     node: MessageNode,
+    /**
+     * 分支切换的唯一入口是 [ChatMessageBranchSelector]，本函数里只有它在写 `selectIndex`
+     * （全仓检索确认：`ChatMessage.kt` 的 `onUpdate` 也只透传到这里，没有第二条路径）。
+     *
+     * 群聊下它被 [groupChat] 关掉，于是 [onUpdate] 在群聊路径上没人调——**参数仍然保留**：
+     * `ChatMessage.kt` 不在本包可改范围内，删参数就得连它一起改；按默认参数传不传都该继续编译。
+     */
     onUpdate: (MessageNode) -> Unit,
     onRegenerate: () -> Unit,
     onOpenActionSheet: () -> Unit,
     onTranslate: ((UIMessage, Locale) -> Unit)? = null,
     onClearTranslation: (UIMessage) -> Unit = {},
     /**
-     * 群聊会话：关掉「重新生成」。它打到 `ChatManager.regenerateAtMessage`，不是群聊感知的，
-     * 会让群运行日志的账面和实际轮次错位（重跑一轮却仍标着上一轮已提交）。
+     * 群聊会话：关掉「重新生成」与「分支切换」。
+     *
+     * 「重新生成」打到 `ChatManager.regenerateAtMessage`，不是群聊感知的，会让群运行日志的
+     * 账面和实际轮次错位（重跑一轮却仍标着上一轮已提交）。
+     *
+     * 「分支切换」（[ChatMessageBranchSelector]）同样关掉：群聊的轮次进度记在 `group_runs`
+     * 的 `committed_role_ids` / `last_user_message_id` 里，而切分支换掉的是某个节点上
+     * **另一条候选消息的内容**，不改这两张账面。结果就是「账面说某角色已提交、界面上那条
+     * 发言却是另一个版本」，续跑还会跳过没人再发言的角色。与重新生成/删除/创建分支同级。
      */
     groupChat: Boolean = false,
 ) {
@@ -200,10 +214,12 @@ fun ColumnScope.ChatMessageActionButtons(
             tint = actionIconColor
         )
 
-        ChatMessageBranchSelector(
-            node = node,
-            onUpdate = onUpdate,
-        )
+        if (!groupChat) {
+            ChatMessageBranchSelector(
+                node = node,
+                onUpdate = onUpdate,
+            )
+        }
 
         if (settings.displaySetting.showDateTimeInMessage) {
             Text(
