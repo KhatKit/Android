@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "C1-09「Tavern/QR 往返」导出字节的 golden 清单——长期护栏，不是随手快照。",
+    "由 `python3 tools/verification/c1p_group_export_hash.py` 默认（严格）比对；",
+    "不一致即报红并逐个变体打印「旧值 / 新值」。",
+    "【改了导出格式怎么办】先确认是有意的格式变更，再显式跑",
+    "  python3 tools/verification/c1p_group_export_hash.py --update-golden",
+    "然后 **人工 review `git diff tools/verification/c1p_group_export_hash.golden.json`**：",
+    "每一行都该能对上「我这次到底改了什么键/什么顺序」。review 不通过就不要提交。",
+    "更新动作绝不会自动发生：脚本默认严格比对，只有显式传 --update-golden 才写盘，",
+    "且跨两次独立 JVM 不一致时拒绝写入。",
+    "variants 来自 C1pGroupExportHashTest 的 9 个 fixture 变体（exportGroupJsonl /",
+    "exportGroup / encodeQr 三条出口，含 2 个 QR 载荷变体）；qr_payloads 来自同类的",
+    "qr payload sha256 用例，按 mode 命名（pipeline / vote）。",
+    "两组刻意在 QR 载荷上重叠：qr_payloads.pipeline 与 variants.qr_payload_pipeline",
+    "是同一份字节（encodeQr(config, cards)），分开登记是因为它们由两条独立用例、",
+    "两条独立的 println 打出来，任何一边漂移都要看得见。"
+  ],
+  "variants": {
+    "pipeline_3roles_2rounds_jsonl": {
+      "bytes": 3615,
+      "sha256": "36e6585f9aa4a028eb8277bc70578fd2c802cdd730e3981f0d52b02430f0c8b9"
+    },
+    "roundtable_3roles_2rounds_jsonl": {
+      "bytes": 3616,
+      "sha256": "33c51124e5421ae46a002f025a2e61dc5712b73ddc413ca9dea3b9777ccc0fb3"
+    },
+    "vote_3roles_2rounds_jsonl": {
+      "bytes": 3619,
+      "sha256": "ad9e3fb119cbc4bea05b7e917eb180aabeb230bbbf89dfe1addcfd0040217c35"
+    },
+    "pipeline_3roles_2rounds_array": {
+      "bytes": 3617,
+      "sha256": "b8d57a6c4f15e87d1a9d0a181022ba28410a36527075e71b0daf77976c1a3653"
+    },
+    "empty_messages_jsonl": {
+      "bytes": 1518,
+      "sha256": "0ae10ea537e112c7f4d98ebd275b26a86e1b30952f1de8274f0cccf670f11e80"
+    },
+    "image_part_jsonl": {
+      "bytes": 1711,
+      "sha256": "c07d7e6ead7f06143ceae05fa5082be04af1fabc333edb60125ee337c9cbd9e9"
+    },
+    "pipeline_with_explicit_create_date_jsonl": {
+      "bytes": 3652,
+      "sha256": "92ce04902dc0c8e5bd822020e3df885b30a89adb9fef2fcd0fb712ae9faeee5e"
+    },
+    "qr_payload_pipeline": {
+      "bytes": 1348,
+      "sha256": "2d65ec04dded8a8fc29d3b7cb2d235bea908ee779b0568a6f644f34670cd2ff5"
+    },
+    "qr_payload_vote": {
+      "bytes": 1352,
+      "sha256": "8b49d47b225f32f6ad6032b1ab49eb1d6122a3af3c97652936adf7df13c2e9bf"
+    }
+  },
+  "qr_payloads": {
+    "pipeline": {
+      "bytes": 1348,
+      "sha256": "2d65ec04dded8a8fc29d3b7cb2d235bea908ee779b0568a6f644f34670cd2ff5"
+    },
+    "vote": {
+      "bytes": 1352,
+      "sha256": "8b49d47b225f32f6ad6032b1ab49eb1d6122a3af3c97652936adf7df13c2e9bf"
+    }
+  }
+}
