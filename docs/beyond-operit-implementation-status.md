@@ -330,9 +330,34 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     位置用一条**源码文本护栏**钉住（`ChatManagerNotificationSenderNameTest.
     groupBranch_recomputesSenderName_afterResolvingModel`，已做变异检验：删掉重算即 FAIL）。
     **真机后台通知标题在群聊下是否正确显示，仍零设备证据。**
-    另外 `ChatService.kt:624` 有一份**逐字相同**的 `senderName` 计算，但那个类的
-    `handleMessageComplete` 里**完全没有群聊分支**（`grep -c groupConfig` = 0），
-    走不到群聊路径，因此不需要改；将来若把群聊能力搬进那个类，这条会重新变成 bug。
+  - **第三个入口的同款副本已消掉（`88ba63c2`，2026-10-05）**：早前这里记的是
+    「`ChatService.kt:624` 有一份**逐字相同**的 `senderName` 计算，那个类的
+    `handleMessageComplete` 里完全没有群聊分支（`grep -c groupConfig` = 0），走不到群聊
+    路径，因此不需要改；将来若把群聊能力搬进那个类，这条会重新变成 bug」——
+    **前半句仍然成立，后半句的处理方式改了**。那个类（`core/service/ChatService.kt`，
+    第二个 `handleMessageComplete`，同样发 `AppEvent.ChatGenerationEnded`）原先逐字抄了
+    第二份内联公式，现已改成调同一个 `resolveNotificationSenderName`
+    （`feature.chat` 与 `core.service` 同属 `:app`，`internal` 跨包可见，无需改可见性）。
+    **公式现在全仓只有一份实现**（`ChatManager.kt:166`）。之所以值得单独做而不是留着：
+    那份副本**不会**被 `ed21db6e` 覆盖——主入口修了、副本不修，两份实现各自漂移，正是
+    B4 那类 bug 的温床。
+  - **护栏（`8bc28105` / `c940813b`）**：`ChatServiceSenderNameGuardTest` 3 条。
+    ① 遍历全仓约 1476 个 `src/main/**/*.kt`，断言「按 `useAssistantAvatar` 分支」这个
+    形状**只在 `ChatManager.kt` 一处**出现（任何地方再抄一份内联公式立刻红）；
+    ② 两个生成入口都必须调共享纯函数；③ 一旦 `ChatService.kt` 出现任一群聊上下文标记
+    （`groupConfig` / `takeGroupTurn` / `GroupTurnEntry` / `SpeakerStep` /
+    `resolveGroupTurnModelId` / `groupStep`），就要求 `senderName` 是 `var` 且**至少重算
+    两次**。第 ③ 条拦的是「搬了群聊却忘了重算」这个具体错法，一次**正确**的搬运能过。
+    **变异检验 3 次全部 FAIL 且退出码 1**（注入群聊分支 / 注入群聊分支 + `val`→`var`
+    但不重算 / 把公式抄回内联），其中第 2 次是**护栏自己暴露出的真实缺口**（原先重算
+    那半条断言被现状断言短路成死代码，且单次赋值能满足位置检查），已补「至少两次赋值」。
+    细节、还原方式（**文件备份 + `sha256sum -c`，未用任何 git 命令还原**）与命令退出码见
+    `docs/eval/c1-group-chat.md` 的「C1-P 第二生成入口的通知标题护栏（零设备）」。
+  - **仍可能出的错**：护栏是**源码文本**护栏。把公式塞进 `when` 而不是 `if`、改判定
+    所在文件名、或把判定挪进别的模块，都可能让正则失配。它防的是「顺手抄一份」这个最
+    可能的错法，**不是**「证明不存在第二份实现」。
+  - **`ChatService` 该不该留一个独立生成入口，本轮没有结论**——只消掉了重复公式，没评估
+    两个入口是否该合并（那是未授权的架构变更）。
 - B5 vote 选票仍靠 `VOTE:` 前缀正则匹配模型自由文本（`GroupChat.kt:605-617`），
   不是 tool-call 强约束。契约 `:201` 说「只接受结构化候选/票」——**数据结构层面
   已满足**（`VoteBallot` / `VoteOutcome` 在 `GroupChat.kt:133` / `:141`，
@@ -373,6 +398,19 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
       选 B 就把抽屉搜索「跨文件夹」的语义补进 `ChatDrawerViewModel` 的 KDoc，并在这条
       遗留项里记成已知且认可的口径。**在产品定之前不要改 DAO**——现状已被 4 条测试钉住，
       改动会先让测试变红，那是预期的信号。
+   5. ✅ **已完成（2026-10-05）**：**第二生成入口（`ChatService.kt`）的 `senderName`
+      定时炸弹**已拆（`88ba63c2`），护栏 3 条已加（`8bc28105` / `c940813b`），变异检验
+      3 次全部 FAIL。**B2 之外这一条不必再排期**——但它**没有**产生任何验收证据，
+      十例状态仍全 `unverified`。见本文件 B4 条目与 `docs/eval/c1-group-chat.md` 的
+      「C1-P 第二生成入口的通知标题护栏（零设备）」。
+   6. ✅ **已完成（2026-10-05）**：**C1 内核 18 个文件的 Android Lint 命中现在是 0**
+      （上一窗口是 `ChatList.kt` 3 条 `FrequentlyChangingValue`）。改法是
+      `366b3fe8`「组合期求值 → draw 期求值」：三份 `LazyListState` 读数收成不可变快照
+      `ScrollbarMetrics`，由 `derivedStateOf` 缓存，只在 `LaunchedEffect` 体与 `Canvas`
+      的 `draw` lambda 里读——**滚动不再每帧重组整个 `ChatListNormal`，只重绘那一个
+      Canvas**。**warning 消失是结果不是目的**，这是真实性能改进。
+      ⚠️ 但「真机上滚动确实只重绘不重组」仍是**零设备证据**，依据是 Compose 求值语义与
+      lint 规则，不是帧率实测。别把它记成「滚动性能已验证」。
 2. **需要接真机**
    1. 真机建一个 3 角色群聊跑一轮 `mode=pipeline`，从库里按 `role_id` 分组导出每个
       viewer 的可见消息 ID 台账（用真实 `message.id`，不是测试构造值）。
