@@ -33,6 +33,7 @@ fun buildMemorySearchTool(
         Search long-term memories with hybrid retrieval (semantic + keyword + graph).
         Returns memories with `id`, `content`, `sourceMessageId`, `confidence`, `extractedAt`.
         Use `id` for memory_link / memory_forget. Always search before deciding to add or forget.
+        Only your own space is searched; in a group chat you never see the other roles' memories.
     """.trimIndent(),
     parameters = {
         InputSchema.Obj(
@@ -68,6 +69,7 @@ fun buildMemoryAddTool(
         Do not store sensitive information (ethnicity, religion, sexual orientation, political views, sex life, criminal records).
         Do not show memory content in the conversation unless the user explicitly asks.
         Similar memories should be merged; prefer memory_search first to avoid duplicates.
+        Memories are written to your own private space: in a group chat each role has its own space and cannot see or write the other roles' memories.
         Today is ${LocalDate.now().toLocalString(true)}.
         Examples:
         {"content":"User prefers brief replies and is more active on weekends."}
@@ -92,7 +94,16 @@ fun buildMemoryAddTool(
         val params = it.jsonObject
         val content = params["content"]?.jsonPrimitive?.contentOrNull ?: error("content is required")
         val confidence = params["confidence"]?.jsonPrimitive?.floatOrNull ?: 1f
-        val result = onAdd(content, null, confidence.coerceIn(0f, 1f))
+        // C1-M：`source_message_id` 只在能定位到具体消息时才填。模型主动 `memory_add`
+        // 的内容是对「当前可见上下文」的自主断言，归因不到某一条消息；编一个 message id
+        // 会让 `GroupChat.filterMemoryForViewer` 按假来源判可见性——假来源若恰好对
+        // viewer 可见，越权内容就被放行了，比留 null 更危险。按该函数的口径
+        // `source == null` 放行；群聊隔离不依赖这一列，靠的是空间键 + `role_id`
+        // （由 [heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeResolver] 决定）。
+        // 真正「群消息写入记忆带 source_message_id」的路径是 MemoryExtractor：
+        // 那里能按消息窗口逐条归因到真实消息。
+        val sourceMessageId: String? = null
+        val result = onAdd(content, sourceMessageId, confidence.coerceIn(0f, 1f))
         listOf(UIMessagePart.Text(json.encodeToJsonElement(AssistantMemory.serializer(), result).toString()))
     }
 )
