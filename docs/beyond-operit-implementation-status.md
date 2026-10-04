@@ -29,56 +29,188 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 2026-10-04 已按 `KodeHeapServer/deploy.sh` 部署到 https://heizige.top。
 就绪探针与 `/api/items`、`/api/cards` 冒烟通过。客户端 `marketNewKinds` 仍默认关闭。
 
-## C1 交给下一位（2026-10-04）
+## C1 交给下一位（2026-10-05）
 
-下一包只做 C1。规格以 `beyond-operit-client-changes.md` 的「C1 实施契约」为准，
-冲突时以该契约为准。验收表是 `docs/eval/c1-group-chat.md`，十例都还是
-`unverified`。没有命令退出码、可见消息 ID、调用序列和哈希，不能改成通过。
+现状一句话：**代码层七项缺口全部落地，验收证据 0/10。**
 
-硬约束：
+- **代码已实现。** 上节（2026-10-04）列的七条缺口已在 `d45ebd10` 之后补进仓库，
+  基线附近 74 个 commit（子包标签与分布见 `docs/eval/c1-group-chat.md` 的
+  「C1 commit 台账」）。「已实现」只描述代码写到哪一步，不等于任何用例通过。
+- **构建与 JVM 测试层全绿，有硬证据。** 三条离线命令都强制重跑、退出码 0：
+  `:app:testDebugUnitTest`（84 类 664 例 0 失败 0 错误 0 跳过）、
+  lint 三连（全仓 0 Error）、`:app:packageDebug` + `:app:assembleDebug`
+  （3 个 APK，连跑两次字节完全相同）。命令原文、退出码、产物哈希与
+  「`--rerun` 只挂紧邻其前那一个 task」这个方法论坑，见
+  `docs/eval/c1-group-chat.md` 的「构建与验证证据」，本文不重复。
+- **验收证据仍然一项都没有。** 契约 `docs/beyond-operit-client-changes.md:206`
+  要求每例保存「各 viewer 可见消息集合 / 实际模型调用序列 / token 计数 /
+  导出哈希」，`:232-235` 规定缺任一项就标 `unverified`。磁盘上这四类产物
+  **零份**，`docs/eval/c1-group-chat.md` 十例仍全 `unverified`。本机
+  `adb devices` 为空，一行 Compose 都没在屏幕上跑过。
+
+这不是保守，是契约自己定的规则。**验收证据只认 `docs/eval/c1-group-chat.md`**；
+本节只描述现状与下一步，不代替证据、不改判定。
+
+规格仍以 `beyond-operit-client-changes.md` 的「C1 实施契约」（`:193-206`）与
+「C1 执行分包与交付闸门」（`:208-240`）为准，冲突时以那两段为准。
+
+硬约束（沿用上一版，另补 AGPL 边界一条）：
 
 - 不开工 C4。
 - 每包结束跑 `./gradlew --offline assembleDebug test lint`，全绿再写已完成。
+  注意打 `--rerun` 时要落到 `packageDebug` / `lintAnalyzeDebug` 等真实 task 上。
 - `marketNewKinds` 保持默认 false。C1 不依赖市场新 kind。
 - 不落第二套消息库。过滤只发生在发给模型的副本上，库存消息保持完整。
 - 记忆键必须是 `group:<conversationId>:role:<roleId>`，失败不得回退到全局或助手空间。
-- 开源对照：SillyTavern `public/scripts/group-chats.js`（AGPL-3.0，release）。
-  只借鉴名单顺序和整词 `@`。不要照搬它的共享历史。
+- AGPL 边界：SillyTavern（`public/scripts/group-chats.js`，AGPL-3.0，release）与本仓
+  `LICENSE`（同为 AGPL-3.0）之间只借鉴**名单顺序**和**整词 `@` 边界**两件事。
+  不要照搬它的共享历史设计，也不要把它的伪 `@` 行为引进来。
 
-已经在代码里、不要推倒重写：
+### 不要推倒重写（函数名已随重构变化）
 
-- `app/.../core/data/model/GroupChat.kt`：`buildContext` / `visibleMessages`、
-  `plan`、`parseMentions`、`pendingSpeakers`、`speakersAfterBudget`、`majority`、
-  `validate`、`encodeQr` / `decodeQr`、`memorySpaceId`。
-- `UIMessage.roleId` / `mentions`；`Conversation.type` 默认 `DIRECT`，
-  `groupConfig` 可空。Room 已到 version 30，`type` / `group_config` 有默认值，
-  schema `app/schemas/.../30.json` 已导出。
-- `GroupPerspectiveTransformer` 挂在 `ChatManager.handleMessageComplete` 的
-  input transformer 最前。`takeGroupSpeaker` / `continueGroupTurn` /
-  `stampGroupRole` / `appendVoteSummary` / `createGroup` 已有草稿。
-- `GroupChatPage`、抽屉类型 chip、群徽标、新建群聊。`GroupChatTest` 覆盖隔离、
-  pipeline 交接、议长、多数决、预算、QR、列表过滤。这只是 JVM 证据，不是 C1-01…C1-10。
+上一版点名的六个函数**在代码里已经不存在了**，按旧名去 grep 会找不到。对照表：
 
-下一位按这个顺序补，补完一项就在验收表登记，没跑的保持 `unverified`：
+| 旧名（2026-10-04 版） | 现在的落点 |
+|---|---|
+| `speakersAfterBudget` | `GroupChat.pendingSpeakers`（`core/data/model/GroupChat.kt:581`）+ `GroupTurnCoordinator` 里的预算判定 |
+| `majority` | `GroupChat.tally`（`GroupChat.kt:620`），已是结构化计票 |
+| `takeGroupSpeaker` | `ChatManager.takeGroupTurn` |
+| `continueGroupTurn` | `ChatManager.handleMessageComplete` 的自我递归 |
+| `stampGroupRole` | `ChatManager.stampGroupTurn` |
+| `appendVoteSummary` | `GroupTurnCoordinator.voteSummaryMessage`（`feature/chat/GroupTurnCoordinator.kt:511`） |
 
-1. 消息还缺契约字段 `mention_role_ids`、`round_id`、`turn_kind`。现在只有
-   `roleId` 和 `mentions`。同一 `conversationId + round_id` 要有持久化 run token，
-   重试跳过已提交 turn。取消和超时不得写入未生成消息。
-2. `GroupConfig` 还不是契约里的版本化 JSON：未知字段会在
-   `encodeQr` / `decodeQr` 往返时丢掉。`chair_role_id`、`token_budget_per_round`、
-   `revision` 要和现有字段对齐；非法预算、重复 role、roundtable 缺议长必须拒绝保存。
-3. 记忆：空间会 `ensureSpace`，检索键也换成了群角色空间。还没把
-   `source_message_id` 和 `role_id` 写入记忆，检索结果也没有再过一遍 viewer 过滤。
-   工具调用仍可能看到未过滤的完整 `messages`，要和 prompt 用同一份 `buildContext`。
-4. vote 现在把角色正文拿去 `majority`。契约要求结构化候选和票，平票按配置失败，
-   不能靠自由文本猜。
-5. 导出：QR 只有群配置，没有角色卡最小元数据，也没有 Tavern 导出。
-   导入还是文本粘贴，没有相机扫码。导出不得带密钥、记忆或工具授权 token。
-6. UI：群页是独立列表，没有复用 `ChatPage` 的消息管线；成员头像组还没有。
-   筛选 chip 已在，要补「筛选只过滤、来回切换不丢数据」的证据。
-7. 跑通离线 `assembleDebug test lint` 后，把命令和退出码写进
-   `docs/eval/c1-group-chat.md`。真机三角色、酒馆本体打开文件、相机扫码另列，
-   没做就继续标 `unverified`。
+仍在、不要动的核心：
+
+- `app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt`：
+  `buildContext` / `visibleMessages`、`plan`、`parseMentions`、`pendingSpeakers`、
+  `validate`（`:404`，13 条字段级校验）、`parseBallot`（`:605`）、`tally`（`:620`）、
+  `encodeQr` / `encodeConfig`、`memorySpaceId`、`importShare`（`:728`）、
+  `FORBIDDEN_EXPORT_KEYS`（`:276`）+ `findForbiddenKeys`（`:785`）。
+- `ai/src/main/java/heizige/kk/khatkit/ai/ui/Message.kt`：契约四字段
+  `roleId`（`:29`）/ `mentionRoleIds`（`:35`）/ `roundId`（`:37`）/ `turnKind`（`:39`）。
+  ⚠️ `mentionRoleIds` 的 `@SerialName("mentions")`（`:34`）是**有意**保留的旧键，
+  KDoc `:30-33` 有说明：C1 之前的落库行存的是 `mentions`，换成 snake_case 会让旧行
+  读不出 `mention_role_ids`，而契约 `:198` 要求旧库零迁移。这不是「没做完」。
+- `core/data/db/entity/GroupRunEntity.kt`：复合主键 `(conversation_id, round_id)`（`:37`）、
+  `run_token` UNIQUE 索引（`:40`）、`run_token` 列（`:55`）、
+  `committed_role_ids`（`:73`）。Room 已从 30 到 **31**，迁移是
+  **显式手写**的 `core/data/db/migrations/Migration_30_31.kt`（不是 AutoMigration，
+  理由在 `:79-84`：AutoMigration 的 `DROP TABLE` 会删掉
+  `memory_chunks_ai/ad/au` 三个 FTS5 触发器），schema
+  `app/schemas/heizige.kk.khatkit.app.core.data.db.AppDatabase/31.json` 已导出。
+- `core/data/repository/MemoryRepository.kt` 的 `MemorySpaceGate`（`:492`）
+  与 `GroupMemorySpacePolicy`（`:527`）；
+  `core/data/ai/tools/ChatToolFactory.kt` 的 `MemoryToolScopeResolver`（`:57`，无全局/
+  助手回退）；`feature/chat/ChatManager.kt` 的 `viewerScopedTools`（`:2049`，
+  调用点 `:778`）。
+- 新出现的主要文件与角色：`feature/chat/GroupTurnCoordinator.kt`（轮次判定内核）、
+  `GroupSpeakerResolver.kt`（消息 → 纯函数身份）、`GroupRoleCompletionProvider.kt`
+  （防伪 `@` 选择器）、`GroupMemberBar.kt`（成员头像组）、
+  `GroupExportCard.kt`（导出面板卡片）、`GroupRoleCards.kt`（角色卡元数据展示）、
+  `GroupTurnModel.kt`（按角色绑定选模型）。
+- ⚠️ `TavernChatCodec`（`core/data/ai/tavern/TavernChatCodec.kt`）上一版描述为
+  「有往返内核但没有入口」——**现在 `exportGroupJsonl`（`:251`）有生产调用点**
+  `feature/chat/GroupExportCard.kt:206`。这类「写好了但没人调」的判断要先 grep
+  确认再下结论。
+
+### 逐项状态
+
+| 缺口（2026-10-04 版） | 代码状态 | JVM 证据（类 / 用例数） | 设备证据 |
+|---|---|---|---|
+| 1 契约字段 + 幂等续跑 | 代码层已实现 | `GroupTurnCoordinatorTest` 63、`GroupRunSchemaTest` 10、`UngeneratedMessageFilterTest` 18 | 无（`adb devices` 空）；仪器 `GroupRunDAOTest` 12 条从未跑过 |
+| 2 版本化 config + 字段级校验 | 代码层已实现 | `GroupChatTest` 18（含 extras 往返、未知 schema 拒收） | 无 |
+| 3 记忆接线 | 代码层已实现 | `MemorySpaceGateTest` 9 / `MemoryToolScopeTest` 7 / `MemoryAttributionTest` 9 / `GroupMemorySpacePolicyTest` 6 / `MemoryExtractorParseTest` 7 / `MemoryRoleIdMappingTest` 2 | 无 |
+| 4 vote 结构化 | 数据结构层已实现，传输层仍是文本约定（见遗留 B5） | `GroupTurnCoordinatorTest` 63 的投票/平票组 | 无 |
+| 5 导出 / 恢复 | 代码层已实现（含相机扫码入口） | `GroupTavernExportTest` 22 / `TavernCompatTest` 21 / `QrScannerSheetTest` 16 / `GroupChatTest` 18 | 无；酒馆本体打开 `.jsonl`、真机相机扫码、导出文件 SHA-256 三项全未验 |
+| 6 UI 复用管线 + 头像组 + 筛选 | 代码层已实现，一行 Compose 未上屏 | `ConversationListQueryPlanTest` 7 / `ConversationTypeFilterSourceGuardTest` 2 / `GroupSpeakerResolverTest` 8 / `GroupRoleCompletionProviderTest` 8 / `GroupChatTest` 18 | 无；`ConversationDAO` 的 SQL 在真实 SQLite 上的行为也未验 |
+| 7 构建与退出码 | **已拿到硬证据** | 见 `docs/eval/c1-group-chat.md`「构建与验证证据」（三条命令退出码全 0） | 不适用 |
+
+### 真正没做完的事
+
+**A. 需要设备的（拿不到就无法验收）**
+
+- 契约 `:206` 点名的四类硬证据，磁盘上**一项都没有**：各 viewer 可见消息 ID 台账、
+  真实模型调用序列、真实 token（prompt+completion）计数、群聊导出文件 SHA-256。
+  采集手段见 `docs/eval/c1-group-chat.md` 的「下一位怎么把 unverified 变成 verified」。
+- 仪器测试 **19 条从未跑过**：`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAOTest.kt`
+  12 条 + `.../core/data/db/migrations/Migration_30_31_Test.kt` 7 条（已 grep 计数确认）。
+  磁盘上唯一的 app 仪器记录是 2026-10-03 12:58:29 的一次 `Process crashed`
+  （`tests="0"`，退出码 1，OnePlus `PKG110`），**早于 C1 基线 `d45ebd10` 13.5 小时**，
+  不能当 C1 证据。
+- 零设备环境事实：一行 Compose 都没在屏幕上跑过。群聊页整页渲染、成员头像点击手感、
+  `@` 弹层与 workspace 补全的互斥、导出面板真机分享、扫码弹层的相机权限，
+  全是零证据。`ConversationDAO` 的 `:type = ''` 不筛与 `itemCount` 正确性也未在真实
+  SQLite 上验过——`app/build.gradle.kts` 单测只有 `libs.junit`（无 Robolectric /
+  room-testing / coroutines-test），`ConversationRepository` 是 class 直接依赖 DAO，
+  没法注入 fake。
+- **有一份零成本动作现在就能做**：`tools/verification/c1d_migration_30_31_replay.py`
+  （16,005 字节，已 grep 确认大小；用真实 SQLite 重放 30→31 迁移 SQL）
+  **从未运行过**，磁盘上找不到它的输出产物。它不需要设备就能给 C1-D 补一条主机侧
+  证据，但它自己的 KDoc 写明**不能替代 `Migration_30_31_Test`**——别拿它把仪器那条勾掉。
+
+**B. 已知遗留与风险（代码层，需要产品/架构决策）**
+
+- B1 角色卡只显示不落库。`GroupSharePayload.cards` 里的 `RoleCardMeta`
+  （`core/data/model/GroupChat.kt:95`）扫码/粘贴后只显示（`GroupChatPage.kt:799-803`），
+  不入库：`Conversation` 只有 `groupConfig` 一个字段，数据库 `conversationentity`
+  只有 `group_config` 一列，`GroupConfigSerializer` 里没有 cards 的位置。要落库得动
+  `Conversation` + `ConversationEntity` + `ConversationDAO` + Room 31→32，
+  且**必须手写显式 `Migration_31_32`**（理由同 `Migration_30_31.kt:79-84`，
+  AutoMigration 的 `DROP TABLE` 会删掉三个 FTS5 触发器）。
+- B2 抽屉搜索路缺 `folder_id = ''`：`core/data/db/dao/ConversationDAO.kt:38`
+  的未归档路有，`:66` 的搜索路没有。效果是无搜索词时只显示未归档、一搜就把文件夹内
+  会话混进来。**这是产品决策，尚未定**，本轮未擅自改。
+- B3 `GroupRole.modelId` 显示侧与生成侧现在同口径（`ChatManager.kt:726` 的
+  `resolveGroupTurnModelId`，定义在 `feature/chat/GroupTurnModel.kt:54`），但
+  **本轮之前生成的历史消息** `message.modelId` 记的是助手绑的模型，与现在气泡显示的
+  不一致。要不要写数据迁移回填是独立决定。
+- B4 `ChatManager.kt:681` / `:686` 的 `senderName` 与 `useExternalWebSearch` 仍是
+  会话级模型（都在群分支 `:705` 之前算好，群聊分支只重算了 `model` 本身）。
+  后台通知标题可能显示错模型。
+- B5 vote 选票仍靠 `VOTE:` 前缀正则匹配模型自由文本（`GroupChat.kt:605-617`），
+  不是 tool-call 强约束。契约 `:201` 说「只接受结构化候选/票」——**数据结构层面
+  已满足**（`VoteBallot` / `VoteOutcome` 在 `GroupChat.kt:133` / `:141`，
+  `GroupTurnCoordinator.kt:438` 的 `resolveVote` 只从 `plan.candidates` 取候选、
+  不猜自由文本），**传输层面仍是文本约定**。这是已知弱点，不是「已完成」。
+- B6 `card-validator` 模块没有 lint 报告：`card-validator/build/reports/` 里只有
+  `tests/`，找不到任何 `lint-results*`。这是「没跑」不是「0 命中」，台账里别给它记 0。
+- B7 抽屉筛选 chip 来回切换、群聊页整页渲染等 UI 行为无设备证据。
+- B8 `GroupChatPage` 的 `onEdit` 只放行 USER（`GroupChatPage.kt:292`），
+  `feature/chat/GroupMessageActions.kt` 侧再用 `if (!groupChat)` 关掉重新生成 /
+  创建分支 / 删除 / 分支切换（`:126` / `:217`）。理由是这些动作会改写消息，使
+  `group_runs.committed_role_ids` 与实际消息错位。**要放开必须同步改写
+  `committed_role_ids`**，不是纯 UI 改动。
+
+### 下一位的行动顺序
+
+按「零设备就能做 → 需要设备才能做」排。前三项今天就能落。
+
+1. **零设备，立刻可做**
+   1. 跑 `python3 tools/verification/c1d_migration_30_31_replay.py`，把命令、退出码、
+      输出路径登记进 `docs/eval/c1-group-chat.md` 的 C1-D / C1-07 行。
+      注明它不能替代仪器测试。
+   2. 给 `ConversationDAO` 的 SQL 补仪器测试源码（`androidTest`，用已有的
+      `androidx.room.testing`）：`:type = ''` 时不筛、`itemCount` 正确、
+      搜索路与未归档路口径一致。写好先不跑，等接设备。
+   3. 定 B2 的抽屉搜索 `folder_id` 口径（产品决策），定了再改 DAO 或在验收表里
+      记成已知缺口。
+2. **需要接真机**
+   1. 真机建一个 3 角色群聊跑一轮 `mode=pipeline`，从库里按 `role_id` 分组导出每个
+      viewer 的可见消息 ID 台账（用真实 `message.id`，不是测试构造值）。
+   2. 同一群跑 `mode=roundtable` 与 `mode=vote`，vote 的平票路径单独跑一次。
+   3. 采集真实模型调用序列与 prompt+completion token；预算用例要让第 2 个角色被截断，
+      贴出「已用 / 上限 / 未运行角色」三个数。
+   4. 导出 `.jsonl` 后 `adb pull` 立刻 `sha256sum`；用 SillyTavern 本体打开该文件。
+   5. 相机扫码导回另一台设备，逐字段 diff `role_id` / `round_id` / `turn_kind` /
+      群配置 / 角色卡，并单独验证不含密钥、记忆、授权 token。
+   6. 跑 `./gradlew --offline :app:connectedDebugAndroidTest` 拿那 19 条仪器结果。
+3. **登记规则**
+   每补齐一项，在 `docs/eval/c1-group-chat.md` 的「证据登记」表**追加一行**
+   （不覆盖历史行），四类证据列齐才把用例矩阵状态改成 `verified`。
+   判定规则在该文件末尾「判定规则」，本文不重复抄。
+
+最后一句口径：**代码已实现 ≠ 用例通过；`docs/eval/c1-group-chat.md` 十例仍全
+`unverified`，C1 不能标成已完成。**
 
 ## 客户端包验收清单
 
