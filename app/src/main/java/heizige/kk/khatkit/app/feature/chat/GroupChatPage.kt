@@ -365,7 +365,8 @@ fun GroupChatPage(
  * **不复用** `ChatPage.kt` 里的 `TopBar`（394 行）：那个顶栏含「点标题切模型」
  * （`onModelClick` → `ModelListSheet`）与「长按改标题」等交互，「切换模型」在群聊里
  * 没有定义——群配置**会话级**没有模型字段，每个角色用哪个模型由 `GroupRole.modelId` 决定
- * （气泡显示的模型按它解析，见 [resolveMessageModel]）。挂一个点了没定义的入口比不挂更糟。
+ * （生成侧按它选模型；气泡显示的是那条消息**当时实际调用**的模型，见 [resolveMessageModel]）。
+ * 挂一个点了没定义的入口比不挂更糟。
  *
  * 视觉走仓里现成的 [KedgePageLargeTopBar]：它内部已经按 `LocalKedgeStyle` 分流
  * Miuix / MD3，这里不另造一套。
