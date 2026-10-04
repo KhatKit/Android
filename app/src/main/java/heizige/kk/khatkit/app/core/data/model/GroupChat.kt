@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.core.data.model
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
@@ -301,6 +302,45 @@ object GroupChat {
         if (raw.isNullOrBlank()) return null
         val element = runCatching { json.parseToJsonElement(raw) }.getOrNull() ?: return null
         return decodeConfigObject(element as? JsonObject)
+    }
+
+    // ---------------- 角色卡元数据落库编解码（`conversationentity.group_cards`） ----------------
+
+    /**
+     * 角色卡元数据落库用的编码，与 [encodeQr] 用**同一个** `json` 实例和同一份
+     * [RoleCardMeta] 序列化器，所以这一列的 blob 与分享载荷里的 `cards` 逐字节同形，
+     * 导入 → 落库 → 再导出/再分享不会因为换了一套编码而变形。
+     *
+     * 与 [encodeConfig] 同一道密钥闸门（命中 [FORBIDDEN_EXPORT_KEYS] 的键直接拒收）：
+     * 分享路径拦得住、写库路径也必须拦得住，否则带密钥的角色卡元数据会绕过分享入口
+     * 直接进库。
+     *
+     * ⚠️ 闸门只扫**键名**不扫值（见 [findForbiddenKeys]），因此 persona 这类自由文本
+     * 不会被误伤——哪怕正文里就写着 `api_key`。卡片键名固定是
+     * `role_id / name / assistant_id / card_id / persona / avatar_ref` 六个，都不在黑名单里
+     * （由 `GroupRoleCardsPersistenceTest` 把这条钉死）。
+     *
+     * 空列表编码成 `"[]"`，与「这一列从来没有角色卡」（空串 → [decodeRoleCards] 回 null）
+     * 区分得开：导入过但载荷里一张卡都没有，是一个必须能表达的状态。
+     */
+    fun encodeRoleCards(cards: List<RoleCardMeta>): String {
+        val element = json.encodeToString(ListSerializer(RoleCardMeta.serializer()), cards)
+        val offending = findForbiddenKeys(json.parseToJsonElement(element))
+        check(offending.isEmpty()) { "角色卡元数据包含禁止保存的字段：$offending" }
+        return element
+    }
+
+    /**
+     * 角色卡元数据落库用的解码。空串 / 空白 / 非法 JSON / 不是数组一律回 `null`：
+     * `null` = 「这一列没有角色卡」（Room 31 及更早版本的存量行迁移后就是空串），
+     * 与「导入过、载荷里确实一张卡都没有」（`"[]"` → 空列表）不是一回事。
+     * 条目级的丢弃口径复用 [decodeCards]（缺 `role_id` 的条目直接丢，不猜它属于谁）。
+     */
+    fun decodeRoleCards(raw: String?): List<RoleCardMeta>? {
+        if (raw.isNullOrBlank()) return null
+        val element = runCatching { json.parseToJsonElement(raw) }.getOrNull() ?: return null
+        val array = element as? JsonArray ?: return null
+        return decodeCards(array)
     }
 
     fun encodeConfigObject(config: GroupConfig): JsonObject = buildJsonObject {
