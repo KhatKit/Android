@@ -31,9 +31,14 @@ internal const val CONVERSATION_TYPE_PREDICATE_SQL = " AND (:type = '' OR type =
  * 是唯一收敛点，DAO 的形参约定因此收紧为：**`:searchText` 必须是已转义片段**。
  *
  * ESCAPE 子句在 SQL 里的位置是被 SQLite 的文法钉死的：它必须紧跟在 LIKE 的右操作数后面，
- * 而 type 谓词是另一个 AND 合取项，所以拼接顺序是 `LIKE ... '%'` + `ESCAPE '~'` +
- * `CONVERSATION_TYPE_PREDICATE_SQL`；反过来写（谓词在前、ESCAPE 收尾）实测直接报
+ * 而 type 谓词是另一个 AND 合取项，所以拼接顺序是 `LIKE ... '%'` + ESCAPE 子句 +
+ * type 谓词常量；反过来写（谓词在前、ESCAPE 收尾）实测直接报
  * `near "ESCAPE": syntax error`。
+ *
+ * （注：这段 KDoc 里刻意不写出 type 谓词常量的**标识符**——`ConversationTypeFilterSourceGuardTest`
+ * 与 `ConversationDrawerFolderScopeTest` 都按「该标识符在本文件里恰好出现 3 次
+ * = 1 次声明 + 2 次引用」来钉「没有第二份拷贝」，KDoc 里多写一次就会把那条计数顶成 4。
+ * 同理 ESCAPE 子句常量的引用次数也不在注释里报数。）
  *
  * ---
  *

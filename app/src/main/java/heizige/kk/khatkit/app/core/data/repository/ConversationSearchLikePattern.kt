@@ -30,14 +30,15 @@ package heizige.kk.khatkit.app.core.data.repository
 internal const val CONVERSATION_LIKE_ESCAPE_CHAR: Char = '~'
 
 /**
- * 拼进 `@Query` 的 ESCAPE 子句（**首尾各带一个空格**，调用方因此不必再写空格）。
+ * 拼进 `@Query` 的 ESCAPE 子句（**首部带一个空格**，尾部不带 —— 后面的 SQL 片段自己带
+ * 那个分隔空格，折叠出来才是单个空格而不是两个）。
  *
  * 与 [CONVERSATION_LIKE_ESCAPE_CHAR] 是两个平行的 `const`：SQL 里只能写字面量，而
  * Room/KSP 认的也只是编译期常量表达式，所以宁可让「SQL 片段」是一段**纯字面量**
  * （绝对能被 Room 折叠），再由 `ConversationSearchLikePatternTest` 断言它与字符常量
  * 逐字节一致 —— 两份常量漂移会当场变红，而不是等到某条查询的搜索结果莫名其妙。
  */
-internal const val CONVERSATION_LIKE_ESCAPE_SQL: String = " ESCAPE '~' "
+internal const val CONVERSATION_LIKE_ESCAPE_SQL: String = " ESCAPE '~'"
 
 /**
  * 把用户输入的搜索词转成「可安全拼进 LIKE 模式串」的**字面量片段**。

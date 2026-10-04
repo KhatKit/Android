@@ -165,8 +165,8 @@ class ConversationSearchLikePatternTest {
     //     而不是等到某条搜索结果莫名其妙）
     @Test
     fun escapeSqlLiteral_matchesTheEscapeCharacterConstant() {
-        assertEquals(" ESCAPE '${CONVERSATION_LIKE_ESCAPE_CHAR}' ", CONVERSATION_LIKE_ESCAPE_SQL)
-        assertEquals(" ESCAPE '~' ", CONVERSATION_LIKE_ESCAPE_SQL)
+        assertEquals(" ESCAPE '${CONVERSATION_LIKE_ESCAPE_CHAR}'", CONVERSATION_LIKE_ESCAPE_SQL)
+        assertEquals(" ESCAPE '~'", CONVERSATION_LIKE_ESCAPE_SQL)
         // SQLite 要求 ESCAPE 的表达式求值后恰好 1 个字符
         assertEquals(1, CONVERSATION_LIKE_ESCAPE_SQL.trim().removePrefix("ESCAPE ")
             .removeSurrounding("'", "'").length)
