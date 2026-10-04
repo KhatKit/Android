@@ -5,16 +5,25 @@ import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
 import kotlin.uuid.Uuid
 
 /**
  * [resolveGroupTurnModelId] 的用例——群聊本轮发言**实际调用**哪个模型。
  *
- * 这是 [resolveMessageModel]（显示侧，[ChatList.kt]）的调用侧孪生：两条判据必须一模一样，
- * 否则用户给角色绑了模型 X 就会看到「气泡写 X、实际发 Y」。`GroupMessageModelTest` 钉死
- * 显示侧，本文件钉死调用侧，两者一起构成 C1-02「实际模型调用序列与日志一致」的前置条件。
+ * 本文件与 [resolveMessageModel]（显示侧，[ChatList.kt]）是**两个不同问题**，不是同一口径的
+ * 两侧：这边回答「**现在要用哪个**」（前瞻），那边回答「**当时用了哪个**」（回溯）。
+ * `GroupMessageModelTest` 钉死显示侧，本文件钉死调用侧。
+ *
+ * ⚠️ 两侧判据**故意**不再逐条一致。`GroupRole.modelId` 是用户可改的配置：用户改绑定之后，
+ * 调用侧下一次发言就用新模型，而历史消息的 `message.modelId` 保持不变；显示侧读记录，于是
+ * 老消息显示老模型。若反过来让显示侧按角色绑定优先，`41642ecd` 之前生成的那批消息
+ * （`message.modelId` 记的是助手绑的模型）就会显示一个当时没被调用过的模型。
+ * 跨侧真正该钉的契约写在 `the calling side and the display side answer different
+ * questions on one config` 里：**调用侧选中的 id 正好是显示侧会显示的那个**。
  *
  * 口径只有三条：
  * 1. 角色绑了合法且仍存在的 `model_id` 就用它（哪怕消息/助手绑的是另一个）；
@@ -76,7 +85,8 @@ class GroupTurnModelTest {
     @Test
     fun `the role binding wins over whatever the assistant was bound to`() {
         // 助手 chatModelId 指向另一个真实存在的模型：角色绑定仍然优先。
-        // 这条与显示侧的 `role model id wins over the message model id` 是同一个口径的两面。
+        // ⚠️ 注意这条**只对调用侧成立**：显示侧（`resolveMessageModel`）现在按消息自己的
+        // `message.modelId` 显示，那才是「当时实际调用」的记录。见本文件最后一条。
         assertEquals(roleModel, resolve(role(roleModel.toString()), assistantChatModelId = assistantModel))
     }
 
@@ -212,13 +222,22 @@ class GroupTurnModelTest {
     }
 
     // ------------------------------------------------------------------
-    // 与显示侧的逐条对照：同一组角色配置，两侧必须给出同一个模型
+    // 与显示侧的对照：两侧回答的不是同一个问题，因此不要求相等
     // ------------------------------------------------------------------
 
     @Test
-    fun `the calling side agrees with the display side on the same group config`() {
-        // 这是整件事的目的。展示 `resolveMessageModel(messageModelId, role, modelById)` 的结果，
-        // 对同一份配置与同一条消息，比较「气泡显示的模型」与「实际调用的模型」。
+    fun `the calling side and the display side answer different questions on one config`() {
+        // 这条断言原来要求「同一份配置下两侧结果必须相等」，并用它证明两侧同口径。
+        // `c7535ca8` 之后那条前提没了，而且**必须**作废：调用侧回答「现在要用哪个模型」
+        // （前瞻），显示侧回答「这条消息当时是被哪个模型答的」（回溯）。`GroupRole.modelId`
+        // 是用户可改的配置，今天的绑定不等于当初那次调用；用户改绑定之后两侧必然分叉，
+        // 而分叉是正确行为，不是 bug。硬要把它们「对齐」就是让历史消息显示一个当时
+        // 没被调用过的模型——那正是本轮修掉的 bug。
+        //
+        // 真正该钉的跨侧契约有两条，都写在这里：
+        //   A. 有记录时，显示侧一律显示记录，与角色绑定了什么无关；
+        //   B. 调用侧选出来的那个 id，正好就是显示侧会显示的那个（因为它会被写进
+        //      `message.modelId`）——这条对四个角色都成立，且不受角色坏配置影响。
         val boundModel = Model(modelId = "role-bound-model")
         val assistantBound = Model(modelId = "assistant-bound-model")
         val modelById = mapOf(boundModel.id to boundModel, assistantBound.id to assistantBound)
@@ -234,14 +253,33 @@ class GroupTurnModelTest {
         )
 
         config.roles.forEach { speaker ->
-            val shown = resolveMessageModel(assistantBound.id, speaker, modelById)
             val called = resolveGroupTurnModelId(speaker, assistantBound.id, isKnownModel = { it in modelById })
 
-            assertEquals(
-                "role=${speaker.id} 显示侧与调用侧必须一致",
-                shown?.id,
-                called,
+            // A. 消息带着记录时，显示侧就是那条记录——alice 绑了 boundModel也不例外。
+            assertSame(
+                "role=${speaker.id} 有记录时显示侧必须显示记录",
+                assistantBound,
+                resolveMessageModel(assistantBound.id, speaker, modelById),
+            )
+            assertNotEquals(
+                "role=${speaker.id} 显示侧不许被角色绑定顶掉",
+                boundModel.id,
+                resolveMessageModel(assistantBound.id, speaker, modelById)?.id,
+            )
+
+            // B. 调用侧选中的 id 被写进 message.modelId，显示侧随后显示的就是它。
+            assertSame(
+                "role=${speaker.id} 调用侧选中的模型必须正好是显示侧显示的那个",
+                modelById[called],
+                resolveMessageModel(called, speaker, modelById),
             )
         }
+
+        // 反过来也钉一条：消息**没有**记录时，显示侧只看角色绑定，认不出就返回 null——
+        // 它不会、也不该去猜助手绑的是哪个（助手那一层不在这条消息的记录里）。
+        assertSame(boundModel, resolveMessageModel(null, config.roles.first { it.id == "alice" }, modelById))
+        assertNull(resolveMessageModel(null, config.roles.first { it.id == "bob" }, modelById))
+        assertNull(resolveMessageModel(null, config.roles.first { it.id == "carol" }, modelById))
+        assertNull(resolveMessageModel(null, config.roles.first { it.id == "dave" }, modelById))
     }
 }
