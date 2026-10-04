@@ -716,7 +716,19 @@ class ChatManager(
             val step = groupStep
             if (step != null && groupConfig != null) {
                 settings.getAssistantById(Uuid.parse(step.role.assistantId))?.let { assistant = it }
-                model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
+                // C1-02：模型选型与气泡显示同一口径——角色自己的 `model_id` 优先，绑不上
+                // （空串 / 非法 Uuid / 模型已删）才回落助手 `chatModelId`，那正是 C1 之前
+                // 那一行传的值，路由与预算行为一字未变。判定本身在纯函数里（见
+                // resolveGroupTurnModelId），单聊走不到这个分支。
+                model = TaskRoutes.resolve(
+                    settings = settings,
+                    task = ModelTaskType.CHAT,
+                    preferredId = resolveGroupTurnModelId(
+                        role = step.role,
+                        assistantChatModelId = assistant.chatModelId,
+                        isKnownModel = { settings.findModelById(it) != null },
+                    ),
+                )
                 // C1-M：只为本轮发言角色建空间（契约「首次发言懒创建」），不再一次建全部
                 // 角色——没开口的角色不该在库里留下空间。未发言角色的空间由其第一次
                 // 发言时的同一处代码创建。
