@@ -268,9 +268,38 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     ≥ 3.35 的 `ADD COLUMN` **原地快路径**（本机 3.51.2 满足），**真机 Android 捆绑的
     SQLite 版本未知**，若它是 3.25–3.34 则 `ADD COLUMN` 同样是整表重写/重建，
     手写 ALTER 的优势不成立。
-- B2 抽屉搜索路缺 `folder_id = ''`：`core/data/db/dao/ConversationDAO.kt:38`
-  的未归档路有，`:66` 的搜索路没有。效果是无搜索词时只显示未归档、一搜就把文件夹内
-  会话混进来。**这是产品决策，尚未定**，本轮未擅自改。
+- B2 抽屉搜索路的 `folder_id` 口径与未归档路不一致 —— **待产品决策**。
+  - **现状（已被测试钉住，`ConversationDrawerFolderScopeTest` 4 条）**：无搜索词走
+    `getUnfiledConversationsOfAssistantByType`，`WHERE` 里有 `AND folder_id = ''`；有搜索词走
+    `searchConversationsOfAssistantByType`，`WHERE` 里**没有** `folder_id` 条件。所以无搜索词
+    时主列表只显示未归类会话，一输入搜索词文件夹内的会话就混进同一份列表。
+  - **判断：这是遗漏，不是有意设计**（依据见该测试的 KDoc）：`folder_id` 由 `a92248b2`
+    引入，那条 commit 给了**新建的**未归档查询 `folder_id = ''` 却没动**当时已存在的**搜索
+    查询；搜索进抽屉是后来 `48c2c091` 那个大杂烩 UI commit 顺手加的（message 无一字提到
+    文件夹），且它的 `when` 把 `keyword.isNotBlank()` 放在第一分支、直接压过当时的
+    `_selectedFolderId`；`ad7ac808` 把抽屉里的文件夹选择整个删掉（改为二级页）、主列表从此
+    只表示未归类会话时，搜索路没跟着收窄，message 同样一字未提。`2f1d04a2`（C1）给搜索路
+    补 `type` 谓词时 KDoc 明写「与未归档路完全一致」——第四次把两条路当同一口径维护，
+    `folder_id` 恰好漏掉。
+  - **方案 A：搜索也收窄成 `folder_id = ''`**（与未归档路完全同口径）。
+    - 代价：文件夹里的会话在抽屉里**彻底搜不到**；二级页（`FolderDetailPage` /
+      `FolderDetailViewModel`）**目前没有搜索框**（只读 `getConversationsOfFolderPaging`），
+      收窄后这些会话唯一的查找入口是逐个文件夹翻，跨文件夹搜一个词做不到。
+    - 收益：抽屉主列表语义终于单一（「未归类」），搜索结果不会跳到列表里根本没有的条目。
+  - **方案 B：保持现状（搜索跨全部文件夹），但把语义写进代码与文档**。
+    - 代价：主列表与搜索结果口径不同这件事只存在于开发者脑子里，UI 上没有任何提示；
+      搜出来的文件夹会话在主列表里看起来像「凭空出现」。
+    - 收益：搜索是全局的，符合多数用户搜一个词就期望翻遍全部的直觉。
+  - **推荐：方案 B + 显式化**。理由：方案 A 会让一批会话**不可检索**，而抽屉里没有任何
+    替代入口，这是功能回退；方案 B 的代价只是认知不一致，可以用注释/文档消解。
+    若产品认为「抽屉主列表必须只含未归类」优先于可检索性，则改走方案 A，改动面仅是
+    `ConversationDAO.searchConversationsOfAssistantByType` 的 `WHERE` 加一个条件 +
+    翻掉 `ConversationDrawerFolderScopeTest.searchQuery_currentlyHasNoFolderCondition`
+    的断言方向（测试会先红，这是预期的）。
+  - **仍未验证**：DAO 的两条 SQL 在真实 SQLite 上的行为依旧零设备证据（仓库
+    `testImplementation` 只有 junit，没有 Robolectric / room-testing，见
+    `ConversationTypeFilterSourceGuardTest` 的同一说明）。上面所有依据来自源码文本与
+    git 历史，不是运行时行为。
 - B3 ~~`GroupRole.modelId` 显示侧与生成侧现在同口径~~ **已关闭（`c7535ca8`）：两侧本来
   就是两个问题，而「同口径」是错的。** 生成侧 `ChatManager.kt:726` 的
   `resolveGroupTurnModelId`（定义在 `feature/chat/GroupTurnModel.kt:54`）答「现在要用
@@ -315,8 +344,14 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
    3. 给 `ConversationDAO` 的 SQL 补仪器测试源码（`androidTest`，用已有的
       `androidx.room.testing`）：`:type = ''` 时不筛、`itemCount` 正确、
       搜索路与未归档路口径一致。写好先不跑，等接设备。
-   4. 定 B2 的抽屉搜索 `folder_id` 口径（产品决策），定了再改 DAO 或在验收表里
-      记成已知缺口。
+   4. **定 B2 的抽屉搜索 `folder_id` 口径（产品决策）**。B2 条目里已写清现状、判断
+      （遗漏）与两个方案及各自代价，推荐**方案 B（保持现状）+ 显式化**（注释/文档），
+      理由是方案 A 会让文件夹内会话不可检索而二级页没有搜索框。定了之后：选 A 就给
+      `searchConversationsOfAssistantByType` 的 `WHERE` 加 `AND folder_id = ''` 并翻掉
+      `ConversationDrawerFolderScopeTest.searchQuery_currentlyHasNoFolderCondition` 的断言；
+      选 B 就把抽屉搜索「跨文件夹」的语义补进 `ChatDrawerViewModel` 的 KDoc，并在这条
+      遗留项里记成已知且认可的口径。**在产品定之前不要改 DAO**——现状已被 4 条测试钉住，
+      改动会先让测试变红，那是预期的信号。
 2. **需要接真机**
    1. 真机建一个 3 角色群聊跑一轮 `mode=pipeline`，从库里按 `role_id` 分组导出每个
       viewer 的可见消息 ID 台账（用真实 `message.id`，不是测试构造值）。
