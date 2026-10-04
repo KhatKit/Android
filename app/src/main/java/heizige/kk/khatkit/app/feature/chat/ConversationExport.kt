@@ -282,6 +282,18 @@ fun ChatExportSheet(
                         leadingContent = { Icon(insertDriveFile, contentDescription = null) },
                     )
                 }
+
+                // 第 5 个选项：群聊专用的 Tavern 群聊导出（.jsonl）。单聊会话恒为 false，
+                // 面板与 C1 之前逐字相同。卡片本体在 GroupExportCard.kt，避免这里继续膨胀。
+                if (isGroupConversation(conversation)) {
+                    GroupTavernExportCard(
+                        conversation = conversation,
+                        selectedMessages = selectedMessages,
+                        settings = settings,
+                        onFinished = dismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -293,7 +305,7 @@ private fun exportToMarkdown(
     messages: List<UIMessage>,
     options: ExportOptions,
 ) {
-    val filename = "chat-export-${LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))}.md"
+    val filename = "chat-export-${LocalDateTime.now().format(ExportTimeFormatter)}.md"
 
     val sb = buildAnnotatedString {
         append("# ${conversation.title}\n\n")
@@ -402,26 +414,8 @@ private fun exportToMarkdown(
     }
 
     try {
-        val dir = context.appTempFolder
-        val file = dir.resolve(filename)
-        if (!file.exists()) {
-            file.createNewFile()
-        } else {
-            file.delete()
-            file.createNewFile()
-        }
-        FileOutputStream(file).use {
-            it.write(sb.toString().toByteArray())
-        }
-
-        // Share the file
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
+        val uri = writeExportTempFile(context, filename) { it.write(sb.toString().toByteArray()) }
         shareFile(context, uri, "text/markdown")
-
     } catch (e: Exception) {
         e.printStackTrace()
     }
@@ -436,7 +430,7 @@ private suspend fun exportToImage(
     settings: Settings,
     options: ExportOptions = ExportOptions()
 ) {
-    val filename = "chat-export-${LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))}.png"
+    val filename = "chat-export-${LocalDateTime.now().format(ExportTimeFormatter)}.png"
     val composer = BitmapComposer(scope)
     val activity = context.getActivity() ?: error("Failed to get activity")
 
@@ -456,16 +450,7 @@ private suspend fun exportToImage(
     )
 
     try {
-        val dir = context.appTempFolder
-        val file = dir.resolve(filename)
-        if (!file.exists()) {
-            file.createNewFile()
-        } else {
-            file.delete()
-            file.createNewFile()
-        }
-
-        FileOutputStream(file).use { fos ->
+        val uri = writeExportTempFile(context, filename) { fos ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 90, fos)
         }
 
@@ -473,11 +458,6 @@ private suspend fun exportToImage(
         context.exportImage(activity, bitmap, filename)
 
         // Share the file
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
         shareFile(context, uri, "image/png")
     } finally {
         bitmap.recycle()
@@ -820,7 +800,46 @@ private fun ChainOfThoughtScope.ExportedToolStep(
     )
 }
 
-private fun shareFile(context: Context, uri: Uri, mimeType: String) {
+/**
+ * 导出文件名里的时间戳格式。三条导出（Markdown / PNG / Tavern 群聊）共用这一份，
+ * 免得同一批导出文件因为格式各写一遍而在磁盘上看起来不是同一批。
+ */
+internal val ExportTimeFormatter: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")
+
+/**
+ * 把导出内容写进临时目录并返回可分享的 content uri。三条导出路径（Markdown / PNG /
+ * Tavern 群聊）共用这一份，不再各自写一遍 `delete + createNewFile + FileOutputStream +
+ * FileProvider`——那种四行样板复制到第三份就会开始漂。
+ *
+ * 覆盖写：同名文件先删再建。临时目录（[appTempFolder]）由系统按缓存回收，重复导出同名
+ * 文件是常态（同一秒内点两次），所以这里不生成随机后缀，导出文件名保持可预期。
+ */
+internal fun writeExportTempFile(
+    context: Context,
+    fileName: String,
+    write: (java.io.OutputStream) -> Unit,
+): Uri {
+    val file = context.appTempFolder.resolve(fileName)
+    if (file.exists()) {
+        file.delete()
+    }
+    file.createNewFile()
+    FileOutputStream(file).use(write)
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file
+    )
+}
+
+/**
+ * 调起系统分享面板。三条导出路径共用。
+ *
+ * 不是 `private`：群聊导出那张卡在 [GroupExportCard.kt] 里，同模块可见即可，
+ * 分享 Intent 的拼法只此一份。
+ */
+internal fun shareFile(context: Context, uri: Uri, mimeType: String) {
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = mimeType
         putExtra(android.content.Intent.EXTRA_STREAM, uri)
