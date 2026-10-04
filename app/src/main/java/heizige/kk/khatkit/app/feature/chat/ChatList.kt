@@ -196,15 +196,38 @@ fun ChatList(
 /**
  * 气泡上显示的模型（模型名 + 模型图标 + 「更多」面板里的模型行）。
  *
- * ## 口径
+ * ## 口径：**消息自己记的调用记录优先**
  *
- * - **群聊优先看角色绑定**：[GroupRole.modelId] 绑了就用那个模型，群配置的 `model_id`
- *   本来就是「每个角色用哪个模型」这条契约的落点（`docs/beyond-orit-client-changes.md` 的
- *   `roles[]` 最小 schema 里含「模型绑定」）。
- * - **绑不上就回落到 [messageModelId]**：`model_id` 为 null / 空串 / 不是合法 Uuid /
- *   指向一个已被删掉的模型，四种都回落——角色配置里的一个坏 id 不该让整条消息不显示模型名。
- * - **单聊完全不受影响**：[role] 为 null 时结果就是 `messageModelId?.let(modelById::get)`，
- *   与 C1 之前 `ChatList.kt` 里那一句逐字等价。
+ * 这个函数回答的是「**这条消息当时是被哪个模型答的**」，不是「这个角色现在该用哪个模型」。
+ * 后者是 [resolveGroupTurnModelId]（生成侧）的事。两个问题在群聊里会分叉：
+ *
+ * - `41642ecd` 之前生成的群聊消息，`message.modelId` 记的是**助手**绑的模型（那时生成侧
+ *   只读 `assistant.chatModelId`）；那条消息的真相就是这个助手模型，而当时角色绑定可能
+ *   已经是另一个模型。让角色绑定优先就会给这批历史消息**显示一个当时没被调用过的模型**。
+ * - `GroupRole.modelId` 是用户可改的：**今天的绑定不等于当初那次调用**。所以它不能反过来
+ *   覆盖一条已经记下来的调用记录。
+ *
+ * 因此判据是：
+ *
+ * 1. **[messageModelId] 非 null 就用它**，它是生成侧写进去的**实际**调用模型
+ *    （`GenerationLoop.kt:465` 写 `modelId = model.id`；流式与非流式两条路都在
+ *    `StreamChunkHandler.kt:73` / `:329` 写同一个值；provider failover 走
+ *    `GenerationLoop.kt:144` 的 `candidateModel`，记的仍然是真正服务了这次响应的那一个）。
+ * 2. **它指向的模型已被删掉，就返回 null**——不拿角色绑定去顶替。我们确知有个模型答过这条
+ *    消息、只是叫不出名字；拿今天的绑定填上去等于又造一次同样的假记录。这与单聊
+ *    `messageModelId?.let(modelById::get)`「查不到即 null」是同一条口径。
+ * 3. **只有 [messageModelId] 为 null 时才回落角色绑定**（兜底，不是主路径）：`model_id`
+ *    为 null / 空串 / 不是合法 Uuid / 指向已删模型，四种都返回 null。真的会走到这里的群聊消息
+ *    是存在的——`GroupTurnCoordinator.errorNode`（`:368`）造的失败节点带着真实 `roleId` 却
+ *    没有 `modelId`，另外还有极老的会话与第三方导入的数据。
+ *
+ * ## 单聊逐字不变
+ *
+ * [role] 为 null 时本函数等价于 `messageModelId?.let(modelById::get)`：
+ * `messageModelId` 非 null 走第 1 条得 `modelById[messageModelId]`，为 null 则第 3 条的
+ * 角色链整体在 null 上求值、结果为 null。单聊 `role` 恒为 null（`ChatList.kt` 的调用点要
+ * `speaker?.roleId != null` 才查 `config.roles`），所以单聊与群聊用户消息的结果与 C1 之前
+ * 那一句完全相同。
  *
  * 纯函数：不碰 Compose / 数据库，因此可用 JVM 单测钉死（见 `GroupMessageModelTest`）。
  *
@@ -217,11 +240,13 @@ internal fun resolveMessageModel(
     role: GroupRole?,
     modelById: Map<Uuid, Model>,
 ): Model? {
-    val roleModel = role?.modelId
+    // 有据可查的调用记录：查不到就是查不到，不回落角色绑定。
+    if (messageModelId != null) return modelById[messageModelId]
+    // 完全没有记录时才猜：角色绑定是用户可写的字符串，仍要过空白 / 合法 Uuid / 存在性三关。
+    return role?.modelId
         ?.takeIf { it.isNotBlank() }
         ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         ?.let(modelById::get)
-    return roleModel ?: messageModelId?.let(modelById::get)
 }
 
 @Composable
@@ -390,8 +415,9 @@ private fun ChatListNormal(
                                 ?.let { assistantById[it] }
                             roleAssistantId ?: assistant
                         }
-                        // 群聊气泡显示的模型：角色自己的绑定优先，绑不上才回落这条消息实际记的
-                        // modelId。单聊 role 恒为 null，走的就是原来那一句，一字不差。
+                        // 群聊气泡显示的模型：这条消息自己记的 modelId（= 当时实际调用的模型）
+                        // 优先，缺失时才回落角色的 model_id。单聊 role 恒为 null，走的就是
+                        // `message.modelId?.let(modelById::get)`，与 C1 之前一字不差。
                         val messageModel = remember(
                             currentMessage.modelId,
                             speaker?.roleId,
