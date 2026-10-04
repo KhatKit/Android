@@ -1564,17 +1564,27 @@ class ChatManager(
                 chair = assistant.id == current.id,
             )
         }
+        val config = GroupConfig(
+            roles = roles,
+            mode = GroupChat.MODE_PIPELINE,
+            tokenBudgetPerRound = 2000,
+        )
         val conversation = Conversation(
             assistantId = current.id,
             title = "群聊",
             messageNodes = emptyList(),
             type = GroupChat.TYPE_GROUP,
-            groupConfig = GroupConfig(
-                roles = roles,
-                mode = GroupChat.MODE_PIPELINE,
-                tokenBudgetPerRound = 2000,
-            ),
+            groupConfig = config,
         )
+        // 落库前跑一遍字段级校验。返回类型是 Uuid（ChatDrawerViewModel.createGroup 依赖它），
+        // 不能改成可空/结果对象，所以非法配置只能拒收：先记日志再抛，绝不写进库。
+        // 当前组装逻辑本应恒合法，这里是把「先校验后落库」固化成结构约束，而不是口头约定。
+        val invalid = GroupChat.validate(config, conversation.id.toString())
+        if (invalid.isNotEmpty()) {
+            val detail = invalid.joinToString { "${it.field}: ${it.message}" }
+            Log.w(TAG, "createGroup 群配置校验失败，拒绝落库：$detail")
+            error("群配置校验失败，拒绝落库：$detail")
+        }
         conversationRepo.insertConversation(conversation)
         return conversation.id
     }
