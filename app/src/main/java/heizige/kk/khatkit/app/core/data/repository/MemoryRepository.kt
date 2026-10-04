@@ -106,8 +106,20 @@ class MemoryRepository(
         return updated.toModel()
     }
 
-    /** 遗忘 = 软删 + 使以该分块为证据的图谱边失效（保留溯源）。 */
-    suspend fun forgetMemory(id: Int) {
+    /**
+     * 遗忘 = 软删 + 使以该分块为证据的图谱边失效（保留溯源）。
+     *
+     * C1-M：`expectedSpaceId` 非空时先校验归属——群聊角色的 `memory_forget` 的 id
+     * 来自模型输出（可能是猜的），不校验就能删掉别的角色/助手空间里的记忆。
+     * 传 null 是旧 UI 删除路径（用户本人操作），行为不变。
+     */
+    suspend fun forgetMemory(id: Int, expectedSpaceId: String? = null) {
+        if (expectedSpaceId != null) {
+            val chunk = chunkDao.getChunkById(id) ?: error("Memory record #$id not found")
+            require(chunk.spaceId == expectedSpaceId) {
+                "记忆 #$id 属于空间 ${chunk.spaceId}，不属于 $expectedSpaceId，拒绝遗忘"
+            }
+        }
         val now = System.currentTimeMillis()
         chunkDao.softDelete(id, now)
         graphDao.invalidateEdgesOfChunk(id, now)
@@ -144,14 +156,27 @@ class MemoryRepository(
 
     // ==================== 图谱 ====================
 
+    /**
+     * 连接两条记忆（`memory_link` 工具）。
+     *
+     * C1-M：`expectedSpaceId` 非空时要求两端同属该空间。群聊角色的 `memory_link`
+     * 拿到的 id 来自模型输出（可能是猜的），不校验就能把 A 角色的记忆和 B 角色的
+     * 记忆连起来——图谱扩展会顺着这条边把两个空间的内容互相带进检索。
+     */
     suspend fun linkMemories(
         sourceChunkId: Int,
         targetChunkId: Int,
         relType: String = MemoryEdgeEntity.REL_RELATED,
         confidence: Float = 1f,
+        expectedSpaceId: String? = null,
     ): Int {
         val src = chunkDao.getChunkById(sourceChunkId) ?: error("chunk #$sourceChunkId not found")
         val dst = chunkDao.getChunkById(targetChunkId) ?: error("chunk #$targetChunkId not found")
+        if (expectedSpaceId != null) {
+            require(src.spaceId == expectedSpaceId && dst.spaceId == expectedSpaceId) {
+                "memory_link 两端必须同属空间 $expectedSpaceId（实际 ${src.spaceId} / ${dst.spaceId}）"
+            }
+        }
         val now = System.currentTimeMillis()
         return graphDao.insertEdge(
             MemoryEdgeEntity(
