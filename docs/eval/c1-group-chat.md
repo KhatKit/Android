@@ -64,7 +64,7 @@ C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`）
 | C1-09 | Tavern/QR 往返 | 群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token | `GroupTavernExportTest` 22<br>`TavernCompatTest` 21<br>`QrScannerSheetTest` 16<br>`GroupChatTest` 18<br>`C1pGroupExportHashTest` 5 | `unverified` |
 | C1-10 | 单聊/群聊共存 | 同一列表混排；类型筛选只过滤；切换后消息与会话数据不丢 | `ConversationListQueryPlanTest` 7<br>`ConversationTypeFilterSourceGuardTest` 2<br>`GroupChatTest` 18 | `unverified` |
 
-C1 相关共 **24 个测试类 / 291 个用例**，全类名带包名前缀为
+C1 相关共 **25 个测试类 / 296 个用例**，全类名带包名前缀为
 `heizige.kk.khatkit.app.`。逐类用例数（`tests` 属性实测）：
 `feature.chat.GroupTurnCoordinatorTest` 63、`feature.chat.GroupTavernExportTest` 22、
 `core.data.ai.tavern.TavernCompatTest` 21、`core.data.model.GroupChatTest` 18、
@@ -82,13 +82,16 @@ C1 相关共 **24 个测试类 / 291 个用例**，全类名带包名前缀为
 `core.data.repository.MemoryExtractorParseTest` 7、
 `feature.chat.ConversationListQueryPlanTest` 7、
 `core.data.repository.GroupMemorySpacePolicyTest` 6、
+**`core.data.ai.tavern.C1pGroupExportHashTest` 5**、
 `core.data.ai.tools.MemoryToolsSearchTest` 3、
 `feature.chat.ConversationTypeFilterSourceGuardTest` 2、
 `core.data.db.MemoryRoleIdMappingTest` 2。
-合计 291，`failures=0 errors=0 skipped=0`（逐个 XML 汇总实测）。
-⚠️ 加粗那两个是 C1-P（`20581bcb..b7025665`）新增的，早前版本这里写的
-「22 个测试类 / 277 个用例」已过期（`+2 类 / +14 例`）。仪器测试另有
-**25 条**同样一次没跑（12 + 7 + 6），见「仪器测试状态」。
+合计 296，`failures=0 errors=0 skipped=0`（逐个 XML 汇总实测）。
+⚠️ 加粗那两个是 C1-P（`20581bcb..b7025665`）新增的，加粗那个 5 条是 C1-09 导出哈希
+（`d2b5c05c`）。早前版本这里写的「22 个测试类 / 277 个用例」与随后的
+「24 个测试类 / 291 个用例」都已过期（依次 `+2 类 / +14 例`、`+1 类 / +5 例`）。
+仪器测试另有 **25 条**同样一次没跑（12 + 7 + 6），见「仪器测试状态」——本轮
+**没加任何 `androidTest` 用例，25 这个数不变**。
 
 ## 证据登记
 
@@ -181,6 +184,18 @@ CMD-3 另跑过一次只有 `:app:packageDebug --rerun` 的对照（`BUILD SUCCE
 `core.data.db.migrations.ConversationGroupCardsSchemaTest`（7）。**2026-10-05 那次
 复跑的命令与逐组证据见下方「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」。**
 
+⚠️ **再往后一批（`d2b5c05c` C1-09 导出哈希测试）之后，`:app:testDebugUnitTest`
+实测已是 87 个测试类 / 683 tests / 0 failures / 0 errors / 0 skipped**
+（`./gradlew --offline :app:testDebugUnitTest --rerun` 退出码 0，87 个 XML 全部重写，
+逐个 `tests` 属性汇总：基线 86 / 678 → **87 / 683**，即 `+1 类 / +5 例`）。新增的那一类
+是 `core.data.ai.tavern.C1pGroupExportHashTest`（5）。命令与逐组证据见下方
+「C1-P 群聊导出确定性哈希（零设备）」。
+
+⚠️ **全仓 `./gradlew --offline test` 的合计本轮没有重跑**（只跑了
+`:app:testDebugUnitTest`），所以「15 个模块 / 182 个测试类 / 1305 tests」这个合计
+**保留原样、不要按 `app` 的增量外推**——外推出来的数字不是实测值。要更新合计得重跑
+全仓 `test`。
+
 全仓 `./gradlew --offline test` = **15 个模块 / 180 个测试类 / 1291 tests /
 0 failures / 0 errors / 12 skipped**。12 个 skip 全在非 app 模块，且都是环境依赖型
 `@Ignore`：`common/http/okhttp/KtorLiveTest` 5 个联网用例、`khatkit/card/
@@ -212,6 +227,10 @@ BuiltinCardSampleTest` 1、`khatkit/engine/RustEngineTest` 5、
 ⚠️ 上表（含 `app` 那行 84 / 664 与合计 180 / 1291）是 **2026-10-04 窗口**的实测值，
 按上面说的口径**保留不覆写**。C1-P 之后的当前值是 `app` **86 / 678**、合计
 **182 / 1305**，其余 14 行与 12 个 skip 不变。
+⚠️ **再往后一批（C1-09 导出哈希测试）之后 `app` 实测是 87 / 683**（见上面
+「测试结果」段），而**合计那一行本轮没有重跑全仓 `test`、因此不更新**——上表的
+**180 / 1291** 与「182 / 1305」两个合计都按各自窗口的实测值原样保留，别拿 `app`
+的增量去加。
 
 ⚠️ 有测试结果和有 lint 报告的是**两批不同的 15 个模块**：`card-validator` 有测试
 结果（4 类 77 例）但**没有 lint 报告**（见下）；`image-toolbox-dependency` 有 lint
@@ -433,8 +452,12 @@ PASS  对照：那行数据确实写进了 memory_chunks（表本身没坏，坏
 登记于 commit `b7025665`（`test(c1-p): 31→32 迁移主机侧 SQLite 重放脚本（49 条断言，
 退出码 0）`），实现侧是 `20581bcb..b7025665` 这 8 个 commit。**这一节不改变任何用例
 的判定**：契约 `:206` 点名的四类证据（viewer 可见消息 ID / 模型调用序列 / token /
-导出 SHA-256）**仍然一份都没有**，十例状态仍全 `unverified`。它补的是「导入的角色卡
+导出 SHA-256）**本节一份都没产出**，十例状态仍全 `unverified`。它补的是「导入的角色卡
 真的落库」这一条**代码层 + 迁移正确性**证据。
+⚠️ 一处口径订正：本文早前在这里写「四类证据**仍然一份都没有**」，那句话在
+`d2b5c05c` 之后已经过期——**「导出 SHA-256」那一类现在有一份零设备证据**（见下方
+「C1-P 群聊导出确定性哈希（零设备）」）。但**「这一节没产出」这个判断没变**，本节
+（31→32 迁移重放）仍然不产出四类里的任何一类，所以十例状态照样全 `unverified`。
 
 **命令**：
 
@@ -570,10 +593,14 @@ PASS  ALTER 路径：message_node 的存量行一行没少
 
 #### ⚠️ 这次验证仍然不能替代的部分
 
-- **契约 `:206` 的四类证据一份都没有。** viewer 可见消息 ID 台账、真实模型调用序列、
-  真实 token 计数、群聊导出文件 SHA-256，磁盘上仍然**零份**。本节全部内容都在这四类
-  **之外**（迁移正确性 + 纯函数往返），因此**十例状态仍全 `unverified`**。
-  C1-09（Tavern/QR 往返）另四类证据同样零份，**仍是 `unverified`**。
+- **契约 `:206` 的四类证据本节一份都没产出。** viewer 可见消息 ID 台账、真实模型
+  调用序列、真实 token 计数、群聊导出文件 SHA-256，本节全部内容都在这四类**之外**
+  （迁移正确性 + 纯函数往返），因此**十例状态仍全 `unverified`**。
+  C1-09（Tavern/QR 往返）**仍是 `unverified`**——它的 viewer 可见消息 ID、模型调用
+  序列、token 计数三份都零份，「导出 SHA-256」那份是下方「C1-P 群聊导出确定性哈希
+  （零设备）」里的**零设备 fixture 哈希**，不是真机 IO 分发的产物，更不是酒馆本体
+  打开的证据。⚠️ 早前版本这里写「另四类证据同样零份」，那句已被那份新证据订正，
+  **但「C1-09 仍 `unverified`」这个结论没变。**
 - **`Migration_31_32_Test` 的 6 条一次没跑过，需设备。** 与 C1-D 那节同样的道理：
   主机侧重放**不能替代**仪器往返。
 - **`rootpage` / `sqlite_master` 两条判据依赖宿主 SQLite ≥ 3.35 的
@@ -899,8 +926,9 @@ C1-M / C1-U / C1-X / C1-E 六个子包；这三个标签的实际含义（`c1-p`
   **它同时就是本台账锚定的那个 SHA**，也是区间内最后一个改本文件的 commit。锚点之后
   本文件只做文字订正，所以「改 `docs/` 的 commit」固定为 **6 个**，不再逐次追加。
   ⚠️ 「锚点之后本文件只做文字订正」这句现在需要加限定：锚点之后本文件**又**被改过
-  （20581bcb、1e20f6ce，以及本次登记 C1-P 的提交），但那些提交**同样不计入**本台账
-  任何计数——理由见下面「锚点之后的后续提交」。**6 个这个数不变。**
+  （20581bcb、1e20f6ce、4efee787、f444a714、399a8f1d、5794e5cb，以及本次订正测试数与
+  台账的提交），但那些提交**同样不计入**本台账任何计数——理由见下面
+  「锚点之后的后续提交」。**6 个这个数不变。**
 
 **只改测试 / 验证工具、不动任何 main 源码的 commit**：17 个，拆开看：
 
@@ -952,6 +980,41 @@ git log --oneline 20581bcb..b7025665   # 8 个，就是这一批功能/测试提
 「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」。
 ⚠️ 这批提交**没有产生任何契约 `:206` 意义上的验收证据**，所以**十例状态仍全
 `unverified`**。
+
+#### 再往后一批：C1-09 导出哈希证据（`d2b5c05c` / `eef6efb3` / `bbe2e558`）
+
+锚点之后又出现了这批（连同本文档自己的两个登记提交，见下表）。**同样不计入本台账**——
+理由同上：不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或子包标签
+（这批全是 `coder(c1-09)` 裸 `c1` 标签，但那 11 个裸 `c1` 是**截至 `1b0e04a9`** 的
+数，本台账不动）。所以 **78 / 6 / 17、前缀分布、子包分布一个数都没动**。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `d2b5c05c` | `coder(c1-09): 新增群聊导出哈希证据测试（9 变体 + 往返幂等 + SillyTavern 结构对照）` | 测试（1 个新增 JVM 类，829 行 / 5 例） |
+| `eef6efb3` | `coder(c1-09): 加跨两次独立 JVM 的导出哈希比对脚本（含 hashlib 交叉复算）` | 测试（1 个新增验证脚本，245 行） |
+| `bbe2e558` | `coder(c1-09): 给群聊导出哈希加 golden 清单护栏（默认严格比对 + 显式更新）` | 测试（脚本扩到 500 行 + 1 个新增入库 golden 清单） |
+| `399a8f1d` | `docs(c1-09): 导出 SHA-256 列填入 9 个实测哈希，状态列保持 unverified` | 纯文档（只改本文） |
+| `5794e5cb` | `docs(c1-09): 新起 C1-P 群聊导出确定性哈希一节（哈希表 + 三重验证 + golden 护栏 + 5 条未证明）` | 纯文档（只改本文） |
+
+⚠️ 本文件在 `5794e5cb` 之后还有一次提交（订正测试数与台账，即下表末行；SHA 用
+`git log --oneline -1 -- docs/eval/c1-group-chat.md` 可查），同样**不计入**本台账任何
+计数——本台账的「改 `docs/` 的 commit：6 个」固定不变的理由仍然是「锚点之后的提交不改
+统计基线」，不是「锚点之后只改文字」。这里故意不写自己的 SHA：本文件每次被自己提交都会
+产生一个新 commit，写进去就得再改一次、永远差一个，与本台账刻意锚死右端是同一个道理。
+
+这批的净效果：`app` 模块 JVM 测试 **86 类 678 例 → 87 类 683 例**（+1 类 / +5 例，
+0 失败 0 错误 0 跳过）；C1 相关 JVM 测试 **24 类 291 例 → 25 类 296 例**；
+**仪器测试仍是 25 条不变**（没加任何 `androidTest`）；Room 版本不变；
+**既有 Kotlin 生产代码零改动，既有测试文件零删改**；新增 1 个入库的 golden 清单
+把「导出字节确定」从一次性证据升级成长期护栏。证据登记见上方
+「C1-P 群聊导出确定性哈希（零设备）」。
+
+⚠️ **这批与前一批的性质不同，必须说清楚**：前一批 8 个 commit 是纯迁移/落库侧，
+**四类证据一份都没有**；这一批**确实**产出了契约 `:206` 第四类「导出 SHA-256」的
+一份**零设备**证据。**但它仍不改变任何判定**——契约点名的「**酒馆本体打开**」零份、
+viewer 可见消息 ID 零份、模型调用序列零份、token 计数零份，而那份哈希来自 fixture
+而非真机 IO 分发的产物。换句话说：**四类里三类零份、第四类只有 JVM 层一份**。
+**十例状态仍全 `unverified`，C1-09 也是。**
 
 ## 下一位怎么把 unverified 变成 verified
 
