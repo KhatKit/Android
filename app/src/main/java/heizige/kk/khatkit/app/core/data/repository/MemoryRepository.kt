@@ -226,6 +226,20 @@ class MemoryRepository(
         limit: Int = MemoryRetrievalEngine.DEFAULT_LIMIT,
     ): List<AssistantMemory> = searchHybridWithEmbedding(spaceId, query, queryEmbedding = null, limit = limit)
 
+    /**
+     * C1-M：契约路径（群聊 / 助手记忆工具）专用入口——空间键必须显式给出。
+     *
+     * `searchHybrid(spaceId = null)` 的语义是全库检索，没有空间边界；群聊一旦落到
+     * null 就等于跨空间检索（契约：「任何失败不得回退到全局记忆空间」「不得回退到
+     * 全局/助手空间」）。所以群聊侧一律走这里，缺空间键直接抛，不静默降级。
+     */
+    suspend fun searchHybridInSpace(
+        spaceId: String,
+        query: String,
+        limit: Int = MemoryRetrievalEngine.DEFAULT_LIMIT,
+    ): List<AssistantMemory> =
+        searchHybridWithEmbedding(MemorySpaceGate.requireSpace(spaceId), query, queryEmbedding = null, limit = limit)
+
     private suspend fun searchFtsIds(query: String, spaceId: String?, limit: Int): List<Int> {
         val db = database ?: return emptyList()
         val ftsQuery = MemoryRetrievalEngine.toFtsQuery(query)
@@ -264,6 +278,11 @@ class MemoryRepository(
 
     private suspend fun searchGraphIds(seedIds: List<Int>, spaceId: String?, limit: Int): List<Int> {
         if (seedIds.isEmpty()) return emptyList()
+        // C1-M：图谱扩展必须带空间边界。`memory_mentions` 没有 space_id 列，扩展只能
+        // 走 [MemoryGraphDAO.getMentionsOfEntity] 里那条 `JOIN memory_chunks` 的查询，
+        // 它要求非空 spaceId。所以全库检索（spaceId = null）在这里直接放弃实体扩展：
+        // 无边界的扩展等于把别的空间的分块拉进来（这正是已修的跨空间泄漏）。
+        if (spaceId == null) return emptyList()
         return try {
             val entityNames = mutableSetOf<String>()
             for (id in seedIds.take(5)) {
@@ -276,15 +295,13 @@ class MemoryRepository(
             if (entityNames.isEmpty()) return emptyList()
             val names = entityNames.take(20).toList()
             val expanded = mutableSetOf<Int>()
-            // 共享实体名的其他分块
+            // 共享实体名的其他分块（DAO 内已按 space_id + deleted_at 过滤）
             for (name in names) {
-                graphDao.getMentionsOfEntity(name).forEach { expanded += it.chunkId }
+                graphDao.getMentionsOfEntity(name, spaceId).forEach { expanded += it.chunkId }
             }
             // 图谱边证据分块
-            if (spaceId != null) {
-                graphDao.getEdgesOfEntities(spaceId, names).forEach { edge ->
-                    edge.evidenceChunkId?.let { expanded += it }
-                }
+            graphDao.getEdgesOfEntities(spaceId, names).forEach { edge ->
+                edge.evidenceChunkId?.let { expanded += it }
             }
             (expanded - seedIds.toSet()).take(limit).toList()
         } catch (_: Throwable) {
@@ -295,6 +312,10 @@ class MemoryRepository(
     /**
      * 带外部 query 向量的混合检索（由 ChatManager / 工具层传入 embedding）。
      * 向量信号用暴力余弦 / sqlite-vector 二选一。
+     *
+     * C1-M：FTS / 向量 / 图谱三路的候选 id 全部要过 [MemorySpaceGate]——图谱扩展
+     * 会把「共享同一实体名」的分块拉进来，即使 DAO 已加了 `JOIN memory_chunks`，
+     * 也不能让任何一路漏进来的外空间分块占用 RRF 名额或出现在返回结果里。
      */
     suspend fun searchHybridWithEmbedding(
         spaceId: String?,
@@ -311,17 +332,27 @@ class MemoryRepository(
         val vectorIds = searchVectorIdsInternal(queryEmbedding, spaceId, fetchK)
         val graphIds = searchGraphIds(ftsIds, spaceId, fetchK)
         val candidateIds = (ftsIds + vectorIds + graphIds).toSet()
-        val candidates = if (candidateIds.isEmpty()) emptyList()
-        else chunkDao.getChunksByIds(candidateIds.toList()).filter { it.deletedAt == null }
+        val candidateRows = if (candidateIds.isEmpty()) emptyList()
+        else chunkDao.getChunksByIds(candidateIds.toList())
+        val candidates = MemorySpaceGate.filter(candidateRows, spaceId)
         val recentIds = MemoryRetrievalEngine.rankByRecency(candidates, now)
 
-        val fused = MemoryRetrievalEngine.rrfFuse(listOf(ftsIds, vectorIds, graphIds, recentIds))
-        val orderedIds = fused.take(limit).map { it.chunkId }
+        val fused = MemoryRetrievalEngine.rrfFuse(
+            listOf(
+                MemorySpaceGate.retain(ftsIds, candidateRows, spaceId),
+                MemorySpaceGate.retain(vectorIds, candidateRows, spaceId),
+                MemorySpaceGate.retain(graphIds, candidateRows, spaceId),
+                recentIds,
+            )
+        )
+        val orderedIds = MemorySpaceGate.retain(
+            fused.take(limit).map { it.chunkId },
+            candidateRows,
+            spaceId,
+        )
         orderedIds.forEach { chunkDao.touchHit(it, now) }
 
-        val hits = chunkDao.getChunksByIds(orderedIds)
-            .filter { it.deletedAt == null }
-            .associateBy { it.id }
+        val hits = candidates.associateBy { it.id }
         orderedIds.mapNotNull { hits[it]?.toModel() }
     }
 
@@ -423,3 +454,37 @@ internal fun MemoryChunkEntity.toModel(): AssistantMemory = AssistantMemory(
     // 存量单聊/助手记忆为 null，与库里的 NULL 一致。
     roleId = roleId,
 )
+
+/**
+ * C1-M 空间闸门（纯函数，无 DB 依赖，可 JVM 单测）。
+ *
+ * 契约：「记忆空间键固定 `group:<conversationId>:role:<roleId>`，首次发言懒创建；
+ * 不得回退到全局/助手空间」「检索结果再次经过 viewer 过滤」。检索是多路召回
+ * （FTS / 向量 / 图谱扩展）后再 RRF 融合，任何一路越界都会让别的空间的分块出现在
+ * 提示词里——所以闸门放在「候选 → 融合 → 返回」三处，每一处都用同一份判定。
+ */
+internal object MemorySpaceGate {
+
+    /** 单个分块是否属于该空间且未软删。`spaceId` 为 null = 不限空间（仅旧全库检索用）。 */
+    fun allows(chunk: MemoryChunkEntity, spaceId: String?): Boolean =
+        chunk.deletedAt == null && (spaceId == null || chunk.spaceId == spaceId)
+
+    fun filter(chunks: List<MemoryChunkEntity>, spaceId: String?): List<MemoryChunkEntity> =
+        chunks.filter { allows(it, spaceId) }
+
+    /**
+     * 按 [spaceId] 收紧一路召回的 id 列表，保持原顺序；查不到行的 id 一并丢掉
+     * （宁可少召回，不返回无法证明空间归属的结果）。
+     */
+    fun retain(ids: List<Int>, rows: List<MemoryChunkEntity>, spaceId: String?): List<Int> {
+        if (ids.isEmpty()) return emptyList()
+        val byId = rows.associateBy { it.id }
+        return ids.filter { id -> byId[id]?.let { allows(it, spaceId) } == true }
+    }
+
+    /** 契约路径要求非空空间键；空键直接失败，不退化成全库检索。 */
+    fun requireSpace(spaceId: String?): String {
+        require(!spaceId.isNullOrBlank()) { "记忆检索必须显式指定空间键（不得回退到全局/助手空间）" }
+        return spaceId
+    }
+}
