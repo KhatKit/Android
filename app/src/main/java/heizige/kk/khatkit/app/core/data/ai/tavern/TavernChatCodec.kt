@@ -6,6 +6,8 @@ import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
+import heizige.kk.khatkit.app.feature.chat.GroupSpeakerResolver
+import heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinator
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -69,9 +71,6 @@ object TavernChatCodec {
     const val FIELD_ROUND_ID = "round_id"
     const val FIELD_TURN_KIND = "turn_kind"
     const val FIELD_MENTION_ROLE_IDS = "mention_role_ids"
-
-    /** 合成节点（[GroupChat.SUMMARY_ID]）没有角色名，用与群聊页一致的显示名兜底。 */
-    private const val SUMMARY_DISPLAY_NAME = "多数决"
 
     fun import(raw: String): TavernChatDocument {
         val trimmed = raw.trim()
@@ -330,7 +329,8 @@ object TavernChatCodec {
     private fun roleDisplayNames(config: GroupConfig, cards: List<RoleCardMeta>): Map<String, String> =
         buildMap {
             config.roles.forEach { role ->
-                if (role.id.isNotBlank()) put(role.id, role.name.ifBlank { role.id })
+                // 角色名口径只有一份（与群聊页、气泡层同一个 displayNameOf）。
+                if (role.id.isNotBlank()) put(role.id, GroupTurnCoordinator.displayNameOf(config, role.id))
             }
             cards.forEach { card ->
                 if (card.roleId.isNotBlank()) putIfAbsent(card.roleId, card.name.ifBlank { card.roleId })
@@ -378,7 +378,9 @@ object TavernChatCodec {
         selected == null -> groupName
         selected.role == MessageRole.USER -> userName
         roleId == null -> groupName
-        roleId == GroupChat.SUMMARY_ID -> names[roleId] ?: SUMMARY_DISPLAY_NAME
+        // 合成节点（[GroupChat.SUMMARY_ID]）没有角色名，用与群聊页一致的显示名兜底：
+        // 唯一一份定义在 GroupSpeakerResolver.SUMMARY_DISPLAY_NAME。
+        roleId == GroupChat.SUMMARY_ID -> names[roleId] ?: GroupSpeakerResolver.SUMMARY_DISPLAY_NAME
         else -> names[roleId] ?: roleId
     }
 

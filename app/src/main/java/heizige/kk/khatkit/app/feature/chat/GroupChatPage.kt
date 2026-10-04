@@ -213,8 +213,13 @@ fun GroupChatPage(id: Uuid, vm: GroupChatViewModel = hiltViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(conversation.currentMessages, key = { it.id.toString() }) { message ->
-                    val who = config?.roles?.firstOrNull { it.id == message.roleId }?.name
-                        ?: if (message.roleId == GroupChat.SUMMARY_ID) "多数决" else message.role.name
+                    // 显示名口径只有一份：真实角色走 displayNameOf，群小结走
+                    // GroupSpeakerResolver.SUMMARY_DISPLAY_NAME，都不再在页面上另写一遍。
+                    val who = when (val speaker = GroupSpeakerResolver.resolve(message, config)) {
+                        is GroupSpeakerIdentity.Group -> speaker.displayName
+                        // 群里没盖角色戳的消息（用户自己那条）退回角色名
+                        GroupSpeakerIdentity.NotGroup -> message.role.name
+                    }
                     Text(who, style = KedgeTextStyles.footnoteSmall(), fontWeight = FontWeight.SemiBold)
                     Text(message.toText().ifBlank { "…" }, style = KedgeTextStyles.body())
                 }
