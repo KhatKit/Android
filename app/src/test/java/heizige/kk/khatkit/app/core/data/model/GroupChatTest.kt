@@ -102,6 +102,119 @@ class GroupChatTest {
         assertEquals(setOf("甲", "乙"), tied.candidates.toSet())
     }
 
+    /**
+     * `parseCandidates` 的直接 JVM 覆盖。此前所有投票用例都显式给 `config.voteCandidates`，
+     * 这条正则分支（`newRound` 里 `voteCandidates.ifEmpty { parseCandidates(userText) }`）
+     * 从没被直接测过。
+     */
+    @Test
+    fun `candidate declaration is parsed from the explicit forms only`() {
+        // 正常形态：中文半角/全角冒号、逗号/顿号/竖线分隔、去空白、去 Markdown 修饰。
+        assertEquals(listOf("a", "b", "c"), GroupChat.parseCandidates("候选：a,b,c"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选:a，b"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选项：a|b"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("  候选 ：  a 、  b  "))
+        // 重复项去重。
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：a,b,a"))
+
+        // 英文形态与大小写：`(?i)` 让 `candidates` / `Candidate` 同样算数（`CANDIDATES?` 的
+        // `?` 只容许末尾一个 S，所以单数 `Candidate` 也算数、复数再多个 S 就不算）。
+        assertEquals(listOf("a", "b", "c"), GroupChat.parseCandidates("CANDIDATES: a|b|c"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("candidates: a, b"))
+        assertEquals(listOf("a"), GroupChat.parseCandidates("Candidate: a"))
+
+        // 空文本 / 纯空白 → 空候选集（`collectBallots` 见到空候选集直接不收票）。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates(""))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("   \n  \t "))
+
+        // 格式错误：缺冒号、只有关键字没值、值全是分隔符。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选："))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选：   "))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选：,,,|、、"))
+        // `CANDIDATES?` 的 `?` 只容许末尾一个 S，所以 `CANDIDATESS` 不算数。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("CANDIDATESS: a"))
+        // 缺冒号的一行不算声明（冒号是必需的）。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选 a,b"))
+    }
+
+    /**
+     * `parseCandidates` 的 Markdown 修饰清理是**字符集 trim**，不是「剥一层前缀」：
+     * `trim('-', '*', '"')` 遇到空格就停，所以 `候选：- **a**` 清理不掉开头的 `- `，
+     * 留下 `" **a"` 这种带前导空格和残缺星号的候选 id。
+     *
+     * 不是注入面（候选 id 还是得对得上 `VOTE:` 行才能成票），但会让「按 markdown 列表声明
+     * 候选」这条路走不通——`a` 和 `" **a"` 对不上，声明的候选和模型吐的票永远配不上。
+     * 本轮只钉现状，不改行为。
+     */
+    @Test
+    fun `markdown prefixed candidates are only trimmed when no space follows the marker`() {
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：-a , b"))
+        assertEquals(listOf("a"), GroupChat.parseCandidates("候选：*a*"))
+        // 逐字钉住上面那个不一致：`- ` 后面的空格让 trim 提前收工。
+        assertEquals(listOf(" **a"), GroupChat.parseCandidates("候选：- **a**"))
+    }
+
+    /**
+     * **已知注入面：核实成立，本轮未修**（改 `parseCandidates` 需要先经确认）。
+     *
+     * `parseCandidates` 的正则是 `(?im)^\s*(?:候选|候选项|CANDIDATES?)\s*[:：]\s*(.+)$`。
+     * `m` 标志让 `^` / `$` **逐行**匹配，所以正文**任意一行**只要以（可空白前缀的）`候选：`
+     * 开头就会被当成候选声明，而不只是「整段文本的第一行」。已用真实实现实证：
+     * 断言空候选集时实际拿到 `[evil-a, evil-b]`。
+     *
+     * 但要按真实信任边界读：`newRound` 的 `userText` 只来自 `roundPlanFor` 取的
+     * **最后一条 USER 消息**（`messages.lastOrNull { it.role == MessageRole.USER }`），
+     * 模型正文根本到不了这里。所以只有用户自己能定义候选集——而他本来就能在第一行直接写
+     * `候选：…` 达成同样效果，**不存在越权提升**，只是比文档注释「显式声明」宽松。
+     *
+     * 修法若要做，正确口径是让 `^` 只锚定首行（去掉 `m`，或改用 `\A`），而不是加
+     * 「排除代码块」之类的启发式。本轮按纪律只钉现状。
+     */
+    @Test
+    fun `a candidate declaration on any line is taken as the candidate set`() {
+        assertEquals(
+            "已知注入面：`(?im)` 的 m 让 ^ 逐行匹配，正文中段的一行也会被当声明",
+            listOf("evil-a", "evil-b"),
+            GroupChat.parseCandidates("这是正文第一行\n候选：evil-a,evil-b\n这是正文最后一行"),
+        )
+        // 反面：行内（非行首）出现不算声明——`^` 是逐行行首，不是任意位置。
+        assertEquals(
+            emptyList<String>(),
+            GroupChat.parseCandidates("译注：原文提到“候选：red”"),
+        )
+    }
+
+    /**
+     * **已知假阳性，本轮只钉现状、不改行为。**
+     *
+     * `parseBallot` 不感知 markdown fence，也不感知引用：代码块里独占一行的示例 `VOTE: opt-a`
+     * 会被当成真票。契约没有要求区分代码块，修它要先定义一整套 markdown 感知规则
+     * （fence 配对、行内引用、缩进代码块…），所以这里只把现状钉住。
+     */
+    @Test
+    fun `a vote line inside a code fence is still counted as a ballot`() {
+        val candidates = listOf("opt-a", "opt-b")
+        val fenced = """
+            这是示例格式，请照抄：
+            ```text
+            VOTE: opt-a
+            ```
+            我选 opt-b。
+        """.trimIndent()
+
+        // 已知假阳性：fence 里的示例行被当真票。
+        assertEquals("opt-a", GroupChat.parseBallot(fenced, "alice", candidates)?.candidateId)
+        // 更糟的形状：模型**后文里真的投了** opt-b，但 fence 里的示例行排在前面，
+        // `firstOrNull` 取的是第一条，于是真票被示例行顶替。
+        assertEquals(
+            "opt-a",
+            GroupChat.parseBallot("示例：\n```text\nVOTE: opt-a\n```\nVOTE: opt-b", "alice", candidates)?.candidateId,
+        )
+        // 顺带钉住另一个相邻事实：`startsWith` 是整行前缀匹配，行内出现不算票。
+        assertNull(GroupChat.parseBallot("我选 VOTE: opt-b", "alice", candidates))
+    }
+
     @Test
     fun `budget stops later speakers and keeps earlier output`() {
         val remaining = listOf("c")
