@@ -1656,6 +1656,198 @@ C1-04（vote）要的**议长视角可见集合**因此仍然零份。
 6. **C1-10 的 UI 那半仍然是零证据。** 真机接上了不等于抽屉筛选录屏跑过了；
    `PagingSource` 并发失效 / 快照一致性 / 回滚一条没验。
 
+### C1 真机证据采集第二轮（2026-10-05，真实 HTTP：模型调用序列 + token 计数）
+
+登记于 commit `47693445` / `858c11d0` / `bff7b0c6` / `a9d2077e`
+（详见「锚点之后的后续提交」小节）。**这一节同样不改变任何用例的判定**：
+上一节那四类产物**四类都有了真机内容**，但 §⑦ 列的 5 项仍然缺，
+所以**十例仍全 `unverified`，0/10 不变**。
+
+⚠️ **四类全有内容 ≠ 契约达成，也 ≠ 十例验证矩阵完整。** 「每一列都填上了东西」和
+「这一行该判通过」是两件事——契约判定的是**每行**是否同时具备命令退出码、可见消息
+集合、调用序列与哈希，而且实测值必须来自真实链路。本节提供的是**列的填充**，
+不是**行的通过**。
+
+#### 怎么绕开「设备上没有 API key」：真 provider 代码路径 + 真实 HTTP
+
+上一节记的根因是「设备上没有配 API key，所以 `:206` 第三、四类**在原理上就采不到**」。
+这一轮绕开了它，**没改生产代码、没加测试专用后门**：往生产单例 `SettingsRepository`
+里装一个 **base URL 指向 `http://127.0.0.1:8765/v1` 的自定义 OpenAI 兼容 provider**，
+设备侧用 `adb reverse tcp:8765 tcp:8765` 把它打到开发机上的 mock 服务。于是走的是
+**完整的生产调用链**：
+
+```
+ChatManager.sendMessage
+  → GenerationLoop
+  → ProviderManager
+  → OpenAIProvider
+  → ChatCompletionsAPI.streamText      （真的构造 OpenAI wire body）
+  → Ktor CIO OkHttpClient             （真的发 TCP 到 127.0.0.1:8765）
+```
+
+实测抓到的请求特征（**这些是 Ktor 客户端自己发的，不是测试伪装的**）：
+`User-Agent: ktor-client`、`accept: text/event-stream`、
+`stream_options.include_usage: true`，**三个请求全是 `stream=true`**。
+
+| 项 | 实测值 |
+|---|---|
+| 新增仪器测试类 | `app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（**865 行 / 3 个用例**，`47693445`） |
+| mock 服务地址 | `http://127.0.0.1:8765/v1`（`chatCompletionsPath = /chat/completions`） |
+| 设备→主机通道 | `adb reverse tcp:8765 tcp:8765` |
+| 绑定模型（wire 串） | `mock-model-a` / `mock-model-b` / `mock-model-c`，一对一绑到角色 `a` / `b` / `c` |
+| 角色暗号 | 每个角色的 system prompt 里埋 `CASE:<case> ROLECODE:<code>`（`A`/`B`/`C`） |
+| 旁证落点 | mock 服务在**开发机侧**把每个请求的完整 body 原样落盘 `requests.jsonl` |
+| JSON 证据文件 | `c1-live-evidence-main.json` / `c1-live-evidence-budget.json`，`evidence_kind` = **`real-http-capture-via-adb-reverse`** |
+
+⚠️ **为什么 mock 侧那份记录算第三方旁证**：它由**开发机上的 mock 服务**写，
+**与应用代码无关**——被测代码无法伪造它，也无法阻止它记录。所以「某个角色实际收到了
+什么」这件事有了一份**独立于 app 的记录**，这比只看库里的消息 ID 强得多，也是视角隔离
+最硬的形式。**上一轮那种「`token_source` / `model_sequence_source` 自己写着
+`no live LLM call`」的情况，这一轮两份 JSON 都换成了 `real-http-capture-via-adb-reverse`。**
+
+#### 契约点名的「实际模型调用序列」（第三类产物，第一次有真实 HTTP 记录）
+
+| seq | model | case | speaker | msgs 条数 | prompt | completion | 出现的 ROLECODE |
+|---|---|---|---|---:|---:|---:|---|
+| 1 | `mock-model-a` | main | A | 2 | **201** | 34 | `A` |
+| 2 | `mock-model-b` | main | B | 3 | **235** | 34 | `B`, **`A`** |
+| 3 | `mock-model-c` | main | C | 3 | **235** | 34 | `C`, **`B`** |
+| 4 | `mock-model-a` | budget | A | 2 | **201** | 35 | `A` |
+
+**契约要的「实际模型调用序列」= `mock-model-a` → `mock-model-b` → `mock-model-c`**，
+与 `bindings` 里声明的 wire 字符串**逐字一致**（不是「测试里写的顺序」，是**真的发出去的
+四个请求**）。`round_id` =
+`round-7098bf9e-4bcb-41f2-a0e7-e05d0395fcc9`，
+`assistant_role_order = ["a","b","c"]`。
+
+pipeline 下每个角色**恰好只多看到「上一位的输出」**，在**请求层**就成立：
+
+| viewer | 真实收到的消息 ID（角色） |
+|---|---|
+| `a` | `7098bf9e…`(user)、`cc3d451c…`(a) |
+| `b` | `7098bf9e…`(user)、`cc3d451c…`(a)、`1f69a5bc…`(b) |
+| `c` | `7098bf9e…`(user)、`1f69a5bc…`(b)、`49e3ffcb…`(c) |
+
+#### ⚠️⚠️ 逐请求视角隔离审计（契约 `:200` 最硬的证据形式）
+
+**这是「真实网络层」的判定，不只是 `buildContext` 的纯函数判定**——审计对象是
+**真的发到 TCP 上的请求 body**：
+
+- **`a`（seq1）**：只有自己的 system prompt（`ROLECODE:A`）+ 用户那条。
+  **没有 b、没有 c。**
+- **`b`（seq2）**：自己的 system（`ROLECODE:B`）+ 用户 + **一条 assistant 带
+  `ROLECODE:A`**（a 的输出）。**没有 `ROLECODE:C`。**
+- **`c`（seq3）**：自己的 system（`ROLECODE:C`）+ 用户 + **一条 assistant 带
+  `ROLECODE:B`**（b 的输出）。**没有 `ROLECODE:A`。**
+- **budget 轮（seq4）**：只有 a，符合 `limit=1` 截断。
+
+**结论：pipeline「只串联上一位」这条契约在真实 HTTP 层成立，不只在 `buildContext`
+的单元判定上成立。** ⚠️ 注意「只多看到上一位」与「看得见自己那条」不矛盾——
+`GroupChat.visibleMessages` 有一条 `message.roleId == viewerId -> true` 的放行分支，
+所以每个 viewer 的请求里**必然有自己那条**，那**不是越权**。
+
+#### 契约点名的「prompt+completion token」（第四类产物，第一次有真实 usage）
+
+**真实 usage 数字，且与落库 `group_runs.spent_tokens` 对账相等**：
+
+| 轮 | 各请求 (prompt+completion) | 合计 | 落库 `group_runs.spent_tokens` | 是否相等 |
+|---|---|---:|---:|---|
+| main（pipeline，3 角色全跑完） | 235 + 269 + 269 | **773** | **773** | ✅ 逐条相等 |
+| budget（`token_limit=1`） | 236 | **236** | **236** | ✅ |
+
+main 轮 `group_run` 落库字段：`status=COMPLETED`、`spent_tokens=773`、
+`token_limit=100000`、`committed_role_ids=["a","b","c"]`、`skipped_role_ids=[]`、
+`reason=""`、`endedAt` 非空（已收尾）。
+budget 轮 `group_run` 落库字段：`status=BUDGET_STOPPED`、`spent_tokens=236`、
+`token_limit=1`、`reason=token_budget_exceeded`、`skipped_role_ids=["b","c"]`、
+`committed_role_ids=["a"]`。
+
+**口径说明**：预算是 **prompt + completion 累计**（`GroupTurnCoordinator.usageOf`），
+**不是** `TokenUsage.totalTokens`，也不是「最后一条消息的用量」——测试里那条
+`sumOf { promptTokens + completionTokens }` 与 `run.spentTokens` 的等值断言就是钉这个的。
+
+⚠️ **mock 的 usage 是 `ceil(bytes/4)`，这是估算不是真 tokenizer 的结果。** 但
+**原始字节数也一起落盘，可手算复核**——所以「201」「235」这些数不是凭空来的。
+⚠️ 另外 seq1 那个请求 `Content-Length: 24786`（**绝大部分是 tools 定义**），
+但 prompt token 只有 **201**——这个差值本身就是「**tools 定义占了绝大部分请求体，
+但 token 计数远小于字节数**」的证据。
+
+#### ⚠️⚠️ 诚实边界（三条，必须连着上面的数字一起读）
+
+1. **mock 不是真实模型。** 这一轮拿到的证据等级是「**真实 provider 代码路径 +
+   真实 HTTP 请求 + 真实 SSE 流 + 真实 usage 报文**」，**不是**「真实 LLM 推理」。
+   `usage` 是 mock 按字节数算的估算值。**别把它读成「已在真实模型上验过」。**
+2. **roundtable / vote 没有真实 LLM 调用记录。** 只有**夹具层**的 viewer 台账；
+   议长 `chairRound=true` 的**实际 prompt 组装**、vote 的 **`parseBallot →
+   __summary__` 分支**，**仍无任何真机 HTTP 记录**——mock 目前返回 `[mock] CASE:…`
+   文本，`parseBallot` **认不出 `VOTE:` 前缀**，所以投票分支根本没被真实调用过。
+3. **本节采的是 pipeline 一种 mode 的真实链路。** 上一节那个「三种 mode 各采一遍」的
+   扩展（`a9d2077e`）是**夹具层**的 viewer 台账扩展，**不是**真实 HTTP 扩展。
+
+#### ⚠️⚠️⚠️ 敏感项：两处新测试断言修正（定性为**测试代码自身缺陷**）
+
+这两处和上一节那三处是**同一类**：**测试自己写错了，生产代码是对的**。
+⚠️ 但**性质更敏感**——上一节三处改的是 fixture 字段与硬编码串，这两处**改的是断言本体**，
+所以逐条交代「改前 / 改后 / 为什么原断言错」。
+
+**A. `C1LiveModelSequenceTest` 的视角隔离断言（`bff7b0c6`）——断言口径漏了「自己」**
+
+- **改前**：`assertTrue(seenByA.isEmpty())` —— 断言角色 a **看不到任何**他人发言，
+  但写成了「**看不到任何发言**」。
+- **改后**：`assertTrue(seenByA.all { it == "a" })` —— 断言 a 看到的**全部**发言
+  **都来自 a 自己**。
+- **原因**：`GroupChat.visibleMessages` 有一条 `message.roleId == viewerId -> true`
+  的放行分支，所以 a **本来就该看得见自己那条发言**（实测 a 的可见集合是 `[a]`
+  而不是 `[]`，真机首跑就炸在这里）。**原断言把「不越权」写成了「看不到任何发言」，
+  是断言口径漏了「自己」，不是行为有问题。**
+- ⚠️ **判定依据不是测试自己的说法**：mock 侧独立记录的 **seq=1** 请求里**只有
+  system + user 两条消息、零个他人输出**——mock 与被测代码**互相独立**，这条旁证证明
+  **行为本来就是正确的**。改动后语义变成**真正的越权判定**（不是放宽，是修正判据）：
+  把自己那条排除掉反而**才是**越权。
+- **断言强度**：改后**更严**。`isEmpty()` 对「多出一条 a 自己的」会误报，
+  `all { it == "a" }` 则**同时**拒掉「出现 b」和「出现 c」，并且仍然拒掉空可见集合
+  之外的一切异常项。**没有改成 `containsAny` 或任何弱化形式。**
+
+**B. `C1DeviceEvidenceTest` 读回 JSON 的三处类型断言（`a9d2077e`）**
+
+- **缺陷**：读回来的是 `JsonElement`（`JsonLiteral` / `JsonNull`），
+  **不能直接和 Kotlin 的 `Boolean` / `null` 比较**。三处断言因此写错。
+- **改法**：`JsonNull` 用 `JsonNull` 比、`true/false` 用 `JsonPrimitive(true)` /
+  `JsonPrimitive(false)` 比、`String?` 用 `JsonPrimitive("a")` 比。三处分别是：
+  1. roundtable 议长必须落在 `chairRound=true` 的发言位 →
+     `assertEquals(JsonPrimitive(true), (roundtableSteps["role_c"] as JsonObject)["chair_round"])`
+  2. vote 模式各角色的 `predecessor_id` 必须是 `JsonNull`（因为 `put("predecessor_id", null)`
+     写成**显式 null**，读回来是 `JsonNull` 而**不是缺失键**）
+  3. pipeline 里 b 的 `predecessor_id` 必须是 `JsonPrimitive("a")`、a 的必须是 `JsonNull`
+- ⚠️ **同一笔还加了防「抄三遍」的断言**：`assertEquals(3, (reparsedObject["viewer_ledger_by_mode"]
+  as JsonObject).size)` 之外，逐 mode 断言发言位形状**真的不同**（pipeline 有
+  `predecessorId`、roundtable 议长 `chairRound=true`、vote 两者都 null）——
+  **否则「三种 mode 各采一遍」只是把同一份结果抄三遍，测试照样绿。** 这一条把
+  「各采一遍」从声明变成了**可判定的断言**。
+
+**C. ⚠️ 更早的一处修正（`47693445`，上一轮）：`openGroupSession()` 让群配置丢失当场炸**
+
+- **根因**：测试装载群会话时**没走 `openGroupSession()`**，导致**群配置丢失**，
+  整轮**退化成单聊**。**这是「测试自己写错导致证据退化成另一种东西」的根因**——
+  如果不修，后面所有「pipeline 三角色依次发言」的断言都是在**单聊**上通过的，
+  **那份证据整个不成立**。
+- ⚠️ **所以这一条必须登记**：它不是「断言放宽」，是「**证据差点采成了别的形状**」。
+  凡是「跑出来的结果和契约要的不一样」的测试修正，都要按这个规格登记。
+
+#### ⚠️⚠️⚠️ 仍然缺的（如实写「缺」，不许粉饰）
+
+| # | 缺什么 | 到哪一步了 |
+|---|---|---|
+| 1 | **roundtable / vote 的真实 LLM 调用记录** | 只有**夹具层** viewer 台账（三 mode 各 6 对审计全过），**真实 HTTP 零份**。议长 `chairRound=true` 的实际 prompt 组装、vote 的 `parseBallot → __summary__` 分支都没有请求记录——mock 返回 `[mock] CASE:…`，`parseBallot` 认不出 `VOTE:` 前缀 |
+| 2 | **酒馆（SillyTavern）本体打开群聊导出文件** | **零证据**。SillyTavern 侧只有零设备的结构对照（AGPL 边界下只借鉴名单顺序与整词 `@`） |
+| 3 | **真机 UI 端到端** | **零证据**。群聊页整页渲染、抽屉筛选 chip 来回切换、成员头像组点击插话、@ 弹窗、扫码弹层——**一行 Compose 没上过屏** |
+| 4 | **相机扫码真机链路** | `QrScannerSheet` **编译过 + 16 条 JVM 单测**，但 **CameraX + MLKit 没在设备上跑过** |
+| 5 | **`BrowserRuntimeTest` 的 Coil 单例崩溃** | **未修**，全量 56 条仪器测试**跑不完**，**稳定复现**（`RouteActivity.kt:202` 的 `setSingletonImageLoaderFactory`，来自 `b5c5ebcb`，**与 C1 无关**）。已用**类过滤**覆盖 **28 条** |
+
+⚠️ **第 3、4 项是 C1-09 与 C1-10 的实质缺口**，不是「锦上添花」：
+C1-09 的「Tavern/QR 往返」缺的正是第 2、4 项，C1-10 的「切换后消息与会话数据不丢」
+缺的正是第 3 项。**所以这两行尤其不能改成通过。**
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
