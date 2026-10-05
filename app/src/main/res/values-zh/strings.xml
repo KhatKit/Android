@@ -1011,7 +1011,6 @@
   <string name="setting_tts_page_voice_name">语音名称</string>
   <string name="setting_tts_page_voice_name_placeholder">Kore</string>
   <string name="settings">设置</string>
-  
   <string name="share">分享</string>
   <string name="share_handler_page_title">选择一个助手处理分享</string>
   <string name="shortcut_take_picture">拍照提问</string>
