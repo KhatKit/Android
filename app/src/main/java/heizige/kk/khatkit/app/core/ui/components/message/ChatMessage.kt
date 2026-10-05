@@ -132,10 +132,21 @@ fun ChatMessage(
     /** [speakerBadge] 是否是错误节点——错误徽章染成 error 色，一眼能挑出来。 */
     speakerBadgeIsError: Boolean = false,
     /**
-     * 群聊会话。true 时关掉「重新生成 / 删除 / 创建分支」：这三个回调打到
-     * `ChatManager.regenerateAtMessage` / `deleteMessage` / `forkConversationAtMessage`，
-     * 都不是群聊感知的，会让群运行日志的账面和实际轮次错位。判定口径由调用方用
+     * 群聊会话。true 时关掉「重新生成 / 删除 / 创建分支」。判定口径由调用方用
      * `isGroupConversation(conversation)` 给出，不在这里另立一套。
+     *
+     * 前两个（`ChatManager.regenerateAtMessage` / `deleteMessage`）不群聊感知，会让群运行日志
+     * 的账面和实际轮次错位：顶掉或删掉一条角色发言后，运行日志里那一轮仍声称该角色已提交，
+     * 续跑就会跳过没人再发言的角色。
+     *
+     * 「创建分支」（`forkConversationAtMessage`）的**理由不一样**，别顺着上一句一起理解。
+     * fork 对源会话只读——`createForkConversation` 造出新 id 后只 `saveConversation(新 id)`，
+     * 一个字都不回写源会话，它**破坏不了群运行日志的账面**。真实问题是静默换会话类型：
+     * `createForkConversation` 既不复制 `group_config` 也不复制 `type`，产物是一条把群聊
+     * 内容摊平的**单聊**会话（角色名、议长小结、轮次账目全丢），而调用点只拿到新会话 id
+     * 就直接 `navigateToChatPage` 跳过去，界面没有任何提示说明「这不是群聊分支」。
+     * HTTP 侧那道门禁拒的是同一件事、用同一句口径，见
+     * `GroupConversationOperationGuard.ConversationOperation.Fork`。
      */
     groupChat: Boolean = false,
 ) {
