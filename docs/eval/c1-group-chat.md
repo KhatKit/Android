@@ -1412,7 +1412,7 @@ APK 字节数见「三个 APK」段的本轮记录（**不要用 SHA-256 做对�
 | 分辨率 | Physical **1264x2780**，Override **1080x2376** |
 | density | Physical **560**，Override **480** |
 | fingerprint | `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys` |
-| adb 连接 | `192.168.31.183:38493`（**无线调试**） |
+| adb 连接 | `192.168.31.183:<port>`（**无线调试**）⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493` / `37957` / `40879` / `46888`；**必须用 `adb mdns services` 找当前端口**，别照抄任何一次记下来的端口 |
 | 被测 app | `heizige.kk.khatkit.debug`，`versionName 2.5.5` / `versionCode 190`，launcher Activity 是 `RouteActivity` |
 | 生产库 | `rikka_hub`，`PRAGMA user_version = 32`，`PRAGMA integrity_check = ok`，`ConversationEntity.group_cards = TEXT NOT NULL DEFAULT ''` |
 | 证据采集用库 | `c1-device-evidence.db`（**独立库名，生产同一个 `AppDatabaseFactory.create(...)`**，同套 SQLite 扩展、同一个 `onOpen`、同一 schema v32；不碰 `rikka_hub`、不碰用户数据，测试结束删掉自己那个库） |
@@ -1454,12 +1454,13 @@ APK 字节数见「三个 APK」段的本轮记录（**不要用 SHA-256 做对�
 「让第 2 个角色失败后重试同一 `round_id`，贴库内 `committed_role_ids` 与实际消息条数
 对得上」那条真机交互**没做**。
 
-#### ⚠️⚠️ 踩坑：无线调试开着时 adb mDNS 会把同一台设备自动注册两条
+#### ⚠️⚠️ 踩坑一：无线调试开着时 adb mDNS 会把同一台设备自动注册两条
 
-**症状（这一条是本轮最大的假失败来源）**：无线调试开着时，adb 的 mDNS 发现会把**同一台
-物理设备自动注册成两条 serial**——一条是 IP 形式 `192.168.31.183:38493`，另一条是
-`adb-3B6F5ME910B6H059-Sqr0AX._adb-tls-connect._tcp`。AGP 拿到两个 serial 就**对每个各跑
-一遍**安装 / 卸载 / 启动，两边互相踩。实测报错组合：
+⚠️ **这不是 OEM 兼容性问题，是同一台机器被登记了两次。** 无线调试开着时，adb 的
+mDNS 发现会把**同一台物理设备自动注册成两条 serial**——一条是 IP 形式
+`192.168.31.183:<port>`，另一条是 `adb-3B6F5ME910B6H059-Sqr0AX._adb-tls-connect._tcp`。
+AGP 拿到两个 serial 就**对每个各跑一遍**安装 / 卸载 / 启动，两边**互相踩**。
+实测报错组合：
 
 ```
 [Failure [DELETE_FAILED_INTERNAL_ERROR]]
@@ -1474,8 +1475,30 @@ Test run failed to complete. Unable to find instrumentation target package: heiz
 **处置**：`adb disconnect` 掉 mDNS 那条，只留一条；或用环境变量 `ANDROID_SERIAL`
 把 serial 钉死。**跑之前必须 `adb devices -l` 确认只有一条**——不看就开跑，
 你会花好几轮去追一个根本不是代码问题的失败。
+⚠️ 找当前端口用 `adb mdns services`（端口每次开无线调试都会变）。
 
 ⚠️ 别把它读成「测试挂了」：同一份代码在只剩一条 serial 时是 `BUILD SUCCESSFUL in 33s`。
+⚠️ 也别把它读成「这台 OnePlus 兼容性差」——**它跟 OEM 无关**，换成任何一台开无线调试
+的机器都会复现。
+
+#### ⚠️⚠️⚠️ 踩坑二：`./gradlew connectedAndroidTest` 跑完会**把 app 卸载掉**
+
+**这一条会直接毁掉证据文件。** 产物写在
+`/storage/emulated/0/Android/data/heizige.kk.khatkit.debug/files/`，
+而 `connectedAndroidTest` 结束时 AGP 会**卸载 app**——**外置目录里的证据文件一起被删掉**。
+`pull` 没来得及跑就什么都没了，而且**看起来像「测试没写出文件」**。
+
+**所以采证据必须绕开 `connectedAndroidTest` 的收尾流程**：
+
+```
+adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb install -r -t app/build/outputs/apk/debug/app-debug.apk
+adb shell am instrument -w -e class <FQN> heizige.kk.khatkit.debug.test/androidx.test.runner.AndroidJUnitRunner
+adb pull /storage/emulated/0/Android/data/heizige.kk.khatkit.debug/files/<name>
+```
+
+⚠️ **手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull`。** 顺序不能反：
+先 pull 再让任何会触发卸载的东西跑。
 
 #### ⚠️⚠️⚠️ 敏感项：三处测试缺陷修复（**定性为测试代码自身缺陷，不是生产代码 bug**）
 
