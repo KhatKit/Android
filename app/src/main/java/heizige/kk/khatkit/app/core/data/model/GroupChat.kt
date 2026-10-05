@@ -520,6 +520,176 @@ object GroupChat {
         }
     }
 
+    // ---------------- 导入筛查（恢复路径） ----------------
+
+    /**
+     * 恢复路径上的一条修正记录。`field` 用契约 snake_case 键；`original` / `corrected`
+     * 保留**改前改后的字面值**，调用方要能把原值显式展示给用户——悄悄改掉一个用户看得
+     * 见的字段而只留一句「已修正」，等于把改写伪装成无损。
+     */
+    data class GroupConfigFix(
+        val field: String,
+        val message: String,
+        val original: String,
+        val corrected: String,
+    )
+
+    /**
+     * 导入筛查（去重/校验）的结论。
+     *
+     * **两条硬不变式**（都有测试钉死，见 `GroupImportScreeningTest`）：
+     * 1. [Accepted.config] 与 [Normalized.config] 都**必然通过 [validate]**——「降级」只可能
+     *    把非法配置改成合法配置，绝不可能放行一份保存路径会拒绝的配置。
+     * 2. [Normalized] 与 [Accepted] 之外没有第三条路：想不清楚的一律 [Rejected]。
+     */
+    sealed interface GroupConfigScreening {
+        /** 原样通过 [validate]，`config` 就是文件里的那一份，未被改写。 */
+        data class Accepted(val config: GroupConfig) : GroupConfigScreening
+
+        /** 结构性不合法：`fieldErrors` 是字段级明细，调用方必须拒绝落库。 */
+        data class Rejected(val fieldErrors: List<GroupConfigError>) : GroupConfigScreening
+
+        /** 越界但可归一化：`config` 是归一化后的那一份（已过 [validate]），`fixes` 是修正项。 */
+        data class Normalized(val config: GroupConfig, val fixes: List<GroupConfigFix>) : GroupConfigScreening
+    }
+
+    /** 去重后的角色卡与去重记录。 */
+    data class CardDedupResult(
+        val cards: List<RoleCardMeta>,
+        val fixes: List<GroupConfigFix>,
+    )
+
+    /**
+     * 只有这两个字段允许**归一化**，因为它们各自在本文件里已经有一个**确定无疑**的合法缺省值：
+     * [decodeConfigObject] 把缺失的 `revision` 读成 [DEFAULT_REVISION]、把缺失/未知的
+     * `tie_policy` 读成 [TIE_FAIL]，契约也把 `fail` 定为平票默认。归一化到「读的时候本来会给的
+     * 值」不引入任何新信息，因此安全。
+     *
+     * 其余字段一律拒绝，理由逐条写在 [screenImportedConfig] 的 KDoc 里。
+     */
+    private val IMPORT_NORMALIZABLE_FIELDS = setOf("revision", "tie_policy")
+
+    /** `revision` 的合法缺省值，与 [decodeConfigObject] 里 `?: 1` 同一口径。 */
+    const val DEFAULT_REVISION = 1
+
+    /**
+     * 导入筛查：`validate` 的 13 条可达校验（`conversationId` 为 null 时记忆空间键那条不可达）
+     * 逐条分流成「归一化」与「拒绝」。这是**纯函数**，不碰 IO，可直接单测。
+     *
+     * ## 为什么不统一降级
+     *
+     * 「降级」只在能**不臆造信息**的前提下成立。逐条理由：
+     *
+     * - `schema_version` 未知 → **拒绝**。版本闸门在本文件里有明文约束（[schemaVersionErrors]
+     *   「不允许两套判断各判一次——否则迟早出现『保存拦住了、导入却放行』的漂移」），
+     *   [importShare] 第 3 道闸门也是拒收。在这里把它改写成 1 正是制造那条漂移，且等于对
+     *   高版本字段**盲解**：契约写的是「读取未知版本按兼容字段保留策略处理，不静默丢弃」。
+     * - `mode` 未知 → **拒绝**。pipeline / roundtable / vote 的路由语义完全不同，默认成
+     *   pipeline 会静默丢掉 `vote_candidates`，用户看不出自己导入的群被换了玩法。
+     * - `token_budget_per_round` 越界 → **拒绝**。契约两处写死「预算为 0、负数或超过宿主上限
+     *   时配置保存失败」，且**不存在**安全的缺省值：夹到 1 会让群聊基本发不出话，夹到上限
+     *   是一次成本事故。悄悄换掉用户看不见的预算，比拒绝更糟。
+     * - `chair_role_id` 缺失/不在成员里 → **拒绝**。补一个议长要臆造身份，清空则 roundtable
+     *   直接失去汇总者，两条都是静默改语义。
+     * - `assistant_id` 为空 → **拒绝**。引用缺失没有缺省助手可填。
+     * - `role_id` 重复 / 占用 [SUMMARY_ID] / `roles` 为空 → **拒绝**。去重会**丢掉一个成员**
+     *   （用户导入 3 人群静默变 2 人），SUMMARY_ID 则是视角隔离的保留值，改掉它必须连带
+     *   重写每条消息的 `role_id` 与记忆空间键。这类问题必须让用户看见，不许悄悄吞掉。
+     *
+     * 归一化完成后**再跑一遍 [validate]**（`residual`）：仍有错就退回 [Rejected]。这条兜底让
+     * 「降级不放行保存路径会拒绝的东西」成为结构性保证，而不只是一条测试。
+     *
+     * 注意：本函数**不改** [importShare] 的行为——分享/扫码那条生产路径仍然对上述任何一条
+     * 直接拒收，本函数只服务群聊文件恢复路径。
+     */
+    fun screenImportedConfig(config: GroupConfig): GroupConfigScreening {
+        val errors = validate(config)
+        if (errors.isEmpty()) return GroupConfigScreening.Accepted(config)
+        if (errors.any { it.field !in IMPORT_NORMALIZABLE_FIELDS }) {
+            return GroupConfigScreening.Rejected(errors)
+        }
+        val normalized = config.copy(
+            revision = if (errors.any { it.field == "revision" }) DEFAULT_REVISION else config.revision,
+            tiePolicy = if (errors.any { it.field == "tie_policy" }) TIE_FAIL else config.tiePolicy,
+        )
+        val fixes = buildList {
+            if (normalized.revision != config.revision) {
+                add(
+                    GroupConfigFix(
+                        "revision",
+                        "revision 不是正整数，已归一化为 ${normalized.revision}",
+                        config.revision.toString(),
+                        normalized.revision.toString(),
+                    )
+                )
+            }
+            if (normalized.tiePolicy != config.tiePolicy) {
+                add(
+                    GroupConfigFix(
+                        "tie_policy",
+                        "未知平票策略，已归一化为 $TIE_FAIL（契约默认）",
+                        config.tiePolicy,
+                        normalized.tiePolicy,
+                    )
+                )
+            }
+        }
+        // 兜底：归一化后仍不合法就退回拒绝。降级只允许把非法变成合法，不允许反向。
+        if (validate(normalized).isNotEmpty()) return GroupConfigScreening.Rejected(errors)
+        return GroupConfigScreening.Normalized(normalized, fixes)
+    }
+
+    /**
+     * 角色卡去重。**去重键是 `role_id`**，因为那才是 `cards[]` 与 `roles[]` 的连接键
+     * （`roleDisplayNames` 用 `putIfAbsent(card.roleId, …)` 取显示名，也是首个优先）。
+     * 同一 `role_id` 出现多条时保留**首条**并记一条修正项。
+     *
+     * 刻意**不**做的事：
+     * - 不按 `card_id` 去重。同一张角色卡被多个角色共用是合法用法，契约从未禁止；按 `card_id`
+     *   去重会凭空删掉某个成员的角色卡。
+     * - 不动 `swipes`。swipe 是 [MessageNode] 的**分支身份**（`selectIndex` 是下标），
+     *   两条文本相同的分支在数据模型里是两个节点，合并要重排下标并会改变再导出的字节。
+     *   契约那句「导入先 schema 校验与去重」说的是建会话前的群配置与角色引用，不是消息分支。
+     * - 不丢弃 `card_id` 为 null 的条目：`cardId` 可空，null 不是重复。
+     *
+     * `role_id` 为空的条目按 [decodeCards] 的既有口径丢弃——它无法连到任何成员，留着只会
+     * 在调用方那儿变成一个查不到人的孤儿引用。
+     */
+    fun dedupeCards(cards: List<RoleCardMeta>): CardDedupResult {
+        val fixes = mutableListOf<GroupConfigFix>()
+        val kept = mutableListOf<RoleCardMeta>()
+        val keptIndexByRoleId = mutableMapOf<String, Int>()
+        cards.forEachIndexed { index, card ->
+            if (card.roleId.isBlank()) {
+                fixes += GroupConfigFix(
+                    "cards[$index].role_id",
+                    "缺 role_id 的角色卡条目无法连到成员，已丢弃",
+                    card.roleId,
+                    "（丢弃）",
+                )
+                return@forEachIndexed
+            }
+            val existing = keptIndexByRoleId[card.roleId]
+            if (existing == null) {
+                keptIndexByRoleId[card.roleId] = kept.size
+                kept += card
+                return@forEachIndexed
+            }
+            val keptCard = kept[existing]
+            fixes += GroupConfigFix(
+                "cards[$index].role_id",
+                if (keptCard == card) {
+                    "重复的角色卡条目已去重"
+                } else {
+                    "同一 role_id 出现多张角色卡，保留首条（card_id=${keptCard.cardId}）"
+                },
+                card.roleId,
+                keptCard.roleId,
+            )
+        }
+        return CardDedupResult(kept, fixes)
+    }
+
     // ---------------- 视角过滤 ----------------
 
     fun memorySpaceId(conversationId: String, roleId: String): String =
