@@ -1179,6 +1179,44 @@ class C1LiveModelSequenceTest {
      * （三个角色都退回会话的 `chatModelId`），序列会塌成同一个模型三遍，断言当场失败。
      * 所以这一条同时压住了「路由按角色选型」与「真实调用真的发生」两件事。
      *
+     * ## `actual_model_call_sequence` 里的模型名**不是 wire 级抓包**（C7）
+     *
+     * 报告里 `provider_model_table` 那行 `wire_model_string` 字段名很容易让人以为这是
+     * 「从网线上抓下来的模型名」。**它不是。** 完整来源链路是：
+     *
+     * ```
+     * 群配置里角色绑的 model uuid（config.roles[i].modelId）
+     *   → TaskRoutes.resolve / resolveGroupTurnModelId 选型
+     *   → 落进 UIMessage.modelId（一个 uuid，不是模型名）
+     *   → 本测试拿 uuid 去 realProvider.models 里反查
+     *   → 得到 model.modelId（真正发到 wire body 里的那个字符串）
+     * ```
+     *
+     * 也就是说 `wire_model_string` 是**我们自己那张 provider 模型表里的字段**，
+     * 而 `actual_model_call_sequence` 是「按 uuid 反查自己那张表」的结果。
+     *
+     * **为什么不能做成 wire 抓包**：app **不持久化响应的 `model` 字段**。它只把
+     * `UIMessage.modelId`（uuid）存进数据库，响应体里网关回给的那个 `model` 字符串
+     * 解析完就丢掉了，既没落库也没进日志。所以即使真的直连公网（这个用例确实直连：
+     * 不走 `adb reverse`、不走本机 mock、不装抓包代理），也**没有任何第三方旁路记录**
+     * 能给出这一串名字。证据 JSON 里那行 `wire_model_name_provenance` 就是在如实写明这件事。
+     *
+     * **因此它能证明**：真实网关确实被调用了（`message.usage` 是网关按真实分词返回的，
+     * 见上面的 `token_source`）；`resolveGroupTurnModelId` / `TaskRoutes.resolve` 为每个角色
+     * 选出的** uuid** 确实随轮次推进而变化，且顺序与角色顺序一致；由那张表反查出来的
+     * `wire_model_string` 就是这些 uuid 各自对应的上线模型名 —— 也就是**「选型结果」这一层**。
+     *
+     * **因此它不能证明**：网关**实际上接受并按此执行**的就是这个字符串。请求体里的
+     * `model` 字段由同一张表经同一套 `TaskRoutes.resolve` 落成，与本测试的反查路径同源，
+     * 所以「反查」与「发送」一致这件事在代码层面自洽，但**这不是独立观测**。若某天
+     * 请求构造与模型表分叉（例如网关侧做了模型别名映射、或请求体里发的是别的字段），
+     * 这条证据**看不见**。要真正闭合这个缺口，需要在响应侧记录网关回传的 `model`
+     * （那是另一个改动，不在本用例范围内）。
+     *
+     * ⚠️ 别把这条读成「模型名未经核对」。核对确实发生了——但核对的是**我们自己**
+     * 「uuid ↔ 上线名」那张表的内部一致性，以及 uuid 序列与角色顺序的一致性；
+     * 它**不是**对 wire 上实际字符串的第三方观测。
+     *
      * ## 两个必须记住的坑
      *
      * 1. **这两个都是推理模型**：网关回的 `completion_tokens_details.reasoning_tokens`

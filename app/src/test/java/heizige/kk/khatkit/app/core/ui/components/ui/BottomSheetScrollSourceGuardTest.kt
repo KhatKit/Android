@@ -80,8 +80,23 @@ class BottomSheetScrollSourceGuardTest {
         val SELF_SCROLL_REGEX =
             Regex("\\.verticalScroll\\s*\\(|\\bLazyColumn\\s*\\(|\\bLazyVerticalGrid\\s*\\(|\\bLazyColumnForEach\\s*\\(")
 
-        /** 排除转发层内部对下游组件的委派调用。 */
-        val CALL_REGEX = Regex("(?<![\\w.])PrimaryBottomSheet\\s*\\(")
+        /**
+         * 调用点匹配。
+         *
+         * ⚠️ **不能用 `(?<![\w.])PrimaryBottomSheet\s*\(`**（C8，本仓库已踩两次的形态）：
+         * 负向后行断言把「前面是 `.`」也排除掉，于是**全限定写法整条漏掉** ——
+         * `heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet(...)`、
+         * `import ... as X` 之后的 `X.PrimaryBottomSheet(...)` 都扫不到，
+         * 护栏对那些调用点形同不存在。
+         *
+         * 现在这个写法只排除「紧贴在一个标识符后面」（`\w`），并显式允许任意层包名前缀
+         * （`(?:[A-Za-z_]\w*\.)*`）：
+         * - `PrimaryBottomSheet(`、`ui.PrimaryBottomSheet(`、`a.b.c.PrimaryBottomSheet(` 都命中；
+         * - `KedgePrimaryBottomSheet(` / `KhromiaPrimaryBottomSheet(` **不命中** ——
+         *   那是转发层内部对下游组件的委派调用（组件实现，不是「业务调用点」），必须排除。
+         *   排除靠的是「`PrimaryBottomSheet` 前面紧挨着词字符」，而不是靠「前面有 `.`」。
+         */
+        val CALL_REGEX = Regex("(?<!\\w)(?:[A-Za-z_]\\w*\\.)*PrimaryBottomSheet\\s*\\(")
 
         val NAMED_ARG_REGEX = Regex("^\\s*([A-Za-z_]\\w*)\\s*=")
     }
@@ -295,6 +310,44 @@ class BottomSheetScrollSourceGuardTest {
         assertTrue(
             "群聊页的 GroupConfigSheet 是本次真机崩的那个点，扫描必须覆盖到它",
             sites.any { it.file.endsWith("feature/chat/GroupChatPage.kt") },
+        )
+    }
+
+    /**
+     * 反空跑断言（C8）：[CALL_REGEX] 必须既**认全限定写法**、又**不认转发层内部委派**。
+     *
+     * 这条不是「正则测自己」的好玩断言，而是主断言能不能成立的前提。主断言的形态是
+     * `sites.filter { !it.scrollDisabled && it.selfScrolls }` —— 违规定义在**扫到的站点**上。
+     * 所以一个扫不到的调用点不是「少报一个」，而是**根本不参与判定**：全限定写法一旦漏掉，
+     * `scan_stillFindsSelfScrollingCallSites` 那个写死的 65 只要被别处新增调用点补平，
+     * 主断言就会对一个真实违规点恒绿。`(?<![\w.])` 正是这个漏法（本仓库已踩两次）。
+     *
+     * 命中数逐条写死，退化版本（`(?<![\w.])`）在这里必红。
+     */
+    @Test
+    fun callSiteRegex_matchesFullyQualifiedNames_butNotForwardingDelegations() {
+        val samples = listOf(
+            // —— 必须命中：裸调用与任意层包名前缀 ——
+            "PrimaryBottomSheet(" to 1,
+            "PrimaryBottomSheet  (" to 1,
+            "ui.PrimaryBottomSheet(" to 1,
+            "heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet(" to 1,
+            "foo().PrimaryBottomSheet(" to 1,
+            // —— 必须不命中：转发层内部对下游组件的委派（组件实现，不是业务调用点）——
+            "KedgePrimaryBottomSheet(" to 0,
+            "KhromiaPrimaryBottomSheet(" to 0,
+            // —— 必须不命中：`some` 紧贴在前，是另一个标识符 ——
+            "somePrimaryBottomSheet(" to 0,
+        )
+
+        val actual = samples.map { (src, _) -> CALL_REGEX.findAll(src).count() }
+        assertEquals(
+            "调用点正则的匹配数变了：必须认全限定写法（含 import 别名 / 收件对象形式），" +
+                "同时不认转发层内部委派与紧贴前缀的别的标识符。" +
+                "退化版本 `(?<![\\w.])PrimaryBottomSheet\\s*\\(` 会漏掉前四行里的全限定写法。" +
+                "实际=$actual",
+            samples.map { it.second },
+            actual,
         )
     }
 

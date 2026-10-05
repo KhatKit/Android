@@ -66,15 +66,33 @@ class GroupStaleJobFailureSourceGuardTest {
     /**
      * 取以 [marker] 开头的那一条分支（`if (...) { … }` 或 `when` 分支）。
      *
-     * 范围从标记行起，到**同缩进的闭合大括号**或**下一个兄弟分支** whichever 先到 ——
-     * 后者必须停，否则会把后面的兄弟分支一起吞进来，`!contains(...)` 那几条断言就会
-     * 因为别人的代码而恒真。
+     * 两种形态都要认：
+     *
+     * - **单行表达式分支**：`is X -> return y`、`null -> expr()`。整条分支就在标记行里，
+     *   **没有闭合大括号可找**。
+     * - **多行块分支**：`if (…) { … }`、`is X -> { … }`。范围从标记行起，到**同缩进的闭合大括号**
+     *   或**下一个兄弟分支** whichever 先到 —— 后者必须停，否则会把后面的兄弟分支一起吞进来，
+     *   `!contains(...)` 那几条断言就会因为别人的代码而恒真。
+     *
+     * ## 两种形态靠什么区分
+     *
+     * 判据**不能**是「marker 之后同一行还有没有内容」：块分支的条件后面紧跟的就是 `{`，
+     * 照样有内容，用那条判据会把**所有块分支误判成单行**，块分支就只切出一行、
+     * `!contains(...)` 全成空检查。正确判据是「**这一行是否以 `{` 结尾**」。
+     *
+     * ⚠️ **切分退化必须显式拦掉**（C8）。块分支若两个锚点都没找到，循环走完 [end] 仍是
+     * [start]，本函数**只返回标记行本身**，于是拒收分支里那四条 `!denied.contains(forbidden)`
+     * 必然全为真 —— 护栏变成「谁都不违规而恒绿」。所以块分支必须 `assertTrue(end > start)`。
      */
     private fun branchOf(body: String, marker: String): String {
         val bodyLines = body.split("\n")
         val start = bodyLines.indexOfFirst { it.trimStart().startsWith(marker) }
         assertTrue("分支没找到：$marker", start >= 0)
         val indent = bodyLines[start].takeWhile { it == ' ' }
+
+        // 形态一：单行表达式分支，整条分支就是这一行。
+        if (!bodyLines[start].trimStart().endsWith("{")) return bodyLines[start]
+
         var end = start
         for (index in start + 1 until bodyLines.size) {
             val line = bodyLines[index]
@@ -89,7 +107,46 @@ class GroupStaleJobFailureSourceGuardTest {
                 break
             }
         }
+        assertTrue(
+            "分支块切分退化：$marker 是一个以 `{` 结尾的块分支，但同缩进的闭合大括号与" +
+                "兄弟分支都没找到，于是只切出了标记行本身（start=end=$start）。" +
+                "这会让拒收分支里的 `!contains(...)` 断言恒真。标记行：${bodyLines[start]}",
+            end > start,
+        )
         return bodyLines.subList(start, end + 1).joinToString("\n")
+    }
+
+    /**
+     * 护栏自身的反空跑断言（C8）：[branchOf] 必须真的切出拒收分支的**真实内容**。
+     *
+     * 为什么要单独钉：[a denied failure closeout writes nothing at all] 那条的主体是四条
+     * `!denied.contains(forbidden)`（「拒收分支里不许有某个副作用」）。这类断言的天敌不是
+     * 写错，而是**切分退化** —— 切分失败时 [branchOf] 只返回标记行本身，于是「不许有」的
+     * 那半边必然为真，看起来在守其实什么都没守（本仓库已因此踩过两次）。
+     *
+     * 正面内容（`Logging.log(` 与那句 `return`）才是防退化的那道闸；行数写死只是结构变更的
+     * 复核提示。本文件这个分支是**块分支**（以 `{` 结尾），所以正确切出来必然多于 1 行。
+     */
+    @Test
+    fun `branch split resolves the denied marker to its real content`() {
+        val denied = branchOf(bodyOf("failGroupTurn"), DENIED_MARKER)
+
+        assertTrue(
+            "拒收分支块里必须含有 `Logging.log(`（可排查性）：切分退化时切出来的只有 " +
+                "DENIED_MARKER 那一行，上面四条 `!contains(...)` 就全成了空检查。块内容：\n$denied",
+            denied.contains("Logging.log("),
+        )
+        assertTrue(
+            "拒收分支块里必须含有最后那句 `return`（真的早退，而不是算完判据继续往下走）。" +
+                "块内容：\n$denied",
+            denied.trim().trimEnd('}').trim().endsWith("return"),
+        )
+        assertEquals(
+            "拒收分支块切出的行数变了：它是块分支，正确切出来必然多于 1 行；退化成" +
+                "「只有标记行」时这里是 1。正常的结构改动请更新本数字并说明拒收分支改了什么。",
+            8,
+            denied.lines().size,
+        )
     }
 
     // ------------------------------------------------------------------

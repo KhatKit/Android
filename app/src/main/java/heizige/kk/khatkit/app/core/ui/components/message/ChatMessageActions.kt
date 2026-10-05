@@ -278,6 +278,10 @@ fun ChatMessageActionsSheet(
      * 群聊会话：关掉「创建分支」与「删除」。前者打到 `forkConversationAtMessage`、后者打到
      * `deleteMessage`，都不是群聊感知的：删掉一条角色发言后，运行日志里那一轮仍声称该角色
      * 已提交，续跑就会跳过没人再发言的角色。
+     *
+     * 「编辑」**不是**整条关掉，而是按消息关：群聊下改用户自己那条提问合法且常用（轮次由新的
+     * user 消息重新派生，不错位），只有「改角色发言」会被 `ChatPage` 的 `canEditMessage` 拦下。
+     * 详见下面 Edit 那段门禁的注释。
      */
     groupChat: Boolean = false,
 ) {
@@ -353,30 +357,42 @@ fun ChatMessageActionsSheet(
                 }
             }
 
-            // Edit
-            KedgeCard(
-                onClick = {
-                    dismiss()
-                    onEdit()
-                },
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
+// Edit
+            // ⚠️ 门禁口径与上面三个**不一样**，别照抄成 `if (!groupChat)`：
+            // 群聊下「改角色发言」被 ChatPage 的 canEditMessage 拦掉（GroupChatPage 传入
+            // `it.role == MessageRole.USER`），但「改用户自己那条提问」是**放行**的 ——
+            // 群轮次由新的 user 消息重新派生，不改写 committed_role_ids，不会错位。
+            //
+            // 所以整条 `if (!groupChat)` 会把那条也一起关掉，那是对群聊功能的真实回退。
+            // 这里只对「反正会被 canEditMessage 拦下」的那些消息收起这张卡片：否则用户在
+            // 群聊里长按角色发言会看到「编辑」，点下去 dismiss 之后什么都没发生 —— 正是
+            // 「点了没反应」。判定必须与 GroupChatPage 的 canEditMessage 同步，见
+            // GroupEditActionVisibilitySourceGuardTest。
+            if (!groupChat || message.role == MessageRole.USER) {
+                KedgeCard(
+                    onClick = {
+                        dismiss()
+                        onEdit()
+                    },
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Icon(
-                        imageVector = edit,
-                        contentDescription = null,
-                        modifier = Modifier.padding(4.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.edit),
-                        style = KedgeTextStyles.title(),
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = edit,
+                            contentDescription = null,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.edit),
+                            style = KedgeTextStyles.title(),
+                        )
+                    }
                 }
             }
 

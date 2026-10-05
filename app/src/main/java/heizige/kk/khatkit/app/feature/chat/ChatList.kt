@@ -517,12 +517,20 @@ private fun ChatListNormal(
                             speakerBadge = speaker?.badge,
                             speakerBadgeIsError = speaker?.isError == true,
                             groupChat = groupChat,
-                            // 群聊下这三个动作既不显示（见 ChatMessage）也不触发，双保险。
+                            // 群聊下这几个动作既不显示（见 ChatMessage）也不触发，双保险。
                             onRegenerate = {
                                 if (!groupChat) onRegenerate(currentMessage)
                             },
+                            // ⚠️ 口径与上面三个**不同**，别照抄成 `if (!groupChat)`：群聊下
+                            // 「改角色发言」被 ChatPage 的 canEditMessage 拦掉（GroupChatPage
+                            // 传入 `it.role == MessageRole.USER`），但「改用户自己那条提问」
+                            // 是放行的 —— 整条 `if (!groupChat)` 会连带关掉合法的那一半，
+                            // 那是对群聊功能的真实回退。判定与 ChatMessageActionsSheet 的
+                            // Edit 卡片一致，三处同口径见 GroupEditActionVisibilitySourceGuardTest。
                             onEdit = {
-                                onEdit(currentMessage)
+                                if (!groupChat || currentMessage.role == MessageRole.USER) {
+                                    onEdit(currentMessage)
+                                }
                             },
                             onFork = {
                                 if (!groupChat) onForkMessage(currentMessage)

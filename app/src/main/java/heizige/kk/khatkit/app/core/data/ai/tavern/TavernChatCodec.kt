@@ -272,10 +272,23 @@ object TavernChatCodec {
      *
      * ## 「不留下半成品会话」怎么落到返回值上
      *
-     * 坏配置一律**不交出去**：`config` 为 null，同时 [importReport] 带上字段级错误。
-     * 但消息、群名、角色卡照常返回——契约要的是「别造出半个群」，不是「把好好的聊天记录
-     * 一起扔了」。因此 [config] == null 有两种原因，**必须和 [importReport] 一起读**：
-     * 文件里本来就没有群配置块（纯酒馆群聊，不是错误），或者配置被判掉。
+     * 坏配置一律**不交出去**：`config` 为 null。但消息、群名、角色卡照常返回——契约要的是
+     * 「别造出半个群」，不是「把好好的聊天记录一起扔了」。
+     *
+     * 因此 [config] == null 有**四种**原因，**必须和 [importReport] 一起读**，报告是唯一
+     * 能把它们分开的东西（与实现里的 `when` 四个分支一一对应）：
+     *
+     * 1. **密钥黑名单命中**（[GroupChat.findForbiddenKeys] 返回非空）→ [GroupImportReport.Rejected]。
+     * 2. **文件里根本没有 `khatkit_group` 的 `config` 键**（键不存在或是 `JsonNull`）→
+     *    [GroupImportReport.NoConfig]。⚠️ **这一种不是错误**：纯酒馆群聊文件本来就没有配置块，
+     *    「没有」与「坏掉」必须分开，否则会把一份完全正常的酒馆群聊报成导入失败。
+     * 3. **键在但解不出来**（`config` 解不出 [GroupConfig]，例如缺 `roles`、类型不对）→ 坏文件 →
+     *    [GroupImportReport.Rejected]。
+     * 4. **被 screening 判掉**（[GroupChat.screenImportedConfig] 返回 `Rejected`）→
+     *    [GroupImportReport.Rejected]，字段级错误来自 screening 自己。
+     *
+     * 只有 2 是 [GroupImportReport.NoConfig]（正常路径）；1 / 3 / 4 都是 [GroupImportReport.Rejected]。
+     * 换句话说：**调用方不能只看 `config == null` 就当失败，要看 [GroupImportReport]**。
      *
      * 去重与归一化都只在「这份文件本身非法」时才动手，所以合法文件的往返逐字节不变：
      * [exportGroup] → [importGroup] → [exportGroup] 仍然完全相同。

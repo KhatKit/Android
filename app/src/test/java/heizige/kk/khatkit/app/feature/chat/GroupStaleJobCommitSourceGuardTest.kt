@@ -81,18 +81,40 @@ class GroupStaleJobCommitSourceGuardTest {
     }
 
     /**
-     * 取以 [marker] 开头的那一条分支（`when` 分支）。
+     * 取以 [marker] 开头的那一条分支（`when` 分支 / `if` 分支）。
      *
-     * 两种形态都要认：`is X -> { … }` 的带块分支，以及 `is X -> return y` /
-     * `null -> expr()` 这种单行表达式分支。范围从标记行起，到**同缩进的闭合大括号**
-     * 或**下一个兄弟分支** whichever 先到 —— 后者必须停，否则会把后面的兄弟分支
-     * 一起吞进来，`!contains(...)` 那几条断言就会因为别人的代码而恒真。
+     * 两种形态都要认：
+     *
+     * - **单行表达式分支**：`is X -> return advance`、`null -> clearGroupRunMirrorIfMine(...)`。
+     *   整条分支就在标记行里，**没有闭合大括号可找**。
+     * - **多行块分支**：`is X -> { … }`、`if (…) { … }`。范围从标记行起，到**同缩进的闭合大括号**
+     *   或**下一个兄弟分支** whichever 先到 —— 后者必须停，否则会把后面的兄弟分支一起吞进来，
+     *   `!contains(...)` 那几条断言就会因为别人的代码而恒真。
+     *
+     * ## 两种形态靠什么区分（这里踩过一次）
+     *
+     * 判据**不能**是「marker 之后同一行还有没有内容」：块分支的条件后面紧跟的就是 `{`
+     * （`if (…) {`、`is X -> {`），照样有内容，用那条判据会把**所有块分支误判成单行**，
+     * 于是块分支只切出一行、`!contains(...)` 全成空检查。
+     *
+     * 正确判据是「**这一行是否以 `{` 结尾**」：块分支的开括号就在标记行末尾，
+     * 单行表达式分支则不会以 `{` 结尾。
+     *
+     * ⚠️ **切分退化必须显式拦掉**（C8）。块分支若两个锚点（同行缩进的 `}`、兄弟分支）都没找到，
+     * 循环走完 [end] 仍是 [start]，本函数**只返回标记行本身**，于是
+     * `!halted.contains("groupRunsInFlight.remove(")` 这类断言必然为真 ——
+     * 护栏变成「谁都不违规而恒绿」，正是本仓库已踩两次的形态。所以块分支必须
+     * `assertTrue(end > start)`。
      */
     private fun branchOf(body: String, marker: String): String {
         val bodyLines = body.split("\n")
         val start = bodyLines.indexOfFirst { it.trimStart().startsWith(marker) }
         assertTrue("分支没找到：$marker", start >= 0)
         val indent = bodyLines[start].takeWhile { it == ' ' }
+
+        // 形态一：单行表达式分支，整条分支就是这一行。
+        if (!bodyLines[start].trimStart().endsWith("{")) return bodyLines[start]
+
         var end = start
         for (index in start + 1 until bodyLines.size) {
             val line = bodyLines[index]
@@ -107,9 +129,87 @@ class GroupStaleJobCommitSourceGuardTest {
                 break
             }
         }
+        assertTrue(
+            "分支块切分退化：$marker 是一个以 `{` 结尾的块分支，但同缩进的闭合大括号与" +
+                "兄弟分支都没找到，于是只切出了标记行本身（start=end=$start）。" +
+                "这会让所有 `!contains(...)` 断言恒真。标记行：${bodyLines[start]}",
+            end > start,
+        )
         return bodyLines.subList(start, end + 1).joinToString("\n")
     }
 
+/**
+     * 护栏自身的反空跑断言（C8）：[branchOf] 在本文件用到的**每一个** marker 上都必须真的
+     * 切出该分支的**真实内容**。
+     *
+     * 为什么要单独钉：上面每条分支断言的一半是 `!branch.contains(...)`（「分支里不许有某句」）。
+     * 这类断言的天敌不是写错，而是**切分退化** —— 切分失败时 [branchOf] 只返回标记行本身，
+     * 于是「不许有」的那半边必然为真，看起来在守其实什么都没守。本仓库已因此踩过两次。
+     *
+     * ## 为什么「行数」不是足够的判据
+     *
+     * ⚠️ 本文件有两个 marker 是**单行表达式分支**（`is … -> return advance` 与 `null -> …`），
+     * 正确切出来**就是 1 行**。所以单靠行数钉不住退化 —— 退化的返回值恰好也是 1 行。
+     * 真正的判据是下面那张表的第二列：**每个 marker 各有自己的正面内容**，切错就一定缺它。
+     * 行数写死只是为了在分支结构被改动时提醒复核，不是防退化的那道闸。
+     */
+    @Test
+    fun `branch split resolves every marker to its real content`() {
+        val commit = bodyOf("commitGroupTurn")
+        val completion = bodyOf("handleMessageComplete")
+        val cases = listOf(
+            Triple(
+                "if (admission is GroupTurnCoordinator.CommitAdmission.Denied)",
+                commit,
+                "return GroupTurnCoordinator.Advance.Halted(",
+            ),
+            Triple(
+                "is GroupTurnCoordinator.Advance.Halted -> return advance",
+                commit,
+                "return advance",
+            ),
+            Triple(
+                "is GroupTurnCoordinator.Advance.Halted ->",
+                completion,
+                "Logging.log(",
+            ),
+            Triple(
+                "is GroupTurnCoordinator.Advance.BudgetStopped ->",
+                completion,
+                "groupRunsInFlight.remove(",
+            ),
+            Triple(
+                "null ->",
+                completion,
+                "clearGroupRunMirrorIfMine(",
+            ),
+        )
+
+        assertEquals("本测试登记的分支 marker 数变了：新增 branchOf 调用点请一并登记", 5, cases.size)
+
+        // 反空跑本体：每个 marker 都必须切出**它自己的**正面内容。
+        // 切分退化时切出来的空壳不含任何一条，这里先红。
+        cases.forEach { (marker, body, positive) ->
+            val block = branchOf(body, marker)
+            assertTrue(
+                "分支块里必须含有该分支自己的正面内容 `$positive`，否则切出来的只是个空壳，" +
+                    "上面那些 `!contains(...)` 断言就全成了空检查。marker=$marker，块内容：\n$block",
+                block.contains(positive),
+            )
+        }
+
+        // 行数写死：仅作为结构变更的复核提示（单行表达式分支取 1 是合法的，见 KDoc）。
+        val lineCounts = cases.map { (marker, body, _) -> branchOf(body, marker).lines().size }
+        assertEquals(
+            "branchOf 切出的分支块行数变了。请逐个确认仍是同一种形态（单行表达式分支 vs 块分支），" +
+                "确认后更新本数字并说明改了什么。",
+            listOf(3, 1, 7, 4, 1),
+            lineCounts,
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // 1. 归属判定排在盖戳之前
     // ------------------------------------------------------------------
     // 1. 归属判定排在盖戳之前
     // ------------------------------------------------------------------
