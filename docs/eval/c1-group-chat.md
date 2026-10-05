@@ -820,7 +820,7 @@ gradle 跑的是带 `--tests` 过滤的），`xml.get(c)` 全部取不到。⚠�
 | **合计** | **366** | **35 类** |
 | **`GroupStaleJobCommitSourceGuardTest`** | **7**<br>**9**（HEAD `a74c1820` 实测；旧值 7 是 `2fdee352` 那版的） | **源码护栏：提交路——`commitGroupTurn` 必须在 `stampGroupTurn` 之前调 `checkCommitAdmission`、`Denied` 分支只 Logging 不碰 `groupRunsInFlight`、令牌必须从 `takeGroupTurn` 返回值捕获（不得反查镜像）、`Halted` 分支不得 `persistRoundState`**（`2fdee352`）**＋（`bed09118` +2 例）禁「按 key 无条件删」的旧形状 `groupRunsInFlight.remove(conversationId)`（右括号前不许出现逗号）、`null ->` 分支必须走 `clearGroupRunMirrorIfMine` 按 runToken 清** |
 | **`GroupStaleJobFailureSourceGuardTest`** | **6** | **源码护栏：失败路——`failGroupTurn` 必须在四个副作用（`appendGroupMessages` / `persistRoundState` / `dropTieBreakScaffolding` / `groupRunsInFlight.remove`）全部之前判 `checkFailureAdmission`，拒收分支只有 Logging + return**（`8ccc0264`） |
-| **`ChatServiceGroupChatFailLoudGuardTest`** | **4** | **源码护栏：`ChatService` 里零群聊逻辑（不许复制 `viewerMessages` 那套）、`handleMessageComplete` 顶部必须 `require(!isGroupConversation(...))` 且排在一切副作用之前、它是 `ChatService` 里唯一的生成漏斗（3 处 `finishInterruptedPendingTools` 除外且已登记）、DI provider 名 `provideChatManager` 必须与产物一致**（`bed09118`） |
+| **`ChatServiceGroupChatFailLoudGuardTest`** | **4** | **源码护栏：`ChatService` 里零群聊逻辑（不许复制 `viewerMessages` 那套）、`handleMessageComplete` 顶部必须 `require(!isGroupConversation(...))` 且排在一切副作用之前、它是 `ChatService` 里唯一的生成漏斗（⚠️ 原写「3 处 `finishInterruptedPendingTools` 除外且已登记」**已订正**：`finishInterruptedPendingTools` 里**零 `generateText`**，另三处 `providerHandler.generateText` 属 `generateTitle`/`generateSuggestion`/`compressConversation`，见遗留第 28 条的证伪）、DI provider 名 `provideChatManager` 必须与产物一致**（`bed09118`） |
 | **`GroupRunAbandonDrainSourceGuardTest`** | **5** | **源码护栏：`abandonDanglingGroupRuns` 必须分批循环读到清空（不是单页 `limit = 8`）、循环必须有具名收敛上限、页大小必须是具名常量而不是内联字面量、每行判死前必须 `findByRound` 重读并 `isTerminal` 跳过**（`bed09118`） |
 | **`GroupForkDisableReasonSourceGuardTest`** | **2** | **源码护栏：`ChatMessage.groupChat` KDoc 的 fork 段落禁因是「静默换会话类型」而不是账目错位；姊妹例要求重新生成 / 删除那两半必须保留它们自己的账目错位理由（防止整段被一刀切删掉）**（`bed09118`，**只加护栏、KDoc 一个字没改**） |
 | **合计（新窗口，HEAD `361c7cf6`）** | **395** | **37 类**（上两行是本轮新增的 2 类 13 例；另有两个在册类的用例数同时更新：`GroupTurnCoordinatorTest` **72 → 84**（`+12`）、`GroupTieBreakScaffoldingDropSourceGuardTest` **3 → 7**（`+4`），合计 `+16`，所以整表是 `366 + 13 + 16 = 395` ✅。⚠️ 上面的 **366 / 35 类**那一行是第四个窗口的实测值，按惯例**保留不覆写**） |
@@ -2932,6 +2932,12 @@ Hilt 时序已核实：`inject()` 早于 `Application.onCreate`；merged manifes
 `providerHandler.generateText` 同样不群聊感知，而且**从 `stopGeneration` 可达**。
 修它要先定产品行为（群聊下**跳过** vs **做成群聊感知**），**两者都改运行时行为、都需要
 真机**，所以只登记不动（已写进「已知遗留与风险」第 28 条）。
+⚠️⚠️ **订正（2026-10-06，第七个窗口，HEAD `72a5e548`）：上面这一段本身是错的**——
+`finishInterruptedPendingTools` 里**零 `generateText`**，而 `stopGeneration` 到不了
+`ChatService`（`ChatViewModel.kt:63` 的 `chatService` **类型是 `ChatManager`**）。
+**根因是 `ChatService.kt:653` 那句注释写错了**（已由 `8111d178` 修），错误从这里扩散
+进了验收文档。证伪依据逐条见「已知遗留与风险」**第 28 条**；**真正**的标题/摘要群聊
+泄漏在 `ChatManager` 上，已由 `4ee1ad5c` 修、登记为**第 33 条**。**原文照留不删。**
 
 ### C1 内核四批补测与修复（2026-10-05：P0 保留值 / P1 覆盖盲区 ×2 / P2 探针实测不可达）
 
@@ -4138,6 +4144,95 @@ lint **0 error**、app **584W+6H=590**、15 模块 **617W+7H=624**（与上一�
 所以「全量仪器测试能跑完了」这句话**目前零证据**，验证命令就一条：
 `./gradlew --offline :app:connectedDebugAndroidTest`。
 
+#### ⚠️⚠️ 补登：上一批之后到 HEAD `72a5e548` 的 11 个 commit（2026-10-06）
+
+⚠️ **本小节是补登，不是新批次**——上一批（`33eb801e..bed09118`）的表格**漏登了**
+`de05a908` 起的 11 个 commit。核验命令与实测输出：
+
+```
+git log --oneline db4cdd77..72a5e548 | wc -l   # 11
+git log --oneline db4cdd77..72a5e548 | tail -1 # de05a908（就是最早那一个）
+```
+
+⚠️⚠️ **区间下界为什么是 `db4cdd77` 而不是 `a74c1820`**：`a74c1820..72a5e548` 实测是
+**17** 个，多出来的 6 个是**已经登记过的**——`2d1f08db` / `7f3d80e5`（第六批那两次文档
+登记）与 `8622bf19` / `aee20f85` / `88777898` / `db4cdd77`（**「⚠️ 第七批」那一节**
+逐条列过）。**已登记的不重复登记**，所以下表从 `de05a908` 起。
+
+⚠️ **锚点 `1b0e04a9` 仍然没有被重算**：这 11 个**一个都不计入**本台账，理由与前几批
+逐字相同——不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或子包标签。
+所以 **78 / 6 / 17、前缀分布、子包分布一个数都没动**。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `de05a908` | `docs(c1): 修证据登记表 C1-05 行的两处裸竖线（13 列 → 11 列），C2 待办转已修` | 文档（只改本文，+18 / −5） |
+| `5be31807` | `test(c1-s): 新增 c1_doc_stats.py，把五处统计口径固化成可复算脚本（自带反空跑自检）` | 工具（`tools/verification/c1_doc_stats.py` 新增 **786 行**；⚠️ **零测试用例**） |
+| `e88d15fd` | `docs(c1): 登记 db4cdd77 那批（importGroup 契约缺口修复）+ 台账 42 类/455 例 + 复算脚本文档；十例仍 10/10 unverified` | 文档（只改本文，+249 / −21） |
+| `69d88214` | `docs(c1): 实施状态补第七批（importGroup 契约 :205 缺口修复）与三条遗留缺口` | 文档（只改 `docs/beyond-operit-implementation-status.md`，+57） |
+| `d00880fc` | `test: C6/C7/C8 三处口径显式化 + 补 onEdit 群聊门禁与顺序不变量护栏` | ⚠️ **含 3 个 `app/src/main` 文件**（见下） + 4 个测试文件（+662 / −43） |
+| `3d04c82c` | `test: 修 addMigrations 切分退化（锚点缺失退化成扫全文恒绿）+ 加反空跑断言` | 测试（**只改 1 个既有文件** `ConversationGroupCardsSchemaTest.kt`，+51 / −1，**净增 0 条 `@Test`**） |
+| `5e4582ed` | `test: 修 WHERE 子句切分退化 + 三处调用点加反空跑护栏` | 测试（**只改 1 个既有文件** `ConversationDrawerFolderScopeTest.kt`，+65 / −7，**净增 0 条 `@Test`**） |
+| `5435e403` | `test: 修 description 切分退化（退化后 x 计数仍对得上而恒绿）+ 加反空跑断言` | 测试（**只改 1 个既有文件** `SkillsToolsTest.kt`，+61 / −1，**净增 0 条 `@Test`**） |
+| `4ee1ad5c` | `fix: 标题生成接上 viewer 过滤（群聊下其他角色发言不再进 TITLE 模型）` | **功能（main 2 文件，+133 / −2：`ChatManager.kt` +44、新增 `SummaryViewerScope.kt` 91 行）** |
+| `8111d178` | `docs: 修正 ChatService fail-loud 注释里三处 generateText 的归属` | 文档（⚠️ **改的是 Kotlin 源码里的注释**：`ChatService.kt` +17 / −3，**零实现改动**） |
+| `72a5e548` | `test: SummaryViewerScope 纯函数真单测 12 条 + 接线源码护栏 5 条（自带反空跑断言）` | 测试（**2 个新类 / +616**：`SummaryViewerScopeTest.kt` 344 行 12 条 + `SummaryViewerScopeWiringSourceGuardTest.kt` 272 行 5 条） |
+
+⚠️ **`d00880fc` 里的 3 个 `app/src/main` 文件要单独说清**（它是这一串里唯一一个
+**动了生产代码**的）：① `core/ui/components/message/ChatMessageActions.kt`（+62 / −）
+——**Edit 卡片此前确实没有 `if (!groupChat)` 门禁**（另外三个动作都有），群聊长按角色
+发言会先 dismiss 再被 `canEditMessage` 静默丢弃（就是「点了没反应」）；
+**但照抄 `if (!groupChat)` 会连带关掉群聊里合法的「改用户提问」**，所以改成**按消息收口**
+`!groupChat || <消息>.role == MessageRole.USER`（展示层 + 触发层各一处，单聊
+`groupChat = false` 时**逐字不变**）；② `feature/chat/ChatList.kt`（+12 / −）——同一个
+裸 wiring；③ `core/data/ai/tavern/TavernChatCodec.kt`（+21 / −）——**纯注释**，
+把 `config == null` 的成因从「两种」改成「四种」（见遗留第 32 条）。
+⚠️ 另外它还改了 `androidTest` 侧的 `C1LiveModelSequenceTest.kt`（+38，**纯 KDoc**，
+把「模型名由 `modelId` uuid 反查、不是 wire 级抓包」这条口径写进用例文档）。
+
+⚠️⚠️ **`3d04c82c` / `5e4582ed` / `5435e403` 三条是「已有测试恒绿」的修复，不是补用例**：
+它们各改 1 个既有文件、加 `assertTrue(end > start)` 这类**前置检查**与**反空跑断言**，
+**净增 0 条 `@Test`**（所以台账与总例数一个数都没动）。三处的退化形状各不相同，
+共同点是**切分器在锚点缺失时退化成「扫全文」而断言仍然绿**——
+这正是 C8 那条「护栏必须自带反空跑断言」的续集。⚠️ **改的是测试代码不是生产代码。**
+
+**净效果**（⚠️ 全部是 `python3 tools/verification/c1_doc_stats.py` 的实测输出，
+**不是手抄**）：`:app:testDebugUnitTest` **107 类 / 855 例 → 110 类 / 881 例**
+（`+3 类 / +26 例`，**0 失败 / 0 错误 / 0 跳过**；逐 commit 的类/例实测：
+`db4cdd77..d00880fc` 之前一路 **107 / 855** → `d00880fc` **108 / 864**（`+1 类 / +9 例`）
+→ `3d04c82c` / `5e4582ed` / `5435e403` / `4ee1ad5c` / `8111d178` **一路 108 / 864**
+（`4ee1ad5c` 是功能修复、`8111d178` 只改注释，所以都是 0 增量）
+→ `72a5e548` **110 / 881**（`+2 类 / +17 例`，正好是 12 + 5））。
+lint **0 error**、app **584W+6H=590**、15 模块 **617W+7H=624**（**与上一窗口逐位相同**）；
+`app/src/main` 那 5 个改动文件（`ChatManager.kt` / `SummaryViewerScope.kt` /
+`ChatService.kt` + 两个新测试文件）**lint 命中数逐个实测为 0**；
+`app/src/androidTest` **git 跟踪口径仍是 61 条**（含未入库的
+`C1GroupUiE2EFixtureTest.kt` 是 **64**）；Room 版本不变（仍是 32）；
+`tools/verification/c1_doc_stats.py` 五个分组共 **18 条**。
+
+⚠️⚠️⚠️ **本串 11 个 commit 同样不改变任何判定**，三条硬理由：
+① **零设备、零 `adb`**——契约 `:206` 点名的四类产物**一份未增**；
+② `4ee1ad5c` 修的是**真实存在**的群聊泄漏（标题/摘要绕过 viewer 过滤），
+但**修掉缺陷不是验收证据**（判定规则第五条），且泄漏本身**零真机观测**；
+③ **十例状态列一个格都没动，仍是 10/10 `unverified`**（`4ee1ad5c` / `8111d178` 改的是
+标题与摘要这条**独立于十例点名路径**的链路）。
+
+⚠️ **本串暴露的两处台账账实不符，本轮如实登记、不擅自改**：
+`c1_doc_stats.py` 的 `ledger` 逐行核对报 **FAIL**，两行与源码不符——
+`GroupStaleJobCommitSourceGuardTest` **声明 9 / 源码 10**、
+`GroupStaleJobFailureSourceGuardTest` **声明 6 / 源码 7**（成因是 `d00880fc` 给这两个
+文件各加了 1 条 `@Test`）。
+⚠️ **本轮没有改这两行**：改它要连带改下面那张台账的**合计行**（42 行 / 455 例），
+而硬约束明写「`git diff` 里不允许出现删除 78 / 17 / 6 / 455 的行」。
+同理，**本串涉及的 5 个测试类没有并进「C1 相关 JVM 测试类台账」**——
+**3 个新类**（`GroupEditActionVisibilitySourceGuardTest` 1 条 +
+`SummaryViewerScopeTest` 12 条 + `SummaryViewerScopeWiringSourceGuardTest` 5 条）
+**加上 2 个既有类各 +1**（`GroupStaleJobCommitSourceGuardTest`、
+`GroupStaleJobFailureSourceGuardTest`）——并进去就要重算**行数与例数两个合计**、
+同样会删掉 `455` 那一行。
+⚠️ **本轮不代填那个合计数**（那是下一位在放开约束后一次性重算的事，
+填错比不填更糟）。**这是留给下一位的事，不在本轮授权内。**
+
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
@@ -4376,6 +4471,17 @@ git status --short
 「群聊下是跳过还是做成群聊感知」写成一条决策记录**再动手——两者都改运行时行为、
 都要真机，**没有决策就不该改**。顺带把「`ChatService` 这个类要不要留」也一起定了
 （它当前零活跃构造点，见该节）。
+⚠️⚠️ **订正（2026-10-06，第七个窗口，HEAD `72a5e548`）：C5 整个前提已被证伪，别照着做。**
+`finishInterruptedPendingTools`（`core/service/ChatService.kt:912-931`）里**零
+`generateText`**、零 `currentMessages`、零请求；`stopGeneration` 的三个入口
+（UI / `ConversationRoutes.kt:367` / `AndroidManifest.xml:148-151` 注册的
+`feature/chat/ChatGenerationForegroundService.kt:75`）**全部指向 `ChatManager`**。
+**没有泄漏，所以没有产品决策要定。** 四条证伪依据见「已知遗留与风险」**第 28 条**。
+✅ **C5 替换成的真问题**：**删掉 `ChatService` 这份重复实现**（外加那份没进 manifest
+的 `core/service/ChatGenerationForegroundService.kt` 死副本）——纯清理、零行为改动、
+零设备可做，但**不在本轮授权内**（本轮不碰 Kotlin 源码）。
+⚠️ **本轮真正修掉的标题/摘要泄漏在 `ChatManager.generateTitle` /
+`compressConversation` 上**（`4ee1ad5c`），遗留见**第 33 条**。
 
 **C6. `GroupChatPage.onEdit` 只放行 USER 的口径显式化**（遗留第 8 条 / B8）：
 要放开必须同步改写 `group_runs.committed_role_ids`。**先写决策，不先改代码**。
@@ -4393,6 +4499,27 @@ git status --short
 **C9. 把本轮的诚实边界同步进任何对外材料**：**Miuix 未验 / 62 个调用点未逐个上真机 /
 面板业务动作未点 / Coil 修复未在设备上复跑 / 四项代码债运行时零证据**——
 这五条**一条都不许在总结里被省略**。
+
+⚠️⚠️ **第七个窗口补进来的五条（同属 C9，正文全部已落在
+`docs/beyond-operit-implementation-status.md`，这里补的是**来源指针**，
+让人能自己核回本文的哪一节/第几条）**：
+
+| # | 诚实边界 | 正文在哪 | 📍 来源指针（本文） |
+|---|---|---|---|
+| ① | **真实网关那轮的模型名不是 wire 级抓包**——由 `message.modelId` 的 uuid 反查，能证明「**按角色选型结果这一层**」，**不能**证明「网关实际接受并按此执行」（app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明） | status「第四个窗口」段的三条硬理由② | **「已知遗留与风险」第 18 条**；另见「C1 真机证据采集第四轮」与「判定规则」第四条原因② |
+| ② | **`importGroup` 运行时零证据**——`app/src/main` 里仍无调用方；契约 `:205`「恢复失败不留下半成品会话」**只在返回值层面**有保证 | status「第七批」三条缺口① | **第 30 条** |
+| ③ | **`memory_space_id` 校验在导入场景无解**——调用方建完会话后**必须补一次 `validate(config, newId)`**，但「**是否补做**」无任何证据 | status「第七批」三条缺口② | **第 31 条** |
+| ④ | **`importShare` 全拒 vs `importGroup` 结构性拒 + 两项归一化**，是**有意的**口径差异，但属**单方面设计判断**，值得复核 | status「第七批」三条缺口③ | **第 32 条** |
+| ⑤ | **`importGroup` 的 residual 兜底当前无法被任何变异杀死**（变异 5 存活，变异 4 第一次也存活），**现在没有测试护着**，子代理明确「不声称证明了它」 | status「第七批」的「变异检验有一项存活」段 | **「`importGroup` 契约 `:205` 缺口修复（零设备，HEAD `db4cdd77`）」那一节里的「⚠️ 变异检验有一项存活，如实登记」四级小节** |
+
+⚠️ **核实结论：五条的正文本来就在 `beyond-operit-implementation-status.md` 里，
+一条都不缺**——缺的只是**逐条指回本文哪个位置的指针**（①②③④ 此前只被合并写成
+「第 30–32 条」，⑤ 完全没有指针）。所以本轮**只加指针、不补内容**，
+上表四列都是本轮实读核实的结果。⚠️ **行号与「第 N 条」编号都可能随本文增长漂移**，
+指针写的是**小节名 + 条号**，不是行号。
+⚠️ **外加第六条（本轮新增，同属「一条都不许在总结里被省略」）**：
+**「标题/摘要按谁的视角取」是判断不是实证**——正文在 status「第八批」①，
+本文指针是**第 33 条**。
 
 ## 已知遗留与风险
 
@@ -4781,7 +4908,7 @@ git status --short
     `git add -A` 会把两处一起卷进自己的提交**。⚠️ **`C1GroupUiE2EFixtureTest.kt` 让
     `app/src/androidTest` 的 `@Test` 数从 61 变成 64**——引用「61」时必须写清是
     **git 跟踪口径**。处置见操作清单 C1。
-28. **⚠️ `ChatService.finishInterruptedPendingTools` 里三处 `generateText` 同样不群聊感知，
+28. ~~**⚠️ `ChatService.finishInterruptedPendingTools` 里三处 `generateText` 同样不群聊感知，
     而且从 `stopGeneration` 可达（本轮新发现，未动手）。**
     `fa36c65c` 的 fail-loud 闸门只在 `handleMessageComplete`——它是 `ChatService` 里
     `generationLoop.generateText` 的唯一调用点，**但 `finishInterruptedPendingTools`
@@ -4791,7 +4918,53 @@ git status --short
     都改运行时行为、都需要真机**，所以只登记不动（见操作清单 C5）。
     ⚠️ 别把它读成「`fa36c65c` 的闸门没覆盖全」——**那个闸门本来就不是为这条路径设计的**，
     类 KDoc 里也写了「另三处 `providerHandler.generateText` 属于
-    `finishInterruptedPendingTools`，那是取消后续跑工具的旁路」。
+    `finishInterruptedPendingTools`，那是取消后续跑工具的旁路」。~~
+
+    **⚠️⚠️ 已证伪（2026-10-06，第七个窗口，HEAD `72a5e548`）：这条整条是错的，它指认的
+    群聊泄漏根本不存在。原文逐字保留在上面不删——它是「错误如何发生」的证据。**
+
+    ⚠️ **证伪依据（四条，逐条都是本轮实读核实，行号按 `72a5e548` 记）**：
+    - **① `stopGeneration` 到不了 `ChatService`——用户按停止走的是 `ChatManager`。**
+      **命名陷阱在 `feature/chat/ChatViewModel.kt:63`：属性名叫 `chatService`，
+      类型却是 `ChatManager`。** 另两个「停止」入口也都指向 `ChatManager`：
+      **① HTTP** `POST /api/conversations/{id}/stop` → `chatService.stopGeneration(uuid)`
+      在 `core/network/routes/ConversationRoutes.kt:367`（该路由的 `chatService` 形参在
+      **`:48`** 就声明成 `ChatManager`）；**② FGS 超时** → `AndroidManifest.xml:148-151`
+      注册的是 **`.feature.chat.ChatGenerationForegroundService`**，它的
+      `lateinit var chatService: ChatManager` 在
+      `feature/chat/ChatGenerationForegroundService.kt:75`。
+      ⚠️ 早前把 `core/service/ChatGenerationForegroundService.kt:71`
+      （那份的 `chatService` **确实是** `ChatService`）当成注册项，是同一个命名陷阱的第二次发作。
+    - **② `finishInterruptedPendingTools` 里零 `generateText`。** 该函数在
+      `core/service/ChatService.kt:912-931`，**只做一件事**：给最后一条消息里所有未执行的
+      tool part 塞一段 `{"status":"cancelled",…}`（`cancelToolByUser`，`:902-911`），
+      然后 `saveConversation`。**不发起任何请求、不读 `currentMessages`、不碰记忆空间。**
+      全文件 `generateText` 只有 **4 处**：`:744`（`generationLoop`，在
+      `handleMessageComplete` 里）与 `:952` / `:1004` / `:1089` 三处 `providerHandler`
+      （分别在 `generateTitle` `:933` / `generateSuggestion` `:985` /
+      `compressConversation` `:1038` 三个函数体里）——**没有一处在 `finishInterruptedPendingTools` 里**。
+    - **③ 错误源头是仓库注释，不是实现。** `ChatService.kt:653` 那段注释早前写的是
+      「另三处 `providerHandler.generateText` 属于 `finishInterruptedPendingTools`，
+      那是取消后续跑工具的旁路」——**这句注释本身写错了**（真实归属是上面 ② 那三个函数）。
+      **错误从注释扩散进了本文这一条验收登记**，所以「先读注释再写验收」的顺序在这里
+      制造了一条不存在的产品缺陷。已由 **`8111d178`** 改掉（只改注释，**17 insertions /
+      3 deletions，一个字实现都没动**）。
+    - **④ `ChatService` 只有 1 个注入点且不可达。** `feature/history/HistoryVM.kt:28`
+      （它只调 `toggleConversationPinned`），而 `HistoryPage` 在 `app/src` 里**零路由引用**。
+      ⚠️ **附带发现第 4 份重复类**：`core/service/ChatGenerationForegroundService.kt`
+      （**175 行**）**没有进 `AndroidManifest.xml`**（`:148-151` 注册的是 `feature/chat`
+      那份，179 行），它唯一的引用者是**同包那个不可达的** `ChatService.kt:298/307`
+      （静态 `acquire` / `release`）——**是死副本**。
+
+    ⚠️ **所以「C5 那个产品决策」也不存在**：既然没有泄漏，就没有「群聊下跳过 vs 做成群聊
+    感知」要定。⚠️ **真正该做的是删掉这份重复实现**（`ChatService` + 那份死 FGS），
+    那是**独立的清理项，不在本轮授权内**，已并入本条的遗留尾巴。
+
+    ⚠️⚠️ **教训（别再犯第二次）**：`ChatService` 这条线上**真正**的群聊泄漏**存在**，
+    但**不在 `ChatService` 里**——在 `feature/chat/ChatManager.kt` 的
+    `generateTitle` / `compressConversation` 上（它们**直接送未过滤的
+    `conversation.currentMessages` 给 TITLE/SUMMARY 模型**）。
+    已由 `4ee1ad5c` 修掉，登记在「已知遗留与风险」**第 33 条**。
 29. **⚠️ 四项代码债的运行时行为全是零证据（本轮唯一的 gradle 证据只到「编译 + 单测」）。**
     `require` 是不是真抛、分批循环在真机上的实际行为、`remove(key, value)` 的真实并发
     效果、以及「`produced == null` 时 `failGroupTurn` 提前 return」的具体触发条件，
@@ -4824,6 +4997,71 @@ git status --short
     非错误）、③ 键在但解不出来（`Rejected`「无法解析」）、④ 校验判掉（`Rejected`）。
     ⚠️ 该文件 `:297-299` 的行内注释**已经**把 ②③ 拆开说了，所以这是
     `:539` 那段 KDoc 措辞偏松，**不是实现缺陷**；本轮**未改**（不碰 Kotlin 源码）。
+    ✅ **第七个窗口已订正（`d00880fc`，纯注释改动）**：那段 KDoc 现在逐字写成**四种成因**，
+    与 `:297-299` 的行内注释对齐。⚠️ **「口径有意不同但属单方面判断」那半句仍未复核**，
+    仍是遗留。
+33. **⚠️⚠️⚠️ 「标题 / 摘要按**谁的**视角取」是判断不是实证——`4ee1ad5c` 修掉的是**真泄漏**，
+    但**口径本身欠产品确认**（`SummaryViewerScope`，零设备，2026-10-06，HEAD `72a5e548`）。**
+    - **先说清被修掉的是什么（这条是本轮唯一的真泄漏，已修）**：契约
+      `client-changes.md:200` 明写「上下文过滤必须发生在 **prompt 组装层**……
+      禁止在 UI 层『隐藏但仍发送』」，而 `feature/chat/ChatManager.kt` 的
+      **`generateTitle`**（送 `currentMessages.takeLast(4)`）与
+      **`compressConversation`**（送**全量**）**直接把未过滤的
+      `conversation.currentMessages` 交给 TITLE / SUMMARY 模型**。
+      ⚠️ **比早前判断更严重——不只长按菜单触发**：`ChatManager.kt` 在
+      `handleMessageComplete` 的 `onSuccess` **末尾**（**`:1070`**）对**单聊与群聊走同一行**
+      自动调 `generateTitle`，所以**群里每跑完一轮，其他角色最近 4 条就自动进 TITLE 模型，
+      用户一个菜单都不用点**。（`:1020` 那次是 `groupStep == null` 的**单聊**分支。）
+      长按菜单那条同样成立：`ConversationList.kt` 的长按菜单（`onRegenerateTitle` 在
+      **`:617-624`**）**不判会话 type**，而 `ChatDrawer.kt:548` 的 `TYPE_GROUP` 筛选项
+      保证群会话会进列表。
+      ⚠️ `compressConversation` 确认**潜伏**：压缩对话框只在 `ChatPage.kt`
+      （`compress` 命中 **6** 次），`GroupChatPage.kt` 里 `compress` 命中 **0** 次——
+      **一旦 UI 接线就是真泄漏**，所以不等接线就先堵。
+    - **修法（`4ee1ad5c`）**：新增
+      `app/src/main/java/heizige/kk/khatkit/app/feature/chat/SummaryViewerScope.kt`
+      （**91 行**），**转调已有的 `GroupTurnCoordinator.viewerMessages`**——
+      **没有新写一套过滤**，所以与聊天轮次那份 `GroupChat.visibleMessages` 判定同源。
+      口径：`roundtable` → 议长（`chairRoleId`，`chairRound = true`，与 `GroupChat.plan`
+      给议长那一步同源）；`pipeline` / `vote` / 未知 mode → **`roles` 列表第一个**
+      （名单顺序即 `GroupChat.plan` 的发言顺序）。
+      **fail-closed 分两档**：① `roles` 为空 → **空列表**（**不是全量**）；
+      ② 议长 id **悬空但名单完好** → 退回第一位且 **`chairRound = false`**
+      （⚠️ 不置 false 的话 `chairRound` 分支会**真越权**，这条单独有用例钉住）。
+      ⚠️ `compressConversation` 的处理是特殊的：**过滤只作用于送给 SUMMARY 模型的那份副本**
+      （`compressScope`），**落库那份完全没动**——`allMessages` / `messagesToKeep` /
+      `newMessageNodes` 仍来自完整 `currentMessages`，**符合「不落第二套消息库」这条硬约束**；
+      `compressScope` 为空且 `messagesToCompress` 非空时抛 `IllegalStateException`
+      fail-closed（宁可失败也不让模型凭空编一段摘要再替换真实历史）。
+      **单聊逐字不变**：`messages()` 第一行
+      `if (!isGroupConversation(conversation)) return conversation.currentMessages`
+      （**返回同一个 List 实例**，不是拷贝）。
+    - **⚠️⚠️ 这条必须作为遗留登记的原因：「按谁的视角取」是判断，不是实证。**
+      契约只规定「**必须过滤**」，**没有规定「按谁过滤」**——标题/摘要**没有轮次**，
+      「该按谁看」是产品口径问题。当前实现按上表取值，**KDoc 已标「⚠️ 待产品确认」并
+      列了替代口径**（「议长优先存在于任何模式」/「用户点的是哪个角色就按谁」），
+      **结论会不同**。⚠️ **改动只许动 `SummaryViewerStep`，并同步改
+      `SummaryViewerScopeTest`**。
+    - **⚠️ 剩下的证据边界（本条仍然零设备）**：① 「roundtable 下议长视角看到的东西**符合
+      产品预期**」零份证据——纯函数只证明**实现自洽**；② 真机上群里跑完一轮后
+      **标题实际长什么样**零份；③ **压缩路径至今没被任何 UI 触发过**，所以它的 fail-closed
+      抛错在真机上是什么表现零份；④ 4 次变异检验是**JVM 级**的，不是真机观测。
+    - **测试（`72a5e548`）**：`SummaryViewerScopeTest` **12 条真单测**
+      （含 fail-closed 空名单、议长 id 悬空、幂等、**反向越权**断言「别的角色发言不可见」
+      与「议长在 roundtable 下看得到本轮全部」）；`SummaryViewerScopeWiringSourceGuardTest`
+      **5 条源码护栏**（含一条**断言 KDoc 里那句「⚠️ 待产品确认」不许被删**）。
+      ⚠️ **变异 4 次全红**：换回裸 `currentMessages` / viewer 选错（`roundtable`→`vote`）
+      / fail-closed 退化成 pass-through / `splitMessages(compressScope)` 改回
+      `splitMessages(messagesToCompress)`。
+      四条命令退出码全 **0**，**110 类 / 881 例 / 0F 0E 0S**，
+      **5 个改动文件 lint 命中 0**。
+    - **⚠️ 与第 28 条的关系**：第 28 条（「`ChatService.finishInterruptedPendingTools` 里的
+      三处 `generateText`」）**整条已证伪**，它把 `ChatService` 的**命名陷阱**当成了泄漏。
+      **真正被修的是 `ChatManager` 这两处**——本条。⚠️ `core/service/ChatService.kt`
+      里那三处**同名函数仍然送未过滤的 `currentMessages`**，但结构上到不了群聊会话
+      （`generateTitle` / `generateSuggestion` 在 `handleMessageComplete` 的 `onSuccess`
+      里、位于那道 `require(!isGroupConversation(...))` **之后**；`compressConversation`
+      全 app 无调用方）——**这是「不可达」不是「已堵」**，处置见第 28 条尾巴。
 
 ### ⚠️ 真机窗口之后，「下一位怎么把 unverified 变成 verified」还剩什么
 
