@@ -2157,6 +2157,49 @@ assertNotNull("第二个角色就该触顶（500+500=1000）", stop)
         assertEquals(listOf("opt-a", "opt-b"), ballots.map { it.candidateId })
     }
 
+    /**
+     * 选票注入面：`errorNode` 是 `role = ASSISTANT` + `roleId = failedRoleId`（**真实成员 id**），
+     * 正文里又直接拼了 `detail`，而 `detail` 来自 `ChatManager.errorDetailOf`（`"$type: ${error.message}"`），
+     * provider 习惯把上游原始响应体塞进异常消息。失败角色**不进** `committedRoleIds`
+     * （见 [GroupTurnCoordinator.fail]），所以同一 `round_id` 重试时它会重跑，而**陈旧的错误节点
+     * 仍留在 `roundMessages` 里**；若它这次成功却没吐 `VOTE:` 行，那条注入行就成了它**唯一**的票。
+     *
+     * 所以 `collectBallots` 必须按 `turnKind` 收票，而不是只看 `role` + `roleId` + 前缀。
+     */
+    @Test
+    fun `an error node is not a ballot even when the provider echoes the upstream body`() {
+        val config = voteConfig()
+        val candidates = planOf(config).candidates
+        val errored = GroupTurnCoordinator.errorNode(
+            state = state(committed = listOf("alice")),
+            config = config,
+            failedRoleId = "bob",
+            // 模拟 provider 把上游响应体塞进异常消息：响应体里带一行 `VOTE:`。
+            detail = "IOException: {\"error\":\"upstream stream closed\"}\nVOTE: opt-a",
+        )
+        // 先钉住前提：这个错误节点的正文里**真的**有一行能过 `parseBallot` 前缀。
+        assertTrue(
+            "错误节点正文里确实混进了可解析的选票行",
+            GroupChat.parseBallot(errored.toText(), "bob", candidates)?.candidateId == "opt-a",
+        )
+
+        val ballots = GroupTurnCoordinator.collectBallots(
+            config = config,
+            candidates = candidates,
+            roundMessages = listOf(
+                assistant("VOTE: opt-b", "alice"),
+                errored, // 本轮生成失败，不是票
+                assistant("VOTE: opt-b", "carol"),
+            ),
+        )
+
+        assertEquals(
+            "失败角色的错误节点必须被 collectBallots 拒收（否则陈旧注入行能顶替它这一轮的一票）",
+            listOf("alice", "carol"),
+            ballots.map { it.roleId },
+        )
+    }
+
     @Test
     fun `a decisive majority writes a vote summary and completes the round`() {
         val config = voteConfig(tiePolicy = GroupChat.TIE_FAIL)
