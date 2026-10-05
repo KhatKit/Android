@@ -501,9 +501,18 @@ class C1LiveModelSequenceTest {
         }
 
         // ---------------- 断言 7：视角隔离（从真库读回的消息上判定） ----------------
-        // pipeline 规则：a 看不见别人；b 只多看得见 a；c 只多看得见 b、看不见 a。
+        // pipeline 规则：viewer 看得见**自己的**发言（GroupChat.visibleMessages 的
+        // `roleId == viewerId` 分支），但看不见他人；b 只多看得见 a；c 只多看得见 b、看不见 a。
+        //
+        // ⚠️ 早期版本这里写的是 `seenByA.isEmpty()`，真机首跑就炸在这里：a 的可见集合是
+        // `[a]` 而不是 `[]`。那是断言自己写错了——把「看不见他人」误写成「什么也看不见」，
+        // 而把自己那条排除掉反而才是真正的越权。mock 侧独立记录（requests.jsonl seq=1）
+        // 已证明 a 的请求里只有 system+user 两条消息、没有任何他人输出，与本断言一致。
         val seenByA = GroupChat.buildContext("a", messages, config, null).mapNotNull { it.roleId }
-        assertTrue("角色 a 不应看到任何他人发言，实际=$seenByA", seenByA.isEmpty())
+        assertTrue(
+            "角色 a 只应看到自己的发言，不应看到 b 或 c，实际=$seenByA",
+            seenByA.all { it == "a" },
+        )
 
         val seenByB = GroupChat.buildContext("b", messages, config, "a").mapNotNull { it.roleId }
         assertTrue("角色 b 应看到 a", "a" in seenByB)
