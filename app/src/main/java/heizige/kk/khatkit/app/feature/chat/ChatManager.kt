@@ -1153,6 +1153,17 @@ class ChatManager(
 
     // ---- 生成标题 ----
 
+    /**
+     * 按最近若干条消息生成会话标题。
+     *
+     * ⚠️ 契约要求「上下文过滤必须发生在 prompt 组装层」，所以这里**不能**直接送
+     * `conversation.currentMessages`：`generateTitle` 除长按菜单外，还在**每一轮群聊结束时
+     * 自动跑**（`handleMessageComplete` 的 `onSuccess` 末尾），于是群里跑完一轮，其他角色最近
+     * 4 条发言就进了 TITLE 模型。口径见 [SummaryViewerScope]。
+     *
+     * 单聊路径逐字不变：[SummaryViewerScope.messages] 对非群聊原样返回 `currentMessages`，
+     * 后面的 `takeLast(4)` 与拼装完全一致。
+     */
     suspend fun generateTitle(
         conversationId: Uuid,
         conversation: Conversation,
@@ -1178,7 +1189,7 @@ class ChatManager(
                     UIMessage.user(
                         prompt = settings.titlePrompt.applyPlaceholders(
                             "locale" to Locale.getDefault().displayName,
-                            "content" to conversation.currentMessages
+                            "content" to SummaryViewerScope.messages(conversation)
                                 .takeLast(4).joinToString("\n\n") { it.summaryAsText(maxLength = 500) })
                     ),
                 ),
@@ -1205,6 +1216,19 @@ class ChatManager(
 
     // ---- 压缩对话历史 ----
 
+    /**
+     * 把较早的消息压成摘要，保留最近 [keepRecentMessages] 条。
+     *
+     * ⚠️ 契约要求过滤发生在 prompt 组装层。压缩送的是**全量** `currentMessages` 给 SUMMARY
+     * 模型，而它在群聊上今天**不可从 UI 触发**（压缩对话框只在 `ChatPage.kt`，
+     * `GroupChatPage.kt` 里 `compress` 出现 0 次），属潜伏漏洞；一旦 UI 接线就是真泄漏。
+     * 所以这里与 [generateTitle] 接同一份过滤（[SummaryViewerScope]），不等 UI 接线。
+     *
+     * ⚠️ 被替换掉的是 `messagesToKeep`（压缩窗口以外的那些原样保留），而摘要文本只由
+     * `messagesToCompress` 生成 —— 也就是说**过滤后的可见集合用于生成摘要**，落库时
+     * `messagesToKeep` 仍来自完整 `currentMessages`。这是有意的：库存消息保持完整，
+     * 不落第二套消息库（契约硬约束）。单聊路径逐字不变。
+     */
     suspend fun compressConversation(
         conversationId: Uuid,
         conversation: Conversation,
@@ -1237,6 +1261,22 @@ class ChatManager(
             messagesToKeep = emptyList()
         }
 
+        /**
+         * 真正**送进 SUMMARY 模型**的那一份：压缩窗口 ∩ viewer 可见集合。
+         *
+         * 切分与落库仍按完整 `allMessages` 走（`messagesToKeep` 原样保留），过滤只作用于发给
+         * 模型的副本 —— 库存消息保持完整，不落第二套消息库。单聊下 [SummaryViewerScope.messages]
+         * 原样返回 `currentMessages`，于是这里等于恒等映射，整条路径逐字不变。
+         */
+        val visibleMessageIds = SummaryViewerScope.messages(conversation)
+            .mapTo(mutableSetOf()) { it.id }
+        val compressScope = messagesToCompress.filter { it.id in visibleMessageIds }
+        if (compressScope.isEmpty() && messagesToCompress.isNotEmpty()) {
+            // viewer 在压缩窗口里一条都看不到：发空内容会让模型凭空编一段摘要，再拿它替换掉
+            // 真实历史。宁可失败，也不让用户丢消息。
+            throw IllegalStateException("No visible message to compress under the current group viewer scope")
+        }
+
         fun splitMessages(messages: List<UIMessage>): List<List<UIMessage>> {
             if (messages.size <= maxMessagesPerChunk) return listOf(messages)
             val mid = messages.size / 2
@@ -1267,7 +1307,7 @@ class ChatManager(
         }
 
         val compressedSummaries = coroutineScope {
-            splitMessages(messagesToCompress)
+            splitMessages(compressScope)
                 .map { chunk -> async { compressMessages(chunk) } }
                 .awaitAll()
         }
