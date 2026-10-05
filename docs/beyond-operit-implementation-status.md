@@ -80,11 +80,58 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   两次退出码 0、输出逐字节相同）。它给「**类型筛选只过滤**」钉了真实的 SQLite 执行
   证据（**集合相等而不是数量相等**、筛选后 count 正确、分页无重复无遗漏、切换 `type`
   参数不改查询种类）——**这是 C1-10 迄今最硬的一块证据**。
-  ⚠️ **但它同样不覆盖四类产物中的任何一类**：viewer 可见消息 ID 零份（脚本比的是
-  `conversationentity` 的 `id` 集合，`message_node` 一行没碰）、模型调用序列零份、
-  token 零份、真机行为零份。**所以「0/10」不变，C1-10 那一行仍 `unverified`**——
-  证据登记表填的是「部分证据（零设备，真实 SQLite 执行）」并逐项写清了哪些补上了、
-  哪些仍是零份，**状态列没动**。
+⚠️ **但它同样不覆盖四类产物中的任何一类**：viewer 可见消息 ID 零份（脚本比的是
+    `conversationentity` 的 `id` 集合，`message_node` 一行没碰）、模型调用序列零份、
+    token 零份、真机行为零份。**所以「0/10」不变，C1-10 那一行仍 `unverified`**——
+    证据登记表填的是「部分证据（零设备，真实 SQLite 执行）」并逐项写清了哪些补上了、
+    哪些仍是零份，**状态列没动**。
+
+- ⚠️⚠️ **2026-10-05 第二个窗口：真机接上了，四类产物拿到两类，但 0/10 不变。**
+  设备 **OnePlus `PKG110` / Android 16 / API level 36 / `arm64-v8a`**，被测 app
+  `heizige.kk.khatkit.debug`（`2.5.5` / `190`），无线调试 `192.168.31.183:38493`。
+  这是「设备·Android 版本」列**第一次有值**，也是 C1 相关仪器测试**第一次真跑**。
+  - **`adb devices` 不再为空**——上面所有「零设备 / `adb devices` 空 / 需设备」的措辞
+    **按惯例保留不覆写**，新数据一律登记在
+    `docs/eval/c1-group-chat.md` 的「C1 真机证据采集（2026-10-05，OnePlus PKG110）」，
+    本节不重复数字。
+  - **拿到两类**：① 各 viewer 可见消息 ID——**真机真 Room 库**（生产同一个
+    `AppDatabaseFactory.create(...)`，同一 schema v32，只换独立库名）上跑真实
+    `GroupTurnCoordinator.viewerMessages`，3 个 viewer 逐条落定，越权审计 6 个有序对
+    `violations: []`；② 导出 SHA-256——**真机**跑 `TavernChatCodec.exportGroupJsonl` →
+    真机写文件 → 真机 `MessageDigest`，3 种 `mode` 各一份，`adb pull` 后与本机
+    `sha256sum` 独立复算 **6/6 全一致**（字节数也全等）。
+  - **仍然缺两类**：**真实 prompt+completion token**（只拿到预算口径
+    `spent=4096 / limit=400 / skipped=[b,c] / status=BUDGET_STOPPED`，**但 3000/1096
+    是构造输入**）、**真实模型调用序列**（只拿到路由决策，三个角色分别命中
+    `resolveGroupTurnModelId` 的三条不同回落通路，**没有任何一次真实 HTTP 调用**）。
+    **根因是设备上没有配 API key**——`files/datastore/settings.preferences_pb`
+    只有 165 字节，`strings` 里没有 `providers`、没有 `models`。
+  - **仪器测试 25/25 全绿**（`GroupRunDAOTest` 12 + `Migration_30_31_Test` 7 +
+    `Migration_31_32_Test` 6），另有一轮合跑 **45/45 全绿、exit 0**。
+    ⚠️ 全量 56 条因 Coil 单例 `ImageLoader` 初始化顺序冲突（`BrowserRuntimeTest`）
+    **跑不完，未修**。
+  - ⚠️ **同时修掉了三处测试代码缺陷**（定性为**测试自身缺陷，不是生产代码 bug**）：
+    `GroupRunDAOTest` 两处（fixture 状态写死 + 期望列表排序方向反了，**断言强度未变**）、
+    `Migration_31_32_Test.insertConversation`（`query()` 不执行写操作，导致一条
+    **假断言**——它曾是「31→32 能往返承载 `group_cards`」的唯一证据位）、
+    `ExampleInstrumentedTest` 硬编码包名。这五个 commit
+    （`ca717f39` / `7519ee7f` / `8151de89` / `43d6ea7e` / `2c1d7632`）
+    **零 main 源码改动**，`git diff --name-only 4a4def40..2c1d7632 -- app/src/main
+    | wc -l` = **0**。
+  - ⚠️ **本轮在真机上还撞到一个 pre-existing 真 bug 并修掉了**：`Screen.Assistant`
+    缺 `@Serializable`（`Screen` 57 个成员里唯一漏的），导致**每次进助手页必崩**
+    （真机崩 3 次）。`d122d6882`（9-12）引入时漏了，`e7c0b2a3`（10-03）新增
+    `persist()` 把「静默不恢复」升级成「必崩」。漏过 CI 的原因是
+    `NavBackStackSerializationTest` 只点名测了 **5 个成员**，`Screen.Assistant`
+    从未被测过。修法是 `0a289af6` 补注解 + `c3909047` 加
+    `everyScreenMemberHasAWorkingSerializer`（**遍历全部 `sealedSubclasses`**，
+    「少一个成员就红」，不再是点名测）。
+    另有 `18baa930` / `1f560f88` / `1e9d5607` 删掉圆形揭幕动画试验页
+    （`SettingAnimPlayPage.kt` 273 行 + 设置项 + 导航 + 三个字符串 key，
+    净 5 files / 293 deletions / 0 insertions）——理由是动画已应用到正式代码。
+  - **结论不变：按 `client-changes.md:232-235`「缺任一项就标 `unverified`」，
+    十例仍全部 `unverified`，C1 不能标成已完成。** 四类里两类齐了 ≠ 契约达成；
+    `viewer 可见消息 ID` 那一列还**只覆盖 pipeline**，roundtable / vote 没采。
 
 这不是保守，是契约自己定的规则。**验收证据只认 `docs/eval/c1-group-chat.md`**；
 本节只描述现状与下一步，不代替证据、不改判定。
@@ -345,7 +392,8 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     ≥ 3.35 的 `ADD COLUMN` **原地快路径**（本机 3.51.2 满足），**真机 Android 捆绑的
     SQLite 版本未知**，若它是 3.25–3.34 则 `ADD COLUMN` 同样是整表重写/重建，
     手写 ALTER 的优势不成立。
-- B2 抽屉搜索路的 `folder_id` 口径与未归档路不一致 —— **待产品决策**。
+- B2 抽屉搜索路的 `folder_id` 口径与未归档路不一致 —— ⚠️⚠️ **2026-10-05 已由用户
+  拍板定稿：选方案 B（保持现状）。不再是待决项。**
   - **现状（已被测试钉住，`ConversationDrawerFolderScopeTest` 4 条）**：无搜索词走
     `getUnfiledConversationsOfAssistantByType`，`WHERE` 里有 `AND folder_id = ''`；有搜索词走
     `searchConversationsOfAssistantByType`，`WHERE` 里**没有** `folder_id` 条件。所以无搜索词
@@ -369,17 +417,27 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     - 收益：搜索是全局的，符合多数用户搜一个词就期望翻遍全部的直觉。
   - **推荐：方案 B + 显式化**。理由：方案 A 会让一批会话**不可检索**，而抽屉里没有任何
     替代入口，这是功能回退；方案 B 的代价只是认知不一致，可以用注释/文档消解。
-    若产品认为「抽屉主列表必须只含未归类」优先于可检索性，则改走方案 A，改动面仅是
-    `ConversationDAO.searchConversationsOfAssistantByType` 的 `WHERE` 加一个条件 +
-    翻掉 `ConversationDrawerFolderScopeTest.searchQuery_currentlyHasNoFolderCondition`
-    的断言方向（测试会先红，这是预期的）。
+  - ✅ **已定稿（2026-10-05，用户拍板）：方案 B，抽屉搜索保持跨全部文件夹。**
+    **`ConversationDAO.kt` 一行未动**；`ConversationDrawerFolderScopeTest` 那 4 条测试
+    钉住的现状**就是最终口径**。所以「改口径会先让测试变红」这条**仍然成立**——
+    那是**预期信号**，不是回归。⚠️ **方案 A 的代价说明继续保留**（不要因为定稿就删）：
+    收窄会让已归档会话**彻底搜不到**，而二级页（`FolderDetailPage` /
+    `FolderDetailViewModel`）**目前没有搜索框**（只读
+    `getConversationsOfFolderPaging`），跨文件夹搜一个词做不到。这正是选 B 的理由。
+    ⚠️ **B 方案里「显式化」那一步还没做**：`ChatDrawerViewModel` 的 KDoc 尚未补
+    「抽屉搜索跨文件夹」这条语义。按拍板结论那是**文档化工作**，不是口径变更，
+    可以之后单独排。
+    ⚠️ 「这是遗漏，不是有意设计」这个**技术判断不变**——B 方案被选中不等于那个判断
+    被推翻，只等于**代价可接受、决定不改**。别把这两件事混成一句。
   - **仍未验证**：DAO 的两条 SQL 在**真机 Android SQLite** 上的行为依旧零设备证据
     （仓库 `testImplementation` 只有 junit，没有 Robolectric / room-testing，见
     `ConversationTypeFilterSourceGuardTest` 的同一说明）。⚠️ 本轮 C1-S 重放的 G6 组
     **4 条断言在主机侧观测过这个 `folder_id` 口径**（两条路确实不一致），
-    **但那只是把现状钉成实测**：结论**仍是待产品决策**、方案 A / B 的推荐
-    **一个字没改**、真机 Android SQLite 上的行为**仍未验**。上面所有依据来自源码文本、
-    git 历史与主机侧重放，不是真机运行时行为。
+    **那只是把现状钉成实测**：方案 A / B 的取舍**一个字没改**。
+    ⚠️ **2026-10-05 之后补一句**：真机（OnePlus `PKG110` / Android 16）虽然已经接上，
+    但**这两条 SQL 至今没有在真机上被观测过**——真机窗口采的是 C1 群聊那一侧
+    （Room 库、导出、仪器测试），**没有覆盖抽屉查询**。上面所有依据来自源码文本、
+    git 历史与主机侧重放，**不是真机运行时行为**。
 - B3 ~~`GroupRole.modelId` 显示侧与生成侧现在同口径~~ **已关闭（`c7535ca8`）：两侧本来
   就是两个问题，而「同口径」是错的。** 生成侧 `ChatManager.kt:726` 的
   `resolveGroupTurnModelId`（定义在 `feature/chat/GroupTurnModel.kt:54`）答「现在要用
@@ -502,14 +560,19 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
    3. 给 `ConversationDAO` 的 SQL 补仪器测试源码（`androidTest`，用已有的
       `androidx.room.testing`）：`:type = ''` 时不筛、`itemCount` 正确、
       搜索路与未归档路口径一致。写好先不跑，等接设备。
-   4. **定 B2 的抽屉搜索 `folder_id` 口径（产品决策）**。B2 条目里已写清现状、判断
-      （遗漏）与两个方案及各自代价，推荐**方案 B（保持现状）+ 显式化**（注释/文档），
-      理由是方案 A 会让文件夹内会话不可检索而二级页没有搜索框。定了之后：选 A 就给
-      `searchConversationsOfAssistantByType` 的 `WHERE` 加 `AND folder_id = ''` 并翻掉
-      `ConversationDrawerFolderScopeTest.searchQuery_currentlyHasNoFolderCondition` 的断言；
-      选 B 就把抽屉搜索「跨文件夹」的语义补进 `ChatDrawerViewModel` 的 KDoc，并在这条
-      遗留项里记成已知且认可的口径。**在产品定之前不要改 DAO**——现状已被 4 条测试钉住，
-      改动会先让测试变红，那是预期的信号。
+   4. ✅ **已定稿（2026-10-05）：B2 抽屉搜索 `folder_id` 口径 —— 选方案 B（保持现状）**。
+      B2 条目里已写清现状、判断（遗漏）与两个方案及各自代价，理由是方案 A 会让文件夹内
+      会话不可检索而二级页没有搜索框。**决定：保持现状，`ConversationDAO.kt` 一行未动**，
+      `ConversationDrawerFolderScopeTest` 那 4 条测试钉住的现状**就是最终口径**。
+      ⚠️ **「改口径会先让测试变红」这条仍然成立**——那是**预期信号**，不是回归；
+      要改口径就必须同时翻掉
+      `ConversationDrawerFolderScopeTest.searchQuery_currentlyHasNoFolderCondition`
+      的断言方向，**不许只改 DAO 不改断言**。
+      ⚠️ **方案 A 的代价说明继续保留**（不要因为定稿就把它删掉）：收窄会让已归档会话
+      **彻底搜不到**，而二级页（`FolderDetailPage` / `FolderDetailViewModel`）**目前没有
+      搜索框**（只读 `getConversationsOfFolderPaging`），跨文件夹搜一个词做不到。
+      **剩下的一步是「显式化」**：把抽屉搜索「跨文件夹」的语义补进 `ChatDrawerViewModel`
+      的 KDoc，并在 B2 遗留项里记成已知且认可的口径。**那不是口径变更，是文档化工作。**
       ⚠️ **「不要改 DAO」只针对 `folder_id` 这一个口径，不是针对整个 DAO**：C1-S 那批
       （`215296f1..6982869b`）改过 DAO 的 `ESCAPE` 子句与 `ORDER BY` 兜底，那是**另外两
       个已定位的缺陷**，与 B2 无关，也没碰 `folder_id` 那一行 `WHERE`。
@@ -536,22 +599,34 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
       期望串**（`ConversationTypeFilterSourceGuardTest.kt:68-73`），三条断言一条没被
       削弱或删除、改完更严，但**它抓不到转义字符写错**——细节见上面「逐项状态」表后的
       显眼登记，以及 `docs/eval/c1-group-chat.md`「C1-S」那节。
-      ⚠️ **B2 的「待产品决策」不受影响**：G6 那 4 条断言只把 `folder_id` 口径的现状
-      钉成实测，方案 A / B 与推荐一个字没改。
+      ⚠️ **B2 已在 2026-10-05 定稿为方案 B**（见上面第 4 项）：G6 那 4 条断言只把
+      `folder_id` 口径的现状钉成实测，方案 A / B 与推荐一个字没改；**定稿之后
+      「改口径会先红是预期信号」这条仍然成立**。
 
-2. **需要接真机**
-   1. 真机建一个 3 角色群聊跑一轮 `mode=pipeline`，从库里按 `role_id` 分组导出每个
-      viewer 的可见消息 ID 台账（用真实 `message.id`，不是测试构造值）。
-   2. 同一群跑 `mode=roundtable` 与 `mode=vote`，vote 的平票路径单独跑一次。
-   3. 采集真实模型调用序列与 prompt+completion token；预算用例要让第 2 个角色被截断，
-      贴出「已用 / 上限 / 未运行角色」三个数。
-   4. 导出 `.jsonl` 后 `adb pull` 立刻 `sha256sum`；用 SillyTavern 本体打开该文件。
-   5. 相机扫码导回另一台设备，逐字段 diff `role_id` / `round_id` / `turn_kind` /
-      群配置 / 角色卡，并单独验证不含密钥、记忆、授权 token。
-   6. 跑 `./gradlew --offline :app:connectedDebugAndroidTest` 拿那 **25** 条仪器结果
-      （12 + 7 + 6；C1-P 新增的 `Migration_31_32_Test` 6 条含在里头）。
-   7. 装一个**从 Room 31 升上来**的旧库（不是全新安装），确认升级不崩、`group_cards`
-      是空串、群聊页刷新后「已导入的角色卡」仍在——这三件是 B1 剩下的全部尾巴。
+2. **需要接真机**——⚠️ **2026-10-05 更新：真机已接上（OnePlus `PKG110` / Android 16 /
+   API 36），第 1 / 4 / 6 条已部分或全部完成，第 3 / 5 条被「设备上没有 API key」挡住。**
+   逐条现状：
+   1. ⚠️ **部分完成**：`mode=pipeline` 的三个 viewer 可见消息 ID 台账已在**真机真 Room
+      库**上采到（真实 `message.id`，不是构造值），越权审计 6 对 `violations: []`。
+      **roundtable / vote 的 viewer 集合没采**。
+   2. ❌ **仍未做**：roundtable / vote 跑群、vote 平票路径单独跑一次。
+   3. ❌ **仍缺，且被环境挡住**：设备上没有配 API key
+      （`settings.preferences_pb` 只有 165 字节，没有 `providers` / `models`），
+      **没有一次真实 HTTP 调用发生过**。只拿到路由决策与预算口径两份证据。
+      **配 API key 是这一整条现在的硬前置。**
+   4. ⚠️ **部分完成**：真机 `.jsonl` 已产出、`adb pull` 后 `sha256sum` 与真机
+      `MessageDigest` **6/6 一致**；**SillyTavern 本体打开该文件仍然零证据**。
+   5. ❌ **仍未做**：相机扫码导回另一台设备、逐字段 diff、单独验证不含密钥/记忆/
+      授权 token。
+   6. ✅ **已完成**：C1 相关 **25 条全绿**（12 + 7 + 6，exit 0），另有一轮合跑
+      **45/45 全绿、exit 0**，新增 `C1DeviceEvidenceTest` 3 条。
+      ⚠️ **但全量 56 条跑不完**（`BrowserRuntimeTest` 触发 Coil 单例崩溃，**未修**），
+      未单独跑过的是 `NodeTreeSmokeTest`(4) / `DependencyReadOnlyLoadTest`(2) /
+      `ExampleInstrumentedTest`(1)。
+   7. ❌ **仍未做**：装一个从 Room 31 升上来的旧库，确认升级不崩、`group_cards` 是空串、
+      群聊页刷新后「已导入的角色卡」仍在——这三件是 B1 剩下的全部尾巴。
+      ⚠️ 真机库里 `rikka_hub` 的 `PRAGMA user_version = 32` /
+      `PRAGMA integrity_check = ok` 已读到，**但那不等于跑过一次 31→32 升级**。
 3. **登记规则**
    每补齐一项，在 `docs/eval/c1-group-chat.md` 的「证据登记」表**追加一行**
    （不覆盖历史行），四类证据列齐才把用例矩阵状态改成 `verified`。

@@ -6,8 +6,34 @@
 `:232-235` 是「验收记录格式」）。
 
 ## 现状（2026-10-05 复核，基线 `d45ebd10`，C1-D 重放证据登记于锚点 commit `1b0e04a9`，
-C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`）
+C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`；
+⚠️ **真机证据窗口见「C1 真机证据采集（2026-10-05，OnePlus PKG110）」——设备已接上，
+但十例状态仍全 `unverified`**）
 
+- ⚠️⚠️ **2026-10-05 第二个窗口（本文件最新的实测窗口）：真机已接上，四类产物拿到了
+  两类。** 设备 **OnePlus `PKG110` / Android 16 / API level 36 / `arm64-v8a`**，app
+  `heizige.kk.khatkit.debug`（`versionName 2.5.5` / `versionCode 190`），无线调试
+  `192.168.31.183:38493`。契约 `:206` 点名的四类里——
+  - **「各角色可见消息集合」有了：真机真 Room 库**（生产同一个
+    `AppDatabaseFactory.create(context, "c1-device-evidence.db")`，同套 SQLite 扩展、
+    同一个 `onOpen`、同一 schema v32，只换独立库名）上跑真实
+    `GroupTurnCoordinator.viewerMessages`，3 个 viewer 的可见消息 ID 台账逐条落定，
+    越权审计 `checked_pairs=6 / violations=[] / passed=true`。
+  - **「导出 SHA-256」有了：真机**跑 `TavernChatCodec.exportGroupJsonl` → 真机写文件
+    → 真机 `java.security.MessageDigest` 算哈希，3 种 `mode` 各一份，`adb pull` 回本机后
+    与 GNU coreutils `sha256sum` 独立复算 **6/6 全一致**（字节数也全等）。
+  - ⚠️ **「实际模型调用序列」仍然缺**——只拿到**路由决策**证据（三条不同回落通路 +
+    `TaskRoutes.resolve` 返回的真 `Model`）。
+  - ⚠️ **「token 计数」仍然缺**——只拿到**预算口径**证据（`spent=4096` /
+    `limit=400` / `skipped=[b,c]` / `status=BUDGET_STOPPED`），
+    **但 3000/1096 是构造的输入，不是任何模型吐出来的真实用量**。
+  - **根因：设备上没有配 API key。** 只读检查了
+    `files/datastore/settings.preferences_pb`（165 字节），`strings` 只有
+    `mcp_servers / data_version / assistants / quick_messages / launch_count /
+    select_assistant / 0950e2dc-…`——没有 `providers`、没有 `models`、没有 API key。
+  - **所以按 `:42` 的判定规则（「缺调用序列或缺哈希的行均不算通过」），十例仍然全部
+    `unverified`，0/10 不变。** 四类里两类齐了不等于契约达成；`viewer 可见消息 ID`
+    只覆盖了 **pipeline**，roundtable / vote 的 viewer 集合**没采**。
 - **十条用例仍然全部 `unverified`。** C1 的代码层已实现并落在仓库里，离线
   `testDebugUnitTest` / `lint` / `packageDebug` 三条命令本轮都真跑过且退出码 0，
   但契约 `:206` 点名要的四类证据——**各角色可见消息集合、实际模型调用序列、
@@ -101,6 +127,10 @@ C1 相关共 **25 个测试类 / 304 个用例**，全类名带包名前缀为
 「24 个测试类 / 291 个用例」都已过期（依次 `+2 类 / +14 例`、`+1 类 / +5 例`）。
 仪器测试另有 **25 条**同样一次没跑（12 + 7 + 6），见「仪器测试状态」——本轮
 **没加任何 `androidTest` 用例，25 这个数不变**。
+⚠️⚠️ **上面这句已被 2026-10-05 的真机窗口订正（按惯例保留不覆写）**：那 25 条现在
+**25/25 全绿**，而且**又多了 3 条**——`C1DeviceEvidenceTest`（`2c1d7632`，1144 行），
+所以「C1 相关仪器测试」当前是 **28 条**。新数据见「C1 真机证据采集（2026-10-05，
+OnePlus PKG110）」。
 
 ## 证据登记
 
@@ -269,6 +299,17 @@ BuiltinCardSampleTest` 1、`khatkit/engine/RustEngineTest` 5、
 `ConversationTypeFilterSourceGuardTest` 的 `tests` 属性仍是 **2**（**用例数不变不等于
 断言没变**——它第 3 条断言的**期望串被改了一行**，见下一条与「C1-S」那节的显眼登记）。
 **合计那一行同样没重跑全仓 `test`、不更新**（`app` 之外的 14 个模块本轮一个测试都没重跑）。
+
+⚠️ **再往后一批（真机证据采集 `ca717f39..2c1d7632` + 助手页必崩修复 `0a289af6` /
+`c3909047` + 试验页删除 `18baa930..1e9d5607`，共 10 个 commit）之后，`app` 实测是
+**92 个测试类 / 723 tests / 0 failures / 0 errors / 0 skipped**（逐个 XML 的 `tests` 属性
+汇总实测，最大 `timestamp` = `2026-10-05T03:48:20.578Z`）：**类数不变，例数 722 → 723，
+即 `+0 类 / +1 例`**，那一例来自 `c3909047` 往
+`NavBackStackSerializationTest.kt` 里**新增**的 `everyScreenMemberHasAWorkingSerializer`
+（+118 行；该类的 `tests` 属性 **4 → 5**，`4a4def40` 那版只有 4 条 `@Test`）。
+⚠️ **这只是逐个 XML 汇总的结果，不是本轮重跑出来的**——本次任务只改文档、
+**按要求没有跑 gradle**。上面 `92 / 722` 那个窗口的实测值**保留不覆写**，
+本段是新窗口的汇总值，**两者不冲突**。**合计那一行同样没重跑全仓 `test`、不更新**。
 
 ⚠️ **本轮改了一行既有测试断言的期望串——先说清它是不是第一次：**
 **改既存测试文件这件事，锚点之后不是第一次**——`09b4764b` 重设计过 `GroupTurnModelTest`
@@ -1184,6 +1225,20 @@ DAO 源码护栏原理上抓不到。现在期望串里没有转义字符字面�
 双重保障**——一次同时钉住 ESCAPE 子句的**存在 + 位置**与 type 谓词的**相邻**。
 覆盖边界现在是有据可查的：**新断言只覆盖搜索路那一条**，其余 4 条由转义护栏全覆盖。
 
+⚠️⚠️ **别把「敏感项」这个词只留给本轮那一行：2026-10-05 真机窗口又改了两处既有测试
+文件，同样是敏感项，但性质不同。** `ca717f39` 补的是**fixture 的状态字段**
+（`old-done` / `new-done` 两条本该是 `STATUS_COMPLETED`，helper 却写死成
+`STATUS_RUNNING`），`7519ee7f` 改的是**期望列表的排序方向**（`.sortedBy { it.runToken }`
+是升序，`'n'`=110 < `'o'`=111）。**断言本体一个字没动**——仍是 `assertEquals` 精确列表
+相等，存活集合 `{old-live, new-done}` 一个不多一个不少，**没改成 `containsAny`**。
+⚠️ `7519ee7f` 那条**无论 DAO 行为如何都不可能通过**（期望顺序与它自己那行的 `.sortedBy`
+相反），所以它是**测试自身写错了**，不是生产缺陷。
+⚠️ 另有两条改的是**「假的通过」而不是排序**：`8151de89`（`db.query("INSERT ...")`
+根本不执行写操作，行没插进去，后面的 `assertTrue(c.moveToFirst())` 是一条**假断言**）与
+`43d6ea7e`（硬编码 `heizige.kk.khatkit.app`，但 debug `applicationId` 是
+`heizige.kk.khatkit.debug`，那条用例在 debug 变体上**必然失败**）。修完之后断言**更严**。
+详见「C1 真机证据采集」那节的「敏感项」。
+
 #### 一、主机侧重放脚本 `tools/verification/c1s_conversation_type_filter_replay.py`
 
 **命令**：
@@ -1338,7 +1393,273 @@ APK 字节数见「三个 APK」段的本轮记录（**不要用 SHA-256 做对�
 另外 9 个用例状态一律不动。证据登记表 C1-10 行填的是「部分证据（零设备，真实 SQLite
 执行）」并逐项写清了哪些补上了、哪些仍是零份——**状态列没动**。
 
+### C1 真机证据采集（2026-10-05，OnePlus PKG110）
+
+登记于 commit `ca717f39` / `7519ee7f` / `8151de89` / `43d6ea7e` / `2c1d7632`
+（详见「锚点之后的后续提交」小节）。**这一节同样不改变任何用例的判定**：
+契约 `:206` 点名的四类产物**拿到了两类**（viewer 可见消息 ID、导出 SHA-256），
+**仍缺两类**（真实 prompt+completion token、真实模型调用序列），
+所以**十例仍全 `unverified`，0/10 不变**。
+
+⚠️ **四类里两类齐了 ≠ 契约达成。** 别把「有内容了」读成「可以勾掉了」。
+
+#### 设备信息（这是「设备·Android 版本」列第一次有值）
+
+| 项 | 实测值 |
+|---|---|
+| 设备 / Android | **OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`** |
+| 分辨率 | Physical **1264x2780**，Override **1080x2376** |
+| density | Physical **560**，Override **480** |
+| fingerprint | `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys` |
+| adb 连接 | `192.168.31.183:38493`（**无线调试**） |
+| 被测 app | `heizige.kk.khatkit.debug`，`versionName 2.5.5` / `versionCode 190`，launcher Activity 是 `RouteActivity` |
+| 生产库 | `rikka_hub`，`PRAGMA user_version = 32`，`PRAGMA integrity_check = ok`，`ConversationEntity.group_cards = TEXT NOT NULL DEFAULT ''` |
+| 证据采集用库 | `c1-device-evidence.db`（**独立库名，生产同一个 `AppDatabaseFactory.create(...)`**，同套 SQLite 扩展、同一个 `onOpen`、同一 schema v32；不碰 `rikka_hub`、不碰用户数据，测试结束删掉自己那个库） |
+
+#### 仪器测试：C1 相关 25 条首次跑通（25/25 全绿）
+
+新增仪器测试类
+`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/C1DeviceEvidenceTest.kt`
+（**1144 行 / 3 个用例**，`2c1d7632`）。
+
+| 类 | tests | failures |
+|---|---:|---:|
+| `GroupRunDAOTest` | 12 | **0** |
+| `Migration_30_31_Test` | 7 | **0** |
+| `Migration_31_32_Test` | 6 | **0** |
+| **合计** | **25** | **0** |
+
+**命令与退出码**：
+
+```
+./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=heizige.kk.khatkit.app.core.data.db.dao.GroupRunDAOTest,heizige.kk.khatkit.app.core.data.db.migrations.Migration_30_31_Test,heizige.kk.khatkit.app.core.data.db.migrations.Migration_31_32_Test
+→ exit 0
+  JUnit XML: tests=25 failures=0 errors=0 skipped=0
+  日志行：Starting 25 tests on PKG110 - 16 / Finished 25 tests on PKG110 - 16 / BUILD SUCCESSFUL in 33s
+```
+
+另一轮把 DB / sync / browser 存档那批合跑（产物落
+`app/build/outputs/androidTest-results/connected/debug/TEST-PKG110 - 16-_app-.xml`）：
+**45/45 全绿，exit 0**。逐类 `tests` 属性实测：
+`C1DeviceEvidenceTest` 3、`GroupRunDAOTest` 12、`Migration_11_12_Test` 7、
+`Migration_30_31_Test` 7、`Migration_31_32_Test` 6、`BrowserArchiveTest` 4、
+`DatabaseBackupTest` 3、`BackupManagerTest` 3 = **45**，
+`testsuites tests="45" failures="0" errors="0" skipped="0"`，
+`test-result-exit-code.txt` = `0`。
+
+⚠️ **这一节只把「仪器测试跑没跑过」这件事了结了，它不产生契约 `:206` 意义上的
+四类产物里的任何一类。** 所以 C1-07 那一行的迁移侧证据从「零设备主机侧重放」升级成
+「真机仪器 12 条 + 7 条 + 6 条全绿」，**但状态列仍是 `unverified`**——C1-07 要的
+「让第 2 个角色失败后重试同一 `round_id`，贴库内 `committed_role_ids` 与实际消息条数
+对得上」那条真机交互**没做**。
+
+#### ⚠️⚠️ 踩坑：无线调试开着时 adb mDNS 会把同一台设备自动注册两条
+
+**症状（这一条是本轮最大的假失败来源）**：无线调试开着时，adb 的 mDNS 发现会把**同一台
+物理设备自动注册成两条 serial**——一条是 IP 形式 `192.168.31.183:38493`，另一条是
+`adb-3B6F5ME910B6H059-Sqr0AX._adb-tls-connect._tcp`。AGP 拿到两个 serial 就**对每个各跑
+一遍**安装 / 卸载 / 启动，两边互相踩。实测报错组合：
+
+```
+[Failure [DELETE_FAILED_INTERNAL_ERROR]]
+Finished 0 tests on PKG110 - 16-192.168.31.183:38493
+Finished 0 tests on PKG110 - 16-adb-3B6F5ME910B6H059-Sqr0AX._adb-tls-connect._tcp
+Test run failed to complete. Unable to find instrumentation target package: heizige.kk.khatkit.debug.
+→ 0 用例、exit 1
+```
+
+伴随 `Error: -99` 安装失败（`-99` = `INSTALL_FAILED_INTERNAL_ERROR`）。
+
+**处置**：`adb disconnect` 掉 mDNS 那条，只留一条；或用环境变量 `ANDROID_SERIAL`
+把 serial 钉死。**跑之前必须 `adb devices -l` 确认只有一条**——不看就开跑，
+你会花好几轮去追一个根本不是代码问题的失败。
+
+⚠️ 别把它读成「测试挂了」：同一份代码在只剩一条 serial 时是 `BUILD SUCCESSFUL in 33s`。
+
+#### ⚠️⚠️⚠️ 敏感项：三处测试缺陷修复（**定性为测试代码自身缺陷，不是生产代码 bug**）
+
+上一轮那 25 条里有 **2 条失败**。逐条定性如下。
+
+**① `GroupRunDAOTest.archivingByAgeKeepsRunningRecords`（两处缺陷，`ca717f39` + `7519ee7f`）**
+
+- **缺陷 A**：`GroupRunDAOTest.kt:57` 的 `run()` helper 把状态**写死成
+  `STATUS_RUNNING`**，所以 `:269-271` 插入的 `old-done` / `new-done` 两条**名字叫 done、
+  实际状态是 RUNNING**。而生产 `GroupRunDAO.deleteFinishedBefore` 的口径是
+  `started_at < :before AND status != 'RUNNING'`——**按设计就不该删 RUNNING 行**，
+  实测三行全留。**修法**：参照同文件 `archivingKeepsRunningRecords`（`:259`）的既有
+  写法，给两个 `-done` 行补 `.copy(status = GroupRunEntity.STATUS_COMPLETED)`。
+- **缺陷 B（被 A 掩盖，修完 A 才暴露）**：期望列表 `[old-live, new-done]` 与该行自己的
+  `.sortedBy { it.runToken }` **排序方向相反**（`'n'` = 110 < `'o'` = 111，所以升序后应是
+  `[new-done, old-live]`）→ **无论 DAO 行为如何都不可能通过**。**修法**：只把期望列表
+  重排为 `[new-done, old-live]`。
+- ⚠️ **断言强度未变**：仍是 `assertEquals` 精确列表相等，存活集合 `{old-live, new-done}`
+  一个不多一个不少，**没有改成 `containsAny`** 或任何弱化形式。
+
+**② `Migration_31_32_Test.insertConversation`（`8151de89`）——这条曾是证据缺口**
+
+- **缺陷**：helper 用 `db.query("INSERT INTO ...")`，但 `SupportSQLiteDatabase.query()`
+  是 **SELECT 接口**，只 prepare 返回 Cursor，**不执行写操作** → 行**根本没插进去**，
+  后面的 `assertTrue(c.moveToFirst())` 变成一条「有没有真写进去」的**假断言**（它永远在
+  问一个没发生过的操作）。
+- **修法**：改用 `db.execSQL(sql, bindArgs)`。签名是 `Array<out Any?>`，现有调用点元素是
+  `String` / `Long`，**类型合法，无需再改**。
+- ⚠️ **为什么这条重要**：它是**唯一**真正往真 SQLite 写入并读回**非空 `group_cards`
+  blob** 的用例。修好之后，「31→32 迁移后 `group_cards` 能往返承载角色卡」这件事
+  才有真机证据——**修之前那一格是空的**。
+
+**③ `ExampleInstrumentedTest.useAppContext`（`43d6ea7e`）**
+
+- **缺陷**：硬编码 `heizige.kk.khatkit.app`，但 debug 变体的 `applicationId` 是
+  `heizige.kk.khatkit.debug` → 这条用例**在 debug 变体上必然失败**，它是 45/45 那一轮
+  之前 53 条里的 3 个 failure 之一。
+- **修法**：**不硬编码任何字符串**，改成两个**独立来源**对账：
+  `assertFalse(appContext.packageName.isBlank())` +
+  `assertEquals(appContext.applicationInfo.packageName, appContext.packageName)`。
+  后者比原来那条更强：它同时钉住「`packageName` 与 `applicationInfo.packageName` 一致」。
+
+**⚠️ 「生产代码零改动」的独立核实**：这五个 commit（`ca717f39` / `7519ee7f` /
+`8151de89` / `43d6ea7e` / `2c1d7632`）逐个 `git diff --name-only <sha>~1..<sha>` 核过，
+**全部只碰 `app/src/androidTest/`**，一个 main 源文件都没动。合并区间
+`git diff --name-only 4a4def40..2c1d7632 -- app/src/main | wc -l` = **0**。
+⚠️ **注意别把区间取到 `HEAD`**：`4a4def40..HEAD -- app/src/main` 是 **5**，
+那 5 个文件全部来自**后面两批与 C1 证据无关的改动**（`0a289af6` 给
+`Screen.Assistant` 补 `@Serializable`、`18baa930` 删圆形揭幕动画试验页），
+不是证据采集或测试修复带来的。
+
+#### viewer 可见消息 ID（契约第一类产物，第一次有真机硬证据）
+
+`C1DeviceEvidenceTest` 在**真机真实 Room 库**上跑真实
+`GroupTurnCoordinator.viewerMessages`。
+
+**fixture**：3 角色 `a` / `b` / `c`（`c` 是 chair），`mode = pipeline`，**2 个 round 共 7 条
+消息**，每条带真实 `roleId` / `roundId` / `turnKind` / `mentionRoleIds`。
+会话 id `0c1c0de5-0000-0000-0000-000000000001`。
+
+| viewer | predecessor | 可见消息 ID |
+|---|---|---|
+| `role_a` | `null` | `11111111-…-0001`、`22222222-…-000a`、`11111111-…-0002`、`22222222-…-000b`、`ba5fbc34-509a-498e-bc2d-314afbc06476` |
+| `role_b` | `a` | `11111111-…-0001`、`11111111-…-0002`、`22222222-…-000b`、`22222222-…-000c`、`ba5fbc34-…` |
+| `role_c` | `b` | `11111111-…-0001`、`11111111-…-0002`、`22222222-…-000c`、`22222222-…-000d`、`ba5fbc34-…` |
+
+**消息作者对照**：`…-0001` = user、`…-000a` = a、`…-0002` = user、`…-000b` = a、
+`…-000c` = b、`…-000d` = c、`ba5fbc34-…` = `__summary__`。
+
+**越权审计**：**6 个 `(viewer, author)` 有序对逐条审计**，
+`violations: []`、`passed=true`。审计方式**不重写过滤逻辑、只审计它的输出**——viewer
+看到的每条**他人**消息都必须能被生产规则的三条放行分支之一解释：
+`mentionRoleIds` 含 viewer / `step.predecessorId == author` / `step.chairRound`。
+**正向断言**：用户消息与 `__summary__` 轮次摘要**对每个视角都必须可见**。
+
+⚠️ **这一列只覆盖了 pipeline 的 viewer 集合。** roundtable / vote 只做了导出与 QR 往返，
+它们的 viewer 集合**没采**；`chairRound = true` 那个放行分支与 `__summary__` 那个放行分支
+**在这条夹具里没被触发**（pipeline 无议长汇总轮）。C1-03（roundtable 议长视角）与
+C1-04（vote）要的**议长视角可见集合**因此仍然零份。
+
+#### 导出 SHA-256（契约第四类产物，第一次有真机硬证据）
+
+真机上跑 `TavernChatCodec.exportGroupJsonl(...)` → **写真机文件** → 真机
+`java.security.MessageDigest` 算 SHA-256：
+
+| mode | bytes | SHA-256 |
+|---|---:|---|
+| pipeline | 3588 | `6f8efc6c03c2ced5436e1f00a103a9a06a505c63a2bda8246c6b396270cea5d2` |
+| roundtable | 3590 | `1535fe2796e7af128816e60a6985dbd40db326a5b5a6c87b54ba25fc36527514` |
+| vote | 3591 | `36397b7a10fc6db92861680104b12d1cbc56c104b7ab7d1919ad7b5b790c4e26` |
+
+**QR 载荷**（`GroupChat.encodeQr`）：
+
+| mode | bytes | SHA-256 |
+|---|---:|---|
+| pipeline | 1453 | `5dc229e1bbdcd7fdfb5db3fb5646992de49ffe50cd617bb86709ef2037cbc7e2` |
+| roundtable | 1455 | `9bbd19354f49b5c5fe1b345cdbd859101540936499b785da2937cbbd834a3d09` |
+| vote | 1456 | `1e61336f882a055ee8593486565e029f9db36b7301ddecce9bfb97e3702ef708` |
+
+**文件路径格式**：
+`/storage/emulated/0/Android/data/heizige.kk.khatkit.debug/files/c1-evidence-<mode>.jsonl`，
+已 `adb pull` 回本机。
+
+**交叉验证（三重）**：
+
+1. 真机 `MessageDigest` 与本机 GNU coreutils `sha256sum` 对**同一份拉回的文件**独立重算
+   → **6/6 全一致**（3 个 mode × 2 轮），**字节数也全等**：真机
+   `file_length_on_disk` == JSON `bytes` == 本机 `wc -c`。
+2. 真机**同一个 JVM 内** `MessageDigest` 算两遍一致（JSON 字段 `sha256_second_pass`）。
+3. 两个**独立进程 + 独立重装**跑出来的文件，`cmp` **逐字节相同**（本机实测：两次拉回的
+   `c1-evidence-*.jsonl` 六个文件两两同哈希）。
+
+**往返断言**：3 种 `mode` 各过 `GroupChat.isValid`；**首行必须带 `chat_metadata`**；
+`exportGroupJsonl` → `importGroup` 后群名 / 用户名 / 成员名单 / `GroupConfig`
+（`decode(encode(x)) == x`）/ `RoleCardMeta` 全等；**7 条消息逐条**
+`role_id` / `round_id` / `turn_kind` / `mention_role_ids` 相等；并额外断言契约字段同时
+写回了 `node.messages[selectIndex]`。
+
+⚠️⚠️ **哈希可复现性只在固定夹具下成立。** 所有 `UIMessage.id` 被**钉死**，因为 `roundId`
+由触发消息 id 派生——id 一变，派生出来的 `round_id` 就变，字节就变。所以
+**真实用户导出的 SHA 不可复现**。生产宣称的「确定性」是「**同一输入字节相同**」，
+这条被钉住了；**「跨设备 / 跨夹具可比」没验证**。
+⚠️ 另外这是**同一个独立库名下的产物**，不是经 UI「导出面板 → `writeExportTempFile` →
+`ACTION_SEND`」真实分发出来的那一份——`docs/browser-device-validation.md` 那类
+分发链路没被覆盖。
+
+#### ⚠️⚠️ 仍然缺的两类（如实写「缺」，不许粉饰）
+
+**token (prompt+completion)：仍然缺。** 只拿到**预算口径**的真机证据
+（`budgetDecision` / `advance` → `group_runs` **真落库再读回**）：
+
+| 字段 | 实测值 |
+|---|---|
+| `spent` | **4096**（= prompt **3000** + completion **1096**） |
+| `limit` | **400** |
+| `skipped` | `[b, c]` |
+| `status` | `BUDGET_STOPPED` |
+| `reason` | `token_budget_exceeded` |
+| `committed` | `[a]` |
+| `run_token_persisted_before_call` | **true** |
+
+⚠️ **但 3000 / 1096 是构造的输入，不是任何模型吐出来的真实用量。** 测试 JSON 里
+`token_source` 字段已明写 **`budget-accounting-only, no live LLM call`**。读成
+「token 计数已验」是误读。
+
+**实际模型调用序列：仍然缺。** 只拿到**路由决策**的真机证据——三个角色分别命中
+`resolveGroupTurnModelId` 的**三条不同通路**：
+
+| role | 走的通路 | 判据 |
+|---|---|---|
+| `a` | 三关全过走 `role.model_id` | 非空白 ✓ / 可解析为 Uuid ✓ / 在模型库里 ✓ |
+| `b` | **空白串第一关就挂**，回落 `assistant.chat_model_id` | `gate_non_blank=false` |
+| `c` | **合法 Uuid 但不在模型库**，卡在第三关回落 | `gate_is_known_model=false` |
+
+每条还记了 `TaskRoutes.resolve` 返回的**真 `Model`**（uuid + name）与候选列表，
+加上**真库里**每条消息记录的 `modelId` 供对照。
+⚠️ **没有任何一次真实 HTTP 调用发生过。** JSON 里 `model_sequence_source` =
+**`routing-decision + recorded-message-modelId, no live LLM call`**。
+
+**根因：设备上没有配 API key。** 只读检查了
+`files/datastore/settings.preferences_pb`（**165 字节**），`strings` 只有
+`mcp_servers` / `data_version` / `assistants` / `quick_messages` / `launch_count` /
+`select_assistant` / `0950e2dc-…`——**没有 `providers`、没有 `models`、没有 API key**。
+
+#### ⚠️ 这一节仍然不能证明什么（6 条，逐条照记）
+
+1. **十例状态仍全 `unverified`。** 四类缺两类，按 `:42` 的判定规则不算通过。
+2. **viewer 可见集合只覆盖 pipeline。** roundtable / vote 的 viewer 集合没采，
+   `chairRound = true` 与 `__summary__` 两条放行分支在这条夹具里没被触发。
+3. **token 与模型调用序列仍然是「口径证据」，不是「真实调用证据」。** 两份 JSON 自己
+   的 `token_source` / `model_sequence_source` 字段就写着 `no live LLM call`。
+4. **哈希只在固定夹具下可复现。** 真实用户导出的 SHA 不可复现（id 钉死才有这个性质）；
+   「跨设备 / 跨夹具可比」没验证。
+5. **没走过真实 IO 分发链路。** 产物是测试直接写 `getExternalFilesDir`，
+   不是 UI 导出面板 + `ACTION_SEND`；**酒馆本体能不能打开这份文件，仍然零证据**
+   （SillyTavern 侧那部分只有零设备结构对照，见「C1-P 群聊导出确定性哈希（零设备）」）。
+6. **C1-10 的 UI 那半仍然是零证据。** 真机接上了不等于抽屉筛选录屏跑过了；
+   `PagingSource` 并发失效 / 快照一致性 / 回滚一条没验。
+
 ## 仪器测试状态
+
+⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
+「25/25 全绿」，下面第 1 条与第 2 条按既有惯例保留原样不覆写，新数据见
+「C1 真机证据采集（2026-10-05，OnePlus PKG110）」那一节的
+「仪器测试：C1 相关 25 条首次跑通」。**
 
 - **C1 相关仪器测试 25 个注解，执行结果为零，需设备。**（C1-D 之后新增了
   `Migration_31_32_Test` 6 条，早前版本记的 19 已过期。）
@@ -1639,6 +1960,48 @@ lint app 单模块 **593 条 issue、0 Error**（**与基线逐位相同**，本
 **C1-10 的一半**——「类型筛选只过滤」的 SQL 语义，**不是**「切换后消息与会话数据
 不丢」的 UI 行为。**十例状态仍全 `unverified`；C1-10 也是。**
 
+#### 再往后两批：真机证据采集与三处测试修复（`ca717f39..2c1d7632`）、助手页必崩修掉 + 试验页删除（`0a289af6..1e9d5607`）
+
+锚点之后又出现了这两批。**同样不计入本台账**——理由与前几批一致：不改统计区间、
+不改 `--no-merges` 口径。**所以 78 / 6 / 17、前缀分布、子包分布一个数都没动**，
+`d45ebd10~1..1b0e04a9` 那 **78 个 commit 没有被重算**。
+⚠️ 本批的净 diff 里**有 main 源码改动**（`RouteActivity.kt`、删掉一个试验页、两份
+`strings.xml`），但**证据采集那 5 个 commit（`ca717f39` / `7519ee7f` / `8151de89` /
+`43d6ea7e` / `2c1d7632`）零 main 改动**——`git diff --name-only 4a4def40..2c1d7632 --
+app/src/main | wc -l` = **0**，这是「测试缺陷修复没顺手改生产代码」的独立核实。
+
+##### 证据采集批 5 个（`ca717f39..2c1d7632`）
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `ca717f39` | `coder: 修 GroupRunDAOTest 归档用例漏设状态（补 STATUS_COMPLETED）` | 测试（`GroupRunDAOTest.kt`，15 insertions / 2 deletions）——**缺陷 A** |
+| `7519ee7f` | `coder: 修 GroupRunDAOTest 归档用例期望值排序方向笔误（集合不变）` | 测试（同上文件，6 insertions / 1 deletion）——**缺陷 B**，**断言强度未变** |
+| `8151de89` | `coder: 修 Migration_31_32_Test 插入走 query 改为 execSQL` | 测试（`Migration_31_32_Test.kt`，6 insertions / 1 deletion）——**修掉一条假断言** |
+| `43d6ea7e` | `coder: 修 ExampleInstrumentedTest 硬编码包名，改双来源对账` | 测试（`ExampleInstrumentedTest.kt`，20 insertions / 1 deletion） |
+| `2c1d7632` | `coder: 新增 C1DeviceEvidenceTest，在真机真 Room 库采四类证据落 JSON` | 测试（1 个新增仪器类，**1144 行 / 3 例**） |
+
+⚠️ 前两个 commit 改的是**既有测试文件**，但**改的不是断言的设计或强度**：
+`ca717f39` 补的是**fixture 的状态字段**（让 fixture 符合被测 DAO 的设计口径），
+`7519ee7f` 改的是**期望列表的排序方向**（`.sortedBy { it.runToken }` 是升序）。
+**断言本体一个字没动**：仍是 `assertEquals` 精确列表相等，存活集合一个不多一个不少，
+**没有改成 `containsAny`**。判分归属见「C1 真机证据采集」那节的「敏感项」。
+
+##### 助手页必崩 + 试验页删除批 5 个（`0a289af6..1e9d5607`）
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `0a289af6` | `coder: 给 Screen.Assistant 补 @Serializable，修进助手页必崩` | **功能（main）**（`RouteActivity.kt`，+1 行注解） |
+| `c3909047` | `coder: NavBackStackSerializationTest 加 everyScreenMemberHasAWorkingSerializer 防漏注解` | 测试（`NavBackStackSerializationTest.kt`，+118 行） |
+| `18baa930` | `coder: 删掉圆形揭幕动画试验页及其设置项、导航、字符串资源` | 功能（main）：`SettingAnimPlayPage.kt` **273 行整个删除** + `RouteActivity.kt` 的 import/entry/`data object SettingAnimPlay` 三处 + `SettingPageMiuix.kt:218-222` 的设置项 + 三个字符串 key |
+| `1f560f88` | `coder: 清掉删除试验页残留的空行/空 import 行` | 功能（main）：清理 |
+| `1e9d5607` | `coder: 清掉 SettingPageMiuix 删除项残留的空白行` | 功能（main）：清理 |
+
+净 diff（`4a4def40..HEAD` 汇总）：**10 files / 1310 insertions / 298 deletions**。
+其中试验页那三笔合计 **5 files / 293 deletions / 0 insertions**。
+⚠️ **三个字符串 key 是 `setting_anim_play_page` / `setting_anim_play_page_replay` /
+**`setting_anim_play`**——**最后一个是设置项的标题**，任务清单漏列了它，但同样成了孤儿，
+所以一并删。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
@@ -1748,8 +2111,21 @@ SHA-256。
    DAO 层已把 type 过滤下沉（`ConversationListQueryPlanTest` 7 条钉住），但
    **folder 口径要不要对齐是产品决策**，本文不擅自改。
    ⚠️ **本轮唯一与之相关的新事实**：C1-S 重放的 G6 组 4 条断言在**主机侧**观测过
-   `folder_id` 口径（两条路确实不一致），这**只把现状钉成实测**、**不改变结论**——
-   要不要对齐仍然是**待产品决策**，真机 Android SQLite 上的行为仍未验。
+   `folder_id` 口径（两条路确实不一致），这**只把现状钉成实测**、**不改变结论**。
+   ⚠️⚠️ **「待产品决策」已于 2026-10-05 由用户拍板收口：选方案 B（保持现状）**。
+   口径现在**是**「搜索不排除文件夹内会话」这条**已认可的口径**，不再是悬着的待决项。
+   **`ConversationDAO.kt` 一行未动**，`ConversationDrawerFolderScopeTest` 那 4 条测试
+   钉住的现状**就是最终口径**——所以「改口径会先让测试变红」这条仍然成立，那是
+   **预期信号**，不是回归。
+   ⚠️ **方案 A 的代价说明必须继续保留**（别因为定稿就把它删掉）：方案 A（搜索也收窄成
+   `folder_id = ''`）会让**文件夹里的会话彻底搜不到**，而二级页
+   （`FolderDetailPage` / `FolderDetailViewModel`）**目前没有搜索框**（只读
+   `getConversationsOfFolderPaging`），收窄后这些会话唯一的查找入口是逐个文件夹翻。
+   选 B 的理由就是这个功能回退不能接受。
+   ⚠️ **真机 Android SQLite 上的行为仍未验**——这一条**没有被 B 方案定稿改变**。
+   ⚠️ 定稿后**遗留的认知不一致**照旧存在：主列表与搜索结果口径不同只存在于开发者
+   脑子里，UI 上没有任何提示。按拍板结论，**「把语义写进代码与文档」这一步还没做**
+   （`ChatDrawerViewModel` 的 KDoc 没动）——那是文档化工作，不是口径变更。
 4. ~~**`GroupRole.modelId`：生成侧已接，历史消息未回填。**~~ **已由 `c7535ca8` 关闭：
    不做数据迁移，改显示侧口径。** 原文记的是「生成侧按角色绑定选模型、显示侧也按
    角色绑定显示，两边同口径（`139a91ba`）」，并把「历史消息未回填」列为遗留。
@@ -1829,17 +2205,101 @@ SHA-256。
    `CONVERSATION_LIKE_ESCAPE_SQL` 标识符。`git diff --stat` = 1 insertion /
    1 deletion（单 hunk），**三条断言一条没被削弱或删除**，改完**更严**（一次同时钉住
    ESCAPE 的存在 + 位置 + 谓词相邻）。⚠️ **它抓不到转义字符写错**（M3）：那要改
-   `ConversationSearchLikePattern.kt`，由 `ConversationSearchLikePatternTest` 负责。
-   ⚠️ **也别把它读成「锚点之后第一次改既存测试文件」**——`09b4764b`（重设计
-   `GroupTurnModelTest` 第 14 条跨侧断言）、`e4fc4644` / `90d1dbac` / `c940813b`
-   都改过；那几次改的是断言的**设计或强度**，这一次改的是**期望字面串**。
-   完整来龙去脉（含「第一次尝试写成内联字面量、必然 MISS」那次错改）见「C1-S」那节的
-   「⚠️⚠️ 敏感项」。
+`ConversationSearchLikePattern.kt`，由 `ConversationSearchLikePatternTest` 负责。
+    ⚠️ **也别把它读成「锚点之后第一次改既存测试文件」**——`09b4764b`（重设计
+    `GroupTurnModelTest` 第 14 条跨侧断言）、`e4fc4644` / `90d1dbac` / `c940813b`
+    都改过；那几次改的是断言的**设计或强度**，这一次改的是**期望字面串**。
+    完整来龙去脉（含「第一次尝试写成内联字面量、必然 MISS」那次错改）见「C1-S」那节的
+    「⚠️⚠️ 敏感项」。
+    ⚠️⚠️ **而「期望串跟着生产代码走」这个形状锚点之后又出现了两次，但不是同一形状**：
+    2026-10-05 真机窗口修的两处**都不是期望串跟着生产代码走**——
+    `ca717f39` 改的是 **fixture 的状态字段**（helper 把状态写死成 `STATUS_RUNNING`，
+    导致 `old-done` / `new-done` 两条名不副实），`7519ee7f` 改的是**期望列表的排序方向**
+    （`.sortedBy { it.runToken }` 是升序，`'n'`=110 < `'o'`=111，所以**无论 DAO 行为如何
+    都不可能通过**）。**断言本体一个字没动**：仍是 `assertEquals` 精确列表相等，存活集合
+    `{old-live, new-done}` 一个不多一个不少，**没改成 `containsAny`**。
+    另有 `8151de89` 修的是一条**假断言**（`SupportSQLiteDatabase.query()` 是 SELECT 接口，
+    `db.query("INSERT ...")` **只 prepare 返回 Cursor、不执行写操作**，行根本没插进去），
+    `43d6ea7e` 修的是硬编码包名（debug `applicationId` 是 `heizige.kk.khatkit.debug`，
+    原来那条用例**在 debug 变体上必然失败**），修完之后断言**更严**。
+    这四条与「敏感项」那条**不是同一类**：那一条是「生产代码改了所以断言必须跟着改」，
+    这四条是「**测试自己写错了**，生产代码是对的」。**定性差别很大，别混着记。**
 10. **⚠️ 一个对外可感知的行为变化，登记在这里免得以后当成回归。**
    `GET /api/conversations/paged?query=…`（`ConversationRoutes.kt:85`）的 `query` 里
    带 `%` 或 `_` 时，改动前会返回**多出来的**会话（用户没输的通配符被当模式匹配），
    改动后**只返回标题里真含该字符的**会话。**这是修 bug，不是改契约**——但外部消费者
    如果依赖了旧的宽松行为，会看到结果集变小。
+11. **⚠️ 助手页必崩，已修（`0a289af6`）——这是本轮在真机上撞到的第一个真 bug。**
+   - **根因**：`app/src/main/java/heizige/kk/khatkit/app/RouteActivity.kt:715`
+     `data object Assistant : Screen` **缺 `@Serializable`**。`Screen` 共 **57 个成员**，
+     `Assistant` 是**唯一**漏的那个（补注解后 `@Serializable` 计数 56 + 新增 1 = 57）。
+     nav3 的 `NavKey` 是**普通 interface**、没标 `@Serializable`，**没有继承兜底** →
+     `Navigator.navigate(Screen.Assistant)` → `NavViewModel.kt:62` 的 `snapshotFlow`
+     侦测到栈变 → `NavViewModel.kt:78` `persist()` 把**整条栈**
+     `encodeToString` → `NavKeySerializer` **找不到 serializer** → 主线程抛
+     `SerializationException` **无人接** → **硬崩**。
+   - **崩溃日志实证**（真机 logcat）：`kotlinx.serialization.SerializationException:
+     Serializer for class 'Assistant' is not found.`，栈帧
+     `NavKeySerializer.serialize(NavKeySerializer.android.kt:93)` →
+     `NavViewModel.persist(NavViewModel.kt:78)` → `NavViewModel$1$2.emit(NavViewModel.kt:63)`。
+   - ⚠️ **这是 pre-existing bug，不是本轮引入的**：`d122d6882`（9-12）引入
+     `Screen.Assistant` 时就漏了；`e7c0b2a3`（10-03）新增 `persist()`，把原来的
+     「**静默不恢复**」升级成「**每次进助手页必崩**」。
+   - **崩了 3 次**：10-05 `10:58:22` pid 4785 / `10:58:30` pid 4945 /
+     `11:13:41` pid 25519。**只在真正进助手页时崩**——`am start` 单独启动 launcher
+     **不崩**（因为栈里没有 `Screen.Assistant`）。
+   - ⚠️ **测试缺口就是它一路逃过 CI 的原因**：
+     `app/src/test/java/heizige/kk/khatkit/app/core/ui/nav/NavBackStackSerializationTest.kt`
+     **正好测这个序列化**，但只覆盖 **5 个成员**（`Screen.Greeting` / `Chat` / `Setting` /
+     `SettingProviderDetail` / `WorkspaceFileEditor`），**`Screen.Assistant` 从未被测过**。
+   - **修法**：`0a289af6` 补注解（**main 源码 +1 行**）+ `c3909047` 加**防复发测试**
+     `everyScreenMemberHasAWorkingSerializer`——遍历全部 `sealedSubclasses`，断言每个成员
+     `serializerOrNull() != null` 且**能往返**。这次是「少一个成员就红」的形状，
+     不是「点名测某几个」。
+12. **⚠️ 既有缺陷：全量仪器测试跑不完（未修）。**
+   `:app:connectedDebugAndroidTest` **全量 56 条**，第 10 条
+   `BrowserRuntimeTest.threeTabsCanTypeClickAndReadIndependentLiveSnapshots` 失败后
+   **整个 instrumentation 进程 crash**：
+
+   ```
+   java.lang.IllegalStateException: The singleton image loader has already been created.
+     at coil3.SingletonImageLoader.setSafe(SingletonImageLoader.kt:41)
+     at coil3.compose.SingletonImageLoadersKt.setSingletonImageLoaderFactory(singletonImageLoaders.kt:17)
+     at heizige.kk.khatkit.app.RouteActivity.onCreate$lambda$0$0(RouteActivity.kt:202)
+   ```
+
+   Coil 单例 `ImageLoader` **初始化顺序冲突**，来自
+   `b5c5ebcb feat(browser): 浏览器运行时卡片化`，**与 C1 无关**，**稳定复现**
+   （重跑 2 次都是同样「3/56 时挂、10/56 后 crash」）。**未修。**
+   - **后果**：Gradle 只收集到**前 10 条**结果，**其余 46 条状态未知**——不是失败，是
+     **没跑到**。
+   - **绕法**：改用**按类过滤 / 合跑**。已用合跑覆盖 **45 条**（56 减去
+     `ExampleInstrumentedTest` 1 / `NodeTreeSmokeTest` 4 /
+     `DependencyReadOnlyLoadTest` 2 / `BrowserRuntimeTest` 1 中挑的）。
+     **未单独跑过的是**：`NodeTreeSmokeTest`(4)、`DependencyReadOnlyLoadTest`(2)、
+     `ExampleInstrumentedTest`(1)。
+   - ⚠️ 「45/45 全绿」**不等于「全量 56 条全绿」**，别把两个数混着说。
+13. **⚠️ 顺手修掉的另一处 KDoc / 实现不一致。**
+   `SettingAnimPlayPage.kt` 的 KDoc 写「用 `[PathFillType.EvenOdd]`」，但实现其实用的是
+   `Brush.radialGradient`——**KDoc 与实现不一致**。随该文件删除（`18baa930`）一并消失，
+   没有单独登记为缺陷。
+
+### ⚠️ 真机窗口之后，「下一位怎么把 unverified 变成 verified」还剩什么
+
+前置那件「一台能装的设备」**已经满足了**（OnePlus `PKG110` / Android 16 / API 36，
+2026-10-05）。上面 5 条通用采集手段里：
+
+| 项 | 2026-10-05 之后的状态 |
+|---|---|
+| 1. 可见消息 ID 台账 | ⚠️ **pipeline 已采**（真机真 Room 库，3 个 viewer 逐条落定 + 6 对越权审计 `violations: []`）。**roundtable / vote 没采**，C1-03 议长视角仍然零份 |
+| 2. 实际模型调用序列 | ❌ **仍然缺**。只拿到路由决策，**没有一次真实 HTTP 调用**——设备上没有 API key |
+| 3. token 计数 | ❌ **仍然缺**。只拿到预算口径，`3000/1096` 是构造输入 |
+| 4. 导出 SHA-256 | ⚠️ **已采**（3 种 mode，真机文件 + 真机 `MessageDigest` + 本机 `sha256sum` 三重一致）。⚠️ 但**没走过 `ACTION_SEND` 真实分发**、**酒馆本体能不能打开仍然零证据**、**哈希只在固定夹具下可复现** |
+| 5. 仪器测试 | ✅ **25/25 全绿**（+ `C1DeviceEvidenceTest` 3 条，另有一轮合跑 **45/45**）。⚠️ 全量 56 条因 Coil 单例崩溃**跑不完**（未修） |
+
+**要补 API key 之外最短的路径**：把 `C1DeviceEvidenceTest` 的夹具从**单 mode** 扩成
+**三种 mode 各采一遍 viewer 集合**——代码已经能跑，改的是夹具循环，不是生产逻辑。
+在拿到 API key 之前，契约 `:206` 的第三、四类**在原理上就采不到**。
 
 ## 判定规则
 
