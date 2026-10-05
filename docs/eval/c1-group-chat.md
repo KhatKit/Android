@@ -2289,16 +2289,19 @@ token 全被 `reasoning_tokens` 吃掉**，于是 usage 断言全部失真（看
   为了让模型听话而改掉。
 - **修法**：persona 加第 3 条禁令，显式写死「历史里别人的代号不是你的」。
 - **验证到什么程度**：按**真实 pipeline 链**（a 的输出进 b 的上下文、b 的进 c 的）本机
-  跑 **2 轮 × 3 角色 = 6/6 通过**。
-  ⚠️⚠️ **但修完之后的真机全绿没跑到**——原因见下一节的 OEM 杀进程。
+    跑 **2 轮 × 3 角色 = 6/6 通过**。
+    ⚠️⚠️ **但修完之后的真机全绿没跑到**——原因见下一节的 OEM 杀进程。
+    ✅ **这条已由下一节补上**（2026-10-06 真机 `exit 0`，persona 第 3 条禁令在真模型上生效）。
 
 #### ⚠️⚠️⚠️ 为什么十例仍然 0/10（三条硬理由 + 契约条款）
 
-1. **这个用例没有一次全绿记录。** 那一跑**成功产出了**上面那张表里的全部数字，随后
-   被设备 OEM 回收策略**杀掉进程**（下一节）；`connectedAndroidTest` 又按预期
-   **卸载 app、清空了外置目录**，所以**JSON 落盘文件没拉回来**。数字来自**同一次成功
-   生成的内存快照**（现场文件 `c1-real-raw-dump.json`）。**没有可复现的落盘产物，
-   就不构成「可核的原始证据」。**
+⚠️ **本节第 1 条（缺全绿记录 / 缺可核落盘产物）已在下一节「C1 真机证据采集第四轮」
+被逐条消掉**；但**十行的状态列一个格仍然没动**，因为剩下两条硬理由与四条路径缺口
+**一条都没被那一轮覆盖**。
+
+1. **这个用例没有一次全绿记录。** ✅ **第四轮已消**：`exit 0`、`OK (1 test)`，三份 JSON
+   拉回并记了 SHA-256。⚠️ **但这只证明 `realProviderRoundRecordsGenuineTokenUsage` 这一条
+   用例绿了**，⚠️ **不等于十行里任何一行的判定改变**——下面第 2、3 条与四行路径缺口仍在。
 2. **模型名不是 wire 级抓包。** `actual_model_call_sequence` 里的模型名是由
    `message.modelId` 的 uuid 经 provider 模型表**反查**出来的——**app 不保存响应的
    `model` 字段**，所以拿不到服务端在响应里回的那个名字。JSON 里已用
@@ -2323,6 +2326,92 @@ token 全被 `reasoning_tokens` 吃掉**，于是 usage 断言全部失真（看
 **各自要断言的那条路径这一轮没被真实调用过**（显式 @ 收窄、取消/超时、预算截断、
 失败续跑、记忆空间），所以同样**一条都不能改成通过**。
 **十行状态列一个格都没动，仍是 10/10 `unverified`。**
+
+### C1 真机证据采集第四轮（2026-10-06，真实公网网关：**目标用例首次真机全绿 + JSON 拉回入库外**）
+
+HEAD `d96d64e1`。⚠️ **生产代码零改动**（`git status` 只有另一条并行分支的
+`TavernMacroExpander.kt`，与本轮无关）。本轮**只做两件事**：把
+`realProviderRoundRecordsGenuineTokenUsage` 在真机上跑到全绿，并把落盘 JSON 拉回主机。
+
+#### ✅ 全绿记录（本节是本轮唯一新增的可核产物）
+
+| 项 | 实测值 |
+|---|---|
+| 设备 | **OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**（`OP5D2BL1`） |
+| 指纹 | `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys` |
+| 端口怎么找到的 | ⚠️ **本轮 `adb mdns services` 首查是空的**（`List of discovered mdns services` 下一条都没有），所以改用 `nmap -p 30000-49999 --open 192.168.31.183` → **`33753` 与 `46888` 两个 open**；`adb connect` 试下来 **`33753` 通、`46888` 报 `failed to connect`**。⚠️ **`46888` 正是上一轮历史端口之一**——它现在只是个**占着端口但已经不是 adb 的残留**，**端口复用会让 `connect` 静默连到错误服务**，所以「扫到 open 就当 adb」是错的，必须逐个 `connect` 验证 |
+| mDNS 双注册怎么处理 | ⚠️ **再次双注册**，且这次 **`(2)` 那条指向的是 `38493`**：`adb-…-Sqr0AX (2)._adb-tls-connect._tcp` → `192.168.31.183:38493`。按上一轮记的正确写法用**完整 mDNS serial** 断：`adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'` → 这次报 **`error: no such device …:5555`**。⚠️ **这是「预期内的良性结果、不是断不掉」**：`(2)` 那条**从未成功建立过 adb 连接**（它只是 mDNS 广播），`adb devices` 里没有它，所以没有可断的 transport；真正要断的 `ip:port` 两条用 `adb disconnect 192.168.31.183:<port>` 正常断掉。**最终 `adb devices -l` 只剩 1 条**：`adb-3B6F5ME910B6H059-Sqr0AX._adb-tls-connect._tcp` |
+| 内存 | `MemTotal 15568996 kB` / `MemFree 440040 kB` / `MemAvailable 5861948 kB`（⚠️ `MemFree` 只有 440MB，`MemAvailable` 5.8GB——**判 OEM 回收风险要看 `MemAvailable`，不是 `MemFree`**） |
+| **跑法** | `./gradlew --offline :app:assembleDebug :app:assembleDebugAndroidTest` → `BUILD SUCCESSFUL`；⚠️ **androidTest APK 没有 per-abi 变体**，真实路径是 **`app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`**（不是 `app-arm64-v8a-debug-androidTest.apk`，那个文件不存在）；两条 `adb install -r -t` 均 `Success` |
+| OEM 预防 | `am set-inactive heizige.kk.khatkit.debug false`（无输出）、`dumpsys deviceidle whitelist +heizige.kk.khatkit.debug` → `Added: heizige.kk.khatkit.debug`；⚠️ **`deviceidle whitelist +…` 这条 shell 命令在 Android 16 上不存在**（`/system/bin/sh: deviceidle: inaccessible or not found`），**走 `dumpsys deviceidle whitelist` 才是可用的** |
+| **class 过滤写法** | ⚠️ **用了单方法过滤**（不是整类）：`-e class 'heizige.kk.khatkit.app.feature.chat.C1LiveModelSequenceTest#realProviderRoundRecordsGenuineTokenUsage'`。**引号是必须的**——`#` 与 `$` 在未加引号的 `sh -c` 里会被当注释/变量展开 |
+| **`am instrument` 真实退出码** | **0**。`numtests=1`、`INSTRUMENTATION_CODE: -1`（正常收尾）、`Time: 16.002`、`OK (1 test)` |
+| **本轮 OEM 回收有没有发生** | ⚠️ **没有观察到发生**。`c1-live-trace.txt` 显示 `real:preflight-begin 1791217815753` → `real:await-messages-done 1791217831513`，**整轮存活 15.6 秒**就正常走完，比上一轮记的「34-44 秒被杀」**短得多**；且 `c1-live-evidence-real-provider.json` 与 `c1-real-raw-dump.json` **都在断言之前就写完了**（前者是全部断言通过后才写的），**进程被杀写不出这两份**。⚠️ **诚实边界**：本轮**没有单独 dump `logcat -b crash`**，所以「无崩溃」这句的依据是**产物齐全 + 退出码 0**，**不是**崩溃缓冲区的直接读数 |
+| 三条产物是否拉回 | ✅ **全部 3 个拉回**（见下表）。⚠️ 本轮**跑完 instrument 立刻 `adb pull`**，没有再碰 `connectedAndroidTest`，所以**外置目录没被卸载清空** |
+
+#### ✅ 落盘 JSON 已拉回主机（带 SHA-256，可核）
+
+⚠️ 按「产物写 `/tmp/opencode/final-real/`」的约束，**这三份留在仓库外**，不入库；
+**SHA-256 记在这里，仓库外这份才有可核性**。
+
+| 文件 | 字节 | SHA-256 |
+|---|---:|---|
+| `c1-live-evidence-real-provider.json` | 7995 | `55d1297733838de2dd6b1fd0908b72dd2b9069a2edbd4c896fd4069edfdbfd40` |
+| `c1-real-raw-dump.json` | 2875 | `e6f97d441e9014f8bdde1e8d8d73b6947000c7a5dc24ffcedaa3689ad490ddbe` |
+| `c1-live-trace.txt` | 48195 | `7d7bb85f82a14b733464c0981b5d471a9791e630b15d8caea715c616a6ebc462` |
+
+路径 `/tmp/opencode/final-real/pull/`（另有一份 `pull-backup/` 副本）。⚠️
+**上一轮记的「`c1-real-raw-dump.json` 未入库、也没 pull 回来」到此作废**。
+
+#### ✅ 真实 usage 与落库对账（本轮这一跑的数字，与上一轮**不是**同一组）
+
+| 角色 | modelId uuid | 模型名 | prompt | completion | total |
+|---|---|---|---:|---:|---:|
+| a | `5a86b2d6…` | `deepseek-v4-flash` | **6839** | **92** | **6931** |
+| b | `8b6bf21c…` | `glm-5.2` | **6645** | **58** | **6703** |
+| c | `5a86b2d6…` | `deepseek-v4-flash` | **6904** | **242** | **7146** |
+
+- **Σ(prompt+completion) = 6931 + 6703 + 7146 = 20780**，落库
+  `group_runs.spent_tokens = 20780` —— **精确相等**。逐条 `total == prompt + completion`
+  也已独立复算通过（`6839+92`、`6645+58`、`6904+242` 三条全对）。
+- ⚠️ **这组数与上一节那张表（20679）是两次独立真实调用，天然不同**——**不要把两组的数字
+  混着引**，也不要把「两轮数字不一样」当成不稳定：变的是**网关每次返回的 token 计数**，
+  不变的是**Σ 与 `spent_tokens` 逐位相等**这条对账关系。
+- `status=COMPLETED`、`committed_role_ids=[a,b,c]`、`skipped_role_ids=[]`、
+  `token_limit=100000`、`ended_at=1791217831462`、`reason=""`。
+- **实际模型调用序列 = `deepseek-v4-flash` → `glm-5.2` → `deepseek-v4-flash`**，
+  与「a/c 绑 `deepseek-v4-flash`、b 绑 `glm-5.2`」**逐位一致**。
+- ⚠️ **模型名仍不是 wire 级抓包**，理由与上一节第 2 条**完全相同**（app 不保存响应的
+  `model` 字段，`wire_model_name_provenance` 字段照旧标明「由 uuid 反查」）。**这一条
+  没有因为全绿而改变。**
+
+#### ✅ persona 第 3 条禁令在真模型上**第一次**被验证
+
+上一节记的那个坑（「真模型会照抄上一位的输出格式」）的首版修法是 **persona 加第 3 条禁令**。
+本轮是**修完之后第一次真机跑**，三份正文分别是：
+
+| 角色 | 正文（原文） | 抽出的 ROLECODE |
+|---|---|---|
+| a | `ROLECODE:A 我已就位，等待指令。` | `["A"]` |
+| b | `ROLECODE:B 我已就位，准备就绪。` | `["B"]` |
+| c | `ROLECODE:C 轮到我，已确认就位。` | `["C"]` |
+
+**每个角色只出现自己的代号，没有一个学走上一位的**——断言 `codes == listOf(ownCode)`
+（不只是 `ownCode in codes`）在真模型上**通过**。⚠️ 这**只证明这一个 pipeline 顺序下
+没有串码**，**不等于**「换顺序/换模型/多轮」也一定不串；那仍需另外的实跑。
+
+#### ⚠️ 本轮回归四条的诚实交代
+
+| 命令 | 退出码 | 结果 |
+|---|---:|---|
+| `:app:testDebugUnitTest --rerun` | **0** | **99 类 / 783 例 / 0 失败 0 错误 0 跳过** |
+| `:app:assembleDebug` | **0** | `BUILD SUCCESSFUL` |
+| `:app:lintDebug` | **0** | `BUILD SUCCESSFUL` |
+| `:app:connectedDebugAndroidTest` | **1** | ⚠️ **9 过 1 挂后中止**，挂的是**已知的 `BrowserRuntimeTest`**（`threeTabsCanTypeClickAndReadIndependentLiveSnapshots`），`java.lang.IllegalStateException: The singleton image loader has already been created.` → `coil3.compose.SingletonImageLoadersKt.setSingletonImageLoaderFactory(singletonImageLoaders.kt:17)` ← `heizige.kk.khatkit.app.RouteActivity.onCreate$lambda$0$0(RouteActivity.kt:202)`。⚠️ **来自 `b5c5ebcb`、不是本轮改动**（本轮生产代码零改动，`git status` 可核），**未修**，如实登记 |
+
+⚠️ `connectedDebugAndroidTest` 那次**只产出 1 个 XML**（`tests=10 failures=1`），因为
+Coil 崩溃把整轮**中途**打断了——所以 ⚠️ **「全量仪器用例数」这一轮拿不到**，
+**不要把 `10` 当成全量条数**。
 
 ### ⚠️⚠️ 设备 OEM 回收策略会杀 instrumentation 进程（本轮新踩的坑）
 
@@ -2801,9 +2890,13 @@ its failure`）——**不能只测「被拒」**，否则「把守卫写成永�
   都没碰到）。**既有 mock 用例同样被杀**，所以与真实网关、与本轮改动都无关。
   按「OOM 立即停止重试」共试 **11 次**后停止。**这是设备环境的限制，不是代码缺陷**——
   完整观察数据见「⚠️⚠️ 设备 OEM 回收策略会杀 instrumentation 进程」。
-- ⚠️ **因此 `C1LiveModelSequenceTest` 那 5 条里，「真机全绿」这一栏至今没有任何一条
+- ⚠️ **因此 `C1LiveModelSequenceTest` 那 5 条里，「真机全绿」这一栏在本窗口仍无一条
   成立**：上一窗口的 28/28 全绿**不含**这 5 条（那是 `connectedDebugAndroidTest` 类过滤
   跑的 4 个类 3+12+7+6），`C1LiveModelSequenceTest` 一直是**手动 `am instrument`** 单跑。
+  ✅ **订正（2026-10-06 第四轮，HEAD `d96d64e1`）**：这句话到 2026-10-05 为止成立，
+  **但现已不再成立**——`realProviderRoundRecordsGenuineTokenUsage` 已在真机跑出
+  `exit 0` / `OK (1 test)`，**这 5 条里的第 1 条真机全绿了**。见「C1 真机证据采集第四轮」。
+  ⚠️ **其余 4 条仍未在真机全绿过。**
 
 - **C1 相关仪器测试 25 个注解，执行结果为零，需设备。**（C1-D 之后新增了
   `Migration_31_32_Test` 6 条，早前版本记的 19 已过期。）
@@ -2840,12 +2933,16 @@ its failure`）——**不能只测「被拒」**，否则「把守卫写成永�
 **逐个文件相同**），`GroupRunDAOTest` 12 / `Migration_30_31_Test` 7 /
 `Migration_31_32_Test` 6 / `C1DeviceEvidenceTest` 3 / `C1LiveModelSequenceTest` 5
 **一个数都没动**。
-⚠️ **所以仪器侧的证据状态与上一窗口完全一致**：上一次真机全绿仍是
+⚠️ **所以本窗口的仪器侧证据状态与上一窗口完全一致**：上一次真机全绿仍是
 `28/28、exit 0`（`C1DeviceEvidenceTest` 3 + `GroupRunDAOTest` 12 +
 `Migration_30_31_Test` 7 + `Migration_31_32_Test` 6），
-`C1LiveModelSequenceTest` 那 5 条**至今没有任何一条在真机全绿过**；
+`C1LiveModelSequenceTest` 那 5 条**在本窗口内没有任何一条在真机全绿过**；
 第四个窗口的 `:app:connectedDebugAndroidTest` **0 条跑成**
 （OnePlus OEM 回收策略杀进程，按「OOM 立即停止重试」共试 11 次后停止）。
+✅ **订正（2026-10-06 第四轮，HEAD `d96d64e1`）**：`C1LiveModelSequenceTest` 里的
+`realProviderRoundRecordsGenuineTokenUsage` **已在真机全绿**（`exit 0`、`OK (1 test)`），
+见「C1 真机证据采集第四轮」；⚠️ **其余 4 条仍未全绿**，且本轮 `:app:connectedDebugAndroidTest`
+仍因 `BrowserRuntimeTest` 的 Coil 单例崩溃**在 9 过 1 挂后中止**。
 ⚠️ **本轮这三批修的缺陷恰好是「仪器测试原理上覆盖不到」的那一类**——
 它们要在**真实协程取消 + 真实流式响应 + 真实 DAO 时序**下才可能复现，
 所以「本轮没动 androidTest」不是漏做，是**没有可写的仪器用例**。
@@ -3263,10 +3360,13 @@ Room 版本不变（仍是 32）；lint 磁盘实测 app **584W+6H = 590**、15 
 （由 `message.modelId` 的 uuid 反查，JSON 里已用 `wire_model_name_provenance` 标明）；
 **③ 真机 UI 端到端仍零份**。C1-03 / C1-04 / C1-09 / C1-10 直接踩「真机或自动化证据」
 那条。**十例状态仍全 `unverified`，0/10 不变。**
+✅ **订正（2026-10-06 第四轮）**：理由 **① 已消**——该用例已在真机 `exit 0` 全绿、落盘
+JSON 拉回并记了 SHA-256；**② ③ 仍在**，所以 **0/10 不变**。
 
 ⚠️ **这批同时也是锚点之后第一次「一批里既有 main 源码修复、又有新增仪器用例、
 又有新增源码护栏」的混合批**（前几批要么纯测试、要么纯功能）——所以它同时提供了
-「变异检验真红」与「本机 6/6 通过」两种证据，而**真机全绿仍然是零份**。
+「变异检验真红」与「本机 6/6 通过」两种证据，而**真机全绿在那个时点仍然是零份**。
+✅ **订正（2026-10-06）**：该用例的真机全绿见「C1 真机证据采集第四轮」。
 
 ⚠️ 本文件的登记提交同样**不计入**任何计数，且按上面同样的理由**不写自己的 SHA**
 （本文件每次被自己提交都会产生一个新 commit，写进去就得再改一次、永远差一个，
@@ -3818,7 +3918,7 @@ roundtable / vote 的真实调用仍然零份。**最短的下一步**是第 1 �
 | 2. 实际模型调用序列 | ⚠️ **完全不变**。仍是 `deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`，**模型名仍非 wire 抓包**、**用例仍没有一次全绿记录**、**roundtable / vote 真实调用仍零份** |
 | 3. token 计数 | ⚠️ **完全不变**。真实 usage 6803+159 / 6667+68 / 6880+102、Σ = 20679，**仍无落盘产物**、**仍只跑了 pipeline** |
 | 4. 导出 SHA-256 | ⚠️ **完全不变**（真机文件 + 真机 `MessageDigest` + 本机 `sha256sum` 三重一致）。`ACTION_SEND` 真实分发**没走过**、**酒馆本体零证据** |
-| 5. 仪器测试 | ⚠️ **不变**。本轮**一行 `androidTest` 都没动**（全量 `@Test` 仍是 **61**）；上一次全绿仍是 `28/28、exit 0`，`C1LiveModelSequenceTest` 那 5 条**至今没有一条在真机全绿过** |
+| 5. 仪器测试 | ⚠️ **不变**。本轮**一行 `androidTest` 都没动**（全量 `@Test` 仍是 **61**）；上一次全绿仍是 `28/28、exit 0`，`C1LiveModelSequenceTest` 那 5 条**在本窗口内没有一条在真机全绿过**<br>✅ **第六个窗口订正（HEAD `d96d64e1`，2026-10-06）**：那 5 条里的 **`realProviderRoundRecordsGenuineTokenUsage` 已在真机全绿**（`exit 0`、`OK (1 test)`、15.6s 跑完、OEM 未触发），落盘 JSON 拉回并记了 SHA-256；⚠️ **其余 4 条仍未全绿**，且 `:app:connectedDebugAndroidTest` 仍因 `BrowserRuntimeTest` 的 Coil 单例崩溃**在 9 过 1 挂后中止**（`exit 1`）。详见「C1 真机证据采集第四轮」 |
 
 ⚠️ **第五个窗口唯一新增的缺口形状**（**不属于上面四类，是四类覆盖不到的那些行**）：
 

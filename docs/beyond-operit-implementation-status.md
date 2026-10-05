@@ -247,6 +247,12 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     c 干脆零产出（`role_failed`）。已加第 3 条禁令，并按**真实 pipeline 链**
     （a 的输出进 b、b 的进 c）本机跑 **2 轮 × 3 角色 = 6/6 通过**。
     ⚠️ **但修完之后的真机全绿没跑到**（OEM 杀进程）。
+    ✅ **订正（2026-10-06，HEAD `d96d64e1`）**：**已跑到，且真机全绿**——
+    `realProviderRoundRecordsGenuineTokenUsage` `exit 0` / `OK (1 test)`，
+    a/b/c 三条正文各自只含自己的 `ROLECODE`（`A` / `B` / `C`，无串码），
+    落盘 JSON 拉回并记了 SHA-256。⚠️ **十行状态列仍一个格都没动**（理由②③ 与
+    四行路径缺口未被这一轮覆盖）。详见 `docs/eval/c1-group-chat.md`
+    「C1 真机证据采集第四轮」。
   - ⚠️⚠️ **新踩的设备侧限制：OnePlus OEM 回收策略会在 app 进程存活约 34-44 秒时杀
     进程**（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占
     313MB；设备当时被用户自己的应用占满——游戏 1.7GB、抖音 1.4GB，
