@@ -6,15 +6,25 @@ import org.junit.Test
 import java.io.File
 
 /**
- * 平票裁决脚手架（`turn_kind = tie_break` 的 SYSTEM 指令）必须在**每一条**轮次终态路径上被回收。
+ * 平票裁决脚手架（`role = SYSTEM` + `turn_kind = chair` 的指令）必须在**每一条**轮次终态路径上被回收。
  *
- * ⚠️ **这是源码文本护栏，不是行为断言。** `failGroupTurn` / `completeGroupRound` 是 `ChatManager`
- * 的 private suspend 成员，要 `Application` + `AppScope` + Room DAO，仓库 testImplementation 只有
- * junit，跑不起来。纯函数那一半（`GroupTurnCoordinator.withoutTieBreakInstruction`）已在
+ * ⚠️ **这是源码文本护栏，不是行为断言。** `failGroupTurn` / `cancelActiveGroupRun` /
+ * `abandonDanglingGroupRuns` / `completeGroupRound` 都是 `ChatManager` 的 private suspend 成员，
+ * 要 `Application` + `AppScope` + Room DAO，仓库 testImplementation 只有 junit，跑不起来。
+ * 纯函数那一半（`GroupTurnCoordinator.withoutTieBreakInstruction`）已在
  * `GroupTurnCoordinatorTest` 里覆盖；这里补的是**调用点**这一半。
  *
+ * 为什么抽不出纯函数判据：这几条路径的「该不该回收」全都不是纯函数问题 ——
+ * [cancelActiveGroupRun] 的答案取决于 `groupRunsInFlight` 里有没有 runToken、
+ * `groupRunDAO.getByRunToken` 查得到的 status 是不是终态（全是非纯的 DAO 读），
+ * [abandonDanglingGroupRuns] 的答案取决于 `listByConversationAndStatus` 返回几行 RUNNING；
+ * 两者最终都是无条件的「这条路径把轮次判死了 → 回收」，抽成一个返回常量的纯函数
+ * 只会凭空多一层间接、断言不出新东西。这里真正要守的不变量
+ * 「**这些函数体内必须有那处调用**」本身就是源码属性，只能在源码上断言。
+ *
  * 漏掉调用点为什么严重：那条指令是 `role = SYSTEM` + `isSynthetic = true`，
- * `GroupChat.visibleMessages` 的第一分支对 SYSTEM / 合成消息一律 `true`，
+ * `GroupChat.visibleMessages` 的第一分支对 SYSTEM / 合成消息一律 `true`
+ * （且排在 `index >= roundStart` 判断之前，对任何 viewer、任何轮次都放行），
  * 所以只要它还在 `currentMessages` 里，**之后每一轮的所有角色**都会读到
  * 「你是本群议长……本轮投票出现平票……」这段与当前轮次无关的 SYSTEM 指令。
  */
@@ -75,6 +85,83 @@ class GroupTieBreakScaffoldingDropSourceGuardTest {
         assertTrue(
             "回收平票脚手架必须排在 persistRoundState 之后（与 completeGroupRound 同序）",
             dropAt > persistAt,
+        )
+    }
+
+    /**
+     * P1（同批第二条）：用户中途取消议长裁决那一轮时走 [cancelActiveGroupRun]。
+     * 它把轮次写成 CANCELLED（终态，`persistRoundState` 内部 `isTerminal` → `finish` 写 `ended_at`）
+     * 并清掉进程内镜像，之后**再没有代码路径会为这一轮调 `completeGroupRound`**
+     * （它全仓只有一个调用点，在 `onSuccess` 里，而 `stopGeneration` 是先 `join` 完所有 job
+     * 才走到这里），所以原本也必须回收 —— 否则指令永久留在会话里，每一轮每个角色都看到。
+     */
+    @Test
+    fun `cancelActiveGroupRun drops the tie break scaffolding`() {
+        val body = bodyOf("cancelActiveGroupRun")
+        assertTrue(
+            "cancelActiveGroupRun 必须回收平票裁决脚手架，否则议长裁决被用户掐掉后" +
+                "那条 SYSTEM 指令永久留在会话里",
+            body.contains("dropTieBreakScaffolding("),
+        )
+    }
+
+    /**
+     * P1（同批第三条）：发新消息时上一轮还挂 RUNNING 被判死，走 [abandonDanglingGroupRuns]。
+     * 它在存新 USER 消息**之前**调用，判死之后 `roundPlanFor` 派生出的 `roundId` 已是新轮，
+     * 被判死那一轮再也回不来 → 同样没有路径会为它调 `completeGroupRound`，脚手架必然孤立。
+     */
+    @Test
+    fun `abandonDanglingGroupRuns drops the tie break scaffolding`() {
+        val body = bodyOf("abandonDanglingGroupRuns")
+        assertTrue(
+            "abandonDanglingGroupRuns 必须回收平票裁决脚手架，否则上一轮被判死时" +
+                "那条 SYSTEM 指令永久留在会话里",
+            body.contains("dropTieBreakScaffolding("),
+        )
+    }
+
+    /**
+     * 顺序护栏：两处都要**先落运行日志终态、再回收**，与 [completeGroupRound] / [failGroupTurn] 同序。
+     */
+    @Test
+    fun `cancel and abandon drop scaffolding after persisting the terminal round`() {
+        listOf("cancelActiveGroupRun", "abandonDanglingGroupRuns").forEach { name ->
+            val body = bodyOf(name)
+            val dropAt = body.indexOf("dropTieBreakScaffolding(")
+            val persistAt = body.indexOf("persistRoundState(")
+            assertTrue("$name 应先落运行日志终态", persistAt >= 0)
+            assertTrue(
+                "$name 必须先落运行日志终态、再回收平票脚手架（与 completeGroupRound / failGroupTurn 同序）",
+                dropAt > persistAt,
+            )
+        }
+    }
+
+    /**
+     * 条件护栏（防「提前销毁」回归）：[cancelActiveGroupRun] 前面有一串守卫提前 `return`，
+     * 回收必须排在**最后一个** `return` 之后 —— 排到守卫之前就意味着「压根没有活跃轮次 /
+     * 轮次已终态」时也会去清扫，那是提前销毁而不是回收。
+     * [abandonDanglingGroupRuns] 没有守卫，两条路径都要求**恰好回收一次**（不多不少）。
+     */
+    @Test
+    fun `cancel and abandon drop scaffolding unconditionally exactly once`() {
+        val cancel = bodyOf("cancelActiveGroupRun")
+        val dropAt = cancel.indexOf("dropTieBreakScaffolding(")
+        assertTrue(
+            "cancelActiveGroupRun 的回收必须排在全部守卫之后，别在守卫之前清扫",
+            dropAt > cancel.lastIndexOf("return"),
+        )
+        assertEquals(
+            "cancelActiveGroupRun 应恰好回收一次平票脚手架",
+            1,
+            cancel.split("dropTieBreakScaffolding(").size - 1,
+        )
+
+        val abandon = bodyOf("abandonDanglingGroupRuns")
+        assertEquals(
+            "abandonDanglingGroupRuns 应恰好回收一次平票脚手架",
+            1,
+            abandon.split("dropTieBreakScaffolding(").size - 1,
         )
     }
 
