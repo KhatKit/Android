@@ -150,7 +150,12 @@ class Migration_31_32_Test {
         groupCards: String,
         type: String = GroupChat.TYPE_GROUP,
     ) {
-        db.query(
+        // 写操作必须走 `execSQL`：`SupportSQLiteDatabase.query()` 只是 SELECT 接口，
+        // 只 prepare 并返回 Cursor，**不执行**。用 query 发 INSERT 会静默什么都不做，
+        // 后面 `SELECT group_cards` 读回 0 行，`assertTrue(c.moveToFirst())` 就成了
+        // 「有没有真的写进去」的假断言。
+        // bindArgs 是 `Array<out Any?>`，这里传 `Array<Any>`（含 String 与 Long）是合法的。
+        db.execSQL(
             "INSERT INTO ConversationEntity (id, assistant_id, title, nodes, create_at, update_at," +
                 " suggestions, type, group_config, group_cards) VALUES (?,?,?,?,?,?,?,?,?,?)",
             arrayOf<Any>(id, "assistant-1", "群", "[]", 1L, 2L, "[]", type, "", groupCards),
