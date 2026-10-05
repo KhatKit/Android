@@ -393,14 +393,87 @@ lint **0 error**、app **584W+6H=590**、15 模块 **617W+7H=624**（**与上一
 `docs/eval/c1-group-chat.md` 台账的「补登：上一批之后到 HEAD `72a5e548` 的 11 个
 commit」小节。
 
-⚠️⚠️ **两处账实不符如实登记、不擅自改**：`c1_doc_stats.py` 的 `ledger` 逐行核对报
-**FAIL**——`GroupStaleJobCommitSourceGuardTest` 声明 9 / 源码 10、
-`GroupStaleJobFailureSourceGuardTest` 声明 6 / 源码 7（成因是 `d00880fc` 给这两个文件
-各加了 1 条 `@Test`）；且本串涉及的 5 个测试类**没有并进**「C1 相关 JVM 测试类台账」
-（3 个新类 + 2 个既有类各 +1），那张表停在 **42 行 / 455 例**。⚠️ 两件都要改那张表的
-**行数与例数两个合计行**，而本轮的硬约束明写「`git diff` 里不允许出现删除
-78 / 17 / 6 / 455 的行」——**本轮不代填那个合计数，留给下一位在放开约束后一次性重算**
-（填错比不填更糟）。
+⚠️⚠️ **上一轮那两处「账实不符」已在本轮（`1052cd25`）修完**——上一轮的硬约束
+（「`git diff` 里不允许出现删除 78 / 17 / 6 / 455 的行」）**本轮已解除**，结论是那条约束
+**绑错了对象**：台账的「声明例数」是**事实陈述**（「这个类现在有 N 条测试」），**必须随代码
+更新**；它与「状态列按窗口追加不覆写」是**两回事**，把两者混为一谈才导致上一轮不敢动这一个数。
+逐条实测与改动（`python3 tools/verification/c1_doc_stats.py --only ledger`）：
+① 两个在册类的声明例数改成实测值——`GroupStaleJobCommitSourceGuardTest` **9 → 10**、
+`GroupStaleJobFailureSourceGuardTest` **6 → 7**（成因是 `d00880fc` 各加了 1 条 `@Test`）；
+② 5 个类里**3 个并进台账**——`SummaryViewerScopeTest` 12 + `SummaryViewerScopeWiringSourceGuardTest` 5
++ `GroupEditActionVisibilitySourceGuardTest` 5（`+3 类 / +22 例`）；
+③ 合计**新起一行**（历史那几行按惯例**保留不覆写**），实测 **45 类 / 479 例**
+（`455 + 22 + 2 = 479` ✅），脚本现报 **`45 行 / 479 例 / 逐行核对 45 行全部相等`，0 FAIL**。
+⚠️ **`GroupEditActionVisibilitySourceGuardTest` 上一轮被记成「1 条」，实测是 5 条**
+（`git log --diff-filter=AM` 只有 `d00880fc` 一个 commit，即它自建立起就是 5 条），已订正。
+⚠️ **另外 2 个类逐个复核后仍然不进表**：`BottomSheetScrollSourceGuardTest`（实测 **4** 条，
+`d00880fc` 从 3 扩到 4）与 `CoilImageLoaderSourceGuardTest`（**6** 条）**整类不属于 C1 验收
+范围**——口径是「**整类**是否属于 C1 验收范围」，不是「有没有一条用例碰到 C1 的文件」。
+⚠️ **台账例数「取自 XML」这条口径与本轮改动不冲突**：本轮逐个核实这两个类的
+**XML `tests` 属性与源码 `@Test` 计数一致**（10 / 7），7 个候选类全部如此。
+
+⚠️⚠️⚠️ **「XML 口径不可用、110/881 只是源码 `@Test` 口径」这个说法本轮实测证伪，已订正**：
+上一轮交接时确认过「`testDebugUnitTest/` 里只剩 1 个 XML，`unit` 报 `FAIL 1 类 / 5 例`」，
+**本轮实测该状态已不存在**：`ls app/build/test-results/testDebugUnitTest/TEST-*.xml | wc -l`
+= **110**，全量 `python3 tools/verification/c1_doc_stats.py` 的 `unit` 四条**全 OK**
+（XML `110 类 / 881 例`、`0 / 0 / 0`、源码 `110 / 881`、`交叉验证 差 0 ✅ 一致`）。
+⚠️ **所以 110 / 881 现在有 XML 与源码两个口径同时作数，不是「只有源码口径」。**
+⚠️ **本轮没有为了让脚本变绿去删 XML、也没有改脚本判据，更没有跑 gradle**——现有 XML 已经
+比一次重跑更硬：逐类比对过，**XML 类集合与源码含 `@Test` 的类集合完全相同**（各 110，
+两侧差集都是 `[]`），**110 个类逐个 `tests` 属性与源码 `@Test` 计数无一不等**，合计同为 **881**。
+✅ **脚本那条判据核实是对的、保留不动**：`c1_doc_stats.py:303` 的 `stale = xml_classes < 20`
+判的是**文件数**，且 `--self-test` 有一条专门喂「只含 1 个 XML 的目录」并断言它**确实报红**
+（`:602`）——**只有 1 个 XML 时报红是正确行为**，把阈值调大才会造出下一个会骗人的工具。
+
+### ⚠️ 第九批（`cae27138` / `40cc8e89` / `1052cd25`，2026-10-06）：**三条纯文档 + 收掉上一轮自己造成的那处台账不一致**
+
+⚠️ **本批 3 个 commit 全是纯文档**：**零 Kotlin、零测试、零脚本**
+（`tools/verification/c1_doc_stats.py` 本批**一个字都没改**）。所以本批**不改变任何一个
+测试类名或例数**，唯一改变的是**台账的声明值**——而台账声明值是**事实陈述**，必须随代码走。
+
+| commit | 改了什么 | 结论 / 边界 |
+|---|---|---|
+| `cae27138` | 证伪遗留第 28 条（`ChatService.finishInterruptedPendingTools` 里零 `generateText`），补登真泄漏第 33 条 + 补登 11 个 commit + C9 五条边界来源指针 | ⚠️ **证伪的方向是对的**（错误源头是 `ChatService.kt` 注释，由 `8111d178` 改掉；错误从注释扩散进验收文档）。**但它顺手留下了本批要收的那处不一致**——见下面 ② |
+| `40cc8e89` | 实施状态补第八批 + 五条诚实边界的逐条来源指针 + 统计口径改 110 类 / 881 例 | ⚠️ **110 / 881 当时是以「源码 `@Test` 口径」写的**，本批核实后确认 **XML 口径同样成立**（见下面 ③） |
+| `1052cd25` | 台账订正（只改 `docs/eval/c1-group-chat.md`）+ 本节（只改本文） | ✅ **`--only ledger` 由 FAIL 转 OK**：`45 行 / 479 例 / 逐行核对 45 行全部相等` |
+
+⚠️⚠️ **本批唯一实质改动 = 收掉「上一轮自己造成」的那处不一致**，不是新增功能。三件事：
+
+**① 两个在册类的声明例数改成实测值**：`GroupStaleJobCommitSourceGuardTest` **9 → 10**、
+`GroupStaleJobFailureSourceGuardTest` **6 → 7**（成因是 `d00880fc` 各加了 1 条 `@Test`）。
+⚠️ **上一轮之所以没改，是把两条规矩混为一谈**：台账「声明例数」是**事实陈述**，必须随代码更新；
+「状态列按窗口追加不覆写」管的是**另一个东西**。本批按前者办。
+
+**② 5 个候选类里 3 个并进台账、2 个明确不并**（判据逐个写明，不硬塞）：
+`SummaryViewerScopeTest` **12**（纯函数真单测，fail-closed / 议长悬空 / 反向越权）、
+`SummaryViewerScopeWiringSourceGuardTest` **5**（接线源码护栏，含一条断言 KDoc 里
+「⚠️ 待产品确认」不许被删）、`GroupEditActionVisibilitySourceGuardTest` **5**（群聊长按
+Edit 按消息收口）——三者**都满足**「正文点名引用 + XML 对得上」且**整类属 C1 验收范围**；
+`BottomSheetScrollSourceGuardTest`（实测 **4** 条）与 `CoilImageLoaderSourceGuardTest`
+（**6** 条）**不并**，因为按本文既有口径「**整类**是否属于 C1 验收范围」，它们是
+UI / 浏览器侧护栏，**不因「有一条用例碰到群配置面板」就整类进表**。
+⚠️ **顺手订正上一轮一处笔误**：`GroupEditActionVisibilitySourceGuardTest` 被记成「1 条」，
+实测 **5** 条（`git log --diff-filter=AM` 只有 `d00880fc` 一个 commit，自建立起就是 5 条）。
+✅ 合计**新起一行** = **45 类 / 479 例**（`455 + 22 + 2 = 479` ✅），历史各窗口的
+`366 / 35 类`、`395 / 37 类`、`408 / 40 类` 与第七窗口的 `42 类 / 455 例` **按惯例全部保留
+不覆写**。
+
+**③ 「XML 口径不可用」那条告警已不成立，如实订正**（详见上面第八批末尾那段）：
+`testDebugUnitTest/` 里现在有 **110 个 XML**，全量脚本 `unit` 四条**全 OK**。
+⚠️ **本批没有为让它变绿去删 XML、没有改脚本判据、也没有跑 gradle**——逐类比对证明现有 XML
+已是全量且与源码**逐类相等**（类集合两侧差集都是 `[]`，110 个类的 `tests` 无一不等，
+合计同为 **881**），**一次重跑只能复现这个结论、不会产生更强的新证据**。
+✅ 脚本 `stale = xml_classes < 20` 判据核实正确、**保留不动**（`:602` 的自检专门喂
+「只含 1 个 XML」并断言报红）。
+
+⚠️ **本批同样不改变任何判定**：**零设备、零 `adb`、零 gradle**；契约 `:206` 点名的四类产物
+**一份未增**。⚠️ **十例状态列一个格都没动，仍是 10/10 `unverified`**——审计方式是 Python
+按**未转义 `|`** 逐行切单元格（`\|` 不切），**两张十例矩阵共 20 个数据行逐行判定，首判定
+全部 `unverified`，非 unverified 的 0 行**。⚠️ **台账锚点 `1b0e04a9` 的 78 个 commit 仍然
+没有被重算**（本批 3 个一个都不计入），**78 / 6 / 17、前缀分布、子包分布一个数都没动**；
+`git diff` 里**没有任何一行被删除**。⚠️ **工作区那两处不属于本批的未提交改动
+（`TavernMacroExpander.kt` modified、`C1GroupUiE2EFixtureTest.kt` untracked）全程未 add、
+未 commit、未修改**。
 
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
