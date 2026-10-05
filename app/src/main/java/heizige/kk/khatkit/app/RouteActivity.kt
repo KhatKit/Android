@@ -712,6 +712,7 @@ sealed interface Screen : NavKey {
     @Serializable
     data object TraceAudit : Screen
 
+    @Serializable
     data object Assistant : Screen
 
     @Serializable
