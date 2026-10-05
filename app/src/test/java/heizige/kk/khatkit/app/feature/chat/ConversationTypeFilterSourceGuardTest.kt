@@ -68,7 +68,7 @@ class ConversationTypeFilterSourceGuardTest {
         assertTrue(
             "搜索路查询应保留关键字模糊匹配并接上共用谓词",
             conversationDaoSource.contains(
-                "title LIKE '%' || :searchText || '%'\" + CONVERSATION_TYPE_PREDICATE_SQL"
+                "title LIKE '%' || :searchText || '%'\" + CONVERSATION_LIKE_ESCAPE_SQL + CONVERSATION_TYPE_PREDICATE_SQL"
             ),
         )
         assertTrue(
