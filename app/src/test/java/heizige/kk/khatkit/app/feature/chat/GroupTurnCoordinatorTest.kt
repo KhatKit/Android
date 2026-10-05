@@ -1109,6 +1109,297 @@ assertNotNull("第二个角色就该触顶（500+500=1000）", stop)
 
 
     // ------------------------------------------------------------------
+    // 14. 失败收尾的归属：残留 job 不能把失败算到新轮名下
+    // ------------------------------------------------------------------
+
+    /**
+     * 问题三（纯逻辑不变量，可测）。
+     *
+     * `ChatManager.failGroupTurn` 里的 `plan` 与提交路一样是**当场现算**的，而
+     * `abandonDanglingGroupRuns`（用户发新消息时把上一轮判死）**不取消任何 job** ——
+     * 旧生成任务照样会超时 / 报错，从 `onFailure` 进到 `failGroupTurn`。
+     *
+     * 本例复现整条时序：旧轮判死 → 新轮拿到全新令牌 → 残留旧 job 失败，
+     * 而它手上现算出来的 plan 是**新轮** —— 必须被拒。否则这一次失败会往新轮里塞一条
+     * `errorNode(roundId = 新轮)` 并把新轮写成 TIMEOUT / FAILED，
+     * 同会话正在跑的新一轮的进程内镜像还会被一起抹掉。
+     */
+    @Test
+    fun `a stale job failure cannot be charged to the round that replaced it`() {
+        val config = pipelineConfig(budget = 1000)
+
+        // ① 旧轮 alice 正在发言，令牌 token-old。
+        val oldRow = state(roundId = "round-trigger-old", runToken = "token-old")
+
+        // ② 用户发新消息 → abandonDanglingGroupRuns 判死旧轮（这一行**留在库里**，只落终态）。
+        val abandoned = GroupTurnCoordinator.cancelRound(oldRow, 60_000L)
+        assertEquals(GroupRunEntity.STATUS_CANCELLED, abandoned.status)
+        assertEquals("round-trigger-old", abandoned.roundId)
+
+        // ③ 新轮：触发消息变了 → roundId 变了；抢占拿到全新令牌 token-new。
+        val newPlan = planOf(config, trigger = "trigger-new")
+        assertNotEquals("换触发消息就必须换轮次", abandoned.roundId, newPlan.roundId)
+        val newRow = (
+            GroupTurnCoordinator.claimRound(
+                conversationId = "conv-1",
+                plan = newPlan,
+                tokenLimit = 1000,
+                existing = null,
+                expectedRunToken = null,
+                activeRunToken = null,
+                newRunToken = "token-new",
+                now = 61_000L,
+            ) as GroupTurnCoordinator.Claim.Acquired
+            ).state
+
+        // ④ 残留的旧 job 超时：它手上是**新轮**的 plan，令牌却还是 token-old。
+        val stale = GroupTurnCoordinator.checkFailureAdmission(
+            jobRunToken = "token-old",
+            row = newRow,
+            targetRoundId = newPlan.roundId,
+        )
+        assertTrue("上一轮的失败必须被拒，不能记到新轮名下", stale is GroupTurnCoordinator.CommitAdmission.Denied)
+        stale as GroupTurnCoordinator.CommitAdmission.Denied
+        assertTrue("拒收理由要说清是残留 job（实际：${stale.detail}）", stale.detail.contains("token-old"))
+        assertEquals("拒收不得改写新轮那一行", newRow, stale.row)
+
+        // ⑤ 正向对照：驱动新轮的那个 job 照常放行 —— 守卫不许误伤正常失败。
+        val fresh = GroupTurnCoordinator.checkFailureAdmission(
+            jobRunToken = newRow.runToken,
+            row = newRow,
+            targetRoundId = newPlan.roundId,
+        )
+        assertTrue("新轮自己的失败必须放行", fresh is GroupTurnCoordinator.CommitAdmission.Admitted)
+        assertEquals(newRow, (fresh as GroupTurnCoordinator.CommitAdmission.Admitted).row)
+    }
+
+    /**
+     * 提交路与失败路**故意**不一样的那一条：同一行、同一令牌、但轮次已终态。
+     *
+     * 提交路 [checkCommitAdmission] 放行 —— 归属是对的，盖戳不写错，该拦的只是「不推进」，
+     * 那是 [advance] 的活；失败路**没有** [advance] 兜底（[fail] / [timeoutRound] 是
+     * 无条件写终态的纯函数，执行层拿到 state 就直接落库），所以
+     * [checkFailureAdmission] 必须自己拒掉。
+     *
+     * 这一对断言合起来钉住「多出来的那一条到底在哪、为什么只在失败路」，
+     * 也堵住「顺手把终态判定搬进 checkCommitAdmission」这种改法：那样会把提交路一起打死。
+     */
+    @Test
+    fun `a dead round refuses a failure closeout while the commit side still admits it`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+
+        // 逐个终态都试一遍，不只 CANCELLED。
+        GroupRunEntity.TERMINAL_STATUSES.forEach { deadStatus ->
+            assertTrue("前置：$deadStatus 必须算终态", GroupRunEntity.isTerminal(deadStatus))
+            val dead = state(
+                roundId = plan.roundId,
+                runToken = "token-1",
+                status = deadStatus,
+                committed = listOf("alice"),
+                endedAt = 20_000L,
+            )
+
+            // 提交路：同一行同一令牌 → 归属正确，放行（生死交给 advance）。
+            assertTrue(
+                "提交路只认身份：$deadStatus 行同令牌仍放行",
+                GroupTurnCoordinator.checkCommitAdmission("token-1", dead, plan.roundId) is
+                    GroupTurnCoordinator.CommitAdmission.Admitted,
+            )
+
+            // 失败路：拒收，且那一行一个字节都不许变。
+            val refused = GroupTurnCoordinator.checkFailureAdmission("token-1", dead, plan.roundId)
+            assertTrue("$deadStatus 的失败收尾必须被拒", refused is GroupTurnCoordinator.CommitAdmission.Denied)
+            refused as GroupTurnCoordinator.CommitAdmission.Denied
+            assertTrue(
+                "拒收理由要说清是已终态（实际：${refused.detail}）",
+                refused.detail.contains(deadStatus),
+            )
+            assertEquals("拒收时拿到的行必须是原状", dead, refused.row)
+        }
+    }
+
+    /**
+     * 正常路径回归：RUNNING 行 + 本轮令牌必须**照常**走完失败收尾。
+     *
+     * 这是最容易被守卫误伤的一条，所以正面钉死：判据通过之后 [fail] 仍要写出
+     * FAILED / role_failed / 未运行名单，错误节点的 `roundId` 仍要落在**这一轮**上。
+     * 「未运行名单」按执行层 [ChatManager.failGroupTurn] 的同一口径现算，
+     * 免得用例里手写的名单与真实派生逻辑脱节。
+     */
+    @Test
+    fun `a normal role failure is admitted and still writes its own round`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+        val row = state(roundId = plan.roundId, runToken = "token-1", committed = listOf("alice"))
+
+        val admission = GroupTurnCoordinator.checkFailureAdmission(
+            jobRunToken = row.runToken,
+            row = row,
+            targetRoundId = plan.roundId,
+        )
+        assertTrue(
+            "RUNNING 行 + 本轮令牌必须放行：正常生成失败不能被守卫拦下",
+            admission is GroupTurnCoordinator.CommitAdmission.Admitted,
+        )
+        val target = (admission as GroupTurnCoordinator.CommitAdmission.Admitted).row
+        assertEquals(row, target)
+
+        val remaining = GroupChat.pendingSpeakers(plan.plan, target.committedRoleIds.toSet())
+            .map { it.role.id }
+            .filter { it != "bob" }
+        assertEquals("pipeline 模式下 bob 失败后只剩 carol 未运行", listOf("carol"), remaining)
+
+        val failed = GroupTurnCoordinator.fail(
+            state = target,
+            failedRoleId = "bob",
+            remainingRoleIds = remaining,
+            errorMessage = "IOException: boom",
+            now = 90_000L,
+        )
+        assertEquals(GroupRunEntity.STATUS_FAILED, failed.status)
+        assertEquals(GroupRunEntity.REASON_ROLE_FAILED, failed.reason)
+        assertEquals("IOException: boom", failed.errorMessage)
+        assertEquals("未运行名单要写进运行日志", listOf("carol"), failed.skippedRoleIds)
+        assertEquals("已完成角色留在 committed 里，失败角色不进去", listOf("alice"), failed.committedRoleIds)
+        assertEquals(90_000L, failed.endedAt)
+
+        // 错误节点必须记在这一轮名下 —— 残留 job 越权破坏的正是这一条。
+        val node = GroupTurnCoordinator.errorNode(target, config, "bob", "IOException: boom")
+        assertEquals(plan.roundId, node.roundId)
+        assertEquals("bob", node.roleId)
+        assertEquals(GroupChat.TURN_ERROR, node.turnKind)
+    }
+
+    /** 正常路径回归之二：超时是另一条正常终态出口，同样必须照常写 TIMEOUT。 */
+    @Test
+    fun `a normal timeout is admitted and still writes its own round`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+        val row = state(
+            roundId = plan.roundId,
+            runToken = "token-1",
+            committed = listOf("alice", "bob"),
+            spent = 300,
+        )
+
+        val admission = GroupTurnCoordinator.checkFailureAdmission(row.runToken, row, plan.roundId)
+        assertTrue(
+            "RUNNING 行 + 本轮令牌必须放行：超时不能被守卫拦下",
+            admission is GroupTurnCoordinator.CommitAdmission.Admitted,
+        )
+        val target = (admission as GroupTurnCoordinator.CommitAdmission.Admitted).row
+
+        val timedOut = GroupTurnCoordinator.timeoutRound(target, "TimeoutCancellationException", 95_000L)
+        assertEquals(GroupRunEntity.STATUS_TIMEOUT, timedOut.status)
+        assertEquals(GroupRunEntity.REASON_TIMEOUT, timedOut.reason)
+        assertEquals("TimeoutCancellationException", timedOut.errorMessage)
+        assertEquals(95_000L, timedOut.endedAt)
+        assertEquals("超时不改 committed", listOf("alice", "bob"), timedOut.committedRoleIds)
+        assertEquals(
+            "错误节点仍记在这一轮名下",
+            plan.roundId,
+            GroupTurnCoordinator.errorNode(target, config, "carol", "超时").roundId,
+        )
+    }
+
+    /**
+     * 正常路径回归之三（**失败续跑**）：失败 / 取消 / 超时之后用户再触发同一轮时，
+     * [GroupTurnCoordinator.claimRound] 会把同一行 `reclaimed` 回 RUNNING
+     * （`round_id` 与 `run_token` 都不变）才允许发起模型调用 ——
+     * 所以续跑那一步再失败时守卫**不得**触发。
+     *
+     * 每轮都先断言「没续跑的话守卫是拦的」，否则本例会退化成恒真断言：
+     * 少了 reclaim 这一步，令牌虽然也对得上，但 status 是终态，守卫会把续跑一起打死。
+     */
+    @Test
+    fun `resuming a dead round still admits its failure`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+
+        listOf(
+            GroupRunEntity.STATUS_CANCELLED,
+            GroupRunEntity.STATUS_TIMEOUT,
+            GroupRunEntity.STATUS_FAILED,
+        ).forEach { deadStatus ->
+            val dead = state(
+                roundId = plan.roundId,
+                runToken = "token-1",
+                status = deadStatus,
+                committed = listOf("alice"),
+                endedAt = 20_000L,
+            )
+            assertTrue(
+                "前置：未续跑的 $deadStatus 行必须被守卫拦下（否则本例断言恒真）",
+                GroupTurnCoordinator.checkFailureAdmission("token-1", dead, plan.roundId) is
+                    GroupTurnCoordinator.CommitAdmission.Denied,
+            )
+
+            val claim = GroupTurnCoordinator.claimRound(
+                conversationId = "conv-1",
+                plan = plan,
+                tokenLimit = 1000,
+                existing = dead,
+                expectedRunToken = null,
+                activeRunToken = null,
+                newRunToken = "token-should-be-ignored",
+                now = 100_000L,
+            )
+            assertTrue("dead=$deadStatus 必须判为可续跑", claim is GroupTurnCoordinator.Claim.Acquired)
+            val resumed = (claim as GroupTurnCoordinator.Claim.Acquired).state
+            assertEquals(GroupRunEntity.STATUS_RUNNING, resumed.status)
+            assertEquals("续跑不换 round_id", plan.roundId, resumed.roundId)
+            assertEquals("续跑不换 run_token（reclaimed 不动它）", "token-1", resumed.runToken)
+
+            val admission = GroupTurnCoordinator.checkFailureAdmission(resumed.runToken, resumed, plan.roundId)
+            assertTrue("dead=$deadStatus 续跑后的失败必须照常放行", admission is GroupTurnCoordinator.CommitAdmission.Admitted)
+
+            val failedAgain = GroupTurnCoordinator.fail(
+                state = (admission as GroupTurnCoordinator.CommitAdmission.Admitted).row,
+                failedRoleId = "bob",
+                remainingRoleIds = listOf("carol"),
+                errorMessage = "第二次也失败",
+                now = 101_000L,
+            )
+            assertEquals(GroupRunEntity.STATUS_FAILED, failedAgain.status)
+            assertEquals("已产出仍保留", listOf("alice"), failedAgain.committedRoleIds)
+            assertEquals(plan.roundId, GroupTurnCoordinator.errorNode(resumed, config, "bob", "x").roundId)
+        }
+    }
+
+    /**
+     * 失败路与提交路**共用同一条身份判据**：这里逐条走一遍 [checkFailureAdmission] 的入口。
+     *
+     * 断言的不只是「都拒收」，还包括**两条路给出逐字相同的理由** —— 那是「共用」的证据；
+     * 如果哪天有人在失败路另立一套判据（例如改成按 `committedRoleIds` 判），这里会红。
+     */
+    @Test
+    fun `failure admission reuses the commit side identity criteria`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+        val row = state(roundId = plan.roundId, runToken = "token-1")
+
+        val denials: List<Triple<String?, GroupTurnCoordinator.RoundState?, String>> = listOf(
+            Triple(null, row, plan.roundId),
+            Triple("", row, plan.roundId),
+            Triple("token-1", null, plan.roundId),
+            Triple("token-1", row, "round-trigger-elsewhere"),
+            Triple("token-2", row, plan.roundId),
+        )
+        denials.forEachIndexed { index, (token, target, targetRoundId) ->
+            val onFailurePath = GroupTurnCoordinator.checkFailureAdmission(token, target, targetRoundId)
+            val onCommitPath = GroupTurnCoordinator.checkCommitAdmission(token, target, targetRoundId)
+            assertTrue("用例 $index：失败路必须拒收", onFailurePath is GroupTurnCoordinator.CommitAdmission.Denied)
+            assertTrue("用例 $index：提交路也拒收（同一把尺子）", onCommitPath is GroupTurnCoordinator.CommitAdmission.Denied)
+            assertEquals(
+                "用例 $index：两条路必须给出逐字相同的理由",
+                (onCommitPath as GroupTurnCoordinator.CommitAdmission.Denied).detail,
+                (onFailurePath as GroupTurnCoordinator.CommitAdmission.Denied).detail,
+            )
+        }
+    }
+
+    // ------------------------------------------------------------------
     // 4. 取消 / 超时
     // ------------------------------------------------------------------
 
