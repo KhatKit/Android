@@ -1063,9 +1063,7 @@
   <string name="setting_tts_page_voice_name">Voice Name</string>
   <string name="setting_tts_page_voice_name_placeholder">Kore</string>
   <string name="settings">Settings</string>
-  <string name="setting_anim_play_page">Animation Lab</string>
-  <string name="setting_anim_play_page_replay">Play once</string>
-  <string name="setting_anim_play">Iris reveal</string>
+  
   <string name="share">Share</string>
   <string name="share_handler_page_title">Select an Assistant</string>
   <string name="shortcut_take_picture">Take Picture &amp; Ask</string>

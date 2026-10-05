@@ -113,7 +113,7 @@ import heizige.kk.khatkit.app.feature.imggen.ImageGenPage
 import heizige.kk.khatkit.app.feature.log.LogPage
 import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
-import heizige.kk.khatkit.app.feature.settings.SettingAnimPlayPage
+
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesPage
 import heizige.kk.khatkit.app.feature.settings.SettingThemesPage
 import heizige.kk.khatkit.app.feature.settings.SettingPermissionsPage
@@ -474,9 +474,7 @@ class RouteActivity : ComponentActivity() {
                                 WebViewPage(key.url, key.contentId)
                             }
 
-                            entry<Screen.SettingAnimPlay> {
-                                SettingAnimPlayPage()
-                            }
+                            
 
                             entry<Screen.SettingTheme> {
                                 SettingThemePage()
@@ -753,9 +751,6 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data class WebView(val url: String = "", val contentId: String = "") : Screen
-
-    @Serializable
-    data object SettingAnimPlay : Screen
 
     @Serializable
     data object SettingTheme : Screen

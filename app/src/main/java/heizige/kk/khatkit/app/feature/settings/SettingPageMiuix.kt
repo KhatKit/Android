@@ -215,12 +215,7 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 icon = favorite,
                 onClick = { navController.navigate(Screen.SettingDonate) },
             )
-            // 圆形揭幕动画的试验页，点一下播一次。
-            PreferenceArrow(
-                title = stringResource(R.string.setting_anim_play),
-                icon = bolt,
-                onClick = { navController.navigate(Screen.SettingAnimPlay) },
-            )
+            
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_share),
                 summary = stringResource(R.string.setting_page_share_desc),
