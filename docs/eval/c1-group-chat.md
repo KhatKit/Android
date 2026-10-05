@@ -31,7 +31,8 @@ C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`；
     `files/datastore/settings.preferences_pb`（165 字节），`strings` 只有
     `mcp_servers / data_version / assistants / quick_messages / launch_count /
     select_assistant / 0950e2dc-…`——没有 `providers`、没有 `models`、没有 API key。
-  - **所以按 `:42` 的判定规则（「缺调用序列或缺哈希的行均不算通过」），十例仍然全部
+  - **所以按本文「判定规则」小节（与 `beyond-operit-client-changes.md:232-235`
+    「验收记录格式」同源：「缺调用序列或缺哈希的行均不算通过」），十例仍然全部
     `unverified`，0/10 不变。** 四类里两类齐了不等于契约达成；`viewer 可见消息 ID`
     只覆盖了 **pipeline**，roundtable / vote 的 viewer 集合**没采**。
 - **十条用例仍然全部 `unverified`。** C1 的代码层已实现并落在仓库里，离线
@@ -1641,7 +1642,8 @@ C1-04（vote）要的**议长视角可见集合**因此仍然零份。
 
 #### ⚠️ 这一节仍然不能证明什么（6 条，逐条照记）
 
-1. **十例状态仍全 `unverified`。** 四类缺两类，按 `:42` 的判定规则不算通过。
+1. **十例状态仍全 `unverified`。** 四类缺两类，按本文「判定规则」小节（与
+   `beyond-operit-client-changes.md:232-235` 同源）不算通过。
 2. **viewer 可见集合只覆盖 pipeline。** roundtable / vote 的 viewer 集合没采，
    `chairRound = true` 与 `__summary__` 两条放行分支在这条夹具里没被触发。
 3. **token 与模型调用序列仍然是「口径证据」，不是「真实调用证据」。** 两份 JSON 自己
