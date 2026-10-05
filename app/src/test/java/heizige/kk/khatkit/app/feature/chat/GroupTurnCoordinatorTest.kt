@@ -102,6 +102,27 @@ class GroupTurnCoordinatorTest {
         usage = usage,
     )
 
+    /**
+     * 带 `mentionRoleIds` 的助手消息。[assistant] 刻意**没有**这个参数，所以本文件里
+     * 「非 USER 消息被 @ 到」这条放行分支只能由本构造器触发——上面
+     * `mentions are delivered only to the mentioned role` 造的 @ 挂在 **USER** 消息上，
+     * 而 USER 消息本来就无条件放行，那条用例其实没碰到 mention 分支。
+     */
+    private fun speaking(
+        text: String,
+        roleId: String,
+        mentionRoleIds: List<String> = emptyList(),
+        roundId: String? = "round-trigger-1",
+        turnKind: String? = GroupChat.TURN_SPEAKER,
+    ) = UIMessage(
+        role = MessageRole.ASSISTANT,
+        parts = listOf(UIMessagePart.Text(text)),
+        roleId = roleId,
+        mentionRoleIds = mentionRoleIds,
+        roundId = roundId,
+        turnKind = turnKind,
+    )
+
     private fun stepOf(config: GroupConfig, roleId: String): SpeakerStep =
         GroupChat.plan(config, emptyList()).first { it.role.id == roleId }
 
@@ -951,6 +972,103 @@ class GroupTurnCoordinatorTest {
             "未被 @ 的角色拿不到别人的回答",
             GroupTurnCoordinator.viewerMessages(config, messages, carolStep).any { it.toText() == "bob 的正式回答" },
         )
+    }
+
+    // ------------------------------------------------------------------
+    // 6b. mention_role_ids 放行分支（上一条用例没碰到的那条）
+    // ------------------------------------------------------------------
+
+    /**
+     * 契约（`docs/beyond-operit-client-changes.md:200`）明文要求可见集合包含
+     * 「`mention_role_ids` 包含自己的消息」。这条用例**真正**触发那个分支：
+     * `roleId = "alice"` 而 `mentionRoleIds = ["bob"]` 的一条**助手**消息。
+     *
+     * 用 `vote` 配置且不传 `predecessorId` / `chairRound`：`vote` 模式没有 predecessor，
+     * 于是「bob 看得见」只可能来自 mention 分支，不会被上一位放行分支带出假阳性。
+     */
+    @Test
+    fun `a mention on another role's message reaches exactly the mentioned viewer`() {
+        val config = voteConfig()
+        val messages = listOf(
+            user("先讨论架构"),
+            speaking("alice 点名让 bob 看", "alice", mentionRoleIds = listOf("bob")),
+        )
+
+        val visibleFor = { viewerId: String ->
+            GroupChat.visibleMessages(config, messages, viewerId).map { it.toText() }
+        }
+
+        // 三个方向一起断，证明「作者」与「被 @」两条分支互不干扰。
+        assertTrue(
+            "作者看得到自己那条（roleId == viewerId 分支）",
+            visibleFor("alice").contains("alice 点名让 bob 看"),
+        )
+        assertTrue(
+            "被 @ 的 bob 看得到（mentionRoleIds 分支）",
+            visibleFor("bob").contains("alice 点名让 bob 看"),
+        )
+        assertFalse(
+            "既不是作者也不在 mention 里的 carol 看不到",
+            visibleFor("carol").contains("alice 点名让 bob 看"),
+        )
+        // 三个人都得看得见用户消息。
+        listOf("alice", "bob", "carol").forEach { viewerId ->
+            assertTrue("$viewerId 应看得见用户消息", visibleFor(viewerId).contains("先讨论架构"))
+        }
+    }
+
+    /**
+     * 反向对照（防「过滤对所有人都不生效」的假阳性）：同一段文本、同一批视角，
+     * 唯一差别是 `mentionRoleIds` 空不空。被 @ 的是 bob，看得见的**必须**只有 bob——
+     * 如果这条在 mention 为空时也通过，说明上面那条根本没测到 mention 分支。
+     */
+    @Test
+    fun `dropping the mention closes the branch again for the mentioned viewer`() {
+        val config = voteConfig()
+        val withMention = listOf(
+            user("议题"),
+            speaking("alice 的私密结论", "alice", mentionRoleIds = listOf("bob")),
+        )
+        val withoutMention = listOf(
+            user("议题"),
+            speaking("alice 的私密结论", "alice"),
+        )
+
+        val bobWith = GroupChat.visibleMessages(config, withMention, "bob").map { it.toText() }
+        val bobWithout = GroupChat.visibleMessages(config, withoutMention, "bob").map { it.toText() }
+
+        assertTrue(bobWith.contains("alice 的私密结论"))
+        assertFalse(
+            "mention 一去掉，bob 就必须重新看不见——否则上一条是假阳性",
+            bobWithout.contains("alice 的私密结论"),
+        )
+        // alice 自己两种形状都看得见（自己的发言不受 mention 影响）。
+        assertTrue(GroupChat.visibleMessages(config, withoutMention, "alice").map { it.toText() }
+            .contains("alice 的私密结论"))
+    }
+
+    /** 多个角色同时被 @：放行集合是「全体被 @ 者」，不多不少。 */
+    @Test
+    fun `every mentioned role is reached and unmentioned ones are not`() {
+        val config = voteConfig()
+        val text = "alice 同时点名 bob 和 carol"
+        val messages = listOf(
+            user("三人一起看"),
+            speaking(text, "alice", mentionRoleIds = listOf("bob", "carol")),
+        )
+
+        val visibleFor = { viewerId: String ->
+            GroupChat.visibleMessages(config, messages, viewerId).map { it.toText() }
+        }
+
+        assertTrue("被 @ 的 bob 看得到", visibleFor("bob").contains(text))
+        assertTrue("被 @ 的 carol 看得到", visibleFor("carol").contains(text))
+        // 作者仍然看得见自己那条（走 roleId == viewerId 那条分支，与 mention 无关）。
+        assertTrue("作者 alice 看得到自己那条", visibleFor("alice").contains(text))
+        // 三条都看得见用户消息，用户消息不受任何分支影响。
+        listOf("alice", "bob", "carol").forEach { viewerId ->
+            assertTrue("$viewerId 应看得见用户消息", visibleFor(viewerId).contains("三人一起看"))
+        }
     }
 
     @Test
