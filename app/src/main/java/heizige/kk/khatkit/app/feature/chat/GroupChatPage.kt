@@ -521,6 +521,12 @@ private fun GroupConfigSheet(
     PrimaryBottomSheet(
         visible = true,
         title = "群配置",
+        // 必须显式给图标：转发层在 MD3Exp 风格下走 `requireNotNull(imageVector)`
+        // 分支（`PrimaryBottomSheet.kt` 第二个 Khromia 重载），两个都不传就是
+        // IllegalArgumentException，而这里正是顶栏「群配置」按钮点开的那张面板。
+        // 用 `tune`：与顶栏触发按钮（GroupTopBar 里 `Icon(tune, "群配置")`）同一个图标，
+        // 触发按钮与它打开的弹层图标一致，语义闭合。
+        imageVector = tune,
         onDismiss = onDismiss,
     ) { _ ->
         Column(
