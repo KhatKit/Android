@@ -93,12 +93,47 @@ class ConversationDrawerFolderScopeTest {
     }
 
     /**
-     * 只取 `WHERE` 之后的部分。**必须**这样切：SELECT 列表里两条查询都有
+     * 只取 `WHERE` 之后、`ORDER BY` 之前的部分。**必须**这样切：SELECT 列表里两条查询都有
      * `folder_id as folderId`（那是给列表项用的投影，不是筛选条件），拿整条 SQL 判
      * `folder_id` 会让「有没有 folder_id 条件」这条断言恒真。
+     *
+     * ⚠️ 这里刻意**不用** `substringAfter("WHERE ").substringBefore(" ORDER BY")`：Kotlin 的
+     * `substringAfter` 在锚点找不到时**返回整个字符串**（不抛异常、不返回 null），切分就退化
+     * 成「扫整条 SQL」，而退化后的整条 SQL 里恰好带着 SELECT 投影的 `folder_id as folderId`
+     * —— 本文件所有依赖「WHERE 子句不含投影」的断言就此失去判别力。所以手写 `indexOf` 硬切：
+     * `WHERE ` 锚点缺失就返回空串，让调用方的 `assertTrue(isNotEmpty())` 立刻红掉。
+     *
+     * ` ORDER BY` 反过来是**可选**的（一条没有排序的 WHERE 查询本身合法），所以它缺失不算缺陷，
+     * 此时返回从 `WHERE ` 到句尾 —— 那正是「WHERE 子句」应有的范围。
      */
-    private fun whereClauseOf(sql: String): String =
-        sql.substringAfter("WHERE ").substringBefore(" ORDER BY")
+    private fun whereClauseOf(sql: String): String {
+        val whereAt = sql.indexOf(WHERE_ANCHOR)
+        if (whereAt < 0) return ""
+        val tail = sql.substring(whereAt + WHERE_ANCHOR.length)
+        val orderAt = tail.indexOf(ORDER_BY_ANCHOR)
+        return if (orderAt < 0) tail else tail.substring(0, orderAt)
+    }
+
+    /**
+     * 反空跑护栏：切出来的必须真的只是 WHERE 子句。
+     *
+     * 判据取「片段里不含 SELECT 投影的 `folder_id as folderId`」而不是长度 —— 这正是
+     * [whereClauseOf] 存在的唯一理由。一旦有人把锚点改名，切分退化成扫全文，`folder_id as
+     * folderId` 就会落进片段里，这条立刻红。
+     */
+    private fun assertWhereSliceIsNotWholeQuery(where: String, whereOf: String) {
+        assertTrue(
+            "$whereOf 的 WHERE 子句切分结果是空的：SQL 里没有 `$WHERE_ANCHOR` 锚点。" +
+                "旧写法用 substringAfter，锚点缺失时会静默返回整条 SQL，" +
+                "让下面「WHERE 不含投影」的判据恒真——所以现在必须硬红",
+            where.isNotEmpty(),
+        )
+        assertFalse(
+            "$whereOf 的 WHERE 子句里出现了 SELECT 投影的 `folder_id as folderId`：切分退化成扫全文了。" +
+                "「WHERE 有没有 folder_id 条件」这条断言已经没有判别力（它恒红，恒绿都不可信）",
+            where.contains(SELECT_PROJECTION_MARKER),
+        )
+    }
 
     /**
      * 未归档路：有 `AND folder_id = ''`，这是抽屉主列表的语义（「未归入任何文件夹的会话」）。
@@ -106,9 +141,11 @@ class ConversationDrawerFolderScopeTest {
     @Test
     fun unfiledQuery_filtersByFolder() {
         val sql = queryOf("getUnfiledConversationsOfAssistantByType")
+        val where = whereClauseOf(sql)
+        assertWhereSliceIsNotWholeQuery(where, "getUnfiledConversationsOfAssistantByType")
         assertTrue(
             "未归档查询的 WHERE 应带 folder_id = ''",
-            whereClauseOf(sql).contains("AND folder_id = ''"),
+            where.contains("AND folder_id = ''"),
         )
     }
 
@@ -118,7 +155,9 @@ class ConversationDrawerFolderScopeTest {
      */
     @Test
     fun searchQuery_currentlyHasNoFolderCondition() {
-        val where = whereClauseOf(queryOf("searchConversationsOfAssistantByType"))
+        val sql = queryOf("searchConversationsOfAssistantByType")
+        val where = whereClauseOf(sql)
+        assertWhereSliceIsNotWholeQuery(where, "searchConversationsOfAssistantByType")
         assertFalse(
             "搜索查询的 WHERE 当前不过滤 folder_id；这是 B2 已知的口径不一致，" +
                 "收窄口径是待定的产品决策，不要顺手改这里",
@@ -148,9 +187,11 @@ class ConversationDrawerFolderScopeTest {
             "getUnfiledConversationsOfAssistantByType",
             "searchConversationsOfAssistantByType",
         )) {
+            val where = whereClauseOf(queryOf(method))
+            assertWhereSliceIsNotWholeQuery(where, method)
             assertTrue(
                 "$method 应引用共用的 type 谓词常量",
-                whereClauseOf(queryOf(method)).contains("(:type = '' OR type = :type)"),
+                where.contains("(:type = '' OR type = :type)"),
             )
         }
     }
@@ -164,5 +205,22 @@ class ConversationDrawerFolderScopeTest {
     fun queryPlan_decidesOnKeywordAlone() {
         assertEquals(ConversationListQuery.UNFILED, planConversationListQuery("", "").query)
         assertEquals(ConversationListQuery.SEARCH, planConversationListQuery("abc", "").query)
+    }
+
+    private companion object {
+        /**
+         * WHERE 子句的切分锚点。**刻意独立成常量**：变异检验要把它整体换成一个不存在的字符串，
+         * 用来证明「锚点缺失 → 返回空串 → 断言红」这条退化路径真的被堵死了。
+         */
+        const val WHERE_ANCHOR = "WHERE "
+
+        /** `ORDER BY` 子句的开头，WHERE 子句到它为止（没有它时 WHERE 子句就是到句尾）。 */
+        const val ORDER_BY_ANCHOR = " ORDER BY"
+
+        /**
+         * 两条查询的 SELECT 投影里都有它（`folder_id as folderId`）。
+         * [assertWhereSliceIsNotWholeQuery] 用「WHERE 片段里不含它」来证明没有退化成扫全文。
+         */
+        const val SELECT_PROJECTION_MARKER = "folder_id as folderId"
     }
 }
