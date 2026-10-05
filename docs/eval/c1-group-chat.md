@@ -2269,6 +2269,60 @@ app/src/main | wc -l` = **0**，这是「测试缺陷修复没顺手改生产代
 **`setting_anim_play`**——**最后一个是设置项的标题**，任务清单漏列了它，但同样成了孤儿，
 所以一并删。
 
+#### 再往后一批：两处重构 + 真实 HTTP 证据采集与三处测试修正（`074e0e20..a9d2077e`）
+
+锚点之后又出现了这一批 **5 个**（`git log --oneline 074e0e20..a9d2077e` 实测 = 5，
+区间内 `--merges` 为 0）。**同样不计入本台账**——理由与前几批一致：不改统计区间、
+不改 `--no-merges` 口径、不引入新的类型前缀或子包标签。所以 **78 / 6 / 17、前缀分布、
+子包分布一个数都没动**，`d45ebd10~1..1b0e04a9` 那 **78 个 commit 没有被重算**。
+⚠️ 上面那句「净 diff（`4a4def40..HEAD` 汇总）」是**上一批结束时**的快照，
+**不覆盖本批**（本批又改了 main 源码）。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `074e0e20` | `refactor(c1-p): TavernChatCodec 的 import 数组分支改调 documentFrom，消掉第二份消息解码` | 功能（main，`TavernChatCodec.kt` -22 行）+ 测试（新增 `TavernChatMessageDecodeGuardTest.kt`，195 行） |
+| `12dcdfdb` | `refactor(c1-p): GroupChatPage 两对重复展示行抽成 GroupConfigErrorLine / RoleCardLine` | 功能（main，`GroupChatPage.kt`）+ 测试（新增 `GroupChatPageDisplayLineSourceGuardTest.kt`，141 行） |
+| `47693445` | `coder: C1LiveModelSequenceTest 装载群会话进 ChatManager session，修整轮退化成单聊` | 测试（**1 个新增仪器类，865 行 / 3 例**）——⚠️ 见下「敏感项 C」 |
+| `858c11d0` | `coder: 修群聊后续角色产出被并进上一位发言，导致本轮误判无产出` | **功能（main，`core/data/ai/GenerationLoop.kt`，+34/-2）**——⚠️ **锚点之后第一个由真机证据定位的 main 源码 bug** |
+| `bff7b0c6` | `coder: 修 C1LiveModelSequenceTest 视角隔离断言——a 看得见自己的发言，不是空集` | 测试（**改既有断言**，11 insertions / 2 deletions）——见下「敏感项 A」 |
+| `a9d2077e` | `coder: C1DeviceEvidenceTest 夹具按三种 mode 各采一遍 viewer 台账与越权审计` | 测试（改既有仪器类，+112/-12）——见下「敏感项 B」 |
+
+⚠️⚠️ **这批与前面所有批次的性质都不同，必须说清楚**：前面每一批都**没有产出契约 `:206`
+意义上的验收证据**，这一批**产出了第三、四类（真实模型调用序列 + prompt+completion
+token）各一份真机内容**——`adb reverse` + 本机 mock 走真实 provider 代码路径，
+`round-7098bf9e-4bcb-41f2-a0e7-e05d0395fcc9` 一轮 4 个真实请求，
+`spent_tokens` 773 / 236 与落库逐条相等。**证据登记见「C1 真机证据采集第二轮」。**
+
+⚠️⚠️⚠️ **但它仍然不改变任何判定**：**mock 不是真实模型**（是「真实 provider 代码路径 +
+真实 HTTP + 真实 SSE + 真实 usage 报文」，不是「真实 LLM 推理」）；**roundtable / vote
+的真实调用零份**；**酒馆本体、真机 UI、相机扫码真机链路仍零份**。所以
+**十例状态仍全 `unverified`，0/10 不变。**
+
+⚠️⚠️⚠️ **敏感项：`858c11d0` 是第一个「真机证据 → 定位生产 bug → 改 main 源码」的
+闭环**，逐条登记（完整版见「C1 真机证据采集第二轮」的证据登记与「已知遗留与风险」）：
+
+- **症状**：落库的那条助手消息 `role_id="a"` 却有 **A、B 两段正文**，而 usage 是 **B 的**；
+  `group_runs` 是 `status=FAILED` / `committed=["a"]` / `skipped=["c"]` /
+  `reason=role_failed` / `error_message=本轮没有产出内容`。**请求本身是发的，断的是
+  产出归属，不是模型调用。**
+- **根因**：`GenerationLoop` 复用末尾助手消息的条件只看
+  `messages.lastOrNull()?.role == ASSISTANT`。但群聊里**上一位角色的发言同样是末尾
+  ASSISTANT 消息**，而那条已经 `roleId != null`（已提交、已计入 `committed_role_ids`），
+  复用它就把本角色的回复**并进上一位那条消息**（同一个 `UIMessage` 多出一个 Text part）；
+  随后 `stampGroupTurn` 因为找不到 `roleId == null` 的助手消息而返回 null，该角色被误判
+  「本轮没有产出内容」。`handleTextGenerationResult` 那条非流式分支有**同一个坑**，
+  一并修了。
+- **修法**：复用条件加一条 `roleId == null`（`reusableTrailingAssistant`），
+  非流式分支先把「已提交的末尾助手消息」摘掉再落到追加新消息的分支。
+  ⚠️ **单聊不受影响**：那里 `roleId` 恒为 null，复用条件与改动前**逐字相同**。
+- **定性**：这是**生产代码的真 bug**，不是测试缺陷——与本批 `bff7b0c6` / `a9d2077e`
+  那两处「测试自己写错了」的修正**不是同一类，别混着记**。
+
+⚠️ 本文件的登记提交同样**不计入**任何计数，且按上面同样的理由**不写自己的 SHA**
+（本文件每次被自己提交都会产生一个新 commit，写进去就得再改一次、永远差一个，
+与本台账刻意锚死右端是同一个道理）。用
+`git log --oneline -1 -- docs/eval/c1-group-chat.md` 可查。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
