@@ -818,13 +818,17 @@ gradle 跑的是带 `--tests` 过滤的），`xml.get(c)` 全部取不到。⚠�
 | **`TavernChatMessageDecodeGuardTest`** | **2** | **`TavernChatCodec` import 数组分支必须走 `documentFrom`（消掉第二份消息解码）**（`074e0e20`，**上一批漏登，本轮补进台账**） |
 | **`GroupChatPageDisplayLineSourceGuardTest`** | **2** | **`GroupConfigErrorLine` / `RoleCardLine` 两对展示行的复用护栏**（`12dcdfdb`，**上一批漏登，本轮补进台账**） |
 | **合计** | **366** | **35 类** |
-| **`GroupStaleJobCommitSourceGuardTest`** | **7**<br>**9**（HEAD `a74c1820` 实测；旧值 7 是 `2fdee352` 那版的） | **源码护栏：提交路——`commitGroupTurn` 必须在 `stampGroupTurn` 之前调 `checkCommitAdmission`、`Denied` 分支只 Logging 不碰 `groupRunsInFlight`、令牌必须从 `takeGroupTurn` 返回值捕获（不得反查镜像）、`Halted` 分支不得 `persistRoundState`**（`2fdee352`）**＋（`bed09118` +2 例）禁「按 key 无条件删」的旧形状 `groupRunsInFlight.remove(conversationId)`（右括号前不许出现逗号）、`null ->` 分支必须走 `clearGroupRunMirrorIfMine` 按 runToken 清** |
-| **`GroupStaleJobFailureSourceGuardTest`** | **6** | **源码护栏：失败路——`failGroupTurn` 必须在四个副作用（`appendGroupMessages` / `persistRoundState` / `dropTieBreakScaffolding` / `groupRunsInFlight.remove`）全部之前判 `checkFailureAdmission`，拒收分支只有 Logging + return**（`8ccc0264`） |
+| **`GroupStaleJobCommitSourceGuardTest`** | **7**<br>**9**<br>**10**（HEAD `d00880fc` 实测；旧值 9 是 `a74c1820` 那版的，7 是 `2fdee352` 那版的） | **源码护栏：提交路——`commitGroupTurn` 必须在 `stampGroupTurn` 之前调 `checkCommitAdmission`、`Denied` 分支只 Logging 不碰 `groupRunsInFlight`、令牌必须从 `takeGroupTurn` 返回值捕获（不得反查镜像）、`Halted` 分支不得 `persistRoundState`**（`2fdee352`）**＋（`bed09118` +2 例）禁「按 key 无条件删」的旧形状 `groupRunsInFlight.remove(conversationId)`（右括号前不许出现逗号）、`null ->` 分支必须走 `clearGroupRunMirrorIfMine` 按 runToken 清** |
+| **`GroupStaleJobFailureSourceGuardTest`** | **6**<br>**7**（HEAD `d00880fc` 实测；旧值 6 是 `8ccc0264` 那版的） | **源码护栏：失败路——`failGroupTurn` 必须在四个副作用（`appendGroupMessages` / `persistRoundState` / `dropTieBreakScaffolding` / `groupRunsInFlight.remove`）全部之前判 `checkFailureAdmission`，拒收分支只有 Logging + return**（`8ccc0264`） |
 | **`ChatServiceGroupChatFailLoudGuardTest`** | **4** | **源码护栏：`ChatService` 里零群聊逻辑（不许复制 `viewerMessages` 那套）、`handleMessageComplete` 顶部必须 `require(!isGroupConversation(...))` 且排在一切副作用之前、它是 `ChatService` 里唯一的生成漏斗（⚠️ 原写「3 处 `finishInterruptedPendingTools` 除外且已登记」**已订正**：`finishInterruptedPendingTools` 里**零 `generateText`**，另三处 `providerHandler.generateText` 属 `generateTitle`/`generateSuggestion`/`compressConversation`，见遗留第 28 条的证伪）、DI provider 名 `provideChatManager` 必须与产物一致**（`bed09118`） |
 | **`GroupRunAbandonDrainSourceGuardTest`** | **5** | **源码护栏：`abandonDanglingGroupRuns` 必须分批循环读到清空（不是单页 `limit = 8`）、循环必须有具名收敛上限、页大小必须是具名常量而不是内联字面量、每行判死前必须 `findByRound` 重读并 `isTerminal` 跳过**（`bed09118`） |
 | **`GroupForkDisableReasonSourceGuardTest`** | **2** | **源码护栏：`ChatMessage.groupChat` KDoc 的 fork 段落禁因是「静默换会话类型」而不是账目错位；姊妹例要求重新生成 / 删除那两半必须保留它们自己的账目错位理由（防止整段被一刀切删掉）**（`bed09118`，**只加护栏、KDoc 一个字没改**） |
 | **合计（新窗口，HEAD `361c7cf6`）** | **395** | **37 类**（上两行是本轮新增的 2 类 13 例；另有两个在册类的用例数同时更新：`GroupTurnCoordinatorTest` **72 → 84**（`+12`）、`GroupTieBreakScaffoldingDropSourceGuardTest` **3 → 7**（`+4`），合计 `+16`，所以整表是 `366 + 13 + 16 = 395` ✅。⚠️ 上面的 **366 / 35 类**那一行是第四个窗口的实测值，按惯例**保留不覆写**） |
 | **合计（第六个窗口，HEAD `a74c1820`）** | **408** | **40 类**（新增 3 类 11 例：`ChatServiceGroupChatFailLoudGuardTest` 4 + `GroupRunAbandonDrainSourceGuardTest` 5 + `GroupForkDisableReasonSourceGuardTest` 2；另有一个在册类 `GroupStaleJobCommitSourceGuardTest` **7 → 9**（`+2`），合计 `+13`，所以整表是 `395 + 13 = 408` ✅。⚠️ **本窗口 `:app:testDebugUnitTest` 那 `+6 类 / +25 例` 里有 3 个类（12 例）不属于 C1、不进本表**——`CoilImageLoaderSourceGuardTest` 6 / `PrimaryBottomSheetIconSourceGuardTest` 3 / `BottomSheetScrollSourceGuardTest` 3，理由见「测试结果」段那个 ⚠️⚠️） |
+| **`SummaryViewerScopeTest`** | **12** | **纯函数真单测：群聊「标题 / 摘要按谁的视角过滤」**——fail-closed 空名单（`roles` 为空返回**空列表**不是全量）/ 议长 id 悬空但名单完好时退回第一位且 `chairRound = false` / 幂等 / **反向越权**（别的角色发言不可见）/ 议长在 `roundtable` 下看得到本轮全部（`72a5e548`；⚠️ 「单聊逐字不变、返回同一 List 实例」这一分支也在这 12 条里） |
+| **`SummaryViewerScopeWiringSourceGuardTest`** | **5** | **源码护栏：`ChatManager.generateTitle` / `compressConversation` 必须转调 `SummaryViewerScope` 而不是裸送 `conversation.currentMessages`，`splitMessages(compressScope)` 的接线不许改回 `splitMessages(messagesToCompress)`**；含一条**断言 KDoc 里那句「⚠️ 待产品确认」不许被删**（`72a5e548`） |
+| **`GroupEditActionVisibilitySourceGuardTest`** | **5** | **源码护栏：群聊长按「角色发言」时 Edit 动作必须**按消息**收口 `!groupChat \|\| <消息>.role == MessageRole.USER`——不能照抄 `if (!groupChat)`，那会把群聊里合法的「改用户提问」一起关掉；展示层与触发层各一处，`groupChat = false`（单聊）时逐字不变（`d00880fc`。⚠️ **本文上一轮把它记成「1 条」，实测是 5 条**——`git log --diff-filter=AM -- *该类.kt` 只有 `d00880fc` 一个 commit，即它**自建立起就是 5 条**，上一轮那个数是笔误，已订正） |
+| **合计（本轮，HEAD `40cc8e89` 之后）** | **479** | **45 类**（新增 **3 类 22 例**：`SummaryViewerScopeTest` 12 + `SummaryViewerScopeWiringSourceGuardTest` 5 + `GroupEditActionVisibilitySourceGuardTest` 5；另有两个在册类的**声明例数随代码更新**：`GroupStaleJobCommitSourceGuardTest` **9 → 10**（`+1`）、`GroupStaleJobFailureSourceGuardTest` **6 → 7**（`+1`），合计 `+2`，所以整表是 `455 + 22 + 2 = 479` ✅。⚠️ **另外 2 个类本轮实测后仍然不进本表**——`BottomSheetScrollSourceGuardTest` **4** / `CoilImageLoaderSourceGuardTest` **6**（共 10 例），口径与「第六个窗口」那个 ⚠️⚠️ 逐字相同：整类不属于 C1 验收范围，`BottomSheetScrollSourceGuardTest` 那一条「群配置面板定点回归」**按惯例仍不进表**。⚠️ 上面的 `366 / 35 类`、`395 / 37 类`、`408 / 40 类` 三个数按惯例**保留不覆写**） |
 
 ⚠️ **有四个测试类里共 11 条断言是**源码文本护栏**而非行为测试，读表时要记这件事**（早前这里写的是「三个测试类里有两个」，与它自己列出的三个类对不上——三个类**全都**
 读 `.kt` 源码文本；本轮把第四个类与它的 2 条也并进来，措辞一并改成可数的那一句）：
@@ -881,6 +885,38 @@ checkCommitAdmission` / `checkFailureAdmission` / `advance` 三个都是纯判�
 ⚠️ **台账锚点 `1b0e04a9` 的 `78` 是锚定值**：脚本**只读打印、永不写回**。本轮实测
 `git log --oneline d45ebd10~1..1b0e04a9 | wc -l` = **78**、`--merges` = **0**，
 与本文既有记载**一致，未被改动**。
+
+⚠️⚠️⚠️ **「XML 口径不可用」那条告警本轮已不成立——如实订正，别再照抄上一轮的说法**：
+上一轮交接时口头确认过「`app/build/test-results/testDebugUnitTest/` 里只剩 1 个 XML，
+`unit` 报 `FAIL 单测 XML 类数/例数 1 类 / 5 例`」，**本轮实测该状态已经不存在**：
+
+```
+ls app/build/test-results/testDebugUnitTest/TEST-*.xml | wc -l   # 110
+```
+
+`python3 tools/verification/c1_doc_stats.py`（**全量，不加 `--only`**）本轮实测
+`unit` 四条全 **OK**：`单测 XML 类数/例数 110 类 / 881 例`、
+`failures/errors/skipped 0 / 0 / 0`、`源码 @Test 110 个 / 881 例`、
+`交叉验证 XML×源码 XML 110 / 源码 110（差 0，容差 5）✅ 一致`。
+⚠️ **110 / 881 这个数现在有两个口径可用**（不是「只有源码口径」）——上面「统计口径」表里
+口径 1（XML）与口径 2（源码 `@Test`）**同时成立且互为佐证**。
+⚠️ **本轮没有为了让它变绿去删 XML、也没有改脚本的判据**，更**没有再跑 gradle**——
+理由是**现有 XML 已经比一次重跑更硬**：本轮逐类比对过，**XML 的类集合与源码含 `@Test`
+的类集合完全相同**（只在 XML 里 = `[]`，只在源码里 = `[]`，各 110 个），
+**110 个类逐个的 `tests` 属性与源码 `@Test` 计数无一不等**（不等清单 = `[]`），
+两个合计都是 **881**。一次不带过滤的重跑只能复现这个结论，**不会产生更强的新证据**。
+⚠️ **110 个 XML 的 mtime 全部是 `2026-10-06 06:02`**，而 `4ee1ad5c` / `8111d178` /
+`72a5e548` 的**提交**时间是 `06:06`——时间上看 XML 早于提交，但**测试文件在提交之前
+就已经在工作树里**（先写文件、跑测试、再提交），所以这个 XML 确实覆盖了那 17 条新增用例
+（`SummaryViewerScopeTest` 12 + `SummaryViewerScopeWiringSourceGuardTest` 5），
+**逐类比对已经证实了这一点**，不是靠时间戳猜的。
+✅ **脚本那条判据本轮核实是对的，保留不动**：`c1_doc_stats.py:303` 的
+`stale = xml_classes < 20` 判的是**文件数**（不是例数），而 `--self-test` 里有一条
+专门喂「只含 1 个 XML 的目录」并断言它**确实报红**（`:602`）。**只有 1 个 XML 时报红是正确
+行为**，把阈值调大才会造出下一个会骗人的工具。
+⚠️ **上面「反空跑自检」第 2 条里那个「实测就撞上：只剩 1 个 XML」按惯例保留不覆写**——
+它是**脚本为什么要有这条下限**的历史证据（`:896-898`），与「本轮 XML 已是全量 110 个」
+两件事不冲突：**下限留着，现状已经达标**。
 
 #### ⚠️ 反空跑自检（本脚本存在的核心理由）
 
@@ -4216,21 +4252,69 @@ lint **0 error**、app **584W+6H=590**、15 模块 **617W+7H=624**（**与上一
 ③ **十例状态列一个格都没动，仍是 10/10 `unverified`**（`4ee1ad5c` / `8111d178` 改的是
 标题与摘要这条**独立于十例点名路径**的链路）。
 
-⚠️ **本串暴露的两处台账账实不符，本轮如实登记、不擅自改**：
-`c1_doc_stats.py` 的 `ledger` 逐行核对报 **FAIL**，两行与源码不符——
+⚠️ **本串暴露的两处台账账实不符，上一轮如实登记而未修；本轮（约束放开后）已修完**：
+`c1_doc_stats.py` 的 `ledger` 逐行核对曾报 **FAIL**，两行与源码不符——
 `GroupStaleJobCommitSourceGuardTest` **声明 9 / 源码 10**、
 `GroupStaleJobFailureSourceGuardTest` **声明 6 / 源码 7**（成因是 `d00880fc` 给这两个
 文件各加了 1 条 `@Test`）。
-⚠️ **本轮没有改这两行**：改它要连带改下面那张台账的**合计行**（42 行 / 455 例），
-而硬约束明写「`git diff` 里不允许出现删除 78 / 17 / 6 / 455 的行」。
-同理，**本串涉及的 5 个测试类没有并进「C1 相关 JVM 测试类台账」**——
-**3 个新类**（`GroupEditActionVisibilitySourceGuardTest` 1 条 +
-`SummaryViewerScopeTest` 12 条 + `SummaryViewerScopeWiringSourceGuardTest` 5 条）
-**加上 2 个既有类各 +1**（`GroupStaleJobCommitSourceGuardTest`、
-`GroupStaleJobFailureSourceGuardTest`）——并进去就要重算**行数与例数两个合计**、
-同样会删掉 `455` 那一行。
-⚠️ **本轮不代填那个合计数**（那是下一位在放开约束后一次性重算的事，
-填错比不填更糟）。**这是留给下一位的事，不在本轮授权内。**
+✅ **本轮已把这两行的声明例数改成实测值**（**9 → 10** / **6 → 7**）。⚠️ **口径澄清**：
+台账的「声明例数」是**事实陈述**（「这个类现在有 N 条测试」），**必须随代码更新**；
+它与「状态列按窗口追加不覆写」是**两回事**，上一轮把两者混为一谈才没敢动这一个数。
+⚠️ 实测同时确认：这两个类的 **XML `tests` 属性与源码 `@Test` 计数一致**
+（10 / 7 / 10 / 7 逐个对得上），所以**「计数取自 XML」这条台账口径与本轮改动不冲突**。
+
+⚠️ **本串涉及的 5 个测试类，已在本轮并进「C1 相关 JVM 测试类台账」的 3 个**——
+`GroupEditActionVisibilitySourceGuardTest` **5** 条 +
+`SummaryViewerScopeTest` **12** 条 + `SummaryViewerScopeWiringSourceGuardTest` **5** 条，
+台账随之 **42 类 / 455 例 → 45 类 / 479 例**（新增 3 类 22 例 + 两个在册类各 +1）。
+⚠️ **另外 2 个仍然不进表**，本轮逐个复核过：
+`BottomSheetScrollSourceGuardTest`（实测 **4** 条，`d00880fc` 从 3 条扩到 4）与
+`CoilImageLoaderSourceGuardTest`（**6** 条）**整类不属于 C1 验收范围**——口径就是本文
+「测试结果」段那个 ⚠️⚠️ 写明的「**整类**是否属于 C1 验收范围」，不是「有没有一条用例碰到
+C1 的文件」。⚠️ **本轮也订正上一轮的一处笔误**：`GroupEditActionVisibilitySourceGuardTest`
+被记成「1 条」，实测是 **5** 条（`git log --diff-filter=AM` 只有 `d00880fc` 一个 commit，
+即它**自建立起就是 5 条**）。
+⚠️ **上一轮「不代填那个合计数（填错比不填更糟）」的判断本轮不再适用**：合计已按实测重算，
+`python3 tools/verification/c1_doc_stats.py --only ledger` 现报
+**`45 行 / 479 例 / 逐行核对 45 行全部相等`，0 FAIL**。
+
+#### ⚠️⚠️ 补登：`72a5e548` 之后的 commit（2026-10-06，含台账订正这一轮）
+
+⚠️ **本小节是补登 + 本轮自己的台账订正，不是新批次**。核验命令与实测输出：
+
+```
+git log --oneline 72a5e548..HEAD | wc -l
+git log --oneline 72a5e548..HEAD
+```
+
+⚠️ **锚点 `1b0e04a9` 仍然没有被重算**：下面每一个 commit **一个都不计入**本台账，
+理由与前几批逐字相同——不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或
+子包标签。所以 **78 / 6 / 17、前缀分布、子包分布一个数都没动**（脚本本轮实测仍是
+`78` / `--merges` = `0`）。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `cae27138` | `docs(c1): 证伪遗留第 28 条（ChatService.finishInterruptedPendingTools 零 generateText），补登真泄漏第 33 条 + 补登 11 个 commit + C9 五条边界来源指针` | 文档（只改 `docs/beyond-operit-implementation-status.md`，**纯文档**） |
+| `40cc8e89` | `docs(c1): 实施状态补第八批（标题/摘要群聊泄漏已修 + 遗留第 28 条已证伪）+ 五条诚实边界的逐条来源指针 + 统计口径改 110 类/881 例` | 文档（只改 `docs/beyond-operit-implementation-status.md`，**纯文档**） |
+| （本文件此次提交） | `docs(c1): 台账订正——两个在册类声明例数 9→10 / 6→7、3 个新类并入、合计 42 类/455 例 → 45 类/479 例` | 文档（**只改本文与实施状态那篇**；⚠️ **SHA 见 `git log --oneline -1`，本文无法预先写死自己的 SHA**） |
+
+⚠️⚠️ **这三个 commit 全部是纯文档，零 Kotlin / 零测试 / 零脚本改动**
+（`c1_doc_stats.py` 本轮**一个字都没改**，它的 `--self-test` 也照跑通过），
+所以**它们不改变任何一个测试类名或例数**。⚠️ 唯一被它们改变的是**台账的声明值**——
+而台账声明值是**事实陈述**，必须随代码走，这也是它们该做的事。
+
+⚠️ **本轮唯一实质改动就是「收掉上一轮自己造成的那处不一致」**，逐条：
+① `GroupStaleJobCommitSourceGuardTest` 声明 **9 → 10**、
+`GroupStaleJobFailureSourceGuardTest` 声明 **6 → 7**（成因是 `d00880fc` 各加了 1 条
+`@Test`，上一轮如实登记但**没改**）；② 3 个新类并入台账（合计 **+3 类 / +22 例**）；
+③ 合计行**新起一行**（`455` / `42 类` 那几处按惯例**保留不覆写**），实测值
+**45 类 / 479 例**。⚠️ **`git diff` 里没有任何一行被删除**——锚点那 **78 / 6 / 17**
+与各窗口的历史合计**一个数都没动**。
+
+⚠️ **本轮同样不改变任何判定**：**零设备、零 `adb`、零 gradle**，契约 `:206` 点名的四类
+产物**一份未增**；**十例状态列一个格都没动，仍是 10/10 `unverified`**
+（本轮审计方式：Python 按**未转义 `|`** 逐行切单元格，**两张十例矩阵共 20 个数据行
+逐行判定，首判定全部是 `unverified`，非 unverified 的 0 行**）。
 
 
 ## 下一位怎么把 unverified 变成 verified
