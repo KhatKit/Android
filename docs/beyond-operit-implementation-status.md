@@ -55,6 +55,14 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
    **`af104850..6ba95422` 那 6 个**（真实公网网关证据 + P0/P1/P2 三批补测 +
    端点群聊门禁 + 平票脚手架回收）。**同样不计入**：78 / 6 / 17 与两张分布表
    **一个数都没动**——**锚点 `1b0e04a9` 没有被重算**。
+   ⚠️ **锚点之后现在累计到第六批（本轮 2026-10-06 是第五次追加）**：本轮 **`a8fa1cb8` /
+   `b96912cb` / `df560180` 那 3 个**（vote 选票注入缺口：先写红测试 → `collectBallots` 补
+   `turn_kind` 门禁 → 补 `parseCandidates` 零覆盖分支与两处现状钉桩；详见「第十批」一节）。
+   ⚠️ **本批是「锚点之后第一批改运行时判定逻辑的 vote 提交」**，所以**同样不计入**：
+   **78 / 6 / 17 与两张分布表一个数都没动，锚点 `1b0e04a9` 没有被重算**，`git diff` 里
+   **没有任何一行删除了 78 / 6 / 17**。⚠️ 但本批**确实改变一个数**——`:app:testDebugUnitTest`
+   全量由 `110 类 / 881 例` 变为 **`110 类 / 886 例`**（`+5`：+1 注入缺口红测试、
+   +4 `parseCandidates`/fence 覆盖），类数不变。
    「已实现」只描述代码写到哪一步，不等于任何用例通过。
 
 - **构建与 JVM 测试层全绿，有硬证据。** 三条离线命令都强制重跑、退出码 0：
@@ -475,6 +483,75 @@ UI / 浏览器侧护栏，**不因「有一条用例碰到群配置面板」就�
 （`TavernMacroExpander.kt` modified、`C1GroupUiE2EFixtureTest.kt` untracked）全程未 add、
 未 commit、未修改**。
 
+### ⚠️ 第十批（`a8fa1cb8` / `b96912cb` / `df560180`，2026-10-06）：**堵住 vote 选票注入缺口 + 补两处覆盖缺口**
+
+⚠️ **本批只有 3 个 commit、动了 3 个文件**（`GroupTurnCoordinator.kt` 一个 filter、
+两个测试文件），外加本文。⚠️ **零设备、零 `adb`、`connectedAndroidTest` 未跑**，
+**十例仍 10/10 `unverified`**，契约 `:206` 点名四类产物**一份未增**。
+
+| commit | 改了什么 | 结论 / 边界 |
+|---|---|---|
+| `a8fa1cb8` | **先写红测试**：`an error node is not a ballot even when the provider echoes the upstream body`，构造 `errorNode(role=ASSISTANT, roleId=真实成员, turnKind=TURN_ERROR)` + 正文含一行 `VOTE: opt-a` | ✅ **红是实测出来的**，失败消息原文见下面 ②。既有那条用例（`GroupTurnCoordinatorTest.kt:436`）的 `assertFalse(text.contains(BALLOT_PREFIX))` **只对 `detail = "…boom"` 成立**，钉的是模板不是注入面 |
+| `b96912cb` | `collectBallots`（`GroupTurnCoordinator.kt:548`）的 filter 追加 `&& it.turnKind != GroupChat.TURN_ERROR` | ✅ **逐字沿用既有约定**：`ChatManager.kt:2349` 的 `roundOutputPresent`（判定式在 `:2359`）已经是同一个负向判据、同一个 null-safe 口径。⚠️ 净增 12 行，**`GroupTurnCoordinator.kt` 里 `resolveVote` / `voteSummaryMessage` 的行号后移**（已登记在 B5 的 ④） |
+| `df560180` | `GroupChatTest` **+4 条**：`parseCandidates` 显式形态 / 大小写 / 空文本 / 格式错误 / Markdown 修饰 trim / **`(?im)` 逐行声明现状** / **fence 假阳性现状** | ⚠️ **两处都只钉现状、不改行为**。`parseCandidates` 此前**零直接 JVM 用例**（所有投票用例都显式给 `config.voteCandidates`）。**已知假阳性（fence 内示例 `VOTE:` 被当真票）未修**，因为契约没要求、修它要先定义整套 markdown 感知规则 |
+
+**① 为什么这一批存在：审计把原判据驳倒了**。`逐项状态` 第 4 行原本判「部分」，理由是
+「传输层是模型自由文本 + `VOTE:` 正则，不是 tool-call 强约束」。**两条依据都经核实剔除**：
+① **契约 C1 段（`client-changes.md:198-206`）grep `tool` / `tool_call` / `toolCall` 零命中**
+（全文 326 行同样零命中）——契约从没要求 tool call，拿它当判据是自造判据；② **`tally`
+签名没有正文参数**（`GroupChat.kt:856`，`tally(ballots, candidates, tiePolicy)`），
+`:863` 过滤 / `:864` 按 `roleId` 去重 / `:868` 计数，自由文本**没有任何路径**能进裁决。
+✅ 所以判定改成**达成**，同时把审计挖出的**真缺口**修掉——**「判定达成」与「有注入面」不矛盾**。
+
+**② 缺口真实存在的唯一证据（红测试失败消息原文）**：
+
+```
+java.lang.AssertionError: 失败角色的错误节点必须被 collectBallots 拒收（否则陈旧注入行能顶替它这一轮的一票） expected:<[alice, carol]> but was:<[alice, bob, carol]>
+```
+
+（`java.lang.AssertionError at GroupTurnCoordinatorTest.kt:2196`，`85 tests completed, 1 failed`，
+`./gradlew --offline :app:testDebugUnitTest --rerun` 退出码 **1**。）修复后同一条用例转绿。
+
+**③ 最小性论证：`turnKind` 全部取值逐个过一遍**（`GroupChat.kt:225-229` 共 5 个常量 +
+`GroupTurnCoordinator.kt:48` 的一个私有别名 + 可空）。
+⚠️ `collectBallots` 修复**前**的 filter 只有 `it.role == MessageRole.ASSISTANT &&
+it.roleId in roleIds`：
+
+| `turnKind` | 生产者 | 在修复前 `collectBallots` 里是什么形状 | 需要额外门禁吗 |
+|---|---|---|---|
+| `TURN_USER`（`"user"`） | 用户消息 | `role = USER`，**被 `role == ASSISTANT` 挡掉** | ❌ 不需要 |
+| `TURN_SPEAKER`（`"speaker"`） | `assistant(...)` 正常发言 | **这正是要收的票** | ❌ **必须保留**（挡住它就废功能） |
+| `TURN_CHAIR`（`"chair"`） | 议长发言；`TURN_TIE_BREAK` 是它的**私有别名**（`GroupTurnCoordinator.kt:48`） | 议长在 vote 模式下的 `VOTE:` **是真票**（既有 `GroupTurnCoordinatorTest` 就有 `assistant("VOTE: opt-z", "chair", turnKind = TURN_CHAIR)`） | ❌ 不需要，**而且不能挡** |
+| `TURN_VOTE_SUMMARY`（`"vote_summary"`） | `voteSummaryMessage`（`:665`） | `roleId = GroupChat.SUMMARY_ID`，**不是成员 id**，被 `roleId in roleIds` 挡掉；且 `validate`（`:444`）拒绝任何 `role_id == SUMMARY_ID` 的配置 | ❌ 不需要，**按纪律没再加一道** |
+| `TURN_ERROR`（`"error"`） | 两个生产者：① `errorNode`（`:510`，`roleId = failedRoleId` **真实成员 id**）② `ChatManager.voteFailureNode`（`roleId = SUMMARY_ID`） | ① **穿过两道旧 filter，被收成票 ← 就是本批的缺口**；② 被 `SUMMARY_ID` 挡掉 | ✅ **就是这一条，本批已挡** |
+| `null`（可空） | 旧消息 / 未标注 | 旧数据仍可能是真发言 | ❌ 不需要——负向判据 `null != TURN_ERROR` 为真，**旧消息仍算票**，与 `roundOutputPresent` 同口径（不制造 fail-open） |
+
+✅ **结论：只挡 `TURN_ERROR` 就够，没有发现第二种 `turnKind` 也会被收成票**，所以不存在
+「修法不够」的情况。⚠️ 另外逐个确认了 `TURN_TIE_BREAK` 那条脚手架（`role = SYSTEM`，
+`withoutTieBreakInstruction` 按 `turnKind == TURN_TIE_BREAK` 回收）——`role = SYSTEM` 同样被
+`role == ASSISTANT` 挡掉，**不需要**门禁。
+
+**④ 本批改了什么数**（唯一的汇总值变化）：`:app:testDebugUnitTest` 全量 **110 类 / 881 例 →
+110 类 / 886 例**（`+5`：+1 注入缺口红测试、+4 `parseCandidates` / fence 覆盖；**类数不变**）。
+`GroupTurnCoordinatorTest` **84 → 85**，`GroupChatTest` **22 → 26**。
+⚠️ **台账锚点 `1b0e04a9` 的 78 个 commit 仍然没有被重算**，本批 3 个一个都不计入，
+**78 / 6 / 17 与两张分布表一个数都没动**，`git diff` 里**没有任何一行删除了 78 / 6 / 17**。
+⚠️ **工作区那两处不属于本批的未提交改动（`TavernMacroExpander.kt` modified、
+`C1GroupUiE2EFixtureTest.kt` untracked）全程未 add、未 commit、未修改**。
+⚠️⚠️ **本批遗留一处已知红灯（本轮按硬约束不能自行消掉）**：
+`tools/verification/c1_doc_stats.py` 现在 **1 条 FAIL**——`ledger` 那项
+「台账逐行核对（声明 vs 源码 @Test）」报 **`2` 行与源码不符**：
+`GroupTurnCoordinatorTest` **声明 84 / 源码 85**、`GroupChatTest` **声明 22 / 源码 26**。
+⚠️ **这两行的台账在 `docs/eval/c1-group-chat.md:785` 与 `:788`，而本轮硬约束明确不许改那个
+文件**，所以本批**没有为让它变绿去动台账、也没有为让它变绿去删用例**。
+✅ **消掉它是机械的两格改动**：`:785` 的 `**84**` → `**85**`、`:788` 的 `**22**` → `**26**`
+（该脚本的「声明例数合计」是从行里**求和**算出来的、不与表内 `479` 那行文本对拍，所以改完
+两格即 FAIL → OK；⚠️ 但表里 `**合计 479**` 那行会变成 `484`，那是**给人看的**、脚本不查，
+**要一并改就更好**）。⚠️ **本条是「台账事实陈述必须随代码走」与「本轮不许改台账文件」两条
+规矩的正面冲突**，留给下一位按授权处理。
+⚠️ **没按硬约束动的**：`GroupChat.kt`（`(?im)` 逐行声明那条注入面**核实成立但未修**，
+等确认）、`ChatManager.kt`、`c1-group-chat.md`、`client-changes.md`——**四个文件一个字都没动**。
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
@@ -738,7 +815,7 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
 | 1 契约字段 + 幂等续跑 | 代码层已实现。⚠️ **第五批（`2fdee352` / `8ccc0264`）给「续跑」补了两道守卫**：残留旧 job 不得推进已终态的轮次、不得把上一轮的产出盖到新轮 | `GroupTurnCoordinatorTest` 63、`GroupRunSchemaTest` 10、`UngeneratedMessageFilterTest` 18<br>⚠️ **（第五批后 `GroupTurnCoordinatorTest` 是 84；`GroupStaleJobCommitSourceGuardTest` 7 / `GroupStaleJobFailureSourceGuardTest` 6 是新增护栏）** | 无（`adb devices` 空）；仪器 `GroupRunDAOTest` 12 条从未跑过 |
 | 2 版本化 config + 字段级校验 | 代码层已实现 | `GroupChatTest` 18（含 extras 往返、未知 schema 拒收） | 无 |
 | 3 记忆接线 | 代码层已实现 | `MemorySpaceGateTest` 9 / `MemoryToolScopeTest` 7 / `MemoryAttributionTest` 9 / `GroupMemorySpacePolicyTest` 6 / `MemoryExtractorParseTest` 7 / `MemoryRoleIdMappingTest` 2 | 无 |
-| 4 vote 结构化 | 数据结构层已实现，传输层仍是文本约定（见遗留 B5）。⚠️ **第五批（`e72793e6` / `8a5f89d7`）把平票裁决脚手架在 `cancelActiveGroupRun` / `abandonDanglingGroupRuns` 两条终态出口上的漏回收补上了** | `GroupTurnCoordinatorTest` 63 的投票/平票组<br>⚠️ **（第五批后是 84；`GroupTieBreakScaffoldingDropSourceGuardTest` 3 → 7）** | 无 |
+| 4 vote 结构化 | 数据结构层已实现，传输层仍是文本约定（见遗留 B5）。⚠️ **第五批（`e72793e6` / `8a5f89d7`）把平票裁决脚手架在 `cancelActiveGroupRun` / `abandonDanglingGroupRuns` 两条终态出口上的漏回收补上了**。<br>⚠️⚠️ **第十批（`a8fa1cb8` / `b96912cb` / `df560180`）把这一格从「部分」改判为「达成」**——原判据（「传输层是自由文本 + \`VOTE:\` 正则，不是 tool-call 强约束」）经对抗性审计**逐条核实后两条都剔除**：<br>① **tool call 根本不是契约要求**：契约 C1 段（`client-changes.md:198-206`）grep `tool` / `tool_call` / `toolCall` **零命中**（全文 326 行同样零命中），拿它当判据是自造判据卡人；<br>② **`tally` 压根不碰自由文本**：签名 `tally(ballots: List<VoteBallot>, candidates: List<String>, tiePolicy: String)`（`GroupChat.kt:856`）**没有任何正文参数**，`:863` 按候选集过滤、`:864` 按 `roleId` 去重（保留最新一票）、`:868` 按 `candidateId` 计数——「拿自由文本 majority 猜」不成立；`collectBallots` 也只把 `parseBallot` 的结构化结果喂进去。<br>✅ 所以契约 `:201`「vote 只接受结构化候选/票并按多数决输出」在**数据结构层与判定层都成立**。<br>⚠️ **但「判定达成」不等于「没有注入面」**：第十批真挖出并**修掉**一处此前没被记录的缺口——`collectBallots` **缺 `turn_kind` 门禁**，`TURN_ERROR` 节点会被收成票（详见下面 B5 追加段与第十批一节）。<br>⚠️ **本批不构成任何验收证据**：零设备、零 `adb`、契约 `:206` 点名四类产物一份未增，十例仍 **10/10 `unverified`** | `GroupTurnCoordinatorTest` 63 的投票/平票组<br>⚠️ **（第五批后是 84；`GroupTieBreakScaffoldingDropSourceGuardTest` 3 → 7）**<br>⚠️ **（第十批后：`GroupTurnCoordinatorTest` **85**（+1，`collectBallots` 拒收 `TURN_ERROR`）、`GroupChatTest` **26**（+4，`parseCandidates` 首次有直接 JVM 用例）；`:app:testDebugUnitTest` 全量 **110 类 / 886 例**（+5））** | 无（`adb devices` 空）；⚠️ **本批零设备**，`parseBallot → __summary__` 与「平票按配置失败」两条路径**真实调用仍然零份** |
 | 5 导出 / 恢复 | 代码层已实现（含相机扫码入口），**角色卡元数据已真落库**（见 B1） | `GroupTavernExportTest` 22 / `TavernCompatTest` 21 / `QrScannerSheetTest` 16 / `GroupChatTest` 18 / `GroupRoleCardsPersistenceTest` 7 / `ConversationGroupCardsSchemaTest` 7 | 无；酒馆本体打开 `.jsonl`、真机相机扫码、导出文件 SHA-256 三项全未验；`Migration_31_32_Test` 6 条未跑 |
 | 6 UI 复用管线 + 头像组 + 筛选 | 代码层已实现，一行 Compose 未上屏。**本轮还修掉了这条路上的两个真实缺陷**：5 条搜索查询的 LIKE 未转义（已加 `ESCAPE`）、14 处 `ORDER BY` 缺 `id` 兜底（已补）。⚠️ **第六批（`33eb801e` / `71d1439e`）修掉了群配置面板两个真机必崩并在真机上复验过**（面板 15 个字段全渲染 + 5 滚 3 反不崩），⚠️ **但「一行 Compose 未上屏」这句话现在只对「群配置面板以外」成立**——**成员头像组 / @ 选择器 / 抽屉筛选 chip 三项仍一项都没上过屏**，面板里的保存 / 二维码 / 扫码三个业务动作也一个都没点 | `ConversationListQueryPlanTest` 7 / `ConversationTypeFilterSourceGuardTest` 2 / **`ConversationSearchLikePatternTest` 12** / `GroupSpeakerResolverTest` 8 / `GroupRoleCompletionProviderTest` 8 / `GroupChatTest` 22 | ⚠️ **部分有值**：`GroupConfigSheet` 的渲染与滚动已在真机验证（`KedgeStyle.MD3Exp`），⚠️ **Miuix 未验、业务动作未点、头像组 / @ 选择器 / 筛选 chip 零份**；`ConversationDAO` 的 SQL 在**真机 Android SQLite** 上的行为也未验（**主机侧**已由 C1-S 重放钉住 438 条断言，见 B7） |
 | 7 构建与退出码 | **已拿到硬证据** | 见 `docs/eval/c1-group-chat.md`「构建与验证证据」（三条命令退出码全 0） | 不适用 |
@@ -1044,6 +1121,96 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
   已满足**（`VoteBallot` / `VoteOutcome` 在 `GroupChat.kt:133` / `:141`，
   `GroupTurnCoordinator.kt:438` 的 `resolveVote` 只从 `plan.candidates` 取候选、
   不猜自由文本），**传输层面仍是文本约定**。这是已知弱点，不是「已完成」。
+  ⚠️⚠️ **第十批（`a8fa1cb8` / `b96912cb` / `df560180`）审计判断（非实证验收）**：
+  上面这个判据**被驳倒了**，整条降级为「文本约定」的说法不成立；但同一次审计**挖出一处
+  真实的选票注入缺口并已修掉**。逐条如下（**这一整段是审计判断，不是任何用例的验收证据**）。
+
+  **① 原判据两条依据，逐条核实后全部剔除**（所以「逐项状态」第 4 行的判定从「部分」改成
+  「达成」）：
+  - **「不是 tool-call 强约束」不构成不达标**。契约 C1 段（`client-changes.md:198-206`）
+    grep `tool` / `tool_call` / `toolCall` **零命中**（全文 326 行同样零命中）。契约要求的是
+    「vote 只接受结构化候选/票并按多数决输出」，**从没要求 tool call**。拿一个契约没写过的
+    机制当判据，是自造判据卡人。
+  - **「拿自由文本 majority 猜」不成立**。`GroupChat.tally` 签名是
+    `tally(ballots: List<VoteBallot>, candidates: List<String>, tiePolicy: String)`
+    （`GroupChat.kt:856`）——**没有任何正文参数**，判定全程只碰 `VoteBallot` 结构体。
+    `:863` 按 `candidateId in candidates` 过滤，`:864` `associateBy { it.roleId }` 按角色去重
+    （保留**最新**一票），`:868` `groupingBy { it.candidateId }.eachCount()` 计数。
+    `collectBallots` 也只把 `parseBallot` 的返回值喂进 `tally`。自由文本**没有任何一条路径**
+    能进裁决。
+
+  **② 真正剩下的缺口：`collectBallots` 没有 `turn_kind` 门禁**（已修，`b96912cb`）。
+  完整链路（每一环都实读过源码）：
+  - `GroupTurnCoordinator.errorNode`（`:510-526`）产出的是 `role = ASSISTANT` +
+    `roleId = failedRoleId`（**真实成员 id**）+ `turnKind = TURN_ERROR`，正文直接拼
+    `"[名字] 本轮生成失败：$detail"`；
+  - `detail` 来自 `ChatManager.errorDetailOf`（`ChatManager.kt:2258-2262`）=
+    `"$type: ${error.message?.take(200)}"`，而 provider 习惯把**上游原始响应体**塞进异常消息
+    （`openai/ChatCompletionsAPI.kt:106`、`claude/ClaudeProvider.kt:315`、
+    `google/GoogleProvider.kt:202`、`google/InteractionsAPI.kt:95`）；
+  - **可达性（这是它能成为注入面的原因）**：失败角色**不进** `committedRoleIds`
+    （`fail`，`:469-483` 的 KDoc 自己写着「失败角色**不**进 committed，再次触发同一 `round_id`
+    时从失败角色继续」），所以重试同一 `round_id` 时它会**重跑**，而**陈旧的 `errorNode`
+    仍留在 `roundMessages` 里**；若它这次成功却**没吐** `VOTE:` 行，那条注入行就成了这个角色
+    **唯一**的一票；
+  - 修复前的 filter 只判 `it.role == MessageRole.ASSISTANT && it.roleId in roleIds`，
+    `TURN_ERROR` 两个条件**都过**，于是被 `mapNotNull { parseBallot(...) }` 收成票。
+    ⚠️ **既有那条用例钉不住它**：`the error node records the failure without inventing assistant
+    prose`（`GroupTurnCoordinatorTest.kt:436`）的 `assertFalse(text.contains(BALLOT_PREFIX))`
+    **只对 `detail = "…boom"` 成立**——钉的是 `errorNode` 的**模板**，不是**注入面**。
+  - ✅ **修法（一行 filter）**：`collectBallots` 的 filter 追加
+    `&& it.turnKind != GroupChat.TURN_ERROR`。**逐字沿用既有约定**——`ChatManager.kt:2359`
+    的 `roundOutputPresent`（`:2349`）已经是同一个负向判据，同一个 null-safe 口径
+    （`turnKind` 可空时 `null != TURN_ERROR` 为真，**旧消息仍算产出**）。
+  - ✅ **先写红测试再修**（`a8fa1cb8`）：红测试失败消息原文——
+    `java.lang.AssertionError: 失败角色的错误节点必须被 collectBallots 拒收（否则陈旧注入行能顶替它这一轮的一票） expected:<[alice, carol]> but was:<[alice, bob, carol]>`。
+  - ⚠️ **最小性**：只挡 `TURN_ERROR` 就够。`turnKind` 全部取值逐个见第十批一节；
+    **没有发现第二种 `turnKind` 也会被收成票**，所以没有「修法不够」的情况。
+    `TURN_VOTE_SUMMARY` 本来就被 `SUMMARY_ID` 挡掉（`voteSummaryMessage` 用 `roleId =
+    SUMMARY_ID`，`validate` 又拒绝任何 `role_id == SUMMARY_ID` 的配置），**没有顺手再加一道**。
+
+  **③ 顺带核实出的两处覆盖缺口**（`df560180`，**本轮只补测试、不改行为**）：
+  - **`GroupChat.parseCandidates` 此前零直接 JVM 用例**。所有投票用例都显式给
+    `config.voteCandidates`，这条正则分支从没被直接测过。现补 3 条（正常形态 / 大小写 /
+    空文本 / 格式错误 / Markdown 修饰 / `(?im)` 逐行声明）。
+    ⚠️ **核实结论：审计说的「`(?im)` 的 `m` 会让 `候选：` 在正文任意一行被当声明」——成立**。
+    正则是 `(?im)^\s*(?:候选|候选项|CANDIDATES?)\s*[:：]\s*(.+)$`，`m` 让 `^`/`$` **逐行**匹配；
+    实证（断言空候选集）时实际拿到 `[evil-a, evil-b]`。**但按真实信任边界读，它不构成越权
+    注入**：`newRound` 的 `userText` 只来自 `roundPlanFor` 取的**最后一条 USER 消息**
+    （`messages.lastOrNull { it.role == MessageRole.USER }`，`GroupTurnCoordinator.kt:751-758`），
+    **模型正文根本到不了这里**。所以只有用户自己能定义候选集——而他本来就能在第一行直接写
+    `候选：…` 达成同样效果，**不存在越权提升**，只是比函数 KDoc 写的「显式声明」宽松。
+    ⚠️ **按硬约束本轮未改 `GroupChat.kt`**（改它要先经确认）。若要修，正确口径是让 `^` 只锚定
+    首行（去掉 `m`，或改 `\A`），**不是**加「排除代码块」之类的启发式。
+    另附一条实测到的既有小瑕疵（同样只钉现状）：`.trim('-', '*', '"')` 是**字符集 trim**、
+    遇空格就停，所以 `候选：- **a**` 清理不掉开头的 `- `，留下 `" **a"` 这种候选 id，
+    于是「按 markdown 列表声明候选」这条路和模型吐的票永远配不上。
+  - **`parseBallot` 不感知 markdown fence / 引用**（**已知假阳性，未修**）。代码块里独占一行的
+    示例 `VOTE: opt-a` 会被当真票；更糟的形状是 `firstOrNull` 取**第一条**命中，所以模型在
+    fence 后文里**真的**投了 `VOTE: opt-b` 也会被前面的示例行顶替。⚠️ **本轮明确不修**：
+    契约没要求区分代码块，而修它要先定义一整套 markdown 感知规则（fence 配对、缩进代码块、
+    行内引用…），属于超出本轮范围的行为变更。已用 `a vote line inside a code fence is still
+    counted as a ballot` 把现状钉住。
+
+  **④ 指针订正（第十批核实，只登记不改别的文件）**——⚠️ **`docs/eval/c1-group-chat.md` 与
+  `docs/beyond-operit-client-changes.md` 本轮一个字都没动**（按硬约束），下面全是**只登记**：
+  - **`c1-group-chat.md:348`** 那句「判定入口 `GroupChat.kt:605`（`parseBallot`）」的**行号已过期**，
+    实际是 **`GroupChat.kt:841`**（`:605` 那个位置现在早就是别的代码了）。
+  - **`c1-group-chat.md:254`**（「仅接受结构化候选/票；多数决可复算，**平票按配置失败**」）与
+    **`:4383`**（「**平票按配置失败**的路径要单独跑一次」）里的「平票」是**派生判据**，**不是
+    契约原文**：契约 `client-changes.md` **全文 326 行 grep `平票|tie|Tie|TIE` 零命中**，
+    `:180` 只写「各角色对候选选项投票，多数决输出」、`:201` 只写「vote 只接受结构化候选/票并按
+    多数决输出」——**两处都没有平票字样**。所以「平票按配置失败」是实现侧选的口径
+    （`GroupChat.kt:856` 的 `tiePolicy`，默认 `TIE_FAIL`），把它当契约要求去卡验收属于判据错位。
+  - **本篇的过期行号**（同样只登记，历史行按惯例保留不覆写）：
+    `:673` `GroupChat.pendingSpeakers` **`:581` → `:817`**；`:674` `GroupChat.tally`
+    **`:620` → `:856`**；`:678` `GroupTurnCoordinator.voteSummaryMessage` **`:511` → `:665`**
+    （⚠️ 原写 `:653` 是**本批修复前**的 `2381c6c4` 位置；本批 `b96912cb` 给
+    `GroupTurnCoordinator.kt` **净增 12 行**（`+14 / -2`），所以它和 `resolveVote` 一起后移）；
+    `:684` `validate` **`:404` → `:444`**、`parseBallot` **`:605` → `:841`**、`tally`
+    **`:620` → `:856`**、`importShare` **`:728` → `:964`**、`findForbiddenKeys`
+    **`:785` → `:1021`**；B5 段内 `parseBallot` **`:605-617` → `:841-853`**、`resolveVote`
+    **`:438` → `:592`**（⚠️ 同上，修复前是 `:580`）、`VoteOutcome` **`:141` → `:142`**。
 - B6 `card-validator` 模块没有 lint 报告：`card-validator/build/reports/` 里只有
   `tests/`，找不到任何 `lint-results*`。这是「没跑」不是「0 命中」，台账里别给它记 0。
 - B7 抽屉筛选 chip 来回切换、群聊页整页渲染等 UI 行为无设备证据。
