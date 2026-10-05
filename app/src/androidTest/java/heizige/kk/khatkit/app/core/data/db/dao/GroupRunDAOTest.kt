@@ -285,8 +285,13 @@ class GroupRunDAOTest {
 
         dao.deleteFinishedBefore(1_000)
 
+        // 期望值必须写成 `sortedBy { it.runToken }` 真正产出的顺序（升序）：
+        // "new-done" < "old-live"（'n' 110 < 'o' 111）。之前这里写成
+        // `[old-live, new-done]`，与本行自己的排序方向相反，因此**无论 DAO 行为如何**
+        // 都不可能通过——这一条是先于状态缺陷被掩盖的第二个测试自身笔误。
+        // 断言强度未变：仍然是精确列表相等（存活集合 = {old-live, new-done}）。
         assertEquals(
-            listOf("old-live", "new-done"),
+            listOf("new-done", "old-live"),
             dao.listRecentByConversation("conv-1", 10).sortedBy { it.runToken }.map { it.runToken },
         )
     }
