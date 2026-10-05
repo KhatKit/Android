@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderSetting
@@ -19,6 +20,7 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTr
 import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
 import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
@@ -190,6 +192,42 @@ class C1LiveModelSequenceTest {
 
     private val modelIds = listOf("mock-model-a", "mock-model-b", "mock-model-c")
 
+    // ==================================================================
+    // 真实网关（内置 provider「极客猫」）专用：固定 id + 取生产 provider 定义
+    // ==================================================================
+
+    private val realCaseName = "real-provider"
+
+    /**
+     * 真实网关可能比 mock 慢两个数量级（推理模型要先出 reasoning token），
+     * 所以等待超时从默认的 120s/60s 放宽到 300s。
+     */
+    private val realTimeoutMillis = 300_000L
+
+    /**
+     * 内置的免费 OpenAI 兼容 provider「极客猫」，**直接从生产 [DEFAULT_PROVIDERS] 取**。
+     *
+     * 为什么不照抄一份：apiKey 是公共内置 key（已提交进仓库），在本文件里再写一遍
+     * 就等于多一处明文副本，删起来一定漏。所以只按 **id** 定位，定义整个从生产表拿。
+     * 顺带保证本用例跑的就是用户开箱即用的那份配置。注意它**没有**设
+     * `useResponseApi`（默认 false），所以走的是 `POST /chat/completions`。
+     */
+    private val realProviderId = Uuid.parse("5197b3ae-21fd-4924-abb0-2aa70ff4ac42")
+
+    private val realProvider: ProviderSetting.OpenAI =
+        requireNotNull(DEFAULT_PROVIDERS.filterIsInstance<ProviderSetting.OpenAI>().firstOrNull {
+            it.id == realProviderId
+        }) {
+            "DEFAULT_PROVIDERS 里找不到 id=$realProviderId 的内置 provider"
+        }
+
+    private val realFlashModel = requireNotNull(realProvider.models.firstOrNull { it.modelId == "deepseek-v4-flash" }) {
+        "内置 provider 里没有 deepseek-v4-flash"
+    }
+    private val realGlmModel = requireNotNull(realProvider.models.firstOrNull { it.modelId == "glm-5.2" }) {
+        "内置 provider 里没有 glm-5.2"
+    }
+
     /**
      * 每个角色一个 system prompt，埋 `CASE:<case> ROLECODE:<code>` 暗号。
      *
@@ -287,6 +325,109 @@ class C1LiveModelSequenceTest {
      * mock 侧按 `ROLECODE` 反查发言者、断言侧按 `roleId` 查消息，两边一旦漂移就查不
      * 出是夹具变了还是行为变了。议长固定为 `c`（`chair = true`）。
      */
+    /**
+     * 真实模型的 system prompt。
+     *
+     * 与 [persona] 的差别只有一处，但很关键：**措辞必须强硬到模型愿意照抄格式**。
+     * `persona` 写的是「请用简短中文回复」，mock 无所谓（它按 system prompt 里的
+     * `ROLECODE:` 拼字符串），真模型却可能答成散文、也可能一口气模拟三个角色
+     * （实测 `glm-5.2` 就会「我来模拟三位依次发言」）。所以这里把输出格式写成
+     * 一行模板，并显式禁止别的 ROLECODE / 模拟他人 / markdown / 思考过程。
+     *
+     * 已在本机按**真实的 pipeline 链**（a 的输出进 b 的上下文、b 的输出进 c 的上下文）
+     * 对两个模型各跑两轮：6/6 都只回自己的代号。
+     *
+     * ⚠️ 第 3 条不是冗余。首版没有它，真机连跑三轮各挂一种：a 的输出被 b 原样学走
+     * （`ROLECODE:A ...`）、c 学走 b 的、c 干脆一条内容都没产出（`role_failed`）。
+     * 根因是 pipeline **本来就要把上一位的发言放进下一位的上下文**，而真模型会照抄
+     * 眼前最近那条 assistant 消息的格式——mock 不会（它按 system prompt 拼字符串），
+     * 所以这个坑只在真网关上现形。写死「历史里别人的代号不是你的」才压得住。
+     */
+    private fun realPersona(code: String) = buildString {
+        append("你是 KhatKit C1 群聊验证角色。你的代号是 ").append(code).append("。")
+        append("ROLECODE:").append(code).append(" ")
+        append("CASE:").append(realCaseName).append(" ")
+        append("你正在参加一场三人 pipeline 群聊。")
+        append("输出规则（必须严格遵守）：")
+        append("1. 只输出一行。")
+        append("2. 这一行必须以 ROLECODE:").append(code).append(" 开头，后面跟一句不超过20字的中文。")
+        append("3. 极其重要：对话历史里别人的发言也带 ROLECODE: 前缀，但那是别人的代号。")
+        append("你必须始终使用你自己的代号 ").append(code)
+        append("，绝对不能沿用或模仿历史里出现的任何其它代号。")
+        append("4. 禁止模拟其它角色，禁止列表、标题、markdown、思考过程。")
+        append("正确示例：ROLECODE:").append(code).append(" 我已就位。")
+        append("补充设定：保持角色一致性，只讲事实，不写形容词，不复述他人发言。")
+    }
+
+    private fun realAssistant(id: Uuid, name: String, code: String, modelId: Uuid) = Assistant(
+        id = id,
+        name = name,
+        chatModelId = modelId,
+        systemPrompt = realPersona(code),
+        // 与 mock 用例逐字一致：关掉一切额外能力，请求里只剩 system + 对话消息。
+        enableMemory = false,
+        useGlobalMemory = false,
+        autoExtractMemory = false,
+        enableWebSearch = false,
+        localTools = emptyList(),
+        enableTimeReminder = false,
+        enableRecentChatsReference = false,
+    )
+
+    /**
+     * 三个角色绑**不同**的模型：a、c 用 `deepseek-v4-flash`，b 用 `glm-5.2`。
+     *
+     * 有区分度才能证明「按角色选型」真的生效：若三个角色都退回会话的
+     * `chatModelId`，`message.modelId` 会塌成同一个 uuid，断言当场失败。
+     */
+    private fun realRoles(caseName: String) = listOf(
+        GroupRole(
+            id = "a",
+            name = "角色甲",
+            assistantId = assistantAId.toString(),
+            modelId = realFlashModel.id.toString(),
+            cardId = "card-$caseName-a",
+        ),
+        GroupRole(
+            id = "b",
+            name = "角色乙",
+            assistantId = assistantBId.toString(),
+            modelId = realGlmModel.id.toString(),
+            cardId = "card-$caseName-b",
+        ),
+        GroupRole(
+            id = "c",
+            name = "角色丙",
+            assistantId = assistantCId.toString(),
+            chair = true,
+            modelId = realFlashModel.id.toString(),
+            cardId = "card-$caseName-c",
+        ),
+    )
+
+    private fun realProviderConfig(caseName: String, budget: Int) = GroupConfig(
+        roles = realRoles(caseName),
+        mode = GroupChat.MODE_PIPELINE,
+        chairRoleId = "c",
+        tokenBudgetPerRound = budget,
+    )
+
+    /**
+     * providers 只放这一个内置 provider——**不注入任何 mock / 回环地址**。
+     * `chatModelId` / `fastModelId` 指向真实存在的 `deepseek-v4-flash` uuid。
+     */
+    private fun realProviderSettings() = Settings(
+        init = false,
+        chatModelId = realFlashModel.id,
+        fastModelId = realFlashModel.id,
+        providers = listOf(realProvider),
+        assistants = listOf(
+            realAssistant(assistantAId, "角色甲", "A", realFlashModel.id),
+            realAssistant(assistantBId, "角色乙", "B", realGlmModel.id),
+            realAssistant(assistantCId, "角色丙", "C", realFlashModel.id),
+        ),
+    )
+
     private fun roles(caseName: String) = listOf(
         GroupRole(
             id = "a",
@@ -1013,6 +1154,280 @@ class C1LiveModelSequenceTest {
     }
 
     // ==================================================================
+    // 用例 5：真实网关 —— 真实模型调用 + 真实 token（前四个用例的 token 都是 mock 估算值）
+    // ==================================================================
+
+    /**
+     * 前四个用例的 token **全部来自 mock 服务**：`usage` 是 mock 按 `ceil(bytes/4)`
+     * 估的，「实际模型调用序列」也只是 mock 记下来的请求顺序。所以它们能证明
+     * 「预算怎么累加、可见集合怎么过滤」，**证明不了「真实模型真的回了多少 token」**。
+     *
+     * 这个用例把两者换成真的：直接用生产 [DEFAULT_PROVIDERS] 里那个内置的免费
+     * OpenAI 兼容网关（默认 `enabled`），**设备直连公网**——不经过 `adb reverse`、
+     * 不经过本机 mock、不装任何抓包代理。于是：
+     *
+     * - `message.usage` 是网关按真实分词返回的 `input_tokens` / `output_tokens`；
+     * - `message.modelId` 是 `resolveGroupTurnModelId` / `TaskRoutes.resolve`
+     *   真正为该角色选中的模型 uuid；
+     * - 走的还是那份配置的原生路径：`POST /chat/completions` + `stream_options.include_usage`，
+     *   usage 由 SSE 收尾块解析（`ChatCompletionsAPI` 的 `parseTokenUsage`）。
+     *
+     * ## 模型序列为什么要有区分度
+     *
+     * 三个角色绑三种**不同**的绑定（a、c 为 `deepseek-v4-flash`，b 为 `glm-5.2`），
+     * 期望序列 `deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`。如果按角色选型没生效
+     * （三个角色都退回会话的 `chatModelId`），序列会塌成同一个模型三遍，断言当场失败。
+     * 所以这一条同时压住了「路由按角色选型」与「真实调用真的发生」两件事。
+     *
+     * ## 两个必须记住的坑
+     *
+     * 1. **这两个都是推理模型**：网关回的 `completion_tokens_details.reasoning_tokens`
+     *    是正的，推理 token **计入** `completionTokens`。别据此以为「模型没说话」——
+     *    真判据是正文里的 `ROLECODE:`。
+     * 2. **`maxTokens` 留空**（[Assistant] 默认 null，`ResponseAPI` 因此不发
+     *    `max_output_tokens`）。若这里图省事填个几十，推理 token 会把配额吃光、
+     *    正文变成空串，然后所有 usage 断言都变成假绿或假红。
+     */
+    @Test
+    fun realProviderRoundRecordsGenuineTokenUsage() = runBlocking {
+        val caseName = realCaseName
+
+        // ---- 前置自检：本用例绝不能退化成本机 mock ----
+        trace("real:preflight-begin")
+        assertTrue(
+            "本用例必须打真实公网网关，baseUrl 却是 ${realProvider.baseUrl}",
+            realProvider.baseUrl.startsWith("https://") &&
+                !realProvider.baseUrl.contains("127.0.0.1") &&
+                !realProvider.baseUrl.contains("localhost"),
+        )
+        assertTrue("内置 provider 必须默认启用", realProvider.enabled)
+        // 按 id 从生产表取出来的定义，必须与契约 docs 里记的 uuid 一致；不一致说明
+        // 生产表变了，本用例的模型序列期望需要跟着改，而不是默默跑一个别的模型。
+        assertEquals(
+            "内置 deepseek-v4-flash 的 uuid 必须与契约一致",
+            Uuid.parse("5a86b2d6-9c3c-4c58-9b27-f9295ba39201"),
+            realFlashModel.id,
+        )
+        assertEquals(
+            "内置 glm-5.2 的 uuid 必须与契约一致",
+            Uuid.parse("8b6bf21c-56d8-40fd-93c8-6d657cac71a4"),
+            realGlmModel.id,
+        )
+        // ⚠️ 内置 provider 并**没有**设 useResponseApi，默认 false，所以实际走的是
+        // `POST /chat/completions`（OpenAIProvider.streamText 的 else 分支），
+        // 不是 `/responses`。usage 由 ChatCompletionsAPI 从 SSE 的 usage-only
+        // 收尾块解析（`stream_options.include_usage`），同样是真网关返回的数字。
+        // 首跑时这里写的是 assertTrue(useResponseApi)，直接炸了——是断言写错，不是配置有问题。
+        assertEquals(
+            "内置 provider 未开 Responses API，应走 /chat/completions",
+            false,
+            realProvider.useResponseApi,
+        )
+        assertEquals(
+            "chat completions 路径必须是 /chat/completions",
+            "/chat/completions",
+            realProvider.chatCompletionsPath,
+        )
+        trace("real:preflight-ok baseUrl=${realProvider.baseUrl}")
+
+        settingsStore.update(realProviderSettings())
+        trace("real:settings-update-done")
+        val config = realProviderConfig(caseName, mainBudget)
+        val conversationId = insertGroup(caseName, config)
+        trace("real:conversation-inserted id=$conversationId")
+        evidenceConversations += conversationId
+
+        // ---- 走生产入口触发真实生成（真·公网 HTTPS 请求） ----
+        chatManager.sendMessage(
+            conversationId = conversationId,
+            content = listOf(UIMessagePart.Text("请三位依次发言，每位一句话。")),
+            answer = true,
+        )
+        trace("real:sendMessage-returned")
+
+        val messages = awaitAssistantMessages(
+            conversationId = conversationId,
+            expected = 3,
+            timeoutMillis = realTimeoutMillis,
+        )
+        trace("real:await-messages-done count=${messages.size}")
+        val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+        val expectedRoundId = GroupChat.roundIdFor(triggerId)
+        val run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val byRole = assistants.associateBy { it.roleId }
+
+        // 先落一份「未经任何断言筛选」的原始快照，**独立文件** `c1-real-raw-dump.json`：
+        // 后面若有断言炸了，这份仍是事发当时的真实数据，不用靠猜。
+        // 注意它与正式报告 `c1-live-evidence-real-provider.json` 是两个文件，不会互相覆盖，
+        // 所以跑完记得两个都拿走；它保留失败现场，是排查用的，不是验收证据。
+        writeEvidence(
+            "c1-real-raw-dump.json",
+            buildJsonObject {
+                put("note", "raw snapshot taken right after generation, before any assertion")
+                put("conversation_id", conversationId.toString())
+                put("message_count", messages.size)
+                putJsonArray("messages") {
+                    messages.forEach { message ->
+                        add(
+                            buildJsonObject {
+                                put("role", message.role.name)
+                                put("role_id", message.roleId)
+                                put("turn_kind", message.turnKind)
+                                put("model_id", message.modelId?.toString())
+                                put("usage_prompt", message.usage?.promptTokens ?: -1)
+                                put("usage_completion", message.usage?.completionTokens ?: -1)
+                                put("usage_total", message.usage?.totalTokens ?: -1)
+                                put("text", message.toText())
+                                putJsonArray("parts") {
+                                    message.parts.forEach { part ->
+                                        add(
+                                            buildJsonObject {
+                                                put("type", part::class.simpleName ?: "?")
+                                                put("text", (part as? UIMessagePart.Text)?.text ?: "")
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                        )
+                    }
+                }
+                put("group_run_status", run.status)
+                put("group_run_spent", run.spentTokens)
+                put("group_run_limit", run.tokenLimit)
+                put("group_run_committed", JsonArray(run.committedRoleIds.map { JsonPrimitive(it) }))
+                put("group_run_skipped", JsonArray(run.skippedRoleIds.map { JsonPrimitive(it) }))
+                put("group_run_ended_at", run.endedAt)
+                put("group_run_reason", run.reason)
+            },
+        )
+
+        assertEquals(
+            "本轮不应有失败/错误节点（真实网关报错会让轮次转 FAILED），实际消息=" +
+                messages.map { "${it.role}/${it.roleId}" } +
+                "；app 错误=${chatManager.errors.value.map { it.title to it.error }}",
+            listOf("a", "b", "c"),
+            assistants.map { it.roleId },
+        )
+        assertEquals("三个助手消息必须同属一轮", setOf(expectedRoundId), assistants.map { it.roundId }.toSet())
+        assertEquals("运行日志的 round_id 必须与消息上的 round_id 一致", expectedRoundId, run.roundId)
+
+        // ---------------- 断言 1：模型序列按角色选型，且有区分度 ----------------
+        // 这是本用例存在的核心理由：每个角色必须走自己绑的那个模型，而不是全退回
+        // 会话的 chatModelId（那会让三个 modelId 变成同一个值）。
+        assertEquals(
+            "角色 a 的 modelId 必须是 deepseek-v4-flash",
+            realFlashModel.id,
+            byRole.getValue("a").modelId,
+        )
+        assertEquals(
+            "角色 b 的 modelId 必须是 glm-5.2",
+            realGlmModel.id,
+            byRole.getValue("b").modelId,
+        )
+        assertEquals(
+            "角色 c 的 modelId 必须是 deepseek-v4-flash",
+            realFlashModel.id,
+            byRole.getValue("c").modelId,
+        )
+        // 反向：序列里必须真的出现了两个不同的模型，否则「有区分度」的前提没成立，
+        // 上面三条断言就成了同义反复。
+        assertEquals(
+            "实际调用的模型必须有两个不同的取值，否则证明不了按角色选型",
+            setOf(realFlashModel.id, realGlmModel.id),
+            assistants.mapNotNull { it.modelId }.toSet(),
+        )
+        assertEquals(
+            "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
+            listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            assistants.map { message ->
+                requireNotNull(message.modelId) { "角色 ${message.roleId} 的 modelId 为空" }
+                requireNotNull(realProvider.models.firstOrNull { it.id == message.modelId }) {
+                    "角色 ${message.roleId} 的 modelId=${message.modelId} 不在内置 provider 的模型表里"
+                }.modelId
+            },
+        )
+
+        // ---------------- 断言 2：usage 是网关返回的真数字 ----------------
+        val perMessageUsage = assistants.map { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，这条 token 证据不成立"
+            }
+            assertTrue(
+                "角色 ${message.roleId} 的 prompt/input tokens 必须为正，实际=${usage.promptTokens}",
+                usage.promptTokens > 0,
+            )
+            assertTrue(
+                "角色 ${message.roleId} 的 completion/output tokens 必须为正，实际=${usage.completionTokens}",
+                usage.completionTokens > 0,
+            )
+            assertEquals(
+                "角色 ${message.roleId} 的 totalTokens 必须等于 prompt+completion",
+                usage.promptTokens + usage.completionTokens,
+                usage.totalTokens,
+            )
+            usage
+        }
+
+        // ---------------- 断言 3：token 对账：Σ(prompt+completion) == spent_tokens ----------------
+        val sumPromptCompletion = perMessageUsage.sumOf { it.promptTokens + it.completionTokens }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于各条助手消息 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+        assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+        assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+        assertTrue("预算充足时不应有 skipped 角色，实际=${run.skippedRoleIds}", run.skippedRoleIds.isEmpty())
+        assertEquals("预算上限快照必须等于配置值", mainBudget, run.tokenLimit)
+        assertEquals("正常完成不应有 reason", "", run.reason)
+        assertNotNull("运行日志必须已收尾（endedAt 非空）", run.endedAt)
+
+        // ---------------- 断言 4：正文真的来自真实模型，且按格式回报自己的 ROLECODE ----------------
+        // 这同时是「该角色的 system prompt 真的送到了该角色的模型」的证据：正文里
+        // 出现且仅出现自己的代号，说明模型读到的 instructions 只有它自己那份。
+        val realRoleCodePattern = Regex("""ROLECODE:([A-Z])""")
+        listOf("a" to "A", "b" to "B", "c" to "C").forEach { (roleId, ownCode) ->
+            val text = byRole.getValue(roleId).toText()
+            val codes = realRoleCodePattern.findAll(text).map { it.groupValues[1] }.toList()
+            assertTrue(
+                "角色 $roleId 的回复里必须出现自己的 ROLECODE:$ownCode，实际=$codes；正文=$text",
+                ownCode in codes,
+            )
+            assertEquals(
+                "角色 $roleId 的回复里必须只出现自己的 ROLECODE（不得模拟他人），实际=$codes；正文=$text",
+                listOf(ownCode),
+                codes,
+            )
+        }
+
+        // ---------------- 断言 5：turnKind ----------------
+        assertTrue(
+            "pipeline 三条发言都应是 turn_kind=speaker，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}" },
+            assistants.all { it.turnKind == GroupChat.TURN_SPEAKER },
+        )
+
+        // ---------------- 断言 6：视角隔离（从真库读回的消息上判定） ----------------
+        // 口径与 `C1DeviceEvidenceTest` 一致：只按库内消息判定，不依赖模型听不听话。
+        val seenByA = GroupChat.buildContext("a", messages, config, null).mapNotNull { it.roleId }
+        assertTrue("角色 a 只应看到自己的发言，不应看到 b 或 c，实际=$seenByA", seenByA.all { it == "a" })
+        val seenByB = GroupChat.buildContext("b", messages, config, "a").mapNotNull { it.roleId }
+        assertTrue("角色 b 应看到 a", "a" in seenByB)
+        assertTrue("角色 b 不应看到 c，实际=$seenByB", "c" !in seenByB)
+        val seenByC = GroupChat.buildContext("c", messages, config, "b").mapNotNull { it.roleId }
+        assertTrue("角色 c 应看到 b", "b" in seenByC)
+        assertTrue("角色 c 不应看到 a（pipeline 只串联上一位），实际=$seenByC", "a" !in seenByC)
+
+        writeEvidence(
+            "c1-live-evidence-real-provider.json",
+            realProviderReport(conversationId, config, messages, run, sumPromptCompletion, perMessageUsage),
+        )
+    }
+
+    // ==================================================================
     // 报告组装
     // ==================================================================
 
@@ -1277,6 +1692,130 @@ class C1LiveModelSequenceTest {
             }
         }
     }
+
+    /**
+     * 真实网关用例的证据报告。
+     *
+     * 与前三个报告的**关键差别**在 `token_source` / `model_sequence_source` 两行：
+     * 前者是 mock 估算 + mock 请求日志，这里是**网关按真实分词返回的 usage** +
+     * `UIMessage.modelId`（由 `resolveGroupTurnModelId` / `TaskRoutes.resolve` 落下的
+     * 那个真实选型结果）。
+     *
+     * 因此本报告多记两段别处没有的东西：
+     * - `provider_model_table`：uuid ↔ 上线模型名 ↔ abilities 的对照表。没有它，
+     *   `actual_model_call_sequence` 里的模型名就只是断言自己的期望值，没法独立复核。
+     * - `wire_model_name_provenance`：如实写明「上线模型名是由 uuid 经上面那张表反查
+     *   得到的，不是网关回传的字段」——app 不保存响应里的 `model`，所以这一点必须
+     *   讲清楚，不能让人误以为有第三方抓包记录。
+     */
+    private fun realProviderReport(
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        sumPromptCompletion: Int,
+        perMessageUsage: List<TokenUsage>,
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        return buildJsonObject {
+            put("evidence_kind", "real-gateway-call-direct-from-device-no-proxy")
+            put("token_source", "genuine-usage-returned-by-public-openai-compatible-gateway")
+            put("model_sequence_source", "UIMessage.modelId-as-written-by-resolveGroupTurnModelId-and-TaskRoutes.resolve")
+            put("wire_model_name_provenance", "derived from UIMessage.modelId uuid via provider_model_table below; the app does not persist the response 'model' field, so no third-party packet capture exists for this case")
+            put("generated_at_device", System.currentTimeMillis())
+            put("provider_id", realProvider.id.toString())
+            put("provider_name", realProvider.name)
+            put("provider_base_url", realProvider.baseUrl)
+            put("provider_uses_response_api", realProvider.useResponseApi)
+            put("case", realCaseName)
+            put("conversation_id", conversationId.toString())
+            put("mode", config.mode)
+            put("chair_role_id", config.chairRoleId)
+            put("token_budget_per_round", config.tokenBudgetPerRound)
+            put("device", deviceBlock())
+            putJsonArray("provider_model_table") {
+                realProvider.models.forEach { model ->
+                    add(
+                        buildJsonObject {
+                            put("uuid", model.id.toString())
+                            put("wire_model_string", model.modelId)
+                            put("display_name", model.displayName)
+                            put("type", model.type.name)
+                            put("abilities", JsonArray(model.abilities.map { JsonPrimitive(it.name) }))
+                        },
+                    )
+                }
+            }
+            putJsonArray("bindings") {
+                config.roles.forEach { role ->
+                    add(
+                        buildJsonObject {
+                            put("role_id", role.id)
+                            put("assistant_id", role.assistantId)
+                            put("chair", role.chair)
+                            put("model_uuid", role.modelId)
+                            put(
+                                "wire_model_string",
+                                realProvider.models.first { it.id.toString() == role.modelId }.modelId,
+                            )
+                        },
+                    )
+                }
+            }
+            put("messages", messageBlock(messages))
+            put("group_run", runBlock(run))
+            put("sum_prompt_plus_completion", sumPromptCompletion)
+            put("spent_tokens", run.spentTokens)
+            put("spent_tokens_equals_sum_prompt_plus_completion", run.spentTokens == sumPromptCompletion)
+            putJsonArray("actual_model_call_sequence") {
+                assistants.forEachIndexed { index, message ->
+                    val uuid = message.modelId
+                    add(
+                        buildJsonObject {
+                            put("seq", index + 1)
+                            put("role_id", message.roleId)
+                            put("turn_kind", message.turnKind)
+                            put("model_uuid", uuid?.toString())
+                            put(
+                                "wire_model_string",
+                                realProvider.models.firstOrNull { it.id == uuid }?.modelId ?: "<不在模型表里>",
+                            )
+                            put("usage_prompt_tokens", perMessageUsage[index].promptTokens)
+                            put("usage_completion_tokens", perMessageUsage[index].completionTokens)
+                            put("usage_total_tokens", perMessageUsage[index].totalTokens)
+                            put("cached_tokens", perMessageUsage[index].cachedTokens)
+                            put("rolecodes_found_in_text", JsonArray(realRoleCodeRegex.findAll(message.toText()).map { JsonPrimitive(it.groupValues[1]) }.toList()))
+                        },
+                    )
+                }
+            }
+            putJsonArray("expected_model_call_sequence") {
+                add(JsonPrimitive("deepseek-v4-flash"))
+                add(JsonPrimitive("glm-5.2"))
+                add(JsonPrimitive("deepseek-v4-flash"))
+            }
+            putJsonObject("viewer_visible_message_ids") {
+                listOf("a" to null, "b" to "a", "c" to "b").forEach { (viewer, predecessor) ->
+                    putJsonArray(viewer) {
+                        GroupChat.buildContext(viewer, messages, config, predecessor)
+                            .map { it.id.toString() }
+                            .forEach { add(JsonPrimitive(it)) }
+                    }
+                }
+            }
+            putJsonObject("pipeline_visibility_expectation") {
+                put("a_sees", "system+user+own  (NOT b, NOT c)")
+                put("b_sees", "system+user+own+a  (NOT c)")
+                put("c_sees", "system+user+own+b  (NOT a)")
+            }
+            putJsonArray("assistant_role_order") {
+                assistants.forEach { add(JsonPrimitive(it.roleId)) }
+            }
+        }
+    }
+
+    /** 从角色正文里抽 ROLECODE 代号；与 [realPersona] 的格式约定成对。 */
+    private val realRoleCodeRegex = Regex("""ROLECODE:([A-Z])""")
 
     /** [roundtableReport] 里描述一次 `buildContext` 调用的两个可选参数。 */
     private data class ViewerFlags(val predecessorId: String?, val chairRound: Boolean)
