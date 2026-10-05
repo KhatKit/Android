@@ -1985,7 +1985,17 @@ class ChatManager(
         groupRunsInFlight.remove(conversationId)
     }
 
-    /** 用户取消：只把运行日志写成 CANCELLED，不写任何未生成的消息。 */
+    /**
+     * 用户取消：只把运行日志写成 CANCELLED，不写任何未生成的消息。
+     *
+     * 回收平票脚手架与 [failGroupTurn] 同序、且**不可省**：本函数也是一条轮次终态出口。
+     * [stopGeneration] 在 jobs 非空时会先 `join` 完所有生成任务才走到这里，jobs 为空时本就
+     * 没有生成在飞，所以落完 CANCELLED 之后**再没有代码路径会为这一轮调 [completeGroupRound]**
+     * （它全仓只有一个调用点，在 `onSuccess` 里）。议长裁决那一步被用户掐掉时，
+     * 指令已经挂进会话了，不回收它就永久留着 ——
+     * 它是 `role = SYSTEM` + `isSynthetic`，`GroupChat.visibleMessages` 对 SYSTEM / 合成消息
+     * 一律放行，于是之后每一轮的所有角色都会读到那段「本轮投票出现平票，由你裁决」。
+     */
     private suspend fun cancelActiveGroupRun(conversationId: Uuid) {
         val token = groupRunsInFlight.remove(conversationId)?.runToken ?: return
         val entity = groupRunDAO.getByRunToken(token) ?: return
@@ -1997,11 +2007,21 @@ class ChatManager(
                 System.currentTimeMillis(),
             )
         )
+        dropTieBreakScaffolding(conversationId)
     }
 
     /**
      * 用户发了新消息：上一轮若还挂在 RUNNING（进程被杀 / 异常中断 / 取消未收尾），按「用户放弃」
      * 收尾，保证任何群聊轮次都不会永久悬挂、也不会被下一轮挪用预算。
+     *
+     * 回收平票脚手架与 [failGroupTurn] 同序、且**不可省**：本函数也是一条轮次终态出口。
+     * 它在存新 USER 消息**之前**调用，所以判死之后触发消息就变了，
+     * [GroupTurnCoordinator.roundPlanFor] 派生出的 `roundId` 已是新轮，被判死那一轮再也回不来；
+     * 残留的旧生成任务就算跑完，`onSuccess` 里现算的 plan 也是新轮，`commitGroupTurn`
+     * 的 `findByRound` 查不到 → 不会走到 [completeGroupRound]。
+     * 于是议长裁决那一步被这条路径掐掉时，指令已经挂进会话了，不回收它就永久留着 ——
+     * 它是 `role = SYSTEM` + `isSynthetic`，`GroupChat.visibleMessages` 对 SYSTEM / 合成消息
+     * 一律放行，于是之后每一轮的所有角色都会读到那段「本轮投票出现平票，由你裁决」。
      */
     private suspend fun abandonDanglingGroupRuns(conversationId: Uuid) {
         groupRunsInFlight.remove(conversationId)
@@ -2013,6 +2033,7 @@ class ChatManager(
         ).forEach { entity ->
             persistRoundState(GroupTurnCoordinator.cancelRound(GroupTurnCoordinator.fromEntity(entity), now))
         }
+        dropTieBreakScaffolding(conversationId)
     }
 
     private suspend fun appendGroupMessages(conversationId: Uuid, messages: List<UIMessage>) {
