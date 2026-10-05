@@ -453,6 +453,16 @@ object GroupChat {
             if (role.assistantId.isBlank()) {
                 add(GroupConfigError("roles[$index].assistant_id", "助手引用不能为空"))
             }
+            // [SUMMARY_ID] 是合成节点（投票小结 / 投票失败摘要）的保留 role_id，
+            // [visibleMessages] 对它**无条件放行**给所有视角。若允许普通角色占用它，
+            // 那个角色的每一条发言都会被当成合成小结广播给全群——视角隔离从配置层被绕过。
+            // 收口在这里而不是 visibleMessages：导入（[importShare] 第 5 道闸门）、UI 保存
+            // （`GroupConfigSheet.onSave`）、`ChatManager.createGroup` 三条路都过 [validate]，
+            // 一处禁令三处生效。field 用 `roles[].role_id`（与下面重复值那条同口径：
+            // 禁的是取值本身，不是某一个下标）。
+            if (role.id == SUMMARY_ID) {
+                add(GroupConfigError("roles[].role_id", "role_id 不能是保留值 $SUMMARY_ID"))
+            }
             if (conversationId != null && role.memorySpaceId != null) {
                 val expected = memorySpaceId(conversationId, role.id)
                 if (role.memorySpaceId != expected) {
@@ -528,6 +538,22 @@ object GroupChat {
         chairRound: Boolean = false,
     ): List<UIMessage> = visibleMessages(config, messages, viewerRoleId, predecessorId, chairRound)
 
+    /**
+     * 契约口径的可见集合：`viewerId` 只看见自己的消息、用户消息、@自己的消息、
+     * 系统/合成消息和轮次摘要；`predecessorId` 只带 pipeline 上一位的本轮输出，
+     * `chairRound` 只在议长汇总时放开本轮其他角色输出。
+     *
+     * [SUMMARY_ID] 那条分支**故意不看 `turnKind`**：`role_id = SUMMARY_ID` 的合成节点有两个
+     * 生产来源——`GroupTurnCoordinator.voteSummaryMessage`（`TURN_VOTE_SUMMARY`）与
+     * `ChatManager.voteFailureNode`（`TURN_ERROR`，即用户可见的「[投票] 本轮未能得出结论：…」）。
+     * 加上 `&& turnKind == TURN_VOTE_SUMMARY` 会让投票失败节点对**所有**视角一起消失，
+     * 那是拿一个可见性回归换一条本来就堵死的伪造路径。伪造路径改在 [validate] 收口：
+     * 任何角色都不许把 `role_id` 取成 `SUMMARY_ID`，于是这条分支只可能落在真正的合成节点上。
+     *
+     * [roundStart] 的 `coerceAtLeast(0)` 同理是**有意的**「本轮为空就等于全部都属于本轮」口径，
+     * 与 [GroupTurnCoordinator.roundMessages] 的 `lastUser < 0 -> messages` 一致；把它改成
+     * `Int.MAX_VALUE` 在生产可达路径上没有收益（列表里没有 USER 消息时，它必然整体落在最后一轮之内）。
+     */
     fun visibleMessages(
         config: GroupConfig,
         messages: List<UIMessage>,

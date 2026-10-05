@@ -8,6 +8,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -423,6 +424,107 @@ class GroupChatTest {
                 "field 应为 snake_case：${error.field}",
                 error.field.none { it.isUpperCase() },
             )
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 保留 role_id：SUMMARY_ID 不许被普通角色占用
+    // ------------------------------------------------------------------
+
+    /**
+     * P0 回归：[SUMMARY_ID] 是合成节点的保留 `role_id`，[visibleMessages] 对它无条件放行给
+     * 所有视角。配置里一旦出现 `role_id = "__summary__"` 的普通角色，那个角色的每一条发言
+     * 都会被当成轮次小结广播给全群——视角隔离在配置层被绕过。
+     *
+     * 收口在 [GroupChat.validate]：导入 / UI 保存 / `createGroup` 三条路都过它。
+     */
+    @Test
+    fun `validate rejects a role whose id is the reserved summary id`() {
+        val forged = GroupConfig(
+            roles = listOf(GroupRole(GroupChat.SUMMARY_ID, "冒充小结", "asst-x")),
+            mode = GroupChat.MODE_PIPELINE,
+            tokenBudgetPerRound = 1000,
+        )
+
+        val errors = GroupChat.validate(forged)
+
+        assertTrue("保留 role_id 必须被拒", errors.isNotEmpty())
+        val hit = errors.firstOrNull { it.field == "roles[].role_id" }
+        assertNotNull("field 应为 roles[].role_id，实际=${errors.map { it.field }}", hit)
+        assertTrue(hit!!.message.contains(GroupChat.SUMMARY_ID))
+        assertFalse(GroupChat.isValid(forged))
+    }
+
+    /**
+     * 同一个禁令必须把**导入路径**也堵上：[importShare] 第 5 道闸门跑 [validate]，
+     * 所以外部 JSON 里的 `role_id = "__summary__"` 到不了内存、更到不了库。
+     */
+    @Test
+    fun `importShare rejects a payload whose role id is the reserved summary id`() {
+        val raw = payloadJson(
+            GroupChat.SCHEMA_VERSION,
+            roles = """[{"role_id":"${GroupChat.SUMMARY_ID}","name":"冒充","assistant_id":"asst-x"}]""",
+        )
+
+        val result = GroupChat.importShare(raw)
+
+        assertTrue("保留 role_id 的载荷必须被拒", result is GroupImportResult.Rejected)
+        val rejected = result as GroupImportResult.Rejected
+        assertEquals("群配置校验未通过", rejected.reason)
+        assertTrue(
+            "fieldErrors 应点名 roles[].role_id，实际=${rejected.fieldErrors.map { it.field }}",
+            rejected.fieldErrors.any { it.field == "roles[].role_id" },
+        )
+    }
+
+    /**
+     * 反向证据（防「一刀切拦过头」）：正常角色 id 一律照旧通过，且 `SUMMARY_ID` 常量本身
+     * 没有被改写——禁令落在配置校验上，不是落在常量上。
+     */
+    @Test
+    fun `ordinary role ids still validate and the summary constant is untouched`() {
+        val normal = GroupConfig(
+            roles = roles,
+            mode = GroupChat.MODE_PIPELINE,
+            tokenBudgetPerRound = 1000,
+        )
+
+        assertTrue(GroupChat.validate(normal).isEmpty())
+        assertEquals("__summary__", GroupChat.SUMMARY_ID)
+        // 带下划线的普通 id 不是保留值，不该被误伤。
+        val underscore = GroupConfig(
+            roles = listOf(GroupRole("__not_summary__", "普通", "asst-a")),
+            mode = GroupChat.MODE_PIPELINE,
+            tokenBudgetPerRound = 1000,
+        )
+        assertTrue(GroupChat.validate(underscore).isEmpty())
+    }
+
+    /**
+     * 合成节点本身仍然对**所有**视角可见——这是禁令不能碰的那一半。
+     *
+     * 投票小结（`TURN_VOTE_SUMMARY`）与投票失败摘要（`TURN_ERROR`，
+     * `ChatManager.voteFailureNode`）两个来源共用 `SUMMARY_ID`，所以
+     * [visibleMessages] 的放行分支不能按 `turnKind` 收窄，否则失败摘要会对所有人消失。
+     */
+    @Test
+    fun `both synthetic summary kinds stay visible to every viewer`() {
+        val messages = listOf(
+            UIMessage.user("投票").copy(turnKind = GroupChat.TURN_USER),
+            UIMessage.assistant("本轮投票结果：甲").copy(
+                roleId = GroupChat.SUMMARY_ID,
+                turnKind = GroupChat.TURN_VOTE_SUMMARY,
+            ),
+            UIMessage.assistant("[投票] 本轮未能得出结论：平票").copy(
+                roleId = GroupChat.SUMMARY_ID,
+                turnKind = GroupChat.TURN_ERROR,
+            ),
+        )
+
+        listOf("a", "b", "c").forEach { viewerId ->
+            val seen = GroupChat.visibleMessages(config(GroupChat.MODE_VOTE), messages, viewerId).map { it.toText() }
+            assertTrue("$viewerId 应看见投票小结", seen.any { it.contains("本轮投票结果：甲") })
+            assertTrue("$viewerId 应看见投票失败摘要", seen.any { it.contains("本轮未能得出结论") })
         }
     }
 
