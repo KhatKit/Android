@@ -455,8 +455,27 @@ class GenerationLoop(
                 // 每次重试都从本次模型调用开始前的消息快照重新合并，避免将重试响应
                 // 追加到已经展示的半截回复后面。预先创建助手消息可让所有尝试复用同一 ID，
                 // ChatManager 因而会覆盖当前分支，而不是创建新的候选消息。
+                //
+                // 「复用末尾助手消息」只在它属于**本次生成自己**时才成立，即它还没被
+                // `ChatManager.stampGroupTurn` 盖上 `role_id`。群聊里上一位角色的发言
+                // 同样是末尾的 ASSISTANT 消息，但那条已经 `roleId != null`（已提交、
+                // 已计入 `committed_role_ids`），复用它会把本角色的回复**并进上一位的
+                // 那条消息**（同一个 UIMessage 多出一个 Text part），随后
+                // `stampGroupTurn` 因为找不到 `roleId == null` 的助手消息而返回 null，
+                // 该角色被误判为「本轮没有产出内容」并写成 role_failed。
+                //
+                // 真机证据（pipeline 三角色，mock seq=1 角色A、seq=2 角色B）：落库的那条
+                // 助手消息 `role_id="a"` 却有 A、B 两段正文，usage 是 B 的；而
+                // `group_runs` 是 `status=FAILED / committed=["a"] / skipped=["c"] /
+                // reason=role_failed / error_message=本轮没有产出内容`。请求本身是发的，
+                // 断的是产出归属，不是模型调用。
+                //
+                // 单聊不受影响：那里 `roleId` 恒为 null，复用条件与改动前逐字相同。
+                val reusableTrailingAssistant = messages.lastOrNull()
+                    ?.let { it.role == MessageRole.ASSISTANT && it.roleId == null }
+                    ?: false
                 val responseBaseMessages =
-                    if (messages.lastOrNull()?.role == MessageRole.ASSISTANT) {
+                    if (reusableTrailingAssistant) {
                         messages
                     } else {
                         messages + UIMessage(
@@ -514,7 +533,20 @@ class GenerationLoop(
                         params = params,
                     )
                 }
-                messages = messages.handleTextGenerationResult(result = result, model = model)
+                // 与流式分支同一个坑：`handleTextGenerationResult` 在末尾消息与
+                // `incoming` 同为 ASSISTANT 时会**并进**末尾那条。群聊里末尾那条是上一位
+                // 角色已提交的发言（`roleId != null`），并进去会让本角色的产出丢失归属，
+                // 随后 `stampGroupTurn` 找不到 `roleId == null` 的消息而误判本轮无产出。
+                // 所以这里先把「已提交的末尾助手消息」摘掉，落到追加新消息的分支上。
+                val mergeBase =
+                    if (messages.lastOrNull()?.let { it.role == MessageRole.ASSISTANT && it.roleId == null } == true) {
+                        messages
+                    } else if (messages.lastOrNull()?.role == MessageRole.ASSISTANT) {
+                        messages.dropLast(1)
+                    } else {
+                        messages
+                    }
+                messages = mergeBase.handleTextGenerationResult(result = result, model = model)
                 onUpdateMessages(messages)
             }
         } finally {
