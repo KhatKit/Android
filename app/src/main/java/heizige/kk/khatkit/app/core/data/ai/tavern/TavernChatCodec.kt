@@ -4,6 +4,7 @@ import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
+import heizige.kk.khatkit.app.core.data.model.GroupConfigError
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import heizige.kk.khatkit.app.feature.chat.GroupSpeakerResolver
@@ -11,6 +12,7 @@ import heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinator
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -253,10 +255,98 @@ object TavernChatCodec {
      * 的读法与单聊完全一致，四个契约字段再从原对象上取回并写回 [UIMessage]，因此
      * `exportGroup` → `importGroup` 之后 `role_id` / `round_id` / `turn_kind` /
      * `mention_role_ids` / 群配置 / 角色卡元数据都相等。
+     *
+     * ## 契约要求的「先 schema 校验与去重，再创建新 conversation」
+     *
+     * 这一句以前是空的：本函数只把 `config` 解出来就交出去，从不跑 [GroupChat.validate]，
+     * 也不做任何去重，于是同一句「导入群配置」的语义在仓库里有两条口径——分享/扫码那条
+     * （[GroupChat.importShare] 第 5 道闸门）校验并拒收，**本条不校验**。调用方拿到一份
+     * 结构上就建不出群的配置（比如两个角色共用一个 `role_id`），后果是造出一个视角过滤
+     * 从配置层就被绕过的群。现在两道闸门都补在这里：
+     *
+     * 1. **密钥黑名单**：对整个原始 [GROUP_FIELD] 跑 [GroupChat.findForbiddenKeys]。恢复路径
+     *    同样是「把别人写的字节吃进内存」这一侧，与 [GroupChat.importShare] 第 4 道闸门同
+     *    一口径，且**先扫后解**——解码会丢掉未知结构，扫解完的对象就漏了。
+     * 2. **去重 + 筛查**：[GroupChat.dedupeCards] 按 `role_id` 折叠角色卡，
+     *    [GroupChat.screenImportedConfig] 跑 [GroupChat.validate] 并把结论落到 [importReport]。
+     *
+     * ## 「不留下半成品会话」怎么落到返回值上
+     *
+     * 坏配置一律**不交出去**：`config` 为 null，同时 [importReport] 带上字段级错误。
+     * 但消息、群名、角色卡照常返回——契约要的是「别造出半个群」，不是「把好好的聊天记录
+     * 一起扔了」。因此 [config] == null 有两种原因，**必须和 [importReport] 一起读**：
+     * 文件里本来就没有群配置块（纯酒馆群聊，不是错误），或者配置被判掉。
+     *
+     * 去重与归一化都只在「这份文件本身非法」时才动手，所以合法文件的往返逐字节不变：
+     * [exportGroup] → [importGroup] → [exportGroup] 仍然完全相同。
      */
     fun importGroup(raw: String): TavernGroupChatDocument? {
         val document = runCatching { import(raw) }.getOrNull() ?: return null
         val payload = document.header[GROUP_FIELD] as? JsonObject ?: return null
+
+        val decodedCards = (payload["cards"] as? JsonArray).orEmpty().mapNotNull { element ->
+            val card = element as? JsonObject ?: return@mapNotNull null
+            runCatching { cardJson.decodeFromJsonElement(RoleCardMeta.serializer(), card) }
+                .getOrNull()
+        }
+        val deduped = GroupChat.dedupeCards(decodedCards)
+        val cardFixes = deduped.fixes
+
+        // 闸门 1：密钥 / 隐私记忆 / 工具授权 token，跑原始 JSON 而不是解出来的对象。
+        val offending = GroupChat.findForbiddenKeys(payload)
+        // 「有没有配置块」与「配置块解不解得出来」必须分开判：`config` 键整个不存在（纯酒馆
+        // 群聊文件）不是错误，而键在却解不出来（缺 `roles`、类型不对）是坏文件。两者都让
+        // `config` 变成 null，报告是唯一能把它们分开的东西。
+        val rawConfig = payload["config"]
+        val hasConfigBlock = rawConfig != null && rawConfig !is JsonNull
+        val decodedConfig = GroupChat.decodeConfigObject(rawConfig as? JsonObject)
+        val config: GroupConfig?
+        val report: GroupImportReport
+        when {
+            offending.isNotEmpty() -> {
+                config = null
+                report = GroupImportReport.Rejected(
+                    reason = "群聊载荷包含禁止导入的字段：${offending.joinToString()}",
+                    fieldErrors = offending.sorted().map {
+                        GroupConfigError(it, "禁止导入的字段")
+                    },
+                )
+            }
+
+            !hasConfigBlock -> {
+                // 文件里根本没有群配置块。纯酒馆群聊文件属于这一类，不是错误。
+                config = null
+                report = GroupImportReport.NoConfig
+            }
+
+            decodedConfig == null -> {
+                config = null
+                report = GroupImportReport.Rejected(
+                    reason = "群聊载荷里的 config 无法解析",
+                    fieldErrors = listOf(GroupConfigError("config", "缺少或无法解析 roles")),
+                )
+            }
+
+            else -> when (val screening = GroupChat.screenImportedConfig(decodedConfig)) {
+                is GroupChat.GroupConfigScreening.Accepted -> {
+                    config = screening.config
+                    report = GroupImportReport.Clean
+                }
+
+                is GroupChat.GroupConfigScreening.Normalized -> {
+                    config = screening.config
+                    report = GroupImportReport.Normalized(screening.fixes)
+                }
+
+                is GroupChat.GroupConfigScreening.Rejected -> {
+                    config = null
+                    report = GroupImportReport.Rejected(
+                        reason = "群配置校验未通过",
+                        fieldErrors = screening.fieldErrors,
+                    )
+                }
+            }
+        }
         return TavernGroupChatDocument(
             header = document.header,
             messages = document.messages.map(::groupMessageOf),
@@ -265,12 +355,10 @@ object TavernChatCodec {
             characterNames = (document.header[GROUP_CHARACTER_NAMES_FIELD] as? JsonArray)
                 ?.mapNotNull { it.jsonPrimitive.contentOrNull }
                 .orEmpty(),
-            config = GroupChat.decodeConfigObject(payload["config"] as? JsonObject),
-            cards = (payload["cards"] as? JsonArray).orEmpty().mapNotNull { element ->
-                val card = element as? JsonObject ?: return@mapNotNull null
-                runCatching { cardJson.decodeFromJsonElement(RoleCardMeta.serializer(), card) }
-                    .getOrNull()
-            },
+            config = config,
+            cards = deduped.cards,
+            importReport = report,
+            cardFixes = cardFixes,
         )
     }
 
@@ -413,8 +501,47 @@ data class TavernChatMessage(
 )
 
 /**
- * 群聊导入结果。[config] 为 null 表示文件里没有可解的群配置（例如别人导出的纯酒馆群聊，
- * 那种文件本来就没有 KhatKit 的字段），其余字段照常可用。
+ * 群聊文件恢复时的配置筛查结论（[TavernChatCodec.importGroup] 产出）。
+ *
+ * 分四类而不是「通过 / 不通过」两类，是因为**「没有群配置块」与「配置被判掉」必须能分开**：
+ * 前者是纯酒馆群聊文件（那种文件本来就没有 KhatKit 的群配置），不是错误；后者是这份文件
+ * 的配置建不出群，调用方必须拒绝落库。两者在返回值上都表现为 `config == null`。
+ *
+ * 判定与归一化的口径全在 [GroupChat.screenImportedConfig]，本类型只负责把它带出来。
+ */
+sealed interface GroupImportReport {
+    /** 文件里没有 `khatkit_group.config` 块（纯酒馆群聊文件）。[TavernGroupChatDocument.config] 为 null。 */
+    data object NoConfig : GroupImportReport
+
+    /** 配置原样通过校验，未被改写。[TavernGroupChatDocument.config] 就是文件里的那一份。 */
+    data object Clean : GroupImportReport
+
+    /**
+     * 配置不合法：[TavernGroupChatDocument.config] **一律为 null**——坏配置绝不会被交出去，
+     * 契约「恢复失败不留下半成品会话」因此有了返回值层面的保证。消息 / 群名 / 角色卡
+     * 照常返回，用户至少拿得到聊天记录。
+     */
+    data class Rejected(
+        val reason: String,
+        val fieldErrors: List<GroupConfigError> = emptyList(),
+    ) : GroupImportReport
+
+    /**
+     * 配置越界但已归一化：[TavernGroupChatDocument.config] 是归一化后的那一份（已通过
+     * [GroupChat.validate]），[fixes] 逐条记着改前改后的字面值，供调用方展示给用户。
+     */
+    data class Normalized(val fixes: List<GroupChat.GroupConfigFix>) : GroupImportReport
+}
+
+/**
+ * 群聊导入结果。[config] 为 null 表示这份文件没有**可用**的群配置。
+ *
+ * ⚠️ **必须与 [importReport] 一起读**：`config == null` 有两种原因，报告才区分得开——
+ * 文件里本来就没有群配置块（[GroupImportReport.NoConfig]），或者配置被判掉
+ * （[GroupImportReport.Rejected]）。只看 `config` 会把这两种混成一种。
+ *
+ * [cardFixes] 是角色卡去重记录，与配置筛查正交：配置干净时也可能去了重（重复 `role_id`），
+ * 所以它挂在文档上而不是报告里。
  */
 data class TavernGroupChatDocument(
     val header: JsonObject,
@@ -424,6 +551,8 @@ data class TavernGroupChatDocument(
     val characterNames: List<String>,
     val config: GroupConfig?,
     val cards: List<RoleCardMeta>,
+    val importReport: GroupImportReport,
+    val cardFixes: List<GroupChat.GroupConfigFix> = emptyList(),
 )
 
 /** 一条群消息：酒馆字段在 [raw]，C1 契约字段既在 [raw] 也已写回 [node] 的消息上。 */
