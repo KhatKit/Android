@@ -650,13 +650,7 @@ private fun GroupConfigSheet(
             KedgeTextButton(
                 onClick = { saveErrors = onSave(draft, null) ?: emptyList() },
             ) { Text("保存群配置") }
-            saveErrors.forEach { error ->
-                Text(
-                    text = "· ${error.field}：${error.message}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
+            saveErrors.forEach { error -> GroupConfigErrorLine(error) }
 
             // ---------- 导出：二维码 + ACTION_SEND 文本分享（共用同一份载荷） ----------
             Text("导出", style = MaterialTheme.typography.labelLarge)
@@ -743,13 +737,7 @@ private fun ImportedRoleCardsView(cards: List<RoleCardMeta>?) {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        cards.forEach { card ->
-            Text(
-                text = "· ${card.name.ifBlank { card.roleId }}（${card.roleId}）" +
-                    if (card.persona.isBlank()) "" else " · 含 persona",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
+        cards.forEach { card -> RoleCardLine(card) }
     }
 }
 
@@ -841,13 +829,7 @@ private fun ImportResultView(result: GroupImportResult?) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
-            result.fieldErrors.forEach { error ->
-                Text(
-                    text = "· ${error.field}：${error.message}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
+            result.fieldErrors.forEach { error -> GroupConfigErrorLine(error) }
         }
 
         is GroupImportResult.Accepted -> {
@@ -858,14 +840,38 @@ private fun ImportResultView(result: GroupImportResult?) {
                     style = MaterialTheme.typography.bodySmall,
                 )
                 // cards 同一次导入的结果显示；落库由 onSave 负责，这里只是当场再报一次。
-                payload.cards.forEach { card ->
-                    Text(
-                        text = "· ${card.name.ifBlank { card.roleId }}（${card.roleId}）" +
-                            if (card.persona.isBlank()) "" else " · 含 persona",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
+                payload.cards.forEach { card -> RoleCardLine(card) }
             }
         }
     }
+}
+
+/**
+ * 一条 `field: message` 校验错误。
+ *
+ * 校验错误有两条展示路径（保存群配置的 `saveErrors`、导入被拒的 `result.fieldErrors`），
+ * 文案与样式逐字相同，因此只此一份 —— 改措辞 / 配色时不会只改到其中一条路径上。
+ */
+@Composable
+private fun GroupConfigErrorLine(error: GroupConfigError) {
+    Text(
+        text = "· ${error.field}：${error.message}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
+}
+
+/**
+ * 一张角色卡的一行摘要（名字空则回落到 `role_id`，带 persona 时补一个标记）。
+ *
+ * 同样有两条展示路径（已落库的导入快照 [ImportedRoleCardsView]、当场导入结果
+ * [ImportResultView]），文案与样式逐字相同，只此一份。
+ */
+@Composable
+private fun RoleCardLine(card: RoleCardMeta) {
+    Text(
+        text = "· ${card.name.ifBlank { card.roleId }}（${card.roleId}）" +
+            if (card.persona.isBlank()) "" else " · 含 persona",
+        style = MaterialTheme.typography.bodySmall,
+    )
 }
