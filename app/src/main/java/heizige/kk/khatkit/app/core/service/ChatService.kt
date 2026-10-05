@@ -650,9 +650,23 @@ class ChatService @Inject constructor(
         // ⚠️ fail-loud 闸门：群聊会话**绝不能**从这条管线发起生成。
         //
         // 本函数是 ChatService 里 `generationLoop.generateText` 的**唯一**调用点
-        // （另三处 `providerHandler.generateText` 属于 `finishInterruptedPendingTools`，
-        // 那是取消后续跑工具的旁路），所以把闸门放在这里就足以让「群聊经 ChatService
-        // 生成」在**结构上**不可能，而不是只靠调用方自觉。
+        // （另三处 `providerHandler.generateText` 分别属于 `generateTitle`(:933)、
+        // `generateSuggestion`(:985)、`compressConversation`(:1038)，与本函数不在同一条
+        // 管线上；`finishInterruptedPendingTools`(:912) 零模型调用、不读 `currentMessages`，
+        // 与群聊泄漏无关），所以把闸门放在这里就足以让「群聊经 ChatService 生成」在
+        // **结构上**不可能，而不是只靠调用方自觉。
+        //
+        // ⚠️ 那三处仍把 `conversation.currentMessages` 原样送给 TITLE/SUMMARY 模型（与
+        // `feature/chat/ChatManager.kt` 里的同名三处同一形状），但结构上到不了群聊会话：
+        // `generateTitle` / `generateSuggestion` 由本函数的 `onSuccess` 调用，位于上面那道
+        // `require` 之后；`compressConversation` 全 app 无调用方（`ChatViewModel` 注入的是
+        // `ChatManager`）。真实管线那侧的三处已由 `SummaryViewerScope` 收口。本文件是历史
+        // 重复实现，只被 `HistoryVM`（用 `toggleConversationPinned`）与
+        // `ChatGenerationForegroundService`（用 `stopGeneration`）按类型注入，且**刻意不在
+        // 这里补群聊过滤** —— 那会把群聊生成上下文引进本文件，撞上
+        // `ChatServiceGroupChatFailLoudGuardTest.chatServiceHasNoGroupChatLogic`
+        // （现状锚点：不许出现任何群聊标记词）。正确处置是删掉这份重复实现，
+        // 而不是给它接一份群聊分支。
         //
         // 不这么做的后果（四个泄漏点全中）：整轮所有角色互相可见全部历史，`conversation.
         // currentMessages` 未经 `GroupPerspectiveTransformer`，工具不走 `viewerScopedTools`，
