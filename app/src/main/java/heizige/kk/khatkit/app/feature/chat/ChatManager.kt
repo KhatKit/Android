@@ -978,10 +978,10 @@ class ChatManager(
             val step = groupStep
             if (step != null && it is TimeoutCancellationException) {
                 // 超时不是用户取消：外层协程仍然存活，可以安全地把运行日志写成 TIMEOUT。
-                failGroupTurn(conversationId, step, errorDetailOf(it), timedOut = true)
+                failGroupTurn(conversationId, step, groupRunToken, errorDetailOf(it), timedOut = true)
             } else if (step != null && it !is CancellationException) {
                 // 单角色失败：写错误节点 + FAILED/role_failed，轮次保持可续跑。
-                failGroupTurn(conversationId, step, errorDetailOf(it), timedOut = false)
+                failGroupTurn(conversationId, step, groupRunToken, errorDetailOf(it), timedOut = false)
             }
             if (it is CancellationException) throw it
             sessionManager.get(conversationId)?.messageQueue?.pause()
@@ -1866,7 +1866,7 @@ class ChatManager(
         if (produced == null) {
             // 一个 token 都没产出（空助手消息已被丢弃）：不算提交，本轮按失败收尾，
             // 下次触发同一 round_id 时这个角色还会被轮到。
-            failGroupTurn(conversationId, step, "本轮没有产出内容", timedOut = false)
+            failGroupTurn(conversationId, step, runToken, "本轮没有产出内容", timedOut = false)
             return null
         }
         val advance = GroupTurnCoordinator.advance(
@@ -1988,6 +1988,19 @@ class ChatManager(
      * 单角色失败 / 超时：写一条 `turn_kind = error` 的节点（**只记错误，不伪造助手回复正文**），
      * 运行日志落 FAILED/TIMEOUT；已完成角色留在 `committed_role_ids` 里，所以轮次仍可续跑。
      *
+     * ⚠️ **归属与生死判定必须排在任何副作用之前。** 本函数里的 `plan` 与
+     * [commitGroupTurn] 拿到的一样是**当场现算**的（[GroupTurnCoordinator.roundPlanFor] 取最后一条
+     * USER 消息）：用户发新消息把上一轮判死之后（[abandonDanglingGroupRuns] 不取消任何 job），
+     * 残留的旧生成任务超时或报错时仍会走到这里，而现算出来的 `plan.roundId` 属于**新轮**。
+     * 往下就是四个不可逆动作：写错误节点（`roundId` 取的是现算 plan 的轮次）、
+     * 落运行日志终态（把那一轮写成 FAILED/TIMEOUT）、回收平票脚手架（**全会话范围**地删
+     * `turn_kind = chair` 的 SYSTEM 指令）、清进程内镜像（同会话里那一份可能是**新轮**的令牌）。
+     * 所以现在先判归属与生死（[GroupTurnCoordinator.checkFailureAdmission]，与提交路共用身份判据），
+     * 不属于本轮、或那一轮已经终态就返回，**一个副作用都不做**。
+     *
+     * [runToken] 是本次生成在 [takeGroupTurn] 里拿到的令牌（与提交路同一个来源）；传 null
+     * （理论上不可达：`step` 非空即蕴含 `GroupTurnEntry.Speak`）时内核按「血缘不明」拒收。
+     *
      * 回收平票脚手架与 [completeGroupRound] 同序、且**不可省**：本函数也是一条轮次终态出口
      * （落终态 + 清进程内镜像，之后再没有代码路径会为这一轮调 [completeGroupRound]）。
      * 议长裁决那一轮失败时指令已经挂进会话了，不回收它就永久留着 ——
@@ -1997,6 +2010,7 @@ class ChatManager(
     private suspend fun failGroupTurn(
         conversationId: Uuid,
         step: SpeakerStep?,
+        runToken: String?,
         detail: String,
         timedOut: Boolean,
     ) {
@@ -2004,9 +2018,21 @@ class ChatManager(
         val config = conversation.groupConfig ?: return
         val plan = GroupTurnCoordinator.roundPlanFor(config, conversation.currentMessages) ?: return
         val failedRoleId = step?.role?.id ?: return
-        val state = groupRunDAO.findByRound(conversationId.toString(), plan.roundId)
-            ?.let(GroupTurnCoordinator::fromEntity)
-            ?: return
+        val admission = GroupTurnCoordinator.checkFailureAdmission(
+            jobRunToken = runToken,
+            row = groupRunDAO.findByRound(conversationId.toString(), plan.roundId)
+                ?.let(GroupTurnCoordinator::fromEntity),
+            targetRoundId = plan.roundId,
+        )
+        if (admission is GroupTurnCoordinator.CommitAdmission.Denied) {
+            // 判死之后残留的旧 job：这一轮的账已经被判死那条路径结清了，落到下面就是往
+            // （可能）新轮里塞一条错误节点、把（可能）新轮写成 FAILED/TIMEOUT、删掉
+            // （可能）新轮的平票指令、并抹掉同会话正在跑的新一轮的进程内镜像。
+            // 只留运行日志，**不碰 groupRunsInFlight** —— 那里面装的可能是新轮的令牌。
+            Logging.log(TAG, "group turn failure ignored: ${admission.detail}")
+            return
+        }
+        val state = (admission as GroupTurnCoordinator.CommitAdmission.Admitted).row
         val remaining = GroupChat.pendingSpeakers(plan.plan, state.committedRoleIds.toSet())
             .map { it.role.id }
             .filter { it != failedRoleId }

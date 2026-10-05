@@ -418,6 +418,48 @@ object GroupTurnCoordinator {
     }
 
     /**
+     * 失败收尾（单角色失败 / 超时）的归属判定（纯判定，不读库不写库）。
+     *
+     * 与 [checkCommitAdmission] **共用同一套身份判据** —— 这里直接调它，不另立一套：
+     * 血缘不明、库里没这一行、`round_id` 不符、`run token` 不符，一律拒收。
+     * [jobRunToken] 同样必须是**发起模型调用之前**从 [claimRound] 抢占结果捕获的那个令牌；
+     * `ChatManager.failGroupTurn` 里的 `plan` 与提交路一样是**现算**的
+     * （[roundPlanFor] 取最后一条 USER 消息，判死之后它属于新轮），所以两条路
+     * 必须用同一把尺子量「这份收尾属于哪一轮」。
+     *
+     * 在身份之外只补一条：**终态**。这一条是失败路独有的，理由是提交路有 [advance] 兜底而
+     * 失败路没有 ——
+     * - 提交路：[checkCommitAdmission] 刻意**只认身份、不判生死**（同一行同一令牌但已终态时，
+     *   产出确实属于那一轮，盖戳不写错），生死由 [advance] 独占判定，返回 [Advance.Halted]。
+     * - 失败路：**没有** [advance] 这一层。[fail] / [timeoutRound] 是无条件写终态的纯函数，
+     *   执行层拿到 state 就直接写错误节点 + 落库 + 回收平票脚手架 + 清进程内镜像。
+     *   所以「轮次已终态」在这条路上无人拦截：残留的旧 job 一旦超时或报错，就会把
+     *   用户取消 / 已被判死的那一轮改写成 TIMEOUT / FAILED，并顺手抹掉同会话里
+     *   （可能属于新轮的）进程内镜像。这一条补的就是那个缺口。
+     *
+     * 返回类型复用 [CommitAdmission]：两条路回答的是同一个问题（「这次收尾能不能记进那一轮」），
+     * [CommitAdmission.Admitted.row] 就是本次该写终态的那一行；被拒时
+     * [CommitAdmission.Denied.row] 只用于写运行日志，**不得**拿它落库。
+     */
+    fun checkFailureAdmission(
+        jobRunToken: String?,
+        row: RoundState?,
+        targetRoundId: String,
+    ): CommitAdmission {
+        val identity = checkCommitAdmission(jobRunToken, row, targetRoundId)
+        if (identity is CommitAdmission.Denied) return identity
+        val target = (identity as CommitAdmission.Admitted).row
+        return if (GroupRunEntity.isTerminal(target.status)) {
+            CommitAdmission.Denied(
+                row = target,
+                detail = "轮次已终止（status=${target.status}），残留的失败收尾不再改写它的终态",
+            )
+        } else {
+            identity
+        }
+    }
+
+    /**
      * 单角色失败：本轮就此停止（不伪造回复）。
      *
      * 已完成角色留在 `committedRoleIds` 里（输出保留），失败角色**不**进 committed，
