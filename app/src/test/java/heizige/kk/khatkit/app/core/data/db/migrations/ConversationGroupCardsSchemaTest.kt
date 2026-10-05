@@ -121,7 +121,25 @@ class ConversationGroupCardsSchemaTest {
     fun migrationIsRegisteredInFactoryAndNotAutoMigrated() {
         val factory = sourceOf("src/main/java/heizige/kk/khatkit/app/core/data/db/AppDatabaseFactory.kt")
         val database = sourceOf("src/main/java/heizige/kk/khatkit/app/core/data/db/AppDatabase.kt")
-        val importBlock = factory.substringAfter(".addMigrations(").substringBefore(")")
+        val importBlock = migrationBlockOf(factory)
+        // 锚点存在性：切不出内容就红，绝不让它退化成「整个文件」（见 migrationBlockOf 的 KDoc）
+        assertTrue(
+            "AppDatabaseFactory 里必须找得到 `.addMigrations(` 注册块（长度 ${factory.length}，" +
+                "但切出 ${importBlock.length}）；锚点缺失时本护栏会退化成扫全文而恒真",
+            importBlock.isNotEmpty(),
+        )
+        // 反空跑（1）：切出来的必须只是 addMigrations 的实参列表，不含文件头的 import 区
+        assertFalse(
+            "切分退化：importBlock 里出现了 `import androidx.room` —— 说明 `.addMigrations(` " +
+                "锚点没命中、切分退化成扫全文，下面两条 contains 断言已被文件头的 import 行满足",
+            importBlock.contains("import androidx.room"),
+        )
+        // 反空跑（2）：实参列表必须远小于整个文件（465 vs 5836 量级，留 4 倍余量）
+        assertTrue(
+            "切分退化：importBlock 长度 ${importBlock.length} 相对整个文件 ${factory.length} " +
+                "太大了，说明切的不是 addMigrations 实参列表",
+            importBlock.length * 4 < factory.length,
+        )
         assertTrue(
             "AppDatabaseFactory.addMigrations 必须注册 Migration_31_32",
             importBlock.contains("Migration_31_32"),
@@ -208,6 +226,30 @@ class ConversationGroupCardsSchemaTest {
 
     private fun countOf(source: String, needle: String): Int = source.split(needle).size - 1
 
+    /**
+     * 切出 `.addMigrations(...)` 的**实参列表**文本（不含 `.addMigrations(` 本身与收尾括号）。
+     *
+     * ⚠️ 这里刻意**不用** `substringAfter(".addMigrations(").substringBefore(")")`。Kotlin 的
+     * `substringAfter` 在锚点找不到时**返回整个字符串**（不抛异常、不返回 null），于是
+     * `importBlock.contains("Migration_31_32")` 会被文件里**任意位置**的同名文本满足。
+     * 而 `AppDatabaseFactory.kt` 第 15-16 行正好就有两行
+     * `import ...db.migrations.Migration_30_31` / `Migration_31_32` —— 也就是说一旦
+     * `.addMigrations(` 这个锚点被改名/重构掉，切分退化成扫全文后，下面两条 contains
+     * 断言**照样绿**，护栏看着在守、其实一个字都没守。
+     *
+     * 所以这里手写 `indexOf` 硬切：**锚点缺失或括号不配平就返回空串**，让调用方的
+     * `assertTrue(isNotEmpty())` 立刻红掉，退化路径被彻底堵死。
+     */
+    private fun migrationBlockOf(source: String): String {
+        val anchorAt = source.indexOf(ADD_MIGRATIONS_ANCHOR)
+        if (anchorAt < 0) return ""
+        // 锚点末字符就是 `(`，实参从它后面开始
+        val openAt = anchorAt + ADD_MIGRATIONS_ANCHOR.length - 1
+        val closeAt = source.indexOf(')', openAt + 1)
+        if (closeAt < 0) return ""
+        return source.substring(openAt + 1, closeAt)
+    }
+
     private fun database(): Map<String, Any> = schema["database"] as Map<String, Any>
 
     private fun entities(schema: Map<String, Any>): Map<String, Map<String, Any>> =
@@ -248,6 +290,14 @@ class ConversationGroupCardsSchemaTest {
                     "工作目录=${File("").absolutePath}）。请先跑 :app:compileDebugKotlin 导出 schema。"
             )
         return SchemaMiniJson.parse(file.readText()) as Map<String, Any>
+    }
+
+    private companion object {
+        /**
+         * 切注册块的锚点。**刻意独立成常量**：变异检验要把它整体换成一个不存在的字符串，
+         * 用来证明「锚点缺失 → 返回空串 → 断言红」这条退化路径真的被堵死了（而不是退化后仍绿）。
+         */
+        const val ADD_MIGRATIONS_ANCHOR = ".addMigrations("
     }
 }
 
