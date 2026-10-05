@@ -224,8 +224,9 @@ class ChatManager(
     /**
      * 群聊轮次运行日志（`group_runs`）读写。
      *
-     * `ChatManager` 是由 `core/di/AppHiltModule.provideChatService` **手工装配**的（不是 `@Inject`
-     * 构造），而那个文件不在本包可改范围内，所以这里用 Hilt 的 `@EntryPoint` 取已有的单例 provider
+     * `ChatManager` 是由 `core/di/AppHiltModule.provideChatManager` **手工装配**的（不是 `@Inject`
+     * 构造；那个方法原来叫 `provideChatService`，返回的却是 `ChatManager`，已按产物改名），
+     * 而那个文件不在本包可改范围内，所以这里用 Hilt 的 `@EntryPoint` 取已有的单例 provider
      * （`RepositoryHiltModule.provideGroupRunDAO`）。若之后允许改 DI，应改回构造注入。
      */
     private val groupRunDAO: GroupRunDAO by lazy {

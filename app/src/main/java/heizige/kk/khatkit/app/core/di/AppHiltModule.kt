@@ -179,9 +179,16 @@ object AppHiltModule {
         khatKitToolProvider = khatKitToolProvider,
     )
 
+    /**
+     * 群聊生成管线的**唯一**装配点。
+     *
+     * ⚠️ 这个方法原来叫 `provideChatService`，返回的却是 `ChatManager` —— 名字与产物不符，
+     * 是「标识符 `chatService` 在仓库里指向两个不同的类」这个陷阱的源头。按名字改回产物名，
+     * Hilt 只看返回类型，重命名不影响任何注入点。
+     */
     @Provides
     @Singleton
-    fun provideChatService(
+    fun provideChatManager(
         context: Application,
         appScope: AppScope,
         appEventBus: AppEventBus,

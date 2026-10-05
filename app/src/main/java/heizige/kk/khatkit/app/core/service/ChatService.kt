@@ -83,6 +83,7 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.NotFoundException
 import heizige.kk.khatkit.app.core.util.applyPlaceholders
+import heizige.kk.khatkit.app.feature.chat.isGroupConversation
 import heizige.kk.khatkit.app.feature.chat.resolveNotificationSenderName
 import java.util.Locale
 import kotlin.uuid.Uuid
@@ -146,6 +147,33 @@ enum class ChatErrorSolution {
     CheckFastModelSettings,
 }
 
+/**
+ * ⚠️⚠️ **这是 `ChatManager` 的一份历史重复实现，不是第二个受支持的生成入口。**
+ *
+ * `AppHiltModule` 里那个 `@Provides` 方法（[provideChatManager]，以前叫 `provideChatService`）
+ * 返回的其实是 `ChatManager`，而全 app 真正在用的生成管线只有 `ChatManager` 一条。这个类之所以还在，
+ * 是因为 `HistoryVM` 与 `core/service/ChatGenerationForegroundService` 按**类型**注入它
+ * （Hilt 对具体类走 `@Inject constructor`），而它们各自只用到 `toggleConversationPinned`
+ * 与 `stopGeneration` 两个方法。
+ *
+ * ## 名字陷阱（这个类最真实的危害）
+ *
+ * 标识符 `chatService` 在仓库里指向**两个不同的类**：`ConversationRoutes` / `EventsRoutes` /
+ * `FolderRoutes` / `ChatViewModel` / `ChatDrawerViewModel` / `WebServerManager` 拿到的都是
+ * `ChatManager`，只有 `HistoryVM` 与 `core/service/ChatGenerationForegroundService` 拿到的是
+ * 这里的 `ChatService`。看名字完全看不出这一点。
+ *
+ * ## 为什么不把群聊逻辑搬进来
+ *
+ * 群聊契约（每轮只见自己的发言、按 viewer 过滤工具/检索/记忆、轮次预算与运行日志）**只**由
+ * `ChatManager` 一处实现，并且有 JVM 用例覆盖。这里若也加一份，就等于给全项目最安全攸关的
+ * 代码制造第二个真相来源：两处必然漂移，而**群聊一旦泄漏（整轮所有角色互相可见全部历史）
+ * 不会有任何测试变红** —— 现有用例全部直接调 `viewerMessages`，从不经过任何生成入口。
+ * 所以这里的做法是 **fail-loud**：[handleMessageComplete] 对群聊会话直接抛错，
+ * 把「静默跑错逻辑」换成「立刻炸」。
+ *
+ * 护栏见 `ChatServiceGroupChatFailLoudGuardTest`。
+ */
 class ChatService @Inject constructor(
     private val placeholderTransformer: PlaceholderTransformer,
     private val ocrTransformer: OcrTransformer,
@@ -618,6 +646,26 @@ class ChatService @Inject constructor(
     ) {
         val settings = settingsStore.settingsFlow.first()
         val initialConversation = getConversationFlow(conversationId).value
+
+        // ⚠️ fail-loud 闸门：群聊会话**绝不能**从这条管线发起生成。
+        //
+        // 本函数是 ChatService 里 `generationLoop.generateText` 的**唯一**调用点
+        // （另三处 `providerHandler.generateText` 属于 `finishInterruptedPendingTools`，
+        // 那是取消后续跑工具的旁路），所以把闸门放在这里就足以让「群聊经 ChatService
+        // 生成」在**结构上**不可能，而不是只靠调用方自觉。
+        //
+        // 不这么做的后果（四个泄漏点全中）：整轮所有角色互相可见全部历史，`conversation.
+        // currentMessages` 未经 `GroupPerspectiveTransformer`，工具不走 `viewerScopedTools`，
+        // 记忆空间用助手/全局空间而非 `group:<conv>:role:<role>`。契约「禁止在 UI 层
+        // 隐藏但仍发送」当场失效，且**没有任何测试会红**。
+        //
+        // 为什么不就地补一份群聊分支：见类 KDoc —— 那会造出第二个真相来源。
+        // 正确的群聊生成只在 `ChatManager.handleMessageComplete` 一处。
+        require(!isGroupConversation(initialConversation)) {
+            "ChatService 不支持群聊生成：群聊会话必须走 ChatManager.handleMessageComplete。" +
+                "请把注入点改成 ChatManager（AppHiltModule 里的 provider 返回的就是它）。"
+        }
+
         val assistant = settings.getAssistantById(initialConversation.assistantId)
             ?: settings.getCurrentAssistant()
         val model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
