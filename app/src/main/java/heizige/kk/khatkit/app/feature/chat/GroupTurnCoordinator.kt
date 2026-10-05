@@ -536,7 +536,15 @@ object GroupTurnCoordinator {
             ?: config.roles.firstOrNull { it.chair }?.id
     }
 
-    /** 候选集外的票一律丢弃；只收本轮、结构化、角色身份合法的票。 */
+    /**
+     * 候选集外的票一律丢弃；只收本轮、结构化、角色身份合法的票。
+     *
+     * `turnKind != TURN_ERROR` 与 [ChatManager.roundOutputPresent] 同一口径（负向判据，
+     * `turnKind` 可空时 null-safe：`null` 仍算产出）：失败节点不是发言。正文里拼的是
+     * `errorDetailOf` 的 `detail`，provider 会把上游原始响应体塞进异常消息，那里面完全可能
+     * 有一行能过 `parseBallot` 前缀的 `VOTE:`；而失败角色**不进** `committedRoleIds`
+     * （见 [fail]），重试同一 `round_id` 时陈旧失败节点仍留在轮次消息里，会顶替它那一轮的一票。
+     */
     fun collectBallots(
         config: GroupConfig,
         candidates: List<String>,
@@ -545,7 +553,11 @@ object GroupTurnCoordinator {
         if (candidates.isEmpty()) return emptyList()
         val roleIds = config.roles.map { it.id }.toSet()
         return roundMessages
-            .filter { it.role == MessageRole.ASSISTANT && it.roleId in roleIds }
+            .filter {
+                it.role == MessageRole.ASSISTANT &&
+                    it.roleId in roleIds &&
+                    it.turnKind != GroupChat.TURN_ERROR
+            }
             .mapNotNull { message ->
                 message.roleId?.let { GroupChat.parseBallot(message.toText(), it, candidates) }
             }
