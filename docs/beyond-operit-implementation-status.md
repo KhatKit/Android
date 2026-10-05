@@ -274,6 +274,43 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     平票脚手架两处漏回收 + 残留旧 job 两道守卫**，逐条见「第五批」那一段。
     ⚠️ **那一批修的是三个当时真的还在漏的缺陷**（不是补覆盖），
     **但同样不改任何判定**——零设备，四类产物一份未增。
+  - ⚠️⚠️ **再往后一批（`4336831f`，2026-10-06）：真实公网网关那条用例首次真机全绿**——
+    `realProviderRoundRecordsGenuineTokenUsage` `am instrument` **退出码 0** /
+    `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、
+    b `6645/58`、c `6904/242`，**Σ(prompt+completion) = 20780 与落库
+    `group_runs.spent_tokens` 精确相等**；三份产物 `adb pull` 回主机并记 SHA-256。
+    ⚠️ **十行状态列仍一个格都没动**（模型名非 wire 抓包 / 真机 UI 端到端零份 /
+    其余 4 条 mock 用例仍未真机全绿），逐条见下面「第六批」。
+  - ⚠️⚠️⚠️ **本轮（`33eb801e..a74c1820`，2026-10-06）：两个真机 Compose 必崩已修并真机
+    验证 + Coil 单例崩溃结构性修复 + 四项代码债收口。十例仍全部 `unverified`。**
+    逐条见下面新增的「第六批」那一节。**操作清单在
+    `docs/eval/c1-group-chat.md` 的「下一位怎么把剩下的做完（第六个窗口的操作清单）」**
+    ——按「需要设备 / 需要外部环境 / 零设备可做」三组分组，每项都带具体命令或步骤。
+
+### ⚠️ 第六批（`33eb801e..bed09118`，2026-10-06）：两个真机必崩 + Coil 结构性修复 + 四项代码债
+
+⚠️ **这一批横跨「真机 UI」「浏览器 / Coil」「群聊内核」三块**，所以它分别影响不同的缺口
+类别——但**没有一件改变任何用例的判定**。⚠️ **本轮没跑 gradle**（纯文档任务），
+下列数字都是**逐个 XML / 逐文件重新统计**的实测值。
+
+| commit | 改了什么 | 结论 / 边界 |
+|---|---|---|
+| `33eb801e` + `5d58f923` | 群配置面板补 `imageVector = tune`（原来 `painter` / `imageVector` **两个都不传**，MD3Exp 分支 `requireNotNull` 当场抛）+ 3 例源码护栏 | ✅ **真机已复验**：`logcat -c -b crash` 后开面板 + 滚动，`logcat -d -b crash -t 200` **为空**，全量 logcat grep 两个异常 **0 命中**，`uiautomator dump` 确认 15 个字段全渲染，面板内 5 次滚到底 + 3 次反向不崩（pid 恒定、focus 恒为本 app）。选 `tune` 的理由：与顶栏触发按钮 `GroupTopBar` 的 `Icon(tune, "群配置")` 同款、语义闭合；走 `imageVector` 这侧是因为**全仓 62 个调用点全用它**。⚠️ **四条边界**：**Miuix 完全没验** / 其余 **64 个调用点没逐个上真机** / **没在旧 APK 上先复现再对比**（原始栈是用户实测给的）/ **面板里的保存 / 二维码 / 扫码三个业务动作一个都没点** |
+| `71d1439e` + `54c196ca` | 同面板补 `scrollable = false`——根因是弹层与内容**两层 `verticalScroll` 叠加**，内层被量到无限高 + 3 例源码护栏 | ⚠️ **修法只加一行、不删内容的滚动**：面板内容长（九个配置字段 + 每角色一个 `RoleEditor` + 导入导出两段），整块表单应一起滚；而 `scrollable = true` 时 Khromia 那层带 `weight(1f, fill = false)`，滚动语义归弹层会让内容高度受权重影响。**两种组合二选一，两个都留着必崩**。⚠️ 同上四条边界 |
+| `ea482935` + `2766afc7` | **Coil 单例崩溃结构性修复**：`ImageLoader` 定义点从 `RouteActivity.onCreate` 的组合搬到 **`KhatKitApp : Application(), SingletonImageLoader.Factory`**，组件清单原样保留（crossfade / Ktor 网络栈 / P 以上 GIF、否则 `SvgDecoder`）+ 6 例源码护栏 | ⚠️ **根因不是 `b5c5ebcb`**（`git show --name-only b5c5ebcb` 里 grep `coil` **零命中**），而是**同一 instrumentation 进程的执行顺序**：`NodeTreeSmokeTest`（`createComposeRule()` 不带 Activity 渲染 `AsyncImage`）先把**内置默认** loader 钉死 → `BrowserRuntimeTest` 的 `ActivityScenarioRule` 拉起 Activity → `setSafe` 当场抛 → 整进程死。⚠️ **不用条件判断绕过**：那会在测试进程里**静默跳过自定义配置**，把崩溃换成更难查的行为不一致。⚠️⚠️ **真机效果本轮未验证**（按约束不碰设备）——磁盘上那份 `tests="10" failures="1"` 的 XML 是**修复前**的现场 |
+| `fa36c65c` / `06cf6181` / `bed09118` / `a74c1820` | 四项代码债：`ChatService` 第二份生成管线加 fail-loud 闸门（provider 同时按产物改名）、`abandonDanglingGroupRuns` 改分批读到清空、`onSuccess` 的 `null` 分支改按 `runToken` 清镜像、给已订正的 `ChatMessage` KDoc 加 2 例防回退护栏（**KDoc 一个字没改**） | ⚠️ **前三项的运行时行为全是零证据**（`require` 真不真抛、分批循环真机行为、`remove(key, value)` 的真实并发效果都没观测过），三条 gradle 命令只证明「编译过 + 单测绿」，**不构成任何契约验收证据**。逐条见 B9 / B9b / B10 与 B14 / B15 |
+
+⚠️⚠️ **本批唯一改变数字的地方**（都是汇总值，逐条口径登记在 `c1-group-chat.md`）：
+`:app:testDebugUnitTest` **99 类 / 783 例 → 105 类 / 808 例**（`+6 类 / +25 例`，
+逐个 `TEST-*.xml` 用 Python + ElementTree 求和实测，`glob` 命中 105 个 XML）；
+C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
+`rows 40 / declared sum 408 / mismatch vs XML: []`）；lint **0 error**、app
+**584W+6H=590**、15 模块 **617W+7H=624**（与上一窗口**逐位相同**）；
+`app/src/androidTest` **git 跟踪口径仍是 61**（含那个**未入库**的
+`C1GroupUiE2EFixtureTest.kt` 是 **64**）。
+⚠️ **台账锚点 `1b0e04a9` 的 78 个 commit 仍然没有被重算**，本批 10 个 commit 全部追加进
+`docs/eval/c1-group-chat.md` 台账的「锚点之后的后续提交」小节。
+⚠️ **本轮 `docs/beyond-operit-client-changes.md` 一字未动**（按约束）。
 
 ### ⚠️ 本轮（`af104850..6ba95422`）四批修复 + 两个门禁，一句话索引
 
@@ -435,7 +472,7 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 | 3 记忆接线 | 代码层已实现 | `MemorySpaceGateTest` 9 / `MemoryToolScopeTest` 7 / `MemoryAttributionTest` 9 / `GroupMemorySpacePolicyTest` 6 / `MemoryExtractorParseTest` 7 / `MemoryRoleIdMappingTest` 2 | 无 |
 | 4 vote 结构化 | 数据结构层已实现，传输层仍是文本约定（见遗留 B5）。⚠️ **第五批（`e72793e6` / `8a5f89d7`）把平票裁决脚手架在 `cancelActiveGroupRun` / `abandonDanglingGroupRuns` 两条终态出口上的漏回收补上了** | `GroupTurnCoordinatorTest` 63 的投票/平票组<br>⚠️ **（第五批后是 84；`GroupTieBreakScaffoldingDropSourceGuardTest` 3 → 7）** | 无 |
 | 5 导出 / 恢复 | 代码层已实现（含相机扫码入口），**角色卡元数据已真落库**（见 B1） | `GroupTavernExportTest` 22 / `TavernCompatTest` 21 / `QrScannerSheetTest` 16 / `GroupChatTest` 18 / `GroupRoleCardsPersistenceTest` 7 / `ConversationGroupCardsSchemaTest` 7 | 无；酒馆本体打开 `.jsonl`、真机相机扫码、导出文件 SHA-256 三项全未验；`Migration_31_32_Test` 6 条未跑 |
-| 6 UI 复用管线 + 头像组 + 筛选 | 代码层已实现，一行 Compose 未上屏。**本轮还修掉了这条路上的两个真实缺陷**：5 条搜索查询的 LIKE 未转义（已加 `ESCAPE`）、14 处 `ORDER BY` 缺 `id` 兜底（已补） | `ConversationListQueryPlanTest` 7 / `ConversationTypeFilterSourceGuardTest` 2 / **`ConversationSearchLikePatternTest` 12** / `GroupSpeakerResolverTest` 8 / `GroupRoleCompletionProviderTest` 8 / `GroupChatTest` 18 | 无；`ConversationDAO` 的 SQL 在**真机 Android SQLite** 上的行为也未验（**主机侧**已由 C1-S 重放钉住 438 条断言，见 B7） |
+| 6 UI 复用管线 + 头像组 + 筛选 | 代码层已实现，一行 Compose 未上屏。**本轮还修掉了这条路上的两个真实缺陷**：5 条搜索查询的 LIKE 未转义（已加 `ESCAPE`）、14 处 `ORDER BY` 缺 `id` 兜底（已补）。⚠️ **第六批（`33eb801e` / `71d1439e`）修掉了群配置面板两个真机必崩并在真机上复验过**（面板 15 个字段全渲染 + 5 滚 3 反不崩），⚠️ **但「一行 Compose 未上屏」这句话现在只对「群配置面板以外」成立**——**成员头像组 / @ 选择器 / 抽屉筛选 chip 三项仍一项都没上过屏**，面板里的保存 / 二维码 / 扫码三个业务动作也一个都没点 | `ConversationListQueryPlanTest` 7 / `ConversationTypeFilterSourceGuardTest` 2 / **`ConversationSearchLikePatternTest` 12** / `GroupSpeakerResolverTest` 8 / `GroupRoleCompletionProviderTest` 8 / `GroupChatTest` 22 | ⚠️ **部分有值**：`GroupConfigSheet` 的渲染与滚动已在真机验证（`KedgeStyle.MD3Exp`），⚠️ **Miuix 未验、业务动作未点、头像组 / @ 选择器 / 筛选 chip 零份**；`ConversationDAO` 的 SQL 在**真机 Android SQLite** 上的行为也未验（**主机侧**已由 C1-S 重放钉住 438 条断言，见 B7） |
 | 7 构建与退出码 | **已拿到硬证据** | 见 `docs/eval/c1-group-chat.md`「构建与验证证据」（三条命令退出码全 0） | 不适用 |
 
 ⚠️ **读上面这张表之前先知道一件事：本轮改了一行既有测试断言的期望串。**
@@ -544,6 +581,23 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     这三个缺陷恰好是**仪器测试原理上覆盖不到**的那一类——要在**真实协程取消 +
     真实流式响应 + 真实 DAO 时序**下才可能复现，所以「没动 androidTest」不是漏做，
     是**没有可写的仪器用例**。
+  - ⚠️⚠️⚠️ **第六批（`33eb801e..a74c1820`）给 A 段加了几条新的设备侧缺口，
+    契约 `:206` 四类产物仍一份未增。** 本批修的是两个真机 UI 必崩 + 一个 Coil 崩溃 +
+    四项代码债，**契约那四类产物一份未增**，所以上面每一条的状态**一个字没变**。
+    新增的设备侧缺口，逐条：
+    1. **Coil 修复的真机效果**（B15）——本轮**按约束不碰设备**，「全量仪器测试能跑完」
+       这句话**目前零证据**。验证只需一条 `./gradlew --offline :app:connectedDebugAndroidTest`。
+    2. **Miuix 风格下的群配置面板零验证**（B12）——两个崩溃都只在 `KedgeStyle.MD3Exp`
+       触发过（读代码结论），**Miuix 下这个面板的行为完全没测**。
+    3. **面板的业务动作零点击**（B12）——本轮只验了**渲染与滚动**，**保存 / 生成二维码 /
+       扫码导入三个动作一个都没点**；⚠️ **扫码那条同时覆盖 C1-09 的相机链路**
+       （CameraX + MLKit 至今没在设备上跑过）。
+    4. **四项代码债的运行时零观测**（B16）——`require` 真不真抛 / 分批循环真机行为 /
+       `remove(key, value)` 的真实并发效果，都要在真机上造出对应时序才能验。
+    5. ⚠️ **「真机 UI 端到端仍然零份」这一条的口径本轮收窄了一点点、但没消失**：
+       群配置面板的**渲染 + 滚动**在真机上验过了（`uiautomator dump` 15 个字段全在、
+       5 滚 3 反不崩），**但成员头像组 / @ 选择器 / 抽屉筛选 chip 三项一项都没做**，
+       面板业务动作也没点。**所以 C1-10 / C1-01 的 UI 那一半仍然是零证据。**
 
 **B. 已知遗留与风险（代码层，需要产品/架构决策）**
 
@@ -829,10 +883,62 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   ⚠️ **真机复现要人工编排时序**：同一会话里一条长生成在飞 → 期间发新消息把它判死 →
   等旧 job 跑完（或反过来先超时）。这不是「跑一遍测试」能覆盖的，
   所以这一整类缺陷**目前只有代码层证据**。
-  ⚠️ 顺带说明：**`361c7cf6`（仓库当前 HEAD）不属于 C1**——`git show --stat` =
+  ⚠️ 顺带说明：**`361c7cf6` 不属于 C1**——`git show --stat` =
   1 file / 14 insertions / 3 deletions，只改 `core/ui/components/message/ChatMessage.kt`
   的 KDoc（订正遗留第 20 条里 fork 那一半的禁因措辞）、**零测试改动**，
   所以它与本文件的任何测试数字都无关。
+  ✅⚠️ **第六批补了防回退护栏（`bed09118`，`GroupForkDisableReasonSourceGuardTest` 2 例，
+  KDoc 一个字没改）**：① fork 段落不许把账目错位算到 fork 头上 ② **姊妹例**要求
+  重新生成 / 删除那两半必须保留它们自己的账目错位理由（防止整段被一刀切删掉）。
+  ⚠️ **护栏钉的是禁因的归属、不是逐字文案**。
+- ⚠️ **B12 群配置面板两个真机必崩已修（`33eb801e` / `71d1439e`），四条边界没消。**
+  **① Miuix 风格完全没验**——两个崩溃都只在 `KedgeStyle.MD3Exp` 触发（**读代码**结论：
+  Miuix 分支不走 `requireNotNull`，且 `PrimaryBottomSheet` 的 KDoc 写明 Kedge 版
+  「靠内容自身滚动，忽略该参数」），**Miuix 下这个面板的行为零证据**；
+  **② 其余 62 个 `PrimaryBottomSheet` 调用点没逐个上真机**（⚠️ **62 是本轮实测**：`app/src/main` 里 `grep -rn "PrimaryBottomSheet("` = 66 处命中，减去定义文件里 4 处；**把 `src/test` / `src/androidTest` 算进去是 68**。⚠️ **「64」这个数两种口径都复现不出来，本轮按 62 登记**；只有群配置面板真开过）；
+  **③ 没在旧 APK 上先复现再对比**（原始栈是用户实测给的，靠**栈帧行号**对得上）；
+  **④ 面板里的保存 / 生成二维码 / 扫码导入三个业务动作一个都没点**，只验了渲染与滚动。
+  ⚠️ 顺带一条**可复用的教训**：源码文本护栏扫 Compose 调用点**不能靠括号配平**——
+  `content` 是**尾随 lambda、大括号在右括号外面**，第一版护栏整段漏扫内容体，
+  **主断言因「谁都不违规」而恒绿**，是靠另一条「反空跑」断言抓出来的。
+  **每批源码护栏都必须自带一条「扫描器仍能找到东西」的断言。**
+- ⚠️ **B13 工作区里有两处「不是文档改动」的未提交内容——下一个人务必先看清楚。**
+  `git status --short` 当前是
+  `M app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernMacroExpander.kt`
+  （1 insertion / 1 deletion：`expandTavernMacros` 的宏正则结尾从 `}}` 改成显式转义
+  `\}` + `}`，**正则语义等价**；⚠️ **谁改的、为什么未知**）与
+  `?? app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/C1GroupUiE2EFixtureTest.kt`
+  （**461 行 / 3 条 `@Test`**，一次**被中断的「真机 UI 端到端」任务**留下的半成品）。
+  ⚠️ **本轮既没 add 也没改它们**；⚠️ **下一位 `git add -A` 会把两处一起卷进自己的提交**。
+  ⚠️ **`C1GroupUiE2EFixtureTest.kt` 让 `app/src/androidTest` 的 `@Test` 数从 61 变 64**——
+  引用「61」时必须写清是**git 跟踪口径**。处置：**要么补完单独提交（它正是 UI 端到端需要的
+  夹具），要么删掉**；⚠️ **删之前先读一遍**，那是目前唯一一份 UI 端到端夹具的成果。
+- ⚠️ **B14 `ChatService.finishInterruptedPendingTools` 里三处 `generateText` 同样不群聊感知，
+  且从 `stopGeneration` 可达（本轮新发现，未动手）。**
+  `fa36c65c` 的 fail-loud 闸门只在 `handleMessageComplete`（它是 `generationLoop.generateText`
+  的唯一调用点），**这条旁路走的是 `providerHandler.generateText`**，不在闸门覆盖范围内。
+  ⚠️ **修它要先定产品行为**：群聊下**跳过** vs **做成群聊感知**（后者等于要在这个类里
+  重建一套群聊语义）。**两者都改运行时行为、都需要真机**，所以只登记不动。
+  ⚠️ 别把它读成「闸门没覆盖全」——**那个闸门本来就不是为这条路径设计的**。
+  ⚠️ 顺带：`ChatService` 当前**零活跃构造点**（`HistoryPage` 没被任何路由引用、
+  `ChatGenerationForegroundService` **不在 `AndroidManifest.xml`** 里），
+  所以「这个类要不要留」本身就是个待决策项。
+- ⚠️⚠️ **B15 Coil 崩溃已修（`ea482935`），但真机效果零证据。**
+  修复本身是可核的（`git show --stat` = `KhatKitApp.kt` +63 / `RouteActivity.kt` −34），
+  崩溃现场也在磁盘上（`app/build/outputs/androidTest-results/connected/debug/` 那份
+  `tests="10" failures="1"` 的 XML）。⚠️ **但本轮按约束不碰设备，没有复跑过。**
+  验证只需一条 `./gradlew --offline :app:connectedDebugAndroidTest`，判据是
+  **XML 的 `tests ≈ 61`、`failures="0"`、不再出现该异常**。
+  ⚠️ **顺带订正一处归因**：早前把这条崩溃记成「来自 `b5c5ebcb`」是**不准确的**——
+  `b5c5ebcb` 一行 Coil 都没碰，它只是加了 2 个 androidTest 类**改变了执行顺序**，
+  把一直存在的隐患顶出来了（详见第六批那一节）。
+- ⚠️⚠️ **B16 四项代码债的运行时行为全是零证据。**
+  `require` 是不是真抛、分批循环在真机上的实际行为、`remove(key, value)` 的真实并发效果、
+  以及「`produced == null` 时 `failGroupTurn` 提前 return」的具体触发条件，**一条都没在
+  真机上观测过**。⚠️ **三条 gradle 命令（编译 / 单测绿）不构成任何契约验收证据**，
+  四组护栏也全是**源码文本级**的（仓库 `testImplementation` 只有 junit，
+  `commitGroupTurn` / `failGroupTurn` 这类 `private suspend` + 一堆 Hilt 协作者的路径
+  JVM 单测构造不出来）。运行时验证步骤见 `docs/eval/c1-group-chat.md` 操作清单 A8。
 
 ### 下一位的行动顺序
 
@@ -897,6 +1003,24 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
       `folder_id` 口径的现状钉成实测，方案 A / B 与推荐一个字没改；**定稿之后
       「改口径会先红是预期信号」这条仍然成立**。
 
+   8. ⚠️⚠️⚠️ **新增（2026-10-06，第六批之后）：本节下面那份「零设备 / 需要真机」的
+      清单已经过期，权威版是 `docs/eval/c1-group-chat.md` 的
+      「下一位怎么把剩下的做完（第六个窗口的操作清单）」**——它按
+      **「需要设备（A1-A8）/ 需要外部环境（B1-B4）/ 零设备可做（C1-C9）」三组**列了
+      每项的**具体命令或具体步骤**。这里只放三条最要紧的指针：
+      - **A1 全量仪器测试**（验证 Coil 修复，本轮唯一「跑一条命令就能验」的项）：
+        `./gradlew --offline :app:connectedDebugAndroidTest`，判据是 XML 的
+        `tests ≈ 61` / `failures="0"` / 不再出现那个 Coil 异常。
+      - **A2 `C1LiveModelSequenceTest` 其余 4 条**（现在只有第 5 条绿了）：
+        手动 `adb install -r -t` + `am instrument -e class '…#方法名'`，
+        ⚠️ **`#` 必须加引号**。
+      - **C1 先收拾工作区那两处未提交内容**（`TavernMacroExpander.kt` 与
+        `C1GroupUiE2EFixtureTest.kt`）——⚠️ **`git add -A` 会把它们卷进下一位的提交**。
+      ⚠️ **下面第 2 组（需要真机）的 7 条按惯例保留不覆写**，⚠️ **其中第 3、5、6 条的
+      现状已被第六批改变**：第 3 条「设备上没有 API key」**已被内置公共网关解掉**
+      （真实 usage 已采，见「C1 真机证据采集第三 / 第四轮」）；第 6 条「全量 56 条因 Coil
+      崩溃跑不完」**已修但未在设备上复跑**；第 5 条（扫码）**仍然零份**。
+
 2. **需要接真机**——⚠️ **2026-10-05 更新：真机已接上（OnePlus `PKG110` / Android 16 /
    API 36），第 1 / 4 / 6 条已部分或全部完成，第 3 / 5 条被「设备上没有 API key」挡住。**
    逐条现状：
@@ -940,7 +1064,7 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 | B1 工作流 | 规范 JSON、10 类节点、FlowSpec/Lua 导出、3 个等价性用例、Room 三表、失败跳过/续跑/取消、现有 `/api/events` 的 `workflow_run`、通知分类示例与逐步日志。对照见开源参考 B1。`docs/flow.md` §6 已完成 | 自由画布；自然语言经 GenerationLoop 生成；真机把 FlowSpec 交给 `khatkit__run_flow` 跑通卡片；成本统计接真实 Token |
 | B2 ToolPkg | 本地包校验、hooks 能力边界、插件设置 schema、Provider 声明解析、静态审计报告三样例；`marketNewKinds` 默认 false | dex 热加载、市场 UI、服务端上线后联调 |
 | B3 路由 | 三策略、Key 池指数退避/半开、预算降级或只读、7 个消费点调用 `taskBinding()`、统计页路由计数；对照见开源参考 B3 | 设置页策略编辑；价格表 JSON；真机 429 对话无感 |
-| C1 群聊 | 内核和一版 UI 已写入，**未验收**。详见上方「C1 交给下一位」。`docs/eval/c1-group-chat.md` 十例全部 `unverified` | 按该节缺口续写；补证据前不得把 C1 标成已完成 |
+| C1 群聊 | 内核和一版 UI 已写入，**未验收**。详见上方「C1 交给下一位」。`docs/eval/c1-group-chat.md` 十例全部 `unverified`。⚠️ **2026-10-06 第六批之后**：真实公网网关目标用例**首次真机全绿**（真实 usage + Σ 与落库精确相等 + 产物 SHA-256 已登记），两个真机 UI 必崩已修并真机复验，Coil 崩溃已结构性修复，**十例状态仍全部 `unverified`** | 按该节缺口续写；补证据前不得把 C1 标成已完成。⚠️ **权威操作清单 = `c1-group-chat.md` 的「下一位怎么把剩下的做完（第六个窗口的操作清单）」**（三组：A 需要设备 / B 需要外部环境 / C 零设备可做） |
 | C2 工作区 | 现有 workspace/proot 与文件工具可复用 | 五种模板与项目规则；preview；内容寻址 diff/revert 与聊天重发回滚；SSH/SFTP 许可评估和读写后端；APK/HTML 打包；端到端及路径穿越测试 |
 | C3 语音入口 | 现有 VoiceSessionController 可复用 | Sherpa 唤醒/前台服务/VAD/流式 ASR；全双工打断与草稿；ASSIST 面板、Widget、气泡、取词悬浮球；VITS 依赖包；真机误触/保活/500ms 打断/1s ASSIST 验证 |
 | C4 虚拟形象 | 尚未完成审计 | glTF 模块、五状态、口型/视线/情绪事件；桌面宠物；dependency 安装卸载；骁龙 7 系 60fps 真机验证 |
