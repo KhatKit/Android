@@ -50,6 +50,11 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
    以及 **`215296f1..6982869b` 那 8 个 C1-S 提交**（抽屉 type 筛选主机侧重放 +
    **修掉两个真实缺陷**）。**三批同样不计入**：78 / 6 / 17、前缀分布、子包分布
    **一个数都没动**，`d45ebd10~1..1b0e04a9` **没有被重算**。逐条见那三个小节。
+   ⚠️⚠️ **锚点之后现在累计到第五批（本轮 2026-10-05 晚是第四次追加）**：
+   `074e0e20..a9d2077e` 那 6 个（真实 HTTP 证据采集 + 三处测试修正）、
+   **`af104850..6ba95422` 那 6 个**（真实公网网关证据 + P0/P1/P2 三批补测 +
+   端点群聊门禁 + 平票脚手架回收）。**同样不计入**：78 / 6 / 17 与两张分布表
+   **一个数都没动**——**锚点 `1b0e04a9` 没有被重算**。
    「已实现」只描述代码写到哪一步，不等于任何用例通过。
 
 - **构建与 JVM 测试层全绿，有硬证据。** 三条离线命令都强制重跑、退出码 0：
@@ -67,6 +72,24 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   （`0 errors, 587 warnings, 6 hints`，**与基线逐位相同**；本轮碰过的
   `ConversationDAO.kt` / `ConversationRepository.kt` / `ChatDrawerViewModel.kt` /
   `ConversationSearchLikePattern.kt` **四个文件全部 0 命中**）。
+  ⚠️⚠️⚠️ **再往后一批（`af104850..6ba95422` 那 6 个 commit：真实公网网关证据 +
+  P0/P1/P2 三批补测 + 端点群聊门禁 + 平票脚手架回收）之后，上面那两个数都过期了。
+  当前的实测值是**（本轮纯文档任务，按要求没跑 gradle，这是逐个 XML 报告的求和实测）**：
+  - **`:app:testDebugUnitTest` = 97 个测试类 / 754 用例 / 0 failures / 0 errors /
+    0 skipped**（`glob` 命中 **97 个** `TEST-*.xml`；相对上一窗口的 92 / 723 是
+    **`+5 类 / +31 例`**，两个老类同时更新：`GroupTurnCoordinatorTest` 63 → 72、
+    `GroupChatTest` 18 → 22）。
+  - **lint 磁盘实测 = app `584 warnings + 6 hints` = 590 条、0 error；15 模块聚合
+    `617 warnings + 7 hints` = 624 条、0 error。** 上面那句「587 warnings / 6 hints」
+    与「与基线逐位相同」**按当时窗口保留、不覆写**——**差值 -3 全部落在 `app` 单模块**，
+    `app` 之外 14 个模块逐个复算仍是 Warning 33 / Hint 1（584+33 = 617、6+1 = 7）。
+    ⚠️ 这一轮**没有跑 `./gradlew lint`**，数的是磁盘上现有报告文件，**报告是哪一次
+    lint 生成的无法从 XML 里读出**。
+  - **合计那一行（15 模块 / 180 类 / 1291 tests）同样没重跑全仓 `test`、不更新**——
+    `app` 之外的 14 个模块本轮一个测试都没重跑。
+  逐类增量、逐模块 lint 明细与复算命令见 `c1-group-chat.md` 的「测试结果」与「lint」
+  两段。**C1 相关测试类台账**同步从 **30 类 / 335 例 → 35 类 / 366 例**（口径没变，
+  详见该小节的复算命令）。
 - **验收证据仍然一项都没有。** 契约 `docs/beyond-operit-client-changes.md:206`
   要求每例保存「各 viewer 可见消息集合 / 实际模型调用序列 / token 计数 /
   导出哈希」，`:232-235` 规定缺任一项就标 `unverified`。磁盘上这四类产物
@@ -181,6 +204,86 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     `docs/eval/c1-group-chat.md` 的「C1 真机证据采集第二轮」。
   - **诚实结论一句话：四类产物已全部有真机内容，但十例的验证矩阵仍不完整，
     0/10 不变。** 「每一列都填上了东西」和「这一行该判通过」是两件事。
+- ⚠️⚠️⚠️⚠️ **2026-10-05 第四个窗口（本文件最新的实测窗口，HEAD `6ba95422`）：
+  「真实 token 与真实调用序列」第一次不是 mock——用的是项目自带的免费公网网关，
+  设备直连公网；0/10 仍然不变。**
+  - **怎么不用 mock 也拿到真实 usage**：生产 `DEFAULT_PROVIDERS` 里本来就内置了一个
+    OpenAI 兼容网关（`core/data/datastore/DefaultProviders.kt:281-318`，
+    `name = "极客猫"`、`baseUrl = https://api.zenneko.top/v1`、`enabled = true`、
+    `builtIn = true`，**apiKey 已预填在源码 `:285`，本文只记行号不落明文**），
+    模型表带 `deepseek-v4-flash`（uuid `5a86b2d6…`）与 `glm-5.2`（uuid `8b6bf21c…`）。
+    **没改生产代码、没加测试专用后门**，设备**不经 `adb reverse`、不经本机 mock**
+    （上一轮那条路是 mock + `adb reverse`，这一轮两层都去掉了）。
+    ⚠️ 顺带纠正一处认知：内置 provider **没开** `useResponseApi`，实际走
+    `/chat/completions`，usage 取自 SSE 的 `stream_options.include_usage` 收尾块。
+  - **真实 usage（provider 返回的数字，不是任何估算）**：a `deepseek-v4-flash`
+    prompt **6803** / completion **159**；b `glm-5.2` **6667 / 68**；
+    c `deepseek-v4-flash` **6880 / 102**。
+    **Σ(prompt+completion) = 6962+6735+6982 = 20679**，落库
+    `group_runs.spent_tokens = 20679`，**精确相等**；`status=COMPLETED` /
+    `committed=[a,b,c]` / `skipped=[]` / `ended_at` 非空。
+    **实际模型调用序列 = `deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`**，
+    与按角色绑定**逐位一致** → `resolveGroupTurnModelId` + `TaskRoutes.resolve` 的
+    按角色选型**在真实调用下成立**。
+  - ⚠️ **prompt 6800 量级的来源已定位**：请求体 **25.7KB 里 24675 字节是 23 个工具的
+    定义**（按同一 wire body 本机复现得 6800/6526/6814，与真机同量级）。
+    ⚠️ **两个模型都是推理模型**：`max_tokens` 给小了会 `finish_reason=length`、
+    `content` 为空、token 全被 `reasoning_tokens` 吃掉，**给足配额才吐正文**。
+  - ⚠️⚠️⚠️ **但 0/10 仍然不变**，三条硬理由：
+    **① 这个用例没有一次全绿记录**——那一跑成功产出了上面全部数字，随后被设备 OEM
+    回收策略**杀掉进程**，`connectedAndroidTest` 又按预期**卸载 app、清空外置目录**，
+    **JSON 落盘文件没拉回来**，数字来自同一次成功生成的**内存快照**；
+    **② `actual_model_call_sequence` 里的模型名不是 wire 级抓包**——它由
+    `message.modelId` 的 uuid 经 provider 模型表**反查**（**app 不保存响应的 `model`
+    字段**），JSON 里已用 `wire_model_name_provenance` 字段显式标明；
+    **③ 真机 UI 端到端仍零份**（一行 Compose 没上过屏）。
+    按 `client-changes.md:232-235` 与本文的判定规则，**C1-03 / C1-04 / C1-09 /
+    C1-10 直接踩「真机或自动化证据」那条**；另外六行这一轮跑的是**无 @ 的 pipeline**，
+    各自点名的那条路径（显式 @ 收窄 / 取消 / 超时 / 预算截断 / 失败续跑 / 记忆空间）
+    **仍然没被真实调用过**。**十行状态列一个格都没动。**
+  - ⚠️ **一个只在真网关上现形的坑（mock 永远不会暴露）**：首版 persona 没写
+    「历史里别人的代号不是你的」，而 pipeline 本来就要把上一位发言放进下一位上下文，
+    **真模型照抄眼前那条的格式**——b 学走 a 的 `ROLECODE:A`、c 学走 b 的、
+    c 干脆零产出（`role_failed`）。已加第 3 条禁令，并按**真实 pipeline 链**
+    （a 的输出进 b、b 的进 c）本机跑 **2 轮 × 3 角色 = 6/6 通过**。
+    ⚠️ **但修完之后的真机全绿没跑到**（OEM 杀进程）。
+  - ⚠️⚠️ **新踩的设备侧限制：OnePlus OEM 回收策略会在 app 进程存活约 34-44 秒时杀
+    进程**（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占
+    313MB；设备当时被用户自己的应用占满——游戏 1.7GB、抖音 1.4GB，
+    `MemAvailable` 3.4GB，**不是真 OOM**）。⚠️ **既有 mock 用例同样被杀**，
+    所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报
+    `Process crashed`、**0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。
+    按「OOM 立即停止重试」共试 **11 次**后停止。**这是设备环境的限制，不是代码缺陷。**
+  - ⚠️ **顺带补全上一轮那条 mDNS 坑的「具体怎么断」**：
+    `adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；
+    要断的是 mDNS serial 本身 ——
+    `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），
+    因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。
+    ⚠️ **它会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。
+  - ⚠️ **本批还落地了四批代码层修复**（P0 保留值拒绝 / P1 覆盖盲区 ×2 /
+    端点群聊门禁 / `failGroupTurn` 回收平票脚手架），逐条见下一段。
+    **它们产出的是代码层覆盖与修复，不是契约 `:206` 点名的验收证据**，
+    所以**十例状态一个都没变**。
+
+### ⚠️ 本轮（`af104850..6ba95422`）四批修复 + 两个门禁，一句话索引
+
+详细版全部在 `docs/eval/c1-group-chat.md`（「C1 内核四批补测与修复」与
+「HTTP 端点群聊门禁 + `failGroupTurn` 回收平票脚手架」两节）。这里只列**结论**：
+
+| commit | 改了什么 | 结论 / 边界 |
+|---|---|---|
+| `af104850`（P0） | `GroupChat.validate` 拒绝 `role_id == SUMMARY_ID`（field 用 `roles[].role_id`），堵住「合成节点冒名 → 该角色全部发言对所有人无条件可见」 | ⚠️ **只收口在 `validate`、没动 `visibleMessages`，这是刻意的**：给 `SUMMARY_ID` 分支加 `&& turnKind == TURN_VOTE_SUMMARY` 会让**投票失败摘要**（用户可见的「[投票] 本轮未能得出结论：…」）**对所有视角一起消失**——拿可见性回归换一条已堵死的路径。⚠️ **UI 手输路径不存在**（`role_id` 在面板里是只读 `Text`），**唯一真实入口是外部 JSON 导入**；`TavernChatCodec.importGroup` 不 validate 但**当前无调用方、暂不可达**（已知遗留） |
+| `9844cbc4`（P1） | 补 `mention_role_ids` 放行分支的 JVM 覆盖：新增 `speaking()` helper（`assistant()` **没加参数**），三向全断 + 反向对照 | ⚠️ **先核实过原测试真没覆盖**：既有两处都把 `@` 挂在 **USER** 消息上，USER 本就无条件放行，**碰不到 mention 分支**；结构性原因是 `assistant()` helper **没有 `mentionRoleIds` 参数** |
+| `e7ad2a77`（P1） | 补视角过滤四个盲区：议长没进遍历 / 跨轮负向 / 同角色多条 / pipeline 只断 4 对非 9 对 | ⚠️ **盲区③拆成三条是被变异检验逼出来的**：只写两条时，删掉 `predecessorId` 分支的 `index >= roundStart` 守卫**没有任何用例失败**（既有全是单轮，`roundStart` 恒为 0，守卫是死代码）；补第三条跨轮用例后该变异才被抓住 |
+| —（P2） | `coerceAtLeast(0)` 的 fail-open：**探针实测不可达，未改** | `userlessWindows=36 crossRoundLeaks=0`（6 种轮数 × 13 种 limit）、`emptyPrefixes=6 userlessNonEmptyPrefixes=0`，并枚举了全部 4 个 `visibleMessages` 调用方。⚠️ 结论写进 KDoc：**「当前不可达」不是「结构上不可能」，新增调用方必须重跑探针** |
+| `87f9c209` | **HTTP 五个会话操作端点加群聊门禁**（**路径在 `app` 模块的 `ConversationRoutes.kt`，不在 `web`**；edit `:283` / fork `:299` / delete `:315` / select `:330` / regenerate `:346`），错误码 **409 Conflict**（照 `FolderRoutes.kt:69` 范式） | ⚠️ **五端点原本零 `isGroupConversation` 判断**，破坏链逐环实读成立：外来写入 → `roundOutputPresent` 返 false → 删整行 `group_runs` → 重新抢占 `spentTokens=0` → **整轮作废、全员重跑、预算被无声归零**。⚠️ **fork 的拒绝理由与评审不同**：`createForkConversation` 不复制 `group_config`/`type`，产物是单聊、对源会话只读，**破坏不了账目**；仍拒是因为 `ForkConversationResponse` 只回 `conversationId`、调用方无从分辨——文案据实写成「静默换了会话类型」。⚠️ **绕过门禁的坑已堵**：守卫必须排在 `initializeConversation` **之后**（未加载会话拿到的是 `groupConfig = null` 的空单聊占位，否则门禁形同虚设），源码护栏钉死顺序；`regenerate` 是唯一例外（本来就没有 `initializeConversation`，补上会改非群聊路径）。**变异检验两次真红**：删守卫 → 3 红；挪到 `initializeConversation` 之前 → 红 |
+| `e6764293` | `failGroupTurn` 补调 `dropTieBreakScaffolding` | 议长裁决那一轮生成失败时，平票 SYSTEM 脚手架会**永久留在会话里**，之后每轮所有角色都看到。⚠️ `completeGroupRound` 那侧 3 条对照用例**修复前就已经是绿的**，不是这次修复的证据 |
+
+⚠️ **两处已订正的认知错误（子代理纠正评审与我的说法，原文保留）**：
+`GroupConfigSheet` 的 `role_id` 是**只读 `Text`**、**UI 手输路径不存在**（「添加成员」
+生成的是 `role-N` 不是 UUID）；`tally` 那条**问题真实但机制描述反了**——`associateBy`
+保留的是**靠后（最新）**那条，所以裁决基于**最新立场**而非「过时立场」，
+但**旧票新票一起进候选池、票池被污染**这个结论仍然成立。
 
 这不是保守，是契约自己定的规则。**验收证据只认 `docs/eval/c1-group-chat.md`**；
 本节只描述现状与下一步，不代替证据、不改判定。
