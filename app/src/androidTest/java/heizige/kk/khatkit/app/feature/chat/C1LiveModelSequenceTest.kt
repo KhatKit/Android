@@ -31,6 +31,8 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
+import heizige.kk.khatkit.app.core.data.model.VoteBallot
+import heizige.kk.khatkit.app.core.data.model.VoteOutcome
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FilesRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
@@ -100,6 +102,25 @@ import kotlin.uuid.Uuid
  *    所以 pipeline 三角色里 **c 看得见 b 的话、看不见 a 的话**。
  * 3. **预算是 prompt+completion 累计**（`GroupTurnCoordinator.usageOf` 取
  *    `(promptTokens, completionTokens)`），不是 `TokenUsage.totalTokens`。
+ * 4. **`chairRound` 只在议长汇总那一步为真**（`GroupChat.plan` 的 `MODE_ROUNDTABLE` 分支：
+ *    非议长 `SpeakerStep(it)` 无 `predecessorId`、无 `chairRound`，议长 `SpeakerStep(chair,
+ *    chairRound = true)` 排在最后）。`GroupChat.visibleMessages` 的 `chairRound` 分支放开
+ *    本轮全部 ASSISTANT 消息——roundtable 用例据此断言「议长看得见全部、普通角色看不见」。
+ * 5. **vote 的候选集从不进 prompt**：`GroupChat.newRound` 的 `candidates =
+ *    config.voteCandidates.ifEmpty { parseCandidates(userText) }` 只把候选集交给计票判定，
+ *    没有一条 message 会提到它。所以「每个角色投给谁」必须由本测试经 system prompt 暗号
+ *    告知 mock（见 [persona] 的 `CANDIDATES:` / `BALLOT:`），而「票面没被共享」仍由
+ *    `buildContext` 的库内过滤独立证明。
+ *
+ * ## 配套的 mock 服务（`/tmp/opencode/roundtable-vote/mock_openai_v2.py`）
+ *
+ * 沿用 v1 的全部收尾格式（SSE 头、role-only opener、逐块 `flush()`、`finish_reason`、
+ * usage-only trailer、`data: [DONE]`、`Connection: close`）与 `ceil(bytes/4)` 的 token 口径，
+ * 只加了一条能力：system prompt 里出现 `BALLOT:` 时额外吐一行
+ * `VOTE: <id> | <理由>` —— `GroupChat.parseBallot` 只认 `trim()` 后整行以
+ * `BALLOT_PREFIX`（`"VOTE:"`）开头、且 id 在候选集内的行，v1 的散文回复认不出选票。
+ * 没有 `BALLOT:` 时 mock 的回复文本与 v1 **逐字相同**，所以 pipeline / 截断两个既有用例的
+ * 数字口径不变。
  *
  * ## 数据库隔离与其一处例外
  *
@@ -142,6 +163,19 @@ class C1LiveModelSequenceTest {
 
     private val mainCaseName = "main"
     private val budgetCaseName = "budget"
+    private val roundtableCaseName = "roundtable"
+    private val voteCaseName = "vote"
+
+    /**
+     * vote 候选集。两个候选、三张票，`a`/`b` 投 `opt-a`、`c` 投 `opt-b` —— 2:1 的真多数决，
+     * 于是 `GroupChat.tally` 返回 `VoteOutcome.Decided`，`resolveVote` 走 `Decided` 分支，
+     * `voteSummaryMessage` 才会真的写出 `__summary__` 节点（`ChatManager.completeGroupRound`）。
+     *
+     * 平票走的是 `TIE_CHAIR` 的**另一条分支**（`NeedsChairTieBreak`：多一轮议长裁决 + 脚手架
+     * 增删），本轮不覆盖它——那需要第三套夹具，且会与「三个角色各发一次」的序列审计混在一起。
+     */
+    private val voteCandidates = listOf("opt-a", "opt-b")
+    private val voteBallots = mapOf("A" to "opt-a", "B" to "opt-a", "C" to "opt-b")
 
     /** 预算充足轮：三个角色都要发言。 */
     private val mainBudget = 100_000
@@ -164,17 +198,39 @@ class C1LiveModelSequenceTest {
      * 每角色独有的，而且「谁的 system prompt」正是「谁在说话」本身。mock 服务据此
      * 判定每个请求的发言者与 case。
      */
-    private fun persona(caseName: String, code: String) = buildString {
+    /**
+     * @param ballot 该角色要投的候选 id；非 null 时才埋 `CANDIDATES:` / `BALLOT:` 暗号。
+     *
+     * 为什么暗号要埋在 **system prompt** 里而不是指望模型「自己知道候选集」：vote 模式下
+     * 候选集**根本没进 prompt**——`GroupTurnCoordinator.roundPlanFor` 调
+     * `GroupChat.newRound`，候选集来自 `config.voteCandidates` 或用户文本的
+     * `候选：a,b,c`，两者都不写进任何一条 message。所以 mock 无从「发现」候选，只能由
+     * 本测试显式告知；而 system prompt 是每角色独有的位置，和已有的 `ROLECODE:` 同一处。
+     *
+     * `BALLOT:` 只对被指定的角色埋：mock v2 只在 system prompt 里读到 `BALLOT:` 时才吐出
+     * 一行 `VOTE: <id> | <理由>`（`GroupChat.parseBallot` 要求 `trim()` 后整行以
+     * `BALLOT_PREFIX` 开头、id 在候选集内）。三人各投一张，凑出 2:1 的多数决，
+     * 这样 `resolveVote` 走 `Decided` 分支，`__summary__` 节点才会真的落库。
+     */
+    private fun persona(caseName: String, code: String, ballot: String? = null) = buildString {
         append("你是 KhatKit C1 群聊验证角色。")
         append("CASE:").append(caseName).append(" ")
         append("ROLECODE:").append(code).append(" ")
+        if (ballot != null) {
+            append("CANDIDATES:").append(voteCandidates.joinToString(",")).append(" ")
+            append("BALLOT:").append(ballot).append(" ")
+        }
         append("你正在参加一场三人 pipeline 群聊。请用简短中文回复，不要调用任何工具。")
         // 撑长度：保证 mock 侧 ceil(bytes/4) 的 prompt token 明显大于 1，
         // 这样 limit=1 的截断用例一定在第一个角色之后触发，而不是「压根没超」。
         repeat(6) { append("补充设定：保持角色一致性，只讲事实，不写形容词，不复述他人发言。") }
     }
 
-    private fun mockSettings(caseName: String) = Settings(
+    /**
+     * @param ballots `ROLECODE` -> 要投的候选 id。只有 vote 用例传；pipeline / roundtable
+     *   传 null，system prompt 与上一轮提交的证据逐字一致。
+     */
+    private fun mockSettings(caseName: String, ballots: Map<String, String>? = null) = Settings(
         init = false,
         chatModelId = modelAId,
         fastModelId = modelAId,
@@ -195,9 +251,9 @@ class C1LiveModelSequenceTest {
             ),
         ),
         assistants = listOf(
-            assistant(assistantAId, "角色甲", caseName, "A", modelAId),
-            assistant(assistantBId, "角色乙", caseName, "B", modelBId),
-            assistant(assistantCId, "角色丙", caseName, "C", modelCId),
+            assistant(assistantAId, "角色甲", caseName, "A", modelAId, ballots?.get("A")),
+            assistant(assistantBId, "角色乙", caseName, "B", modelBId, ballots?.get("B")),
+            assistant(assistantCId, "角色丙", caseName, "C", modelCId, ballots?.get("C")),
         ),
     )
 
@@ -207,11 +263,12 @@ class C1LiveModelSequenceTest {
         caseName: String,
         code: String,
         modelId: Uuid,
+        ballot: String? = null,
     ) = Assistant(
         id = id,
         name = name,
         chatModelId = modelId,
-        systemPrompt = persona(caseName, code),
+        systemPrompt = persona(caseName, code, ballot),
         // 关掉一切额外能力：保证请求里只有 system + 对话消息，
         // viewer 隔离审计才不会被工具注入的 systemPrompt / 记忆注入干扰。
         enableMemory = false,
@@ -223,34 +280,60 @@ class C1LiveModelSequenceTest {
         enableRecentChatsReference = false,
     )
 
-    private fun groupConfig(caseName: String, budget: Int) = GroupConfig(
-        roles = listOf(
-            GroupRole(
-                id = "a",
-                name = "角色甲",
-                assistantId = assistantAId.toString(),
-                modelId = modelAId.toString(),
-                cardId = "card-$caseName-a",
-            ),
-            GroupRole(
-                id = "b",
-                name = "角色乙",
-                assistantId = assistantBId.toString(),
-                modelId = modelBId.toString(),
-                cardId = "card-$caseName-b",
-            ),
-            GroupRole(
-                id = "c",
-                name = "角色丙",
-                assistantId = assistantCId.toString(),
-                chair = true,
-                modelId = modelCId.toString(),
-                cardId = "card-$caseName-c",
-            ),
+    /**
+     * 三个角色的名单，pipeline / roundtable / vote 三个用例共用。
+     *
+     * 抽出来的原因不是「省行数」，而是三个用例必须拿到**逐字相同**的角色绑定，否则
+     * mock 侧按 `ROLECODE` 反查发言者、断言侧按 `roleId` 查消息，两边一旦漂移就查不
+     * 出是夹具变了还是行为变了。议长固定为 `c`（`chair = true`）。
+     */
+    private fun roles(caseName: String) = listOf(
+        GroupRole(
+            id = "a",
+            name = "角色甲",
+            assistantId = assistantAId.toString(),
+            modelId = modelAId.toString(),
+            cardId = "card-$caseName-a",
         ),
+        GroupRole(
+            id = "b",
+            name = "角色乙",
+            assistantId = assistantBId.toString(),
+            modelId = modelBId.toString(),
+            cardId = "card-$caseName-b",
+        ),
+        GroupRole(
+            id = "c",
+            name = "角色丙",
+            assistantId = assistantCId.toString(),
+            chair = true,
+            modelId = modelCId.toString(),
+            cardId = "card-$caseName-c",
+        ),
+    )
+
+    private fun groupConfig(caseName: String, budget: Int) = GroupConfig(
+        roles = roles(caseName),
         mode = GroupChat.MODE_PIPELINE,
         chairRoleId = "c",
         tokenBudgetPerRound = budget,
+    )
+
+    /** roundtable：议长汇总排在最后一位（`GroupChat.plan` 的 `filter { it.id != chair.id }` + 追加）。 */
+    private fun roundtableConfig(caseName: String, budget: Int) = GroupConfig(
+        roles = roles(caseName),
+        mode = GroupChat.MODE_ROUNDTABLE,
+        chairRoleId = "c",
+        tokenBudgetPerRound = budget,
+    )
+
+    /** vote：候选集由配置显式给出（不走用户文本的 `候选：a,b,c` 严格解析）。 */
+    private fun voteConfig(caseName: String, budget: Int) = GroupConfig(
+        roles = roles(caseName),
+        mode = GroupChat.MODE_VOTE,
+        chairRoleId = "c",
+        tokenBudgetPerRound = budget,
+        voteCandidates = voteCandidates,
     )
 
     @Before
@@ -593,6 +676,343 @@ class C1LiveModelSequenceTest {
     }
 
     // ==================================================================
+    // 用例 3：roundtable 一整轮 —— 前两位普通发言 + 议长汇总，共 4 次真实调用
+    // ==================================================================
+
+    /**
+     * roundtable 的关键差别只有一个参数：`chairRound = true`。
+     *
+     * `GroupChat.plan`（`GroupChat.kt:595-600`）把议长排到最后一位并标上 `chairRound`，
+     * 而 `GroupChat.visibleMessages`（`:547`）只在 `chairRound` 为真时放开
+     * 「本轮全部 ASSISTANT 消息」。所以本用例要证明的**不是**「议长也发言」——pipeline
+     * 的角色 c 本来就发言——而是：
+     *
+     * 1. 议长那一轮的请求里**同时**出现本轮另外两个角色的输出（看得见全部）；
+     * 2. 前两位普通发言轮的请求里**不出现**别人的输出（看不见非前驱；roundtable 的
+     *    非议长 step `predecessorId` 为 null，所以连前驱都没有）；
+     * 3. 汇总发言只由议长发出：`turnKind` 只有议长那条是 `chair`，前两条是 `speaker`。
+     */
+    @Test
+    fun roundtableRoundRecordsChairSummaryCallSequence() = runBlocking {
+        val caseName = roundtableCaseName
+        trace("roundtable:settings-update-begin")
+        settingsStore.update(mockSettings(caseName))
+        trace("roundtable:settings-update-done")
+        val config = roundtableConfig(caseName, mainBudget)
+        val conversationId = insertGroup(caseName, config)
+        evidenceConversations += conversationId
+
+        chatManager.sendMessage(
+            conversationId = conversationId,
+            content = listOf(UIMessagePart.Text("请三位依次发言，议长最后汇总。")),
+            answer = true,
+        )
+        trace("roundtable:sendMessage-returned")
+
+        val messages = awaitAssistantMessages(conversationId, expected = 3)
+        trace("roundtable:await-messages-done count=${messages.size}")
+        val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+        val expectedRoundId = GroupChat.roundIdFor(triggerId)
+        val run = awaitTerminalRun(conversationId, expectedRoundId)
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val byRole = assistants.associateBy { it.roleId }
+
+        assertEquals("三个角色都必须发言", setOf("a", "b", "c"), byRole.keys)
+        assertEquals("三个助手消息必须同属一轮", setOf(expectedRoundId), assistants.map { it.roundId }.toSet())
+
+        // ---------------- 断言 1：议长排在最后（plan 的顺序） ----------------
+        assertEquals(
+            "发言顺序必须是名单顺序 + 议长最后（GroupChat.plan 的 roundtable 分支）",
+            listOf("a", "b", "c"),
+            assistants.map { it.roleId },
+        )
+
+        // ---------------- 断言 2：只有议长那条是 turn_kind=chair ----------------
+        // 这是「汇总发言只由议长发出」的第一半：另外两个角色的轮次里没有汇总。
+        assertEquals(
+            "只有议长 c 的发言是 turn_kind=chair，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}" },
+            mapOf("a" to GroupChat.TURN_SPEAKER, "b" to GroupChat.TURN_SPEAKER, "c" to GroupChat.TURN_CHAIR),
+            assistants.associate { it.roleId to it.turnKind },
+        )
+
+        // ---------------- 断言 3：usage 必须来自真实响应 ----------------
+        assistants.forEach { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 响应里没带 usage，这条 token 证据就不成立"
+            }
+            assertTrue(
+                "角色 ${message.roleId} 的 prompt_tokens 必须为正",
+                usage.promptTokens > 0,
+            )
+            assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正", usage.completionTokens > 0)
+        }
+
+        // ---------------- 断言 4：token 对账 ----------------
+        val sumPromptCompletion = assistants.sumOf {
+            requireNotNull(it.usage).promptTokens + requireNotNull(it.usage).completionTokens
+        }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于议长三轮 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+        assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+        assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+        assertTrue("预算充足时不应有 skipped 角色，实际=${run.skippedRoleIds}", run.skippedRoleIds.isEmpty())
+        assertNotNull("运行日志必须已收尾", run.endedAt)
+
+        // ---------------- 断言 5：正文来自 mock 服务 ----------------
+        assistants.forEach { message ->
+            assertTrue(
+                "角色 ${message.roleId} 的回复必须来自 mock 服务（应含 CASE:$caseName 暗号），实际=${message.toText()}",
+                message.toText().contains("CASE:$caseName"),
+            )
+        }
+
+        // ---------------- 断言 6：视角隔离（从真库读回的消息上判定） ----------------
+        // roundtable 的普通 step：`predecessorId = null`、`chairRound = false`
+        // （`GroupChat.plan` 的 `selected.filter { it.id != chair.id }.map { SpeakerStep(it) }`）。
+        // 所以 a 的可见集合里只有自己的（此刻为空）与用户消息，b 同样。
+        val seenByA = GroupChat.buildContext("a", messages, config, null).mapNotNull { it.roleId }
+        assertTrue(
+            "角色 a 看不见 b 或 c 的本轮发言（roundtable 非议长轮 predecessorId 为 null），实际=$seenByA",
+            seenByA.none { it == "b" || it == "c" },
+        )
+        val seenByB = GroupChat.buildContext("b", messages, config, null).mapNotNull { it.roleId }
+        assertTrue(
+            "角色 b 看不见 a 或 c 的本轮发言，实际=$seenByB",
+            seenByB.none { it == "a" || it == "c" },
+        )
+
+        // 议长：`chairRound = true` 放开本轮全部 ASSISTANT 消息。
+        val chairVisible = GroupChat.buildContext("c", messages, config, null, chairRound = true)
+        val seenByChair = chairVisible.mapNotNull { it.roleId }
+        assertTrue(
+            "议长必须看见本轮角色 a 的发言，实际=$seenByChair",
+            "a" in seenByChair,
+        )
+        assertTrue(
+            "议长必须看见本轮角色 b 的发言，实际=$seenByChair",
+            "b" in seenByChair,
+        )
+        // 反向：同样这批消息，不带 chairRound 时议长看不见别人——否则上面那条断言
+        // 就只是「过滤函数对所有人都不生效」这种假阳性。
+        val chairWithoutFlag = GroupChat.buildContext("c", messages, config, null).mapNotNull { it.roleId }
+        assertTrue(
+            "不传 chairRound 时议长不该看见他人（否则证明不了 chairRound 是放开开关），实际=$chairWithoutFlag",
+            chairWithoutFlag.none { it == "a" || it == "b" },
+        )
+
+        // ---------------- 断言 7：议长的汇总正文里带了它看到的那两人的暗号 ----------------
+        // 正文里的 `ROLECODE:` 是 mock 按收到的 system prompt 写的（见 mock v2 的
+        // `build_reply`），所以议长那条回复里出现 A/B，说明那两个角色的 system prompt
+        // 真的进了议长的请求体——这与断言 6 的库内过滤互为独立证据。
+        val chairText = byRole.getValue("c").toText()
+        assertTrue(
+            "议长的回复文本里应带自己的 ROLECODE:C，实际=$chairText",
+            chairText.contains("ROLECODE:C"),
+        )
+
+        // ---------------- 断言 8：前两位的正文里**没有**别人的暗号 ----------------
+        // 「汇总发言只由议长发出」的另一半：a、b 两条里不得出现议长的暗号，也不得出现
+        // 对方的暗号（对方发言根本没进它们的 prompt，mock 不可能凭空写出来）。
+        // 正则取正文里出现的**全部** ROLECODE 暗号，而不是「`contains(自己的)` 即可」——
+        // 后者在本轮就会假绿：文本里同时出现 A 和 B 时 `contains("ROLECODE:B")` 也为真。
+        // mock v2 的回复模板只嵌自己的暗号（`build_reply`），所以这里等于断言
+        // 「该角色的 prompt 里只有自己的 system prompt」。
+        val roleCodePattern = Regex("""ROLECODE:([A-Z])""")
+        listOf("a" to "A", "b" to "B", "c" to "C").forEach { (roleId, ownCode) ->
+            val codes = roleCodePattern.findAll(byRole.getValue(roleId).toText()).map { it.groupValues[1] }.toList()
+            assertEquals(
+                "角色 $roleId 的回复里必须只出现自己的 ROLECODE:$ownCode，实际=$codes",
+                listOf(ownCode),
+                codes,
+            )
+        }
+
+        writeEvidence(
+            "c1-live-evidence-roundtable.json",
+            roundtableReport(conversationId, config, messages, run, sumPromptCompletion),
+        )
+    }
+
+    // ==================================================================
+    // 用例 4：vote 一整轮 —— 三张选票 + 计票 + `__summary__` 节点
+    // ==================================================================
+
+    /**
+     * vote 的完整链路（本用例要一次跑通四段）：
+     *
+     * 1. `GroupChat.plan` 的 vote 分支（`GroupChat.kt:606`，`else -> selected.map { SpeakerStep(it) }`）
+     *    既不给 `predecessorId` 也不给 `chairRound`——三个角色互相看不见。
+     * 2. 每次发言的正文里有一整行 `VOTE: <候选id> | 理由`，
+     *    `GroupChat.parseBallot`（`:645-657`）按 `trim()` 后 `startsWith("VOTE:", ignoreCase)`
+     *    找第一条命中行，`substring(5).trim()` 后 `substringBefore('|').trim()` 取 id，
+     *    **id 不在候选集内直接丢票**。
+     * 3. `GroupTurnCoordinator.collectBallots`（`:398-410`）只收本轮、
+     *    `roleId` 属于群里角色的 ASSISTANT 消息，再 `parseBallot`。
+     * 4. `GroupChat.tally`（`:660-681`）多数决 → `VoteOutcome.Decided` →
+     *    `resolveVote` 的 `Decided` 分支（`:449-454`）→
+     *    `voteSummaryMessage` 写出 `role_id = __summary__`、`turn_kind = vote_summary` 的节点，
+     *    `ChatManager.completeGroupRound` 把它 append 进会话并把轮次收成 COMPLETED。
+     *
+     * 三票投成 2:1（a/b → `opt-a`，c → `opt-b`），所以不需要平票裁决那一支。
+     */
+    @Test
+    fun voteRoundRecordsBallotCallsAndSummarySequence() = runBlocking {
+        val caseName = voteCaseName
+        trace("vote:settings-update-begin")
+        settingsStore.update(mockSettings(caseName, ballots = voteBallots))
+        trace("vote:settings-update-done")
+        val config = voteConfig(caseName, mainBudget)
+        val conversationId = insertGroup(caseName, config)
+        evidenceConversations += conversationId
+
+        chatManager.sendMessage(
+            conversationId = conversationId,
+            content = listOf(UIMessagePart.Text("请三位各投一票，选出你支持的方案。")),
+            answer = true,
+        )
+        trace("vote:sendMessage-returned")
+
+        // 期望 3 条角色发言 + 1 条 `__summary__` 合成节点。
+        val messages = awaitAssistantMessages(conversationId, expected = 4)
+        trace("vote:await-messages-done count=${messages.size}")
+        val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+        val expectedRoundId = GroupChat.roundIdFor(triggerId)
+        val run = awaitTerminalRun(conversationId, expectedRoundId)
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val speakers = assistants.filter { it.roleId != GroupChat.SUMMARY_ID }
+        val summary = assistants.singleOrNull { it.roleId == GroupChat.SUMMARY_ID }
+
+        // ---------------- 断言 1：三个角色各发一条，另有且仅有 1 条 summary ----------------
+        assertEquals(
+            "vote 模式应产出 3 条角色发言 + 1 条 __summary__，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}" },
+            listOf("a", "b", "c", GroupChat.SUMMARY_ID),
+            assistants.map { it.roleId },
+        )
+        assertNotNull("必须有且仅有一条 __summary__ 节点（parseBallot + tally 的产出）", summary)
+
+        // ---------------- 断言 2：__summary__ 的三元组 ----------------
+        requireNotNull(summary)
+        assertEquals(
+            "__summary__ 节点必须是 turn_kind=vote_summary",
+            GroupChat.TURN_VOTE_SUMMARY,
+            summary.turnKind,
+        )
+        assertEquals("__summary__ 节点必须与本轮同 round", expectedRoundId, summary.roundId)
+        assertTrue(
+            "__summary__ 正文应由 voteSummaryMessage 生成（应含「本轮投票结果」与「票数」），" +
+                "实际=${summary.toText()}",
+            summary.toText().contains("本轮投票结果") && summary.toText().contains("票数"),
+        )
+
+        // ---------------- 断言 3：parseBallot 真的解析出了三张选票 ----------------
+        // 直接对**落库回来的正文**跑生产函数，而不是比对 mock 的意图：解析不出来就炸。
+        val ballots = speakers.mapNotNull { message ->
+            GroupChat.parseBallot(message.toText(), requireNotNull(message.roleId), config.voteCandidates)
+        }
+        assertEquals(
+            "三个角色都必须投出候选集内的有效选票，实际解析出 $ballots",
+            3,
+            ballots.size,
+        )
+        assertEquals(
+            "选票应按 a/b→opt-a、c→opt-b 分布，实际=$ballots",
+            mapOf("a" to "opt-a", "b" to "opt-a", "c" to "opt-b"),
+            ballots.associate { it.roleId to it.candidateId },
+        )
+        assertTrue(
+            "每张选票都应带上 mock 写入的理由（`|` 之后那段），实际=$ballots",
+            ballots.all { it.reason.isNotBlank() },
+        )
+
+        // ---------------- 断言 4：多数决结果 ----------------
+        val outcome = GroupChat.tally(ballots, config.voteCandidates, config.tiePolicy)
+        assertTrue(
+            "三张选票 2:1 应得出明确结论，实际=$outcome",
+            outcome is VoteOutcome.Decided,
+        )
+        val decided = outcome as VoteOutcome.Decided
+        assertEquals("胜者必须是 opt-a", "opt-a", decided.winner)
+        assertEquals("票数必须是 opt-a 2 / opt-b 1", mapOf("opt-a" to 2, "opt-b" to 1), decided.tally)
+        assertTrue(
+            "__summary__ 正文应带上胜者，实际=${summary.toText()}",
+            summary.toText().contains("opt-a"),
+        )
+
+        // ---------------- 断言 5：token 对账 ----------------
+        // 口径：只有**角色发言**的 usage 进 `spent_tokens`（`commitGroupTurn` 每次
+        // `advance` 加一次）；`__summary__` 由 `voteSummaryMessage` 本地构造，从不经过
+        // 模型，因此它的 `usage` 必须为 null，且不得计入。
+        speakers.forEach { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 响应里没带 usage，这条 token 证据就不成立"
+            }
+            assertTrue("角色 ${message.roleId} 的 prompt_tokens 必须为正", usage.promptTokens > 0)
+            assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正", usage.completionTokens > 0)
+        }
+        assertEquals(
+            "__summary__ 是本地合成节点，不该有模型 usage",
+            null,
+            summary.usage,
+        )
+        val sumPromptCompletion = speakers.sumOf {
+            requireNotNull(it.usage).promptTokens + requireNotNull(it.usage).completionTokens
+        }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于三条角色发言 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+        assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+        assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+        assertNotNull("运行日志必须已收尾", run.endedAt)
+
+        // ---------------- 断言 6：turnKind ----------------
+        assertTrue(
+            "三条角色发言的 turnKind 都应是 speaker，实际=" +
+                speakers.map { "${it.roleId}:${it.turnKind}" },
+            speakers.all { it.turnKind == GroupChat.TURN_SPEAKER },
+        )
+
+        // ---------------- 断言 7：视角隔离 ----------------
+        // vote 的 `SpeakerStep` 既无 `predecessorId` 也无 `chairRound`，所以
+        // `buildContext(x, ..., null, false)` 对每个角色只应返回「用户 + 自己的」。
+        // ⚠️ 这里必须把 `__summary__` 排除掉再判「看得见谁」。它**本来就该**各视角都可见
+        // （`GroupChat.visibleMessages` 的 `message.roleId == SUMMARY_ID -> true` 分支，票面
+        // 不算票：正文只有结果与票数，不含谁投了什么），首跑时忘了排除，断言以
+        // 「角色 a 只应看到自己的发言，实际=[a, __summary__]」炸掉——那是断言漏了
+        // 一个合法可见节点，不是隔离越权。
+        listOf("a", "b", "c").forEach { roleId ->
+            val allVisible = GroupChat.buildContext(roleId, messages, config, null)
+            assertTrue(
+                "角色 $roleId 应当看得见本轮投票结果摘要（__summary__ 对所有视角可见），实际=" +
+                    allVisible.mapNotNull { it.roleId },
+                GroupChat.SUMMARY_ID in allVisible.mapNotNull { it.roleId },
+            )
+            val seenBallots = allVisible
+                .filter { it.role == MessageRole.ASSISTANT }
+                .mapNotNull { it.roleId }
+                .filter { it != GroupChat.SUMMARY_ID }
+            assertEquals(
+                "角色 $roleId 只应看到自己那一张选票（vote 模式不共享票面），实际=$seenBallots",
+                listOf(roleId),
+                seenBallots,
+            )
+        }
+
+        writeEvidence(
+            "c1-live-evidence-vote.json",
+            voteReport(conversationId, config, messages, run, sumPromptCompletion, ballots, decided),
+        )
+    }
+
+    // ==================================================================
     // 报告组装
     // ==================================================================
 
@@ -710,6 +1130,156 @@ class C1LiveModelSequenceTest {
             }
         }
     }
+
+    /**
+     * roundtable 的证据报告。
+     *
+     * 除共用的 `device` / `bindings` / `messages` / `group_run` 块外，额外记下
+     * 「议长看得见谁 / 看不见谁」的两组对照：带 `chairRound` 与不带 `chairRound` 调同一个
+     * `buildContext`，两次结果必须不同——这才是「`chairRound` 是那个开关」的证据，
+     * 而不是「可见集合里恰好有别人」。
+     */
+    private fun roundtableReport(
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        sumPromptCompletion: Int,
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        return buildJsonObject {
+            put("evidence_kind", "real-http-capture-via-adb-reverse")
+            put("token_source", "real-response-usage-from-mock-openai-server")
+            put("model_sequence_source", "real-http-requests-logged-by-mock-server")
+            put("generated_at_device", System.currentTimeMillis())
+            put("mock_base_url", mockBaseUrl)
+            put("mock_server_version", "mock_openai_v2.py")
+            put("case", roundtableCaseName)
+            put("conversation_id", conversationId.toString())
+            put("mode", config.mode)
+            put("chair_role_id", config.chairRoleId)
+            put("token_budget_per_round", config.tokenBudgetPerRound)
+            put("device", deviceBlock())
+            put("bindings", bindingsBlock(config))
+            put("messages", messageBlock(messages))
+            put("group_run", runBlock(run))
+            put("sum_prompt_plus_completion", sumPromptCompletion)
+            putJsonObject("viewer_visible_message_ids") {
+                listOf(
+                    "a" to ViewerFlags(predecessorId = null, chairRound = false),
+                    "b" to ViewerFlags(predecessorId = null, chairRound = false),
+                    "c" to ViewerFlags(predecessorId = null, chairRound = false),
+                    "c(chairRound=true)" to ViewerFlags(predecessorId = null, chairRound = true),
+                ).forEach { (label, flags) ->
+                    putJsonArray(label) {
+                        GroupChat.buildContext(
+                            viewerRoleId = if (label == "c(chairRound=true)") "c" else label,
+                            messages = messages,
+                            config = config,
+                            predecessorId = flags.predecessorId,
+                            chairRound = flags.chairRound,
+                        ).map { it.id.toString() }.forEach { add(JsonPrimitive(it)) }
+                    }
+                }
+            }
+            putJsonObject("roundtable_visibility_expectation") {
+                put("a_sees", "system+user+own  (NOT b, NOT c)")
+                put("b_sees", "system+user+own  (NOT a, NOT c)")
+                put("c_without_chair_round", "system+user+own  (NOT a, NOT b)")
+                put("c_with_chair_round", "system+user+own+a+b  <- chair may see the whole round")
+            }
+            putJsonObject("speaker_order_and_turn_kind") {
+                assistants.forEach { message ->
+                    put(message.roleId ?: "?", message.turnKind ?: "?")
+                }
+            }
+            putJsonArray("assistant_role_order") {
+                assistants.forEach { add(JsonPrimitive(it.roleId)) }
+            }
+        }
+    }
+
+    /**
+     * vote 的证据报告。
+     *
+     * 额外记下三件从库里读回来的东西：**解析出的选票**（`GroupChat.parseBallot` 对落库
+     * 正文的真实结果）、**多数决输出**（`GroupChat.tally` 的 winner/tally）、以及
+     * `__summary__` 节点的正文与 `turn_kind`。
+     */
+    private fun voteReport(
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        sumPromptCompletion: Int,
+        ballots: List<VoteBallot>,
+        decided: VoteOutcome.Decided,
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val summary = assistants.firstOrNull { it.roleId == GroupChat.SUMMARY_ID }
+        return buildJsonObject {
+            put("evidence_kind", "real-http-capture-via-adb-reverse")
+            put("token_source", "real-response-usage-from-mock-openai-server")
+            put("model_sequence_source", "real-http-requests-logged-by-mock-server")
+            put("generated_at_device", System.currentTimeMillis())
+            put("mock_base_url", mockBaseUrl)
+            put("mock_server_version", "mock_openai_v2.py")
+            put("case", voteCaseName)
+            put("conversation_id", conversationId.toString())
+            put("mode", config.mode)
+            put("chair_role_id", config.chairRoleId)
+            put("vote_candidates", JsonArray(config.voteCandidates.map { JsonPrimitive(it) }))
+            put("tie_policy", config.tiePolicy)
+            put("token_budget_per_round", config.tokenBudgetPerRound)
+            put("device", deviceBlock())
+            put("bindings", bindingsBlock(config))
+            put("messages", messageBlock(messages))
+            put("group_run", runBlock(run))
+            put("sum_prompt_plus_completion", sumPromptCompletion)
+            putJsonObject("ballots_parsed_by_production_code") {
+                put("source", "GroupChat.parseBallot over the message text read back from the database")
+                put("ballot_prefix", GroupChat.BALLOT_PREFIX)
+                putJsonArray("ballots") {
+                    ballots.forEach { ballot ->
+                        add(
+                            buildJsonObject {
+                                put("role_id", ballot.roleId)
+                                put("candidate_id", ballot.candidateId)
+                                put("reason", ballot.reason)
+                            },
+                        )
+                    }
+                }
+            }
+            putJsonObject("tally") {
+                put("winner", decided.winner)
+                putJsonObject("counts") {
+                    decided.tally.forEach { (candidate, count) -> put(candidate, count) }
+                }
+                put("outcome_type", "VoteOutcome.Decided")
+                put("tie_branch_taken", false)
+            }
+            putJsonObject("summary_node") {
+                put("role_id", summary?.roleId ?: "<缺失>")
+                put("turn_kind", summary?.turnKind ?: "<缺失>")
+                put("round_id", summary?.roundId ?: "<缺失>")
+                put("has_usage", summary?.usage != null)
+                put("text", summary?.toText() ?: "<缺失>")
+            }
+            putJsonObject("vote_visibility_expectation") {
+                put("a_sees", "system+user+own ballot  (NOT b, NOT c, NOT summary-of-votes)")
+                put("b_sees", "system+user+own ballot  (NOT a, NOT c)")
+                put("c_sees", "system+user+own ballot  (NOT a, NOT b)")
+                put("summary_node", "synthetic; visible to every viewer but carries no model usage")
+            }
+            putJsonArray("assistant_role_order") {
+                assistants.forEach { add(JsonPrimitive(it.roleId)) }
+            }
+        }
+    }
+
+    /** [roundtableReport] 里描述一次 `buildContext` 调用的两个可选参数。 */
+    private data class ViewerFlags(val predecessorId: String?, val chairRound: Boolean)
 
     private fun budgetReport(
         conversationId: Uuid,
