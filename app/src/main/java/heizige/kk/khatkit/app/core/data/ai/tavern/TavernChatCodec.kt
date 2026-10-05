@@ -95,28 +95,15 @@ object TavernChatCodec {
         val first = array.first().jsonObject
         val header = if (first["mes"] == null && first["swipes"] == null) first else JsonObject(emptyMap())
         val messages = if (header.isEmpty()) array else JsonArray(array.drop(1))
-        return TavernChatDocument(
-            header = header,
-            messages = messages.map { element ->
-                val obj = element.jsonObject
-                val swipes = obj["swipes"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull }
-                    ?.ifEmpty { null }
-                    ?: listOf(obj.string("mes").orEmpty())
-                val selected = obj["swipe_id"]?.jsonPrimitive?.intOrNull?.coerceIn(0, swipes.lastIndex) ?: 0
-                val role = when {
-                    obj["is_system"]?.jsonPrimitive?.booleanOrNull == true -> MessageRole.SYSTEM
-                    obj["is_user"]?.jsonPrimitive?.booleanOrNull == true -> MessageRole.USER
-                    else -> MessageRole.ASSISTANT
-                }
-                TavernChatMessage(
-                    node = MessageNode(
-                        messages = swipes.map { text -> UIMessage.of(role, text) },
-                        selectIndex = selected,
-                    ),
-                    raw = obj,
-                )
-            },
-        )
+        // 消息解码只此一份（`documentFrom`）。本函数此前逐字抄了一份
+        // `swipes` / `swipe_id` / `is_system` / `is_user` → MessageNode 的解析，那是个定时
+        // 炸弹：JSONL / `{messages:[…]}` 包装两条入口走的是 `documentFrom`（经
+        // `importLines` / `importObjects`），数组入口走的是这份副本，而 [importGroup] 读的是
+        // **数组入口**。也就是说群聊导入与单聊导入读的是同一批酒馆字段、却走两份代码，任何一
+        // 侧改了 role 判定或 swipe 夹取，另一侧不会跟着变 —— 同一份文件按入口不同解出不同的
+        // `role` / `selectIndex`，且没有任何编译期信号。护栏见
+        // `TavernChatMessageDecodeGuardTest`。
+        return documentFrom(header, messages.map { it.jsonObject })
     }
 
     fun export(document: TavernChatDocument): String {
