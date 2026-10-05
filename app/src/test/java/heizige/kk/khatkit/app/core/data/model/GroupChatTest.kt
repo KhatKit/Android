@@ -139,50 +139,168 @@ class GroupChatTest {
     }
 
     /**
-     * `parseCandidates` 的 Markdown 修饰清理是**字符集 trim**，不是「剥一层前缀」：
-     * `trim('-', '*', '"')` 遇到空格就停，所以 `候选：- **a**` 清理不掉开头的 `- `，
-     * 留下 `" **a"` 这种带前导空格和残缺星号的候选 id。
+     * 缺陷② 已修：候选 id 的 Markdown 清理改成**逐个 id 规范化**（剥成对包裹 + 剥列表
+     * 符号），不再是 `String.trim('-', '*', '"')` 那种**按字符集 trim、遇非集合字符即停**。
      *
-     * 不是注入面（候选 id 还是得对得上 `VOTE:` 行才能成票），但会让「按 markdown 列表声明
-     * 候选」这条路走不通——`a` 和 `" **a"` 对不上，声明的候选和模型吐的票永远配不上。
-     * 本轮只钉现状，不改行为。
+     * 修前实测：`- **a**` 的 `- ` 后面那个空格让字符集 trim 提前收工，只去掉末尾的 `*`，
+     * 留下 `" **a"` 这种带前导空格和残缺星号的 id——「按 markdown 列表声明候选」这条路
+     * 永远配不上票面。
      */
     @Test
-    fun `markdown prefixed candidates are only trimmed when no space follows the marker`() {
+    fun `markdown decoration is normalised per candidate instead of by char set trim`() {
+        // 旧字符集 trim 覆盖到的两种写法，逐字不变。
         assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：-a , b"))
         assertEquals(listOf("a"), GroupChat.parseCandidates("候选：*a*"))
-        // 逐字钉住上面那个不一致：`- ` 后面的空格让 trim 提前收工。
-        assertEquals(listOf(" **a"), GroupChat.parseCandidates("候选：- **a**"))
+        // 缺陷本体：`- ` 的空格不再让清理提前收工。
+        assertEquals(listOf("a"), GroupChat.parseCandidates("候选：- **a**"))
+        // 成对引号 / 成对强调 / 同一次声明里叠加两种修饰。
+        assertEquals(listOf("a"), GroupChat.parseCandidates("候选：- \"a\""))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：**a**, - *b*"))
+        // 多层装饰循环到稳定。
+        assertEquals(listOf("a"), GroupChat.parseCandidates("候选：- ***a***"))
+        // 刻意**不**修的两种：不成对引号（宁可配不上票也不静默改写）与 `_`（snake_case
+        // 远比 markdown 下划线强调常见，剥它会毁掉 `_private_` 这类合法 id）。
+        assertEquals(listOf("\"a"), GroupChat.parseCandidates("候选：\"a"))
+        assertEquals(listOf("_a_"), GroupChat.parseCandidates("候选：_a_"))
     }
 
     /**
-     * **已知注入面：核实成立，本轮未修**（改 `parseCandidates` 需要先经确认）。
-     *
-     * `parseCandidates` 的正则是 `(?im)^\s*(?:候选|候选项|CANDIDATES?)\s*[:：]\s*(.+)$`。
-     * `m` 标志让 `^` / `$` **逐行**匹配，所以正文**任意一行**只要以（可空白前缀的）`候选：`
-     * 开头就会被当成候选声明，而不只是「整段文本的第一行」。已用真实实现实证：
-     * 断言空候选集时实际拿到 `[evil-a, evil-b]`。
-     *
-     * 但要按真实信任边界读：`newRound` 的 `userText` 只来自 `roundPlanFor` 取的
-     * **最后一条 USER 消息**（`messages.lastOrNull { it.role == MessageRole.USER }`），
-     * 模型正文根本到不了这里。所以只有用户自己能定义候选集——而他本来就能在第一行直接写
-     * `候选：…` 达成同样效果，**不存在越权提升**，只是比文档注释「显式声明」宽松。
-     *
-     * 修法若要做，正确口径是让 `^` 只锚定首行（去掉 `m`，或改用 `\A`），而不是加
-     * 「排除代码块」之类的启发式。本轮按纪律只钉现状。
+     * 「首个非空行」的判据用例：前导空行与纯空白行都被跳过，所以**前导空行不耽误声明
+     * 算数**；真正被排除的是「声明不在第一个非空行上」。
      */
     @Test
-    fun `a candidate declaration on any line is taken as the candidate set`() {
+    fun `leading blank and whitespace only lines are skipped before the declaration`() {
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("\n候选：a,b"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("\n\n   \t \n  候选：a,b"))
+        // 全是空白 → 空候选集。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("   \n  \t \n "))
+    }
+
+    /**
+     * 缺陷① 已修：声明只认**首个非空行**。
+     *
+     * 修前 `(?im)` 的 `m` 让 `^` 逐行匹配，正文**任意一行**只要以（可空白前缀的）`候选：`
+     * 开头就被当声明。真实后果不是越权注入（`userText` 只来自最后一条 USER 消息，模型正文
+     * 到不了这里），而是**用户意图错位**：用户粘一段引用了别人发言的文本、引用块里恰好有
+     * 一行 `候选：…`，那行会决定本轮候选集，而不是用户自己写的那行，且没有任何提示。
+     *
+     * `firstOrNull` 语义保持：只认第一条声明，绝不跨行收集。
+     */
+    @Test
+    fun `only the first non blank line may declare candidates`() {
+        // 修前实测拿到 `[evil-a, evil-b]`；修后正文深处那一行不再算声明。
         assertEquals(
-            "已知注入面：`(?im)` 的 m 让 ^ 逐行匹配，正文中段的一行也会被当声明",
-            listOf("evil-a", "evil-b"),
+            emptyList<String>(),
             GroupChat.parseCandidates("这是正文第一行\n候选：evil-a,evil-b\n这是正文最后一行"),
         )
-        // 反面：行内（非行首）出现不算声明——`^` 是逐行行首，不是任意位置。
+        // 首行与深处都有 → 只认首行（不收集全部）。
+        assertEquals(
+            listOf("first"),
+            GroupChat.parseCandidates("候选：first\n引用：\n> 候选：second"),
+        )
+        // 首行没有声明、深处有 → 判无候选集（本轮判失败），不猜。
+        assertEquals(
+            emptyList<String>(),
+            GroupChat.parseCandidates("请大家讨论\n引用：\n> 候选：second"),
+        )
+        // 行内（非行首）出现仍然不算声明——这条口径本来就没变。
         assertEquals(
             emptyList<String>(),
             GroupChat.parseCandidates("译注：原文提到“候选：red”"),
         )
+    }
+
+    /**
+     * 跨平台行分隔符：修后判据走 `lineSequence().firstOrNull { it.isNotBlank() }`，所以
+     * `lineSequence()` 的真实切行口径必须钉住，否则「声明只认首行」在 Windows 粘贴上悄悄
+     * 失效。实测见 `/tmp/opencode/candidates-fix2/probe-out.txt`（`kotlinc` + 独立复刻的
+     * 修后实现），结论是 `\n` / `\r\n` / 裸 `\r` **都**能切开。
+     *
+     * `\r\n` 尤其要钉：Windows 剪贴板粘进来就是它，切不出行的话上面「首个非空行」那条
+     * 判据在 Windows 上等于没加。
+     *
+     * 已知且**刻意不修**的假阴性：`lineSequence()` 只认 `\n` / `\r\n` / `\r`，**不认**
+     * Unicode 行/段分隔符 U+2028 / U+2029。所以「首行声明 + U+2028/U+2029 + 后续文本」
+     * 解析不出候选，返回空候选集。方向上是**失败关闭**而不是泄漏——下面两条断言钉住
+     * 「正文里的声明照样赢不了」——只是漏认不是越权。U+2028/9 在聊天输入里基本不出现
+     * （Android `EditText` / IME / 剪贴板都不产生）。要认它们就得先定义「U+2028/9 算不
+     * 算行分隔符」这条新规则，**修它要先经确认**，本轮只钉现状。
+     *
+     * 顺带实测到 Kotlin `Char.isWhitespace()` 与 Java `Character.isWhitespace` 在
+     * U+00A0 / U+202F 上**不一致**（Kotlin `true` / Java `false`，NBSP 类窄不换行空格）。
+     * 本实现只用 Kotlin 的 `isNotBlank()`，方向无害（NBSP 当空白更符合直觉），不影响
+     * 上面任何断言，故不在此钉桩。
+     */
+    @Test
+    fun `line separators are cut consistently so the first line rule survives cross platform pastes`() {
+        fun tag(sep: String) = "sep=" + sep.replace("\r", "<CR>").replace("\n", "<LF>")
+        for (sep in listOf("\n", "\r\n", "\r")) {
+            // 声明在首行算数，引用块深处那行不算数。
+            assertEquals(
+                tag(sep),
+                listOf("a", "b"),
+                GroupChat.parseCandidates("候选：a,b${sep}引用：${sep}> 候选：second"),
+            )
+            // 反向：声明不在首行（只隔一行）→ 空候选集，引用块赢不了。
+            assertEquals(
+                tag(sep),
+                emptyList<String>(),
+                GroupChat.parseCandidates("请大家讨论${sep}候选：second"),
+            )
+            // CRLF 的 `\r` 被分隔符吃掉，不进候选 id。
+            assertEquals(
+                tag(sep),
+                listOf("a", "b"),
+                GroupChat.parseCandidates("候选：a , b${sep}"),
+            )
+            // 前导空行（纯空白行）跳过，声明照样算数。
+            assertEquals(tag(sep), listOf("a", "b"), GroupChat.parseCandidates("${sep}  ${sep}候选：a,b"))
+        }
+
+        // ---- U+2028 / U+2029：钉「失败关闭」，不钉成「能认」 ----
+        assertEquals(
+            "U+2028 首行声明 + 后续文本：已知假阴性，解析不出候选（刻意不修）",
+            emptyList<String>(),
+            GroupChat.parseCandidates("候选：a,b\u2028引用：\u2028> 候选：second"),
+        )
+        assertEquals(
+            "U+2029 同上",
+            emptyList<String>(),
+            GroupChat.parseCandidates("候选：a,b\u2029引用：\u2029> 候选：second"),
+        )
+        // 关键：方向是失败关闭而非泄漏——正文深处的声明赢不了（U+2028/9 不当分隔符时，
+        // 整段文本是「一行」，首行无声明 + `$` 锚不到 → 空候选集）。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("请大家讨论\u2028候选：second"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("请大家讨论\u2029候选：second"))
+        // 单个 U+2028/9 顶在最前面时，`trim()`（Kotlin 视其为空白）会把它去掉，声明仍算数。
+        assertEquals(listOf("a"), GroupChat.parseCandidates("\u2028候选：a"))
+        assertEquals(listOf("a"), GroupChat.parseCandidates("\u2029候选：a"))
+    }
+
+    /**
+     * 反向对照：这些输入**改前改后逐字一致**，证明这次只动了「声明位置」与「id 规范化」
+     * 两处，没有顺手改掉别的行为。显式形态、大小写、空文本、格式错误全部照旧。
+     */
+    @Test
+    fun `unrelated inputs keep exactly the behaviour they had before the tightening`() {
+        assertEquals(listOf("a", "b", "c"), GroupChat.parseCandidates("候选：a,b,c"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选:a，b"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选项：a|b"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("  候选 ：  a 、  b  "))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：a,b,a"))
+        assertEquals(listOf("a", "b", "c"), GroupChat.parseCandidates("CANDIDATES: a|b|c"))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("candidates: a, b"))
+        assertEquals(listOf("a"), GroupChat.parseCandidates("Candidate: a"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates(""))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("   \n  \t "))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选："))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选：   "))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选：,,,|、、"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("CANDIDATESS: a"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("候选 a,b"))
+        // 单行声明后面跟空行/换行：老写法照旧算数（第一个非空行就是它）。
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：a,b\n\n"))
     }
 
     /**

@@ -768,16 +768,81 @@ object GroupChat {
         .map { it.id }
         .distinct()
 
-    /** 严格解析候选：仅接受 `候选：a,b,c` / `CANDIDATES: a|b|c` 这类显式声明。 */
+    /**
+     * 严格解析候选：仅接受 `候选：a,b,c` / `CANDIDATES: a|b|c` 这类显式声明，
+     * 且**声明必须落在首个非空行**。
+     *
+     * 「首个非空行」的判据：按 `\n` / `\r\n` 切行，取第一个 `isNotBlank()` 为真的行。
+     * 空行与纯空白（只有空格/制表符）行都算「空」而被跳过，被跳过的行不参与匹配——
+     * 也就是说前导空行不耽误声明算数，但声明本身必须在那第一个非空行上。
+     *
+     * 为什么限定首行：调用方 [newRound] 的 `userText` 只来自触发消息（最后一条 USER
+     * 消息，见 `GroupTurnCoordinator.roundPlanFor`），模型正文到不了这里，所以这不是越权
+     * 注入；真问题是**用户意图错位**——用户粘一段引用了别人发言的文本时，引用块里恰好有
+     * 一行 `候选：…`，旧实现的 `(?im)` 让 `^` 逐行匹配，那一行会决定本轮候选集，而不是
+     * 用户自己写的那行，且没有任何提示。限定首行后引用块里的声明再深也赢不了；首行有
+     * 声明就只认它，首行没有就判无候选集（本轮判失败），不猜。
+     *
+     * `firstOrNull` 语义不变：只取一条声明，绝不跨行收集。
+     */
     fun parseCandidates(text: String): List<String> {
+        // 正则只作用在**首个非空行**这一行上。不能改成 `(?i)\A\s*`——`\s` 含 `\n`，
+        // `\A\s*` 会跨过空行把后面某一行的声明照样捞进来，等于没改。
+        val declaration = text.lineSequence().firstOrNull { it.isNotBlank() } ?: return emptyList()
         val match = Regex(
-            "(?im)^\\s*(?:候选|候选项|CANDIDATES?)\\s*[:：]\\s*(.+)$",
-        ).find(text) ?: return emptyList()
+            "^(?:候选|候选项|CANDIDATES?)\\s*[:：]\\s*(.+)$",
+            RegexOption.IGNORE_CASE,
+        ).find(declaration.trim()) ?: return emptyList()
         return match.groupValues[1]
             .split(',', '，', '|', '、')
-            .map { it.trim().trim('-', '*', '"') }
+            .map(::normalizeCandidateId)
             .filter { it.isNotEmpty() }
             .distinct()
+    }
+
+    /**
+     * 单个候选 id 的规范化：剥**成对**的包裹符号，再剥**列表符号**前缀/后缀。
+     *
+     * 为什么不再用 `String.trim('-', '*', '"')`：那是**按字符集 trim、遇非集合字符即停**，
+     * 所以 `- **a**` 只会去掉末尾的 `*`，留下 `" **a"` 这种带前导空格和残缺星号的 id，
+     * 于是「按 markdown 列表声明候选」这条路永远配不上票面。
+     *
+     * 口径（重复应用到不再变化为止；每轮都严格变短，必然终止）：
+     *  1. 去首尾空白（沿用旧行为）。
+     *  2. 剥**成对**包裹：前后同为 `*` / `"` / `'`，剥完非空才剥（`**x**`、`*x*`、
+     *     `"x"`、`'x'` → `x`）。不成对就不动。
+     *  3. 剥列表符号：前缀处连续的 `-` / `*` / `+`（`-a` 与 `- a` 都算），
+     *     后缀处连续的 `-` / `*`。
+     *
+     * 会不会引入新的歧义：**会，但都小于现状**，逐条说清：
+     *  - 步骤 3 与旧实现的字符集 trim 同源——以 `-` / `*` 开头的 id 旧实现照样把首字符
+     *    吃掉，所以没有新增「本来能写、现在写不了」的 id。
+     *  - 步骤 2 是**新增**的：`"a"`、`'a'` 现在能规范化成 `a`（旧实现只能剥 `"`、
+     *    处理不了 `'`）。代价是字面就叫 `"a"` 的 id 无法再用这条路径表达；而票面
+     *    （`VOTE:` 行）比的是裸 id，两边口径一致，不产生「声明 a、票投 "a"」的错配。
+     *  - **不成对**的引号（`"a`）现在原样保留（旧实现会静默补成 `a`）。这是刻意收紧，
+     *    与「严格解析」一致：宁可让畸形 id 配不上票，也不静默改写用户写的东西。
+     *  - `_` / `__` **有意不剥**：`_` 在 snake_case id 里出现得远比 markdown 下划线强调
+     *    频繁，剥它会把 `_private_` 这类合法 id 改成 `private`。`__a__` 因此仍规范化为
+     *    `__a__`，这是已知且刻意保留的边界。
+     */
+    private fun normalizeCandidateId(raw: String): String {
+        var id = raw.trim()
+        while (true) {
+            val before = id
+            // 成对包裹：前后同为一种符号、剥完非空才剥。
+            if (id.length >= 2) {
+                val head = id.first()
+                val tail = id.last()
+                if (head == tail && (head == '*' || head == '"' || head == '\'')) {
+                    val inner = id.substring(1, id.length - 1).trim()
+                    if (inner.isNotEmpty()) id = inner
+                }
+            }
+            // 列表符号前缀（可连续）与后缀。
+            id = id.trimStart('-', '*', '+').trimEnd('-', '*').trim()
+            if (id == before) return id
+        }
     }
 
     fun plan(config: GroupConfig, mentionRoleIds: List<String>): List<SpeakerStep> {
