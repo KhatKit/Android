@@ -760,24 +760,65 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   创建分支 / 删除 / 分支切换（`:126` / `:217`）。理由是这些动作会改写消息，使
   `group_runs.committed_role_ids` 与实际消息错位。**要放开必须同步改写
   `committed_role_ids`**，不是纯 UI 改动。
-- ⚠️⚠️ **B9 `onSuccess` 里 `null -> groupRunsInFlight.remove(conversationId)` 的连带损伤
-  （`2fdee352` 附带发现，刻意没改）。**
-  `ChatManager.kt:1007` 那行在残留旧 job 走到这里时**镜像里装的是新轮的令牌**，
+- ✅ **B9 `onSuccess` 里 `null -> groupRunsInFlight.remove(conversationId)` 的连带损伤
+  （`06cf6181` 已修，运行时仍未验证）。**
+  **改前**：`ChatManager.kt:1007` 那行在残留旧 job 走到这里时**镜像里装的是新轮的令牌**，
   这一 remove 让**新轮再也取消不掉**（`cancelActiveGroupRun` 第一行就 `remove` 不到
   东西、直接 return）、续跑拿不到 `expectedRunToken`、**整轮卡死**。
-  ⚠️ **刻意不改**：① 改它会**动正常路径**——`produced == null` 时 `failGroupTurn`
-  可能提前 return，**那一次 remove 是镜像唯一的兜底清账**；② 本批的修法是**让拒绝走
-  `Advance.Halted` 而不是 `null`**，从而**绕开**这一行。⚠️ **这不是修好了这行，
-  是让这条路不再走到它**——将来任何新增的「返回 null」分支都会重新踩到它，
-  所以新分支一律走 `Halted`。
-- ⚠️ **B10 `abandonDanglingGroupRuns` 的 `limit = 8` 与契约有张力（未修，后果未核实）。**
-  `ChatManager.kt:2098` 取「挂着 `RUNNING` 的行」时写了 `limit = 8`（同样的常量也
-  出现在 `:853`）。契约说「**任何群聊轮次都不会永久悬挂**」，但**超过 8 条**时
-  **第 9 条起不会被判死**，仍是**永久 `RUNNING` 占位**。
-  ⚠️ **未修**；⚠️ **也未核实单会话能不能真的堆到 9 条并发 `RUNNING`**（`claimRound` 按
-  复合主键抢占、`RUNNING` 行每轮一条，理论上「连续 9 次发消息、每次都有一条轮次
-  没落终态」能堆出来，但那要求 **9 次判死路径全部失效**，本轮**零证据**）。
-  ⚠️ **别把它读成「已确认会永久悬挂」**——按「未修 + 后果未核实」登记。
+  ⚠️ 上一批**刻意没改**的理由是：① 改它会**动正常路径**——`produced == null` 时
+  `failGroupTurn` 可能提前 return，**那一次 remove 是镜像唯一的兜底清账**；
+  ② 那批的修法是让拒绝走 `Advance.Halted` 而不是 `null`，从而**绕开**这一行。
+  **改后**：`null ->` 分支改走 `clearGroupRunMirrorIfMine(conversationId, groupRunToken)`，
+  即 `ConcurrentHashMap.remove(key, value)` 的**两参**重载（值相等才删）。
+  **既有兜底行为为什么没被破坏**：`commitGroupTurn` 返回 `null` 的**唯一**形状是
+  `produced == null`，那条路里 `failGroupTurn` 会在**归属成立**时自己清镜像，所以剩下的
+  兜底只为「`failGroupTurn` 提前 return」而存在——而那些形状里镜像装的**正是本轮令牌**，
+  按令牌比对照清不误。真正被排除的只有「归属拒收」那一种：`failGroupTurn` 因拒收而**不碰**
+  镜像，镜像里是新轮的令牌，此时不删。
+  ⚠️ 令牌为 null（理论上不可达）时**宁可不删**：分不清镜像是谁的，新轮被误伤会整轮卡死，
+  而留下陈旧镜像只让 `takeGroupTurn` 的 `expectedRunToken` 失配一次。
+  ⚠️ **仍未验证**：真机上残留旧 job 的时序（零设备）；护栏是文本级的
+  （`GroupStaleJobCommitSourceGuardTest` 新增 2 例，变异检验两次真红）。
+- ✅ **B10 `abandonDanglingGroupRuns` 的 `limit = 8` 与契约有张力（`06cf6181` 已修，
+  运行时仍未验证）。**
+  **改前**：取「挂着 `RUNNING` 的行」时写了 `limit = 8`，于是**超过 8 条**时**第 9 条起
+  不会被判死**，仍是 `RUNNING` 占位，与契约「**任何群聊轮次都不会永久悬挂**」冲突。
+  （原注里「同样的常量也出现在 `:853`」是**巧合**——那一处是
+  `searchMemories(limit = 8)` 的记忆条数上限，语义无关。）
+  ⚠️ 上一批**未修**且**未核实单会话能否真的堆到 9 条并发 `RUNNING`**；本批仍未核实这一点，
+  但契约要求的是**清空**而不是「处理掉一部分」，所以按清空来做。
+  **改后**：**分批循环读到清空**——`ABANDON_BATCH_SIZE = 8` 只作分页大小、
+  `ABANDON_MAX_BATCHES = 64` 只作收敛上限；每判死前**重读一次**并跳过已终态的行
+  （`terminal()` 不判终态，盲目写会把别人的终态抹成 `CANCELLED`）。
+  ⚠️ **为什么必须留硬上限**：同一会话在本函数执行期间又抢占成功一轮时（残留旧 job 走到
+  `takeGroupTurn`），`RUNNING` 行数不单调减少，无界循环会自旋。撞上限的残余会在下一次
+  发消息时再被扫掉。
+  ⚠️ **仍未验证**：分批循环的真机行为（零设备）；护栏是**文本级**的
+  （`GroupRunAbandonDrainSourceGuardTest`，5 例，变异检验两次真红）。
+- ⚠️ **B9b `ChatService` 是 `ChatManager` 的第二份无群聊感知的生成管线
+  （`fa36c65c` 已加 fail-loud 闸门，运行时仍未验证）。**
+  `core/service/ChatService.kt` 与 `feature/chat/ChatManager.kt` 大段逐字重复，
+  它的 `handleMessageComplete` 四个泄漏点全中（传完整 `currentMessages`、不挂群聊
+  transformer、工具不走 `viewerScopedTools`、记忆空间用助手/全局空间）——整轮所有角色
+  互相可见全部历史，且**没有任何测试会红**（现有群聊用例全部直接调 `viewerMessages`，
+  从不经过生成入口）。
+  **已核实它当前不可达**，且比原判断更彻底：`ChatService` 只有两处注入
+  （`HistoryVM`、`core/service/ChatGenerationForegroundService`），各自只调
+  `toggleConversationPinned` / `stopGeneration`；而 `HistoryPage` **没有被任何路由引用**、
+  `core/service/ChatGenerationForegroundService` **不在 `AndroidManifest.xml`** 里
+  （清单里只注册了 `.feature.chat` 那个，它注入的是 `ChatManager`）。
+  ⚠️ 命名陷阱是真的：`AppHiltModule.provideChatService` 返回的其实是 `ChatManager`。
+  **修法**：**不复制群聊逻辑**（那会造出第二个真相来源），改成
+  - `handleMessageComplete` 顶部 **fail-loud**：`require(!isGroupConversation(…))`。
+    该函数是 `ChatService` 里 `generationLoop.generateText` 的**唯一**调用点，所以闸门放在
+    这里就让「群聊经 `ChatService` 生成」在结构上不可能。
+  - provider 按产物改名 `provideChatService` → `provideChatManager`（Hilt 只看返回类型）。
+  ⚠️ **仍未验证**：`require` 真的抛出属**运行时**行为，零设备；护栏是文本级的
+  （`ChatServiceGroupChatFailLoudGuardTest`，4 例，变异检验两次真红）。
+  ⚠️ **另有一处本轮未改**：`finishInterruptedPendingTools` 里的三处
+  `providerHandler.generateText` 同样不群聊感知（取消后续跑工具的旁路，从
+  `stopGeneration` 可达）。修它要先决定群聊下是**跳过**还是**做成群聊感知**，两者都改
+  运行时行为且需要真机，故只登记不动。
 - ⚠️⚠️ **B11 残留旧 job 那两条路径从未在真机上复现过（零设备）。**
   触发前提「`abandonDanglingGroupRuns` 不取消任何 job」是**读代码 + 核实
   `ConversationSession.cancelJobs()` 只被 `stopGeneration` / `cleanup()` 调用**
