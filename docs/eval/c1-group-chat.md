@@ -35,6 +35,44 @@ C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`；
     「验收记录格式」同源：「缺调用序列或缺哈希的行均不算通过」），十例仍然全部
     `unverified`，0/10 不变。** 四类里两类齐了不等于契约达成；`viewer 可见消息 ID`
     只覆盖了 **pipeline**，roundtable / vote 的 viewer 集合**没采**。
+- ⚠️⚠️⚠️ **2026-10-05 第三个窗口（本文件最新的实测窗口）：四类产物全部有真机内容，
+  但十例状态仍全 `unverified`。** 上面那个窗口的两条限制**都被这一轮解掉了**：
+  - **「没有 API key 所以第三、四类在原理上采不到」——解法是 `adb reverse`。** 往生产
+    单例 `SettingsRepository` 里装一个 base URL 指向 `http://127.0.0.1:8765/v1` 的
+    **自定义 OpenAI 兼容 provider**，设备侧 `adb reverse tcp:8765 tcp:8765` 打到开发机
+    上的 mock 服务，**没改生产代码、没加测试专用后门**，走的是
+    `ChatManager.sendMessage → GenerationLoop → ProviderManager → OpenAIProvider →
+    ChatCompletionsAPI.streamText → Ktor CIO OkHttpClient` **完整生产链路**。
+    请求特征 `User-Agent: ktor-client`、`accept: text/event-stream`、
+    `stream_options.include_usage: true`、**三个请求全 `stream=true`**。
+  - **「viewer 集合只覆盖 pipeline」——解法是夹具按三种 mode 各采一遍**（`a9d2077e`，
+    改的是夹具循环不是生产逻辑），越权审计三 mode 全部 `passed=true` /
+    `checked_pairs=6` / `violations=[]`。**roundtable 议长 `chairRound=true` 的
+    放行分支第一次被触发**。
+  - **四类产物现状**：**viewer 可见消息 ID**（三 mode 夹具层台账 + pipeline 真实 HTTP
+    台账）、**实际模型调用序列**（`mock-model-a → mock-model-b → mock-model-c`，
+    真请求）、**prompt+completion token**（main 773、budget 236，**与落库
+    `group_runs.spent_tokens` 逐条相等**）、**导出 SHA-256**（3 mode 真机文件 + 真机
+    `MessageDigest` + 本机 `sha256sum` 三重一致）。
+  - ⚠️⚠️ **但诚实结论是「四类产物已全部有真机内容，十例的验证矩阵仍不完整」，
+    0/10 不变。** 五项仍然缺（逐条见「C1 真机证据采集第二轮」的「仍然缺的」）：
+    **roundtable / vote 的真实 LLM 调用记录**（只有夹具层台账，真实 HTTP 零份）、
+    **酒馆（SillyTavern）本体打开群聊导出文件**、**真机 UI 端到端**（一行 Compose
+    没上过屏）、**相机扫码真机链路**（CameraX+MLKit 没在设备上跑过）、
+    **`BrowserRuntimeTest` 的 Coil 单例崩溃**（未修，全量 56 条仪器测试跑不完）。
+    另加两条诚实边界：**mock 不是真实模型**（是「真实 provider 代码路径 + 真实 HTTP +
+    真实 SSE + 真实 usage 报文」，不是「真实 LLM 推理」）；**显式 @ 的投递收窄
+    仍未在真机上单独观测到**（夹具的 `@` 落在用户消息上，用户消息对每个 viewer 都可见）。
+  - **仪器测试**：`connectedDebugAndroidTest` 类过滤跑 **28 例全绿、exit 0**
+    （3+12+7+6）；`C1LiveModelSequenceTest` 走手动 `am instrument`，**不挂住、3.6s 完成**。
+    ⚠️ `connectedAndroidTest` **跑完会卸载 app 并删掉外置目录里的证据文件**，采证据必须
+    手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull`。
+  - ⚠️ **这一轮还撞出并修掉了锚点之后第一个由真机证据定位的 main 源码 bug**
+    （`858c11d0`，`core/data/ai/GenerationLoop.kt`）：后续角色的产出被**并进上一位
+    已提交的发言**，导致该角色被误判「本轮没有产出内容」写成 `role_failed`。
+  - **同时登记两处新的测试断言修正**（`bff7b0c6` / `a9d2077e`）与一处更早的
+    `openGroupSession()` 修正（`47693445`）——详见「C1 真机证据采集第二轮」的
+    「敏感项」。全部定性为**测试代码自身缺陷，不是生产代码 bug**。
 - **十条用例仍然全部 `unverified`。** C1 的代码层已实现并落在仓库里，离线
   `testDebugUnitTest` / `lint` / `packageDebug` 三条命令本轮都真跑过且退出码 0，
   但契约 `:206` 点名要的四类证据——**各角色可见消息集合、实际模型调用序列、
@@ -1679,6 +1717,18 @@ C1-04（vote）要的**议长视角可见集合**因此仍然零份。
 6. **C1-10 的 UI 那半仍然是零证据。** 真机接上了不等于抽屉筛选录屏跑过了；
    `PagingSource` 并发失效 / 快照一致性 / 回滚一条没验。
 
+⚠️⚠️⚠️ **上面 6 条是第一个真机窗口的结论，按惯例保留不覆写。第二个窗口已经推翻了
+其中第 2、3 条**（详见下一节「C1 真机证据采集第二轮」）：
+
+| 原第几条 | 第一个窗口的结论 | 第二个窗口之后 |
+|---|---|---|
+| 2 | viewer 可见集合只覆盖 pipeline | ✅ **已推翻**：三 mode 各采一遍，越权审计三 mode 全 `violations=[]`，议长 `chairRound=true` 分支第一次被触发 |
+| 3 | token 与调用序列是「口径证据」不是「真实调用证据」 | ✅ **已推翻（部分）**：真实 HTTP 4 个请求 + `evidence_kind=real-http-capture-via-adb-reverse`，usage 与落库 `spent_tokens` 逐条相等。⚠️ 但 **roundtable / vote 仍零份**，且 **mock 不是真实模型** |
+| 5 | 没走过真实 IO 分发链路 | ⚠️ **仍然成立**：产物还是测试直接写 `getExternalFilesDir`，**酒馆本体能不能打开仍零证据** |
+
+⚠️ 第 1、4、6 条**至今仍然成立**：十例状态仍全 `unverified`、哈希仍只在固定夹具下可复现、
+C1-10 的 UI 那半仍零证据。
+
 ### C1 真机证据采集第二轮（2026-10-05，真实 HTTP：模型调用序列 + token 计数）
 
 登记于 commit `47693445` / `858c11d0` / `bff7b0c6` / `a9d2077e`
@@ -2514,9 +2564,33 @@ SHA-256。
 | 4. 导出 SHA-256 | ⚠️ **已采**（3 种 mode，真机文件 + 真机 `MessageDigest` + 本机 `sha256sum` 三重一致）。⚠️ 但**没走过 `ACTION_SEND` 真实分发**、**酒馆本体能不能打开仍然零证据**、**哈希只在固定夹具下可复现** |
 | 5. 仪器测试 | ✅ **25/25 全绿**（+ `C1DeviceEvidenceTest` 3 条，另有一轮合跑 **45/45**）。⚠️ 全量 56 条因 Coil 单例崩溃**跑不完**（未修） |
 
-**要补 API key 之外最短的路径**：把 `C1DeviceEvidenceTest` 的夹具从**单 mode** 扩成
-**三种 mode 各采一遍 viewer 集合**——代码已经能跑，改的是夹具循环，不是生产逻辑。
-在拿到 API key 之前，契约 `:206` 的第三、四类**在原理上就采不到**。
+⚠️⚠️ **第二个真机窗口之后（新增列，**上面「2026-10-05 之后的状态」那一列按惯例保留
+不覆写**）**：
+
+| 项 | 第二个窗口之后（2026-10-05 晚些时候） |
+|---|---|
+| 1. 可见消息 ID 台账 | ✅ **三 mode 全采**（`a9d2077e` 夹具按 mode 各采一遍，越权审计三 mode 全 `passed=true` / `checked_pairs=6` / `violations=[]`）+ ✅ **pipeline 真实 HTTP 台账**。⚠️ 仍缺：显式 @ 的投递收窄（夹具的 `@` 落在用户消息上）、取消/超时、记忆空间检索可见性 |
+| 2. 实际模型调用序列 | ✅ **已采**（`adb reverse` + mock，`mock-model-a → mock-model-b → mock-model-c`，真请求，`stream=true` / `ktor-client` / `include_usage`）。⚠️ **只跑了 pipeline**——roundtable 的议长汇总轮与 vote 的三张选票**真实 HTTP 零份**；且 mock 不是真实模型 |
+| 3. token 计数 | ✅ **已采**（main 773、budget 236，与落库 `group_runs.spent_tokens` **逐条相等**）。⚠️ 口径是 prompt+completion 累计；mock usage 是 `ceil(bytes/4)` 估算，**原始字节数已落盘可手算复核** |
+| 4. 导出 SHA-256 | ⚠️ **不变**（真机文件 + 真机 `MessageDigest` + 本机 `sha256sum` 三重一致）。⚠️ `ACTION_SEND` 真实分发**没走过**、**酒馆本体零证据**、**哈希只在固定夹具下可复现** |
+| 5. 仪器测试 | ✅ **28/28 全绿、exit 0**（`C1DeviceEvidenceTest` 3 + `GroupRunDAOTest` 12 + `Migration_30_31_Test` 7 + `Migration_31_32_Test` 6）；`C1LiveModelSequenceTest` 手动 `am instrument` **3.6s 完成**。⚠️ 全量 56 条仍因 Coil 单例崩溃**跑不完**（未修） |
+
+⚠️⚠️⚠️ **「四类产物都有真机内容」之后，剩下的缺口换成了这五条**——它们不是四类产物
+里的，而是**四类产物覆盖不到的那些行**：
+
+| # | 缺什么 | 卡在哪 |
+|---|---|---|
+| 1 | **roundtable / vote 的真实 LLM 调用记录** | mock 返回 `[mock] CASE:…`，`parseBallot` 认不出 `VOTE:` 前缀 → 要 mock 改成按 case 返回 `VOTE:<id>` / 候选块 |
+| 2 | **酒馆（SillyTavern）本体打开群聊导出文件** | 桌面端，**零证据**；AGPL 边界下只借鉴名单顺序与整词 `@` |
+| 3 | **真机 UI 端到端**（C1-10 的实质缺口） | 抽屉 chip 来回切换要录屏 + 两侧会话消息数与最后一条消息 id；**一行 Compose 没上过屏** |
+| 4 | **相机扫码真机链路**（C1-09 的实质缺口） | `QrScannerSheet` 只有编译 + 16 条 JVM 单测，**CameraX + MLKit 没在设备上跑过** |
+| 5 | **`BrowserRuntimeTest` 的 Coil 单例崩溃** | `RouteActivity.kt:202` 的 `setSingletonImageLoaderFactory`（来自 `b5c5ebcb`，**与 C1 无关**），**未修**，稳定复现 |
+
+**原来那句「在拿到 API key 之前，契约 `:206` 的第三、四类在原理上就采不到」已被推翻**：
+不需要 API key，`adb reverse` + 本机 mock 就能采到真实 provider 代码路径的请求与 usage。
+⚠️ **但别把它读成「拿到 key 之前第三、四类就算验过了」**——mock 不是真实模型，
+roundtable / vote 的真实调用仍然零份。**最短的下一步**是第 1 项（改 mock 的返回文本，
+让 `parseBallot` 真被触发）+ 第 3 项（真机 UI 录屏）。
 
 ## 判定规则
 
