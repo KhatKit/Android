@@ -13,7 +13,7 @@ README 的功能描述不作为本项目验收证据；复制或改编源码前�
 | B1 | [xiaoqiang-cheng/QGraph](https://github.com/xiaoqiang-cheng/QGraph) v0.1.5，README 标注 MIT。2026-10-03 读过 `src/qgraph/engine/executor.py`。GitHub API 403，提交 SHA 未钉死 | Kahn 入度、失败下游 skipped、skip_nodes 续跑。本地 Kotlin 重写，执行仍编译成 FlowSpec。见下方 B1 对照。 |
 | B2 | [Operit ToolPkg 格式](https://github.com/AAswordman/Operit/blob/main/docs/TOOLPKG_FORMAT_GUIDE.md)、[示例](https://github.com/AAswordman/Operit/tree/main/examples)；源码许可证待逐包核实 | 固定 API 版本、依赖、hooks、Provider 与设置 UI；topic 只用于发现具体包，不能当成统一规范。 |
 | B3 | [Sparrived/auto-model-key-router](https://github.com/Sparrived/auto-model-key-router) MIT，读过 `docs/API.md` 的 routing_mode / Key 冷却说明；[HalfEmptyDrum/Key-Carousel](https://github.com/HalfEmptyDrum/Key-Carousel) MIT，读过 README 的指数退避表。未复制源码 | 本地 Key 池按规格用 5s→10s→20s、上限 5 分钟、半开探测。AMKR 的 round_robin/priority 只作对照，不引入 Python 代理。 |
-| C1 | 2026-10-04 完成源码级调研 **11 个开源项目**，全部钉死 40 位 SHA 并登记读过的文件与行号：SillyTavern `06bde939` AGPL-3.0、autogen `027ecf0a` + `v0.2.40` MIT（代码在 `LICENSE-CODE`）、crewAI `738c8e19` MIT、langgraph `9a0394d8` MIT、RisuAI `9f3b589b` GPL-3.0、agnai `fccee00f` AGPL-3.0、MetaGPT `11cdf466` MIT、camel `0106b768` Apache-2.0、consensus-core `f65dec71` MIT、Operit `dbf71916` LGPL-3.0、LianYu-app `688b0d7c` Apache-2.0；另有 **5 个仅候选**（只读 README，不进对照表）。未复制任何源码，也未运行上游测试 | 许可按 AGPL-3.0 兼容矩阵分两档：**camel / LianYu-app（Apache-2.0）只能借鉴机制 + 独立重写**；其余九家（AGPL-3.0 SillyTavern·agnai、GPL-3.0 RisuAI、LGPL-3.0 Operit、MIT autogen·crewAI·langgraph·MetaGPT·consensus-core）可移植并保留声明。七项需求的横向总表、移植优先级与本机构建基线见文末 `## C1 多角色群聊（2026-10-04）`。本地不共享历史，按规格做视角隔离。 |
+| C1 | 2026-10-04 完成源码级调研 **12 个开源项目**，全部钉死 40 位 SHA 并登记读过的文件与行号：SillyTavern `06bde939` AGPL-3.0、autogen `027ecf0a` + `v0.2.40` MIT（代码在 `LICENSE-CODE`）、crewAI `738c8e19` MIT、langgraph `9a0394d8` MIT、RisuAI `9f3b589b` GPL-3.0、agnai `fccee00f` AGPL-3.0、MetaGPT `11cdf466` MIT、camel `0106b768` Apache-2.0、consensus-core `f65dec71` MIT、Operit `dbf71916` LGPL-3.0、LianYu-app `688b0d7c` Apache-2.0、Knowe `23411a01` MIT；另有 **5 个仅候选**（只读 README，不进对照表），以及 **1 个已核验并排除**（lyricon `f3854d34` Apache-2.0，Xposed 状态栏歌词模块，与 C1 群聊无直接关系，不进对照表）。未复制任何源码，也未运行上游测试 | 许可按 AGPL-3.0 兼容矩阵分两档：**camel / LianYu-app（Apache-2.0）只能借鉴机制 + 独立重写**；其余十家（AGPL-3.0 SillyTavern·agnai、GPL-3.0 RisuAI、LGPL-3.0 Operit、MIT autogen·crewAI·langgraph·MetaGPT·consensus-core·Knowe）可移植并保留声明。七项需求的横向总表、移植优先级与本机构建基线见文末 `## C1 多角色群聊（2026-10-04）`。本地不共享历史，按规格做视角隔离。 |
 | C3 | [demystify-voice](https://pypi.org/project/demystify-voice/)，搜索结果发布方为 demystify-systems/ai-services-tools；完整源码与许可证待读取 | 打断、已播前缀、附和识别；须与本地 VAD/ASR/TTS 生命周期核对。 |
 | C4 | [eykicuihb/KuroBlob-AI](https://github.com/eykicuihb/KuroBlob-AI)，README 标注 MIT | 表情/口型状态与动画时间线；Web 渲染示例不能证明 Android glTF 与目标设备 60fps。 |
 
@@ -148,7 +148,7 @@ General Public License v3.0 (AGPL-3.0) 开源」，根目录无 `NOTICE` 文件�
 | SillyTavern / agnai | AGPL-3.0 | 同协议可移植，保留版权声明 |
 | RisuAI | GPL-3.0 | GPLv3 被 AGPLv3 单向覆盖，可并入 |
 | Operit | LGPL-3.0 | LGPLv3 可借 GPLv3 条款并入 AGPLv3 |
-| autogen `LICENSE-CODE` / crewAI / langgraph / MetaGPT / consensus-core | MIT | 宽松许可，可移植 |
+| autogen `LICENSE-CODE` / crewAI / langgraph / MetaGPT / consensus-core / **Knowe** | MIT | 宽松许可，可移植 |
 | **LianYu-app / camel** | **Apache-2.0** | **不可逐行拷贝，只能借鉴机制** |
 
 Apache-2.0 是唯一需要「借鉴机制 + 独立重写」的一档，原因不在版权而在**专利**：
@@ -189,6 +189,34 @@ GPL/AGPL 家族不兼容。所以对 LianYu-app 与 camel：**算法与行为规
 5. **autogen 的代码许可是 MIT，不是 CC-BY-4.0。** 代码在 `LICENSE-CODE`
    （Copyright (c) Microsoft Corporation），根 `LICENSE` 的 CC-BY-4.0 只管
    文档。误判会把一个宽松许可项目错当成要小心处理的。
+
+第 5 批（Knowe）又推翻 3 条，共 8 条：
+
+6. **「只有 autogen 一家是真 @」要修正为「严格整词只有 autogen 一家；Knowe 是
+   第二家有真 @ 路由语义的上游，但刻意对 CJK 放宽了尾边界」。**
+   autogen 用双侧**非捕获式**边界 `(?<=\W)` / `(?=\W)`（`_selector_group_chat.py:310-341`），
+   所以 `@小林帮我` **不命中** `小林`；Knowe 的尾边界检查**只对 ASCII 尾巴**做
+   （`backend/mentions.py:111`，`alias[-1] in _ASCII_ALIAS_TAIL`），CJK 别名不要求
+   尾边界，所以 `@小林帮我` **会**命中 `小林`——而且 `mentions.py:83-89` 的
+   docstring 把这条写成**刻意取舍**（中文人名常是长名里的前缀，前缀名并存时要靠
+   最长匹配收敛，所以宁可放行紧贴的正文）。**两边都有道理，取舍要自己定，
+   不要默认抄任一家。**
+7. **「每轮 token 预算 0 个有」不只是「没人做」——Knowe 是主动删掉了并写了理由。**
+   `BudgetSpec` 是一个**零字段 no-op**（`backend/runtime.py:264-272`：`from_mapping`
+   里直接 `del value`，`to_dict` 恒返回 `{}`）；`runtime.py:615` 的 `RuntimeConfig`
+   注释写死 `No turn ceiling, tool-error cap, correction budget, or default task clock.`；
+   `backend/worker_gateway_runtime.py:326-327` 补充 `those are the LLM's decisions`。
+   所以横向总表 d 那一格的 **0 个**含义要改读：**这是上游明确拒绝的形状，不是待填补
+   的空白**。我们要做 per-round 闸门**不能引任何上游当依据**——三家（crewAI
+   `UsageMetrics` / agnai `getContextLimit` / Knowe `BudgetSpec`）都只给计量或裁剪，
+   没有一家给中止闸门。
+8. **「多角色群聊 = 共享可见历史 + 发言轮转」不是行业共识。** Knowe 证明另一条路
+   跑得通：Worker 的 LLM 消息列表**每个 attempt 从零构造、只有 2 条**
+   （`backend/runtime.py:925-974` `_initial_messages()`：system = `worker_prompt.md` +
+   自己 worklog 尾部；user = `"Task envelope:\n" + json`），**零共享历史 ⇒ 零泄漏**；
+   发言权集中在 Coordinator 派单（`souls/coordinator.txt:46` 明写「一次只派一件」）。
+   **这不是要抄**（它换掉的是我们 C1-M 空间闸门要解决的问题），而是提醒：我们的
+   视角隔离在评估复杂度时要知道自己在付什么代价——Knowe 压根不存在这个问题。
 
 ### SillyTavern — SillyTavern/SillyTavern @ 06bde939fb1e9c4c8d8641d810f0a916b5bce127
 
@@ -375,17 +403,21 @@ was_replayed, …)` 存每个 task 输出；`Crew.replay(task_id)`(L2101) 找到
 
 第 1 批记 SillyTavern / autogen / crewAI 三家，第 2 批（本节下方）补
 langgraph / RisuAI / agnai，第 3 批（本节末尾）补 MetaGPT / camel /
-consensus-core，第 4 批（本节最末）补 Operit / LianYu-app，
-**11 家全覆盖**。本节已完备：11 家项目 + 仅候选 5 个 + 横向总表 + 移植优先级 +
+consensus-core，第 4 批补 Operit / LianYu-app，第 5 批（本节最末）补 Knowe，
+**12 家全覆盖**。本节已完备：12 家项目 + 仅候选 5 个 + 横向总表 + 移植优先级 +
 构建基线（横向总表与优先级见本节最末两小节）。
 
-许可档位共两档，不要混用：11 家里只有 **camel** 与 **LianYu-app** 落在
-「仅借鉴机制，代码独立重写（Apache-2.0）」，其余九家都是「可移植」
+许可档位共两档，不要混用：12 家里只有 **camel** 与 **LianYu-app** 落在
+「仅借鉴机制，代码独立重写（Apache-2.0）」，其余十家都是「可移植」
 （SillyTavern / agnai 是同协议 AGPL-3.0，RisuAI 是 GPL-3.0，**Operit 是
-LGPL-3.0**，autogen / crewAI / langgraph / MetaGPT / consensus-core 是
+LGPL-3.0**，autogen / crewAI / langgraph / MetaGPT / consensus-core / Knowe 是
 MIT）。Apache-2.0 §3 专利终止条款与 GPLv3 §3 冲突，FSF 判定与 GPL/AGPL
 家族不兼容。所有结论都是读源码得出，没有复制任何上游代码，也没有运行上游
 测试。
+
+⚠️ 另有 **1 个已核验并排除**：lyricon（Xposed 状态栏歌词模块），见本节最末的
+专节。它是「范畴外」**不是**「许可档」问题——七项需求没有一项它有实现，
+硬塞进横向总表只会多出一整行「0」，所以不进对照表。
 
 ### langgraph — langchain-ai/langgraph @ 9a0394d88b2211f299dcd69df92db3480c69ee61
 
@@ -1001,7 +1033,7 @@ planner prompt 在 `core/config/FunctionalPrompts.kt:1307-1321`，要求**只返
 自我扩权，这条边界值得抄）。
 
 **记忆候选打分公式**（`docs/doc-src/architecture/memory_candidate_scoring_formula.md`，
-三段式，是我们 11 家里唯一给出完整可复现公式的）：
+三段式，是我们 12 家里唯一给出完整可复现公式的）：
 
 1. **本地打分** `S(m) = S_kw + S_rev + S_sem^norm + S_graph`。关键词命中带
    **覆盖率增益** `λ_m = 1 + 0.6·(c_m/F)`（命中字段占比越高越可信），排名衰减
@@ -1153,23 +1185,222 @@ Schema，但**只有 1 个示例模块** `feature/coffee/LuckinCoffeeTools.kt`�
 的那 4 个方法）。**只读 Strategy 会得出完全相反的结论**——读它会以为策略是
 可配置可替换的，实际上改它没有任何效果。读这一家必须先 grep 引用再决定信谁。
 
+### Knowe — HirezmingD/Knowe-agent-groupchat @ 23411a014d3ab2f04defbd6221b25f2db932708f
+
+正式名「Knowe 知知智能体」。Electron + React 18 + TS 前端 / Python 3.11 异步后端，
+本机 WebSocket `127.0.0.1:8080`；`package.json:4` version `1.0.39`，后端
+`backend/engine.py` 单文件 **9612 行**、`server.py` 7379 行、`hub.py` 576 行、
+`persist.py` 1014 行，`backend/knowe_harness/completion.py` 3127 行。
+
+**SHA 核实过程**：`github.com/HirezmingD/Knowe-agent-groupchat/commits/main.atom`
+首条 entry 为
+`23411a014d3ab2f04defbd6221b25f2db932708f`，`<updated>2026-08-26T08:15:30Z</updated>`，
+标题 `v1.0.39.3: 多模型预存切换功能（模型路由池）`；网页版 `/commits/main` 与本地
+`git rev-parse HEAD` 三方一致，**SHA 已核实**。
+
+读过的文件：`LICENSE`（全文 21 行）、`README.md`、`README.zh-CN.md`、
+`package.json`、`CITATION.cff`、`backend/runtime.py`、`backend/server.py`、
+`backend/engine.py`、`backend/mentions.py`（188 行）、`backend/hub.py`、
+`backend/knowe_harness/completion.py`、`backend/persist.py`、
+`backend/worker_gateway_runtime.py`、`backend/seen_speech.py`、`backend/ring.py`、
+`backend/tool_ledger.py`、`backend/gate.py`、`backend/souls/coordinator.txt`、
+`backend/prompts/zh/worker_prompt.md`（37 行）。
+
+**许可结论**：可移植（宽松 MIT，保留声明）
+
+⚠️ **协议四方确认**：①`LICENSE:1-2` "MIT License / Copyright (c) 2026 Hezhou
+Jiang"，全文仅 **21 行**（AGPL-3.0 全文 660+ 行，可直接排除）；②`README.md`
+License 节；③`README.zh-CN.md`「本项目采用 MIT 协议」；④`package.json:6`
+`"license": "MIT"` + `CITATION.cff` 的 `license: MIT` + 网页版 sidebar 标签。
+⚠️ **AGPL / LGPL 排除的准确证据**：源码树（`backend/` + `src/` + 全部 `.md`）
+grep `agpl|lesser general|gpl-3|gplv3` = **0 命中**；唯一的命中在
+`package-lock.json`（第三方依赖自己的 license 字段，如 `LGPL-3.0-or-later`），
+**与本项目协议无关**，别把它读成「Knowe 沾了 LGPL」。
+
+⚠️⚠️ **必须先记的架构纠正：它不是共享可见历史的多角色群聊，是「Coordinator +
+Worker 派单」。** 决定性证据是 `backend/runtime.py:925-974` 的 `_initial_messages()`：
+Worker 的 LLM 消息列表**每个 attempt 从零构造、只有 2 条**——system =
+`worker_prompt.md`（`:957`，`:959-966` 再把自己的 worklog 尾部并进来）；user =
+`"Task envelope:\n" + json.dumps(task_payload)`（`:952-953` 拼串、`:958` 落位）。
+**没有任何群聊历史。**
+`prompts/zh/worker_prompt.md` 全文 37 行只讲工具纪律与交付口径，不讲「别人说了什么」；
+`souls/coordinator.txt:46` 明写 propose_next「**一次只派一件**」，同一条的后半要求
+「成员交差 → 成果直接呈现给用户，**你不需要读报告**」；`:34` 明写
+「**系统没有队列**——别说『先排着』」。
+
+**所以它是 C1 的另一条路线（隔离到零共享 + 单协调者派单），不是同类。** 这不降低
+它的价值——**幂等、收束状态机、@ 解析三块是本批最强的补充**，但把它当「多角色群聊
+参考实现」会得出反向结论。评估时按「另一条路」读，别按「同一条路做得更好」读。
+
+**a. speaker 调度：零轮转，唯一规则是「@ 命中 Worker 就绕过 Coordinator」。**
+`server.py:2800-2824` 是完整决策：命中一个或多个 Worker 则**无条件绕过**项目经理，
+逐个 `submit_dm` 直达，**即使同一条里还写了 @ 主管也以 Worker 为准**（注释写明是为
+避免项目经理再次转派造成重复执行）；多条命中用 `asyncio.gather` **并发**执行，但
+`submit_dm` 的 reply channel 仍传群 `project_id`，所以状态、工具、文件和回复都落在群
+时间线上。未知 / 歧义 @ 不报错也不猜人——没有 Worker 命中时自然回落项目经理。
+
+★ **`engine.py:7009-7030` `rewrap_group_mention()` 的别名剥离 + 主语重包值得抄**，
+docstring 里记着真实坑（`:7011-7013`）：此前 content 原样透传，Worker 把
+「@Fossil 你怎么说繁体字」理解成「**翻译 Fossil 这个词**」——@ 没剥离，它不知道
+在叫自己。修法是把命中的 @别名用 `re.sub` 剥掉，再包一层明确的主语/场景。
+
+⚠️ **全仓零发言轮转**：`round_robin|speaker_selection|rotation|轮转|轮流` 的命中
+**全是日志 / 事件日志 / 缓存轮转**，没有一处是发言轮转。所以 a 这一格我们**没有任何
+可抄的轮转实现**（autogen 的降级链仍是唯一来源）。
+
+**b. @ 解析：第二家有真 @ 路由语义的上游**（`backend/mentions.py`，188 行）：
+
+| 机制 | 位置 | 行为 |
+| --- | --- | --- |
+| **最长匹配** | `_mentioned_aliases():98-120` | 花名册同时有「小林」「小林子」时 `@小林子` **只投后者**（`candidates` 里按 `max(len(alias))` 收敛） |
+| **歧义不猜人** | `resolve_mentions():183-185` | `targets` 收集成 set，**`len(targets)==1` 才投**；同名 / 同角色**一个都不投**，宁可回落 Coordinator |
+| **只解析用户自己那段** | `_active_user_text():56-73` | 引用取 `用户说："…"` 之后、转发取 `转发了过来，并配言` 之后——**被转发原文里的 @ 绝不触发路由** |
+| **邮箱护栏** | `_EMAIL_LOCAL_CHARS` `:48` / `:101` | `foo@shiloh.com` 不算提及（`@` 前一个字符落在邮箱字符集里就跳过） |
+| **拒绝泛化别名** | `_GENERIC_ROLES` `:45` | 「成员 / worker / agent / 总管 / 项目经理 / 主管」当别名会被拒（除非队伍里唯一） |
+
+⚠️ **但它不是严格整词**：尾边界检查 `:111` **只对 ASCII 尾巴**做
+（`alias[-1] in _ASCII_ALIAS_TAIL`），CJK 别名不要求尾边界，所以 `@小林帮我`
+**会**命中 `小林`；`:83-89` 的 docstring 把这条写成**刻意取舍**（注释原话：
+「同时仍允许 `@小林帮我`（没有更长已知名字时，『帮我』就是紧贴的正文）」）。
+**autogen 的双侧 `(?<=\W)…(?=\W)` 更严**——取舍要自己定，不要默认抄任一家（见上面
+「对原假设的纠正」第 6 条）。
+
+**c. 视角隔离：零共享历史的极端形态。** 既然压根没有共享历史，可借鉴的只剩**花名册
+脱敏**——`engine.py:8926-8932` 的 `[v0.10a Issue 1 红线]` 明写「名单里**不再带
+id**」：老格式 `名字（id=fe_1，角色：前端）` 导致 Coordinator 复述时把 `fe_1` 报给
+用户。**与 MetaGPT「只渲染 `sent_from` 不渲染 `role`」同族**（都是「内部标识不进
+提示词」），但粒度只到花名册一层。另两条配套：`engine.py:8968-8984`
+`_sync_roster_from_store()` 的注释是「**缓存和真相不一致的时候，永远不要相信缓存**」
+（每轮开口前跟磁盘对账），`engine.py:8991-8999` 对账时顺手刷新名字缓存，避免旧的
+临时预定名长期盖住持久身份。
+
+**d. 每轮 token 预算：主动删掉了，不是漏做。** `BudgetSpec` 是零字段 no-op
+（`runtime.py:264-272`：`from_mapping` 里直接 `del value`，`to_dict` 恒返回 `{}`）；
+`runtime.py:615` 的注释写死
+`No turn ceiling, tool-error cap, correction budget, or default task clock.`；
+`worker_gateway_runtime.py:326-327` 补一句 `those are the LLM's decisions`。
+**这一格是上游明确拒绝的形状，不是待填补的空白**（见「对原假设的纠正」第 7 条）。
+
+**e. 幂等 / resume：本批最强的一块**：
+
+| # | 机制 | 位置 | 行为 |
+| --- | --- | --- | --- |
+| 1 | **事件级幂等 + 载荷冲突检测** | `hub.py:396-411` / `_idempotency_payload():116-121` | 在 `_seq_lock` 内判定：`_idempotency_payload` 排除 `{seq, ts, project_id, project_name}` 后比对；同 `event_id` 同载荷 → **返回存档，不盖新 seq**；同 `event_id` **不同载荷 → 抛 `ContractViolation`**；唯一例外 `event_id.startswith("coordmsg_")` 取首个存档（`:410` 注释：Coordinator 回合在用户消息落盘与确认之间崩过，重跑不得造出第二个气泡） |
+| 2 | **缓存未命中回落持久事件日志** | `hub.py:111-114` | 幂等缓存首次查找时**回落到 durable event log**，所以进程重启后 outbox 重放也不产生第二条消息。⚠️ **langgraph 没有这一条** |
+| 3 | **位置哈希当幂等键** | `completion.py:2088-2096` | `_stable_id("cmpkey_", task_id, attempt, run_id, status.value, run.version, run.terminal_reason)`，`_stable_id` = `sha256("\0".join(parts))[:24]`（`:763-766`）。**只哈希位置与状态、不哈希输出**——与 langgraph `_algo.py:616` 同族的独立复现 |
+| 4 | **不变量交给 DB 的 partial UNIQUE INDEX** | `completion.py:918`、`:936-937`、`:986-987`、`:1049`、`:1069` | `CREATE UNIQUE INDEX idx_completion_active_lineage ON completion_events_v2(task_id, attempt_id) WHERE active=1;`；配套 `idempotency_key TEXT NOT NULL UNIQUE`、`idx_wait_active_lineage ... WHERE status IN ('open','resuming')`、`task_results_v1` 的 `UNIQUE(task_id, attempt_id, completion_id)`、`task_journal_v1` 的 `UNIQUE(task_id, attempt_id, sequence, state, runtime_state)`。**把不变量下沉到 schema，不靠应用层自觉** |
+| 5 | **seq 高水位单独持久化** | `persist.py:473-487` | 原子替换 + `fsync` + 单调守卫。注释动机：「没有这本小账，进程重启后 seq 可能回退，前端会把新消息当旧消息丢掉」。**与 langgraph 的 UUIDv6 单调 `checkpoint_id` 解决同一问题**（我们 `group_runs` 的 latest 判定同毫秒并发会出错）——两条路可二选一或叠加 |
+| 6 | **append-only JSONL 账本 + 显式 fsync** | `seen_speech.py:100-116` | `visible_id` 幂等（重复返回 `False`）+ 每次 `flush` + `os.fsync`。★⚠️ 且 `seen_speech.py:165-167` 注释明写**账本字段（visible_id / completion_id）不进 LLM 上下文**，投影只给 `speaker` + `text`——**与 MetaGPT 把幂等前缀塞进用户可见文本的反模式正面对立，这条要抄** |
+
+⚠️ **resume 比 langgraph 窄**：只有 `WAITING` 能原地 resume，且 task / attempt /
+worker **血缘不得变**（`worker_gateway_runtime.py:283-290` 抛
+`RuntimeError("WAITING resume changed task/attempt/worker lineage")`；
+`completion.py:3022`、`:3027` 抛 `CompletionConflict`；`:2902`
+`archive_run_for_resume()`；`:2136` 附近注释明写 resume **复用同一 Runtime，绝不重建
+第二个模型**）。**没有失败轮 / 半轮续跑。**
+
+**f. 投票 / 多数决：零命中。** 全树（`backend/` + `src/`，排除 tests）grep
+`vote|voting|ballot|majority|consensus|quorum|共识|投票|表决` = **0 命中**。最接近的
+两样**都不是多数决**：`gate.py` 的人审批卡；`seen_speech.py:186` 的决策白名单归一化
+（`allowed = {accept, rework, pause, complete, terminate, retry, reject}`，不在集合里
+的值**直接丢弃**）。**C1-R 的投票与平票判定在这里依然没有上游可对照。**
+
+**g. 结构化输出与收束：10 态 + 穷举策略表，收束的第二条路线**
+（`backend/knowe_harness/completion.py`）：
+
+- `CompletionStatus` 十态（`:46-56`）：`SUCCEEDED / PARTIAL / FAILED / BLOCKED /
+  WAITING / CANCELLED / SYSTEM_ERROR / TIMED_OUT / ROLLED_BACK / SUPERSEDED`，
+  **只有 `WAITING` 非终态**。
+- 每态在 `_COMPLETION_STATUS_POLICIES` 带**六个**字段：`terminal / next_actions /
+  owner / user_label / fallback_summary / projection_summary`。例：`PARTIAL` 的
+  `next_actions` 是 `("accept_partial","retry","reject_delivery")`、`owner` 是
+  `WORKER`；`BLOCKED` 的 owner 是 `COORDINATOR`、动作是
+  `("provide_dependency","retry","cancel")`。
+- ★★ `:138-141` **模块加载时**断言策略表对枚举**穷尽**，多一个少一个直接
+  `RuntimeError`（报 `missing=… extra=…`）。
+- 配 `:2497-2499` `worker_idle()` 的注释：「WAITING 仍是开放的任务结果供后续
+  resume，但它**不占用 active 席位**」。
+
+**这是「收束」的第二条路线**：不靠算术收敛（无 consensusScore、无 convergenceDelta）、
+不靠 LLM 自评，而是把结果归进**有限状态机 + 每态合法后继动作表**，再用**加载期断言**
+保证表与枚举永不失配。**共识维度被抽掉后能跑多远，这是本批唯一的实证。**
+
+**它没有的**：@ 之外的整词边界、每轮 token 预算、投票 / 多数决、按轮次续跑、
+多角色共享可见历史。
+
+### lyricon — tomakino/Lyricon（fork: kifranei/lyricon）@ f3854d346779dad07be0f2ecd20bea6fd096c02f —— 与 C1 群聊无直接关系，不进对照表
+
+**这一节单独立，是因为排除理由是「范畴外」而不是「许可档」。** 硬约束是不能把它塞进
+七项需求的横向总表：七项需求没有一项它有实现，硬填只会多出一整行「0」，反而污染
+「哪些格子是上游明确拒绝、哪些是上游压根不涉及」这个区分（参见「对原假设的纠正」
+第 7 条对「0 个」含义的辨析）。
+
+**是什么**：Android **Xposed 模块「词幕」（Lyricon）**，做**系统状态栏歌词显示**。
+不是群聊、不是多 agent、不是 LLM 编排、不是 Android 群聊 UI 参考。
+⚠️ 它是 [tomakino/Lyricon](https://github.com/tomakino/Lyricon) 的**个人增强
+Fork**（`README.md:31`），应用包名 `io.github.kifranei.lyricon.fork`
+（`README.md:36`；`build.gradle.kts:13` `extra["appPackageName"]` 同值），
+但**代码里的 namespace 仍是上游的 `io.github.proify.lyricon.*`**
+（`lyricon/build.gradle.kts:9`）——所以 grep 包名会同时命中两套。
+
+**许可结论**：仅借鉴机制，代码独立重写（Apache-2.0）——但**本节没有任何机制值得借鉴**，
+这一档只是如实登记它的协议位置，不代表进 C1 移植候选。
+
+⚠️ **协议三方确认**：①`LICENSE:1-3` 首行 "Apache License / Version 2.0, January
+2004 / http://www.apache.org/licenses/"，全文 **201 行**；②源文件头，例如
+`xposed/src/main/kotlin/io/github/proify/lyricon/xposed/systemui/util/ViewVisibilityController.kt:1-4`
+的 `Copyright 2026 Proify, Tomakino / Licensed under the Apache License, Version 2.0`；
+③网页版 sidebar 标签。⚠️ 注意**不是** `build.gradle.kts`——那几份构建脚本没有版权头。
+
+⚠️⚠️ **协议文档有缺口，这条比协议本身重要**：README 的**中英文版对 license 零提及**
+（`grep -i 'licen|许可|协议|Apache' README.md` = **0 命中**）；仓库**无 `NOTICE`**；
+根 `LICENSE` 的附录**仍是未填的样板** `Copyright [yyyy] [name of copyright owner]`。
+→ **署名归属是上游原作者 Proify / Tomakino，不是 fork 者 kifranei**，而仓库里
+**没有一份可执行的统一署名依据**。我们即使将来要看它的代码，也必须逐文件从源文件头
+认署名，不能靠 README。
+
+**决定性反证**（这是排除它的依据，不是印象）：全仓 `.kt/.md/.xml/.txt` grep
+`group.?chat|multi.?role` = **0 命中**；grep `agent|Agent` 只命中三处且**没有一处是
+多 agent 语义**——`UpdateRelease.kt:59` 与 `UpdateDownloadManager.kt:147` 的 HTTP
+`User-Agent` 头（值是 `Lyricon/${BuildConfig.VERSION_NAME}`），以及
+`lyric/view/.../LandingSoftAnimator.kt:14` 的 `animatorAgent.playTogether`（一个
+变量名）。
+
+唯一有零星参考价值的一处：`app/src/main/kotlin/io/github/proify/lyricon/app/ai/explain/AiExplainCache.kt:30-42`
+把**内存 LRU**（`Collections.synchronizedMap` 包 access-order 的 `LinkedHashMap`，
+`removeEldestEntry` 里 `size > MAX_MEMORY`）+ **SharedPreferences 持久化** +
+**TTL 30 天**（`TTL_MS = 30L * 24 * 60 * 60 * 1000`）三层叠在一起。⚠️ **但那是
+单条内容缓存，与群聊七项需求无关**，抄它不构成「C1 借鉴了 lyricon」。
+
+**SHA 核实过程**：⚠️ **默认分支是 `master` 不是 `main`**。取法是
+`github.com/kifranei/lyricon/commits/master.atom` 首条 entry + 网页版 `/commits/master`
++ 本地 `git rev-parse HEAD`，三方一致，`f3854d34…`，共 **245 个 commit**。
+⚠️ **日期坑**：commit 的 author date 是 `2026-09-17`，atom 的 `<updated>` 是
+`2026-10-04`（**push 时间，不是提交时间**）——两个日期别混。
+
 ### 七项需求的横向总表
 
-七项需求 × 十一个项目的横向对照。**「可直接移植」= 许可兼容且有可照抄的实现；
+七项需求 × 十二个项目的横向对照（lyricon 已核验并排除，不在本表，见其专节）。
+**「可直接移植」= 许可兼容且有可照抄的实现；
 「只能借鉴或反面教材」= 许可不允许拷贝、或机制有缺陷、或压根没有。**
 
 | 需求 | 可直接移植（项目 + 文件）| 只能借鉴或反面教材（项目 + 文件）| 结论 |
 | --- | --- | --- | --- |
-| **a. speaker 选择与轮转** | autogen `select_speaker`(`_selector_group_chat.py:152`) 三级降级 + `max_selector_attempts` 反馈重试环(L247-300) + 耗尽后兜底(L302-308)；MetaGPT 声明式轮转表 `STEP_INSTRUCTIONS`(`werewolf/const.py:36-121`) + `WerewolfEnv.run`(L36-41) 串行驱动；SillyTavern `LIST`(L1180) 与 `NATURAL`(L1242) 三段式；RisuAI `orderByOrder=true` 确定性模式 | RisuAI `group.ts` 第③段 `while` **空集合死循环**（反面）；SillyTavern `utils.js:1356` 伪 @；LianYu-app `calculateSpeakingPriority():478` 启发式权重表（Apache-2.0，且末项含 `+Random(0,10)` 破坏可重放） | 轮转表与降级链都有现成实现可抄；**LLM 选人只保留 autogen 的降级语义**，随机权重表不要 |
-| **b. @ 整词解析** | ★★ autogen `_mentioned_agents`(`_selector_group_chat.py:310-341`)：非捕获式词边界 `(?<=\W)` / `(?=\W)` + 消息两侧补空格 + 返回命中次数表，**MIT 可直译** | SillyTavern `utils.js:1356` `\b\w+\b` 切词后**任意词包含匹配**（"Alice Johnson" 输 "johnson" 也唤醒、输 "john" 反不命中）；RisuAI `group.ts` 只看最后一条消息 + ③ 段死循环；agnai `InputBar.tsx:405` 只在 UI 补全、**服务端零解析**；Operit 无 @（planner 只看用户原文） | **11 家里只有 autogen 一家是真 @**，其余全是伪 @。我们已有 `GroupChat.parseMentions`(`core/data/model/GroupChat.kt:454-457`)，照 autogen 的正则重写并把计数用起来即可 |
-| **c. 视角隔离** | agnai `isMessageInvisible`(`common/prompt.ts:786`) 四级优先级可见性 + `getLinesForPrompt()`(L717)「每个 bot 取同一列表的不同子集」+ `getMessageAuthor()`(`common/util.ts:343`) 他人消息降级 `role:'user'`；MetaGPT `restricted_to`(`ext/werewolf/schema.py:28`) **读时 ACL** + `base_player.py:157-163` 只渲染 `sent_from`；crewAI `flow/conversational_mixin.py` 公开频道 + `agent_threads` 私有草稿；langgraph `Send(node, arg)`(`types.py:738`) 每 agent 私有 state | Operit 消息角色翻转（LGPL-3.0，需自行重写）；**RisuAI `makeMs()` 与 SillyTavern 单一 `chat` 数组 = 零隔离，纯反面教材**；LianYu-app `[其他群友]` 前缀降级 | 读时 ACL + 组装层过滤是唯一正解；agnai 的四级可见性优先级可直接覆盖我们 C1-M 的粗粒度闸门 |
-| **d. 每轮 token 预算** | **0 个**。只有两个「半个」：crewAI `UsageMetrics.delta_since()`(`types/usage_metrics.py:32`) 增量测量原语（MIT，**但从不用于中止**）；agnai `getContextLimit()` = `maxContextLength − maxTokens`（**先给生成留额度**，但仍是 per-request） | RisuAI 两段贪心裁剪（`db.maxResponse` 扣减 + drop-oldest，仍是 per-request）；MetaGPT `utils/cost_manager.py` 只统计不截断；LianYu-app `TokenUsage` entity 纯报表无约束 | ⚠️ **必须自研**。借 crewAI 的 `delta_since()` 做计量、借 agnai 的「先留生成额度」顺序，闸门逻辑自己写 |
-| **e. 幂等 / resume** | ★★ langgraph 5 条契约（`_algo.py:616` task_id **只哈希位置** / `_task_status.py:29-30` **完成 ⟺ 至少一条非控制写** / `_loop.py:767-773` tick 时写回填 / `main.py:2956` 只跑 `not t.writes` / `_algo.py:256` 折叠前排序）+ **UUIDv6 单调 `checkpoint_id`**；crewAI `Crew.replay(task_id)`(`crew.py:2101`) 逐 task 回填；autogen `save_state/load_state`(L116-131) 存档 JSON 形状 | **MetaGPT 把 `f"{self.round_cnt} \| "` 塞进用户可见文本**（`werewolf_env.py:33`，`role.py:215,229` 两行注释掉的 `HACK` 承认破坏 replay）；agnai 把 `AbortError` 当成功提交半条（与我们已定语义相反） | **收益最大的一块**。位置哈希 + 空 writes 判定两个原语就够；幂等键必须存在消息之外的字段上 |
-| **f. 投票 / 多数决** | **0 个** | MetaGPT `evaluate_action.py:58` 3 次投票 2-of-3 早退（三个全不同则返回 `None`，**无 tie-break**）；MetaGPT `werewolf_ext_env.py:244` `Counter.most_common` **平票未解决**（L255 挂着 `# TODO in case of tie vote`）；langgraph `NamedBarrierValue` 只提供「等齐再汇总」的同步原语，**不含计票**；`decision-protocols` 只有 5 个 experiment JSON、**无源码** | ⚠️ **必须自研**。autogen 的 consensus group chat 是**虚构的**，不能引 |
-| **g. 结构化输出与收束** | consensus-core `stats.ts` `consensusScore = round(clamp(avg − 0.5·stddev, 0, 100))` + `detectDisagreements`(阈值 20) + `engine.ts:189-200` `convergenceDelta=3` 早停 + `mulberry32(seed)` 确定性重放 + `engine.ts:109` 盲首轮开关；agnai `getJsonSchemaPayload()` 一字段出 4 方言 + `parsePartialJson()` 增量修复 + `ensureSafeSchema()` 剥 `response` 字段；crewAI `Task.output_pydantic` + guardrail 校验-重试 | crewAI 收束**只取最后一个非空 output**(L1932)，没有议长汇总；camel Apache-2.0 不可逐行拷贝 | 收敛判定与可重放有现成算术可抄（**节 3 优先**）；**议长汇总没有上游**，要自研 |
+| **a. speaker 选择与轮转** | autogen `select_speaker`(`_selector_group_chat.py:152`) 三级降级 + `max_selector_attempts` 反馈重试环(L247-300) + 耗尽后兜底(L302-308)；MetaGPT 声明式轮转表 `STEP_INSTRUCTIONS`(`werewolf/const.py:36-121`) + `WerewolfEnv.run`(L36-41) 串行驱动；SillyTavern `LIST`(L1180) 与 `NATURAL`(L1242) 三段式；RisuAI `orderByOrder=true` 确定性模式；★ Knowe `rewrap_group_mention()`(`engine.py:7009-7030`) **别名剥离 + 主语重包**（docstring 记着真坑：不剥离时 Worker 把「@Fossil 你怎么说繁体字」理解成「翻译 Fossil 这个词」） | RisuAI `group.ts` 第③段 `while` **空集合死循环**（反面）；SillyTavern `utils.js:1356` 伪 @；LianYu-app `calculateSpeakingPriority():478` 启发式权重表（Apache-2.0，且末项含 `+Random(0,10)` 破坏可重放）；⚠️ **Knowe 全仓零发言轮转**——`round_robin\|rotation\|轮转` 命中全是日志轮转，唯一规则是「@ 命中 Worker 就绕过 Coordinator」(`server.py:2800-2824`)，**只能借鉴那条路由规则，没有轮转可抄** | 轮转表与降级链都有现成实现可抄（**仍以 autogen 为唯一来源**）；**LLM 选人只保留 autogen 的降级语义**，随机权重表不要 |
+| **b. @ 整词解析** | ★★ autogen `_mentioned_agents`(`_selector_group_chat.py:310-341`)：非捕获式词边界 `(?<=\W)` / `(?=\W)` + 消息两侧补空格 + 返回命中次数表，**MIT 可直译**；★ Knowe `backend/mentions.py`（188 行，MIT）**第二家有真 @ 路由语义的上游**：`_mentioned_aliases():98-120` **最长匹配**（「小林」/「小林子」并存时只投后者）+ `resolve_mentions():183-185` **歧义不猜人**（`len(targets)==1` 才投，同名一个都不投）+ `_active_user_text():56-73` **只解析用户自己那段**（被转发原文里的 @ 绝不触发路由）+ `_EMAIL_LOCAL_CHARS` `:48,:101` 邮箱护栏 + `_GENERIC_ROLES` `:45` 拒绝「成员/worker/agent/总管」当别名 | SillyTavern `utils.js:1356` `\b\w+\b` 切词后**任意词包含匹配**（"Alice Johnson" 输 "johnson" 也唤醒、输 "john" 反不命中）；RisuAI `group.ts` 只看最后一条消息 + ③ 段死循环；agnai `InputBar.tsx:405` 只在 UI 补全、**服务端零解析**；Operit 无 @（planner 只看用户原文）；⚠️ **Knowe 不是严格整词**：尾边界 `:111` **只对 ASCII 尾巴**做，CJK 别名不要求尾边界，所以 `@小林帮我` **会**命中 `小林`（`:83-89` docstring 写成刻意取舍） | ⚠️ **原结论要修正**：不是「只有 autogen 一家是真 @」，而是「**严格整词只有 autogen；Knowe 是第二家有真 @ 路由语义的上游，但刻意对 CJK 放宽**」。autogen 双侧边界更严、Knowe 更贴中文直觉，**取舍要自己定，不要默认抄任一家**。我们已有 `GroupChat.parseMentions`(`core/data/model/GroupChat.kt:454-457`)，照 autogen 的正则重写并把计数用起来，再考虑是否吸收 Knowe 的最长匹配与歧义不猜人 |
+| **c. 视角隔离** | agnai `isMessageInvisible`(`common/prompt.ts:786`) 四级优先级可见性 + `getLinesForPrompt()`(L717)「每个 bot 取同一列表的不同子集」+ `getMessageAuthor()`(`common/util.ts:343`) 他人消息降级 `role:'user'`；MetaGPT `restricted_to`(`ext/werewolf/schema.py:28`) **读时 ACL** + `base_player.py:157-163` 只渲染 `sent_from`；crewAI `flow/conversational_mixin.py` 公开频道 + `agent_threads` 私有草稿；langgraph `Send(node, arg)`(`types.py:738`) 每 agent 私有 state；★ Knowe **花名册脱敏**（`engine.py:8926-8932` `[v0.10a Issue 1 红线]` 明写名单里**不再带 id**，老格式 `名字（id=fe_1，角色：前端）` 让 Coordinator 复述时把 `fe_1` 报给用户）+ `_sync_roster_from_store()`(`engine.py:8968-8984`) 每轮对账、「缓存和真相不一致的时候，永远不要相信缓存」 | Operit 消息角色翻转（LGPL-3.0，需自行重写）；**RisuAI `makeMs()` 与 SillyTavern 单一 `chat` 数组 = 零隔离，纯反面教材**；LianYu-app `[其他群友]` 前缀降级；⚠️ **Knowe 是「零共享历史」的极端形态**——`runtime.py:925-974` Worker 消息每个 attempt 从零构造、只有 2 条，**零历史 ⇒ 零泄漏**，它压根没有这个问题（见「对原假设的纠正」第 8 条） | 读时 ACL + 组装层过滤是唯一正解；agnai 的四级可见性优先级可直接覆盖我们 C1-M 的粗粒度闸门。Knowe 只贡献**花名册脱敏**一条（与 MetaGPT `sent_from` 同族），它的零隔离路线**不是可抄的隔离实现** |
+| **d. 每轮 token 预算** | **0 个**。只有两个「半个」：crewAI `UsageMetrics.delta_since()`(`types/usage_metrics.py:32`) 增量测量原语（MIT，**但从不用于中止**）；agnai `getContextLimit()` = `maxContextLength − maxTokens`（**先给生成留额度**，但仍是 per-request） | RisuAI 两段贪心裁剪（`db.maxResponse` 扣减 + drop-oldest，仍是 per-request）；MetaGPT `utils/cost_manager.py` 只统计不截断；LianYu-app `TokenUsage` entity 纯报表无约束；⚠️ **Knowe `BudgetSpec` 是零字段 no-op**——`runtime.py:264-272`（`from_mapping` 直接 `del value`、`to_dict` 恒返回 `{}`）+ `runtime.py:615` `No turn ceiling, tool-error cap, correction budget, or default task clock.` + `worker_gateway_runtime.py:326-327` `those are the LLM's decisions` | ⚠️ **必须自研**。借 crewAI 的 `delta_since()` 做计量、借 agnai 的「先留生成额度」顺序，闸门逻辑自己写。⚠️ 注意「0 个」的含义：**Knowe 是主动删掉并写了理由，不是待填补的空白**——所以**没有任何上游能当 per-round 闸门的依据** |
+| **e. 幂等 / resume** | ★★ langgraph 5 条契约（`_algo.py:616` task_id **只哈希位置** / `_task_status.py:29-30` **完成 ⟺ 至少一条非控制写** / `_loop.py:767-773` tick 时写回填 / `main.py:2956` 只跑 `not t.writes` / `_algo.py:256` 折叠前排序）+ **UUIDv6 单调 `checkpoint_id`**；crewAI `Crew.replay(task_id)`(`crew.py:2101`) 逐 task 回填；autogen `save_state/load_state`(L116-131) 存档 JSON 形状；★★ Knowe **本批最强**：`hub.py:396-411` **事件级幂等 + 载荷冲突检测**（同 `event_id` 同载荷→返回存档不盖新 seq；**不同载荷→抛 `ContractViolation`**）+ `hub.py:111-114` **缓存未命中回落持久事件日志**（进程重启后 outbox 重放不产生第二条消息，**langgraph 没有这条**）+ `completion.py:2088-2096` **位置哈希当幂等键**（`_stable_id("cmpkey_", task_id, attempt, run_id, status, version, terminal_reason)`，**只哈希位置与状态、不哈希输出**，与 langgraph `_algo.py:616` 同族的独立复现）+ `completion.py:918,:936-937,:986-987,:1049,:1069` **不变量交给 DB 的 partial UNIQUE INDEX** + `persist.py:473-487` **seq 高水位单独持久化**（原子替换 + `fsync`，与 langgraph UUIDv6 解决同一问题，两条路可二选一或叠加）+ ★ `seen_speech.py:100-116` append-only JSONL 账本（`visible_id` 幂等 + 每次 `os.fsync`）且 `:165-167` **账本字段不进 LLM 上下文** | **MetaGPT 把 `f"{self.round_cnt} \| "` 塞进用户可见文本**（`werewolf_env.py:33`，`role.py:215,229` 两行注释掉的 `HACK` 承认破坏 replay）；agnai 把 `AbortError` 当成功提交半条（与我们已定语义相反）；⚠️ **Knowe resume 比 langgraph 窄**：只有 `WAITING` 能原地 resume 且 task/attempt/worker **血缘不得变**（`worker_gateway_runtime.py:283-290` 抛 `RuntimeError`），**没有失败轮 / 半轮续跑** | **收益最大的一块**。位置哈希 + 空 writes 判定两个原语就够；幂等键必须存在消息之外的字段上——**Knowe 的 JSONL 账本投影（只给 `speaker` + `text`）是这条规则的正面对照**。Knowe 补上 langgraph 没有的「载荷冲突要报错」与「缓存回落到持久日志」两格 |
+| **f. 投票 / 多数决** | **0 个** | MetaGPT `evaluate_action.py:58` 3 次投票 2-of-3 早退（三个全不同则返回 `None`，**无 tie-break**）；MetaGPT `werewolf_ext_env.py:244` `Counter.most_common` **平票未解决**（L255 挂着 `# TODO in case of tie vote`）；langgraph `NamedBarrierValue` 只提供「等齐再汇总」的同步原语，**不含计票**；`decision-protocols` 只有 5 个 experiment JSON、**无源码**；⚠️ **Knowe 也是零命中**——全树 grep `vote\|voting\|ballot\|majority\|consensus\|quorum\|共识\|投票\|表决` = 0；最接近的两样**都不是多数决**：`gate.py` 的人审批卡、`seen_speech.py:186` 的决策白名单归一化（不在 `{accept,rework,pause,complete,terminate,retry,reject}` 里的值直接丢弃） | ⚠️ **必须自研**。autogen 的 consensus group chat 是**虚构的**，不能引 |
+| **g. 结构化输出与收束** | consensus-core `stats.ts` `consensusScore = round(clamp(avg − 0.5·stddev, 0, 100))` + `detectDisagreements`(阈值 20) + `engine.ts:189-200` `convergenceDelta=3` 早停 + `mulberry32(seed)` 确定性重放 + `engine.ts:109` 盲首轮开关；agnai `getJsonSchemaPayload()` 一字段出 4 方言 + `parsePartialJson()` 增量修复 + `ensureSafeSchema()` 剥 `response` 字段；crewAI `Task.output_pydantic` + guardrail 校验-重试；★★ Knowe **收束的第二条路线**（`backend/knowe_harness/completion.py`）：`CompletionStatus` **十态**（`:46-56`，**只有 `WAITING` 非终态**）+ `_COMPLETION_STATUS_POLICIES` **每态六字段**（`terminal/next_actions/owner/user_label/fallback_summary/projection_summary`）+ ★★ `:138-141` **模块加载时断言策略表对枚举穷尽**，多一个少一个直接 `RuntimeError` | crewAI 收束**只取最后一个非空 output**(L1932)，没有议长汇总；camel Apache-2.0 不可逐行拷贝 | 收敛判定与可重放有现成算术可抄（**节 3 优先**）；**议长汇总没有上游**，要自研。Knowe 给出第三种可选形态：**不靠算术收敛（无 consensusScore / 无 convergenceDelta）、不靠 LLM 自评**，而是把结果归进**有限状态机 + 每态合法后继动作表**，用加载期断言保证表与枚举永不失配 |
 
-⚠️⚠️ **硬结论 1：「每轮 token 预算」和「投票 / 多数决」这两个需求，调研的 11 个
-项目里 0 个有可用实现。这两块必须自研。**
+⚠️⚠️ **硬结论 1：「每轮 token 预算」和「投票 / 多数决」这两个需求，调研的 12 个
+项目里 0 个有可用实现。这两块必须自研。** ⚠️ 但要分清「0 个」的两种含义：**
+上游压根不涉及**（vote：全 12 家里 autogen 的 consensus 是虚构的、langgraph 只有
+同步原语不含计票、Knowe 全树零命中、consensus-core 有算术但不叫 vote）**，
+vs 上游**明确拒绝**（d：Knowe 的 `BudgetSpec` 是零字段 no-op 且写明
+`those are the LLM's decisions`）。**后一种更值得警惕——它说明这个形状有人试过并
+否决了，不能拿「没人做过」当不存在风险的依据。**
 
 - **autogen 的 consensus group chat 是虚构的。** `ConsensusGroupChat` /
   `class Conductor` 在 `v0.2.40` tag 与 `main` 全树 `git grep` 均 **0 命中**，
@@ -1183,7 +1414,7 @@ Schema，但**只有 1 个示例模块** `feature/coffee/LuckinCoffeeTools.kt`�
 | agnai `getContextLimit()` | `common/util.ts` | `maxContextLength − maxTokens`，**先给生成留额度再算输入上限**（顺序值得抄，我们容易写反） | **仍是 per-request 不是 per-round**；`fillPromptWithLines()` 首次溢出即 `break`，但那是单次请求的裁剪 |
 
 ⚠️⚠️ **硬结论 2：Apache-2.0 的两个上游（LianYu-app、camel）是唯一需要「借鉴机制
-+ 独立重写」的。** AGPL-3.0（SillyTavern / agnai）/ GPL-3.0（RisuAI）/ LGPL-3.0（Operit）/ MIT（autogen `LICENSE-CODE` / crewAI / langgraph / MetaGPT / consensus-core）那**九家都可以直接并入并保留声明**。理由见上面「AGPL-3.0 主协议下的兼容矩阵」：Apache-2.0 §3 的专利终止条款与 GPLv3 §3 冲突，FSF 判定与 GPL/AGPL 家族不兼容。
++ 独立重写」的。** AGPL-3.0（SillyTavern / agnai）/ GPL-3.0（RisuAI）/ LGPL-3.0（Operit）/ MIT（autogen `LICENSE-CODE` / crewAI / langgraph / MetaGPT / consensus-core / Knowe）那**十家都可以直接并入并保留声明**。理由见上面「AGPL-3.0 主协议下的兼容矩阵」：Apache-2.0 §3 的专利终止条款与 GPLv3 §3 冲突，FSF 判定与 GPL/AGPL 家族不兼容。（另有 lyricon 也是 Apache-2.0，但已按范畴外排除，不占这两档的任何一档。）
 
 **反面教材（调研里最该记住的几条）**：
 
@@ -1203,6 +1434,47 @@ Schema，但**只有 1 个示例模块** `feature/coffee/LuckinCoffeeTools.kt`�
 - ⚠️ **`while` 保底在集合为空时死循环**——RisuAI `group.ts` 第③段、
   agnai 的候选兜底都有这个问题。SillyTavern 的「最多重试 `randomPool.length`
   次」才是正确形状，按后者实现。
+
+**第 5 批（Knowe）补 7 条技术性坑，一条都不许丢：**
+
+- ⚠️⚠️ **prompt 管不住副作用，要用代码硬门禁。** `engine.py:2403-2415`
+  `dispatch_frozen()` 的 docstring 记着真实事故：`REJECTION_FOLLOWUP` 里**明明写着**
+  「不要重新提案」，线上照样弹了第二张一模一样的审批卡。修法是加**结构化的拒绝态硬
+  门禁**（`return self._rejection_pending`）。原话：**「能用代码保证的事，不要用祈使句
+  去求。」** → 直接适用于我们 C1-R 的轮次判定：**凡是「不该发生的事」都要有代码闸门，
+  不能只写进 prompt。**
+- ⚠️ **fire-and-forget 必须记账，且在终态消息前显式 drain。** `engine.py:7858-7874`：
+  `_fire()` 用 `create_task` 发 `stream_delta`，不收进 `_fired` 集合的话增量会**排到
+  完整 message 之后**——前端先看到完整消息、再看到一串增量，气泡会闪一下甚至重复；
+  所以发 message 之前要 `await self._drain()`。**这正是 agnai `processQueue()` 那个坑
+  的反面教材**：agnai 是队列卡死、Knowe 是队列乱序，**两者都要显式收口**。
+- ⚠️⚠️ **链式调度里 `await` Worker 回合 = 整个项目被冻住。** `engine.py:4659-4697`
+  记着完整推理：`_loop` 里 `await self._harness_turn(...)` 会把每个 Worker 回合都
+  await 完，Worker 抓网页跑三分钟期间 **inbox 无人取**——用户打的字进了队列没人拿，
+  「我说话，没人理」。⚠️ 而且源码明说**在派单处加拦截一行也解决不了**，因为拦截管的是
+  「派给忙人」而冻结在**队列**上。修法三条：① Worker 回合改后台 task，**登记
+  （`_worker_turns`，`engine.py:1537`）必须先于 `create_task`**（`:4717-4751`，方法
+  docstring 就叫 "registration precedes create_task"）；② 忙态计数 `_turns_active`
+  **必须跟着搬**（`:4740`），否则引擎会在 Worker 正干活时报告「我闲着」；
+  ③ `_harness_turn` 在 `finally` 里 drain（`:4600-4608`），起 task 失败时
+  **任务保留待重试**。**本批最值得记的调度坑。**
+- ⚠️ **`_dm_pending` 是纯内存队列**（`engine.py:1653` 定义、`:3863` 追加）：用户 @ 一个
+  正在忙的 Worker，消息进暂存队列，**进程死亡即丢**。与 Operit 的
+  `pendingAutoContinuationByChatId` 同级。真正的幂等在 completion / hub 那一层——
+  **别把「有队列」当成「有幂等」**。
+- ⚠️ **审计不是判决。** `runtime.py:994`
+  `failures: list[ToolResult] = []  # recorded for telemetry only, never a verdict`；
+  `tool_ledger.py:217` 的 `"""Audit-only aggregate; it deliberately makes no
+  completion judgement."""`。**别拿工具执行证据反推任务完成。**
+- ⚠️ **增量回放遇淘汰必须报缺口，不能给残缺历史。** `ring.py:1-12` 的模块 docstring
+  记录着旧版 bug：`since_seq == 0` 走特殊分支，**淘汰之后仍把残缺历史当完整历史返回**，
+  前端以为拿到全量、实际开头缺一大截。新规则**只有一条、不分支**：
+  `oldest > since_seq + 1` ⇒ 中间有洞 ⇒ 返回 `( [], True )`（`ring.py:78-79`）让前端
+  走快照重建。**对我们群聊导出 / 增量同步同样适用。**
+- ⚠️ **等待令牌与 active 收束的关闭必须与终态同事务。** `completion.py:1575-1605`
+  的注释写明理由：否则「终态 commit 与异步清理之间崩溃」会留下**孤儿 open wait
+  token**。配套 `completion.py:2497-2499` 的 `worker_idle()` 注释还要保证
+  `WAITING` **不占用 active 席位**。
 
 ### 移植优先级
 
@@ -1239,7 +1511,23 @@ latest 判定同毫秒并发会出错）；**resume 必须显式声明 checkpoin
 （现有的 `parseMentions`(`:454-457`) 返回 `List<String>`，要改成带计数的 map，
 次数天然可用于「多次 @ 权重更高」）与 `selectSpeaker(...)`。
 **这是唯一能真正复用的「整词 @」实现**——SillyTavern 的 `utils.js:1356` 和
-RisuAI 的 `group.ts` 都是伪 @，不能拿来当需求来源。
+RisuAI 的 `group.ts` 都是伪 @，不能拿来当需求来源。⚠️ Knowe 也是真 @ 路由
+（见横向总表 b 行），但**刻意对 CJK 放宽尾边界**（`@小林帮我` 会命中 `小林`），不是严格
+整词——**按上面第 6 条的取舍自己定，不要两边混抄**。
+
+**Knowe 落在哪一档（MIT，5 个字：e 项最值得抄，其余各抄一格）**
+
+| 项 | Knowe 给什么 | 我们怎么用 |
+| --- | --- | --- |
+| **e. 幂等** | ★★ **本批最强**：事件级幂等 + **载荷冲突抛 `ContractViolation`**（langgraph 没有）、缓存未命中**回落持久事件日志**（langgraph 没有）、位置哈希 `_stable_id("cmpkey_", …)` 只哈希位置不哈希输出、不变量下沉到 **partial UNIQUE INDEX**、**seq 高水位单独持久化**、`seen_speech.py` JSONL 账本且**账本字段不进 LLM 上下文** | **与第 1 优先并列，甚至更值得抄**——前三条正好补上 langgraph 5 条契约没覆盖的洞。落到 `GroupRunEntity` / `GroupRunDAO`：加「同幂等键不同载荷要报错」这一条约束（现在只是不重复插入，静默吞掉冲突会掩盖 bug） |
+| **a. speaker 调度** | 只有一条规则：「@ 命中 Worker 就**绕过** Coordinator」（`server.py:2800-2824`）+ `rewrap_group_mention()` 的**别名剥离 + 主语重包** | **只借鉴路由规则本身**（@ 命中就别绕一圈让 Coordinator 再转派，会重复执行）。⚠️ **它零轮转，没有轮转可抄**——a 的轮转实现仍以 autogen 为唯一来源 |
+| **c. 视角隔离** | 零共享历史（**不是可抄的隔离实现**）；可借鉴的只有**花名册脱敏**（名单不带 id）+ 每轮对账不信缓存 | **只抄花名册脱敏一条**，与 MetaGPT `sent_from` 同族，落到我们的成员清单渲染里。⚠️ **不要试图用它的「零共享历史」替代 C1-M 空间闸门**——我们共享历史是既定规格（见「对原假设的纠正」第 8 条） |
+| **g. 收束** | 10 态 + 每态合法后继动作表 + **加载期穷举断言**（`completion.py:138-141`） | **备选形态，不是首选**。我们已有 consensus-core 的算术收敛路线；Knowe 证明「把共识维度抽掉也能跑」，若将来 roundtable 实测不稳，这是现成的退路 |
+| **d / f** | d **主动删掉**（零字段 no-op）；f **零命中** | **都不做**。d 的闸门自己写（没有任何上游可引），f 照 MALLM 协议清单自研 |
+
+⚠️ **Knowe 的 resume 比 langgraph 窄**（只有 `WAITING` 能原地 resume 且血缘不得变，
+**没有失败轮 / 半轮续跑**），所以**别拿它当「续跑」需求的参考**——那一条仍以 langgraph
+为唯一来源。
 
 **第 3 优先 —— MetaGPT 隔离 + consensus-core 收敛 / 确定性**（均 MIT，合计 1-2 天）
 
