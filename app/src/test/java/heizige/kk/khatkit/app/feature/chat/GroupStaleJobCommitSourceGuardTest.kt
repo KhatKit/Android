@@ -48,9 +48,25 @@ class GroupStaleJobCommitSourceGuardTest {
             .split("\n")
     }
 
-    /** 取某个 private suspend fun 的整块函数体（成员函数缩进 4，闭合大括号也正好 4 空格）。 */
+    /**
+     * 「按 key 无条件删」那个形状：`remove(conversationId)` 后面**紧跟**右括号。
+     *
+     * 必须区分单参 / 两参：两参是 `ConcurrentHashMap.remove(key, value)`，值相等才删，
+     * 正是 `clearGroupRunMirrorIfMine` 要的安全语义。所以右括号前不允许出现逗号 ——
+     * 否则两参那个安全写法也会被当成违规。
+     */
+    private val BARE_MIRROR_REMOVE =
+        Regex("""groupRunsInFlight\.remove\(\s*conversationId\s*\)""")
+
+    /**
+     * 取某个 private 成员函数的整块函数体（成员函数缩进 4，闭合大括号也正好 4 空格）。
+     *
+     * `suspend` 可有可无：`clearGroupRunMirrorIfMine` 是普通 `private fun`。
+     */
     private fun bodyOf(name: String): String {
-        val start = lines.indexOfFirst { it.startsWith("    private suspend fun $name(") }
+        val start = lines.indexOfFirst {
+            it.startsWith("    private suspend fun $name(") || it.startsWith("    private fun $name(")
+        }
         assertTrue("函数没找到：$name", start >= 0)
         val end = lines.indexOfFirstFrom(start + 1) { it == "    }" }
         assertTrue("函数闭合大括号没找到：$name", end > start)
@@ -235,17 +251,73 @@ class GroupStaleJobCommitSourceGuardTest {
             "Halted 分支不许清 groupRunsInFlight：镜像里可能是同会话正在跑的新一轮的令牌",
             !halted.contains("groupRunsInFlight.remove("),
         )
-        // 反向对照：正常收尾的两个分支**仍然**要清，别把这条守成「一律不许清」。
-        listOf(
-            "is GroupTurnCoordinator.Advance.BudgetStopped ->",
-            "null ->",
-        ).forEach { marker ->
-            val branch = branchOf(body, marker)
-            assertTrue(
-                "既有分支 $marker 仍应照原样清进程内镜像（别被这条护栏顺手改掉）",
-                branch.contains("groupRunsInFlight.remove("),
-            )
-        }
+        assertTrue(
+            "Halted 分支不许调 clearGroupRunMirrorIfMine：它同样是清镜像，哪怕按令牌比对也一样",
+            !halted.contains("clearGroupRunMirrorIfMine("),
+        )
+        // 反向对照：`BudgetStopped` 轮次确实结束了，仍要照原样清进程内镜像 ——
+        // 别把这条护栏写成「一律不许清」。
+        val budgetStopped = branchOf(body, "is GroupTurnCoordinator.Advance.BudgetStopped ->")
+        assertTrue(
+            "BudgetStopped 分支仍应照原样清进程内镜像（别被这条护栏顺手改掉）",
+            budgetStopped.contains("groupRunsInFlight.remove("),
+        )
+    }
+
+    /**
+     * `null ->` 分支（`commitGroupTurn` 返回 null，即 `produced == null`）**不许**无条件
+     * `groupRunsInFlight.remove(conversationId)`，必须走按令牌比对的
+     * [clearGroupRunMirrorIfMine]。
+     *
+     * 这条断言与 `Halted` 那条同源、但落在另一条分支上，所以要单独钉：这两条分支以前
+     * 是同一个形状（都能拿到 `groupRunsInFlight.remove(`），后来 `Halted` 被摘出去走了
+     * 「什么都不做」，`null ->` 还留在原地 —— 而它才是**唯一**会被
+     * `failGroupTurn` 提前 return 后落到的那条。
+     *
+     * 残留旧 job（判死之后还在飞的那个）走到这里时，`failGroupTurn` 因归属拒收而**不碰**
+     * 镜像，镜像里装的是同会话**新轮**的令牌；无条件 remove 会抹掉它，新轮于是再也
+     * `cancelActiveGroupRun` 不掉、`takeGroupTurn` 拿不到 `expectedRunToken`，整轮卡死。
+     */
+    @Test
+    fun `the null branch clears the mirror by run token instead of unconditionally`() {
+        val body = bodyOf("handleMessageComplete")
+        val nullBranch = branchOf(body, "null ->")
+        assertTrue(
+            "null -> 分支必须改走 clearGroupRunMirrorIfMine（按 runToken 比对后再清），" +
+                "无条件 remove 会抹掉同会话新轮的令牌。实际分支：$nullBranch",
+            nullBranch.contains("clearGroupRunMirrorIfMine("),
+        )
+        assertTrue(
+            "null -> 分支不许再出现无条件 groupRunsInFlight.remove(conversationId)。" +
+                "实际分支：$nullBranch",
+            !BARE_MIRROR_REMOVE.containsMatchIn(nullBranch),
+        )
+    }
+
+    /**
+     * 清镜像那个 helper 本身必须**按令牌比对**：值相等才删。
+     *
+     * 这是 `null ->` 分支唯一的安全依据，也是「`produced == null` 时靠这一行兜底清镜像」
+     * 仍然成立的根据 —— 镜像装的确实是本轮令牌时照清（既有兜底行为逐字不变），
+     * 装的不是就不清（新轮不被误伤）。把两参 `remove` 写成单参 `remove` 就等于退回无条件删。
+     */
+    @Test
+    fun `the mirror helper removes by value not by key alone`() {
+        val helper = bodyOf("clearGroupRunMirrorIfMine")
+        assertTrue(
+            "clearGroupRunMirrorIfMine 必须用 ConcurrentHashMap 的两参 remove（值相等才删）",
+            helper.contains("groupRunsInFlight.remove(conversationId, InFlightGroupRun("),
+        )
+        assertTrue(
+            "clearGroupRunMirrorIfMine 不许出现单参 remove（那等于无条件删）",
+            !BARE_MIRROR_REMOVE.containsMatchIn(helper),
+        )
+        // 令牌缺失时不删：血缘不明就分不清镜像是谁的，新轮被误伤会整轮卡死。
+        assertTrue(
+            "clearGroupRunMirrorIfMine 必须在令牌为 null 时提前返回（宁可不删，也不误伤新轮）",
+            Regex("""val\s+\w+\s*=\s*\w+\s*\?:""").containsMatchIn(helper) ||
+                helper.contains("?: return"),
+        )
     }
 
     /**
