@@ -286,6 +286,10 @@ fun Route.conversationRoutes(
             val request = call.receive<EditMessageRequest>()
 
             chatService.initializeConversation(uuid)
+            requireConversationOperationAllowed(
+                chatService.getConversationFlow(uuid).first(),
+                ConversationOperation.EditMessage,
+            )
             chatService.editMessage(uuid, messageId, request.parts)
 
             call.respond(HttpStatusCode.Accepted, mapOf("status" to "accepted"))
@@ -298,6 +302,10 @@ fun Route.conversationRoutes(
             val messageId = request.messageId.toUuid("message id")
 
             chatService.initializeConversation(uuid)
+            requireConversationOperationAllowed(
+                chatService.getConversationFlow(uuid).first(),
+                ConversationOperation.Fork,
+            )
             val fork = chatService.forkConversationAtMessage(uuid, messageId)
 
             call.respond(HttpStatusCode.Created, ForkConversationResponse(conversationId = fork.id.toString()))
@@ -309,6 +317,10 @@ fun Route.conversationRoutes(
             val messageId = call.parameters["messageId"].toUuid("message id")
 
             chatService.initializeConversation(uuid)
+            requireConversationOperationAllowed(
+                chatService.getConversationFlow(uuid).first(),
+                ConversationOperation.DeleteMessage,
+            )
             chatService.deleteMessage(uuid, messageId)
 
             call.respond(HttpStatusCode.OK, mapOf("status" to "deleted"))
@@ -321,6 +333,10 @@ fun Route.conversationRoutes(
             val request = call.receive<SelectMessageNodeRequest>()
 
             chatService.initializeConversation(uuid)
+            requireConversationOperationAllowed(
+                chatService.getConversationFlow(uuid).first(),
+                ConversationOperation.SelectNode,
+            )
             chatService.selectMessageNode(uuid, nodeId, request.selectIndex)
 
             call.respond(HttpStatusCode.Accepted, mapOf("status" to "accepted"))
@@ -333,6 +349,10 @@ fun Route.conversationRoutes(
             val messageId = request.messageId.toUuid("message id")
 
             val conversation = chatService.getConversationFlow(uuid).first()
+            // 复用上面已经读出来的 conversation：这个端点故意不调 initializeConversation
+            // （会话未加载时它今天是靠下面那句 NotFoundException 结束的），补上 initialize
+            // 会把「会话存在但未加载」的单聊 regenerate 从 404 变成成功，那是改非群聊路径的行为。
+            requireConversationOperationAllowed(conversation, ConversationOperation.Regenerate)
             val node = conversation.getMessageNodeByMessageId(messageId)
             val message = node?.messages?.find { it.id == messageId }
                 ?: throw NotFoundException("Message not found")
