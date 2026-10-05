@@ -41,11 +41,17 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   所以改成固定右端。
   ⚠️ **锚点之后已经有功能提交了**（早前这里写的「锚点之后只做文字订正」已过期）：
   `20581bcb..b7025665` 共 8 个 commit 做了 C1-P 角色卡元数据落库 + Room 31→32 迁移。
-  **78 这个数刻意不动**——它是「截至 `1b0e04a9` 的数」，改文档不该让它变；那 8 个
-  commit 不改台账口径（纯功能/测试提交、不动统计基线），逐条列在
-  `docs/eval/c1-group-chat.md` 台账的「锚点之后的后续提交」小节。
-  前缀分布、子包标签与各子计数见 `docs/eval/c1-group-chat.md` 台账「C1 commit 台账」。
-  「已实现」只描述代码写到哪一步，不等于任何用例通过。
+   **78 这个数刻意不动**——它是「截至 `1b0e04a9` 的数」，改文档不该让它变；那 8 个
+   commit 不改台账口径（纯功能/测试提交、不动统计基线），逐条列在
+   `docs/eval/c1-group-chat.md` 台账的「锚点之后的后续提交」小节。
+   前缀分布、子包标签与各子计数见 `docs/eval/c1-group-chat.md` 台账「C1 commit 台账」。
+   ⚠️ **锚点之后又追加了三批**（本轮 2026-10-05 是第三次）：`366b3fe8..0db807d2` 那 10 个
+   （滚动条 + 抽屉 `folder_id` + 通知标题）、`cac0c58a` / `1c8ca4c8` 两个纯文档提交、
+   以及 **`215296f1..6982869b` 那 8 个 C1-S 提交**（抽屉 type 筛选主机侧重放 +
+   **修掉两个真实缺陷**）。**三批同样不计入**：78 / 6 / 17、前缀分布、子包分布
+   **一个数都没动**，`d45ebd10~1..1b0e04a9` **没有被重算**。逐条见那三个小节。
+   「已实现」只描述代码写到哪一步，不等于任何用例通过。
+
 - **构建与 JVM 测试层全绿，有硬证据。** 三条离线命令都强制重跑、退出码 0：
   `:app:testDebugUnitTest`（86 类 678 例 0 失败 0 错误 0 跳过；C1-P 之前是 84 类 664 例，
   本次新增 `GroupRoleCardsPersistenceTest` 7 + `ConversationGroupCardsSchemaTest` 7）、
@@ -53,6 +59,14 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   （3 个 APK，连跑两次字节完全相同）。命令原文、退出码、产物哈希与
   「`--rerun` 只挂紧邻其前那一个 task」这个方法论坑，见
   `docs/eval/c1-group-chat.md` 的「构建与验证证据」，本文不重复。
+  ⚠️ **这是 2026-10-05 复核窗口的实测值，按当时窗口保留、不覆写。** 后续两个窗口的
+  当前值分别是 **87 / 683** → **91 / 710** → **92 / 722**（详见 `c1-group-chat.md`
+  「测试结果」段逐批的 ⚠️ 段）。**本轮实测的当前值是 `92 类 / 722 例 / 0 失败 0 错误
+  0 跳过`**（`./gradlew --offline :app:testDebugUnitTest --rerun` 退出码 **0**），
+  `./gradlew --offline assembleDebug` **0**，`./gradlew --offline lint` **0**
+  （`0 errors, 587 warnings, 6 hints`，**与基线逐位相同**；本轮碰过的
+  `ConversationDAO.kt` / `ConversationRepository.kt` / `ChatDrawerViewModel.kt` /
+  `ConversationSearchLikePattern.kt` **四个文件全部 0 命中**）。
 - **验收证据仍然一项都没有。** 契约 `docs/beyond-operit-client-changes.md:206`
   要求每例保存「各 viewer 可见消息集合 / 实际模型调用序列 / token 计数 /
   导出哈希」，`:232-235` 规定缺任一项就标 `unverified`。磁盘上这四类产物
@@ -61,6 +75,16 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   唯一的例外是迁移侧多了一条**主机侧部分**证据——C1-D 的 30→31 重放 85 条断言全过、
   C1-P 的 31→32 重放 49 条断言全过（都见下 A 节末两条），它们**不覆盖上述四类产物中
   的任何一类**，因此不改变「0/10」这个结论，也**不把任何用例改成通过**。
+  ⚠️ **本轮又多了第三条主机侧部分证据**：C1-S 的抽屉 type 筛选重放
+  **438 条断言全过**（`python3 tools/verification/c1s_conversation_type_filter_replay.py`
+  两次退出码 0、输出逐字节相同）。它给「**类型筛选只过滤**」钉了真实的 SQLite 执行
+  证据（**集合相等而不是数量相等**、筛选后 count 正确、分页无重复无遗漏、切换 `type`
+  参数不改查询种类）——**这是 C1-10 迄今最硬的一块证据**。
+  ⚠️ **但它同样不覆盖四类产物中的任何一类**：viewer 可见消息 ID 零份（脚本比的是
+  `conversationentity` 的 `id` 集合，`message_node` 一行没碰）、模型调用序列零份、
+  token 零份、真机行为零份。**所以「0/10」不变，C1-10 那一行仍 `unverified`**——
+  证据登记表填的是「部分证据（零设备，真实 SQLite 执行）」并逐项写清了哪些补上了、
+  哪些仍是零份，**状态列没动**。
 
 这不是保守，是契约自己定的规则。**验收证据只认 `docs/eval/c1-group-chat.md`**；
 本节只描述现状与下一步，不代替证据、不改判定。
@@ -132,6 +156,16 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   （防伪 `@` 选择器）、`GroupMemberBar.kt`（成员头像组）、
   `GroupExportCard.kt`（导出面板卡片）、`GroupRoleCards.kt`（角色卡元数据展示）、
   `GroupTurnModel.kt`（按角色绑定选模型）。
+- **C1-S 新增的主源文件**：`core/data/repository/ConversationSearchLikePattern.kt`
+  （**72 行**）——LIKE 转义的唯一收敛点。含
+  `CONVERSATION_LIKE_ESCAPE_CHAR: Char = '~'`（`:30`）、
+  `CONVERSATION_LIKE_ESCAPE_SQL: String = " ESCAPE '~'"`（`:41`）、
+  `escapeConversationLikePattern()`（`:64`，单趟遍历）。**转义字符为什么选 `~`**：
+  不能是 `%` / `_`（包夹用的 `'%' … '%'` 自己会被当转义符，整条查询彻底坏掉）、
+  不能是 `\`（SQL / Kotlin / JSON / 正则四层各有各的反斜杠规矩，MySQL 读者还会误读）、
+  不能是标题常见标点（模式串被撑成两倍长）；`~` 同时躲开这三类，且是单字节 ASCII、
+  ASCII 大小写折叠免疫。**规则：调用方一律传原始用户输入，谁都不许自己转**
+  （两边都转会把 `a%b` 变成 `a~~~%b`）。
 - ⚠️ `TavernChatCodec`（`core/data/ai/tavern/TavernChatCodec.kt`）上一版描述为
   「有往返内核但没有入口」——**现在 `exportGroupJsonl`（`:251`）有生产调用点**
   `feature/chat/GroupExportCard.kt:206`。这类「写好了但没人调」的判断要先 grep
@@ -146,8 +180,45 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 | 3 记忆接线 | 代码层已实现 | `MemorySpaceGateTest` 9 / `MemoryToolScopeTest` 7 / `MemoryAttributionTest` 9 / `GroupMemorySpacePolicyTest` 6 / `MemoryExtractorParseTest` 7 / `MemoryRoleIdMappingTest` 2 | 无 |
 | 4 vote 结构化 | 数据结构层已实现，传输层仍是文本约定（见遗留 B5） | `GroupTurnCoordinatorTest` 63 的投票/平票组 | 无 |
 | 5 导出 / 恢复 | 代码层已实现（含相机扫码入口），**角色卡元数据已真落库**（见 B1） | `GroupTavernExportTest` 22 / `TavernCompatTest` 21 / `QrScannerSheetTest` 16 / `GroupChatTest` 18 / `GroupRoleCardsPersistenceTest` 7 / `ConversationGroupCardsSchemaTest` 7 | 无；酒馆本体打开 `.jsonl`、真机相机扫码、导出文件 SHA-256 三项全未验；`Migration_31_32_Test` 6 条未跑 |
-| 6 UI 复用管线 + 头像组 + 筛选 | 代码层已实现，一行 Compose 未上屏 | `ConversationListQueryPlanTest` 7 / `ConversationTypeFilterSourceGuardTest` 2 / `GroupSpeakerResolverTest` 8 / `GroupRoleCompletionProviderTest` 8 / `GroupChatTest` 18 | 无；`ConversationDAO` 的 SQL 在真实 SQLite 上的行为也未验 |
+| 6 UI 复用管线 + 头像组 + 筛选 | 代码层已实现，一行 Compose 未上屏。**本轮还修掉了这条路上的两个真实缺陷**：5 条搜索查询的 LIKE 未转义（已加 `ESCAPE`）、14 处 `ORDER BY` 缺 `id` 兜底（已补） | `ConversationListQueryPlanTest` 7 / `ConversationTypeFilterSourceGuardTest` 2 / **`ConversationSearchLikePatternTest` 12** / `GroupSpeakerResolverTest` 8 / `GroupRoleCompletionProviderTest` 8 / `GroupChatTest` 18 | 无；`ConversationDAO` 的 SQL 在**真机 Android SQLite** 上的行为也未验（**主机侧**已由 C1-S 重放钉住 438 条断言，见 B7） |
 | 7 构建与退出码 | **已拿到硬证据** | 见 `docs/eval/c1-group-chat.md`「构建与验证证据」（三条命令退出码全 0） | 不适用 |
+
+⚠️ **读上面这张表之前先知道一件事：本轮改了一行既有测试断言的期望串。**
+`app/src/test/java/heizige/kk/khatkit/app/feature/chat/ConversationTypeFilterSourceGuardTest.kt`
+第 68-73 行那条断言的期望串，从
+
+```kotlin
+"title LIKE '%' || :searchText || '%'\" + CONVERSATION_TYPE_PREDICATE_SQL"
+```
+
+改成
+
+```kotlin
+"title LIKE '%' || :searchText || '%'\" + CONVERSATION_LIKE_ESCAPE_SQL + CONVERSATION_TYPE_PREDICATE_SQL"
+```
+
+原因：SQLite 文法要求 `ESCAPE` **必须紧跟 LIKE 的右操作数之后**，所以缺陷 1 的修法
+（给搜索查询加 `ESCAPE`）只能把 `ESCAPE` 插在 LIKE 片段与 type 谓词常量**之间**；而
+那条断言原本用**逐字节相邻**表达「type 谓词不允许出现第二份副本」的意图。
+**断言的结构合法地变了，意图没变，而且改完更严**——一次同时钉住 ESCAPE 子句的
+**存在 + 位置**与 type 谓词的**相邻**（变异 M1 塞第二份谓词字面量 → FAIL；M2 抽掉
+搜索路 ESCAPE → FAIL）。该文件**只改了这一行**（`6982869b` 的 `git diff --stat` =
+**1 insertion / 1 deletion，单 hunk**），**三条断言一条没被削弱或删除**，`tests` 属性
+仍是 2。
+
+⚠️ **它抓不到转义字符写错（变异 M3）：那要改
+`ConversationSearchLikePattern.kt`，而这条护栏只读 `ConversationDAO.kt` 与
+`ChatDrawerViewModel.kt` 两个源文件，`const` 的值永远不会被折叠进源码文本，所以它
+原理上抓不到、判绿。** M3 由
+`ConversationSearchLikePatternTest.escapeSqlLiteral_matchesTheEscapeCharacterConstant`
+抓住。**所以期望串里刻意不写转义字符的字面值**——写了会造成「DAO 护栏钉住了转义
+字符」的**假覆盖**（第一次尝试正是这么写的，因为 DAO 里 ESCAPE 是**常量引用**而断言读
+的是**原始源码文本**，那个期望串**必然 MISS、测试仍红**，改为引用常量标识符才对）。
+⚠️ **也别把这条读成「锚点之后第一次改既存测试文件」**——`09b4764b`（重设计
+`GroupTurnModelTest` 第 14 条跨侧断言）、`e4fc4644` / `90d1dbac` / `c940813b` 都改过；
+那几次改的是断言的**设计或强度**，这一次改的是**期望字面串**。
+完整来龙去脉见 `docs/eval/c1-group-chat.md`「C1-S 抽屉 type 筛选主机侧重放与两个真实
+缺陷修复（零设备）」的「⚠️⚠️ 敏感项」。
 
 ### 真正没做完的事
 
@@ -171,10 +242,16 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   不能当 C1 证据。
 - 零设备环境事实：一行 Compose 都没在屏幕上跑过。群聊页整页渲染、成员头像点击手感、
   `@` 弹层与 workspace 补全的互斥、导出面板真机分享、扫码弹层的相机权限，
-  全是零证据。`ConversationDAO` 的 `:type = ''` 不筛与 `itemCount` 正确性也未在真实
-  SQLite 上验过——`app/build.gradle.kts` 单测只有 `libs.junit`（无 Robolectric /
-  room-testing / coroutines-test），`ConversationRepository` 是 class 直接依赖 DAO，
-  没法注入 fake。
+  全是零证据。`ConversationDAO` 的 `:type = ''` 不筛与 `itemCount` 正确性也未在
+  **真机 Android SQLite** 上验过——`app/build.gradle.kts` 单测只有 `libs.junit`
+  （无 Robolectric / room-testing / coroutines-test），`ConversationRepository` 是 class
+  直接依赖 DAO，没法注入 fake。
+  ⚠️ **口径订正（2026-10-05，本轮）**：这一条**主机侧已经被钉住了**——C1-S 重放
+  438 条断言全过，`:type = ''` 不筛、正确筛选、两路口径一致、筛选后 count 正确、
+  分页无重复无遗漏都验过。**但证据全部来自 CPython 内置的 SQLite（3.51.2），不是
+  Android 的 SQLite**，且分页是脚本**自己拼 `LIMIT`/`OFFSET` 机械模拟**的，
+  `PagingSource` 的并发失效 / 快照一致性 / 回滚没验。所以这条只能从「零证据」收窄成
+  「**主机侧有证据、真机侧零证据**」，**不能算已验**。
 - **有一份零成本动作已经做完**：`tools/verification/c1d_migration_30_31_replay.py`
   （39,231 字节 / 776 行，sha256 `7cd9c3fbc22c5e8da9248c061feda8fe860bb86c5011eba1c2399b405e8199c6`；
   用真实 SQLite 重放 30→31 迁移 SQL）**已运行两次，退出码都是 0**，两次输出逐字节
@@ -296,10 +373,13 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     `ConversationDAO.searchConversationsOfAssistantByType` 的 `WHERE` 加一个条件 +
     翻掉 `ConversationDrawerFolderScopeTest.searchQuery_currentlyHasNoFolderCondition`
     的断言方向（测试会先红，这是预期的）。
-  - **仍未验证**：DAO 的两条 SQL 在真实 SQLite 上的行为依旧零设备证据（仓库
-    `testImplementation` 只有 junit，没有 Robolectric / room-testing，见
-    `ConversationTypeFilterSourceGuardTest` 的同一说明）。上面所有依据来自源码文本与
-    git 历史，不是运行时行为。
+  - **仍未验证**：DAO 的两条 SQL 在**真机 Android SQLite** 上的行为依旧零设备证据
+    （仓库 `testImplementation` 只有 junit，没有 Robolectric / room-testing，见
+    `ConversationTypeFilterSourceGuardTest` 的同一说明）。⚠️ 本轮 C1-S 重放的 G6 组
+    **4 条断言在主机侧观测过这个 `folder_id` 口径**（两条路确实不一致），
+    **但那只是把现状钉成实测**：结论**仍是待产品决策**、方案 A / B 的推荐
+    **一个字没改**、真机 Android SQLite 上的行为**仍未验**。上面所有依据来自源码文本、
+    git 历史与主机侧重放，不是真机运行时行为。
 - B3 ~~`GroupRole.modelId` 显示侧与生成侧现在同口径~~ **已关闭（`c7535ca8`）：两侧本来
   就是两个问题，而「同口径」是错的。** 生成侧 `ChatManager.kt:726` 的
   `resolveGroupTurnModelId`（定义在 `feature/chat/GroupTurnModel.kt:54`）答「现在要用
@@ -366,6 +446,36 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 - B6 `card-validator` 模块没有 lint 报告：`card-validator/build/reports/` 里只有
   `tests/`，找不到任何 `lint-results*`。这是「没跑」不是「0 命中」，台账里别给它记 0。
 - B7 抽屉筛选 chip 来回切换、群聊页整页渲染等 UI 行为无设备证据。
+  ⚠️ **本轮在「抽屉筛选」这条路上修掉了两个真实缺陷**，并且给 SQL 语义补了主机侧证据，
+  但**UI 那半仍然是零证据**，三件事分开记：
+  1. **缺陷 1（真 bug，已修）**：抽屉搜索的 5 条 `LIKE` 查询**没有 `ESCAPE` 子句**，
+     用户输入的 `%` / `_` 被当通配符。实测症状（改之前）：搜 `100%` 会额外命中**不含
+     `%`** 的会话，搜 `a_b` 会额外命中 `axbxc`，搜 `%` 命中**全部 23 行**——**只多
+     命中、不漏命中**，所以是用户**看得见**的错。已加 `ESCAPE`，转义收敛在
+     `ConversationRepository` 的 5 个搜索方法里各过一次
+     `escapeConversationLikePattern`（`ConversationSearchLikePattern.kt:64`，
+     转义字符 `~`，纯函数、单趟遍历）。
+  2. **缺陷 2（真实风险，已修）**：`ORDER BY is_pinned DESC, update_at DESC`
+     **缺 `id` 兜底**。`update_at` 是毫秒精度，同毫秒更新两个会话时 `LIMIT/OFFSET`
+     分页**理论上可能重复或漏行**。14 处 `ORDER BY` 已全部追加 `id ASC`
+     （`id` 是主键、投影里本来就有；**`update_at` 不同时行为逐字不变**）。
+     ⚠️ 脚本造了 4 行 `(is_pinned, update_at)` 全同的 fixture 实测，改前**本机稳定**
+     ——但**那是引擎行为不是 SQL 契约**，所以仍按风险修。
+  3. **主机侧证据有了，UI 那半还是没有**：`tools/verification/
+     c1s_conversation_type_filter_replay.py`（**已入库**，83,955 字节 / 1,382 行）
+     **438 条断言全过**、两次退出码 0 / 输出逐字节相同，SQL 与谓词常量是**用正则从
+     `ConversationDAO.kt` 源码里抽取**的。**它把「类型筛选只过滤」钉成了真实的 SQLite
+     执行证据**——集合相等（不是数量相等）、筛选后 count 正确、分页无重复无遗漏、
+     切换 `type` 不改查询种类。⚠️ **但它替代不了 UI 端到端**：搜索框输入 → 列表刷新
+     一次没跑过；`LIMIT/OFFSET` 是脚本**自己拼**的，`PagingSource` 的并发失效 /
+     快照一致性 / 回滚没验；证据全部来自 CPython 内置 SQLite，**不是 Android 的
+     SQLite**；`~` 在不同 Android / SQLite 版本上的语义差异、以及 `ESCAPE` 与大小写
+     折叠（`PRAGMA case_sensitive_like`）的交互也都没验。**6 条完整清单见
+     `docs/eval/c1-group-chat.md`「C1-S」那节第四小节。**
+  4. **⚠️ 一个对外可感知的行为变化**：`GET /api/conversations/paged?query=…`
+     （`ConversationRoutes.kt:85`）的 `query` 里带 `%` / `_` 时，改动前会返回
+     **多出来的**会话，改动后只返回标题里**真含该字符**的会话。**这是修 bug，不是改
+     契约**——但外部消费者若依赖了旧的宽松行为，会看到结果集变小。
 - B8 `GroupChatPage` 的 `onEdit` 只放行 USER（`GroupChatPage.kt:292`），
   `feature/chat/GroupMessageActions.kt` 侧再用 `if (!groupChat)` 关掉重新生成 /
   创建分支 / 删除 / 分支切换（`:126` / `:217`）。理由是这些动作会改写消息，使
@@ -374,7 +484,9 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 
 ### 下一位的行动顺序
 
-按「零设备就能做 → 需要设备才能做」排。第 1 项的前两条**已完成**，其余今天就能落。
+按「零设备就能做 → 需要设备才能做」排。第 1 项的前两条与第 7 条**已完成**，其余今天就能落。
+⚠️ **已完成的三条零成本动作里，没有一条产生契约 `:206` 意义上的验收证据**——
+三批都只补了主机侧 / 代码层的部分证据，**十例状态仍全 `unverified`**。
 
 1. **零设备，立刻可做**
    1. ✅ **已完成（2026-10-05）**：`python3 tools/verification/c1d_migration_30_31_replay.py`
@@ -398,6 +510,9 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
       选 B 就把抽屉搜索「跨文件夹」的语义补进 `ChatDrawerViewModel` 的 KDoc，并在这条
       遗留项里记成已知且认可的口径。**在产品定之前不要改 DAO**——现状已被 4 条测试钉住，
       改动会先让测试变红，那是预期的信号。
+      ⚠️ **「不要改 DAO」只针对 `folder_id` 这一个口径，不是针对整个 DAO**：C1-S 那批
+      （`215296f1..6982869b`）改过 DAO 的 `ESCAPE` 子句与 `ORDER BY` 兜底，那是**另外两
+      个已定位的缺陷**，与 B2 无关，也没碰 `folder_id` 那一行 `WHERE`。
    5. ✅ **已完成（2026-10-05）**：**第二生成入口（`ChatService.kt`）的 `senderName`
       定时炸弹**已拆（`88ba63c2`），护栏 3 条已加（`8bc28105` / `c940813b`），变异检验
       3 次全部 FAIL。**B2 之外这一条不必再排期**——但它**没有**产生任何验收证据，
@@ -409,8 +524,21 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
       `ScrollbarMetrics`，由 `derivedStateOf` 缓存，只在 `LaunchedEffect` 体与 `Canvas`
       的 `draw` lambda 里读——**滚动不再每帧重组整个 `ChatListNormal`，只重绘那一个
       Canvas**。**warning 消失是结果不是目的**，这是真实性能改进。
-      ⚠️ 但「真机上滚动确实只重绘不重组」仍是**零设备证据**，依据是 Compose 求值语义与
-      lint 规则，不是帧率实测。别把它记成「滚动性能已验证」。
+       ⚠️ 但「真机上滚动确实只重绘不重组」仍是**零设备证据**，依据是 Compose 求值语义与
+       lint 规则，不是帧率实测。别把它记成「滚动性能已验证」。
+   7. ✅ **已完成（2026-10-05）**：**抽屉筛选这条路上的两个真实缺陷已修 + 主机侧证据已
+      补**（`215296f1..6982869b` 8 个 commit）。缺陷 1 = 5 条搜索 `LIKE` 缺 `ESCAPE`
+      （用户输入 `%` / `_` 被当通配符，**只多命中不漏命中**）；缺陷 2 = 14 处
+      `ORDER BY` 缺 `id` 兜底（`update_at` 毫秒精度下分页可能重复或漏行）。
+      重放脚本 **438 条断言全过**、两次退出码 0 / 输出逐字节相同。
+      ⚠️ **但它没有产生任何契约 `:206` 意义上的验收证据**，**十例状态仍全
+      `unverified`**（C1-10 只是多了一条「部分证据」）。⚠️ **本轮还改了一行既有测试的
+      期望串**（`ConversationTypeFilterSourceGuardTest.kt:68-73`），三条断言一条没被
+      削弱或删除、改完更严，但**它抓不到转义字符写错**——细节见上面「逐项状态」表后的
+      显眼登记，以及 `docs/eval/c1-group-chat.md`「C1-S」那节。
+      ⚠️ **B2 的「待产品决策」不受影响**：G6 那 4 条断言只把 `folder_id` 口径的现状
+      钉成实测，方案 A / B 与推荐一个字没改。
+
 2. **需要接真机**
    1. 真机建一个 3 角色群聊跑一轮 `mode=pipeline`，从库里按 `role_id` 分组导出每个
       viewer 的可见消息 ID 台账（用真实 `message.id`，不是测试构造值）。
