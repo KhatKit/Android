@@ -264,6 +264,10 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     端点群聊门禁 / `failGroupTurn` 回收平票脚手架），逐条见下一段。
     **它们产出的是代码层覆盖与修复，不是契约 `:206` 点名的验收证据**，
     所以**十例状态一个都没变**。
+  - ⚠️⚠️ **再往后一批（2026-10-06，`e72793e6..8ccc0264`，HEAD `361c7cf6`）：
+    平票脚手架两处漏回收 + 残留旧 job 两道守卫**，逐条见「第五批」那一段。
+    ⚠️ **那一批修的是三个当时真的还在漏的缺陷**（不是补覆盖），
+    **但同样不改任何判定**——零设备，四类产物一份未增。
 
 ### ⚠️ 本轮（`af104850..6ba95422`）四批修复 + 两个门禁，一句话索引
 
@@ -284,6 +288,52 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 生成的是 `role-N` 不是 UUID）；`tally` 那条**问题真实但机制描述反了**——`associateBy`
 保留的是**靠后（最新）**那条，所以裁决基于**最新立场**而非「过时立场」，
 但**旧票新票一起进候选池、票池被污染**这个结论仍然成立。
+
+### ⚠️ 第五批（`e72793e6..8ccc0264`）：平票脚手架两处漏回收 + 残留旧 job 两道守卫
+
+详细版全部在 `docs/eval/c1-group-chat.md` 的「平票脚手架三处漏回收 + 残留旧 job 两道守卫
+（零设备）」一节。这里只列**结论**。⚠️ **本批与上一批性质不同：上一批补覆盖，
+这一批修的是三个当时真的还在漏的缺陷**——但**修缺陷不等于拿到验收证据**，
+**十例状态一个都没变**。
+
+| commit | 改了什么 | 结论 / 边界 |
+|---|---|---|
+| `e72793e6` | `cancelActiveGroupRun` 与 `abandonDanglingGroupRuns` 补调 `dropTieBreakScaffolding` | ⚠️ `failGroupTurn` 那处已由 `e6764293` 修过，这两处是**同款失败模式**。**为什么确定该修**：`completeGroupRound` 全仓**只有一个调用点**（`onSuccess`），这两条路径落终态后再无路径为该轮调它 → 脚手架必然孤立。**为什么可以无条件补**：保留脚手架的唯一状态 `NeedsChairTieBreak` 只有 `completeGroupRound` 自己能进；`cancelActiveGroupRun` 第一行就是 `remove(...)?.runToken ?: return`（无活跃轮次直接返回）；`abandonDanglingGroupRuns` 严格早于存新 USER 消息，新轮再平票会自己 append 一条 ⚠️ **根因不只在漏回收**：`GroupChat.visibleMessages` 第一分支 `role == SYSTEM \|\| isSynthetic -> true` 排在所有 `index >= roundStart` 判断**之前**，对任何 viewer、任何轮次放行——**只要它在库里就一定被看见** |
+| `8a5f89d7` | `GroupTieBreakScaffoldingDropSourceGuardTest` **3 → 7** 条 | ⚠️ **抽不出纯函数判据**——「该不该回收」取决于 DAO 读，而要守的「函数体内必须有那处调用」本身是源码属性。**变异两次真红**（删 cancel 那处 → 3 红；删 abandon 那处 → 3 红），还原用**文件备份 + `sha256sum -c`** |
+| `2fdee352` | ⚠️ **本批最严重的一个**：残留旧 job 不得推进状态、不得跨轮盖戳。`GroupTurnCoordinator.advance` 加终态守卫返回新增的 `Advance.Halted`；新增纯函数 `checkCommitAdmission` → `CommitAdmission.Admitted/Denied`，在 `commitGroupTurn` 里**盖戳之前**拦下 | ⚠️ **触发路径**：`abandonDanglingGroupRuns` **不取消任何 job**（`cancelJobs()` 只被 `stopGeneration` / `cleanup()` 调用）→ 旧轮判死后旧 job 仍跑完进 `onSuccess`。**问题一**：`advance` 不检查终态，原来只有巧合式安全（新轮未被抢占时 `findByRound` 返回 null），**新轮已被抢占时返回新轮自己那行 RUNNING → 照常推进 → 上一轮角色被追加进新轮 `committed_role_ids`**。**问题二**：`stampGroupTurn` 排在所有 `return null` **之前**且内部是**不可逆的 `saveConversation`**，上一轮的产出被**永久盖上三元组**，`return null` 只是止损、**追不回来**。⚠️ **为什么守卫放 `advance` 而不是 `commitGroupTurn` 入口**：入口按终态判会全放行（命中的是新轮那行 RUNNING），按令牌判就变成第二处、判据重复；且 `advance` 是纯内核 → **能拿真单测**。⚠️ **两层判据分工不重叠**：`checkCommitAdmission` 认**身份**（这是谁的产出），`advance` 判**生死**（这轮还活着吗），所以归属判定**故意不判终态**、`advance` **故意不判令牌**。⚠️ **令牌必须从 `takeGroupTurn` 返回值捕获**（`GroupTurnEntry.Speak(...).runToken`），**不得事后反查 `groupRunsInFlight`**——判死路径都把镜像清了，反查到的要么 null（打死正常路径）要么是新轮令牌（恰好放行残留 job） |
+| `ef716dd3` | `onFailure → failGroupTurn` 补**同款**守卫（新增纯函数 `checkFailureAdmission`） | ⚠️ ②只堵了 `onSuccess`，**失败那条路没堵**：超时 / 角色失败时残留旧 job 会往新轮塞 `errorNode(roundId = 新轮)` 并把新轮写成 `FAILED`。⚠️ **两路结构不对称决定了修法**：`failGroupTurn` 签名里**没有 `plan` 形参**，它自己 `roundPlanFor` **现算**，所以守卫**只能放在它内部**；令牌来源同源（`onFailure` 闭包读外层 `groupRunToken`），**1 跳透传、没有新捕获点**。⚠️ **判据不另立**：`checkFailureAdmission` 直接调 `checkCommitAdmission` 拿身份再补一条终态——**因为失败路没有 `advance` 这一层**（`fail`/`timeoutRound` 是无条件写终态的纯函数），把终态塞进 `checkCommitAdmission` 会把提交路一起打死。⚠️ **主次要分清**：**身份条款是决定性的**（新轮已抢占 → RUNNING 但令牌不同 → 拒）；终态条款在「判死后用户没再发消息、`plan.roundId` 仍是旧轮」这一形状下才决定性，它顺带兜住 `stopGeneration` 里 `session == null` 就写 CANCELLED 的竞态。⚠️ **守卫插在 `failGroupTurn` 四个副作用全部之前**：① `appendGroupMessages(errorNode)`→`saveConversation` ② `persistRoundState(failed)` ③ `dropTieBreakScaffolding`（**不可逆且跨轮**，全会话范围清扫）④ `groupRunsInFlight.remove`（**装的可能是新轮令牌**）；**拒收分支只有 `Logging.log` + `return`，不碰镜像** |
+| `8ccc0264` | `GroupTurnCoordinatorTest` **78 → 84**（6 条真单测）+ 新类 `GroupStaleJobFailureSourceGuardTest` 6 条源码护栏 | ⚠️ **正常放行必须也有回归断言**（正常失败 / 正常超时 / 续跑死轮三条），**不能只测「被拒」**——否则「守卫写成永远拒绝」也全绿。**变异 7 个（M1–M7）全部 EXIT=1**。⚠️ **M3 暴露了子代理自己的测试 bug**：第一版顺序断言**锚错了**（锚 `checkCommitAdmission(` 调用而不是拒收早退那一行），改成锚 `DENIED_MARKER` 后才真正抓住——**这条留痕是因为「护栏自己写错」也是护栏体系的一部分** |
+
+⚠️⚠️⚠️ **本批的两条诚实边界，必须连着上面的表一起读**：
+
+1. **⚠️ 路径 B（`cancelActiveGroupRun` 让残留 job 进 `onSuccess`）没找到确证。**
+   `stopGeneration` 会先 `cancelJobs()` + `join()`，被取消的协程走 `onFailure` 的
+   C 分支 rethrow，`onSuccess` **不会执行**。**改动对两条路径都有效**
+   （两个守卫是同款判据、同一个不变量），但⚠️ **只有路径 A（`abandonDanglingGroupRuns`）
+   有实测支撑**，而且⚠️ **连路径 A 也只在 JVM 单测层面成立，从未在真机上复现过**。
+2. **⚠️ 正常路径七种形态「不受影响」是逐条读代码论证 + 真单测，不是真机各跑一遍。**
+   关键依据：`claimRound` 三条出口（`Acquired(freshRow)` / `Continued` /
+   `Acquired(reclaimed)`）产出的 `state.runToken` 与写进 `group_runs` 的令牌
+   **是同一个**（`persistClaim` 的 `insert` / `updateStatus` 都不碰 `run_token`）；
+   `reclaimed` **只把 status 推回 RUNNING，不改 `roundId` 也不改 `runToken`**。
+   单聊 / 正常推进 / 取消重跑 / 失败续跑 / 超时重跑 / 重新生成删消息切分支 /
+   议长平票裁决 / 进程被杀后重启续跑 / 用户取消（**根本进不了 `failGroupTurn`**）。
+
+⚠️ **本批新增三个源码文本护栏类（`GroupStaleJobCommitSourceGuardTest` 7 /
+`GroupStaleJobFailureSourceGuardTest` 6 / `GroupTieBreakScaffoldingDropSourceGuardTest`
+3 → 7）**——**为什么这么多文本护栏**：`commitGroupTurn` / `failGroupTurn` 都是
+`private suspend` + 一堆 Hilt 协作者（`getConversationFlow` / `groupRunDAO` /
+`saveConversation`），**JVM 单测构造不出来**，所以「函数体内必须有那处调用」
+「调用必须排在某个副作用之前」这类**顺序与存在性**不变量只能读源码文本。
+⚠️ **但能抽纯函数的部分子代理确实抽了**：`checkCommitAdmission` /
+`checkFailureAdmission` / `advance` 三个都是纯判定内核，配了 **12 条真单测**——
+**「判据的逻辑」有行为断言，只有「调用点在哪、排在哪」是文本护栏**。
+
+⚠️⚠️⚠️ **本批的唯一硬结论：不改任何判定。** 三批修的是真缺陷，
+但 **① 本轮零设备、零 `adb`、零 gradle**，契约 `:206` 四类产物**一份未增**；
+**② ②③ 的触发前提本身只是读代码 + 核实 `cancelJobs()` 调用点**，不是观测。
+**回归护栏证明的是「我们钉住了那条不变量」，验收证明的是「契约那四类产物在真机上
+被采到了」——前者永远不能顶替后者。** 十例状态仍全 `unverified`。
 
 这不是保守，是契约自己定的规则。**验收证据只认 `docs/eval/c1-group-chat.md`**；
 本节只描述现状与下一步，不代替证据、不改判定。
@@ -374,10 +424,10 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 
 | 缺口（2026-10-04 版） | 代码状态 | JVM 证据（类 / 用例数） | 设备证据 |
 |---|---|---|---|
-| 1 契约字段 + 幂等续跑 | 代码层已实现 | `GroupTurnCoordinatorTest` 63、`GroupRunSchemaTest` 10、`UngeneratedMessageFilterTest` 18 | 无（`adb devices` 空）；仪器 `GroupRunDAOTest` 12 条从未跑过 |
+| 1 契约字段 + 幂等续跑 | 代码层已实现。⚠️ **第五批（`2fdee352` / `8ccc0264`）给「续跑」补了两道守卫**：残留旧 job 不得推进已终态的轮次、不得把上一轮的产出盖到新轮 | `GroupTurnCoordinatorTest` 63、`GroupRunSchemaTest` 10、`UngeneratedMessageFilterTest` 18<br>⚠️ **（第五批后 `GroupTurnCoordinatorTest` 是 84；`GroupStaleJobCommitSourceGuardTest` 7 / `GroupStaleJobFailureSourceGuardTest` 6 是新增护栏）** | 无（`adb devices` 空）；仪器 `GroupRunDAOTest` 12 条从未跑过 |
 | 2 版本化 config + 字段级校验 | 代码层已实现 | `GroupChatTest` 18（含 extras 往返、未知 schema 拒收） | 无 |
 | 3 记忆接线 | 代码层已实现 | `MemorySpaceGateTest` 9 / `MemoryToolScopeTest` 7 / `MemoryAttributionTest` 9 / `GroupMemorySpacePolicyTest` 6 / `MemoryExtractorParseTest` 7 / `MemoryRoleIdMappingTest` 2 | 无 |
-| 4 vote 结构化 | 数据结构层已实现，传输层仍是文本约定（见遗留 B5） | `GroupTurnCoordinatorTest` 63 的投票/平票组 | 无 |
+| 4 vote 结构化 | 数据结构层已实现，传输层仍是文本约定（见遗留 B5）。⚠️ **第五批（`e72793e6` / `8a5f89d7`）把平票裁决脚手架在 `cancelActiveGroupRun` / `abandonDanglingGroupRuns` 两条终态出口上的漏回收补上了** | `GroupTurnCoordinatorTest` 63 的投票/平票组<br>⚠️ **（第五批后是 84；`GroupTieBreakScaffoldingDropSourceGuardTest` 3 → 7）** | 无 |
 | 5 导出 / 恢复 | 代码层已实现（含相机扫码入口），**角色卡元数据已真落库**（见 B1） | `GroupTavernExportTest` 22 / `TavernCompatTest` 21 / `QrScannerSheetTest` 16 / `GroupChatTest` 18 / `GroupRoleCardsPersistenceTest` 7 / `ConversationGroupCardsSchemaTest` 7 | 无；酒馆本体打开 `.jsonl`、真机相机扫码、导出文件 SHA-256 三项全未验；`Migration_31_32_Test` 6 条未跑 |
 | 6 UI 复用管线 + 头像组 + 筛选 | 代码层已实现，一行 Compose 未上屏。**本轮还修掉了这条路上的两个真实缺陷**：5 条搜索查询的 LIKE 未转义（已加 `ESCAPE`）、14 处 `ORDER BY` 缺 `id` 兜底（已补） | `ConversationListQueryPlanTest` 7 / `ConversationTypeFilterSourceGuardTest` 2 / **`ConversationSearchLikePatternTest` 12** / `GroupSpeakerResolverTest` 8 / `GroupRoleCompletionProviderTest` 8 / `GroupChatTest` 18 | 无；`ConversationDAO` 的 SQL 在**真机 Android SQLite** 上的行为也未验（**主机侧**已由 C1-S 重放钉住 438 条断言，见 B7） |
 | 7 构建与退出码 | **已拿到硬证据** | 见 `docs/eval/c1-group-chat.md`「构建与验证证据」（三条命令退出码全 0） | 不适用 |
@@ -475,6 +525,19 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   的完整输出，见 `docs/eval/c1-group-chat.md` 的
   「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」。
   ⚠️ 同样**不能替代 `Migration_31_32_Test`** 的 6 条仪器用例（仍需设备）。
+- ⚠️⚠️ **第五批（`e72793e6..8ccc0264`，2026-10-06，HEAD `361c7cf6`）给 A 段加了一条
+  新的设备侧缺口，四类产物仍一份未增。** 本批修的是三个真缺陷（平票脚手架在两条
+  终态出口上漏回收、残留旧 job 跨轮盖戳 / 跨轮写 `FAILED`），**零设备、零 `adb`、
+  零 gradle**，所以：
+  - **契约 `:206` 那四类产物本轮一份未增**，上面每一条的状态**一个字没变**。
+  - ⚠️ **新增的设备侧缺口：残留旧 job 那两条路径的真机复现**（见 B11）。
+    要在同一会话里**人工编排时序**（长生成在飞 → 中途发新消息把它判死 → 等旧 job
+    跑完，或反过来先超时）。⚠️ **这不是「跑一遍测试」能覆盖的**——
+    `abandonDanglingGroupRuns` **不取消任何 job** 这个前提本身要靠真机观测确认。
+  - ⚠️ **本轮一行 `androidTest` 都没动**（全量 `@Test` 仍是 **61**）：
+    这三个缺陷恰好是**仪器测试原理上覆盖不到**的那一类——要在**真实协程取消 +
+    真实流式响应 + 真实 DAO 时序**下才可能复现，所以「没动 androidTest」不是漏做，
+    是**没有可写的仪器用例**。
 
 **B. 已知遗留与风险（代码层，需要产品/架构决策）**
 
@@ -691,6 +754,38 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   创建分支 / 删除 / 分支切换（`:126` / `:217`）。理由是这些动作会改写消息，使
   `group_runs.committed_role_ids` 与实际消息错位。**要放开必须同步改写
   `committed_role_ids`**，不是纯 UI 改动。
+- ⚠️⚠️ **B9 `onSuccess` 里 `null -> groupRunsInFlight.remove(conversationId)` 的连带损伤
+  （`2fdee352` 附带发现，刻意没改）。**
+  `ChatManager.kt:1007` 那行在残留旧 job 走到这里时**镜像里装的是新轮的令牌**，
+  这一 remove 让**新轮再也取消不掉**（`cancelActiveGroupRun` 第一行就 `remove` 不到
+  东西、直接 return）、续跑拿不到 `expectedRunToken`、**整轮卡死**。
+  ⚠️ **刻意不改**：① 改它会**动正常路径**——`produced == null` 时 `failGroupTurn`
+  可能提前 return，**那一次 remove 是镜像唯一的兜底清账**；② 本批的修法是**让拒绝走
+  `Advance.Halted` 而不是 `null`**，从而**绕开**这一行。⚠️ **这不是修好了这行，
+  是让这条路不再走到它**——将来任何新增的「返回 null」分支都会重新踩到它，
+  所以新分支一律走 `Halted`。
+- ⚠️ **B10 `abandonDanglingGroupRuns` 的 `limit = 8` 与契约有张力（未修，后果未核实）。**
+  `ChatManager.kt:2098` 取「挂着 `RUNNING` 的行」时写了 `limit = 8`（同样的常量也
+  出现在 `:853`）。契约说「**任何群聊轮次都不会永久悬挂**」，但**超过 8 条**时
+  **第 9 条起不会被判死**，仍是**永久 `RUNNING` 占位**。
+  ⚠️ **未修**；⚠️ **也未核实单会话能不能真的堆到 9 条并发 `RUNNING`**（`claimRound` 按
+  复合主键抢占、`RUNNING` 行每轮一条，理论上「连续 9 次发消息、每次都有一条轮次
+  没落终态」能堆出来，但那要求 **9 次判死路径全部失效**，本轮**零证据**）。
+  ⚠️ **别把它读成「已确认会永久悬挂」**——按「未修 + 后果未核实」登记。
+- ⚠️⚠️ **B11 残留旧 job 那两条路径从未在真机上复现过（零设备）。**
+  触发前提「`abandonDanglingGroupRuns` 不取消任何 job」是**读代码 + 核实
+  `ConversationSession.cancelJobs()` 只被 `stopGeneration` / `cleanup()` 调用**
+  得到的，**不是真机观测**。⚠️ 路径 A（超时 / 角色失败 → `failGroupTurn`）有
+  **JVM 单测层面**的实测支撑；⚠️ **路径 B（用户取消 → 残留 job 进 `onSuccess`）
+  连这个级别都没有**（`stopGeneration` 先 `cancelJobs()` + `join()`，被取消的协程走
+  `onFailure` 的 C 分支 rethrow，`onSuccess` 不执行）。
+  ⚠️ **真机复现要人工编排时序**：同一会话里一条长生成在飞 → 期间发新消息把它判死 →
+  等旧 job 跑完（或反过来先超时）。这不是「跑一遍测试」能覆盖的，
+  所以这一整类缺陷**目前只有代码层证据**。
+  ⚠️ 顺带说明：**`361c7cf6`（仓库当前 HEAD）不属于 C1**——`git show --stat` =
+  1 file / 14 insertions / 3 deletions，只改 `core/ui/components/message/ChatMessage.kt`
+  的 KDoc（订正遗留第 20 条里 fork 那一半的禁因措辞）、**零测试改动**，
+  所以它与本文件的任何测试数字都无关。
 
 ### 下一位的行动顺序
 
