@@ -12,6 +12,15 @@ import androidx.compose.runtime.tooling.ComposeStackTraceMode
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.gif.AnimatedImageDecoder
+import coil3.gif.GifDecoder
+import coil3.network.ktor3.KtorNetworkFetcherFactory
+import coil3.request.crossfade
+import coil3.svg.SvgDecoder
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -51,12 +60,15 @@ const val CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID = "chat_live_update"
 const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 
 @HiltAndroidApp
-class KhatKitApp : Application() {
+class KhatKitApp : Application(), SingletonImageLoader.Factory {
     @Inject
     lateinit var appScope: AppScope
 
     @Inject
     lateinit var settingsStore: SettingsRepository
+
+    @Inject
+    lateinit var ktorHttpClient: HttpClient
 
     @Inject
     lateinit var workspaceManager: WorkspaceManager
@@ -130,6 +142,55 @@ class KhatKitApp : Application() {
 
         // Composer.setDiagnosticStackTraceMode(ComposeStackTraceMode.Auto)
     }
+
+    /**
+     * 全 app **唯一**一处定义 Coil 的 `ImageLoader`。
+     *
+     * ## 为什么必须挂在 Application 上，而不是某个 Activity 的组合里
+     *
+     * Coil 3 的单例是一个 **进程级** `AtomicReference`（`coil3.SingletonImageLoader`），
+     * 里面有三种可能的值：`null` / `Factory` / `ImageLoader`。两个 API 的语义是：
+     *
+     * - `get(context)`（所有 Coil 用法的入口：`AsyncImage`、`rememberAsyncImagePainter`、
+     *   `SubcomposeAsyncImage` …）—— 为空时按
+     *   「已存的 Factory → `applicationContext as? Factory` → 内置默认工厂」的顺序建一个，
+     *   并把它**记住**；
+     * - `setSafe(factory)`（即 `coil3.compose.setSingletonImageLoaderFactory`）——
+     *   只有当当前记住的是「**内置默认**建出来的 ImageLoader」时才抛
+     *   `IllegalStateException: The singleton image loader has already been created...`。
+     *
+     * 也就是说：**只要进程里有任何一处 Coil 用法先跑过，内置默认 loader 就被钉死了，
+     * 之后再设置就必崩**。而 `setSingletonImageLoaderFactory` 是在**组合过程中**同步调用的
+     * （`SingletonImageLoaders.kt:17`，没有 `SideEffect`/`LaunchedEffect` 兜底），
+     * 所以「谁先跑」完全取决于进程里第一个碰到 Coil 的地方是不是这个 Activity。
+     *
+     * 这正是 `:app:connectedDebugAndroidTest` 全量崩掉的原因：`NodeTreeSmokeTest` 用
+     * `createComposeRule()` 渲染 `AsyncImage`，在**同一个进程**里先把默认 loader 建出来了；
+     * 随后 `BrowserRuntimeTest` 的 `ActivityScenarioRule(RouteActivity::class.java)` 拉起
+     * `RouteActivity.onCreate`，`setSingletonImageLoaderFactory` 当场抛异常，
+     * 而它是在 `super.onCreate()` 之后、`setContent` 之前挂掉的 —— 整个 instrumentation 进程死掉。
+     *
+     * 实现 `SingletonImageLoader.Factory`（Coil 3 里 `ImageLoaderFactory` 的替代品）后，
+     * Coil 走的是 `newImageLoader()` 这条**只建一次、且认 ApplicationContext** 的路径：
+     * 既不用赌「谁先跑」，也保证进程内拿到的永远是这份自定义 loader
+     * （自带 Ktor 网络栈 + GIF/SVG 解码，而不是内置默认那套）。
+     *
+     * Hilt 字段注入发生在 `Application.onCreate` 之前（`inject()` 先于 `super.onCreate()`），
+     * 而 `newImageLoader()` 是首次 Coil 用法时才惰性调用的，所以 [ktorHttpClient] 一定已就绪。
+     */
+    override fun newImageLoader(context: PlatformContext): ImageLoader =
+        ImageLoader.Builder(context)
+            .crossfade(true)
+            .components {
+                add(KtorNetworkFetcherFactory(httpClient = { ktorHttpClient }))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    add(AnimatedImageDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+                add(SvgDecoder.Factory(scaleToDensity = true))
+            }
+            .build()
 
     private fun incrementLaunchCount() {
         appScope.launch {

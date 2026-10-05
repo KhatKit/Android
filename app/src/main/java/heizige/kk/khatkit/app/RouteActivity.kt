@@ -48,13 +48,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import coil3.ImageLoader
-import coil3.compose.setSingletonImageLoaderFactory
-import coil3.gif.AnimatedImageDecoder
-import coil3.gif.GifDecoder
-import coil3.network.ktor3.KtorNetworkFetcherFactory
-import coil3.request.crossfade
-import coil3.svg.SvgDecoder
 import com.dokar.sonner.Toaster
 import com.dokar.sonner.rememberToasterState
 import kotlinx.serialization.Serializable
@@ -145,7 +138,6 @@ import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.core.util.CrashHandler
 import heizige.kk.khatkit.app.core.util.openUsageAccessSettings
-import io.ktor.client.HttpClient
 import dagger.hilt.android.AndroidEntryPoint
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import javax.inject.Inject
@@ -157,9 +149,6 @@ private const val ACTION_TRANSLATE = "heizige.kk.khatkit.app.action.TRANSLATE"
 
 @AndroidEntryPoint
 class RouteActivity : ComponentActivity() {
-    @Inject
-    lateinit var ktorHttpClient: HttpClient
-
     @Inject
     lateinit var settingsStore: SettingsRepository
 
@@ -199,22 +188,13 @@ class RouteActivity : ComponentActivity() {
         }
         setContent {
             KhatKitTheme {
-                setSingletonImageLoaderFactory { context ->
-                    ImageLoader.Builder(context)
-                        .crossfade(true)
-                        .components {
-                            add(
-                                KtorNetworkFetcherFactory(httpClient = { ktorHttpClient })
-                            )
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                add(AnimatedImageDecoder.Factory())
-                            } else {
-                                add(GifDecoder.Factory())
-                            }
-                            add(SvgDecoder.Factory(scaleToDensity = true))
-                        }
-                        .build()
-                }
+                // Coil 的单例 ImageLoader 不在这里配置：那是进程级单例，
+                // 而这里只是其中一个 Activity 的组合，任何先跑的 Coil 用法
+                // （AsyncImage / rememberAsyncImagePainter）都会把内置默认 loader 钉死，
+                // 之后再调 setSingletonImageLoaderFactory 就抛
+                // IllegalStateException: The singleton image loader has already been created...
+                // 定义点唯一，放在 Application（KhatKitApp : SingletonImageLoader.Factory）。
+                // 详见 KhatKitApp.newImageLoader 的注释与 CoilImageLoaderSourceGuardTest。
                 val khatKitProvider = rememberAppEntryPoint().khatKitToolProvider()
                 // Miuix 主题只认这个深浅色，必须取应用内「颜色模式」的解析结果，
                 // 否则切浅色对 Miuix 不生效（KedgeTheme 默认按系统深浅色走）。
