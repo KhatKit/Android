@@ -37,6 +37,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -231,10 +232,24 @@ class C1DeviceEvidenceTest {
         val generatedAt = System.currentTimeMillis()
 
         // ---------- ① viewer 可见消息 ID：从真机真库读回来的消息上算 ----------
+        //
+        // 三种 mode 各采一遍。之前只采 pipeline，于是 `GroupChat.plan` 的另外两条分支
+        // 从没被跑过：roundtable 的 `chairRound=true` 放行分支（议长能看本轮所有角色输出）
+        // 和 vote 的纯 null 分支（`predecessorId` 与 `chairRound` 都为 null）一次都没被覆盖。
         val stored = persistAndReloadGroupConversation()
         val storedMessages = stored.currentMessages
-        val visibleByRole = collectViewerVisibleMessageIds(storedMessages)
-        val leakage = assertNoCrossRoleLeakage(storedMessages, visibleByRole)
+        val visibleByMode = configs.associate { config ->
+            config.mode to collectViewerVisibleMessageIds(storedMessages, config)
+        }
+        val leakageByMode = configs.associate { config ->
+            config.mode to assertNoCrossRoleLeakage(
+                storedMessages,
+                requireNotNull(visibleByMode[config.mode]),
+                config,
+            )
+        }
+        val visibleByRole = requireNotNull(visibleByMode[GroupChat.MODE_PIPELINE])
+        val leakage = requireNotNull(leakageByMode[GroupChat.MODE_PIPELINE])
 
         // ---------- ④ 模型路由判定（真实 resolve，无真实 LLM 调用） ----------
         val settings = syntheticRoutingSettings()
@@ -302,6 +317,35 @@ class C1DeviceEvidenceTest {
                     // kotlinx.serialization 1.11 的 JsonArrayBuilder 只剩 add(JsonElement)，
                     // 便捷重载 add(String) 已被移除，所以显式包一层 JsonPrimitive。
                     putJsonArray("role_$role") { ids.forEach { id -> add(JsonPrimitive(id)) } }
+                }
+            }
+            // 三种 mode 各一份 viewer 台账 + 越权审计结果。
+            putJsonObject("viewer_ledger_by_mode") {
+                configs.forEach { config ->
+                    val visible = requireNotNull(visibleByMode[config.mode])
+                    val result = requireNotNull(leakageByMode[config.mode])
+                    putJsonObject(config.mode) {
+                        putJsonObject("visible_message_ids") {
+                            visible.forEach { (role, ids) ->
+                                putJsonArray("role_$role") { ids.forEach { add(JsonPrimitive(it)) } }
+                            }
+                        }
+                        putJsonObject("step_of_viewer") {
+                            visible.keys.forEach { roleId ->
+                                val step = requireNotNull(
+                                    viewerStepOf(storedMessages, roleId, config),
+                                )
+                                putJsonObject("role_$roleId") {
+                                    put("predecessor_id", step.predecessorId)
+                                    put("chair_round", step.chairRound)
+                                    put("turn_kind", GroupTurnCoordinator.turnKindOf(step))
+                                }
+                            }
+                        }
+                        put("leakage_passed", result.passed)
+                        put("checked_pairs", result.checkedPairs)
+                        put("violations", JsonArray(result.violations.map { JsonPrimitive(it) }))
+                    }
                 }
             }
             putJsonObject("viewer_fixture") {
@@ -465,6 +509,51 @@ class C1DeviceEvidenceTest {
             3,
             (reparsedObject["viewer_visible_message_ids"] as JsonObject).size,
         )
+        assertEquals(
+            "viewer 台账必须覆盖 pipeline/roundtable/vote 三种 mode",
+            3,
+            (reparsedObject["viewer_ledger_by_mode"] as JsonObject).size,
+        )
+        // 三种 mode 的发言位形状必须真的不同，否则「各采一遍」只是把同一份结果抄三遍：
+        // pipeline 靠 predecessorId 串上一位；roundtable 的议长必须 chairRound=true；
+        // vote 两者都为 null。
+        val ledger = reparsedObject["viewer_ledger_by_mode"] as JsonObject
+        val roundtableSteps = ledger[GroupChat.MODE_ROUNDTABLE]
+            ?.let { it as JsonObject }?.get("step_of_viewer") as JsonObject
+        // 注意：读回来的是 JsonElement（JsonLiteral），不能直接和 Kotlin Boolean 比。
+        assertEquals(
+            "roundtable 议长必须落在 chairRound=true 的发言位",
+            JsonPrimitive(true),
+            (roundtableSteps["role_c"] as JsonObject)["chair_round"],
+        )
+        val voteSteps = ledger[GroupChat.MODE_VOTE]
+            ?.let { it as JsonObject }?.get("step_of_viewer") as JsonObject
+        voteSteps.keys.forEach { key ->
+            val step = voteSteps[key] as JsonObject
+            // `put("predecessor_id", null)` 会写成显式 null，所以读回来是 JsonNull 而不是缺失键。
+            assertEquals(
+                "vote 模式的 $key 发言位不该有 predecessorId",
+                JsonNull,
+                step["predecessor_id"],
+            )
+            assertEquals(
+                "vote 模式的 $key 发言位不该是 chairRound",
+                JsonPrimitive(false),
+                step["chair_round"],
+            )
+        }
+        val pipelineSteps = ledger[GroupChat.MODE_PIPELINE]
+            ?.let { it as JsonObject }?.get("step_of_viewer") as JsonObject
+        assertEquals(
+            "pipeline 里 b 的 predecessor 必须是 a",
+            JsonPrimitive("a"),
+            (pipelineSteps["role_b"] as JsonObject)["predecessor_id"],
+        )
+        assertEquals(
+            "pipeline 里 a 的 predecessor 必须是 null",
+            JsonNull,
+            (pipelineSteps["role_a"] as JsonObject)["predecessor_id"],
+        )
 
         println("C1-EVIDENCE-REPORT-BEGIN")
         println(jsonText)
@@ -525,12 +614,21 @@ class C1DeviceEvidenceTest {
      *
      * step 是 [GroupChat.plan] 算出来的，测试不自己造替身——`viewerMessages` 的
      * `predecessorId` / `chairRound` 两个放行分支全靠它。
+     *
+     * ⚠️ [config] 必须传进来而不是写死 `pipelineConfig`：`GroupChat.plan` 按 mode 走三条
+     * 不同分支，只有真跑过三种 mode 才会覆盖到
+     * `predecessorId`（pipeline 串上一位）、`chairRound=true`（roundtable 议长收束）、
+     * 以及两者都为 null 的 vote 路径。夹具层改循环，不改生产逻辑。
      */
-    private fun viewerStepOf(messages: List<UIMessage>, roleId: String): SpeakerStep? {
+    private fun viewerStepOf(
+        messages: List<UIMessage>,
+        roleId: String,
+        config: GroupConfig = pipelineConfig,
+    ): SpeakerStep? {
         val trigger = messages.first { it.id == user2Id }
         val plan = GroupChat.newRound(
             triggerMessageId = trigger.id.toString(),
-            config = pipelineConfig,
+            config = config,
             mentionRoleIds = trigger.mentionRoleIds,
             userText = trigger.toText(),
         )
@@ -539,12 +637,13 @@ class C1DeviceEvidenceTest {
 
     private fun collectViewerVisibleMessageIds(
         messages: List<UIMessage>,
-    ): Map<String, List<String>> = pipelineConfig.roles.associate { role ->
-        val step = requireNotNull(viewerStepOf(messages, role.id)) {
-            "第二轮计划里必须有角色 ${role.id} 的发言位"
+        config: GroupConfig = pipelineConfig,
+    ): Map<String, List<String>> = config.roles.associate { role ->
+        val step = requireNotNull(viewerStepOf(messages, role.id, config)) {
+            "第二轮计划（mode=${config.mode}）里必须有角色 ${role.id} 的发言位"
         }
         role.id to GroupTurnCoordinator
-            .viewerMessages(pipelineConfig, messages, step)
+            .viewerMessages(config, messages, step)
             .map { it.id.toString() }
     }
 
@@ -564,14 +663,15 @@ class C1DeviceEvidenceTest {
     private fun assertNoCrossRoleLeakage(
         messages: List<UIMessage>,
         visibleByRole: Map<String, List<String>>,
+        config: GroupConfig = pipelineConfig,
     ): LeakageResult {
         val violations = mutableListOf<String>()
         var checkedPairs = 0
 
-        pipelineConfig.roles.forEach { viewer ->
-            val step = requireNotNull(viewerStepOf(messages, viewer.id))
+        config.roles.forEach { viewer ->
+            val step = requireNotNull(viewerStepOf(messages, viewer.id, config))
             val visible = visibleByRole.getValue(viewer.id).toSet()
-            pipelineConfig.roles.filter { it.id != viewer.id }.forEach { author ->
+            config.roles.filter { it.id != viewer.id }.forEach { author ->
                 checkedPairs++
                 val allowed = { message: UIMessage ->
                     viewer.id in message.mentionRoleIds ||
@@ -592,7 +692,7 @@ class C1DeviceEvidenceTest {
 
         // 正向断言：用户消息与合成的轮次摘要对**每个**视角都必须可见，
         // 否则「上下文过滤发生在 prompt 组装层」这条契约就少了用户输入这一半。
-        pipelineConfig.roles.forEach { viewer ->
+        config.roles.forEach { viewer ->
             val visible = visibleByRole.getValue(viewer.id).toSet()
             messages.filter { it.role == MessageRole.USER }.forEach { message ->
                 assertTrue(
