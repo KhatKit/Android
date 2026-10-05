@@ -215,7 +215,6 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 icon = favorite,
                 onClick = { navController.navigate(Screen.SettingDonate) },
             )
-            
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_share),
                 summary = stringResource(R.string.setting_page_share_desc),
