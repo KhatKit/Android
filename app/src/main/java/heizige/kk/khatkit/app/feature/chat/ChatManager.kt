@@ -709,6 +709,11 @@ class ChatManager(
         var assistant = settings.getAssistantById(initialConversation.assistantId)
             ?: settings.getCurrentAssistant()
         var groupStep: SpeakerStep? = null
+        // 本次生成所属那一轮的 run token，在**发起模型调用之前**从抢占结果里捕获。
+        // 它是提交阶段唯一可信的「这份产出属于哪一轮」凭据：判死路径（cancelActiveGroupRun /
+        // abandonDanglingGroupRuns）会把 groupRunsInFlight 一起清掉，事后再反查只会查到
+        // 新轮的令牌，恰好把残留 job 放行。
+        var groupRunToken: String? = null
         var model = TaskRoutes.resolve(settings, ModelTaskType.CHAT, assistant.chatModelId)
 
         // 群聊分支会在下面把 `assistant` / `model` 换成**本轮发言角色**的那一套，所以这里
@@ -753,6 +758,7 @@ class ChatManager(
                 return
             }
             groupStep = (groupEntry as? GroupTurnEntry.Speak)?.step
+            groupRunToken = (groupEntry as? GroupTurnEntry.Speak)?.runToken
             val step = groupStep
             if (step != null && groupConfig != null) {
                 settings.getAssistantById(Uuid.parse(step.role.assistantId))?.let { assistant = it }
@@ -997,7 +1003,7 @@ class ChatManager(
             val config = conversation.groupConfig ?: return@onSuccess
             val plan = GroupTurnCoordinator.roundPlanFor(config, conversation.currentMessages)
                 ?: return@onSuccess
-            when (val advance = commitGroupTurn(conversationId, step, plan, config)) {
+            when (val advance = commitGroupTurn(conversationId, step, groupRunToken, plan, config)) {
                 null -> groupRunsInFlight.remove(conversationId)
 
                 is GroupTurnCoordinator.Advance.More -> {
@@ -1013,6 +1019,14 @@ class ChatManager(
 
                 is GroupTurnCoordinator.Advance.Finished -> {
                     completeGroupRound(conversationId, config, plan, advance.state)
+                }
+
+                is GroupTurnCoordinator.Advance.Halted -> {
+                    // 轮次已终态，或这份产出不属于本轮（判死之后残留的旧 job）：
+                    // 不推进、不落库，也**不碰 groupRunsInFlight** —— 进程内镜像早已由判死
+                    // 那条路径清掉，这里再 remove 会顺手抹掉同会话正在跑的新一轮的镜像，
+                    // 让那一轮再也取消不掉、也续不下去。
+                    Logging.log(TAG, "group turn halted: ${advance.detail}")
                 }
             }
             val finalConversation = getConversationFlow(conversationId).value
@@ -1676,7 +1690,7 @@ class ChatManager(
                 !GroupRunEntity.isTerminal(running.status)
             ) {
                 groupRunsInFlight[conversationId] = InFlightGroupRun(runToken = inFlight.runToken)
-                return GroupTurnEntry.Speak(forced)
+                return GroupTurnEntry.Speak(forced, inFlight.runToken)
             }
             groupRunsInFlight.remove(conversationId)
         }
@@ -1753,7 +1767,7 @@ class ChatManager(
             return GroupTurnEntry.Idle
         }
         groupRunsInFlight[conversationId] = InFlightGroupRun(runToken = state.runToken)
-        return GroupTurnEntry.Speak(pending.first())
+        return GroupTurnEntry.Speak(pending.first(), state.runToken)
     }
 
     /**
@@ -1814,14 +1828,40 @@ class ChatManager(
     /**
      * 一次发言成功后的提交：给产出打上 `role_id` / `round_id` / `turn_kind`，把角色追加进
      * `committed_role_ids`，再按 **prompt + completion** 累加本轮已用并判停。
+     *
+     * ⚠️ **归属判定必须排在任何副作用之前。** 盖戳（[stampGroupTurn] 会
+     * `saveConversation`）是一次不可逆的写，而 `plan` 是 `onSuccess` 里**当场现算**的：
+     * 用户取消一轮、或用户发新消息把上一轮判死之后，仍在飞的旧 job 跑完时，
+     * 触发消息已经变了，现算出来的 `plan.roundId` 属于**新轮**。
+     * 原实现是「先盖戳 → 再 `findByRound`」，于是旧产出先被写进新轮，再由
+     * `findByRound` 为空 return null 收场 —— 那是巧合式的安全（而且只在「新轮还没被
+     * 抢占」那一个窗口里成立；新轮一旦被抢占，`findByRound` 返回的是**新轮自己**那一行，
+     * `advance` 就会把上一轮的角色追加进新轮的 `committed_role_ids`）。
+     * 现在改成：先按 run token 判归属（[GroupTurnCoordinator.checkCommitAdmission]），
+     * 不属于本轮就返回 [GroupTurnCoordinator.Advance.Halted]，**一个副作用都不做**。
+     *
+     * 生死判定在 [GroupTurnCoordinator.advance] 里（终态 state 不推进）；这里只管归属。
+     *
+     * [runToken] 是本次生成在 [takeGroupTurn] 里拿到的令牌；传 null（理论上不可达：
+     * `step` 非空即蕴含 `GroupTurnEntry.Speak`）时内核按「血缘不明」拒收。
      */
     private suspend fun commitGroupTurn(
         conversationId: Uuid,
         step: SpeakerStep,
+        runToken: String?,
         plan: RoundPlan,
         config: GroupConfig,
     ): GroupTurnCoordinator.Advance? {
         val key = conversationId.toString()
+        val admission = GroupTurnCoordinator.checkCommitAdmission(
+            jobRunToken = runToken,
+            row = groupRunDAO.findByRound(key, plan.roundId)?.let(GroupTurnCoordinator::fromEntity),
+            stampRoundId = plan.roundId,
+        )
+        if (admission is GroupTurnCoordinator.CommitAdmission.Denied) {
+            return GroupTurnCoordinator.Advance.Halted(admission.row, admission.detail)
+        }
+        val committedTo = (admission as GroupTurnCoordinator.CommitAdmission.Admitted).row
         val produced = stampGroupTurn(conversationId, step, plan.roundId)
         if (produced == null) {
             // 一个 token 都没产出（空助手消息已被丢弃）：不算提交，本轮按失败收尾，
@@ -1829,10 +1869,8 @@ class ChatManager(
             failGroupTurn(conversationId, step, "本轮没有产出内容", timedOut = false)
             return null
         }
-        val state = groupRunDAO.findByRound(key, plan.roundId)?.let(GroupTurnCoordinator::fromEntity)
-            ?: return null
         val advance = GroupTurnCoordinator.advance(
-            state = state,
+            state = committedTo,
             finishedRoleId = step.role.id,
             usage = GroupTurnCoordinator.usageOf(produced) ?: (0 to 0),
             plan = plan,
@@ -1843,6 +1881,8 @@ class ChatManager(
             is GroupTurnCoordinator.Advance.More -> advance.state
             is GroupTurnCoordinator.Advance.BudgetStopped -> advance.state
             is GroupTurnCoordinator.Advance.Finished -> advance.state
+            // 轮次已是终态：不落库，把「不推进」原样交回调用方。
+            is GroupTurnCoordinator.Advance.Halted -> return advance
         }
         persistRoundState(advanced)
         return advance
@@ -2104,7 +2144,7 @@ private data class InFlightGroupRun(
 /** 轮次准入结果。 */
 private sealed interface GroupTurnEntry {
     /** 落库成功，可以发起模型调用。 */
-    data class Speak(val step: SpeakerStep) : GroupTurnEntry
+    data class Speak(val step: SpeakerStep, val runToken: String) : GroupTurnEntry
 
     /** 本轮不允许再发起模型调用，调用方必须放弃生成。 */
     data object Idle : GroupTurnEntry

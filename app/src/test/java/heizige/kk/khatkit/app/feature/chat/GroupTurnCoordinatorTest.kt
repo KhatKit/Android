@@ -721,18 +721,392 @@ class GroupTurnCoordinatorTest {
                 }
                 // 全员已提交：不可能在 1000 上限、每角色 500 的形状下发生。
                 is GroupTurnCoordinator.Advance.Finished -> advance.state
+                // 每一轮都从上一轮 More 回来的 RUNNING state 出发，不该被判死。
+                is GroupTurnCoordinator.Advance.Halted ->
+                    throw AssertionError("正常推进链路上不该出现 Halted：${advance.detail}")
             }
             if (stop != null) break
         }
 
-        assertNotNull("第二个角色就该触顶（500+500=1000）", stop)
+assertNotNull("第二个角色就该触顶（500+500=1000）", stop)
         stop as RoundBudget.Stop
         assertEquals(1000, stop.spent)
         assertEquals(1000, stop.limit)
         assertEquals(listOf("carol"), stop.skippedRoleIds)
+        assertEquals(GroupRunEntity.REASON_TOKEN_BUDGET_EXCEEDED, stop.reason)
         assertEquals(GroupRunEntity.STATUS_BUDGET_STOPPED, current.status)
         assertEquals(listOf("alice", "bob"), current.committedRoleIds)
     }
+
+    // ------------------------------------------------------------------
+    // 12. 终态不推进：判死之后残留的旧 job 不能改动已作废的那一轮
+    // ------------------------------------------------------------------
+
+    /**
+     * 问题一（显式防护，不是巧合）。
+     *
+     * 原先挡住残留 job 的是「`plan.roundId` 会变成新轮 → `findByRound` 为 null →
+     * `return null`」这种巧合式安全，而且它只在**新轮还没被抢占**那一个窗口里成立：
+     * 新轮一旦被抢占，同一个 `findByRound` 返回的是新轮自己那一行 RUNNING，
+     * `advance` 于是把上一轮的角色追加进新轮的 `committed_role_ids`，甚至一路走到
+     * `Finished` → `completeGroupRound` 提前给新轮收尾。
+     *
+     * 现在终态判定在 `advance` 入口：拿到终态 state 就返回 [GroupTurnCoordinator.Advance.Halted]，
+     * 且**原样带回 state**。断言用的是整个 `RoundState` 的相等（它是 data class，13 个字段），
+     * 所以「一个字节都没动」这件事是被真断言的，不是靠肉眼看。
+     */
+    @Test
+    fun `advance halts on every terminal status and mutates nothing`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+        val terminal = listOf(
+            GroupRunEntity.STATUS_COMPLETED,
+            GroupRunEntity.STATUS_FAILED,
+            GroupRunEntity.STATUS_CANCELLED,
+            GroupRunEntity.STATUS_BUDGET_STOPPED,
+            GroupRunEntity.STATUS_TIMEOUT,
+        )
+        assertEquals("这五个才是全部终态，别漏判", GroupRunEntity.TERMINAL_STATUSES, terminal.toSet())
+
+        terminal.forEach { status ->
+            // 已提交一位、已花掉预算 —— 终态守卫必须在这之前生效。
+            val dead = state(
+                status = status,
+                spent = 150,
+                committed = listOf("alice"),
+                reason = "whatever",
+                updatedAt = 20_000L,
+                endedAt = 20_000L,
+            )
+            val advance = GroupTurnCoordinator.advance(
+                state = dead,
+                finishedRoleId = "bob",
+                usage = 200 to 100,
+                plan = plan,
+                tokenLimit = 1000,
+                now = 30_000L,
+            )
+
+            assertTrue("status=$status 属于终态，必须拒绝推进", advance is GroupTurnCoordinator.Advance.Halted)
+            advance as GroupTurnCoordinator.Advance.Halted
+            assertEquals(
+                "status=$status：committed / spent / updatedAt 一个都不许动",
+                dead,
+                advance.state,
+            )
+            assertTrue("拒收理由不能是空串", advance.detail.isNotBlank())
+            assertTrue("理由里要能看出是哪个状态", advance.detail.contains(status))
+        }
+    }
+
+    /**
+     * 终态守卫要排在「还有剩余角色吗 / 要不要计票」之前：
+     * 残留 job 最容易出事的形状恰恰是「轮次被取消，但 pending 里还剩好几个人」——
+     * 那正是会走到 `More` → 递归续跑下一位、把作废的一轮接着跑下去的情形。
+     */
+    @Test
+    fun `advance halts before picking a next speaker on a dead round`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+        assertEquals(3, plan.plan.size)
+        assertEquals("bob", GroupTurnCoordinator.nextStep(plan, setOf("alice"))?.role?.id)
+
+        val advance = GroupTurnCoordinator.advance(
+            state = state(
+                status = GroupRunEntity.STATUS_CANCELLED,
+                committed = listOf("alice"),
+                endedAt = 20_000L,
+            ),
+            finishedRoleId = "bob",
+            usage = 100 to 50,
+            plan = plan,
+            tokenLimit = 1000,
+            now = 30_000L,
+        )
+
+        // 既不能是 More（会续跑下一位），也不能是 Finished（会走 completeGroupRound 收尾）。
+        assertTrue(advance is GroupTurnCoordinator.Advance.Halted)
+        assertFalse(advance is GroupTurnCoordinator.Advance.More)
+        assertFalse(advance is GroupTurnCoordinator.Advance.Finished)
+        assertEquals(listOf("alice"), (advance as GroupTurnCoordinator.Advance.Halted).state?.committedRoleIds)
+    }
+
+    /**
+     * 回归：`RUNNING` 的正常路径逐字不变。
+     *
+     * 守卫只在终态生效；这里把三分支的形状与全部字段钉死，作为「加守卫没有动正常路径」的证据：
+     * 用量按 prompt+completion 累计、committed 按发言顺序追加、`updatedAt` 跟着 `now` 走、
+     * `endedAt` 只在终态分支出现。
+     */
+    @Test
+    fun `advance on a running round still returns the three original branches`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+
+        // More：还有 bob / carol 没发言。
+        val more = GroupTurnCoordinator.advance(
+            state = state(limit = 1000),
+            finishedRoleId = "alice",
+            usage = 100 to 50,
+            plan = plan,
+            tokenLimit = 1000,
+            now = 40_000L,
+        )
+        assertTrue(more is GroupTurnCoordinator.Advance.More)
+        more as GroupTurnCoordinator.Advance.More
+        assertEquals(150, more.state.spentTokens)
+        assertEquals(1000, more.state.tokenLimit)
+        assertEquals(listOf("alice"), more.state.committedRoleIds)
+        assertEquals(GroupRunEntity.STATUS_RUNNING, more.state.status)
+        assertEquals(40_000L, more.state.updatedAt)
+        assertNull("非终态不许有结束时刻", more.state.endedAt)
+        assertEquals("bob", more.next.role.id)
+
+        // BudgetStopped：把上限压到 150，让 alice 这一位就触顶。
+        val stopped = GroupTurnCoordinator.advance(
+            state = state(limit = 150),
+            finishedRoleId = "alice",
+            usage = 100 to 50,
+            plan = plan,
+            tokenLimit = 150,
+            now = 41_000L,
+        )
+        assertTrue(stopped is GroupTurnCoordinator.Advance.BudgetStopped)
+        stopped as GroupTurnCoordinator.Advance.BudgetStopped
+        assertEquals(150, stopped.stop.spent)
+        assertEquals(listOf("bob", "carol"), stopped.stop.skippedRoleIds)
+        assertEquals(GroupRunEntity.STATUS_BUDGET_STOPPED, stopped.state.status)
+
+        // Finished：全员已发言（alice / bob 之前各花掉 150，本轮累计 300）。
+        val finished = GroupTurnCoordinator.advance(
+            state = state(limit = 1000, spent = 300, committed = listOf("alice", "bob")),
+            finishedRoleId = "carol",
+            usage = 100 to 50,
+            plan = plan,
+            tokenLimit = 1000,
+            now = 42_000L,
+        )
+        assertTrue(finished is GroupTurnCoordinator.Advance.Finished)
+        finished as GroupTurnCoordinator.Advance.Finished
+        assertEquals(listOf("alice", "bob", "carol"), finished.state.committedRoleIds)
+        assertEquals(450, finished.state.spentTokens)
+        assertEquals(GroupRunEntity.STATUS_RUNNING, finished.state.status)
+    }
+
+    /**
+     * 回归：取消 / 失败 / 超时之后的**续跑**必须照样能提交。
+     *
+     * 这是终态守卫最容易误伤的一条路径，所以必须成对证明：终态 state 本身被拒，
+     * 但 [GroupTurnCoordinator.claimRound] 会先把同一行 `reclaimed` 回 `RUNNING`
+     * （`round_id` 与 `run_token` 都不变）才允许发起模型调用 —— 于是新一轮提交时
+     * 拿到的仍然是 RUNNING state 与同一个令牌，守卫不触发，正向判定原样通过。
+     *
+     * 整条链在纯内核里跑得通，所以这不只是一段口述推理。
+     */
+    @Test
+    fun `resuming a cancelled or failed round still admits and advances`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+
+        listOf(GroupRunEntity.STATUS_CANCELLED, GroupRunEntity.STATUS_TIMEOUT, GroupRunEntity.STATUS_FAILED)
+            .forEach { deadStatus ->
+                val dead = state(
+                    status = deadStatus,
+                    runToken = "token-1",
+                    committed = listOf("alice"),
+                    endedAt = 20_000L,
+                )
+
+                // 续跑：同一 round_id，沿用同一 run_token，只把 status 推回 RUNNING。
+                val claim = GroupTurnCoordinator.claimRound(
+                    conversationId = "conv-1",
+                    plan = plan,
+                    tokenLimit = 1000,
+                    existing = dead,
+                    expectedRunToken = null,
+                    activeRunToken = null,
+                    newRunToken = "token-should-be-ignored",
+                    now = 50_000L,
+                )
+                assertTrue("dead=$deadStatus 必须判为可续跑", claim is GroupTurnCoordinator.Claim.Acquired)
+                val resumed = (claim as GroupTurnCoordinator.Claim.Acquired).state
+                assertEquals(GroupRunEntity.STATUS_RUNNING, resumed.status)
+                assertEquals("续跑不换 round_id", dead.roundId, resumed.roundId)
+                assertEquals("续跑不换 run_token（reclaimed 不动它）", "token-1", resumed.runToken)
+                assertEquals("已产出保留", listOf("alice"), resumed.committedRoleIds)
+
+                // 归属判定：正向放行。
+                val admission = GroupTurnCoordinator.checkCommitAdmission(
+                    jobRunToken = resumed.runToken,
+                    row = resumed,
+                    stampRoundId = plan.roundId,
+                )
+                assertTrue("dead=$deadStatus 续跑的产出归属必须正确", admission is GroupTurnCoordinator.CommitAdmission.Admitted)
+                assertEquals(resumed, (admission as GroupTurnCoordinator.CommitAdmission.Admitted).row)
+
+                // 推进：照常 More 到 carol。
+                val advance = GroupTurnCoordinator.advance(
+                    state = resumed,
+                    finishedRoleId = "bob",
+                    usage = 100 to 50,
+                    plan = plan,
+                    tokenLimit = 1000,
+                    now = 51_000L,
+                )
+                assertTrue("dead=$deadStatus 续跑后必须照常推进", advance is GroupTurnCoordinator.Advance.More)
+                assertEquals(
+                    listOf("alice", "bob"),
+                    (advance as GroupTurnCoordinator.Advance.More).state.committedRoleIds,
+                )
+                assertEquals("carol", advance.next.role.id)
+            }
+    }
+
+    // ------------------------------------------------------------------
+    // 13. 产出归属：残留 job 不能把产出盖到新轮名下
+    // ------------------------------------------------------------------
+
+    /**
+     * 问题二（纯逻辑不变量，可测）。
+     *
+     * `ChatManager.commitGroupTurn` 拿到的 `plan` 是 `onSuccess` 里**当场现算**的：
+     * 用户取消一轮、或发新消息把上一轮判死之后，触发消息已经变了，现算出来的
+     * `plan.roundId` 属于**新轮**。所以盖戳前必须先问一句「这份产出是不是这一轮的」。
+     *
+     * 唯一可信的凭据是 run token —— 它在 `takeGroupTurn` 抢占时拿到、由执行层在
+     * 发起模型调用**之前**捕获；而 `GroupRunDAO` 的 UPDATE 一律按
+     * `(conversation_id, round_id)` 定位且没有改写 `run_token` 的语句，
+     * 所以「同一行的令牌」在一轮内不变，续跑 / 回收都沿用它。
+     *
+     * 本例把整条时序在纯内核里复现：旧轮判死（行**不删**，只落终态）→ 新轮拿到全新
+     * 令牌 → 旧 job 跑完、手上却是新轮的 plan → 必须被拒。
+     */
+    @Test
+    fun `a stale job cannot stamp its output onto the round that replaced it`() {
+        val config = pipelineConfig(budget = 1000)
+
+        // ① 旧轮：alice 正在发言，抢到的令牌是 token-old。
+        val oldRow = state(
+            roundId = "round-trigger-old",
+            runToken = "token-old",
+            status = GroupRunEntity.STATUS_RUNNING,
+        )
+
+        // ② 用户发新消息 → abandonDanglingGroupRuns 把旧轮判死成 CANCELLED。
+        //    注意这一行**留在 group_runs 里**（persistRoundState → updateBudget + finish），
+        //    不是删掉；所以「旧 job 的 plan 变了」才是唯一能识破它的信号。
+        val abandoned = GroupTurnCoordinator.cancelRound(oldRow, 60_000L)
+        assertEquals(GroupRunEntity.STATUS_CANCELLED, abandoned.status)
+        assertEquals("round-trigger-old", abandoned.roundId)
+
+        // ③ 新轮：触发消息变了 → roundId 变了；抢占拿到全新令牌 token-new。
+        val newPlan = planOf(config, trigger = "trigger-new")
+        assertNotEquals("换触发消息就必须换轮次", abandoned.roundId, newPlan.roundId)
+        val claim = GroupTurnCoordinator.claimRound(
+            conversationId = "conv-1",
+            plan = newPlan,
+            tokenLimit = 1000,
+            existing = null,
+            expectedRunToken = null,
+            activeRunToken = null,
+            newRunToken = "token-new",
+            now = 61_000L,
+        )
+        val newRow = (claim as GroupTurnCoordinator.Claim.Acquired).state
+
+        // ④ 残留的旧 job 跑完：它手上现算出来的 plan 是**新轮**（ChatManager:998）。
+        val stale = GroupTurnCoordinator.checkCommitAdmission(
+            jobRunToken = "token-old",
+            row = newRow,
+            stampRoundId = newPlan.roundId,
+        )
+        assertTrue("上一轮的产出必须被拒收，不能盖到新轮名下", stale is GroupTurnCoordinator.CommitAdmission.Denied)
+        stale as GroupTurnCoordinator.CommitAdmission.Denied
+        assertTrue("拒收理由要说清是残留 job", stale.detail.contains("token-old"))
+
+        // ⑤ 新轮自己一个字节都没被动过（拒收方拿到的行仍是原样）。
+        assertEquals(newRow, stale.row)
+
+        // ⑥ 正向对照：驱动新轮的那个 job（令牌 = 该轮令牌）照常放行。
+        val fresh = GroupTurnCoordinator.checkCommitAdmission(
+            jobRunToken = newRow.runToken,
+            row = newRow,
+            stampRoundId = newPlan.roundId,
+        )
+        assertTrue("新轮自己的产出必须放行", fresh is GroupTurnCoordinator.CommitAdmission.Admitted)
+        assertEquals(newRow, (fresh as GroupTurnCoordinator.CommitAdmission.Admitted).row)
+    }
+
+    /**
+     * 归属判定只认「同一行 + 同一令牌」，其余一律拒收；并且**不判终态** ——
+     * 生死由 [GroupTurnCoordinator.advance] 独占判定，两层分工不重叠。
+     *
+     * 最后一条是这个分工的根据：同一行同一令牌但已终态时，产出**确实属于**那一轮，
+     * 盖戳不写错；该拦住的是「不推进」，那是 `advance` 的活。
+     */
+    @Test
+    fun `commit admission judges identity only and never liveness`() {
+        val config = pipelineConfig(budget = 1000)
+        val plan = planOf(config)
+        val row = state(roundId = plan.roundId, runToken = "token-1")
+
+        // 认：同一行 + 同一令牌。
+        assertTrue(
+            GroupTurnCoordinator.checkCommitAdmission("token-1", row, plan.roundId) is
+                GroupTurnCoordinator.CommitAdmission.Admitted,
+        )
+
+        // 不认：令牌不符（同一行被别的执行抢过）。
+        assertTrue(
+            "别的执行的令牌必须拒收",
+            GroupTurnCoordinator.checkCommitAdmission("token-2", row, plan.roundId) is
+                GroupTurnCoordinator.CommitAdmission.Denied,
+        )
+
+        // 不认：盖戳目标与那一行的 round_id 不符。
+        assertTrue(
+            "盖到别的轮次必须拒收",
+            GroupTurnCoordinator.checkCommitAdmission("token-1", row, "round-trigger-elsewhere") is
+                GroupTurnCoordinator.CommitAdmission.Denied,
+        )
+
+        // 不认：库里根本没有这一行。
+        assertTrue(
+            "查不到行必须拒收",
+            GroupTurnCoordinator.checkCommitAdmission("token-1", null, plan.roundId) is
+                GroupTurnCoordinator.CommitAdmission.Denied,
+        )
+
+        // 不认：血缘不明（拿不到令牌）。宁可漏一次提交，也不让来路不明的产出盖戳。
+        listOf(null, "").forEach { unknown ->
+            assertTrue(
+                "血缘不明（runToken=$unknown）必须拒收",
+                GroupTurnCoordinator.checkCommitAdmission(unknown, row, plan.roundId) is
+                    GroupTurnCoordinator.CommitAdmission.Denied,
+            )
+        }
+
+        // 判生死不归这里：已终态但同一行同一令牌 → 归属**正确**（放行）。
+        val dead = GroupTurnCoordinator.cancelRound(row, 70_000L)
+        assertTrue(
+            "归属判定不判终态：产出确实属于那一轮，盖戳不写错",
+            GroupTurnCoordinator.checkCommitAdmission("token-1", dead, plan.roundId) is
+                GroupTurnCoordinator.CommitAdmission.Admitted,
+        )
+        // 但生死判定会拦住推进。
+        assertTrue(
+            "生死判定由 advance 独占：终态不推进",
+            GroupTurnCoordinator.advance(
+                state = dead,
+                finishedRoleId = "alice",
+                usage = 100 to 50,
+                plan = plan,
+                tokenLimit = 1000,
+                now = 71_000L,
+            ) is GroupTurnCoordinator.Advance.Halted,
+        )
+    }
+
 
     // ------------------------------------------------------------------
     // 4. 取消 / 超时

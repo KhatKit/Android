@@ -167,6 +167,24 @@ object GroupTurnCoordinator {
     }
 
     /**
+     * 产出归属判定结果，见 [checkCommitAdmission]。
+     *
+     * 与 [Claim] 分开是因为判据不同：[Claim] 回答「这一轮现在能不能开跑」，
+     * 本类型回答「这一份已经跑完的产出能不能记进那一轮」。两者都遵守同一条纪律：
+     * 被拒时执行层**一个副作用都不做**就放弃。
+     */
+    sealed interface CommitAdmission {
+        /** 归属正确：[row] 就是本次提交该落库的那一行。 */
+        data class Admitted(val row: RoundState) : CommitAdmission
+
+        /**
+         * 归属不对，拒收。[row] 是查到的那一行（null = 根本没有这一行），
+         * 只用于写运行日志，**不得**拿它去落库。
+         */
+        data class Denied(val row: RoundState?, val detail: String) : CommitAdmission
+    }
+
+    /**
      * 轮次准入判定。**调用方必须先把 [Claim.Acquired] / [Claim.Continued] 的落库做完，
      * 才允许发起模型调用**（契约「run token 必须持久化后才可执行」）。
      *
@@ -265,6 +283,19 @@ object GroupTurnCoordinator {
 
         /** 全员发言完成，等收尾（vote 还要计票）。 */
         data class Finished(val state: RoundState) : Advance
+
+        /**
+         * **不推进**：这次提交被拒，一个字节都不许改。
+         *
+         * 两种来源，同一个后果：
+         * 1. [advance] 收到的 [state] 已是终态（轮次被取消 / 超时 / 判死）；
+         * 2. 执行层判定产出不属于本轮（残留 job，见 [checkCommitAdmission]），
+         *    此时 [state] 为 null —— `group_runs` 里连这一行都没有。
+         *
+         * [state] 是被拒时的**原状**（终态那条路径下逐字等于入参），调用方据此知道
+         * 「库里现在是什么」，而不会误以为自己推进过。
+         */
+        data class Halted(val state: RoundState?, val detail: String) : Advance
     }
 
     /**
@@ -273,6 +304,18 @@ object GroupTurnCoordinator {
      * 预算口径是契约点名的 **prompt + completion 累计**（[usage] = `prompt to completion`），
      * 不是 `TokenUsage.totalTokens`，也不是只算最后一条消息：每完成一个角色就把该角色
      * 真实产生的用量加进本轮累计，再交给 [GroupChat.budgetDecision] 判停。
+     *
+     * **终态 state 一律不推进。** 轮次被取消 / 超时 / 用户发新消息被判死（执行层
+     * `abandonDanglingGroupRuns`）之后，仍在飞的旧生成任务跑完时照样会进这里；
+     * 它手里的 [state] 已是终态，
+     * 若继续推进就会把已作废的角色塞进 `committedRoleIds`、把已用额度继续累加，
+     * 甚至一路走到 `More` → 续跑下一位 / `Finished` → `completeGroupRound` 给这一轮收尾。
+     * 所以这里先判终态并返回 [Advance.Halted]：这是显式防护，不是靠「`plan.roundId`
+     * 会变成新轮，`findByRound` 查不到 → return null」那种巧合式的安全。
+     *
+     * 注意这**不**影响取消 / 失败后的续跑：[claimRound] 会先把那一行
+     * `reclaimed` 回 RUNNING（同一 `round_id`、同一 `run_token`）才允许发起模型调用，
+     * 所以续跑那一步提交时 [state.status] 仍是 `RUNNING`，照常走下面的三分支。
      */
     fun advance(
         state: RoundState,
@@ -282,6 +325,12 @@ object GroupTurnCoordinator {
         tokenLimit: Int,
         now: Long,
     ): Advance {
+        if (GroupRunEntity.isTerminal(state.status)) {
+            return Advance.Halted(
+                state = state,
+                detail = "轮次已终止（status=${state.status}），不再推进",
+            )
+        }
         val committed = (state.committedRoleIds + finishedRoleId).distinct()
         val spent = state.spentTokens + GroupChat.roundTotalTokens(listOf(usage))
         val pending = GroupChat.pendingSpeakers(plan.plan, committed.toSet())
@@ -315,6 +364,57 @@ object GroupTurnCoordinator {
             pending.isEmpty() -> Advance.Finished(progressed)
             else -> Advance.More(progressed, pending.first())
         }
+    }
+
+    /**
+     * 产出归属判定（纯判定，不读库不写库）。
+     *
+     * 回答的是**归属**问题，不是生死问题：执行层拿一个 `SpeakerStep` 跑完模型之后，
+     * 手上只有「现算的 `plan`」，而 `plan` 可能是**别的**那一轮——用户取消一轮、或
+     * 用户发新消息把上一轮判死之后，仍在飞的旧生成任务跑完时，
+     * `ChatManager.onSuccess` 里现算的 `plan` 已经是新轮（触发消息变了）。
+     * 若直接拿 `plan.roundId` 去盖戳，这份上一轮本该作废的产出就被记到新轮名下，
+     * 新轮的 `committed_role_ids` 里混进上一轮的账。
+     *
+     * 判据是 **run token**：[jobRunToken] 是本次生成在 [claimRound] 抢占时拿到的令牌，
+     * 由执行层在**发起模型调用之前**捕获（不能事后从全局状态反查——判死路径已经把
+     * 进程内镜像清掉了，反查到的会是新轮的令牌，恰好放行）。
+     * [GroupRunDAO] 的所有 UPDATE 都按 `(conversation_id, round_id)` 定位且没有改写
+     * `run_token` 的语句，所以「同一行的令牌」在一轮内不变，续跑 / 回收都沿用它。
+     *
+     * ⚠️ 这一层**故意不判终态**：终态由 [advance] 独占判定（问题一的显式防护就在那里，
+     * 不在这里重复一遍）。分工是「`checkCommitAdmission` 认身份（这是谁的产出），
+     * `advance` 判生死（这一轮还活着吗）」。同一行同一令牌但已终态时归属是**对的**
+     * ——产出确实属于那一轮，盖戳不写错；由 [advance] 拦住不推进。
+     */
+    fun checkCommitAdmission(
+        jobRunToken: String?,
+        row: RoundState?,
+        stampRoundId: String,
+    ): CommitAdmission = when {
+        // 血缘不明 = 拒收。宁可漏一次提交，也不让一份来路不明的产出盖到某一轮名下。
+        jobRunToken.isNullOrEmpty() -> CommitAdmission.Denied(
+            row = row,
+            detail = "本次生成没有可核对的 run token（血缘不明），拒收",
+        )
+
+        row == null -> CommitAdmission.Denied(
+            row = null,
+            detail = "group_runs 里没有 round=$stampRoundId 这一行，产出无处可记",
+        )
+
+        row.roundId != stampRoundId -> CommitAdmission.Denied(
+            row = row,
+            detail = "产出行属于 ${row.roundId}，与盖戳目标 $stampRoundId 不符",
+        )
+
+        row.runToken != jobRunToken -> CommitAdmission.Denied(
+            row = row,
+            detail = "本次生成的 run token=$jobRunToken 不是该轮令牌 ${row.runToken}，" +
+                "这是判死之后残留的旧 job",
+        )
+
+        else -> CommitAdmission.Admitted(row)
     }
 
     /**
