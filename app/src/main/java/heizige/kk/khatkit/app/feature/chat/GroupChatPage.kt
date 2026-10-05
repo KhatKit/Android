@@ -528,7 +528,30 @@ private fun GroupConfigSheet(
         // 触发按钮与它打开的弹层图标一致，语义闭合。
         imageVector = tune,
         onDismiss = onDismiss,
+        // ⚠️ 必须传 false，否则**滚动容器会套两层**，真机一开面板就崩：
+        //
+        //   IllegalStateException: Vertically scrollable component was measured with an
+        //   infinity maximum height constraints, which is disallowed.
+        //
+        // 链条在 Khromia `BasicBottomSheet`（components/BottomSheet.kt:353）：
+        // `Column(Modifier.weight(1f, fill = false)
+        //           .then(if (scrollable) Modifier.verticalScroll(...) else Modifier))`。
+        // 也就是说 **`scrollable = true`（默认值）时弹层自己已经给内容套了一层
+        // verticalScroll**，而 verticalScroll 是拿 `maxHeight = Infinity` 去量内容的 ——
+        // 本函数下面自己又套的 `Column(Modifier.verticalScroll(...))` 于是被量到无限高，
+        // 内层 ScrollNode 直接抛上面那个异常。
+        //
+        // 正确的组合是二选一，全仓 62 个调用点都是这个约定：
+        // 要么交给弹层滚（`scrollable` 保持默认 true、内容里不许再出现滚动容器），
+        // 要么自己滚（`scrollable = false` + 内容自带 verticalScroll/LazyColumn）。
+        // 本面板内容很长（九个配置字段 + 每个角色一个 RoleEditor + 导入导出两段），
+        // 整块表单本来就该一起滚，所以走后者：**滚动权归本函数的这一个 verticalScroll**。
+        //
+        // 别「顺手」去掉下面那个 verticalScroll 或把 scrollable 改回 true：
+        // 少一个滚得动，两个都留着必崩。见 BottomSheetScrollSourceGuardTest。
+        scrollable = false,
     ) { _ ->
+        // 这层 verticalScroll 是本面板**唯一**的纵向滚动容器（理由见上面 scrollable 的注释）
         Column(
             modifier = Modifier
                 .fillMaxWidth()
