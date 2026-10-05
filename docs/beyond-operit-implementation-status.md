@@ -132,6 +132,55 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
   - **结论不变：按 `client-changes.md:232-235`「缺任一项就标 `unverified`」，
     十例仍全部 `unverified`，C1 不能标成已完成。** 四类里两类齐了 ≠ 契约达成；
     `viewer 可见消息 ID` 那一列还**只覆盖 pipeline**，roundtable / vote 没采。
+- ⚠️⚠️⚠️ **2026-10-05 第三个窗口（本文件最新的实测窗口）：上面那个窗口的两条限制都被
+  解掉了——四类产物全部有真机内容，但 0/10 仍然不变。**
+  - **「设备上没有 API key → 第三、四类在原理上采不到」这条已被推翻。** 解法不需要
+    key：往生产单例 `SettingsRepository` 里装一个 base URL 指向
+    `http://127.0.0.1:8765/v1` 的**自定义 OpenAI 兼容 provider**，设备侧
+    `adb reverse tcp:8765 tcp:8765` 打到开发机上的 mock 服务，**没改生产代码、没加
+    测试专用后门**，走 `ChatManager.sendMessage → GenerationLoop → ProviderManager →
+    OpenAIProvider → ChatCompletionsAPI.streamText → Ktor CIO OkHttpClient`
+    **完整生产链路**（`User-Agent: ktor-client`、`accept: text/event-stream`、
+    `stream_options.include_usage: true`、三个请求全 `stream=true`）。
+  - **「viewer 集合只覆盖 pipeline」也已被推翻**：夹具按**三种 mode 各采一遍**
+    （`a9d2077e`，改的是夹具循环不是生产逻辑），越权审计三 mode 全部
+    `passed=true` / `checked_pairs=6` / `violations=[]`，**议长 `chairRound=true`
+    的放行分支第一次被触发**。
+  - **四类产物现状**：viewer 可见消息 ID（三 mode 台账 + pipeline 真实 HTTP 台账）、
+    实际模型调用序列（`mock-model-a → mock-model-b → mock-model-c`，真请求）、
+    prompt+completion token（main **773** / budget **236**，与落库
+    `group_runs.spent_tokens` **逐条相等**）、导出 SHA-256（3 mode 真机文件三重一致）。
+  - **仪器测试**：`connectedDebugAndroidTest` 类过滤 **28/28 全绿、exit 0**（3+12+7+6）；
+    `C1LiveModelSequenceTest` 走**手动 `am instrument`**，不挂住、**3.6s 完成**。
+    ⚠️ `connectedAndroidTest` **跑完会卸载 app 并删掉外置目录里的证据文件**——采证据
+    必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull`。
+    ⚠️ 无线调试的 **mDNS 会把同一台设备自动注册两条**，AGP 对两个 serial 各跑一遍
+    安装/卸载/启动互相踩（`DELETE_FAILED_INTERNAL_ERROR` + `Unable to find
+    instrumentation target package` + `Error: -99` + **0 用例 exit 1**）；
+    **跑之前必须 `adb devices -l` 确认只有一条**。⚠️ **端口每次开无线调试都会变**，
+    必须用 `adb mdns services` 找当前端口。这**不是 OEM 兼容性问题**，是同一台机器被
+    登记两次。
+  - ⚠️ **结论仍然是 0/10 不变。** 上面那个窗口的两条限制虽然解了，但**另外五条仍然缺**：
+    **roundtable / vote 的真实 LLM 调用记录**（只有夹具层台账，真实 HTTP 零份）、
+    **酒馆（SillyTavern）本体打开群聊导出文件**（零证据）、**真机 UI 端到端**
+    （一行 Compose 没上过屏）、**相机扫码真机链路**（CameraX+MLKit 没在设备上跑过）、
+    **`BrowserRuntimeTest` 的 Coil 单例崩溃**（`RouteActivity.kt:202`，来自 `b5c5ebcb`，
+    与 C1 无关，**未修**，全量 56 条仪器测试跑不完；已用类过滤覆盖 28 条）。
+    外加两条诚实边界：**mock 不是真实模型**（是「真实 provider 代码路径 + 真实 HTTP +
+    真实 SSE + 真实 usage 报文」，**不是「真实 LLM 推理」**）；**显式 @ 的投递收窄
+    真机零份**（夹具的 `@` 落在用户消息上，用户消息对每个 viewer 都可见）。
+  - ⚠️ **这一轮撞出并修掉了锚点之后第一个由真机证据定位的 main 源码 bug**
+    （`858c11d0`，`core/data/ai/GenerationLoop.kt`）：后续角色的产出被**并进上一位
+    已提交的发言**，该角色被误判「本轮没有产出内容」写成 `role_failed`。
+  - ⚠️ **同时登记三处测试代码自身缺陷**（**不是生产代码 bug**）：`bff7b0c6` 视角隔离
+    断言口径漏了「自己」（`seenByA.isEmpty()` → `seenByA.all { it == "a" }`，
+    **改后更严**，mock 侧独立记录的 seq=1 请求是这条修正的旁证）、
+    `a9d2077e` 读回 JSON 的三处类型断言（`JsonLiteral` / `JsonNull` 不能直接和
+    `Boolean` / `null` 比）、`47693445` 的 `openGroupSession()` 漏装载（**整轮退化成
+    单聊**，是「证据差点采成别的形状」的根因）。逐条见
+    `docs/eval/c1-group-chat.md` 的「C1 真机证据采集第二轮」。
+  - **诚实结论一句话：四类产物已全部有真机内容，但十例的验证矩阵仍不完整，
+    0/10 不变。** 「每一列都填上了东西」和「这一行该判通过」是两件事。
 
 这不是保守，是契约自己定的规则。**验收证据只认 `docs/eval/c1-group-chat.md`**；
 本节只描述现状与下一步，不代替证据、不改判定。
