@@ -1947,6 +1947,12 @@ class ChatManager(
     /**
      * 单角色失败 / 超时：写一条 `turn_kind = error` 的节点（**只记错误，不伪造助手回复正文**），
      * 运行日志落 FAILED/TIMEOUT；已完成角色留在 `committed_role_ids` 里，所以轮次仍可续跑。
+     *
+     * 回收平票脚手架与 [completeGroupRound] 同序、且**不可省**：本函数也是一条轮次终态出口
+     * （落终态 + 清进程内镜像，之后再没有代码路径会为这一轮调 [completeGroupRound]）。
+     * 议长裁决那一轮失败时指令已经挂进会话了，不回收它就永久留着 ——
+     * 它是 `role = SYSTEM` + `isSynthetic`，`GroupChat.visibleMessages` 对 SYSTEM / 合成消息
+     * 一律放行，于是之后每一轮的所有角色都会读到那段「本轮投票出现平票，由你裁决」。
      */
     private suspend fun failGroupTurn(
         conversationId: Uuid,
@@ -1975,6 +1981,7 @@ class ChatManager(
             listOf(GroupTurnCoordinator.errorNode(state, config, failedRoleId, detail)),
         )
         persistRoundState(failed)
+        dropTieBreakScaffolding(conversationId)
         groupRunsInFlight.remove(conversationId)
     }
 
