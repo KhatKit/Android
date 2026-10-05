@@ -287,6 +287,63 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     `docs/eval/c1-group-chat.md` 的「下一位怎么把剩下的做完（第六个窗口的操作清单）」**
     ——按「需要设备 / 需要外部环境 / 零设备可做」三组分组，每项都带具体命令或步骤。
 
+### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
+
+⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
+接上**——因为 `importGroup` 在 `app/src/main` 里**仍然没有调用方**。
+⚠️ **`importShare` 一行未动；导出路径一行未动；golden 哈希没变，也没跑
+`--update-golden`**。
+
+| commit | 改了什么 | 结论 / 边界 |
+|---|---|---|
+| `8622bf19` | 群配置导入筛查与角色卡去重（**纯函数**）：13 条校验分成「结构性拒绝」与「越界归一化」 | ✅ 新增 `GroupChat.screenImportedConfig` / `dedupeCards`。⚠️ 判据是「只有 `revision` / `tie_policy` 各自已有一个**确定无疑的合法缺省值**」才允许归一化 |
+| `aee20f85` | 25 条纯函数用例 | 含两条**结构性不变式**（一次扫 10 个配置）：① 放行的配置 `validate` 必须也判合法 ② 归一化**只许动** `revision`/`tie_policy` |
+| `88777898` | 接上密钥闸门 + 角色卡去重 + 配置筛查，坏配置不再外泄 | ⚠️ 拒绝的形态**不是整份返回 `null`**，而是 `config = null` + 字段级错误，**消息/群名/角色卡照常返回** |
+| `db4cdd77` | 22 条端到端用例 | 含逐字节往返不变式与 `NoConfig`/`Rejected` 分流 |
+
+⚠️⚠️ **口径订正（子代理纠正评审，已采纳）**：`importGroup` **不是**「读别人的酒馆文件」。
+第一道门 `TavernChatCodec.kt:285` 是
+`document.header[GROUP_FIELD] as? JsonObject ?: return null`——纯 SillyTavern 群聊文件
+**没有 `khatkit_group` 表头，当场返回 `null`**。它是「**读回自家导出**」。
+⚠️ **读别人分享载荷的是 `GroupChat.importShare`**（`GroupChatPage.kt:492` 生产侧在用）。
+
+⚠️ **「拒绝 vs 降级」三处采信了「拒绝」**：`schema_version` 未知（依据
+`GroupChat.kt:504-510`「版本闸门是唯一判定口径」）、预算越界（契约写死「超上限保存失败」，
+且**不存在安全的缺省值**）、`mode` 未知（默认 pipeline 会**静默丢 `vote_candidates`**）。
+只有 `revision` / `tie_policy` 走归一化。
+
+⚠️ **核实中发现的额外真 bug（已随去重一并修掉）**：`importGroup` 用
+`cardJson.decodeFromJsonElement` 解角色卡，**不丢**缺 `role_id` 的条目
+（`{"role_id":""}` 解出 `roleId = ""` 的孤儿卡），而 `GroupChat.decodeCards`
+（`GroupChat.kt:922` KDoc「不猜它属于谁」）**会丢**。同一语义两条路径的漂移。
+
+⚠️⚠️ **变异检验有一项存活，如实登记**：**变异 5（弱化 residual 兜底）存活**。
+原因是「结构性错误一律拒绝」与「归一化后 residual 复查」**双层保险互相独立地**
+拦住同一批错误。**结论：residual 兜底当前无法被任何变异杀死**——它是绊线，
+**现在没有测试护着**。子代理明确「**不声称证明了它**」。变异 4 第一次也存活（同因），
+换个变异体才抓住。
+
+⚠️⚠️ **本批唯一改变数字的地方**（口径与复算命令见
+`docs/eval/c1-group-chat.md` 的「统计口径复算脚本」小节）：
+`:app:testDebugUnitTest` **105 类 / 808 例 → 107 类 / 855 例**（新增 47 条）；
+C1 相关 JVM 测试类台账 **40 类 / 408 例 → 42 类 / 455 例**
+（新增 `GroupImportScreeningTest` 25 + `TavernGroupImportGateTest` 22）；
+lint **0 error**、app **584W+6H=590**、15 模块 **617W+7H=624**（与上一窗口**逐位相同**）；
+`app/src/androidTest` 跟踪口径 **61**（含未入库的 `C1GroupUiE2EFixtureTest.kt` 是 **64**）。
+⚠️ **台账锚点 `1b0e04a9` 的 78 个 commit 仍然没有被重算**，本批 4 个 commit 全部追加进
+`docs/eval/c1-group-chat.md` 台账的「锚点之后的后续提交」小节。
+⚠️ **十例判定一个都没变，仍是 10/10 `unverified`**（导入侧改动，四类产物一份未增，
+零设备）。⚠️ **本轮 `docs/beyond-operit-client-changes.md` 一字未动**（按约束）。
+
+⚠️⚠️ **三条仍然存在的缺口（已登记为 `c1-group-chat.md` 的「已知遗留与风险」第 30–32 条）**：
+① **运行时零证据**——契约 `:205` 的「恢复失败不留下半成品会话」只在**返回值层面**有了
+保证，但**没有任何证据表明「建会话」那段代码读了 `importReport`**（因为它不存在）；
+② ⚠️ **`memory_space_id` 那条校验在导入场景无解**——新会话 id 导入时未知，
+`importGroup` 放过它是必然的，**调用方建完会话后必须补跑 `validate(config, newId)`**，
+否则会造出**记忆空间键错位**的群，而「**调用方是否补做未验证**」；
+③ `importShare`（全拒）与 `importGroup`（结构性拒 + 两项归一化）**口径有意不同**，
+依据在 KDoc，但属**单方面设计判断，值得复核**。
+
 ### ⚠️ 第六批（`33eb801e..bed09118`，2026-10-06）：两个真机必崩 + Coil 结构性修复 + 四项代码债
 
 ⚠️ **这一批横跨「真机 UI」「浏览器 / Coil」「群聊内核」三块**，所以它分别影响不同的缺口
