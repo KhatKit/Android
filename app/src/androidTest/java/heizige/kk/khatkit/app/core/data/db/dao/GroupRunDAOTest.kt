@@ -266,9 +266,22 @@ class GroupRunDAOTest {
 
     @Test
     fun archivingByAgeKeepsRunningRecords() = runBlocking {
-        dao.insert(run(runToken = "old-done", roundId = "round-1").copy(startedAt = 100))
+        // `run()` 默认写死 STATUS_RUNNING，而 `deleteFinishedBefore` 的口径是
+        // `status != 'RUNNING'`（GroupRunDAO.kt:222-228）。名字里带 done 的两行必须显式
+        // 设成终态，才真的在测「按时间归档」；写法与上方 archivingKeepsRunningRecords 一致。
+        dao.insert(
+            run(runToken = "old-done", roundId = "round-1").copy(
+                startedAt = 100,
+                status = GroupRunEntity.STATUS_COMPLETED,
+            ),
+        )
         dao.insert(run(runToken = "old-live", roundId = "round-2").copy(startedAt = 150))
-        dao.insert(run(runToken = "new-done", roundId = "round-3").copy(startedAt = 9_000))
+        dao.insert(
+            run(runToken = "new-done", roundId = "round-3").copy(
+                startedAt = 9_000,
+                status = GroupRunEntity.STATUS_COMPLETED,
+            ),
+        )
 
         dao.deleteFinishedBefore(1_000)
 
