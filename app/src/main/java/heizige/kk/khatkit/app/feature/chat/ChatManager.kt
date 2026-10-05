@@ -116,6 +116,27 @@ private const val TAG = "ChatManager"
 private const val GROUP_ROUND_STEP_TIMEOUT_MS = 15 * 60 * 1000L
 
 /**
+ * [abandonDanglingGroupRuns] **每批**读多少行悬挂轮次。
+ *
+ * 这是**分页大小**，不是「一次最多判死这么多条」——该函数会循环读到清空为止。
+ * 正常情况下悬挂行是 0 或 1 条（一轮一条 `group_runs`），所以这一页绰绰有余。
+ *
+ * ⚠️ 与 `handleMessageComplete` 里 `memoryRepository.searchMemories(limit = 8)` 的那个 8
+ * **无关**，两者只是碰巧同值。
+ */
+private const val ABANDON_BATCH_SIZE = 8
+
+/**
+ * [abandonDanglingGroupRuns] 单次调用最多循环几批，即最多判死 `8 × 64 = 512` 行。
+ *
+ * 硬上限存在的唯一理由是**保证收敛**：静态堆积（进程被杀 / 取消未收尾）每批必然等量减少，
+ * 循环一定会在读空时结束；只有「同一会话在本函数执行期间又抢占成功一轮」（残留旧 job
+ * 走到 `takeGroupTurn`）才让行数不单调减少，此时没有上限就会自旋。撞上限的残余会在下一次
+ * 发消息时再被扫掉（每轮至少净减 [ABANDON_BATCH_SIZE] 行）。
+ */
+private const val ABANDON_MAX_BATCHES = 64
+
+/**
  * 只取 [GroupRunDAO] 一个依赖的窄入口，避免为一个 DAO 去动 `core/di` 下别人的文件。
  */
 @EntryPoint
@@ -1005,7 +1026,21 @@ class ChatManager(
             val plan = GroupTurnCoordinator.roundPlanFor(config, conversation.currentMessages)
                 ?: return@onSuccess
             when (val advance = commitGroupTurn(conversationId, step, groupRunToken, plan, config)) {
-                null -> groupRunsInFlight.remove(conversationId)
+                // `commitGroupTurn` 返回 null 的**唯一**形状是 `produced == null`（空产出）。
+                // 那条路里 `failGroupTurn` 会在**归属成立**时自己清镜像，所以这里的兜底
+                // 只为「`failGroupTurn` 提前 return」而存在：`groupConfig` 已被改成单聊、
+                // `roundPlanFor` 算不出轮次、或归属判据拒收（判死之后残留的旧 job）。
+                //
+                // 前两种提前 return 与本 job 的令牌仍然吻合，清掉是对的；**第三种不对**：
+                // 那时镜像里装的是同会话**新轮**的令牌，无条件 remove 会抹掉它 ——
+                // 新轮于是再也 `cancelActiveGroupRun` 不掉、`takeGroupTurn` 拿不到
+                // `expectedRunToken`，整轮卡死。
+                //
+                // 所以这里必须**按令牌比对**再清：令牌是本次生成在 `takeGroupTurn` 里
+                // 捕获的「这份产出属于哪一轮」凭据，只在镜像装的确实是本轮时才清。
+                // 这样既保住「`produced == null` 时靠这一行兜底清镜像」的既有行为
+                // （镜像装的正是本轮令牌时照清），又不再误伤新轮。
+                null -> clearGroupRunMirrorIfMine(conversationId, groupRunToken)
 
                 is GroupTurnCoordinator.Advance.More -> {
                     // 还有角色没发言：续跑下一位。已提交角色在库里，pendingSpeakers 会跳过。
@@ -2053,6 +2088,27 @@ class ChatManager(
     }
 
     /**
+     * 只在进程内镜像装的**确实是本次生成那一轮**时才清它。
+     *
+     * [ConcurrentHashMap.remove] 的两参重载是原子的「值相等才删」，正好把「无条件清」
+     * 换成「按令牌清」：
+     * - 镜像装的是本轮令牌 → 删掉，既有兜底行为逐字不变（`produced == null` 时
+     *   `failGroupTurn` 提前 return 的那些形状仍然清得掉）。
+     * - 镜像装的是同会话**新轮**的令牌 → 不删。新轮于是仍能 `cancelActiveGroupRun`
+     *   （它第一行就是 `remove(conversationId)?.runToken ?: return`），也仍能在
+     *   `takeGroupTurn` 里拿到 `activeRunToken` / `expectedRunToken` 续跑。
+     *
+     * 令牌传 null（理论上不可达：`step != null` 即蕴含 `GroupTurnEntry.Speak`，其 `runToken`
+     * 非空）时**不清** —— 血缘不明就分不清镜像是谁的，按契约宁可不删：新轮被误伤会整轮卡死，
+     * 而留下一个陈旧镜像只是让 `takeGroupTurn` 的 `expectedRunToken` 失配一次
+     * （claim 会按新轮照常抢占，行为与单测 `resuming …` 一致）。
+     */
+    private fun clearGroupRunMirrorIfMine(conversationId: Uuid, runToken: String?) {
+        val mine = runToken ?: return
+        groupRunsInFlight.remove(conversationId, InFlightGroupRun(runToken = mine))
+    }
+
+    /**
      * 用户取消：只把运行日志写成 CANCELLED，不写任何未生成的消息。
      *
      * 回收平票脚手架与 [failGroupTurn] 同序、且**不可省**：本函数也是一条轮次终态出口。
@@ -2089,19 +2145,49 @@ class ChatManager(
      * 于是议长裁决那一步被这条路径掐掉时，指令已经挂进会话了，不回收它就永久留着 ——
      * 它是 `role = SYSTEM` + `isSynthetic`，`GroupChat.visibleMessages` 对 SYSTEM / 合成消息
      * 一律放行，于是之后每一轮的所有角色都会读到那段「本轮投票出现平票，由你裁决」。
+     *
+     * ## 「任何群聊轮次都不会永久悬挂」与读批大小的关系
+     *
+     * 契约那句断言要求的是**清空**，不是「处理掉一部分」。所以这里**分批循环读到清空**
+     * （[ABANDON_BATCH_SIZE] 只是分页大小，`ABANDON_MAX_BATCHES` 只是收敛上限），
+     * 早期那版把 `limit = 8` 直接当成「最多判死 8 条」，于是第 9 条起永远停在 `RUNNING`
+     * 占位 —— 与上面那句断言正面冲突。
+     *
+     * 残留区间的诚实说明：只有当同一个会话**在本函数执行期间**又抢占成功一轮
+     * （残留旧 job 走到 `takeGroupTurn`）时，行数才不单调减少，循环才会撞上
+     * [ABANDON_MAX_BATCHES] 上限并留下残余。静态堆积（进程被杀等）每批必然等量减少，
+     * 一次调用即清空；真要堆积到 512 行以上，前提是那一刻有 512 轮同时在飞。
      */
     private suspend fun abandonDanglingGroupRuns(conversationId: Uuid) {
         groupRunsInFlight.remove(conversationId)
         val now = System.currentTimeMillis()
-        groupRunDAO.listByConversationAndStatus(
-            conversationId = conversationId.toString(),
-            status = GroupRunEntity.STATUS_RUNNING,
-            limit = 8,
-        ).forEach { entity ->
-            persistRoundState(GroupTurnCoordinator.cancelRound(GroupTurnCoordinator.fromEntity(entity), now))
+        val key = conversationId.toString()
+        var batch = danglingGroupRunBatch(key)
+        var batches = 0
+        while (batch.isNotEmpty() && batches < ABANDON_MAX_BATCHES) {
+            batch.forEach { entity ->
+                // 分批循环期间这一行可能已被别的路径收尾，而 `terminal()` 不判终态
+                // （它无条件覆盖 status），盲目写下去会把别人的终态抹成 CANCELLED。
+                // 所以判死前重新读一次，只处理仍然非终态的行。
+                val current = groupRunDAO.findByRound(key, entity.roundId) ?: return@forEach
+                if (GroupRunEntity.isTerminal(current.status)) return@forEach
+                persistRoundState(GroupTurnCoordinator.cancelRound(GroupTurnCoordinator.fromEntity(current), now))
+            }
+            batches++
+            // 少于一批 = 剩下的已不足一页，下次必然读空，循环到此为止。
+            if (batch.size < ABANDON_BATCH_SIZE) break
+            batch = danglingGroupRunBatch(key)
         }
         dropTieBreakScaffolding(conversationId)
     }
+
+    /** 会话里仍挂着的 `RUNNING` 行，一页。 */
+    private suspend fun danglingGroupRunBatch(conversationId: String): List<GroupRunEntity> =
+        groupRunDAO.listByConversationAndStatus(
+            conversationId = conversationId,
+            status = GroupRunEntity.STATUS_RUNNING,
+            limit = ABANDON_BATCH_SIZE,
+        )
 
     private suspend fun appendGroupMessages(conversationId: Uuid, messages: List<UIMessage>) {
         if (messages.isEmpty()) return
