@@ -139,6 +139,61 @@ C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`；
   - ⚠️ **台账锚点 `1b0e04a9` 的 78 个 commit 没有被重算**（本批 5 个代码/测试 commit
     全部追加进「锚点之后的后续提交」，见该小节末尾的新批次）。
   - 完整登记见「平票脚手架三处漏回收 + 残留旧 job 两道守卫（零设备）」一节。
+- ⚠️⚠️⚠️⚠️⚠️⚠️ **2026-10-06 第六个窗口（本文件最新的实测窗口，HEAD `a74c1820`）：
+  「十例 0/10」的最后一道锁已破，但**十例状态仍然全部 `unverified`**。**
+  这一窗口做了三件性质完全不同的事，**没有一件构成任何用例的验收证据**：
+  - **① 真实公网网关那条用例第一次真机全绿（`4336831f`）**：`am instrument` **退出码 0**、
+    `numtests=1`、`Time: 16.002`、`OK (1 test)`；真实 usage a `deepseek-v4-flash`
+    **6839 / 92 / 6931**、b `glm-5.2` **6645 / 58 / 6703**、c `deepseek-v4-flash`
+    **6904 / 242 / 7146**，**Σ(prompt+completion) = 20780 = 落库 `spent_tokens` 20780**
+    （逐位相等，逐条 `total == prompt + completion` 独立复算通过），
+    `status=COMPLETED`、`committed=[a,b,c]`、`skipped=[]`，实际调用序列
+    `deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`（按角色绑定成立），**persona 第三条
+    禁令第一次在真模型上被验证**（三条正文各只含自己的 `ROLECODE` A/B/C、无串码）。
+    三份产物已 `adb pull` 回主机并记 SHA-256（`c1-live-evidence-real-provider.json`
+    7995 字节 / `55d12977…dbfd40`）。**class 过滤必须用单方法并加引号**
+    （`-e class '…C1LiveModelSequenceTest#realProviderRoundRecordsGenuineTokenUsage'`）。
+    ⚠️ **三条诚实边界**：模型名是 uuid 反查、**不是 wire 级抓包**；其余 **4 条仍未真机
+    全绿**；落盘 JSON 按约定留在仓库外，**只有 SHA-256 可核**。
+    完整登记见「C1 真机证据采集第四轮」——⚠️ **那一节的正文其实已经在文件里了**
+    （它随 `4336831f` 落地，小节头部写的 HEAD `d96d64e1` 是文档提交链的上一环），
+    **本窗口不重复抄那三张表**，只补记它的落地 commit 与本节的汇总口径。
+  - **② 两个真机必崩已修，并在真机上验证过（MD3Exp 风格）**：群配置面板的
+    `IllegalArgumentException`（漏传图标，`33eb801e`）与
+    `IllegalStateException`（滚动容器套两层，`71d1439e`），各配一条源码护栏
+    （`5d58f923` / `54c196ca`）。真机复验：`logcat -c -b crash` 后开面板 + 滚动，
+    `logcat -d -b crash -t 200` **为空**，全量 logcat grep 两个异常 **0 命中**，
+    `uiautomator dump` 确认 15 个字段全渲染出来，面板内 5 次滚到底 + 3 次反向不崩。
+    ⚠️ **Miuix 风格完全没验、其余 62 个调用点没逐个上真机、面板里的保存/二维码/扫码
+    业务动作一个都没点、也没有在旧 APK 上先复现再对比。**
+  - **③ Coil 单例崩溃做了结构性修复（`ea482935` + `2766afc7`）**：把 `ImageLoader`
+    的定义点从 `RouteActivity` 的组合搬进 `KhatKitApp : SingletonImageLoader.Factory`。
+    **根因不是 `b5c5ebcb`**（它完全没碰 Coil），而是同一 instrumentation 进程里
+    `NodeTreeSmokeTest` 用 `createComposeRule()` 渲染 `AsyncImage` 先把内置默认 loader
+    钉死，`BrowserRuntimeTest` 随后拉起 Activity 时 `setSafe` 当场抛。
+    ⚠️ **本轮按约束没碰设备，所以这次修复的真机效果完全未验证。**
+  - **④ 四项代码债收口**（`fa36c65c` / `06cf6181` / `bed09118` / `a74c1820`）：
+    `ChatService` 第二份生成管线加 fail-loud 闸门、`abandonDanglingGroupRuns` 改成
+    分批读到清空、`onSuccess` 的 `null` 分支改成按 `runToken` 清镜像、以及给已订正的
+    `ChatMessage` KDoc 加防回退护栏。⚠️ **①②③ 三条的运行时行为全是纯运行时、零证据**，
+    三条 gradle 命令只证明「编译过 + 单测绿」，**不构成任何契约验收证据**。
+  - **测试数（本轮重新实测，逐个 `TEST-*.xml` 的 `tests` / `failures` / `errors` /
+    `skipped` 属性用 Python + ElementTree 求和，`glob` 命中 **105 个 XML**）**：
+    `:app:testDebugUnitTest` = **105 个测试类 / 808 用例 / 0 failures / 0 errors /
+    0 skipped**（上一窗口 99 / 783，净 **+6 类 / +25 例**）。逐类增量见「测试结果
+    （实测 XML 汇总）」段。**C1 相关 JVM 测试类台账 37 类 / 395 例 → 40 类 / 408 例**。
+  - **lint**：**0 error**、app **584 Warning / 6 Hint = 590**、15 模块
+    **617 Warning / 7 Hint = 624**（与上一窗口**逐位相同**；本轮碰过的文件命中数逐个
+    点算全部为 0）。
+  - ⚠️ **`app/src/androidTest` 全量 `@Test` 逐文件求和实测是 64 条，不是 61**——
+    差额是那个**未入库的半成品** `C1GroupUiE2EFixtureTest.kt`（3 条，见「已知遗留与
+    风险」第 27 条）。**只看 git 跟踪的文件才是 61**（61 + 3 = 64 算术对得上）。
+  - ⚠️ **台账锚点 `1b0e04a9` 的 78 个 commit 仍然没有被重算**，本批 10 个功能/测试
+    commit 全部追加进「锚点之后的后续提交」，见该小节末尾的新批次。
+  - **三处已按约定保留不覆写**：① `docs/beyond-operit-client-changes.md` **本轮一字未动**；
+    ② 工作区里那两处**不是本文档改动**的未提交内容（`TavernMacroExpander.kt` modified、
+    `C1GroupUiE2EFixtureTest.kt` untracked）**已登记但未 add、未修改**；
+    ③ 已入库的 `4336831f` 那次真机记录按惯例不再重抄。
 - **十条用例仍然全部 `unverified`。** C1 的代码层已实现并落在仓库里，离线
   `testDebugUnitTest` / `lint` / `packageDebug` 三条命令本轮都真跑过且退出码 0，
   但契约 `:206` 点名要的四类证据——**各角色可见消息集合、实际模型调用序列、
@@ -193,16 +248,16 @@ C1-P 角色卡落库 + Room 31→32 证据登记于 `b7025665`；
 
 | ID | 用例 | 必须断言 | JVM 证据类 | 状态 |
 |---|---|---|---|---|
-| C1-01 | 三角色显式 @ | 只被 @ 角色收到该消息；其他角色不可见 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupRoleCompletionProviderTest` 8 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-02 | 无 @ 的 pipeline | 按 `roles[]` 顺序串接；实际模型调用序列与日志一致 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupTurnModelTest` 14 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-03 | roundtable | 全员完成后仅 `chair_role_id` 汇总；议长前看不到未完成输出 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupSpeakerResolverTest` 8 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-04 | vote | 仅接受结构化候选/票；多数决可复算，平票按配置失败 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-05 | 轮次预算 | prompt+completion 达上限后停止剩余角色；日志含已用/上限/未运行角色 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupRunSchemaTest` 10 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-06 | 取消与超时 | 不写入未生成消息；已生成消息和错误节点保留 | `UngeneratedMessageFilterTest` 18<br>`GroupTurnCoordinatorTest` 72 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-07 | 失败续跑/幂等 | 同 `round_id` 重试跳过已提交 turn；不重复消息 | `GroupTurnCoordinatorTest` 72<br>`GroupRunSchemaTest` 10<br>仪器 `GroupRunDAOTest` 12 条**未跑** | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-08 | 记忆隔离 | 三个 `group:<conversationId>:role:<roleId>` 空间互不串；来源带消息 id | `MemorySpaceGateTest` 9<br>`MemoryToolScopeTest` 7<br>`MemoryAttributionTest` 9<br>`GroupMemorySpacePolicyTest` 6<br>`MemoryExtractorParseTest` 7<br>`MemoryRoleIdMappingTest` 2<br>`GroupRunSchemaTest` 10 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-09 | Tavern/QR 往返 | 群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token | `GroupTavernExportTest` 22<br>`TavernCompatTest` 21<br>`QrScannerSheetTest` 16<br>`GroupChatTest` 22<br>`C1pGroupExportHashTest` 5 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-10 | 单聊/群聊共存 | 同一列表混排；类型筛选只过滤；切换后消息与会话数据不丢 | `ConversationListQueryPlanTest` 7<br>`ConversationTypeFilterSourceGuardTest` 2<br>**`ConversationSearchLikePatternTest` 12**<br>`GroupChatTest` 22 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
+| C1-01 | 三角色显式 @ | 只被 @ 角色收到该消息；其他角色不可见 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupRoleCompletionProviderTest` 8 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**显式 @ 的投递收窄**——夹具的 `@` 仍落在用户消息上（用户消息对每个 viewer 都可见），「其他角色可见」这半句在真机证据里仍然读不出来。详见「已知遗留与风险」第 15 条。** |
+| C1-02 | 无 @ 的 pipeline | 按 `roles[]` 顺序串接；实际模型调用序列与日志一致 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupTurnModelTest` 14 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**无 @ pipeline 的真实调用序列与日志一致**——真实网关那轮确实跑了 pipeline，但「一致」只做到「落库/内存里的 `modelId` 与绑定一致」，**没有拿运行日志做对照**，而模型名本身又不是 wire 抓包（硬理由①）。** |
+| C1-03 | roundtable | 全员完成后仅 `chair_role_id` 汇总；议长前看不到未完成输出 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupSpeakerResolverTest` 8 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**roundtable 的议长汇总轮**——真实网关只跑了 pipeline，议长汇总轮的真实调用、议长前看不到未完成输出这两半**零份**。** |
+| C1-04 | vote | 仅接受结构化候选/票；多数决可复算，平票按配置失败 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**vote 的三张选票、`parseBallot → __summary__`、以及平票按配置失败那条路**——**真实调用零份**（真实网关那轮跑的 mode 是 pipeline）。** |
+| C1-05 | 轮次预算 | prompt+completion 达上限后停止剩余角色；日志含已用/上限/未运行角色 | `GroupTurnCoordinatorTest` 72<br>`GroupChatTest` 22<br>`GroupRunSchemaTest` 10 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**预算截断路径**——真实网关那轮 `token_limit=100000`，**整轮没触发截断**，「已用 / 上限 / 未运行角色」三个数在真实调用下仍然零份。** |
+| C1-06 | 取消与超时 | 不写入未生成消息；已生成消息和错误节点保留 | `UngeneratedMessageFilterTest` 18<br>`GroupTurnCoordinatorTest` 72 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**取消与超时**——真实网关那轮是正常跑完的（`status=COMPLETED`、无错误节点），取消/超时路径仍然零份。** |
+| C1-07 | 失败续跑/幂等 | 同 `round_id` 重试跳过已提交 turn；不重复消息 | `GroupTurnCoordinatorTest` 72<br>`GroupRunSchemaTest` 10<br>仪器 `GroupRunDAOTest` 12 条**未跑** | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**同 `round_id` 重试跳过的幂等台账**——`C1LiveModelSequenceTest` 其余 4 条（含续跑那条）**仍未在真机全绿过**（硬理由⑤）。** |
+| C1-08 | 记忆隔离 | 三个 `group:<conversationId>:role:<roleId>` 空间互不串；来源带消息 id | `MemorySpaceGateTest` 9<br>`MemoryToolScopeTest` 7<br>`MemoryAttributionTest` 9<br>`GroupMemorySpacePolicyTest` 6<br>`MemoryExtractorParseTest` 7<br>`MemoryRoleIdMappingTest` 2<br>`GroupRunSchemaTest` 10 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**三个 `group:<conv>:role:<role>` 空间的检索可见性 + `source_message_id` 归因**——**零份**，本轮这三项一条都没碰。** |
+| C1-09 | Tavern/QR 往返 | 群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token | `GroupTavernExportTest` 22<br>`TavernCompatTest` 21<br>`QrScannerSheetTest` 16<br>`GroupChatTest` 22<br>`C1pGroupExportHashTest` 5 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**酒馆本体打开群聊导出文件 + 相机扫码链路**——**两份都零**；⚠️ 本轮只验了群配置面板的**渲染与滚动**，面板里的**保存 / 二维码 / 扫码这三个业务动作一个都没点过**。** |
+| C1-10 | 单聊/群聊共存 | 同一列表混排；类型筛选只过滤；切换后消息与会话数据不丢 | `ConversationListQueryPlanTest` 7<br>`ConversationTypeFilterSourceGuardTest` 2<br>**`ConversationSearchLikePatternTest` 12**<br>`GroupChatTest` 22 | `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**成员头像组 / @ 选择器 / 抽屉筛选 chip 的真机 UI 端到端**——**一项都没做**（硬理由②）；主机侧那 438 条断言是 SQL 语义，替代不了 UI。** |
 
 ⚠️ **本轮（HEAD `6ba95422`）只动了两个类的用例数，其余一个数没动**：
 `GroupTurnCoordinatorTest` **63 → 72**（`9844cbc4` 加 3 条 `mention_role_ids`
@@ -287,16 +342,16 @@ OnePlus PKG110）」。
 
 | 用例 | commit | 命令·退出码 | 设备·Android | 输入或 fixture | viewer 可见消息 ID | 模型调用序列 | token (prompt+completion) | 导出 SHA-256 | 证据路径 | 状态 |
 |---|---|---|---|---|---|---|---:|---|---|---|
-| C1-01 三角色显式 @ | `4534f02a` 新增 GroupTurnCoordinator 纯判定内核<br>`be41fdc9` 补 63 条内核用例（含视角隔离）<br>`6c8d4932` 新增 GroupRoleCompletionProvider<br>`e5dde832` 补 8 条防伪 @ 边界用例<br>（4 个 SHA 均在锚定区间 `d45ebd10~1..1b0e04a9` 内，已 `git cat-file -t` 逐个核过） | `CMD-1` 退出码 **0**<br>2026-10-04 23:48 强制 `--rerun`，84 个 XML 全部重写<br>`CMD-2` 退出码 **0**（该例无 lint 命中，见下）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**。`adb devices` 输出为空列表；磁盘上唯一 app 仪器测试记录是 2026-10-03 12:58:29 的 `Process crashed`（`tests="0"`），早于基线 13.5 小时；Android 版本无记录<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = JVM 测试类：<br>`feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupRoleCompletionProviderTest`（8）<br>fixture 为 Kotlin 内联构造的 `GroupConfig`/`UIMessage` 列表，无外部文件 | **无证据（需真机）**。JVM 只断言 `viewerMessages(...)` 返回的 `UIMessage` 列表内容，没有把断言里的消息落成带真实 `message.id` 的台账，磁盘上没有「角色 A 可见 = [id1,id3]」这种记录<br>**2026-10-05 夹具层台账（部分证据）**：真机真 Room 库，夹具 **7 条消息**（作者依次 user / a / user / a / b / c / `__summary__`），`a9d2077e` 起**三种 mode 各采一遍**，越权审计三 mode 全部 `passed=true` / `checked_pairs=6` / `violations=[]`。pipeline：`a` 见 user,user,a,a,`__summary__`；`b` 见 user,user,a,b,`__summary__`；`c` 见 user,user,b,c,`__summary__`。roundtable：`c`（chair，`chairRound=true`）见 user,user,**a,b**,c,`__summary__`（议长放开本轮全部）。vote：收窄成 user,user,自己,`__summary__`。<br>**2026-10-05 真实 HTTP 台账**：`round-7098bf9e-4bcb-41f2-a0e7-e05d0395fcc9`，`a`→`7098bf9e…`(user)+`cc3d451c…`(a)；`b`→`+1f69a5bc…`(b)；`c`→`7098bf9e…`+`1f69a5bc…`(b)+`49e3ffcb…`(c)。<br>⚠️ **「只被 @ 角色收到、其他角色不可见」这一句仍未在真机上单独观测到**：夹具的 `@阿尔法` 落在**用户消息**上（`mentionRoleIds` 含 a），而用户消息对**每个 viewer 都可见**，所以 @ 放行分支的独立效果仍只有 JVM 纯函数断言 <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据（需真机）**。仓库里被 git 跟踪的 `*.jsonl` 全部在 `ai/src/test/resources/stream-traces/generated/`（10 个文件），是 AI SDK 的桩事件流，与 C1 无关；没有真实 provider 的调用序列<br>**2026-10-05 真实 HTTP（第一次有真请求）**：`C1LiveModelSequenceTest` 经 `adb reverse tcp:8765 tcp:8765` 接本机 mock OpenAI，走 `ChatManager.sendMessage → GenerationLoop → ProviderManager → OpenAIProvider → ChatCompletionsAPI.streamText → Ktor CIO OkHttpClient` **完整生产链路**；请求特征 `User-Agent: ktor-client`、`accept: text/event-stream`、`stream_options.include_usage: true`、`stream=true`。**seq=1 `mock-model-a` / case main / 发言者 A / 2 条消息 / 201+34 / 只含 `ROLECODE:A`——零个他人输出。**mock 侧把每个请求 body 原样落盘 `requests.jsonl`，**与应用代码无关**，构成第三方旁证。⚠️ 显式 @ 的**单角色投递**没实跑（本轮是无 @ 的 pipeline），C1-01 要的「这一轮只有 B 被调用」仍零份 <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据（需真实模型）**。`GroupTurnCoordinatorTest` 的预算断言喂的是构造出来的 token 数，不是真实 completion 计数<br>**2026-10-05 真实 usage（第一次不是构造值）**：seq1 prompt **201** + completion **34** = **235**，落 `c1-live-evidence-main.json`，`evidence_kind=real-http-capture-via-adb-reverse`。⚠️ **本例要的是「只 @ 到一个角色」那一轮的 token 累计，那一轮没实跑**；且 usage 是 mock 按 `ceil(bytes/4)` 估的（**原始字节数已落盘可手算复核**），**不是真 tokenizer 的结果** <br>**2026-10-05 第四个窗口：仍然是零份**——本例要的是「只 @ 到一个角色那一轮」的累计，真实网关那轮是无 @ 的 pipeline。⚠️ 顺带纠正一处旧认知：`GroupConfigSheet` 的 `role_id` 是**只读 `Text`**（`GroupChatPage.kt:754`，在 `RoleEditor` 里），**UI 手输路径不存在**，所以「构造一个 `role_id = __summary__` 的角色」只能走外部 JSON 导入（`importShare` 第 5 道闸门，`GroupChat.kt:832-838`）。| **无证据**。C1-01 不产出群聊导出文件；`app/build/outputs/apk/debug/*.apk` 的 SHA-256 是安装包哈希，与「群聊导出文件哈希」不是一回事，不能填进本列 | `app/build/test-results/testDebugUnitTest/TEST-heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinatorTest.xml`<br>`…GroupChatTest.xml`<br>`…GroupRoleCompletionProviderTest.xml`<br>主源码：`app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt` <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-02 无 @ 的 pipeline | `4534f02a` 新增 GroupTurnCoordinator<br>`dd7b3c79` ChatManager 接上协调器 + `group_runs` 运行日志<br>`b752a310` 更新 ChatScaffold KDoc（modelId 已参与解析）<br>`139a91ba` 图片导出的模型名与气泡同口径 | `CMD-1` 退出码 **0**（同上，强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupTurnModel.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01（`adb devices` 空；唯一仪器记录 2026-10-03 崩溃且 `tests="0"`）<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupTurnModelTest`（14） | **无证据（需真机）**。同 C1-01：只有纯函数返回集合的内容断言，没有真实 `message.id` 可见台账<br>**2026-10-05 夹具层台账**：`a9d2077e` 三 mode 各采一遍，越权审计三 mode 全 `passed=true` / `checked_pairs=6` / `violations=[]`；pipeline 下 `a`=pred=null、`b`=pred=a、`c`=pred=b，`c` 见 user,user,b,c,`__summary__`。<br>**2026-10-05 真实 HTTP 台账（本例最硬的一块）**：pipeline 真跑完，`assistant_role_order=["a","b","c"]`，每个角色**恰好只多看到上一位的输出**——`a`→`7098bf9e…`(user)+`cc3d451c…`(a)；`b`→`+1f69a5bc…`(b)；`c`→`7098bf9e…`+`1f69a5bc…`(b)+`49e3ffcb…`(c)，**c 看不见 a** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据（需真实 provider）**。契约要求「实际模型调用序列与日志一致」，JVM 侧只能断言 `SpeakerStep` 顺序，没有一次真实请求的 provider/model/顺序记录可导出<br>**2026-10-05 真实 HTTP 序列（契约点名的那一列，第一次有真请求）**：<br>seq1 `mock-model-a` / main / A / 2 msgs / 201+34 / `ROLECODE:A`<br>seq2 `mock-model-b` / main / B / 3 msgs / 235+34 / `ROLECODE:B`,**`A`**<br>seq3 `mock-model-c` / main / C / 3 msgs / 235+34 / `ROLECODE:C`,**`B`**<br>seq4 `mock-model-a` / budget / A / 2 msgs / 201+35 / `ROLECODE:A`<br>**契约要的序列 = `mock-model-a` → `mock-model-b` → `mock-model-c`**，与 `bindings` 声明的 wire 串**逐字一致**；`round_id=round-7098bf9e-4bcb-41f2-a0e7-e05d0395fcc9`、`assistant_role_order=["a","b","c"]`。<br>**逐请求视角隔离审计（真实网络层，不是纯函数判定）**：`a` 只有 system(`ROLECODE:A`)+user，**无 b 无 c**；`b` = system(`ROLECODE:B`)+user+**一条带 `ROLECODE:A` 的 assistant**，**无 `ROLECODE:C`**；`c` = system(`ROLECODE:C`)+user+**一条带 `ROLECODE:B` 的 assistant**，**无 `ROLECODE:A`**。**pipeline「只串联上一位」在真实 HTTP 层成立，不只在 `buildContext` 的单元判定上成立。**⚠️ **mock 不是真实模型**——证据等级是「真实 provider 代码路径 + 真实 HTTP 请求 + 真实 SSE 流 + 真实 usage 报文」，**不是「真实 LLM 推理」** <br>**2026-10-05 第四个窗口（真实公网网关，本例最硬的一块）**：**实际模型调用序列 = `deepseek-v4-flash` → `glm-5.2` → `deepseek-v4-flash`**，与按角色绑定（a/c = `deepseek-v4-flash`、b = `glm-5.2`）**逐位一致**；三个请求都**真的打到公网**（设备直连 `https://api.zenneko.top/v1`，**不经 `adb reverse`、不经本机 mock**）。这直接证明 `resolveGroupTurnModelId` + `TaskRoutes.resolve` 的按角色选型在**真实调用**下成立。⚠️ **模型名不是 wire 级抓包**：序列里的名字是由 `message.modelId` 的 uuid（`5a86b2d6…` / `8b6bf21c…`）经 provider 模型表**反查**出来的，**app 不保存响应的 `model` 字段**；JSON 里已用 `wire_model_name_provenance` 字段显式标明这一点。⚠️ **该用例没有一次全绿记录**（进程被 OEM 回收策略杀掉、落盘文件被卸载清空），数字来自同一次成功生成的内存快照。| **无证据**。pipeline 的 prompt+completion 实际计数未采集<br>**2026-10-05 真实 usage，与落库对账相等**：main 轮各请求 235 + 269 + 269 = **773**，落库 `group_runs.spent_tokens` = **773**，✅ 逐条相等；`status=COMPLETED`、`token_limit=100000`、`committed_role_ids=["a","b","c"]`、`skipped_role_ids=[]`、`reason=""`、`endedAt` 非空。⚠️ 口径是 **prompt + completion 累计**（`GroupTurnCoordinator.usageOf`），**不是** `totalTokens`、也不是最后一条消息的用量。mock usage = `ceil(bytes/4)`，字节数已落盘；seq1 `Content-Length: 24786`（绝大部分是 tools 定义）而 prompt token 只 **201** <br>**2026-10-05 第四个窗口（真实 usage，不是任何估算）**：a `deepseek-v4-flash` prompt **6803** + completion **159** = **6962**；b `glm-5.2` **6667 + 68 = 6735**；c `deepseek-v4-flash` **6880 + 102 = 6982**；**Σ(prompt+completion) = 20679**，落库 `group_runs.spent_tokens = 20679`，**精确相等**；`status=COMPLETED` / `committed=[a,b,c]` / `skipped=[]` / `ended_at` 非空。⚠️ **prompt 6800 量级的来源已定位**：请求体 **25.7KB 里 24675 字节是 23 个工具的定义**（按同一 wire body 本机复现得 6800/6526/6814，与真机同量级）。⚠️ **两个模型都是推理模型**：`max_tokens` 给小了会 `finish_reason=length`、`content` 为空、token 全被 `reasoning_tokens` 吃掉，**给足配额才吐正文**。⚠️ 同上，**没有全绿记录**，也不是 wire 抓包。| **无证据**。pipeline 路径本轮不导出群聊文件 | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-…GroupTurnModelTest.xml`<br>接线点：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt:705-741`（群分支取 `GroupTurnEntry.Speak` 并按 `resolveGroupTurnModelId` 选模型） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-03 roundtable | `4534f02a` 新增 GroupTurnCoordinator<br>`be41fdc9` 补 63 条内核用例<br>`ab5cddb9` 新增 GroupSpeakerResolver（说话者解成纯函数）<br>`d934c4d2` 气泡上方显示说话者 + 关掉群聊不适用的三个动作 | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupSpeakerResolver.kt` / `ChatMessage.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupSpeakerResolverTest`（8） | **无证据（需真机）**。「议长前看不到未完成输出」只有集合内容断言，没有逐 viewer 的真实消息 ID 清单<br>**2026-10-05 夹具层台账（议长视角第一次有值）**：真机真 Room 库，三 mode 各采一遍。roundtable 下 `a`=pred=null、`b`=pred=null、**`c`=chairRound=true**，议长可见集合放宽成 user,user,**a,b,c**,`__summary__`（议长放开本轮全部）；非议长仍是 user,user,自己,`__summary__`；越权审计 `passed=true` / `checked_pairs=6` / `violations=[]`。<br>⚠️ **但这只是夹具层**：`chairRound=true` 那个放行分支**在真实 HTTP 层一次都没被触发**——真实调用只跑了 pipeline，**议长汇总轮的真实 prompt 组装仍零份** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。roundtable 的「全员完成 → 仅议长汇总」两段调用序列未实跑<br>**2026-10-05 部分证据（只有 pipeline）**：真实 HTTP 跑了 pipeline 那四条请求（见 C1-02 行）。**roundtable 的两段序列——「全员轮」与「议长汇总轮」——仍然零份**，因为真实 provider 只绑定了 `mode=pipeline` 一种配置。⚠️ 议长 `chairRound=true` 的**实际 prompt 组装**没有任何请求记录，mock 也**没返回过任何候选或汇总文本** <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据**<br>**2026-10-05 仍缺（只跑了 pipeline）**：pipeline 轮 773 已落库（见 C1-02 行），但 **roundtable 议长汇总轮的真实 usage 零份**——议长那次调用根本没发生 <br>**2026-10-05 第四个窗口：仍然是零份**——议长 `chairRound=true` 那一轮的真实调用没有发生（真实网关只跑了 pipeline），真实 usage 也只有 pipeline 那三个数。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-…GroupSpeakerResolverTest.xml`<br>主源码：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/GroupSpeakerResolver.kt` <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-04 vote | `4534f02a` 新增 GroupTurnCoordinator<br>`aa771637` `parseBallot` 截断选票前缀改忽略大小写（修小写 `vote:` 被静默丢票）<br>`be41fdc9` 补 63 条内核用例（含投票平票） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupChat.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>选票文本是测试内联的 `vote:` 前缀字符串 | **无证据（需真机）**<br>**2026-10-05 夹具层台账**：vote 下三个角色的 `predecessorId` 与 `chairRound` **都为 null**，可见集合收窄成 user,user,自己,`__summary__`（隔离最紧）；越权审计 `passed=true` / `checked_pairs=6` / `violations=[]`。<br>⚠️ **只是夹具层**：vote 的真实调用零份——mock 目前返回 `[mock] CASE:…` 文本，`parseBallot` **认不出 `VOTE:` 前缀**，所以 `parseBallot → __summary__` 分支**根本没被真实请求走过** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。三角色各自投票请求的真实调用序列未采集<br>**2026-10-05 仍缺**：三角色各自投票请求的真实序列零份；平票按配置失败那条路径也零份。真实 HTTP 那轮 mock 返回 `[mock] CASE:…` 文本，**`parseBallot` 认不出 `VOTE:` 前缀**，所以投票分支**根本没被真实请求触发过** <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据**<br>**2026-10-05 仍缺**：vote 轮真实 usage 零份。⚠️ 上一轮那个 `spent=4096`（prompt **3000** + completion **1096**）/ `limit=400` 的数字**是构造输入**，测试 JSON 的 `token_source` 自己写着 `budget-accounting-only, no live LLM call`——**不能当真实用量读** <br>**2026-10-05 第四个窗口：仍然是零份**——vote 的三张选票与 `parseBallot → __summary__` 分支**仍然没被真实请求触发过**。⚠️ 旧理由（「mock 返回 `[mock] CASE:…`、`parseBallot` 认不出 `VOTE:` 前缀」）到这一轮已经换成「**真实网关那轮压根没跑 vote**」。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>判定入口：`app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt:605`（`parseBallot`） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-05 轮次预算 | `4534f02a` 新增 GroupTurnCoordinator<br>`dd7b3c79` ChatManager 接上协调器 + `group_runs`<br>`be41fdc9` 补 63 条内核用例（预算截断） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupTurnModel.kt` / `GroupRunDAO.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` | 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`core.data.db.migrations.GroupRunSchemaTest`（10）<br>预算值是构造入参，不是真实 token | **无证据（需真机）**。预算截断时点「谁被停掉」只有角色 id 顺序断言，没有消息 ID 台账<br>**2026-10-05**：`a9d2077e` 三 mode 各采一遍，越权审计三 mode 全 `passed=true` / `checked_pairs=6` / `violations=[]`；budget 轮真机**只落 `a` 一条**（`cc3d451c…`），`b`/`c` **库里没有发言**——「谁被停掉」在消息层面可直接观测（那一轮 `case=budget`，见 token 列） <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| **无证据**。「达到上限后停止剩余角色」要求日志与真实请求序列对齐，未实跑<br>**2026-10-05 真实 HTTP（部分证据）**：budget 轮 `token_limit=1` 真跑，**实际只发出 1 个请求**（seq4 `mock-model-a` / case budget / 发言者 A），与「达到上限后停止剩余角色」一致；`b`/`c` **没有发出任何请求**（不是发了被拒，是没发）。⚠️ 截断由 `limit=1` 这个**最小正值**触发，「跑满 N 个角色再截断」那条更接近生产的路径仍零份 | **无证据（本例是四条缺失里最硬的一条）**。契约 `:202` 的预算口径是「每轮累计 prompt + completion token」，`GroupTurnCoordinatorTest` 里的预算是**判定逻辑**的输入，不是真实 provider 返回的 token 数；`--rerun` 那轮 XML 里也没有任何 token 断言字段<br>**2026-10-05 真实 usage，与落库对账相等（本例最硬的一块）**：budget 轮 `token_limit=1`，**只发出一个请求**，prompt **201** + completion **35** = **236**，落库 `group_runs.spent_tokens` = **236**，✅ 相等；`status=BUDGET_STOPPED`、`reason=token_budget_exceeded`、`skipped_role_ids=["b","c"]`、`committed_role_ids=["a"]`、`token_limit=1`。**「已用 / 上限 / 未运行角色」三个字段全部有库内取值。**⚠️ `limit=1` 是「第一个角色之后必定停跑」的最小正值（`GroupChat.budgetDecision` 的口径是 `limit <= 0 <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。|<br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| spent < limit` 才继续）；`run_token_persisted_before_call=true` 也在同一份证据里 <br>**2026-10-05 第四个窗口**：真实网关那轮 `token_limit` 足够大、**没有触发预算截断**，所以「达到上限后停止剩余角色」在**真实 usage 下仍然是零份**（mock 那轮的 `token_limit=1` 仍是唯一的截断实测，见上一窗口）。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.db.migrations.GroupRunSchemaTest.xml`<br>运行日志表：`group_runs`（`app/src/main/java/heizige/kk/khatkit/app/core/data/db/entity/GroupRunEntity.kt`） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-06 取消与超时 | `60e9f055` 新增未产出助手消息过滤纯函数<br>`97b0fa1c` `finishGeneration` 落库前丢弃本次新增空气泡<br>`adc8a0ff` 补 18 条用例（空气泡丢弃/部分产出保留/存量不清洗）<br>`be41fdc9` 补 63 条内核用例（失败取消超时） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`ChatManager.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01。这是**最需要真机**的一条：取消与超时只能在真实协程取消 + 真实流式响应下复现，JVM 只能测纯函数<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.UngeneratedMessageFilterTest`（18）<br>`feature.chat.GroupTurnCoordinatorTest`（63） | **无证据（需真机）**<br>**2026-10-05 仍缺**：两轮真实 HTTP（main / budget）都是**正常跑完**的，**没有一次取消或超时**——取消/超时要在流式响应中途打断，本轮没做。所以本列**仍是零份**；JVM 那 18 条纯函数断言（`dropUngeneratedAssistantMessages`）**不能替代**真实流式响应下的取消 <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。取消/超时发生在流式响应中途，没有真实 provider 的部分响应记录<br>**2026-10-05 仍缺**：两轮真实 HTTP 都**正常跑完**，**没有一次中途取消或超时**——「流式响应中途打断」这条链路（部分响应、已消耗 token、错误节点保留）仍零份 <br>**2026-10-05 第四个窗口：仍然是零份**——真实网关那轮**正常跑完**，**没有一次中途取消或超时**。| **无证据**。取消时已消耗的 token 无采集<br>**2026-10-05 仍缺**：两轮都正常跑完，**取消/超时时的已消耗 token 没采**（没有中途打断） <br>**2026-10-05 第四个窗口：仍然是零份**——没有中途打断，「取消/超时时的部分响应与已消耗 token」仍无采集。| **无证据** | `…TEST-heizige.kk.khatkit.app.feature.chat.UngeneratedMessageFilterTest.xml`<br>`…TEST-…GroupTurnCoordinatorTest.xml`<br>纯函数：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/UngeneratedMessageFilter.kt:78`（`dropUngeneratedAssistantMessages`）<br>落库前调用点：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/ConversationSession.kt:108`（`finishGeneration` 内） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-07 失败续跑/幂等 | `d976aa61` 新增 `group_runs` 表与运行 token 幂等<br>`007e4173` 改复合主键 `(conversation_id, round_id)` + `run_token/updated_at`<br>`70ed043d` `GroupRunDAO` 按 `(conversationId, roundId)` 定位 + `upsertRun` 事务<br>`892577a3` 30→31 改显式 `Migration_30_31` 并在工厂注册<br>`cc01d78d` androidTest 迁移到复合主键/`run_token` 并补幂等与 upsert 用例<br>`be41fdc9` 补 63 条内核用例（幂等/续跑）<br>`1649f5c7` 迁移重放脚本补 FTS5 触发器存活证据与对照实验 | `CMD-1` 退出码 **0**（强制 `--rerun`，JVM 侧覆盖 app 模块全部 664 个用例，含本例相关的 `GroupTurnCoordinatorTest` 63 + `GroupRunSchemaTest` 10）<br>**仪器侧未跑**：`adb devices` 空，`connectedDebugAndroidTest` 无法执行<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**。C1 相关仪器测试源码共 **19 个注解**（`GroupRunDAOTest` 12 + `Migration_30_31_Test` 7），**执行结果为零**。唯一 app 仪器记录 2026-10-03 12:58:29 崩溃且 `tests="0"`，早于基线<br>**部分证据（仅迁移侧）**：零设备主机侧重放已把 C1-D 的 30→31 迁移钉住 85 条断言 0 失败，覆盖 `group_runs` 复合主键 `(conversation_id, round_id)`、`run_token` UNIQUE 索引、同 `round_id` 第二条被主键拒绝、同 `runToken` 第二次被唯一索引拒绝、`group_runs` 仍只有 1 行（见「C1-D 迁移 30→31 主机侧重放」）。**这只是部分证据，不改状态**<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.db.migrations.GroupRunSchemaTest`（10）<br>仪器侧 fixture 未采集：`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAOTest.kt`、`…/core/data/db/migrations/Migration_30_31_Test.kt`（源码在库，执行证据不在库） | **无证据（需真机）**<br>**2026-10-05**：`a9d2077e` 三 mode 夹具台账与越权审计全过（三 mode `checked_pairs=6` / `violations=[]`）；仪器侧 `GroupRunDAOTest` 12 条**真机全绿**。<br>⚠️ **但「同 `round_id` 重试跳过已提交 turn」这条真机交互仍然零份**：本轮两轮真实调用都是**一次跑完**，没有制造「第 2 个角色失败后重试同一 `round_id`」的场景。⚠️ 反而是这轮真实调用**撞出一个真缺陷**（`858c11d0`），见「模型调用序列」列——**它证明的是「产出归属会断」，不是「续跑幂等已验」** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**<br>**2026-10-05 部分证据**：`GroupRunDAOTest` 12 条真机全绿（覆盖 `run_token` 持久化、同 `round_id` 第二条被复合主键拒绝、同 `runToken` 被唯一索引拒绝、`upsertRun` 事务）。⚠️ 但那些是 **DAO 层**断言，**没有一次「失败后重试同一 `round_id`」的真实链路**。<br>⚠️ 反而这轮真实调用**撞出一个真缺陷并修掉**（`858c11d0`，`core/data/ai/GenerationLoop.kt`）：`role_id` 已提交时末尾助手消息被当成「本次生成自己的」而复用，导致后续角色的产出**并进上一位那条消息**，`stampGroupTurn` 随后找不到 `roleId == null` 的消息，把该角色误判成「本轮没有产出内容」写成 `role_failed`。真机证据：`role_id="a"` 的那条消息有 A、B 两段正文而 usage 是 B 的；`group_runs` 是 `status=FAILED` / `committed=["a"]` / `skipped=["c"]` / `reason=role_failed` / `error_message=本轮没有产出内容`。**这是锚点之后第一个由真机证据定位的 main 源码 bug** <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据**<br>**2026-10-05**：pipeline 773 / budget 236 两条 run 已落库（见 C1-02、C1-05 行），⚠️ 但**「重试同一 `round_id` 时 token 是否只算一次」这条零份**——本轮没有重试场景 <br>**2026-10-05 第四个窗口**：那一轮 `status=COMPLETED`、**一次跑完**，**没有制造「第 2 个角色失败后重试同一 `round_id`」的场景** → 本列**仍然是零份**。⚠️ 反而撞出**另一个真模型特有的坑**（首版 persona 没写「历史里别人的代号不是你的」，pipeline 把上一位发言放进下一位上下文后，**真模型照抄眼前那条的格式**，b 学走 a 的 `ROLECODE:A`、c 学走 b 的、c 干脆零产出 `role_failed`）：那是**产出格式归属**问题，**不是**幂等路径的证据。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>仪器记录（崩溃，早于基线）：`app/build/outputs/androidTest-results/connected/debug/TEST-PKG110 - 16-_app-.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAO.kt`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`）<br>重放日志（仓库外）：`/tmp/opencode/c1-replay2/run1.log`、`run2.log`（sha256 `093981c4…4d2e7d5`）<br>变异测试驱动（仓库外）：`/tmp/opencode/c1-replay2/mutate.py` <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-08 记忆隔离 | `966792d6` `memory_chunks` 加 `role_id` + 注册 `group_runs`（Room 30→31）<br>`63502610` `addMemory` 透传 `roleId` 且 `toModel` 带出发言角色<br>`8e5457dc` `getMentionsOfEntity` 改带 `spaceId` 的 JOIN<br>`e7606912` 检索层加 `MemorySpaceGate` 空间闸门（FTS/向量/图谱三路）<br>`68b92146` `forgetMemory/linkMemories` 加 `expectedSpaceId` 归属校验<br>`6504f023` 记忆工具接群空间（无全局/助手回退），群聊不下发 `recent_chats`<br>`2031c409` `MemoryExtractor` 写入带 `roleId`，`sourceMessageId` 按 `source_line` 归因<br>`495b5e3a` `ChatManager` 接群记忆作用域（懒建空间、只读 viewer 可见消息）<br>`58b129c7` 补 31 条用例（空间闸门/工具空间/抽取归属/懒建/跨空间泄漏回归） | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖本例 7 个类的 50 个用例）<br>`CMD-2` 退出码 **0**（`MemoryRepository.kt` / `MemoryExtractor.kt` lint 零命中）<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01。三空间互不串需要真实检索栈 + 真实写入，JVM 只能测纯函数闸门<br>**部分证据（仅迁移与 FTS 侧）**：主机侧重放已钉住 `memory_chunks` 加可空 `role_id`（存量 2 行 `role_id IS NULL` 不被改写、新行可写 `'r1'`）、`role_id` 索引存在、存量 `content`/`source_message_id`/`source_ref_id`/`confidence`/时间戳/`embedding` BLOB 全保留，且 3 个 FTS5 触发器在迁移后逐字节存活、INSERT/UPDATE/DELETE 三向真同步到索引（见「C1-D 迁移 30→31 主机侧重放」）。**这不覆盖三空间互不串本身，也不改状态**<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `core.data.repository.MemorySpaceGateTest`（9）<br>`core.data.ai.tools.MemoryToolScopeTest`（7）<br>`core.data.repository.MemoryAttributionTest`（9）<br>`core.data.repository.GroupMemorySpacePolicyTest`（6）<br>`core.data.repository.MemoryExtractorParseTest`（7）<br>`core.data.db.MemoryRoleIdMappingTest`（2）<br>`core.data.db.migrations.GroupRunSchemaTest`（10） | **无证据（需真机）**。三个 `group:<conv>:role:<role>` 空间的真实检索结果可见性没有跨 viewer 的实跑记录<br>**2026-10-05 仍缺（这一列对本例不适用）**：viewer 可见消息台账量的是**对话消息**，而 C1-08 要的是**三个 `group:<conv>:role:<role>` 记忆空间的检索结果可见性**——本轮真实 HTTP 的 assistant 把记忆**全部关掉**（`enableMemory=false` / `useGlobalMemory=false` / `autoExtractMemory=false`），**一次记忆写入与检索都没发生**。所以本列**仍是零份** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。「检索 query 只用 viewer 过滤结果」要对照真实请求的 query 文本，未采集<br>**2026-10-05 仍缺（这一列对本例不适用）**：C1-08 要对照**真实请求的 query 文本**与三个空间的检索结果，而本轮真实 HTTP 的 assistant 把记忆**全部关掉**（`enableMemory=false` / `useGlobalMemory=false` / `autoExtractMemory=false`），**没有一次检索发生**，query 文本也无从对照。⚠️ 视角隔离那一半**已被真实 HTTP 审计钉住**（请求里只含 viewer 过滤后的 messages，见 C1-01 / C1-02 行），但**「检索 query 只用 viewer 过滤结果」这条仍然零份** <br>**2026-10-05 第四个窗口：仍然是零份**——真实网关那轮没有检索记忆，三空间互不串在真实调用下仍无观测。| **无证据**<br>**2026-10-05 仍缺（这一列对本例不适用）**：本轮真实 HTTP 把记忆全关，**没有一次记忆写入或检索**，「带 `source_message_id` 归因」无从采集 <br>**2026-10-05 第四个窗口**：pipeline 那三个数是**群聊轮次**的用量，**不覆盖**记忆空间隔离；本列**仍然是零份**。| **无证据**。契约 `:203` 要求记忆内容不进包，但没有导出文件可算哈希 | `…TEST-heizige.kk.khatkit.app.core.data.repository.MemorySpaceGateTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeTest.xml`<br>`…TEST-…MemoryAttributionTest.xml`<br>`…TEST-…GroupMemorySpacePolicyTest.xml`<br>`…TEST-…MemoryExtractorParseTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.db.MemoryRoleIdMappingTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`），日志 `/tmp/opencode/c1-replay2/run1.log`、`run2.log`（仓库外） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-09 Tavern/QR 往返 | `f921a02f` `GroupRole` 补 `extras` 无损往返 + `validate` 校 `schemaVersion`<br>`b3d9bf44` `TavernChatCodec` 加群聊导出/导入（保留 `role_id/round_id/turn_kind/群配置/角色卡`）<br>`efa1c27c` `encodeConfig` 写库路径补跑密钥黑名单检查<br>`53563c8c` 补 Tavern 群聊往返与密钥过滤用例<br>`a1616b6b` 群聊页接上生成二维码（载荷与文本分享共用一份）<br>`7d4a6596` 群聊页接上扫码导入，统一走 `importShare`<br>`f5212df2` 角色卡解码走 null 安全取值<br>`b548025e` 补 `importShare` 五道闸门与 `cards` 保留用例<br>`88c850ef` 群聊导出面板接入 Tavern 群聊导出卡片，打通 `exportGroupJsonl`<br>`2c9aa2e4` 补群聊导出入口纯逻辑用例（面板到可回导文件的往返）<br>`aeab5550` 新增 CameraX + MLKit 扫码弹层与入口决策单测<br>`d2b5c05c` 新增导出哈希证据测试（9 变体 + 往返幂等 + SillyTavern 结构对照）<br>`eef6efb3` 新增跨两次独立 JVM 的哈希比对脚本<br>`bbe2e558` 加 golden 清单护栏（把「确定性」升级成「格式没变」） | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 82 个用例：22+21+16+18+5）<br>`CMD-3` 退出码 **0**（打出了 3 个可安装 APK，但那是安装包不是群聊导出文件）<br>`CMD-2` 退出码 **0**（`TavernChatCodec.kt` lint 零命中）<br>**C1-P 哈希校验已跑**：`python3 tools/verification/c1p_group_export_hash.py` 退出码 **0**（两次独立 JVM + 落盘 `hashlib` 复算 + golden 清单，三重全一致）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01。相机扫码（`QrScannerSheet`）与 Tavern 本体打开文件**都必须真机/桌面端**，JVM 的 16 条只测入口决策<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTavernExportTest`（22）<br>`core.data.ai.tavern.TavernCompatTest`（21）<br>`core.ui.components.ui.QrScannerSheetTest`（16）<br>`core.data.model.GroupChatTest`（18）<br>**`core.data.ai.tavern.C1pGroupExportHashTest`（5）**<br>前四个类的往返在 JVM 里是内存对象 → JSON → 内存对象；新类把文件**真的落盘**（`build/c1p-group-export-hash/*.txt`）再算 SHA-256 | **无证据（需真机）**<br>**2026-10-05**：viewer 台账按三种 mode 各采了一遍（越权审计全过），但**本例要的「往返后 `role_id`/轮次/分支逐字段相等」靠的是导出列那 7 条消息的逐字段对账**，不是 viewer 台账。⚠️ **本例的实质缺口在导出与互操作**：酒馆（SillyTavern）本体打开群聊导出文件**零证据**、相机扫码真机链路**零证据**（`QrScannerSheet` 只有编译 + 16 条 JVM 单测，CameraX+MLKit 没在设备上跑过） <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**<br>**2026-10-05 部分证据**：导出/QR 往返走的是**真机** `TavernChatCodec.exportGroupJsonl` + `GroupChat.encodeQr`，三种 `mode` 各一份，越权审计三 mode 全过。⚠️ **这一列对本例不适用**（导出不发起模型请求），且酒馆本体互操作与相机扫码**真机链路零份** <br>**2026-10-05 第四个窗口：仍然是零份**——真实网关那轮不产出群聊导出文件。| **无证据**<br>**2026-10-05 仍缺（这一列对本例不适用）**：导出不消耗 token。⚠️ 契约 `:203` 的「记忆内容不进包」只能靠**逐字段扫导出文件**验，本轮没做机器扫描，只有零设备的密钥黑名单单测 <br>**2026-10-05 第四个窗口：仍然是零份**——同列，本轮只跑生成侧。| **部分证据（零设备，JVM 层确定性）**——契约 `:206` 这一类现在有真实内容了。9 个 fixture 变体的字节数 + SHA-256 已实测落定（`d2b5c05c` / `eef6efb3` / `bbe2e558`，逐条证据见下方「C1-P 群聊导出确定性哈希（零设备）」）：<br>`pipeline_3roles_2rounds_jsonl` 3615 / `36e6585f9aa4a028eb8277bc70578fd2c802cdd730e3981f0d52b02430f0c8b9`<br>`roundtable_3roles_2rounds_jsonl` 3616 / `33c51124e5421ae46a002f025a2e61dc5712b73ddc413ca9dea3b9777ccc0fb3`<br>`vote_3roles_2rounds_jsonl` 3619 / `ad9e3fb119cbc4bea05b7e917eb180aabeb230bbbf89dfe1addcfd0040217c35`<br>`pipeline_3roles_2rounds_array` 3617 / `b8d57a6c4f15e87d1a9d0a181022ba28410a36527075e71b0daf77976c1a3653`<br>`pipeline_with_explicit_create_date_jsonl` 3652 / `92ce04902dc0c8e5bd822020e3df885b30a89adb9fef2fcd0fb712ae9faeee5e`<br>`empty_messages_jsonl` 1518 / `0ae10ea537e112c7f4d98ebd275b26a86e1b30952f1de8274f0cccf670f11e80`<br>`image_part_jsonl` 1711 / `c07d7e6ead7f06143ceae05fa5082be04af1fabc333edb60125ee337c9cbd9e9`<br>`qr_payload_pipeline` 1348 / `2d65ec04dded8a8fc29d3b7cb2d235bea908ee779b0568a6f644f34670cd2ff5`<br>`qr_payload_vote` 1352 / `8b49d47b225f32f6ad6032b1ab49eb1d6122a3af3c97652936adf7df13c2e9bf`<br>⚠️ **但这是零设备 fixture 的哈希，不是真机导出的文件哈希**：落盘走 `java.io.File.writeBytes`，`writeExportTempFile` + `ACTION_SEND` 真实 IO 分发**一次没跑过**；**酒馆本体打开、viewer 可见消息 ID、模型调用序列、token 计数仍零份**。**四类证据缺三类半，所以状态不变。**<br>① APK 的 SHA-256 已有（见构建段），但**安装包哈希不是群聊导出文件哈希**，不能填本列；<br>② `/tmp/opencode/sample-group.json` / `.jsonl`（各约 1.7 KB）**被仓库零引用**（`git grep sample-group` 无结果）、无 SHA-256、来源不明，**不作为 fixture** | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTavernExportTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.TavernCompatTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheetTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>**`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.C1pGroupExportHashTest.xml`**（`tests="5"`）<br>哈希校验脚本：`tools/verification/c1p_group_export_hash.py`<br>**golden 清单（入库，护栏本体）：`tools/verification/c1p_group_export_hash.golden.json`**<br>落盘产物（构建目录，未入库）：`app/build/c1p-group-export-hash/*.txt`<br>编解码：`app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernChatCodec.kt`<br>C1-P 补的「QR 携带角色卡最小元数据」落库证据见下方「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」 <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
-| C1-10 单聊/群聊共存 | `2f1d04a2` 搜索路新增按 `type` 的 DAO 查询，空串语义与未归档路对齐<br>`c84256a1` 抽屉类型筛选下沉到 SQL，删掉只作用于已加载页的内存过滤<br>`35ea0762` `type` 谓词抽成两条查询共用的常量<br>`34493507` 补抽屉列表查询判定与「内存过滤已删」的护栏用例<br>`8528ecda` 抽出 `ChatScaffold` 共用消息区骨架<br>`4e97ff57` 群聊页复用 `ChatScaffold`，接成员头像组、@ 选择器与群配置面板<br>**`215296f1..6982869b` 8 个 C1-S 提交**：抽屉两条 `@Query` 的主机侧重放（`215296f1`，起手 335 条断言 / `aa1862eb` 扩到 **438 条**）、**修两个真实缺陷**（`58faa90b` 5 条 LIKE 加 `ESCAPE` + 抽出转义纯函数、`e8607171` 5 个转发点统一过转义、`a252884e` 全部 14 条 `ORDER BY` 追加 `id ASC`）、`79b13080` 转义纯函数 12 条单测 + 2 条源码护栏、`eb29abff` ESCAPE 常量去尾随空格、`6982869b` type 筛选护栏的期望串改为引用 ESCAPE 常量标识符 | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 27 个用例：7+2+18）<br>**本轮追加**：`./gradlew --offline :app:testDebugUnitTest --rerun` 退出码 **0**，**92 类 / 722 例 / 0 失败 0 错误 0 跳过**（改前 91 类 / 710 例，净增 `ConversationSearchLikePatternTest` 12 例）<br>**C1-S 主机侧重放已跑**：`python3 tools/verification/c1s_conversation_type_filter_replay.py` 退出码 **0**（两次独立运行，输出逐字节相同，输出 SHA-256 `5645fa13…a40073`）<br>`CMD-2` 退出码 **0**（`ChatList.kt` 侧现在零命中——曾有的 3 条 `FrequentlyChangingValue` 已由 `366b3fe8` 搬进 `derivedStateOf`/draw 期清掉，见「lint」段；`ChatScaffold` 侧零命中）<br>本轮 `./gradlew --offline lint` 退出码 **0**，`0 errors, 587 warnings, 6 hints`，与基线**逐位相同**；`ConversationDAO.kt` / `ConversationRepository.kt` / `ChatDrawerViewModel.kt` / `ConversationSearchLikePattern.kt` **四个全部 0 命中**<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01（`adb devices` 仍为空输出）。「筛选只过滤、来回切换不丢数据」是交互行为，JVM 的用例只钉住查询判定<br><br>**部分证据（零设备，真实 SQLite 执行）**：C1-S 重放脚本给「**类型筛选只过滤**」这一条钉了 **438 条断言 0 失败**，覆盖 C1-10 用例里点名的那半句——**集合相等（不是数量相等）**、筛选后 `count` 正确、`LIMIT/OFFSET` 分页无重复无遗漏、切换 `type` 参数**不改变查询种类**。**这是 C1-10 迄今最硬的一块证据，但它不改变本行判定**：契约 `:206` 点名的四类产物——**viewer 可见消息 ID、实际模型调用序列、prompt+completion token、真机行为**——**本轮一份都没补上**（`adb devices` 仍为空）。逐项交代：<br>· **viewer 可见消息 ID**：**仍是零份**。脚本比对的是 `conversationentity` 的 `id` 集合，不是消息表；`message_node` 一行都没碰。<br>· **模型调用序列**：**仍是零份**。脚本不发起任何模型请求。<br>· **token (prompt+completion)**：**仍是零份**。同上。<br>· **导出 SHA-256**：**仍是零份**。C1-10 不产出群聊导出文件（那一份在 C1-09 行）。<br>· **真机行为**：**仍是零份**，抽屉 UI 端到端（搜索框输入 → 列表刷新）一次没跑过。<br>**所以本行状态仍是 `unverified`。**<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.ConversationListQueryPlanTest`（7）<br>`feature.chat.ConversationTypeFilterSourceGuardTest`（2）<br>**`core.data.repository.ConversationSearchLikePatternTest`（12）**<br>`core.data.model.GroupChatTest`（18）<br>fixture 之一是 SQL 谓词常量 `CONVERSATION_TYPE_PREDICATE_SQL`<br>**重放脚本的 fixture**：25 行（助手 A1 23 行 / 助手 A2 2 行），`type×folder` **6 种组合全覆盖**（DIRECT×`{'',f1,f2}` = 14/2/1，GROUP×`{'',f1,f2}` = 5/2/1），21 未置顶 / 4 置顶，标题覆盖普通 / 置顶 / 文件夹 / 「共享词」矩阵 / 字面 `%` / 字面 `_` / ASCII 大小写对 / 繁简对 / 空串 / 纯空格，外加**故意 4 行 `(is_pinned, update_at)` 全同且插入顺序与 id 升序相反**（用来抓「去掉 id 兜底」）；参数矩阵 60 组 | **无证据（需真机）**。⚠️ C1-S 重放给的是 `conversationentity` 行集合的相等判定，**不是消息 ID 台账**；`adb devices` 仍为空<br>**2026-10-05 仍缺**：viewer 台账量的是**群聊消息**，C1-10 要的是**抽屉列表层**的「同一列表混排、类型筛选只过滤、切换后消息与会话数据不丢」。C1-S 那 438 条主机侧重放比的是 `conversationentity` 的 `id` 集合，**不是消息 ID 台账**；真实 HTTP 两轮也没构造混排会话。所以本列**仍是零份** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。脚本不发起任何 provider 请求，没有可导出的调用序列<br>**2026-10-05 仍缺**：C1-10 不发起任何模型请求（主机侧重放与真机两轮都没构造混排会话），调用序列仍零份 <br>**2026-10-05 第四个窗口：仍然是零份**——真机 UI 端到端仍然零份，**一行 Compose 没上过屏**；真实网关只跑了后台的轮次生成。| **无证据**<br>**2026-10-05 仍缺（这一列对本例不适用）**：抽屉筛选不消耗 token，零份 <br>**2026-10-05 第四个窗口**：pipeline 那三个数是**生成侧**的，**不覆盖**「切换会话后消息与会话数据不丢」；本列**仍然是零份**。| **无证据**。C1-10 不产出群聊导出文件 | `…TEST-heizige.kk.khatkit.app.feature.chat.ConversationListQueryPlanTest.xml`<br>`…TEST-heizige.kk.khatkit.app.feature.chat.ConversationTypeFilterSourceGuardTest.xml`<br>**`…TEST-heizige.kk.khatkit.app.core.data.repository.ConversationSearchLikePatternTest.xml`**<br>`…TEST-…GroupChatTest.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt:76`（未归档路 `@Query`）/ `:108`（搜索路 `@Query`，本轮改过）<br>⚠️ 早前记的 `ConversationDAO.kt:19/38/66` **已随本轮 DAO 改动漂移**（新增 KDoc + 14 条 `ORDER BY` 就地追加），现值见上<br>仓储：`app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationRepository.kt:92/281`<br>转义纯函数：`app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationSearchLikePattern.kt:30/41/64`<br>**重放脚本：`tools/verification/c1s_conversation_type_filter_replay.py`（83,955 字节 / 1,382 行，sha256 `3b3e12be5d685670ae4121188e4fcd1b4de6a81a31c3317f3b6e7dbd8fc00ce0`，已入库）**<br>输出日志（仓库外）：`/tmp/opencode/c1s_check.log`（478 行 / 66,933 字节，sha256 `5645fa1350caf88afb5e33d3e52c9ebbab0b64975a041715559b9cac76a40073`） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** |
+| C1-01 三角色显式 @ | `4534f02a` 新增 GroupTurnCoordinator 纯判定内核<br>`be41fdc9` 补 63 条内核用例（含视角隔离）<br>`6c8d4932` 新增 GroupRoleCompletionProvider<br>`e5dde832` 补 8 条防伪 @ 边界用例<br>（4 个 SHA 均在锚定区间 `d45ebd10~1..1b0e04a9` 内，已 `git cat-file -t` 逐个核过） | `CMD-1` 退出码 **0**<br>2026-10-04 23:48 强制 `--rerun`，84 个 XML 全部重写<br>`CMD-2` 退出码 **0**（该例无 lint 命中，见下）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**。`adb devices` 输出为空列表；磁盘上唯一 app 仪器测试记录是 2026-10-03 12:58:29 的 `Process crashed`（`tests="0"`），早于基线 13.5 小时；Android 版本无记录<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = JVM 测试类：<br>`feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupRoleCompletionProviderTest`（8）<br>fixture 为 Kotlin 内联构造的 `GroupConfig`/`UIMessage` 列表，无外部文件 | **无证据（需真机）**。JVM 只断言 `viewerMessages(...)` 返回的 `UIMessage` 列表内容，没有把断言里的消息落成带真实 `message.id` 的台账，磁盘上没有「角色 A 可见 = [id1,id3]」这种记录<br>**2026-10-05 夹具层台账（部分证据）**：真机真 Room 库，夹具 **7 条消息**（作者依次 user / a / user / a / b / c / `__summary__`），`a9d2077e` 起**三种 mode 各采一遍**，越权审计三 mode 全部 `passed=true` / `checked_pairs=6` / `violations=[]`。pipeline：`a` 见 user,user,a,a,`__summary__`；`b` 见 user,user,a,b,`__summary__`；`c` 见 user,user,b,c,`__summary__`。roundtable：`c`（chair，`chairRound=true`）见 user,user,**a,b**,c,`__summary__`（议长放开本轮全部）。vote：收窄成 user,user,自己,`__summary__`。<br>**2026-10-05 真实 HTTP 台账**：`round-7098bf9e-4bcb-41f2-a0e7-e05d0395fcc9`，`a`→`7098bf9e…`(user)+`cc3d451c…`(a)；`b`→`+1f69a5bc…`(b)；`c`→`7098bf9e…`+`1f69a5bc…`(b)+`49e3ffcb…`(c)。<br>⚠️ **「只被 @ 角色收到、其他角色不可见」这一句仍未在真机上单独观测到**：夹具的 `@阿尔法` 落在**用户消息**上（`mentionRoleIds` 含 a），而用户消息对**每个 viewer 都可见**，所以 @ 放行分支的独立效果仍只有 JVM 纯函数断言 <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据（需真机）**。仓库里被 git 跟踪的 `*.jsonl` 全部在 `ai/src/test/resources/stream-traces/generated/`（10 个文件），是 AI SDK 的桩事件流，与 C1 无关；没有真实 provider 的调用序列<br>**2026-10-05 真实 HTTP（第一次有真请求）**：`C1LiveModelSequenceTest` 经 `adb reverse tcp:8765 tcp:8765` 接本机 mock OpenAI，走 `ChatManager.sendMessage → GenerationLoop → ProviderManager → OpenAIProvider → ChatCompletionsAPI.streamText → Ktor CIO OkHttpClient` **完整生产链路**；请求特征 `User-Agent: ktor-client`、`accept: text/event-stream`、`stream_options.include_usage: true`、`stream=true`。**seq=1 `mock-model-a` / case main / 发言者 A / 2 条消息 / 201+34 / 只含 `ROLECODE:A`——零个他人输出。**mock 侧把每个请求 body 原样落盘 `requests.jsonl`，**与应用代码无关**，构成第三方旁证。⚠️ 显式 @ 的**单角色投递**没实跑（本轮是无 @ 的 pipeline），C1-01 要的「这一轮只有 B 被调用」仍零份 <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据（需真实模型）**。`GroupTurnCoordinatorTest` 的预算断言喂的是构造出来的 token 数，不是真实 completion 计数<br>**2026-10-05 真实 usage（第一次不是构造值）**：seq1 prompt **201** + completion **34** = **235**，落 `c1-live-evidence-main.json`，`evidence_kind=real-http-capture-via-adb-reverse`。⚠️ **本例要的是「只 @ 到一个角色」那一轮的 token 累计，那一轮没实跑**；且 usage 是 mock 按 `ceil(bytes/4)` 估的（**原始字节数已落盘可手算复核**），**不是真 tokenizer 的结果** <br>**2026-10-05 第四个窗口：仍然是零份**——本例要的是「只 @ 到一个角色那一轮」的累计，真实网关那轮是无 @ 的 pipeline。⚠️ 顺带纠正一处旧认知：`GroupConfigSheet` 的 `role_id` 是**只读 `Text`**（`GroupChatPage.kt:754`，在 `RoleEditor` 里），**UI 手输路径不存在**，所以「构造一个 `role_id = __summary__` 的角色」只能走外部 JSON 导入（`importShare` 第 5 道闸门，`GroupChat.kt:832-838`）。| **无证据**。C1-01 不产出群聊导出文件；`app/build/outputs/apk/debug/*.apk` 的 SHA-256 是安装包哈希，与「群聊导出文件哈希」不是一回事，不能填进本列 | `app/build/test-results/testDebugUnitTest/TEST-heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinatorTest.xml`<br>`…GroupChatTest.xml`<br>`…GroupRoleCompletionProviderTest.xml`<br>主源码：`app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt` <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**显式 @ 的投递收窄**——夹具的 `@` 仍落在用户消息上（用户消息对每个 viewer 都可见），「其他角色可见」这半句在真机证据里仍然读不出来。详见「已知遗留与风险」第 15 条。** |
+| C1-02 无 @ 的 pipeline | `4534f02a` 新增 GroupTurnCoordinator<br>`dd7b3c79` ChatManager 接上协调器 + `group_runs` 运行日志<br>`b752a310` 更新 ChatScaffold KDoc（modelId 已参与解析）<br>`139a91ba` 图片导出的模型名与气泡同口径 | `CMD-1` 退出码 **0**（同上，强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupTurnModel.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01（`adb devices` 空；唯一仪器记录 2026-10-03 崩溃且 `tests="0"`）<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupTurnModelTest`（14） | **无证据（需真机）**。同 C1-01：只有纯函数返回集合的内容断言，没有真实 `message.id` 可见台账<br>**2026-10-05 夹具层台账**：`a9d2077e` 三 mode 各采一遍，越权审计三 mode 全 `passed=true` / `checked_pairs=6` / `violations=[]`；pipeline 下 `a`=pred=null、`b`=pred=a、`c`=pred=b，`c` 见 user,user,b,c,`__summary__`。<br>**2026-10-05 真实 HTTP 台账（本例最硬的一块）**：pipeline 真跑完，`assistant_role_order=["a","b","c"]`，每个角色**恰好只多看到上一位的输出**——`a`→`7098bf9e…`(user)+`cc3d451c…`(a)；`b`→`+1f69a5bc…`(b)；`c`→`7098bf9e…`+`1f69a5bc…`(b)+`49e3ffcb…`(c)，**c 看不见 a** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据（需真实 provider）**。契约要求「实际模型调用序列与日志一致」，JVM 侧只能断言 `SpeakerStep` 顺序，没有一次真实请求的 provider/model/顺序记录可导出<br>**2026-10-05 真实 HTTP 序列（契约点名的那一列，第一次有真请求）**：<br>seq1 `mock-model-a` / main / A / 2 msgs / 201+34 / `ROLECODE:A`<br>seq2 `mock-model-b` / main / B / 3 msgs / 235+34 / `ROLECODE:B`,**`A`**<br>seq3 `mock-model-c` / main / C / 3 msgs / 235+34 / `ROLECODE:C`,**`B`**<br>seq4 `mock-model-a` / budget / A / 2 msgs / 201+35 / `ROLECODE:A`<br>**契约要的序列 = `mock-model-a` → `mock-model-b` → `mock-model-c`**，与 `bindings` 声明的 wire 串**逐字一致**；`round_id=round-7098bf9e-4bcb-41f2-a0e7-e05d0395fcc9`、`assistant_role_order=["a","b","c"]`。<br>**逐请求视角隔离审计（真实网络层，不是纯函数判定）**：`a` 只有 system(`ROLECODE:A`)+user，**无 b 无 c**；`b` = system(`ROLECODE:B`)+user+**一条带 `ROLECODE:A` 的 assistant**，**无 `ROLECODE:C`**；`c` = system(`ROLECODE:C`)+user+**一条带 `ROLECODE:B` 的 assistant**，**无 `ROLECODE:A`**。**pipeline「只串联上一位」在真实 HTTP 层成立，不只在 `buildContext` 的单元判定上成立。**⚠️ **mock 不是真实模型**——证据等级是「真实 provider 代码路径 + 真实 HTTP 请求 + 真实 SSE 流 + 真实 usage 报文」，**不是「真实 LLM 推理」** <br>**2026-10-05 第四个窗口（真实公网网关，本例最硬的一块）**：**实际模型调用序列 = `deepseek-v4-flash` → `glm-5.2` → `deepseek-v4-flash`**，与按角色绑定（a/c = `deepseek-v4-flash`、b = `glm-5.2`）**逐位一致**；三个请求都**真的打到公网**（设备直连 `https://api.zenneko.top/v1`，**不经 `adb reverse`、不经本机 mock**）。这直接证明 `resolveGroupTurnModelId` + `TaskRoutes.resolve` 的按角色选型在**真实调用**下成立。⚠️ **模型名不是 wire 级抓包**：序列里的名字是由 `message.modelId` 的 uuid（`5a86b2d6…` / `8b6bf21c…`）经 provider 模型表**反查**出来的，**app 不保存响应的 `model` 字段**；JSON 里已用 `wire_model_name_provenance` 字段显式标明这一点。⚠️ **该用例没有一次全绿记录**（进程被 OEM 回收策略杀掉、落盘文件被卸载清空），数字来自同一次成功生成的内存快照。| **无证据**。pipeline 的 prompt+completion 实际计数未采集<br>**2026-10-05 真实 usage，与落库对账相等**：main 轮各请求 235 + 269 + 269 = **773**，落库 `group_runs.spent_tokens` = **773**，✅ 逐条相等；`status=COMPLETED`、`token_limit=100000`、`committed_role_ids=["a","b","c"]`、`skipped_role_ids=[]`、`reason=""`、`endedAt` 非空。⚠️ 口径是 **prompt + completion 累计**（`GroupTurnCoordinator.usageOf`），**不是** `totalTokens`、也不是最后一条消息的用量。mock usage = `ceil(bytes/4)`，字节数已落盘；seq1 `Content-Length: 24786`（绝大部分是 tools 定义）而 prompt token 只 **201** <br>**2026-10-05 第四个窗口（真实 usage，不是任何估算）**：a `deepseek-v4-flash` prompt **6803** + completion **159** = **6962**；b `glm-5.2` **6667 + 68 = 6735**；c `deepseek-v4-flash` **6880 + 102 = 6982**；**Σ(prompt+completion) = 20679**，落库 `group_runs.spent_tokens = 20679`，**精确相等**；`status=COMPLETED` / `committed=[a,b,c]` / `skipped=[]` / `ended_at` 非空。⚠️ **prompt 6800 量级的来源已定位**：请求体 **25.7KB 里 24675 字节是 23 个工具的定义**（按同一 wire body 本机复现得 6800/6526/6814，与真机同量级）。⚠️ **两个模型都是推理模型**：`max_tokens` 给小了会 `finish_reason=length`、`content` 为空、token 全被 `reasoning_tokens` 吃掉，**给足配额才吐正文**。⚠️ 同上，**没有全绿记录**，也不是 wire 抓包。| **无证据**。pipeline 路径本轮不导出群聊文件 | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-…GroupTurnModelTest.xml`<br>接线点：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt:705-741`（群分支取 `GroupTurnEntry.Speak` 并按 `resolveGroupTurnModelId` 选模型） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**无 @ pipeline 的真实调用序列与日志一致**——真实网关那轮确实跑了 pipeline，但「一致」只做到「落库/内存里的 `modelId` 与绑定一致」，**没有拿运行日志做对照**，而模型名本身又不是 wire 抓包（硬理由①）。** |
+| C1-03 roundtable | `4534f02a` 新增 GroupTurnCoordinator<br>`be41fdc9` 补 63 条内核用例<br>`ab5cddb9` 新增 GroupSpeakerResolver（说话者解成纯函数）<br>`d934c4d2` 气泡上方显示说话者 + 关掉群聊不适用的三个动作 | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupSpeakerResolver.kt` / `ChatMessage.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`feature.chat.GroupSpeakerResolverTest`（8） | **无证据（需真机）**。「议长前看不到未完成输出」只有集合内容断言，没有逐 viewer 的真实消息 ID 清单<br>**2026-10-05 夹具层台账（议长视角第一次有值）**：真机真 Room 库，三 mode 各采一遍。roundtable 下 `a`=pred=null、`b`=pred=null、**`c`=chairRound=true**，议长可见集合放宽成 user,user,**a,b,c**,`__summary__`（议长放开本轮全部）；非议长仍是 user,user,自己,`__summary__`；越权审计 `passed=true` / `checked_pairs=6` / `violations=[]`。<br>⚠️ **但这只是夹具层**：`chairRound=true` 那个放行分支**在真实 HTTP 层一次都没被触发**——真实调用只跑了 pipeline，**议长汇总轮的真实 prompt 组装仍零份** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。roundtable 的「全员完成 → 仅议长汇总」两段调用序列未实跑<br>**2026-10-05 部分证据（只有 pipeline）**：真实 HTTP 跑了 pipeline 那四条请求（见 C1-02 行）。**roundtable 的两段序列——「全员轮」与「议长汇总轮」——仍然零份**，因为真实 provider 只绑定了 `mode=pipeline` 一种配置。⚠️ 议长 `chairRound=true` 的**实际 prompt 组装**没有任何请求记录，mock 也**没返回过任何候选或汇总文本** <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据**<br>**2026-10-05 仍缺（只跑了 pipeline）**：pipeline 轮 773 已落库（见 C1-02 行），但 **roundtable 议长汇总轮的真实 usage 零份**——议长那次调用根本没发生 <br>**2026-10-05 第四个窗口：仍然是零份**——议长 `chairRound=true` 那一轮的真实调用没有发生（真实网关只跑了 pipeline），真实 usage 也只有 pipeline 那三个数。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-…GroupSpeakerResolverTest.xml`<br>主源码：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/GroupSpeakerResolver.kt` <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**roundtable 的议长汇总轮**——真实网关只跑了 pipeline，议长汇总轮的真实调用、议长前看不到未完成输出这两半**零份**。** |
+| C1-04 vote | `4534f02a` 新增 GroupTurnCoordinator<br>`aa771637` `parseBallot` 截断选票前缀改忽略大小写（修小写 `vote:` 被静默丢票）<br>`be41fdc9` 补 63 条内核用例（含投票平票） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupChat.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>选票文本是测试内联的 `vote:` 前缀字符串 | **无证据（需真机）**<br>**2026-10-05 夹具层台账**：vote 下三个角色的 `predecessorId` 与 `chairRound` **都为 null**，可见集合收窄成 user,user,自己,`__summary__`（隔离最紧）；越权审计 `passed=true` / `checked_pairs=6` / `violations=[]`。<br>⚠️ **只是夹具层**：vote 的真实调用零份——mock 目前返回 `[mock] CASE:…` 文本，`parseBallot` **认不出 `VOTE:` 前缀**，所以 `parseBallot → __summary__` 分支**根本没被真实请求走过** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。三角色各自投票请求的真实调用序列未采集<br>**2026-10-05 仍缺**：三角色各自投票请求的真实序列零份；平票按配置失败那条路径也零份。真实 HTTP 那轮 mock 返回 `[mock] CASE:…` 文本，**`parseBallot` 认不出 `VOTE:` 前缀**，所以投票分支**根本没被真实请求触发过** <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据**<br>**2026-10-05 仍缺**：vote 轮真实 usage 零份。⚠️ 上一轮那个 `spent=4096`（prompt **3000** + completion **1096**）/ `limit=400` 的数字**是构造输入**，测试 JSON 的 `token_source` 自己写着 `budget-accounting-only, no live LLM call`——**不能当真实用量读** <br>**2026-10-05 第四个窗口：仍然是零份**——vote 的三张选票与 `parseBallot → __summary__` 分支**仍然没被真实请求触发过**。⚠️ 旧理由（「mock 返回 `[mock] CASE:…`、`parseBallot` 认不出 `VOTE:` 前缀」）到这一轮已经换成「**真实网关那轮压根没跑 vote**」。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>判定入口：`app/src/main/java/heizige/kk/khatkit/app/core/data/model/GroupChat.kt:605`（`parseBallot`） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**vote 的三张选票、`parseBallot → __summary__`、以及平票按配置失败那条路**——**真实调用零份**（真实网关那轮跑的 mode 是 pipeline）。** |
+| C1-05 轮次预算 | `4534f02a` 新增 GroupTurnCoordinator<br>`dd7b3c79` ChatManager 接上协调器 + `group_runs`<br>`be41fdc9` 补 63 条内核用例（预算截断） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`GroupTurnModel.kt` / `GroupRunDAO.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` | 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.model.GroupChatTest`（18）<br>`core.data.db.migrations.GroupRunSchemaTest`（10）<br>预算值是构造入参，不是真实 token | **无证据（需真机）**。预算截断时点「谁被停掉」只有角色 id 顺序断言，没有消息 ID 台账<br>**2026-10-05**：`a9d2077e` 三 mode 各采一遍，越权审计三 mode 全 `passed=true` / `checked_pairs=6` / `violations=[]`；budget 轮真机**只落 `a` 一条**（`cc3d451c…`），`b`/`c` **库里没有发言**——「谁被停掉」在消息层面可直接观测（那一轮 `case=budget`，见 token 列） <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| **无证据**。「达到上限后停止剩余角色」要求日志与真实请求序列对齐，未实跑<br>**2026-10-05 真实 HTTP（部分证据）**：budget 轮 `token_limit=1` 真跑，**实际只发出 1 个请求**（seq4 `mock-model-a` / case budget / 发言者 A），与「达到上限后停止剩余角色」一致；`b`/`c` **没有发出任何请求**（不是发了被拒，是没发）。⚠️ 截断由 `limit=1` 这个**最小正值**触发，「跑满 N 个角色再截断」那条更接近生产的路径仍零份 | **无证据（本例是四条缺失里最硬的一条）**。契约 `:202` 的预算口径是「每轮累计 prompt + completion token」，`GroupTurnCoordinatorTest` 里的预算是**判定逻辑**的输入，不是真实 provider 返回的 token 数；`--rerun` 那轮 XML 里也没有任何 token 断言字段<br>**2026-10-05 真实 usage，与落库对账相等（本例最硬的一块）**：budget 轮 `token_limit=1`，**只发出一个请求**，prompt **201** + completion **35** = **236**，落库 `group_runs.spent_tokens` = **236**，✅ 相等；`status=BUDGET_STOPPED`、`reason=token_budget_exceeded`、`skipped_role_ids=["b","c"]`、`committed_role_ids=["a"]`、`token_limit=1`。**「已用 / 上限 / 未运行角色」三个字段全部有库内取值。**⚠️ `limit=1` 是「第一个角色之后必定停跑」的最小正值（`GroupChat.budgetDecision` 的口径是 `limit <= 0 <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。|<br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| spent < limit` 才继续）；`run_token_persisted_before_call=true` 也在同一份证据里 <br>**2026-10-05 第四个窗口**：真实网关那轮 `token_limit` 足够大、**没有触发预算截断**，所以「达到上限后停止剩余角色」在**真实 usage 下仍然是零份**（mock 那轮的 `token_limit=1` 仍是唯一的截断实测，见上一窗口）。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.db.migrations.GroupRunSchemaTest.xml`<br>运行日志表：`group_runs`（`app/src/main/java/heizige/kk/khatkit/app/core/data/db/entity/GroupRunEntity.kt`） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**预算截断路径**——真实网关那轮 `token_limit=100000`，**整轮没触发截断**，「已用 / 上限 / 未运行角色」三个数在真实调用下仍然零份。** |
+| C1-06 取消与超时 | `60e9f055` 新增未产出助手消息过滤纯函数<br>`97b0fa1c` `finishGeneration` 落库前丢弃本次新增空气泡<br>`adc8a0ff` 补 18 条用例（空气泡丢弃/部分产出保留/存量不清洗）<br>`be41fdc9` 补 63 条内核用例（失败取消超时） | `CMD-1` 退出码 **0**（强制 `--rerun`）<br>`CMD-2` 退出码 **0**（`ChatManager.kt` lint 零命中）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01。这是**最需要真机**的一条：取消与超时只能在真实协程取消 + 真实流式响应下复现，JVM 只能测纯函数<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.UngeneratedMessageFilterTest`（18）<br>`feature.chat.GroupTurnCoordinatorTest`（63） | **无证据（需真机）**<br>**2026-10-05 仍缺**：两轮真实 HTTP（main / budget）都是**正常跑完**的，**没有一次取消或超时**——取消/超时要在流式响应中途打断，本轮没做。所以本列**仍是零份**；JVM 那 18 条纯函数断言（`dropUngeneratedAssistantMessages`）**不能替代**真实流式响应下的取消 <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。取消/超时发生在流式响应中途，没有真实 provider 的部分响应记录<br>**2026-10-05 仍缺**：两轮真实 HTTP 都**正常跑完**，**没有一次中途取消或超时**——「流式响应中途打断」这条链路（部分响应、已消耗 token、错误节点保留）仍零份 <br>**2026-10-05 第四个窗口：仍然是零份**——真实网关那轮**正常跑完**，**没有一次中途取消或超时**。| **无证据**。取消时已消耗的 token 无采集<br>**2026-10-05 仍缺**：两轮都正常跑完，**取消/超时时的已消耗 token 没采**（没有中途打断） <br>**2026-10-05 第四个窗口：仍然是零份**——没有中途打断，「取消/超时时的部分响应与已消耗 token」仍无采集。| **无证据** | `…TEST-heizige.kk.khatkit.app.feature.chat.UngeneratedMessageFilterTest.xml`<br>`…TEST-…GroupTurnCoordinatorTest.xml`<br>纯函数：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/UngeneratedMessageFilter.kt:78`（`dropUngeneratedAssistantMessages`）<br>落库前调用点：`app/src/main/java/heizige/kk/khatkit/app/feature/chat/ConversationSession.kt:108`（`finishGeneration` 内） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**取消与超时**——真实网关那轮是正常跑完的（`status=COMPLETED`、无错误节点），取消/超时路径仍然零份。** |
+| C1-07 失败续跑/幂等 | `d976aa61` 新增 `group_runs` 表与运行 token 幂等<br>`007e4173` 改复合主键 `(conversation_id, round_id)` + `run_token/updated_at`<br>`70ed043d` `GroupRunDAO` 按 `(conversationId, roundId)` 定位 + `upsertRun` 事务<br>`892577a3` 30→31 改显式 `Migration_30_31` 并在工厂注册<br>`cc01d78d` androidTest 迁移到复合主键/`run_token` 并补幂等与 upsert 用例<br>`be41fdc9` 补 63 条内核用例（幂等/续跑）<br>`1649f5c7` 迁移重放脚本补 FTS5 触发器存活证据与对照实验 | `CMD-1` 退出码 **0**（强制 `--rerun`，JVM 侧覆盖 app 模块全部 664 个用例，含本例相关的 `GroupTurnCoordinatorTest` 63 + `GroupRunSchemaTest` 10）<br>**仪器侧未跑**：`adb devices` 空，`connectedDebugAndroidTest` 无法执行<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**。C1 相关仪器测试源码共 **19 个注解**（`GroupRunDAOTest` 12 + `Migration_30_31_Test` 7），**执行结果为零**。唯一 app 仪器记录 2026-10-03 12:58:29 崩溃且 `tests="0"`，早于基线<br>**部分证据（仅迁移侧）**：零设备主机侧重放已把 C1-D 的 30→31 迁移钉住 85 条断言 0 失败，覆盖 `group_runs` 复合主键 `(conversation_id, round_id)`、`run_token` UNIQUE 索引、同 `round_id` 第二条被主键拒绝、同 `runToken` 第二次被唯一索引拒绝、`group_runs` 仍只有 1 行（见「C1-D 迁移 30→31 主机侧重放」）。**这只是部分证据，不改状态**<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTurnCoordinatorTest`（63）<br>`core.data.db.migrations.GroupRunSchemaTest`（10）<br>仪器侧 fixture 未采集：`app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAOTest.kt`、`…/core/data/db/migrations/Migration_30_31_Test.kt`（源码在库，执行证据不在库） | **无证据（需真机）**<br>**2026-10-05**：`a9d2077e` 三 mode 夹具台账与越权审计全过（三 mode `checked_pairs=6` / `violations=[]`）；仪器侧 `GroupRunDAOTest` 12 条**真机全绿**。<br>⚠️ **但「同 `round_id` 重试跳过已提交 turn」这条真机交互仍然零份**：本轮两轮真实调用都是**一次跑完**，没有制造「第 2 个角色失败后重试同一 `round_id`」的场景。⚠️ 反而是这轮真实调用**撞出一个真缺陷**（`858c11d0`），见「模型调用序列」列——**它证明的是「产出归属会断」，不是「续跑幂等已验」** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**<br>**2026-10-05 部分证据**：`GroupRunDAOTest` 12 条真机全绿（覆盖 `run_token` 持久化、同 `round_id` 第二条被复合主键拒绝、同 `runToken` 被唯一索引拒绝、`upsertRun` 事务）。⚠️ 但那些是 **DAO 层**断言，**没有一次「失败后重试同一 `round_id`」的真实链路**。<br>⚠️ 反而这轮真实调用**撞出一个真缺陷并修掉**（`858c11d0`，`core/data/ai/GenerationLoop.kt`）：`role_id` 已提交时末尾助手消息被当成「本次生成自己的」而复用，导致后续角色的产出**并进上一位那条消息**，`stampGroupTurn` 随后找不到 `roleId == null` 的消息，把该角色误判成「本轮没有产出内容」写成 `role_failed`。真机证据：`role_id="a"` 的那条消息有 A、B 两段正文而 usage 是 B 的；`group_runs` 是 `status=FAILED` / `committed=["a"]` / `skipped=["c"]` / `reason=role_failed` / `error_message=本轮没有产出内容`。**这是锚点之后第一个由真机证据定位的 main 源码 bug** <br>**2026-10-05 第四个窗口：仍然是零份**——真实公网网关那轮跑的是**无 @ 的 pipeline**，`mode` 只有 pipeline 一种，本例要的那条路径**没有被真实调用过**。| **无证据**<br>**2026-10-05**：pipeline 773 / budget 236 两条 run 已落库（见 C1-02、C1-05 行），⚠️ 但**「重试同一 `round_id` 时 token 是否只算一次」这条零份**——本轮没有重试场景 <br>**2026-10-05 第四个窗口**：那一轮 `status=COMPLETED`、**一次跑完**，**没有制造「第 2 个角色失败后重试同一 `round_id`」的场景** → 本列**仍然是零份**。⚠️ 反而撞出**另一个真模型特有的坑**（首版 persona 没写「历史里别人的代号不是你的」，pipeline 把上一位发言放进下一位上下文后，**真模型照抄眼前那条的格式**，b 学走 a 的 `ROLECODE:A`、c 学走 b 的、c 干脆零产出 `role_failed`）：那是**产出格式归属**问题，**不是**幂等路径的证据。| **无证据** | `…TEST-…GroupTurnCoordinatorTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>仪器记录（崩溃，早于基线）：`app/build/outputs/androidTest-results/connected/debug/TEST-PKG110 - 16-_app-.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/GroupRunDAO.kt`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`）<br>重放日志（仓库外）：`/tmp/opencode/c1-replay2/run1.log`、`run2.log`（sha256 `093981c4…4d2e7d5`）<br>变异测试驱动（仓库外）：`/tmp/opencode/c1-replay2/mutate.py` <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**同 `round_id` 重试跳过的幂等台账**——`C1LiveModelSequenceTest` 其余 4 条（含续跑那条）**仍未在真机全绿过**（硬理由⑤）。** |
+| C1-08 记忆隔离 | `966792d6` `memory_chunks` 加 `role_id` + 注册 `group_runs`（Room 30→31）<br>`63502610` `addMemory` 透传 `roleId` 且 `toModel` 带出发言角色<br>`8e5457dc` `getMentionsOfEntity` 改带 `spaceId` 的 JOIN<br>`e7606912` 检索层加 `MemorySpaceGate` 空间闸门（FTS/向量/图谱三路）<br>`68b92146` `forgetMemory/linkMemories` 加 `expectedSpaceId` 归属校验<br>`6504f023` 记忆工具接群空间（无全局/助手回退），群聊不下发 `recent_chats`<br>`2031c409` `MemoryExtractor` 写入带 `roleId`，`sourceMessageId` 按 `source_line` 归因<br>`495b5e3a` `ChatManager` 接群记忆作用域（懒建空间、只读 viewer 可见消息）<br>`58b129c7` 补 31 条用例（空间闸门/工具空间/抽取归属/懒建/跨空间泄漏回归） | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖本例 7 个类的 50 个用例）<br>`CMD-2` 退出码 **0**（`MemoryRepository.kt` / `MemoryExtractor.kt` lint 零命中）<br>**C1-D 主机侧重放已跑**：`python3 tools/verification/c1d_migration_30_31_replay.py` 退出码 **0**（连跑两次输出逐字节相同）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01。三空间互不串需要真实检索栈 + 真实写入，JVM 只能测纯函数闸门<br>**部分证据（仅迁移与 FTS 侧）**：主机侧重放已钉住 `memory_chunks` 加可空 `role_id`（存量 2 行 `role_id IS NULL` 不被改写、新行可写 `'r1'`）、`role_id` 索引存在、存量 `content`/`source_message_id`/`source_ref_id`/`confidence`/时间戳/`embedding` BLOB 全保留，且 3 个 FTS5 触发器在迁移后逐字节存活、INSERT/UPDATE/DELETE 三向真同步到索引（见「C1-D 迁移 30→31 主机侧重放」）。**这不覆盖三空间互不串本身，也不改状态**<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `core.data.repository.MemorySpaceGateTest`（9）<br>`core.data.ai.tools.MemoryToolScopeTest`（7）<br>`core.data.repository.MemoryAttributionTest`（9）<br>`core.data.repository.GroupMemorySpacePolicyTest`（6）<br>`core.data.repository.MemoryExtractorParseTest`（7）<br>`core.data.db.MemoryRoleIdMappingTest`（2）<br>`core.data.db.migrations.GroupRunSchemaTest`（10） | **无证据（需真机）**。三个 `group:<conv>:role:<role>` 空间的真实检索结果可见性没有跨 viewer 的实跑记录<br>**2026-10-05 仍缺（这一列对本例不适用）**：viewer 可见消息台账量的是**对话消息**，而 C1-08 要的是**三个 `group:<conv>:role:<role>` 记忆空间的检索结果可见性**——本轮真实 HTTP 的 assistant 把记忆**全部关掉**（`enableMemory=false` / `useGlobalMemory=false` / `autoExtractMemory=false`），**一次记忆写入与检索都没发生**。所以本列**仍是零份** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。「检索 query 只用 viewer 过滤结果」要对照真实请求的 query 文本，未采集<br>**2026-10-05 仍缺（这一列对本例不适用）**：C1-08 要对照**真实请求的 query 文本**与三个空间的检索结果，而本轮真实 HTTP 的 assistant 把记忆**全部关掉**（`enableMemory=false` / `useGlobalMemory=false` / `autoExtractMemory=false`），**没有一次检索发生**，query 文本也无从对照。⚠️ 视角隔离那一半**已被真实 HTTP 审计钉住**（请求里只含 viewer 过滤后的 messages，见 C1-01 / C1-02 行），但**「检索 query 只用 viewer 过滤结果」这条仍然零份** <br>**2026-10-05 第四个窗口：仍然是零份**——真实网关那轮没有检索记忆，三空间互不串在真实调用下仍无观测。| **无证据**<br>**2026-10-05 仍缺（这一列对本例不适用）**：本轮真实 HTTP 把记忆全关，**没有一次记忆写入或检索**，「带 `source_message_id` 归因」无从采集 <br>**2026-10-05 第四个窗口**：pipeline 那三个数是**群聊轮次**的用量，**不覆盖**记忆空间隔离；本列**仍然是零份**。| **无证据**。契约 `:203` 要求记忆内容不进包，但没有导出文件可算哈希 | `…TEST-heizige.kk.khatkit.app.core.data.repository.MemorySpaceGateTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeTest.xml`<br>`…TEST-…MemoryAttributionTest.xml`<br>`…TEST-…GroupMemorySpacePolicyTest.xml`<br>`…TEST-…MemoryExtractorParseTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.db.MemoryRoleIdMappingTest.xml`<br>`…TEST-…GroupRunSchemaTest.xml`<br>主机侧重放脚本：`tools/verification/c1d_migration_30_31_replay.py`（sha256 `7cd9c3fb…8199c6`），日志 `/tmp/opencode/c1-replay2/run1.log`、`run2.log`（仓库外） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**三个 `group:<conv>:role:<role>` 空间的检索可见性 + `source_message_id` 归因**——**零份**，本轮这三项一条都没碰。** |
+| C1-09 Tavern/QR 往返 | `f921a02f` `GroupRole` 补 `extras` 无损往返 + `validate` 校 `schemaVersion`<br>`b3d9bf44` `TavernChatCodec` 加群聊导出/导入（保留 `role_id/round_id/turn_kind/群配置/角色卡`）<br>`efa1c27c` `encodeConfig` 写库路径补跑密钥黑名单检查<br>`53563c8c` 补 Tavern 群聊往返与密钥过滤用例<br>`a1616b6b` 群聊页接上生成二维码（载荷与文本分享共用一份）<br>`7d4a6596` 群聊页接上扫码导入，统一走 `importShare`<br>`f5212df2` 角色卡解码走 null 安全取值<br>`b548025e` 补 `importShare` 五道闸门与 `cards` 保留用例<br>`88c850ef` 群聊导出面板接入 Tavern 群聊导出卡片，打通 `exportGroupJsonl`<br>`2c9aa2e4` 补群聊导出入口纯逻辑用例（面板到可回导文件的往返）<br>`aeab5550` 新增 CameraX + MLKit 扫码弹层与入口决策单测<br>`d2b5c05c` 新增导出哈希证据测试（9 变体 + 往返幂等 + SillyTavern 结构对照）<br>`eef6efb3` 新增跨两次独立 JVM 的哈希比对脚本<br>`bbe2e558` 加 golden 清单护栏（把「确定性」升级成「格式没变」） | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 82 个用例：22+21+16+18+5）<br>`CMD-3` 退出码 **0**（打出了 3 个可安装 APK，但那是安装包不是群聊导出文件）<br>`CMD-2` 退出码 **0**（`TavernChatCodec.kt` lint 零命中）<br>**C1-P 哈希校验已跑**：`python3 tools/verification/c1p_group_export_hash.py` 退出码 **0**（两次独立 JVM + 落盘 `hashlib` 复算 + golden 清单，三重全一致）<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01。相机扫码（`QrScannerSheet`）与 Tavern 本体打开文件**都必须真机/桌面端**，JVM 的 16 条只测入口决策<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.GroupTavernExportTest`（22）<br>`core.data.ai.tavern.TavernCompatTest`（21）<br>`core.ui.components.ui.QrScannerSheetTest`（16）<br>`core.data.model.GroupChatTest`（18）<br>**`core.data.ai.tavern.C1pGroupExportHashTest`（5）**<br>前四个类的往返在 JVM 里是内存对象 → JSON → 内存对象；新类把文件**真的落盘**（`build/c1p-group-export-hash/*.txt`）再算 SHA-256 | **无证据（需真机）**<br>**2026-10-05**：viewer 台账按三种 mode 各采了一遍（越权审计全过），但**本例要的「往返后 `role_id`/轮次/分支逐字段相等」靠的是导出列那 7 条消息的逐字段对账**，不是 viewer 台账。⚠️ **本例的实质缺口在导出与互操作**：酒馆（SillyTavern）本体打开群聊导出文件**零证据**、相机扫码真机链路**零证据**（`QrScannerSheet` 只有编译 + 16 条 JVM 单测，CameraX+MLKit 没在设备上跑过） <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**<br>**2026-10-05 部分证据**：导出/QR 往返走的是**真机** `TavernChatCodec.exportGroupJsonl` + `GroupChat.encodeQr`，三种 `mode` 各一份，越权审计三 mode 全过。⚠️ **这一列对本例不适用**（导出不发起模型请求），且酒馆本体互操作与相机扫码**真机链路零份** <br>**2026-10-05 第四个窗口：仍然是零份**——真实网关那轮不产出群聊导出文件。| **无证据**<br>**2026-10-05 仍缺（这一列对本例不适用）**：导出不消耗 token。⚠️ 契约 `:203` 的「记忆内容不进包」只能靠**逐字段扫导出文件**验，本轮没做机器扫描，只有零设备的密钥黑名单单测 <br>**2026-10-05 第四个窗口：仍然是零份**——同列，本轮只跑生成侧。| **部分证据（零设备，JVM 层确定性）**——契约 `:206` 这一类现在有真实内容了。9 个 fixture 变体的字节数 + SHA-256 已实测落定（`d2b5c05c` / `eef6efb3` / `bbe2e558`，逐条证据见下方「C1-P 群聊导出确定性哈希（零设备）」）：<br>`pipeline_3roles_2rounds_jsonl` 3615 / `36e6585f9aa4a028eb8277bc70578fd2c802cdd730e3981f0d52b02430f0c8b9`<br>`roundtable_3roles_2rounds_jsonl` 3616 / `33c51124e5421ae46a002f025a2e61dc5712b73ddc413ca9dea3b9777ccc0fb3`<br>`vote_3roles_2rounds_jsonl` 3619 / `ad9e3fb119cbc4bea05b7e917eb180aabeb230bbbf89dfe1addcfd0040217c35`<br>`pipeline_3roles_2rounds_array` 3617 / `b8d57a6c4f15e87d1a9d0a181022ba28410a36527075e71b0daf77976c1a3653`<br>`pipeline_with_explicit_create_date_jsonl` 3652 / `92ce04902dc0c8e5bd822020e3df885b30a89adb9fef2fcd0fb712ae9faeee5e`<br>`empty_messages_jsonl` 1518 / `0ae10ea537e112c7f4d98ebd275b26a86e1b30952f1de8274f0cccf670f11e80`<br>`image_part_jsonl` 1711 / `c07d7e6ead7f06143ceae05fa5082be04af1fabc333edb60125ee337c9cbd9e9`<br>`qr_payload_pipeline` 1348 / `2d65ec04dded8a8fc29d3b7cb2d235bea908ee779b0568a6f644f34670cd2ff5`<br>`qr_payload_vote` 1352 / `8b49d47b225f32f6ad6032b1ab49eb1d6122a3af3c97652936adf7df13c2e9bf`<br>⚠️ **但这是零设备 fixture 的哈希，不是真机导出的文件哈希**：落盘走 `java.io.File.writeBytes`，`writeExportTempFile` + `ACTION_SEND` 真实 IO 分发**一次没跑过**；**酒馆本体打开、viewer 可见消息 ID、模型调用序列、token 计数仍零份**。**四类证据缺三类半，所以状态不变。**<br>① APK 的 SHA-256 已有（见构建段），但**安装包哈希不是群聊导出文件哈希**，不能填本列；<br>② `/tmp/opencode/sample-group.json` / `.jsonl`（各约 1.7 KB）**被仓库零引用**（`git grep sample-group` 无结果）、无 SHA-256、来源不明，**不作为 fixture** | `…TEST-heizige.kk.khatkit.app.feature.chat.GroupTavernExportTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.TavernCompatTest.xml`<br>`…TEST-heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheetTest.xml`<br>`…TEST-…GroupChatTest.xml`<br>**`…TEST-heizige.kk.khatkit.app.core.data.ai.tavern.C1pGroupExportHashTest.xml`**（`tests="5"`）<br>哈希校验脚本：`tools/verification/c1p_group_export_hash.py`<br>**golden 清单（入库，护栏本体）：`tools/verification/c1p_group_export_hash.golden.json`**<br>落盘产物（构建目录，未入库）：`app/build/c1p-group-export-hash/*.txt`<br>编解码：`app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernChatCodec.kt`<br>C1-P 补的「QR 携带角色卡最小元数据」落库证据见下方「C1-P 角色卡元数据落库与 Room 31→32 迁移（零设备）」 <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**酒馆本体打开群聊导出文件 + 相机扫码链路**——**两份都零**；⚠️ 本轮只验了群配置面板的**渲染与滚动**，面板里的**保存 / 二维码 / 扫码这三个业务动作一个都没点过**。** |
+| C1-10 单聊/群聊共存 | `2f1d04a2` 搜索路新增按 `type` 的 DAO 查询，空串语义与未归档路对齐<br>`c84256a1` 抽屉类型筛选下沉到 SQL，删掉只作用于已加载页的内存过滤<br>`35ea0762` `type` 谓词抽成两条查询共用的常量<br>`34493507` 补抽屉列表查询判定与「内存过滤已删」的护栏用例<br>`8528ecda` 抽出 `ChatScaffold` 共用消息区骨架<br>`4e97ff57` 群聊页复用 `ChatScaffold`，接成员头像组、@ 选择器与群配置面板<br>**`215296f1..6982869b` 8 个 C1-S 提交**：抽屉两条 `@Query` 的主机侧重放（`215296f1`，起手 335 条断言 / `aa1862eb` 扩到 **438 条**）、**修两个真实缺陷**（`58faa90b` 5 条 LIKE 加 `ESCAPE` + 抽出转义纯函数、`e8607171` 5 个转发点统一过转义、`a252884e` 全部 14 条 `ORDER BY` 追加 `id ASC`）、`79b13080` 转义纯函数 12 条单测 + 2 条源码护栏、`eb29abff` ESCAPE 常量去尾随空格、`6982869b` type 筛选护栏的期望串改为引用 ESCAPE 常量标识符 | `CMD-1` 退出码 **0**（强制 `--rerun`，覆盖 27 个用例：7+2+18）<br>**本轮追加**：`./gradlew --offline :app:testDebugUnitTest --rerun` 退出码 **0**，**92 类 / 722 例 / 0 失败 0 错误 0 跳过**（改前 91 类 / 710 例，净增 `ConversationSearchLikePatternTest` 12 例）<br>**C1-S 主机侧重放已跑**：`python3 tools/verification/c1s_conversation_type_filter_replay.py` 退出码 **0**（两次独立运行，输出逐字节相同，输出 SHA-256 `5645fa13…a40073`）<br>`CMD-2` 退出码 **0**（`ChatList.kt` 侧现在零命中——曾有的 3 条 `FrequentlyChangingValue` 已由 `366b3fe8` 搬进 `derivedStateOf`/draw 期清掉，见「lint」段；`ChatScaffold` 侧零命中）<br>本轮 `./gradlew --offline lint` 退出码 **0**，`0 errors, 587 warnings, 6 hints`，与基线**逐位相同**；`ConversationDAO.kt` / `ConversationRepository.kt` / `ChatDrawerViewModel.kt` / `ConversationSearchLikePattern.kt` **四个全部 0 命中**<br>**2026-10-05 真机窗口**：`./gradlew --offline :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<C1DeviceEvidenceTest,GroupRunDAOTest,Migration_30_31_Test,Migration_31_32_Test>` → **exit 0**，**28 例全绿**（3+12+7+6），PKG110 真机；`C1LiveModelSequenceTest` 改**手动 `am instrument`** 跑（不挂住，**3.6s 完成**），因为 `connectedAndroidTest` 会卸载 app | **无设备**，同 C1-01（`adb devices` 仍为空输出）。「筛选只过滤、来回切换不丢数据」是交互行为，JVM 的用例只钉住查询判定<br><br>**部分证据（零设备，真实 SQLite 执行）**：C1-S 重放脚本给「**类型筛选只过滤**」这一条钉了 **438 条断言 0 失败**，覆盖 C1-10 用例里点名的那半句——**集合相等（不是数量相等）**、筛选后 `count` 正确、`LIMIT/OFFSET` 分页无重复无遗漏、切换 `type` 参数**不改变查询种类**。**这是 C1-10 迄今最硬的一块证据，但它不改变本行判定**：契约 `:206` 点名的四类产物——**viewer 可见消息 ID、实际模型调用序列、prompt+completion token、真机行为**——**本轮一份都没补上**（`adb devices` 仍为空）。逐项交代：<br>· **viewer 可见消息 ID**：**仍是零份**。脚本比对的是 `conversationentity` 的 `id` 集合，不是消息表；`message_node` 一行都没碰。<br>· **模型调用序列**：**仍是零份**。脚本不发起任何模型请求。<br>· **token (prompt+completion)**：**仍是零份**。同上。<br>· **导出 SHA-256**：**仍是零份**。C1-10 不产出群聊导出文件（那一份在 C1-09 行）。<br>· **真机行为**：**仍是零份**，抽屉 UI 端到端（搜索框输入 → 列表刷新）一次没跑过。<br>**所以本行状态仍是 `unverified`。**<br>**2026-10-05 真机窗口（有值）**：**OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**，无线调试 `192.168.31.183:<port>`（⚠️ **端口每次开无线调试都会变**，本轮历史值 `38493`/`37957`/`40879`/`46888`，**必须用 `adb mdns services` 找当前端口**）；app `heizige.kk.khatkit.debug`，`versionName 2.5.5`/`versionCode 190`，launcher `RouteActivity`；库 `rikka_hub`，`PRAGMA user_version=32`、`integrity_check=ok`；fingerprint `OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`。⚠️ 跑前 `adb devices -l` 必须**只有一条**（mDNS 把同一台机器登记两条，互相踩）；⚠️ `connectedAndroidTest` 跑完**卸载 app，会把外置目录里的证据文件一起删掉**——采证据必须手动 `install -r -t` + 手动 `am instrument`，跑完再 `adb pull` <br>**2026-10-05 第四个窗口（真实公网网关，HEAD `6ba95422`）**：设备与 app 与上一窗口同（OnePlus `PKG110` / Android 16 / API level 36 / `heizige.kk.khatkit.debug`）。⚠️ **这一轮仪器进程普遍起不来**：OnePlus OEM 回收策略（`OsenseKillAction` / `NirvanaLowFree`，`appcareThreshold=79`、app 占 313MB）在 app 进程存活约 **34-44 秒**时杀进程；**既有 mock 用例同样被杀**（单跑最快的 `budgetTruncation…` 也是 `Process crashed`），所以**与真实网关、与本轮改动都无关**；`:app:connectedDebugAndroidTest` 全量报 `Process crashed` 且 **0 个测试启动**（连已知的 `BrowserRuntimeTest` Coil 崩溃都没碰到）。按约束「OOM 立即停止重试」共试 **11 次**后停止——**这是设备环境的限制，不是代码缺陷**。<br>⚠️ **mDNS 双注册怎么正确断（补上一轮那条「要 disconnect 掉 (2) 那条」）**：`adb disconnect 192.168.31.183:<端口>` → `no such device`（**错**）；要断的是 mDNS serial 本身 —— `adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'`（**对**），因为 `adb devices` 里那两条的 serial 是 mDNS 名而不是 IP:端口。⚠️ 它**会反复自己注册回来**，每次 instrument 前都要重新确认只剩 1 条。| 输入 = `feature.chat.ConversationListQueryPlanTest`（7）<br>`feature.chat.ConversationTypeFilterSourceGuardTest`（2）<br>**`core.data.repository.ConversationSearchLikePatternTest`（12）**<br>`core.data.model.GroupChatTest`（18）<br>fixture 之一是 SQL 谓词常量 `CONVERSATION_TYPE_PREDICATE_SQL`<br>**重放脚本的 fixture**：25 行（助手 A1 23 行 / 助手 A2 2 行），`type×folder` **6 种组合全覆盖**（DIRECT×`{'',f1,f2}` = 14/2/1，GROUP×`{'',f1,f2}` = 5/2/1），21 未置顶 / 4 置顶，标题覆盖普通 / 置顶 / 文件夹 / 「共享词」矩阵 / 字面 `%` / 字面 `_` / ASCII 大小写对 / 繁简对 / 空串 / 纯空格，外加**故意 4 行 `(is_pinned, update_at)` 全同且插入顺序与 id 升序相反**（用来抓「去掉 id 兜底」）；参数矩阵 60 组 | **无证据（需真机）**。⚠️ C1-S 重放给的是 `conversationentity` 行集合的相等判定，**不是消息 ID 台账**；`adb devices` 仍为空<br>**2026-10-05 仍缺**：viewer 台账量的是**群聊消息**，C1-10 要的是**抽屉列表层**的「同一列表混排、类型筛选只过滤、切换后消息与会话数据不丢」。C1-S 那 438 条主机侧重放比的是 `conversationentity` 的 `id` 集合，**不是消息 ID 台账**；真实 HTTP 两轮也没构造混排会话。所以本列**仍是零份** <br>**2026-10-05 第四个窗口**：三视角可见消息 ID 台账由同一个用例一起生成，⚠️ **但那一跑随后被 OEM 回收策略杀进程，`connectedAndroidTest` 又按预期卸载 app 清空了外置目录，落盘 JSON 没拉回来** → **本列不填新值**（仓库里没有可核的台账文件，只有同一次成功生成的内存快照）。| **无证据**。脚本不发起任何 provider 请求，没有可导出的调用序列<br>**2026-10-05 仍缺**：C1-10 不发起任何模型请求（主机侧重放与真机两轮都没构造混排会话），调用序列仍零份 <br>**2026-10-05 第四个窗口：仍然是零份**——真机 UI 端到端仍然零份，**一行 Compose 没上过屏**；真实网关只跑了后台的轮次生成。| **无证据**<br>**2026-10-05 仍缺（这一列对本例不适用）**：抽屉筛选不消耗 token，零份 <br>**2026-10-05 第四个窗口**：pipeline 那三个数是**生成侧**的，**不覆盖**「切换会话后消息与会话数据不丢」；本列**仍然是零份**。| **无证据**。C1-10 不产出群聊导出文件 | `…TEST-heizige.kk.khatkit.app.feature.chat.ConversationListQueryPlanTest.xml`<br>`…TEST-heizige.kk.khatkit.app.feature.chat.ConversationTypeFilterSourceGuardTest.xml`<br>**`…TEST-heizige.kk.khatkit.app.core.data.repository.ConversationSearchLikePatternTest.xml`**<br>`…TEST-…GroupChatTest.xml`<br>DAO：`app/src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt:76`（未归档路 `@Query`）/ `:108`（搜索路 `@Query`，本轮改过）<br>⚠️ 早前记的 `ConversationDAO.kt:19/38/66` **已随本轮 DAO 改动漂移**（新增 KDoc + 14 条 `ORDER BY` 就地追加），现值见上<br>仓储：`app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationRepository.kt:92/281`<br>转义纯函数：`app/src/main/java/heizige/kk/khatkit/app/core/data/repository/ConversationSearchLikePattern.kt:30/41/64`<br>**重放脚本：`tools/verification/c1s_conversation_type_filter_replay.py`（83,955 字节 / 1,382 行，sha256 `3b3e12be5d685670ae4121188e4fcd1b4de6a81a31c3317f3b6e7dbd8fc00ce0`，已入库）**<br>输出日志（仓库外）：`/tmp/opencode/c1s_check.log`（478 行 / 66,933 字节，sha256 `5645fa1350caf88afb5e33d3e52c9ebbab0b64975a041715559b9cac76a40073`） <br>**2026-10-05 第四个窗口**：`app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`（`6ba95422` **+539 行 / 生产代码零改动**，该文件现为 **1982 行 / 5 个 `@Test`**）；证据文件 `c1-real-raw-dump.json`（⚠️ **未入库、也没 pull 回来**，见设备列）。| `unverified`<br>**新窗口（HEAD `361c7cf6`，2026-10-06）：仍是 `unverified`。** 本轮三批改的全是**发现并堵住的真缺陷**（平票脚手架泄漏 / 残留旧 job 跨轮盖戳 / 跨轮写 FAILED），⚠️ **不构成任何用例的验收证据**——②③ 针对的残留旧 job 路径**从未在真机复现过**（本轮零设备、零 `adb`）。契约 `:206` 点名的四类产物本轮**一份未增** <br>**新窗口（HEAD `a74c1820`，2026-10-06）：仍是 `unverified`。** 判定规则不变——`client-changes.md:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ 本文「判定规则」第 2 条（缺可见消息集合 / 调用序列 / 哈希的行不算通过）。本轮**新增三类东西，但没有一类改变任何一行的判定**：**① 真实公网网关目标用例首次真机全绿**（`am instrument` `exit 0` / `numtests=1` / `Time: 16.002` / `OK (1 test)`；真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ(prompt+completion)=20780 与落库 `group_runs.spent_tokens` 精确相等**，三份产物已 `adb pull` 回主机并记 SHA-256）；**② 群配置面板两个真机必崩已修并真机验证**（`logcat -d -b crash` 为空、面板全部字段 `uiautomator dump` 在、5 次滚到底 + 3 次反向不崩）；**③ Coil 单例崩溃结构性搬家 + 四项代码债 + 6 个新护栏类（另 1 个在册护栏扩写 +2 例）**（`:app:testDebugUnitTest` **105 类 / 808 例**）。⚠️ **真实网关那轮虽然拿到了真实 token 与真实调用序列而且已经全绿，下面这五条硬理由仍然一条都没被消掉**：① **模型名不是 wire 级抓包**（由 `message.modelId` 的 uuid 经 provider 模型表反查，app 不保存响应 `model` 字段，JSON 里已用 `wire_model_name_provenance` 标明）② **真机 UI 端到端仍然零份**——只验了群配置面板的**渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做** ③ **酒馆（SillyTavern）本体零份** ④ **相机扫码零份** ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未在真机全绿过**（只跑了目标用例那一条）。⚠️ 本行点名要断言的那条路径仍未被真实调用：**成员头像组 / @ 选择器 / 抽屉筛选 chip 的真机 UI 端到端**——**一项都没做**（硬理由②）；主机侧那 438 条断言是 SQL 语义，替代不了 UI。** |
 
 原始日志、JSONL 运行记录、截图/录屏和导出文件放在未提交的大文件目录或 CI artifact；
 此表只登记稳定路径与哈希，避免把隐私消息、密钥、记忆内容提交进仓库。提交前执行
@@ -503,6 +558,39 @@ BuiltinCardSampleTest` 1、`khatkit/engine/RustEngineTest` 5、
 ⚠️ **合计那一行（15 模块 / 180 类 / 1291 tests）本轮同样没重跑全仓 `test`、不更新**
 ——`app` 之外的 14 个模块一个测试都没重跑，任何外推都不是实测值。
 
+⚠️⚠️⚠️⚠️⚠️ **再往后一批（群配置面板两个必崩 `33eb801e` / `5d58f923` / `71d1439e` /
+`54c196ca` + Coil 结构性修复 `ea482935` / `2766afc7` + 四项代码债
+`fa36c65c` / `06cf6181` / `bed09118`，HEAD `a74c1820`，共 10 个 commit）之后，`app`
+实测是 **105 个测试类 / 808 tests / 0 failures / 0 errors / 0 skipped**（**本轮同样没有
+跑 gradle**——本轮是纯文档任务，按约束不跑；这是逐个 `TEST-*.xml` 的 `tests` /
+`failures` / `errors` / `skipped` 属性用 Python + `xml.etree.ElementTree` 求和实测，
+`glob` 命中 **105 个 XML**）：
+**99 / 783 → 105 / 808，即 `+6 类 / +25 例`**。逐类增量：
+
+| 类 | 前 | 后 | 来自 |
+|---|---:|---:|---|
+| `app.CoilImageLoaderSourceGuardTest` | — | **6** | `2766afc7` |
+| `feature.chat.GroupRunAbandonDrainSourceGuardTest` | — | **5** | `bed09118` |
+| `feature.chat.ChatServiceGroupChatFailLoudGuardTest` | — | **4** | `bed09118` |
+| `core.ui.components.ui.BottomSheetScrollSourceGuardTest` | — | **3** | `54c196ca` |
+| `core.ui.components.ui.PrimaryBottomSheetIconSourceGuardTest` | — | **3** | `5d58f923` |
+| `core.ui.components.message.GroupForkDisableReasonSourceGuardTest` | — | **2** | `bed09118` |
+| `feature.chat.GroupStaleJobCommitSourceGuardTest` | 7 | **9** | `bed09118`（+2 例：禁「按 key 无条件删」的旧形状 + 钉 `null ->` 分支走按令牌清） |
+
+⚠️ **`+25 例` 的算法**：6 + 5 + 4 + 3 + 3 + 2 = **23**（6 个新类）+ 2（在册类
+`GroupStaleJobCommitSourceGuardTest` 7 → 9）= **25** ✅；类数 99 + 6 = **105** ✅
+（`git diff --stat 361c7cf6..a74c1820 -- 'app/src/test/**'` 实测**只有 7 个测试文件**被改：
+6 个新增 + `GroupStaleJobCommitSourceGuardTest.kt` 扩写；其余 99 个类的 `tests` 属性逐行
+未变，**零删除既有用例**）。
+⚠️⚠️ **这 7 个新类里有 3 个与 C1 无关**（`CoilImageLoaderSourceGuardTest` 6 /
+`PrimaryBottomSheetIconSourceGuardTest` 3 / `BottomSheetScrollSourceGuardTest` 3，共 **12 例**），
+它们是 UI / 浏览器侧的护栏，**不进下面那张「C1 相关 JVM 测试类台账」**（口径见该小节）。
+⚠️ **但 `BottomSheetScrollSourceGuardTest` 与 `PrimaryBottomSheetIconSourceGuardTest`
+各含一条「群配置面板定点回归」用例**，所以它们与 C1 有交集——**本台账的判定口径是
+「整类是否属于 C1 验收范围」，不是「有没有一条用例碰到 C1 的文件」**；这两类整体归到
+C1 之外，逐条用例的归属留给下一位按需复核。
+⚠️ **合计那一行（15 模块 / 180 类 / 1291 tests）本轮同样没重跑全仓 `test`、不更新**。
+
 ⚠️ **本轮改了一行既有测试断言的期望串——先说清它是不是第一次：**
 **改既存测试文件这件事，锚点之后不是第一次**——`09b4764b` 重设计过 `GroupTurnModelTest`
 第 14 条跨侧断言（51 insertions / 13 deletions）、`e4fc4644` 把 `GroupMessageModelTest`
@@ -610,6 +698,49 @@ EOF
 ⚠️ **旧的 `366 / 35 类` 那一行按惯例保留不覆写**，它是第四个窗口的实测值；
 两行合计**不要相加**（`395` 已经包含了那两个在册类的新值）。
 
+⚠️⚠️⚠️ **第六个窗口（HEAD `a74c1820`）订正一处「复算脚本本身不可信」的坑**：
+上面那条「新口径脚本」**跑不出它自己声称的 `rows 37 / declared sum 395`**——
+本轮原样跑它，实测输出是 **`rows 14 / declared sum 172`**。原因是它用
+`re.findall(r'\*\*(\d+)\*\*', c[1])` 抓例数、后面又 `if b:`，所以**例数格不是粗体的行
+（表里 23 行是裸数字）整行被跳过**，只剩 14 行粗体行。**这不是数据错，是脚本的筛选条件
+与表里的两种写法不兼容**——而更糟的是它输出里那个 `mismatch vs XML` **看起来仍然像
+「无异常」**（因为只剩 14 行可比），⚠️ **一个只报 14 行的复算脚本会给人「已核对过」的
+错觉**。
+✅ **本轮用下面这条（只多了一行 `elif re.fullmatch(r'\d+', c[1])`）重算，实测输出**：
+
+```
+rows 40 / declared sum 408 / mismatch vs XML: []
+```
+
+即表里 **40** 行的例数与 XML **逐行相等、无一例外**。⚠️ **再提醒一次那个反例**：早前实测
+「扫正文里点名过的类」会算成 39 类 / 399 例，多出来的 4 类（`LorebookEngineTest` /
+`AutomationTracerTest` / `NavBackStackSerializationTest` / `ExampleUnitTest`）与 C1 无关
+——**本表是按语义相关性人工维护的，复算方式是「逐行核对表内 40 行」，不是「扫正文」**。
+
+```
+python3 - <<'EOF'
+import glob, re, xml.etree.ElementTree as ET
+src = open('docs/eval/c1-group-chat.md', encoding='utf-8').read().split('\n')
+i = next(k for k, l in enumerate(src) if l.startswith('### C1 相关 JVM 测试类台账'))
+rows = []
+for l in src[i:]:
+    if l.startswith('### ') and l != src[i]: break
+    c = [x.strip() for x in l.strip().strip('|').split('|')]
+    if len(c) < 2: continue
+    m = re.match(r'^\*{0,2}`([A-Za-z0-9_]+)`\*{0,2}$', c[0])
+    if not m or m.group(1) == '测试类': continue
+    b = re.findall(r'\*\*(\d+)\*\*', c[1])          # 先抓例数列里最后一个纯数字粗体
+    if b: rows.append((m.group(1), int(b[-1])))    # ⚠️ 追加形态（如 **72**<br>**84**（…））
+    elif re.fullmatch(r'\d+', c[1]):               # ⚠️ 这一支是本轮补的：裸数字形态
+        rows.append((m.group(1), int(c[1])))
+xml = {}
+for p in glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml'):
+    r = ET.parse(p).getroot(); xml[r.get('name').split('.')[-1]] = int(r.get('tests'))
+print('rows', len(rows), 'declared sum', sum(n for _, n in rows))
+print('mismatch vs XML:', [(c, n, xml.get(c)) for c, n in rows if xml.get(c) != n])
+EOF
+```
+
 ⚠️ **为什么不直接用「正文里点名过就计入」那种更短的命令**：那种口径会把
 `docs/` 两个文件里为**别的目的**被提到的类也算进来（本轮实测会算成 **39 类 / 399 例**，
 多出来的 4 类是 `LorebookEngineTest` 22、`AutomationTracerTest` 5、
@@ -657,9 +788,13 @@ EOF
 | **`TavernChatMessageDecodeGuardTest`** | **2** | **`TavernChatCodec` import 数组分支必须走 `documentFrom`（消掉第二份消息解码）**（`074e0e20`，**上一批漏登，本轮补进台账**） |
 | **`GroupChatPageDisplayLineSourceGuardTest`** | **2** | **`GroupConfigErrorLine` / `RoleCardLine` 两对展示行的复用护栏**（`12dcdfdb`，**上一批漏登，本轮补进台账**） |
 | **合计** | **366** | **35 类** |
-| **`GroupStaleJobCommitSourceGuardTest`** | **7** | **源码护栏：提交路——`commitGroupTurn` 必须在 `stampGroupTurn` 之前调 `checkCommitAdmission`、`Denied` 分支只 Logging 不碰 `groupRunsInFlight`、令牌必须从 `takeGroupTurn` 返回值捕获（不得反查镜像）、`Halted` 分支不得 `persistRoundState`**（`2fdee352`） |
+| **`GroupStaleJobCommitSourceGuardTest`** | **7**<br>**9**（HEAD `a74c1820` 实测；旧值 7 是 `2fdee352` 那版的） | **源码护栏：提交路——`commitGroupTurn` 必须在 `stampGroupTurn` 之前调 `checkCommitAdmission`、`Denied` 分支只 Logging 不碰 `groupRunsInFlight`、令牌必须从 `takeGroupTurn` 返回值捕获（不得反查镜像）、`Halted` 分支不得 `persistRoundState`**（`2fdee352`）**＋（`bed09118` +2 例）禁「按 key 无条件删」的旧形状 `groupRunsInFlight.remove(conversationId)`（右括号前不许出现逗号）、`null ->` 分支必须走 `clearGroupRunMirrorIfMine` 按 runToken 清** |
 | **`GroupStaleJobFailureSourceGuardTest`** | **6** | **源码护栏：失败路——`failGroupTurn` 必须在四个副作用（`appendGroupMessages` / `persistRoundState` / `dropTieBreakScaffolding` / `groupRunsInFlight.remove`）全部之前判 `checkFailureAdmission`，拒收分支只有 Logging + return**（`8ccc0264`） |
+| **`ChatServiceGroupChatFailLoudGuardTest`** | **4** | **源码护栏：`ChatService` 里零群聊逻辑（不许复制 `viewerMessages` 那套）、`handleMessageComplete` 顶部必须 `require(!isGroupConversation(...))` 且排在一切副作用之前、它是 `ChatService` 里唯一的生成漏斗（3 处 `finishInterruptedPendingTools` 除外且已登记）、DI provider 名 `provideChatManager` 必须与产物一致**（`bed09118`） |
+| **`GroupRunAbandonDrainSourceGuardTest`** | **5** | **源码护栏：`abandonDanglingGroupRuns` 必须分批循环读到清空（不是单页 `limit = 8`）、循环必须有具名收敛上限、页大小必须是具名常量而不是内联字面量、每行判死前必须 `findByRound` 重读并 `isTerminal` 跳过**（`bed09118`） |
+| **`GroupForkDisableReasonSourceGuardTest`** | **2** | **源码护栏：`ChatMessage.groupChat` KDoc 的 fork 段落禁因是「静默换会话类型」而不是账目错位；姊妹例要求重新生成 / 删除那两半必须保留它们自己的账目错位理由（防止整段被一刀切删掉）**（`bed09118`，**只加护栏、KDoc 一个字没改**） |
 | **合计（新窗口，HEAD `361c7cf6`）** | **395** | **37 类**（上两行是本轮新增的 2 类 13 例；另有两个在册类的用例数同时更新：`GroupTurnCoordinatorTest` **72 → 84**（`+12`）、`GroupTieBreakScaffoldingDropSourceGuardTest` **3 → 7**（`+4`），合计 `+16`，所以整表是 `366 + 13 + 16 = 395` ✅。⚠️ 上面的 **366 / 35 类**那一行是第四个窗口的实测值，按惯例**保留不覆写**） |
+| **合计（第六个窗口，HEAD `a74c1820`）** | **408** | **40 类**（新增 3 类 11 例：`ChatServiceGroupChatFailLoudGuardTest` 4 + `GroupRunAbandonDrainSourceGuardTest` 5 + `GroupForkDisableReasonSourceGuardTest` 2；另有一个在册类 `GroupStaleJobCommitSourceGuardTest` **7 → 9**（`+2`），合计 `+13`，所以整表是 `395 + 13 = 408` ✅。⚠️ **本窗口 `:app:testDebugUnitTest` 那 `+6 类 / +25 例` 里有 3 个类（12 例）不属于 C1、不进本表**——`CoilImageLoaderSourceGuardTest` 6 / `PrimaryBottomSheetIconSourceGuardTest` 3 / `BottomSheetScrollSourceGuardTest` 3，理由见「测试结果」段那个 ⚠️⚠️） |
 
 ⚠️ **有四个测试类里共 11 条断言是**源码文本护栏**而非行为测试，读表时要记这件事**（早前这里写的是「三个测试类里有两个」，与它自己列出的三个类对不上——三个类**全都**
 读 `.kt` 源码文本；本轮把第四个类与它的 2 条也并进来，措辞一并改成可数的那一句）：
@@ -820,6 +955,20 @@ app 报告里 `severity` 属性只出现过 `Warning` 和 `Hint` 两种值，dis
 - 上面那条 `584:32` / `587:36` / `590:41` 的历史行号与归属（`git blame` → `d2be1c3fe`，
   2026-09-13，早于 C1 基线 `d45ebd10` 三个星期，**不是 C1 引入**）按各窗口原样保留，
   仅作「这 3 条曾经存在过」的证据。
+- ⚠️⚠️ **第六个窗口（HEAD `a74c1820`）复算：与上一窗口逐位相同，一个数都没变。**
+  口径同前：遍历全仓 `*/build/reports/lint-results-debug.xml`（**15 个文件**）逐个
+  `<issue>` 数 `severity`。实测：**app = `584` Warning + `6` Hint = `590` 条、0 Error**；
+  **15 模块聚合 = `617` Warning + `7` Hint = `624` 条、0 Error**（app 之外 14 个模块
+  逐个复算：`ai` 2W / `common` 1W / `document` 0 / `highlight` 0 /
+  `image-toolbox-dependency` 5W / `khatkit` 17W / `khatkit-ui` 4W+1H / `material3` 0 /
+  `mediapicker` 0 / `oauth` 1W / `search` 0 / `speech` 1W / `web` 0 / `workspace` 2W）。
+  ⚠️ **本轮同样没有跑 `./gradlew lint`**（纯文档任务），数的是磁盘上现有报告文件，
+  **报告是哪一次 lint 生成的无法从 XML 里读出**——这一句照旧要跟着这两个数一起读。
+  ⚠️ **`card-validator` 仍然没有任何 lint 报告**（只有 `tests/`），所以「15 个模块」这个
+  口径指的是**有报告的 15 个**，不是仓库里的全部模块（见「已知遗留与风险」第 6 条）。
+  ⚠️ 本轮碰过的文件（`GroupChatPage.kt` / `RouteActivity.kt` / `KhatKitApp.kt` /
+  `ChatManager.kt` / `ChatService.kt` / `AppHiltModule.kt` + 7 个新增/扩写的测试文件）
+  **命中数逐个点算全部为 0**。
 
 ### 三个 APK（CMD-3 产出）
 
@@ -2329,6 +2478,12 @@ token 全被 `reasoning_tokens` 吃掉**，于是 usage 断言全部失真（看
 
 ### C1 真机证据采集第四轮（2026-10-06，真实公网网关：**目标用例首次真机全绿 + JSON 拉回入库外**）
 
+⚠️⚠️ **本节的落地 commit 是 `4336831f`**
+（`docs(c1): 补第四轮真机记录——真实网关目标用例首次全绿，落盘 JSON 已拉回并记 SHA-256`，
+1 file `implementation-status.md` +6 / `c1-group-chat.md` +124 / −12），
+**不是**下面写的 `d96d64e1`——那个 SHA 是文档提交链的上一环（同一批里另一个 commit），
+**这里订正，免得按 `d96d64e1` 去找第四轮的记录找不到。**
+
 HEAD `d96d64e1`。⚠️ **生产代码零改动**（`git status` 只有另一条并行分支的
 `TavernMacroExpander.kt`，与本轮无关）。本轮**只做两件事**：把
 `realProviderRoundRecordsGenuineTokenUsage` 在真机上跑到全绿，并把落盘 JSON 拉回主机。
@@ -2437,6 +2592,262 @@ adb disconnect 'adb-3B6F5ME910B6H059-Sqr0AX (2)._adb-tls-connect._tcp'
 名**（`adb-<序列号>._adb-tls-connect._tcp` 形式），`adb disconnect` 只认 serial。
 ⚠️⚠️ **而且它会反复自己注册回来**——disconnect 之后过一会儿同一个 `(2)` 又出现，
 所以**每次 instrument 之前都要重新确认 `adb devices -l` 只剩 1 条**。
+
+### 群配置面板两个真机必崩已修并真机验证（`33eb801e` / `5d58f923` / `71d1439e` / `54c196ca`）
+
+⚠️ **这一节的两个崩溃栈是用户实测给的原始栈**，不是本文自己在旧 APK 上复现出来的
+（见下面「诚实边界」第 ③ 条）。修法与真机复验都做了，**但它们是 UI 缺陷修复，不是契约
+`:206` 点名的任何一类产物**，所以**十例状态一个都没变**。
+
+#### 崩溃①：`IllegalArgumentException: PrimaryBottomSheet 需要 painter 或 imageVector 之一`
+
+- **现场**：`PrimaryBottomSheet.kt:76` 的
+  `imageVector = requireNotNull(imageVector) { "PrimaryBottomSheet 需要 painter 或 imageVector 之一" }`
+  ← `GroupChatPage.kt` 里的 `GroupConfigSheet`。触发条件是**两个参数都不传**。
+- **为什么会崩**：`PrimaryBottomSheet` 按 `LocalKedgeStyle.current` 分派，`KedgeStyle.MD3Exp`
+  分支下 Khromia 有 `painter` 与 `imageVector` **两个重载、二选一必填**，转发层对后者用
+  `requireNotNull`（`PrimaryBottomSheet.kt:57-77`）。`GroupConfigSheet` 一个都没传。
+  ⚠️ **`KedgeStyle.Miuix` 分支不走这条 `requireNotNull`**——它把可空的 `imageVector`
+  原样转给 `KedgePrimaryBottomSheet`（`PrimaryBottomSheet.kt:41-53`），所以这个崩溃
+  **只在 MD3Exp 风格下存在**。这是读代码得出的，不是两种风格都实测过（见诚实边界①）。
+- **修法（`33eb801e`）**：补 `imageVector = tune`。**为什么选 `tune` 而不是 `painter`**：
+  与顶栏触发按钮 `GroupTopBar` 里的 `Icon(tune, "群配置")` 同款，触发按钮与它打开的弹层
+  图标一致、语义闭合；走 `imageVector` 这一侧是因为**全仓 62 个调用点全都用它**
+  （`grep -rn "PrimaryBottomSheet(" app/src/main` = 66 处命中，减去定义文件里那 4 处）。
+- **护栏（`5d58f923`）**：`PrimaryBottomSheetIconSourceGuardTest` 3 例——① 全仓每个调用点
+  都必须传图标 ② **扫描器自身仍覆盖全仓**（防止把扫描范围改小而恒绿）③ 群配置面板定点
+  回归（必须传 `tune`）。
+
+#### 崩溃②：`IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints`
+
+- **根因**：**两层纵向滚动容器叠加**。`GroupConfigSheet` 自己套了
+  `Column(Modifier.verticalScroll(...))`，却漏了 `PrimaryBottomSheet` 的 `scrollable = false`。
+  而 `scrollable = true`（默认值）时 Khromia `BasicBottomSheet` 自己就给内容套了一层
+  `verticalScroll`（`Column(Modifier.weight(1f, fill = false).then(if (scrollable) Modifier.verticalScroll(...) else Modifier))`），
+  `verticalScroll` 是拿 `maxHeight = Infinity` 去量内容的，于是内层 `ScrollNode` 直接抛。
+- **修法（`71d1439e`）**：**只加一行 `scrollable = false`，不删内容的滚动**。
+  **为什么保留内容那层滚动、而不是反过来删掉它、把滚动交给弹层**（这是本节最需要写下来
+  的一个判断）：面板内容本来就长（九个配置字段 + 每个角色一个 `RoleEditor` + 导入导出
+  两段），**整块表单应该一起滚**；而 `scrollable = true` 时 Khromia 那层带
+  `weight(1f, fill = false)`，滚动语义归弹层会让内容高度受权重影响。两种组合二选一，
+  **两个都留着必崩、少一个滚不动**——注释里把这条写死，免得下一个人「顺手」改回去。
+- **护栏（`54c196ca`）**：`BottomSheetScrollSourceGuardTest` 3 例——① 全仓没有任何调用点
+  在 `scrollable` 默认为 true 的弹层里再套自己的 `verticalScroll` ② 扫描器仍能找到
+  「自带纵向滚动的调用点」（反空跑）③ 群配置面板定点回归（自带滚动且 `scrollable = false`）。
+
+#### 真机复验（`KedgeStyle.MD3Exp`，逐项照记）
+
+| 项 | 结果 |
+|---|---|
+| 崩溃缓冲区 | `adb logcat -c -b crash` 清空 → 开面板 + 滚动 → `adb logcat -d -b crash -t 200` **输出为空** |
+| 全量 logcat grep | 两个异常串在完整 logcat 里 **0 命中** |
+| 面板是否真渲染出来 | `uiautomator dump` 确认 15 项全在：协作模式 / pipeline·roundtable·vote / 每轮预算 / revision / schema_version / 平票策略 / 投票候选 / 议长 / model_id / card_id / 移除 #0 / 添加成员 / 保存群配置 / 导出分享生成二维码 / 导入恢复扫码导入 |
+| 滚动稳定性 | 面板内 **5 次滚到底 + 3 次反向**不崩；pid 恒定、focus 恒为本 app |
+| 截图 SHA-256 | 打开态 `4762148de29b9719…`、滚动态 `3ff28637bb6e0546…` |
+
+⚠️ **这一节的四条诚实边界，逐条照记**：
+① **Miuix 风格完全没验**——两个崩溃都只在 `KedgeStyle.MD3Exp` 触发（这一条是**读代码**
+得出的：Miuix 分支不走 `requireNotNull`、且 `PrimaryBottomSheet` 的 KDoc 写明 Kedge 版
+「靠内容自身滚动，忽略该参数」），**Miuix 下这两个面板是不是也崩过、或者行为不同，
+零证据**；② 其余 **62 个 `PrimaryBottomSheet` 调用点**（`app/src/main` 里 `grep -rn "PrimaryBottomSheet("` = **66** 处命中，减去定义文件 `core/ui/components/ui/PrimaryBottomSheet.kt` 里那 **4** 处（1 个声明 + 3 个委派调用）= **62**；⚠️ **把 `src/test` / `src/androidTest` 也算进去是 68**。⚠️ **「64」这个数在两种口径下都复现不出来，本轮按实测的 62 登记**）靠源码扫描 + 既有单测，**没有逐个
+上真机**；③ **没有在旧 APK 上先复现崩溃再对比修复**——原始栈是用户实测给的，所以
+「修完不崩」与「修的就是这条栈」之间靠的是**栈帧行号对得上**（`PrimaryBottomSheet.kt:76`），
+不是受控对比；④ 面板里的**保存 / 生成二维码 / 扫码导入这三个业务动作一个都没点过**，
+只验了渲染与滚动。
+
+⚠️⚠️ **护栏自己踩的坑，值得单独记一条（它是可复用的教训）**：
+`PrimaryBottomSheet` 的 `content` 是**尾随 lambda**——**大括号在右括号外面**。第一版
+护栏用「括号配平」切出实参区间，于是**整段内容体被漏扫**，`content` 里那个
+`verticalScroll` 根本没进扫描范围，**主断言因为「谁都不违规」而恒绿**。
+⚠️ **是靠同一批里另一条「反空跑」断言抓出来的**（先确认扫描器还能找到违规样本），
+不是靠主断言自己。**教训：源码文本护栏必须自带一条「扫描器仍能找到东西」的断言**，
+否则扫描范围一旦被改窄，整批断言会静默变绿。
+
+### Coil 单例崩溃的结构性修复（`ea482935` / `2766afc7`）
+
+⚠️ **本轮按约束没碰设备，所以这一节的修复效果在真机上是零证据。** 它修的是「已知遗留与
+风险」第 12 条那条**稳定复现**、让 `:app:connectedDebugAndroidTest` 全量跑不完的崩溃。
+
+#### 现场（磁盘上那份 XML 是可核的）
+
+`app/build/outputs/androidTest-results/connected/debug/TEST-PKG110 - 16-_app-.xml`
+（mtime `2026-10-06 00:33`）：`tests="10" failures="1" errors="0" skipped="0"
+time="24.996"`。挂的是 `BrowserRuntimeTest`：
+
+```
+java.lang.IllegalStateException: The singleton image loader has already been created.
+  at coil3.SingletonImageLoader.setSafe(SingletonImageLoader.kt:41)
+  at heizige.kk.khatkit.app.RouteActivity.onCreate$lambda$0$0(RouteActivity.kt:202)
+```
+
+#### ⚠️ 根因不是 `b5c5ebcb`——这一点必须纠正
+
+`git show --name-only b5c5ebcb | grep -i coil` **零命中**：那个 commit 一行 Coil 都没碰。
+全仓配置 Coil 的地方**只有 `RouteActivity` 一处**。真正的因果链是**执行顺序**：
+
+1. 先创建 loader 的是 **`NodeTreeSmokeTest`**（`androidTest/.../NodeTreeSmokeTest.kt`
+   第 24 行 `@get:Rule val compose = createComposeRule()`，**不带 Activity** 渲染
+   `AsyncImage`）。它在**同一个 instrumentation 进程**里先跑 `get()`，把**内置默认**
+   loader 钉死进那个进程级 `AtomicReference`。
+2. 随后 `BrowserRuntimeTest`（`b5c5ebcb` 加进来的，第 26 行
+   `@get:Rule val activity = ActivityScenarioRule(RouteActivity::class.java)`）拉起
+   Activity，`onCreate` 的组合里同步调 `setSingletonImageLoaderFactory` → `setSafe` 当场抛。
+3. 它挂在 `super.onCreate()` 之后、`setContent` 装内容之前 → **整个 instrumentation
+   进程死掉**，Gradle 只收到前 10 条结果。
+
+⚠️ **所以 `b5c5ebcb` 只是加了 2 个 androidTest 类、改变了执行顺序，把一个一直存在的
+隐患顶出来了。** 早前把它记成「来自 `b5c5ebcb`」是不准确的，本节订正。
+
+Coil 版本 **3.6.3**（`gradle/libs.versions.toml:24`）。`setSafe`（反编译确认）：
+`if (value is ImageLoader && value.isDefault) error(...)`；`newImageLoader` 的解析顺序是
+「已存 Factory → `applicationContext as? Factory` → 内置默认」。
+
+#### 修法：定义点从 Activity 搬到 Application
+
+`ImageLoaderFactory` 从 `RouteActivity.onCreate` 的组合里搬到
+**`KhatKitApp : Application(), SingletonImageLoader.Factory`**（Coil 3 里
+`ImageLoaderFactory` 的替代品），组件清单**原样保留**：`crossfade(true)` /
+`KtorNetworkFetcherFactory(httpClient = { ktorHttpClient })` / `SDK_INT >= P` 用
+`AnimatedImageDecoder.Factory()`、否则 `GifDecoder.Factory()` /
+`SvgDecoder.Factory(scaleToDensity = true)`。`RouteActivity` 里删掉
+`setSingletonImageLoaderFactory`，以及**随之变成死代码**的
+`@Inject lateinit var ktorHttpClient` 和 7 个 coil import。
+
+⚠️ **为什么不用「条件判断绕过」那种更省事的写法**
+（`if (还没建) setSingletonImageLoaderFactory { ... }`）：正常启动下那样确实不崩，但
+**在测试进程里语义是错的**——先建的是**内置默认** loader，于是自定义配置（Ktor 网络栈 +
+GIF/SVG 解码）被**静默跳过**，`AsyncImage` 不崩，跑的却是另一套配置。
+**等于把崩溃换成更难查的行为不一致。** 搬到 Application 之后「谁先跑」这个问题不成立：
+`get()` 一定拿到这份自定义 loader。
+
+Hilt 时序已核实：`inject()` 早于 `Application.onCreate`；merged manifest 的
+`InitializationProvider` 只初始化 EmojiCompat / ProcessLifecycle / ProfileInstaller，
+**无一碰 Coil**。
+
+#### 护栏（`2766afc7`）：`CoilImageLoaderSourceGuardTest` 6 例
+
+扫 app + **所有兄弟模块**的 main/test/androidTest，钉六条：① 全仓 **0 处**晚设 singleton
+② Activity 文件不得碰定义 ③ 定义**恰好 2 处**（接口声明 + `newImageLoader` 实现）且同在
+`KhatKitApp.kt` ④ **崩溃现场那个文件（`RouteActivity.kt`）0 命中** ⑤ 搬家**没丢组件**
+（crossfade / Ktor / GIF / SVG 四项逐个断言在 `KhatKitApp` 里）⑥ **把因果链本身钉成
+断言**——`NodeTreeSmokeTest` 仍用 `createComposeRule` + `AsyncImage`、`BrowserRuntimeTest`
+仍用 `ActivityScenarioRule`。第 ⑥ 条是关键：没有它，将来有人把其中一个测试改掉，
+这条崩溃就会「不再复现」而没人知道因果链断了。
+
+⚠️ **护栏踩的坑（第一版护栏对「搬回 Activity」这个变异是绿的，是变异检验逼出来的）**：
+- (a) 正则里的 `(?<![\w.])` 负向后行断言**把全限定写法
+  `coil3.compose.setSingletonImageLoaderFactory` 整条漏掉**——变异因此判绿；
+- (b) 只认 `(` 会漏掉 `@Composable` 的**尾随 lambda** 写法
+  `setSingletonImageLoaderFactory { context -> … }`。
+- ⚠️ **(b) 与上一节那个「尾随 lambda 大括号在右括号外面」的坑是同一类**，
+  两处都记在这里，方便下一个人当成一条通用规则：**扫 Compose 调用点不能靠括号配平**。
+
+⚠️ **本节最重要的一句：本轮零设备。** 要验证这一节的修复，只需要跑一条命令：
+
+```
+./gradlew --offline :app:connectedDebugAndroidTest
+```
+
+预期：`app/build/outputs/androidTest-results/connected/debug/` 里那份 XML 的
+`tests` 落在 **≈61**（当前被跟踪的 `androidTest` `@Test` 数）、`failures="0"`、
+**不再出现上面那个异常**。⚠️ **在跑之前，上面所有关于「修好了」的表述都只是代码层结论。**
+
+### 四项代码债收口（`fa36c65c` / `06cf6181` / `bed09118` / `a74c1820`）
+
+⚠️ **四项里有三项的运行时行为是纯运行时、零证据。** 三条 gradle 命令（编译 + 单测绿）
+只证明「能编译、单测通过」，**不构成任何契约验收证据**——护栏全是**源码文本级**的。
+
+| # | commit | 改了什么 | 边界 |
+|---|---|---|---|
+| ① | `fa36c65c` | `ChatService.handleMessageComplete` 顶部 `require(!isGroupConversation(...))`（**fail-loud**，抛错前置于一切副作用）；provider `provideChatService` → `provideChatManager`（按产物改名） | ⚠️ `require` 是否真抛属运行时，零设备 |
+| ② | `06cf6181`（前半） | `abandonDanglingGroupRuns` 从 `limit = 8` 改成**分批循环读到清空** | ⚠️ 分批循环的真机行为零证据 |
+| ③ | `06cf6181`（后半） | `onSuccess` 的 `null ->` 分支改成 `clearGroupRunMirrorIfMine(conversationId, groupRunToken)`，内部用 `ConcurrentHashMap.remove(key, value)` 两参重载 | ⚠️ 真实并发效果零证据 |
+| ④ | `bed09118`（`GroupForkDisableReasonSourceGuardTest`） | 给 `ChatMessage.groupChat` 那段 KDoc 加 **2 例防回退护栏**，**KDoc 一个字没改** | 见下 |
+
+#### ① `ChatService` 第二份无群聊感知的生成管线 → fail-loud
+
+- **可达性核实结论比原判断更彻底**：`core/service/ChatService.kt`（`fa36c65c` 之前
+  **1444 行**，之后 **1492 行**）全仓只有 **2 处注入**
+  （`HistoryVM.kt:28` 只调 `toggleConversationPinned`、
+  `core/service/ChatGenerationForegroundService.kt:71` 只调 `stopGeneration`），而**这两个
+  注入点本身也不可达**——`HistoryPage(vm = hiltViewModel())` 没被任何路由引用，
+  `ChatGenerationForegroundService` **不在 `AndroidManifest.xml`** 里（清单只注册了
+  `.feature.chat` 那个，它注入的是 `ChatManager`）。所以 `ChatService` 当前**零活跃构造点**。
+- **闸门为什么放在 `handleMessageComplete`**：`generationLoop.generateText` 在
+  `ChatService` 里只有 **1 个调用点**（在 `handleMessageComplete` 内），闸门放在这里就让
+  「群聊经 `ChatService` 生成」在**结构上**不可能，而不是只靠调用方自觉。
+- **为什么既不复制群聊逻辑、也不委托**：
+  - **复制 = 第二个真相来源**，而且漂移是**无声**的——所有现有群聊用例都**直接调
+    `viewerMessages`、从不经生成入口**，所以一旦泄漏，**零测试会红**；
+  - **委托不可行**：`ChatService` 是 `@Inject` 单独构造的、**拿不到那个
+    `@Singleton ChatManager`**，硬接等于让两个各自持有 job 账本的类并存，比现在更糟。
+- **命名陷阱是真的**：标识符 `chatService` 在仓库里指向**两个不同的类**。provider 按产物
+  改名消掉这一半，`ChatManager.kt:249` 的 KDoc 也同步更新。
+
+#### ② `abandonDanglingGroupRuns` 的 `limit = 8`
+
+- **问题形状**：`listByConversationAndStatus` 的 SQL 是
+  `ORDER BY started_at ASC LIMIT :limit`（`GroupRunDAO.kt:51`）——那是**一页**，却被当成
+  「总量上限」用，于是**第 9 条起永远停在 `RUNNING` 占位**。
+- **修法**：**分批循环读到清空**。`ABANDON_BATCH_SIZE = 8` 只作**分页大小**，
+  `ABANDON_MAX_BATCHES = 64` 只作**收敛上限**（最多 512 行）；每行判死前
+  **用 `findByRound` 重读一次**并 `isTerminal` 跳过（分批循环期间那一行可能已被别的路径
+  收尾，`terminal()` 不判终态，盲目写会把别人的终态抹成 `CANCELLED`）。
+- **论证**：契约要的是**清空**不是「处理一部分」；**留硬上限的唯一理由是保证收敛**——
+  同会话在本函数执行期间又抢占成功一轮时（残留旧 job 走到 `takeGroupTurn`）行数不单调
+  减少，无界循环会自旋，**那比留占位更糟**。撞上限的残余会在下一次发消息时再被扫掉。
+- ⚠️ **顺带订正原注释一处误导**：早前注释写「同样的常量也出现在 `:853`」，
+  **实际 `:853`（`fa36c65c` 之后行号漂到 `:872`）是 `searchMemories(limit = 8)` 的记忆
+  条数上限，语义无关**——只是碰巧同值。
+
+#### ③ `onSuccess` 里 `null -> groupRunsInFlight.remove(...)`
+
+- **为什么它危险**：镜像装别人令牌的窗口只有一个——那条路里 `failGroupTurn`
+  **因归属拒收而提前 return、不清镜像**，此时镜像装的是**新轮令牌** → 无条件 remove
+  抹掉它 → 新轮取消不掉（`cancelActiveGroupRun` 第一行就 `remove` 不到东西、直接 return）、
+  `takeGroupTurn` 拿不到 `expectedRunToken` → **整轮卡死**。
+- **修法**：`clearGroupRunMirrorIfMine` 内部用 `ConcurrentHashMap.remove(key, value)`
+  **两参重载**（原子、值相等才删）。
+- **既有兜底为什么没被破坏**：核实 `commitGroupTurn` 返回 `null` **只有一种形状**
+  （`produced == null`），其余都返回 `Advance.Halted`。`produced == null` 那条路里
+  `failGroupTurn` 在**归属成立**时自己已清镜像，剩下的兜底只为「提前 return」而存在——
+  而那两种提前 return 里镜像装的**正是本轮令牌**，按令牌比对照清不误；令牌为 null
+  （理论不可达）时**宁可不删**。
+
+#### ④ `ChatMessage.kt` 的 KDoc：**文档一个字没改，只加了护栏**
+
+⚠️ **本文此前给的描述已过期，所以这次没改一个字。** 提交 `361c7cf6`（已是 HEAD 祖先）
+就已把它改成正确的写法：先讲**前两个动作**（重新生成 / 删除）的账目错位，再写
+「『创建分支』的**理由不一样**，别顺着上一句一起理解」+「对源会话只读…**破坏不了**
+群运行日志的账面」+ 真实禁因「**静默换会话类型**」。本轮实读确认
+`createForkConversation`（`ChatManager.kt:172` 附近）确实是：新 `Uuid`、**不复制**
+`groupConfig` / `type`、只 `saveConversation(新 id)`。
+**这次只加护栏防止回退**：`GroupForkDisableReasonSourceGuardTest` **2 例**——
+① fork 段落不许把账目错位算到 fork 头上 ② **前两个动作必须保留它们自己的账目错位
+理由**（姊妹例，防止有人把整段删成一刀切）。⚠️ 护栏钉的是**禁因的归属**不是逐字文案，
+措辞可以改、归属不许回退；实测 M5 把假的账目错位写回 KDoc 时**变红**，姊妹例保持绿。
+
+#### 本批护栏（照 `*SourceGuardTest` 范式，源码文本断言——仓库 `testImplementation`
+只有 junit，没有 Robolectric / room-testing，这些路径构造不出来）
+
+| 护栏类 | 例数 | commit |
+|---|---:|---|
+| `ChatServiceGroupChatFailLoudGuardTest` | **4** | `bed09118` |
+| `GroupRunAbandonDrainSourceGuardTest` | **5** | `bed09118` |
+| `GroupStaleJobCommitSourceGuardTest` | 7 → **9**（+2 例） | `bed09118` |
+| `GroupForkDisableReasonSourceGuardTest` | **2** | `bed09118` |
+
+⚠️ **变异 M1–M5 全部 `EXIT=1`**，每次都用 `cp` 备份 + `sha256sum -c` 双向校验还原，
+**全程未用 git checkout / stash / reset**。
+
+⚠️ **本批的诚实边界，照记**：**①②③ 的运行时行为全是零证据**——`require` 是否真抛、
+分批循环在真机上的实际行为、`remove(key, value)` 的真实并发效果、以及
+「`produced == null` 时 `failGroupTurn` 提前 return」的具体触发条件，**一条都没在真机上
+观测过**。**这三条 gradle 命令不构成任何契约验收证据。**
+⚠️ **本轮新发现、未动手**：`ChatService.finishInterruptedPendingTools` 里**三处**
+`providerHandler.generateText` 同样不群聊感知，而且**从 `stopGeneration` 可达**。
+修它要先定产品行为（群聊下**跳过** vs **做成群聊感知**），**两者都改运行时行为、都需要
+真机**，所以只登记不动（已写进「已知遗留与风险」第 28 条）。
 
 ### C1 内核四批补测与修复（2026-10-05：P0 保留值 / P1 覆盖盲区 ×2 / P2 探针实测不可达）
 
@@ -2944,9 +3355,32 @@ its failure`）——**不能只测「被拒」**，否则「把守卫写成永�
 见「C1 真机证据采集第四轮」；⚠️ **其余 4 条仍未全绿**，且本轮 `:app:connectedDebugAndroidTest`
 仍因 `BrowserRuntimeTest` 的 Coil 单例崩溃**在 9 过 1 挂后中止**。
 ⚠️ **本轮这三批修的缺陷恰好是「仪器测试原理上覆盖不到」的那一类**——
-它们要在**真实协程取消 + 真实流式响应 + 真实 DAO 时序**下才可能复现，
-所以「本轮没动 androidTest」不是漏做，是**没有可写的仪器用例**。
-这三条作为遗留写进「已知遗留与风险」。
+  它们要在**真实协程取消 + 真实流式响应 + 真实 DAO 时序**下才可能复现，
+  所以「本轮没动 androidTest」不是漏做，是**没有可写的仪器用例**。
+  这三条作为遗留写进「已知遗留与风险」。
+- ⚠️⚠️⚠️⚠️ **第六个窗口（HEAD `a74c1820`）：`@Test` 源码数实测是 64，不是 61；
+  而全量执行结果**仍然只有那一份 `tests="10" failures="1"` 的 XML**（`ea482935`
+  修掉的 Coil 崩溃**本轮没有在设备上复跑过**）。**
+  - **源码侧逐文件 `grep -c '@Test'` 求和实测**（本轮在主机上重新数过）：
+    `GroupRunDAOTest` **12** + `Migration_30_31_Test` **7** + `Migration_31_32_Test` **6**
+    + `C1LiveModelSequenceTest` **5** + `NodeTreeSmokeTest` **4** + `C1DeviceEvidenceTest` **3**
+    + `Migration_11_12_Test` **7** + `BrowserArchiveTest` **4** + `C1GroupUiE2EFixtureTest`
+    **3（未入库！）** + `MessageNodeStatsTest` **3** + `DatabaseBackupTest` **3**
+    + `BackupManagerTest` **3** + `DependencyReadOnlyLoadTest` **2**
+    + `ExampleInstrumentedTest` **1** + `BrowserRuntimeTest` **1** = **64**。
+    ⚠️ **C1 相关的那五类（12 + 7 + 6 + 3 + 5 = 33）一个数都没动**。
+  - ⚠️⚠️ **61 与 64 的差额就是那个未入库的半成品**
+    `app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/C1GroupUiE2EFixtureTest.kt`
+    的 **3 条**（461 行，untracked，是一次被中断的「真机 UI 端到端」任务留下的）。
+    **`git ls-files app/src/androidTest` 口径是 61**，把 untracked 那份算进去是 **64**
+    （61 + 3 = 64 算术对得上）。⚠️ **引用「61」时必须写清是「git 跟踪的文件」口径**，
+    否则下一位会以为有人偷偷加了 3 条仪器用例。
+  - **执行侧零变化**：`app/build/outputs/androidTest-results/connected/debug/`
+    里仍然只有 `TEST-PKG110 - 16-_app-.xml`（mtime `2026-10-06 00:33`，
+    `tests="10" failures="1" errors="0" skipped="0" time="24.996"`）——
+    就是 `ea482935` 修掉那个崩溃的那一次运行。⚠️ **`ea482935` / `2766afc7` 的真机效果
+    未验证**：本轮按约束**不碰设备**，所以「全量仪器测试现在能跑完」这句话**目前没有
+    任何证据**。验证命令就一条，见上面「Coil 单例崩溃的结构性修复」那节末尾。
 
 ## C1 commit 台账
 
@@ -3452,6 +3886,57 @@ helper / 断言辅助**。⚠️ **断言本体没有被削弱**：既有用例�
 与本台账刻意锚死右端是同一个道理）。用
 `git log --oneline -1 -- docs/eval/c1-group-chat.md` 可查。
 
+#### 再往后一批：真机两个 Compose 必崩 + Coil 结构性修复 + 四项代码债（`33eb801e..bed09118`）
+
+⚠️⚠️ **锚点 `1b0e04a9` 仍然没有被重算**——本批 10 个 commit
+（`git log --oneline 361c7cf6..a74c1820` 实测 **13** 个，其中 `4336831f` / `d96d64e1` /
+`dee6cf67` 三个是文档 commit、不属本批；本表逐条列的就是剩下那 **10** 个）
+**一个都不计入**本台账，理由与前几批逐字相同：不改统计区间、
+不改 `--no-merges` 口径、不引入新的类型前缀或子包标签。所以 **78 / 6 / 17、前缀分布、
+子包分布一个数都没动**，`d45ebd10~1..1b0e04a9` 那 **78 个 commit 没有被重算**。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `33eb801e` | `coder: 修群配置面板必崩——补上漏传的 imageVector = tune` | **功能（main，`GroupChatPage.kt` +6）** |
+| `5d58f923` | `coder: 加 PrimaryBottomSheet 调用点图标参数源码护栏（3 例，含群配置面板定点回归）` | 测试（`PrimaryBottomSheetIconSourceGuardTest.kt` 271 行 / 3 条） |
+| `71d1439e` | `coder: 修群配置面板滚动必崩——补 scrollable=false 去掉嵌套滚动层` | **功能（main，`GroupChatPage.kt` +24 / −1）** |
+| `54c196ca` | `coder: 加底部弹层滚动嵌套源码护栏（3 例，含群配置面板定点回归）` | 测试（`BottomSheetScrollSourceGuardTest.kt` 327 行 / 3 条） |
+| `ea482935` | `coder: 修 Coil 单例崩溃——把 ImageLoader 定义从 RouteActivity 搬到 KhatKitApp` | **功能（main，`KhatKitApp.kt` +63 / −、`RouteActivity.kt` −34）** |
+| `2766afc7` | `coder: 加 Coil ImageLoader 定义点唯一性的源码护栏（6 例）` | 测试（`CoilImageLoaderSourceGuardTest.kt` 427 行 / 6 条） |
+| `fa36c65c` | `coder: ChatService 群聊 fail-loud 闸门 + provider 按产物改名（消除命名陷阱）` | **功能（main，`ChatService.kt` +48、`AppHiltModule.kt`、`ChatManager.kt` KDoc）** |
+| `06cf6181` | `coder: 群聊轮次判死改为分批清空；onSuccess 的 null 分支改为按 runToken 清镜像` | **功能（main，`ChatManager.kt` +105 / −）** |
+| `bed09118` | `test: 四条源码护栏（ChatService fail-loud / 判死清空 / 按令牌清镜像 / fork 禁因）` | 测试（4 个文件 / +621 / −13：3 个新类 4 + 5 + 2 例 + `GroupStaleJobCommitSourceGuardTest` **+2** 例） |
+| `a74c1820` | `docs: 遗留清单 B9/B10 改记已修，新增 B9b（ChatService 第二份生成管线）` | 文档（只改 `docs/beyond-operit-implementation-status.md`） |
+
+⚠️ **前缀分布本批新增 6 个 `coder` + 3 个 `test` + 1 个 `docs`，但都不进台账**——
+⚠️ **「类型前缀分布」（`feat` 25 / `fix` 20 / `test` 14 / `coder` 7 / `refactor` 5 /
+`docs` 5 / `chore` 1 / `build` 1 = 78）与「子包标签分布」那张表都还是截至 `1b0e04a9`
+的数**，本批这 10 个里的 `coder` / `test` / `docs` **不进那两张表**。
+
+**净效果**：`:app:testDebugUnitTest` **99 类 / 783 例 → 105 类 / 808 例**
+（`+6 类 / +25 例`，0 失败 / 0 错误 / 0 跳过，逐个 XML 的 `tests` 属性用 Python +
+ElementTree 汇总实测；逐类增量见「测试结果（实测 XML 汇总）」段那张七行表）；
+C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（`+3 类 / +13 例`，
+口径未变，新口径复算输出 `rows 40 / declared sum 408 / mismatch vs XML: []`）；
+lint **0 error**、app **584W+6H=590**、15 模块 **617W+7H=624**（与上一窗口**逐位相同**）；
+`app/src/androidTest` **git 跟踪口径仍是 61 条**（把未入库的
+`C1GroupUiE2EFixtureTest.kt` 那 3 条算进去是 **64**）；Room 版本不变（仍是 32）。
+
+⚠️⚠️⚠️ **本批同样不改变任何判定**，三条硬理由：
+① **两个 UI 崩溃的修复与 Coil 修复都不产出契约 `:206` 点名的任何一类产物**；
+② **四项代码债的运行时行为全是零证据**——`require` 真不真抛、分批循环的真机行为、
+`remove(key, value)` 的真实并发效果、`produced == null` 时 `failGroupTurn` 提前 return
+的具体触发，**一条都没观测过**；三条 gradle 命令只证明「编译过 + 单测绿」，
+**不构成任何契约验收证据**；③ **真机 UI 端到端仍然零份**——本轮只验了**群配置面板的
+渲染与滚动**，**成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做**，面板里的
+**保存 / 二维码 / 扫码三个业务动作一个都没点**。
+**十例状态仍全 `unverified`，0/10 不变。**
+
+⚠️ **一个必须同时记的边界**：`ea482935` 修掉的 Coil 崩溃是**稳定复现**过的（磁盘上那份
+`tests="10" failures="1"` 的 XML 就是它的现场），但**修复本身本轮没有在设备上复跑**——
+所以「全量仪器测试能跑完了」这句话**目前零证据**，验证命令就一条：
+`./gradlew --offline :app:connectedDebugAndroidTest`。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
@@ -3525,6 +4010,175 @@ SHA-256。
 
 每补完一项，在证据登记表**追加一行**（不覆盖历史行），把四列缺失证据填上，
 再把用例矩阵的状态改成 `verified`。**四类证据缺任何一类，仍保持 `unverified`。**
+
+## 下一位怎么把剩下的做完（第六个窗口的操作清单，2026-10-06）
+
+⚠️ **这是本轮最重要的产出**，按「**需要设备 / 需要外部环境 / 零设备可做**」分三组。
+每项都写了具体命令或具体步骤。⚠️ **上面那些「还剩什么」的表格是描述缺口，这一节是
+可以照着敲的动作**——两者不要互相替代。
+
+⚠️ **三组的前置硬约束（照旧）**：**① 只改 `docs/` 之外的东西之前先确认本节的
+分组归属**（设备侧动作要真机、外部环境动作要桌面端 / 第二台设备）；**② 任何一项做完
+都只往证据登记表追加行 + 状态列追加 `<br>**新窗口…**`，不许覆写历史**；
+**③ 不要把「设备侧跑完了」当成「用例通过了」**——还要看那一行点名的四类产物齐不齐。
+
+### A. 需要设备（一台 Android 真机，`adb devices` 能看到 serial）
+
+⚠️ **通用前置，按顺序做完再跑后面的**（每一条都是踩过的坑）：
+
+```
+adb mdns services                      # 找当前端口；⚠️ 无线调试的端口每次都变
+adb devices -l                         # ⚠️ 必须只剩 1 条（mDNS 会把同一台机器注册两条）
+adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+am set-inactive heizige.kk.khatkit.debug false      # 压 OEM 回收
+dumpsys deviceidle whitelist | grep khatkit
+```
+
+⚠️ **`connectedDebugAndroidTest` 跑完会卸载 app 并删掉外置目录里的证据文件**——采证据
+一律用**手动 `install -r -t` + 手动 `am instrument`**，跑完立刻 `adb pull`。
+
+**A1. 全量仪器测试（验证 `ea482935` 的 Coil 修复——本轮唯一一条「跑一条命令就能验」的项）**
+
+```
+./gradlew --offline :app:connectedDebugAndroidTest
+python3 - <<'EOF'
+import glob, xml.etree.ElementTree as ET
+for p in glob.glob('app/build/outputs/androidTest-results/connected/**/*.xml', recursive=True):
+    print(p, dict(ET.parse(p).getroot().attrib))
+EOF
+```
+
+**通过判据**：那份 XML 的 `tests` 落在 **≈61**（git 跟踪口径的 `androidTest` `@Test`
+总数）、**`failures="0"`**、**不再出现** `The singleton image loader has already been
+created`。⚠️ **当前磁盘上那份是 `tests="10" failures="1"`——那是修复前的现场，不是结果。**
+
+**A2. `C1LiveModelSequenceTest` 其余 4 条真机全绿**（现在只有第 5 条绿了）
+
+```
+adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+for m in pipelineRoundRecordsRealModelSequenceAndRealTokenUsage \
+         budgetTruncationSkipsRemainingRolesAndRecordsRunLog \
+         roundtableRoundRecordsChairSummaryCallSequence \
+         voteRoundRecordsBallotCallsAndSummarySequence; do
+  adb shell am instrument -w \
+    -e class "heizige.kk.khatkit.app.feature.chat.C1LiveModelSequenceTest#$m" \
+    heizige.kk.khatkit.debug.test/androidx.test.runner.AndroidJUnitRunner
+done
+```
+
+⚠️ **单方法过滤的 `#` 必须加引号**（`sh -c` 里未加引号会被当注释）。这 4 条跑完才谈得上
+C1-02 / C1-03 / C1-04 / C1-05 / C1-07 的「那条路径真的被调用过」。
+
+**A3. 真机 UI 端到端三件（本轮一项都没做，按优先级排）**
+
+1. **筛选 chip 来回切换**（C1-10 的实质缺口）：录屏走「全部 → 群聊 → 单聊 → 全部」，
+   贴切换前后两侧会话的消息数与最后一条消息 id。
+2. **成员头像组**：`GroupMemberBar` 的渲染 + 点击切视角（`uiautomator dump` 取节点文本
+   即可，别只看截图）。
+3. **@ 选择器**：`GroupRoleCompletionProvider` 的补全列表在**真机上**弹出来，且**选完之后
+   投递确实收窄**——这是 C1-01「其他角色不可见」那半句唯一的取证机会
+   （夹具的 `@` 落在用户消息上，方向相反，见遗留第 15 条）。
+
+**A4. 群配置面板的三个业务动作**（本轮只验了渲染与滚动）：保存群配置 → 重开面板确认
+字段回填；导出分享生成二维码（贴二维码载荷的 SHA-256）；导入恢复扫码导入。⚠️ **扫码那条
+同时覆盖 C1-09 的相机链路**（CameraX + MLKit 至今没在设备上跑过）。
+
+**A5. Miuix 风格复验**（两个崩溃都只在 `KedgeStyle.MD3Exp` 触发过）：把 Kedge 风格切到
+Miuix 再开群配置面板 + 滚动，确认① 图标缺失不再崩（Miuix 分支本就不走 `requireNotNull`，
+**预期是不崩但也没有图标**——把这个差异记下来）② 面板能滚 ③ **另外 62 个
+`PrimaryBottomSheet` 调用点至少抽查几个**（它们的图标/滚动参数同样没人上过真机）。
+
+**A6. 迁移侧设备动作**（B1 剩下的全部尾巴）：拿一个**从 Room 31 升上来的旧库**装上去
+（不是全新安装），确认 31→32 升级不崩、旧行 `group_cards` 是空串、群聊页刷新后导入的
+角色卡还在。⚠️ 真机库里 `user_version = 32` **不等于**跑过一次 31→32 升级。
+
+**A7. 残留旧 job 的人工编排时序**（遗留第 24 条，本类缺陷零观测）：同一会话里一条长
+生成在飞 → 期间发新消息把它判死 → 等旧 job 跑完（或反过来先超时）。⚠️ **这不是「跑一遍
+测试」能覆盖的**，必须人工编排。
+
+**A8. 四项代码债的运行时验证**（`fa36c65c` / `06cf6181` 的运行时全是零证据）：
+- `require(!isGroupConversation(...))`：需要构造一个 `ChatService` 的活跃注入点才能触发
+  （当前零活跃构造点，见该节），**所以这条更像「先定要不要留这个类」的产品/架构决策**，
+  见 C 组 C5；
+- 判死分批清空：造 **>8 条**并发 `RUNNING` 行（同一会话连续 9 次让轮次不落终态），
+  确认第 9 条起也被判死；
+- 按令牌清镜像：同一会话「新轮在飞 + 旧 job 跑完」的时序下，新轮仍能被取消。
+
+### B. 需要外部环境（设备之外的东西：桌面端、第二台设备、本机代理）
+
+**B1. 酒馆（SillyTavern）本体打开群聊导出文件**（C1-09 的实质缺口，**零证据**）：
+真机导出 → `adb pull` → 桌面端 SillyTavern 打开 → 截图/录屏。
+⚠️ AGPL 边界照旧：只借鉴**名单顺序**与**整词 `@`**，不照搬共享历史设计。
+⚠️ 这一项**从 2026-10-05 起四个窗口一次都没动过**，是最老的一块缺口。
+
+**B2. wire 级模型名**（硬理由①，唯一能消掉它的办法）：二选一——
+(a) 在 `OpenAIProvider` 侧记录响应的 `model` 字段（**属于加日志**，要单独评估隐私）；
+(b) 设备侧经**自签代理**抓包（`adb reverse` 到本机代理，或网关侧开 access log）。
+⚠️ 只做 (a) 的话记得同步更新 JSON 里的 `wire_model_name_provenance` 字段说明。
+
+**B3. QR 往返的第二台设备**：另一台 Android 扫码导入，逐字段 diff
+（`role_id` / `round_id` / `turn_kind` / 群配置 / 角色卡）+ 两端哈希，并**单独验证不含
+密钥 / 记忆 / 授权 token**（`FORBIDDEN_EXPORT_KEYS` 已在 JVM 层钉过，真机那一份要再钉一次）。
+
+**B4. 若要换真实 provider 做稳定性验证**：⚠️ **不要把 apiKey 写进任何文档、测试文件或
+提交**——内置那条公共网关的密钥已预填在源码里（位置见「C1 真机证据采集第三轮」），
+测试按 id 从 `DEFAULT_PROVIDERS` 取定义即可。真要用自己的 key，走
+`adb shell` 写进设备上的 `SettingsRepository`，**别落到仓库里**。
+
+### C. 零设备可做（主机上就能做完，不需要任何人接设备）
+
+**C1. 先收拾工作区里那两处「不是本轮改动」的未提交内容**（这是最容易踩的坑：
+下一位 `git add -A` 会把它们卷进自己的提交）：
+
+```
+git status --short
+# M app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernMacroExpander.kt
+# ?? app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/C1GroupUiE2EFixtureTest.kt
+```
+
+`C1GroupUiE2EFixtureTest.kt`（**461 行 / 3 条 `@Test`**）是一次**被中断的「真机 UI
+端到端」任务**留下的半成品。**两条路，别放着**：① 补完并单独提交（它正是 A3 需要的
+夹具）；② 删掉。⚠️ **在删之前先读一遍**——它是目前唯一一份「UI 端到端夹具」的成果。
+`TavernMacroExpander.kt` 那 1 行改动要**找它的作者确认归属**再决定提交与否。
+
+**C2. 修「证据登记」表里 C1-05 那一行的一个未转义 `|`**：该行有个裸 `|` 落在
+「token」列的文本里，导致**按列数切单元格的任何脚本都会把它数成 13 列**
+（其余 9 行是 11 列、用例矩阵是 5 列）。本轮的状态列审计就是被它绊了一次。
+把它改成 `\|` 或换成 `/` 即可。
+
+**C3. 一条命令重出全部数字**（把本文三处统计口径固化成脚本，避免每次手抄）：
+本轮已实测的三个口径是 ① `:app:testDebugUnitTest` 逐 XML 求和（105 / 808）
+② lint 逐 `<issue>` 数 `severity`（app 584W+6H、15 模块 617W+7H）
+③ `app/src/androidTest` 逐文件 `grep -c '@Test'` 求和（跟踪口径 61 / 含 untracked 64）。
+⚠️ 记的时候**必须同时写清口径**（哪个含 untracked、lint 报告是哪一次生成的无法从 XML 读出）。
+
+**C4. `TavernChatCodec.importGroup` 补 `validate`**（遗留第 19 条，零设备可做）：
+当前**无调用方、暂不可达**，但 `af104850` 那条「`role_id` 不能是 `__summary__`」在这个
+入口上不生效。补一次 `GroupChat.validate(...)` + 几条 JVM 用例即可（纯函数、
+`testImplementation` 只有 junit 也够）。
+
+**C5. `ChatService.finishInterruptedPendingTools` 的产品决策**（本轮新发现、零证据）：
+那三处 `providerHandler.generateText` 从 `stopGeneration` 可达且不群聊感知。**先把
+「群聊下是跳过还是做成群聊感知」写成一条决策记录**再动手——两者都改运行时行为、
+都要真机，**没有决策就不该改**。顺带把「`ChatService` 这个类要不要留」也一起定了
+（它当前零活跃构造点，见该节）。
+
+**C6. `GroupChatPage.onEdit` 只放行 USER 的口径显式化**（遗留第 8 条 / B8）：
+要放开必须同步改写 `group_runs.committed_role_ids`。**先写决策，不先改代码**。
+
+**C7. B2 抽屉搜索 `folder_id` 口径的 KDoc 显式化**（已定稿为方案 B，只差文档化）：
+把「搜索跨文件夹」这条**已认可**的口径写进 `ChatDrawerViewModel` 的 KDoc，
+并在 B2 遗留项里记成已知且认可。**那不是口径变更，是文档化工作。**
+
+**C8. 给已改过但零护栏的顺序不变量补护栏**：`GroupConfigSheet` 那两个修复已经补了
+（`5d58f923` / `54c196ca`），⚠️ **同类的还有别处**——凡「调用必须排在某个副作用之前」
+的形状目前只有 `commitGroupTurn` / `failGroupTurn` 两处有护栏。
+⚠️ **写这类护栏必须自带一条「扫描器仍能找到东西」的反空跑断言**（本轮踩过：
+尾随 lambda 的大括号在右括号外面，括号配平法会整段漏扫内容体，主断言因此恒绿）。
+
+**C9. 把本轮的诚实边界同步进任何对外材料**：**Miuix 未验 / 62 个调用点未逐个上真机 /
+面板业务动作未点 / Coil 修复未在设备上复跑 / 四项代码债运行时零证据**——
+这五条**一条都不许在总结里被省略**。
 
 ## 已知遗留与风险
 
@@ -3706,29 +4360,53 @@ SHA-256。
      `everyScreenMemberHasAWorkingSerializer`——遍历全部 `sealedSubclasses`，断言每个成员
      `serializerOrNull() != null` 且**能往返**。这次是「少一个成员就红」的形状，
      不是「点名测某几个」。
-12. **⚠️ 既有缺陷：全量仪器测试跑不完（未修）。**
-   `:app:connectedDebugAndroidTest` **全量 56 条**，第 10 条
-   `BrowserRuntimeTest.threeTabsCanTypeClickAndReadIndependentLiveSnapshots` 失败后
-   **整个 instrumentation 进程 crash**：
+12. **⚠️ 既有缺陷：全量仪器测试跑不完。**
+    ✅ **已改记（`ea482935` + `2766afc7`，2026-10-06）：根因已定位、修法已落地，
+    ⚠️ 但真机效果未验证。** 原文按惯例保留不覆写：
+    `:app:connectedDebugAndroidTest` **全量 56 条**，第 10 条
+    `BrowserRuntimeTest.threeTabsCanTypeClickAndReadIndependentLiveSnapshots` 失败后
+    **整个 instrumentation 进程 crash**：
 
-   ```
-   java.lang.IllegalStateException: The singleton image loader has already been created.
-     at coil3.SingletonImageLoader.setSafe(SingletonImageLoader.kt:41)
-     at coil3.compose.SingletonImageLoadersKt.setSingletonImageLoaderFactory(singletonImageLoaders.kt:17)
-     at heizige.kk.khatkit.app.RouteActivity.onCreate$lambda$0$0(RouteActivity.kt:202)
-   ```
+    ```
+    java.lang.IllegalStateException: The singleton image loader has already been created.
+      at coil3.SingletonImageLoader.setSafe(SingletonImageLoader.kt:41)
+      at coil3.compose.SingletonImageLoadersKt.setSingletonImageLoaderFactory(singletonImageLoaders.kt:17)
+      at heizige.kk.khatkit.app.RouteActivity.onCreate$lambda$0$0(RouteActivity.kt:202)
+    ```
 
-   Coil 单例 `ImageLoader` **初始化顺序冲突**，来自
-   `b5c5ebcb feat(browser): 浏览器运行时卡片化`，**与 C1 无关**，**稳定复现**
-   （重跑 2 次都是同样「3/56 时挂、10/56 后 crash」）。**未修。**
-   - **后果**：Gradle 只收集到**前 10 条**结果，**其余 46 条状态未知**——不是失败，是
-     **没跑到**。
-   - **绕法**：改用**按类过滤 / 合跑**。已用合跑覆盖 **45 条**（56 减去
-     `ExampleInstrumentedTest` 1 / `NodeTreeSmokeTest` 4 /
-     `DependencyReadOnlyLoadTest` 2 / `BrowserRuntimeTest` 1 中挑的）。
-     **未单独跑过的是**：`NodeTreeSmokeTest`(4)、`DependencyReadOnlyLoadTest`(2)、
-     `ExampleInstrumentedTest`(1)。
-   - ⚠️ 「45/45 全绿」**不等于「全量 56 条全绿」**，别把两个数混着说。
+    Coil 单例 `ImageLoader` **初始化顺序冲突**，来自
+    `b5c5ebcb feat(browser): 浏览器运行时卡片化`，**与 C1 无关**，**稳定复现**
+    （重跑 2 次都是同样「3/56 时挂、10/56 后 crash」）。**未修。**
+    - **后果**：Gradle 只收集到**前 10 条**结果，**其余 46 条状态未知**——不是失败，是
+      **没跑到**。
+    - **绕法**：改用**按类过滤 / 合跑**。已用合跑覆盖 **45 条**（56 减去
+      `ExampleInstrumentedTest` 1 / `NodeTreeSmokeTest` 4 /
+      `DependencyReadOnlyLoadTest` 2 / `BrowserRuntimeTest` 1 中挑的）。
+      **未单独跑过的是**：`NodeTreeSmokeTest`(4)、`DependencyReadOnlyLoadTest`(2)、
+      `ExampleInstrumentedTest`(1)。
+    - ⚠️ 「45/45 全绿」**不等于「全量 56 条全绿」**，别把两个数混着说。
+    - ✅⚠️⚠️ **订正与现状（2026-10-06，HEAD `a74c1820`）**：
+      - **「来自 `b5c5ebcb`」这个归因是错的**：`git show --name-only b5c5ebcb | grep -i coil`
+        **零命中**，它一行 Coil 都没碰；全仓配置 Coil 的地方**只有 `RouteActivity` 一处**。
+        真正的因果链是**同一 instrumentation 进程里的执行顺序**：先创建 loader 的是
+        **`NodeTreeSmokeTest`**（`createComposeRule()` 不带 Activity 渲染 `AsyncImage`，
+        先跑 `get()` 把**内置默认** loader 钉死），随后 `BrowserRuntimeTest`（`b5c5ebcb`
+        加进来的类）的 `ActivityScenarioRule(RouteActivity::class.java)` 拉起 Activity，
+        `setSafe` 当场抛，挂在 `super.onCreate()` 之后、`setContent` 之前 →
+        **整进程死**。**`b5c5ebcb` 只是加了 2 个 androidTest 类、改变了执行顺序，把一个
+        一直存在的隐患顶出来了。**
+      - **修法（`ea482935`）**：`ImageLoaderFactory` 从 `RouteActivity.onCreate` 的组合搬到
+        **`KhatKitApp : Application(), SingletonImageLoader.Factory`**，组件清单原样保留
+        （crossfade / `KtorNetworkFetcherFactory` / P 以上 `AnimatedImageDecoder` 否则
+        `GifDecoder` / `SvgDecoder`）。**不用条件判断绕过**，因为那会在测试进程里**静默
+        跳过自定义配置**（Ktor 网络栈 + GIF/SVG），把崩溃换成更难查的行为不一致。
+      - **护栏（`2766afc7`）**：`CoilImageLoaderSourceGuardTest` **6 例**，含一条
+        **把因果链本身钉成断言**的（`NodeTreeSmokeTest` 仍用 `createComposeRule` +
+        `AsyncImage`、`BrowserRuntimeTest` 仍用 `ActivityScenarioRule`）——没有它，
+        将来谁改掉其中一个测试，这条崩溃就会「不再复现」而没人知道因果链断了。
+      - ⚠️⚠️ **真机效果未验证（本轮按约束不碰设备）**：磁盘上那份 `tests="10" failures="1"`
+        的 XML 是**修复前**的现场。验证只需一条
+        `./gradlew --offline :app:connectedDebugAndroidTest`，判据见上面 A1。
 13. **⚠️ 顺手修掉的另一处 KDoc / 实现不一致。**
     `SettingAnimPlayPage.kt` 的 KDoc 写「用 `[PathFillEvenOdd]`」，但实现其实用的是
     `Brush.radialGradient`——**KDoc 与实现不一致**。随该文件删除（`18baa930`）一并消失，
@@ -3801,18 +4479,28 @@ SHA-256。
     不可能」**——将来新增调用方若能构造出「无 USER 消息且列表非空」的输入，
     `index >= roundStart` 会重新变成 fail-open。**新增调用方时必须重跑那两个探针。**
 22. **⚠️⚠️ `onSuccess` 里 `null -> groupRunsInFlight.remove(conversationId)` 的连带损伤
-    （`2fdee352` 附带发现，刻意没改）。**
+    （`2fdee352` 附带发现；✅ `06cf6181` 已修，⚠️ 运行时仍未验证）。**
     `ChatManager.kt:1007` 那行 `null -> groupRunsInFlight.remove(conversationId)`，
     在残留旧 job 走到这里时**镜像里装的是新轮的令牌**，这一 remove 让
     **新轮再也取消不掉**（`cancelActiveGroupRun` 第一行就 `remove` 不到东西、直接
     return）、续跑拿不到 `expectedRunToken`、**整轮卡死**。
-    ⚠️ **刻意不改，理由两条**：① 改它会**动正常路径**——`produced == null` 时
+    ⚠️ **上一批刻意不改，理由两条**：① 改它会**动正常路径**——`produced == null` 时
     `failGroupTurn` 可能提前 `return`（配置没了 / plan 算不出 / 守卫拒收），
     **那一次 remove 是镜像唯一的兜底清账**；② 本轮 ②③ 的修法是**让拒绝走
     `Advance.Halted` 而不是 `null`**，从而**绕开**这一行——⚠️ **这不是修好了这行，
     是让这条路不再走到它**。⚠️ **将来任何新增的「返回 null」分支都会重新踩到它**，
     所以新分支一律走 `Halted`。
-23. **⚠️ `abandonDanglingGroupRuns` 的 `limit = 8` 与契约有张力（未修，后果未核实）。**
+    ✅ **第六个窗口已修（`06cf6181`）**：`null ->` 分支改成
+    `clearGroupRunMirrorIfMine(conversationId, groupRunToken)`，内部用
+    `ConcurrentHashMap.remove(key, value)` **两参重载**（原子、值相等才删）。
+    **既有兜底为什么没被破坏**：核实 `commitGroupTurn` 返回 `null` **只有一种形状**
+    （`produced == null`），那条路里 `failGroupTurn` 在归属成立时自己已清镜像；
+    剩下的兜底只为「提前 return」而存在——而那两种提前 return 里镜像装的**正是本轮
+    令牌**，按令牌比对照清不误；令牌为 null（理论不可达）时**宁可不删**。
+    ⚠️ **护栏是文本级的**（`GroupStaleJobCommitSourceGuardTest` **+2 例**：禁「按 key
+    无条件删」的旧形状 + 钉 `null ->` 分支走按令牌清，变异检验两次真红）。
+23. **⚠️ `abandonDanglingGroupRuns` 的 `limit = 8` 与契约有张力（✅ `06cf6181` 已修，
+    ⚠️ 运行时仍未验证）。**
     `ChatManager.kt:2098` 取「挂着 `RUNNING` 的行」时写了 `limit = 8`
     （同样的常量也出现在 `:853` 的另一处调用）。契约说「**任何群聊轮次都不会永久
     悬挂**」，但**超过 8 条**时**第 9 条起不会被判死**，仍是**永久 `RUNNING` 占位**。
@@ -3821,6 +4509,17 @@ SHA-256。
     一条，理论上「连续 9 次发消息、每次都有一条轮次没落终态」能堆出来，但那要求
     **9 次判死路径全部失效**，本轮**零证据**。所以这条按「**未修 + 后果未核实**」
     登记，⚠️ **不要写成「已确认会永久悬挂」**。
+    ✅ **第六个窗口已修（`06cf6181`，前半）**：改成**分批循环读到清空**——
+    `ABANDON_BATCH_SIZE = 8` 只作**分页**、`ABANDON_MAX_BATCHES = 64` 只作**收敛上限**；
+    每行判死前 `findByRound` 重读 + `isTerminal` 跳过（`terminal()` 不判终态，盲目写会
+    把别人的终态抹成 `CANCELLED`）。**为什么留硬上限**：同会话在本函数执行期间又抢占
+    成功一轮时行数不单调减少，无界循环会自旋，**那比留占位更糟**。
+    ⚠️ **顺带订正原注一处误导**：早前写「同样的常量也出现在 `:853`」——**实际 `:853`
+    （`fa36c65c` 之后漂到 `:872`）是 `searchMemories(limit = 8)` 的记忆条数上限，
+    语义无关**，只是碰巧同值。
+    ⚠️ **仍未验证**：① 分批循环的真机行为（零设备，要造 >8 条并发 `RUNNING` 才能验，
+    见操作清单 A8）；② 单会话能否真的堆到 9 条并发 `RUNNING` 这一点**本轮仍未核实**——
+    修法是按契约的「清空」来做的，**不代表那个前提已被证实**。
 24. **⚠️⚠️ ②③ 修的那两条残留旧 job 路径，从未在真机上复现过（零设备）。**
     触发前提「`abandonDanglingGroupRuns` 不取消任何 job」是**读代码 + 核实
     `ConversationSession.cancelJobs()` 只被 `stopGeneration` / `cleanup()` 调用**
@@ -3841,6 +4540,49 @@ SHA-256。
     ⚠️ 顺带说明：**`361c7cf6` 不属于 C1**（`git show --stat` = 1 file /
     14 insertions / 3 deletions，只改 `ChatMessage.kt` 的 KDoc、**零测试改动**），
     它被记在这里是因为第 20 条本身是 C1 的遗留清单之一。
+    ✅ **第六个窗口补了防回退护栏（`bed09118`，`GroupForkDisableReasonSourceGuardTest`
+    2 例，KDoc 一个字没改）**：① fork 段落不许把账目错位算到 fork 头上 ② **姊妹例**
+    要求重新生成 / 删除那两半必须保留它们自己的账目错位理由（防止有人把整段一刀切
+    删掉）。⚠️ **护栏钉的是禁因的归属、不是逐字文案**——措辞可以改，归属不许回退。
+    实测变异 M5 把假的账目错位写回 KDoc 时**变红**，姊妹例保持绿。
+26. **⚠️⚠️ 群配置面板两个真机必崩已修（`33eb801e` / `71d1439e`），但四条边界没消。**
+    **① Miuix 风格完全没验**——两个崩溃都只在 `KedgeStyle.MD3Exp` 触发（这是**读代码**
+    得出的：Miuix 分支不走 `requireNotNull`，且 `PrimaryBottomSheet` 的 KDoc 写明
+    Kedge 版「靠内容自身滚动，忽略该参数」），**Miuix 下这个面板是不是也崩过、行为是否
+    不同，零证据**；② 其余 **62 个 `PrimaryBottomSheet` 调用点**（`app/src/main` 里 `grep -rn "PrimaryBottomSheet("` = **66** 处命中，减去定义文件 `core/ui/components/ui/PrimaryBottomSheet.kt` 里那 **4** 处（1 个声明 + 3 个委派调用）= **62**；⚠️ **把 `src/test` / `src/androidTest` 也算进去是 68**。⚠️ **「64」这个数在两种口径下都复现不出来，本轮按实测的 62 登记**）靠源码扫描 + 既有单测，
+    **没逐个上真机**（只有群配置面板这一个真的开过）；③ **没有在旧 APK 上先复现崩溃再
+    对比修复**——原始栈是用户实测给的，所以「修完不崩」与「修的就是这条栈」靠的是
+    **栈帧行号对得上**，不是受控对比；④ 面板里的**保存 / 生成二维码 / 扫码导入三个业务
+    动作一个都没点过**，只验了渲染与滚动。完整登记见「群配置面板两个真机必崩已修并真机
+    验证」那一节。
+27. **⚠️⚠️ 工作区里有两处「不是 C1 文档改动」的未提交内容——下一个人务必先看清楚。**
+    `git status --short` 当前是：
+    - `M app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernMacroExpander.kt`
+      （**1 insertion / 1 deletion**，内容照记：`expandTavernMacros` 里那条宏正则的结尾从
+      `}}` 改成 `\}` + `}` 的转义写法 `Regex("…\\s*\\}\\}")`——**正则语义等价、只是把
+      「两个闭括号」写成显式转义**。⚠️ **谁改的、为什么，本轮不知道**，所以只登记不处置）
+    - `?? app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/C1GroupUiE2EFixtureTest.kt`
+      （**461 行 / 3 条 `@Test`**，一次**被中断的「真机 UI 端到端」任务**留下的半成品）
+    ⚠️ **本轮既没有 add 也没有修改它们**（两处的 mtime 都早于本轮），⚠️ **下一位
+    `git add -A` 会把两处一起卷进自己的提交**。⚠️ **`C1GroupUiE2EFixtureTest.kt` 让
+    `app/src/androidTest` 的 `@Test` 数从 61 变成 64**——引用「61」时必须写清是
+    **git 跟踪口径**。处置见操作清单 C1。
+28. **⚠️ `ChatService.finishInterruptedPendingTools` 里三处 `generateText` 同样不群聊感知，
+    而且从 `stopGeneration` 可达（本轮新发现，未动手）。**
+    `fa36c65c` 的 fail-loud 闸门只在 `handleMessageComplete`——它是 `ChatService` 里
+    `generationLoop.generateText` 的唯一调用点，**但 `finishInterruptedPendingTools`
+    里的三处 `providerHandler.generateText` 是另一条旁路**（取消后续跑工具），
+    **`stopGeneration` 能走到它**。⚠️ **修它要先定产品行为**：群聊下**跳过**（工具调用
+    在群聊轮次里没有正确语义）vs **做成群聊感知**（等于要在这个类里重建一套）。**两者
+    都改运行时行为、都需要真机**，所以只登记不动（见操作清单 C5）。
+    ⚠️ 别把它读成「`fa36c65c` 的闸门没覆盖全」——**那个闸门本来就不是为这条路径设计的**，
+    类 KDoc 里也写了「另三处 `providerHandler.generateText` 属于
+    `finishInterruptedPendingTools`，那是取消后续跑工具的旁路」。
+29. **⚠️ 四项代码债的运行时行为全是零证据（本轮唯一的 gradle 证据只到「编译 + 单测」）。**
+    `require` 是不是真抛、分批循环在真机上的实际行为、`remove(key, value)` 的真实并发
+    效果、以及「`produced == null` 时 `failGroupTurn` 提前 return」的具体触发条件，
+    **一条都没在真机上观测过**。⚠️ **三条 gradle 命令（编译 / 单测绿）不构成任何契约验收
+    证据**，护栏也全是**源码文本级**的。运行时验证步骤见操作清单 A8。
 
 ### ⚠️ 真机窗口之后，「下一位怎么把 unverified 变成 verified」还剩什么
 
@@ -3954,3 +4696,32 @@ roundtable / vote 的真实调用仍然零份。**最短的下一步**是第 1 �
   触发前提本身只是**读代码 + 核实 `cancelJobs()` 调用点**得到的，不是观测。
   换句话说：**回归护栏证明的是「我们钉住了那条不变量」，验收证明的是「契约那四类产物
   在真机上被采到了」——前者永远不能顶替后者**，哪怕两边的用例数加起来很好看。
+- ⚠️ **本轮补的第六条（2026-10-06，第六个窗口之后加——这是本轮最重要的一条）**：
+  **「拿到了真实 token、真实调用序列、而且那条用例真机全绿了」仍然不够。**
+  第六个窗口把 `realProviderRoundRecordsGenuineTokenUsage` 跑到了
+  `am instrument` **退出码 0** / `numtests=1` / `Time: 16.002` / `OK (1 test)`，
+  真实 usage a `6839/92`、b `6645/58`、c `6904/242`，**Σ = 20780 与落库 `spent_tokens`
+  精确相等**，三份产物拉回主机并记了 SHA-256——**这是十例 0/10 的最后一道锁破了**。
+  **十行状态列仍然一个格都没动**，因为同时踩了**五条**——
+  ① **模型名不是 wire 级抓包**（`message.modelId` 的 uuid 反查，app 不保存响应 `model`）；
+  ② **真机 UI 端到端零份**：那轮只验了**群配置面板的渲染与滚动**，
+  **成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做**，面板里的
+  **保存 / 二维码 / 扫码三个业务动作一个都没点**；
+  ③ **酒馆本体零份**；④ **相机扫码零份**；
+  ⑤ **`C1LiveModelSequenceTest` 其余 4 条仍未真机全绿**（只跑了目标用例那一条）。
+  ⚠️ **这一条的操作化形式**：「四类产物有没有」不是判据，**「这一行点名的那条路径，
+  在这一类产物里有没有被真的调用过」才是**。第四轮的证据是**整轮 pipeline**，
+  而 C1-01 / 03 / 04 / 05 / 06 / 07 / 08 / 09 / 10 要的路径**一条都没被它调用**。
+  换句话说：**「全绿」是对「那条用例」的结论，不是对「这一行」的结论。**
+- ⚠️ **本轮补的第七条（同一窗口）**：**「修了真机崩溃」也等于零验收证据。**
+  第六个窗口修了两个真机必崩（`PrimaryBottomSheet` 漏传图标 / 弹层滚动容器套两层）
+  并真机复验过（`logcat -b crash` 为空、15 个字段全渲染、5 滚 3 反不崩），又修了那条
+  稳定复现的 Coil 单例崩溃。但**两个 UI 崩溃与 Coil 崩溃都不产出契约 `:206` 点名的
+  任何一类产物**，而且四条边界没消：**Miuix 未验 / 62 个调用点未逐个上真机 /
+  面板业务动作未点 / Coil 修复未在设备上复跑**。
+  ⚠️ **顺带一条方法论**（本轮踩到，值得单独记）：**源码文本护栏扫描 Compose 调用点
+  不能靠括号配平**——`content` 这类**尾随 lambda 的大括号在右括号外面**，第一版护栏
+  整段漏扫内容体，**主断言因「谁都不违规」而恒绿**。**每批源码护栏都必须自带一条
+  「扫描器仍能找到东西」的反空跑断言**，否则扫描范围一旦被改窄，整批断言会静默变绿
+  （同一个坑在 Coil 护栏里以另一种形式复发了一次：只认 `(` 会漏掉
+  `setSingletonImageLoaderFactory { context -> … }`）。
