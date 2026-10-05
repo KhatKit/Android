@@ -953,6 +953,271 @@ class GroupTurnCoordinatorTest {
         }
     }
 
+    // ------------------------------------------------------------------
+    // 6c. 上一组用例的四个覆盖盲区（议长没进遍历 / 没有跨轮负向断言 /
+    //     每角色恰好一条 / pipeline 只断了 4 对）
+    // ------------------------------------------------------------------
+
+    /**
+     * 盲区 ①：上面那条 `every ordered viewer pair ... roundtable mode` 用的是四人配置
+     * （alice/bob/carol/chair）却把 `memberIds` 硬编码成三人，**议长作为 viewer 从没被遍历**。
+     * 这里改用 `config.roles` 全遍历，把议长那一格补上。
+     *
+     * 对照组（`chairRound = false`）是关键：不传议长标志时议长只能看到「用户消息 + 自己」，
+     * 两条对照一起断才能排除「过滤对议长根本不生效」这种假阳性。
+     */
+    @Test
+    fun `the chair is walked as a viewer too and chairRound is what widens its view`() {
+        // 三人 roundtable，第三位即议长——真机已验证的形状。
+        val config = GroupConfig(
+            roles = listOf(alice, bob, carol),
+            mode = GroupChat.MODE_ROUNDTABLE,
+            chairRoleId = carol.id,
+            tokenBudgetPerRound = 1000,
+        )
+        val messages = listOf(
+            user("议题"),
+            assistant("a 的看法", "alice"),
+            assistant("b 的看法", "bob"),
+            assistant("c 的看法", "carol"),
+        )
+        val chairStep = GroupChat.plan(config, emptyList()).first { it.chairRound }
+        assertEquals("议长必须是 carol", "carol", chairStep.role.id)
+
+        // 放开：议长看得见 user + a + b + c 共四条。
+        assertEquals(
+            listOf("议题", "a 的看法", "b 的看法", "c 的看法"),
+            GroupTurnCoordinator.viewerMessages(config, messages, chairStep).map { it.toText() },
+        )
+
+        // 不放开：同一个 viewer、同一批消息，只剩 user + 自己两条。
+        val chairAsOrdinaryMember = chairStep.copy(chairRound = false)
+        assertEquals(
+            "不传 chairRound 时议长只应看到用户消息 + 自己那条",
+            listOf("议题", "c 的看法"),
+            GroupTurnCoordinator.viewerMessages(config, messages, chairAsOrdinaryMember).map { it.toText() },
+        )
+
+        // 议长也在 `config.roles` 里，全体有序对一个都不能漏。
+        assertTrue(config.roles.any { it.id == chairStep.role.id })
+        val ownText = mapOf("alice" to "a 的看法", "bob" to "b 的看法", "carol" to "c 的看法")
+        config.roles.forEach { viewer ->
+            val step = GroupChat.plan(config, emptyList()).first { it.role.id == viewer.id }
+            val visible = GroupTurnCoordinator.viewerMessages(config, messages, step).map { it.toText() }
+            assertTrue("${viewer.id} 应看得见用户消息", visible.contains("议题"))
+            assertTrue("${viewer.id} 应看得见自己那条", visible.contains(ownText.getValue(viewer.id)))
+            // 非议长看不到别人的；议长（走 chairRound）例外，所以只在非议长身上断言。
+            if (!step.chairRound) {
+                config.roles.filter { it.id != viewer.id }.forEach { other ->
+                    assertFalse(
+                        "${viewer.id} 越权看到了 ${other.id}",
+                        visible.contains(ownText.getValue(other.id)),
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 盲区 ②：没有任何用例断言「议长不该看到本轮之前的历史发言」。
+     * 造两轮，议长（`chairRound = true`）的可见集合必须**不含**第一轮其他角色的发言。
+     *
+     * 这条同时把 `index >= roundStart` 钉死：`roundStart` 取最后一条 USER 的下标，
+     * 第一轮发言全在它之前，因此一条都不该被 `chairRound` 分支捞进来。
+     */
+    @Test
+    fun `the chair sees the current round but never the previous round`() {
+        val config = GroupConfig(
+            roles = listOf(alice, bob, carol),
+            mode = GroupChat.MODE_ROUNDTABLE,
+            chairRoleId = carol.id,
+            tokenBudgetPerRound = 1000,
+        )
+        val messages = listOf(
+            user("第一轮议题"),
+            assistant("旧轮 alice", "alice", roundId = "round-1"),
+            assistant("旧轮 bob", "bob", roundId = "round-1"),
+            user("第二轮议题"),
+            assistant("本轮 alice", "alice", roundId = "round-2"),
+            assistant("本轮 bob", "bob", roundId = "round-2"),
+        )
+        val chairStep = GroupChat.plan(config, emptyList()).first { it.chairRound }
+
+        val visible = GroupTurnCoordinator.viewerMessages(config, messages, chairStep).map { it.toText() }
+
+        assertEquals(
+            "议长只应看到两条用户消息 + 本轮两位成员的发言",
+            listOf("第一轮议题", "第二轮议题", "本轮 alice", "本轮 bob"),
+            visible,
+        )
+        assertFalse("议长不该看到第一轮 alice 的发言", visible.contains("旧轮 alice"))
+        assertFalse("议长不该看到第一轮 bob 的发言", visible.contains("旧轮 bob"))
+
+        // 对照：不放开议长标志时，本轮别人的发言也看不到（只剩两条用户消息）。
+        assertEquals(
+            listOf("第一轮议题", "第二轮议题"),
+            GroupTurnCoordinator.viewerMessages(config, messages, chairStep.copy(chairRound = false))
+                .map { it.toText() },
+        )
+    }
+
+    /**
+     * 盲区 ③：所有既有夹具每个角色**恰好一条**发言，而 [GroupChat.visibleMessages] 用的是
+     * `filterIndexed` + `index >= roundStart`——同一角色连发多条时最容易错位。
+     * 断言 viewer 看到**全部三条**、顺序不变，且仍然不越权。
+     */
+    @Test
+    fun `several messages from the same role are all visible to their author in order`() {
+        val config = roundtableConfig()
+        val messages = listOf(
+            user("议题"),
+            assistant("alice 之一", "alice"),
+            assistant("alice 之二", "alice"),
+            assistant("alice 之三", "alice"),
+            assistant("bob 的私有结论", "bob"),
+        )
+
+        val aliceView = GroupTurnCoordinator
+            .viewerMessages(config, messages, stepOf(config, "alice"))
+            .map { it.toText() }
+
+        assertEquals(
+            "作者必须看到自己这一轮的全部三条，且顺序不变",
+            listOf("议题", "alice 之一", "alice 之二", "alice 之三"),
+            aliceView,
+        )
+
+        // 越权那半边照旧：bob 连发三条也不能让 alice 看到。
+        assertFalse(aliceView.contains("bob 的私有结论"))
+        val bobView = GroupTurnCoordinator
+            .viewerMessages(config, messages, stepOf(config, "bob"))
+            .map { it.toText() }
+        assertEquals(listOf("议题", "bob 的私有结论"), bobView)
+    }
+
+    /**
+     * 盲区 ③ 的另一半：`predecessorId` / `chairRound` 两条 `index >= roundStart` 分支在
+     * 「上一位连发多条」时也必须把三条全放出来（而不是只放最后一条或漏掉中间那条）。
+     */
+    @Test
+    fun `a predecessor that spoke several times is passed on in full`() {
+        val config = pipelineConfig()
+        val messages = listOf(
+            user("接力"),
+            speaking("bob 之一", "bob"),
+            speaking("bob 之二", "bob"),
+            speaking("bob 之三", "bob"),
+            assistant("carol 的输出", "carol"),
+        )
+
+        // carol 的上一位是 bob：三条都要送到。
+        assertEquals(
+            listOf("接力", "bob 之一", "bob 之二", "bob 之三", "carol 的输出"),
+            GroupTurnCoordinator.viewerMessages(config, messages, stepOf(config, "carol")).map { it.toText() },
+        )
+        // alice 的下一位才是 bob，所以 alice 看不到 bob 的任何一条。
+        assertEquals(
+            listOf("接力"),
+            GroupTurnCoordinator.viewerMessages(config, messages, stepOf(config, "alice")).map { it.toText() },
+        )
+    }
+
+    /**
+     * 盲区 ③ 的第三块：`predecessorId` 分支的 `index >= roundStart` 守卫。
+     *
+     * 变异检验发现，把该守卫删掉（`index >= roundStart` → 恒真）时**没有任何**用例失败——
+     * 既有用例全是单轮，而单轮里 `roundStart` 恒为 0，守卫是死代码。这里造两轮把它逼出来：
+     * carol 的上一位是 bob，bob 在**第一轮**那条发言不属于本轮，必须看不见。
+     */
+    @Test
+    fun `a predecessor output from a previous round is not handed over`() {
+        val config = pipelineConfig()
+        val messages = listOf(
+            user("第一轮议题"),
+            speaking("旧轮 alice", "alice", roundId = "round-1"),
+            speaking("旧轮 bob", "bob", roundId = "round-1"),
+            user("第二轮议题"),
+            speaking("本轮 alice", "alice", roundId = "round-2"),
+            speaking("本轮 bob", "bob", roundId = "round-2"),
+        )
+        assertEquals("pipeline 里 carol 的上一位是 bob", "bob", stepOf(config, "carol").predecessorId)
+
+        val carolView = GroupTurnCoordinator
+            .viewerMessages(config, messages, stepOf(config, "carol"))
+            .map { it.toText() }
+
+        assertEquals(
+            "只带本轮上一位的输出，两条用户消息都在",
+            listOf("第一轮议题", "第二轮议题", "本轮 bob"),
+            carolView,
+        )
+        assertFalse("上一位在上一轮的发言不该被带过来", carolView.contains("旧轮 bob"))
+
+        // bob 自己的两条发言按契约本来就一直看得见（`roleId == viewerId` 不带轮次守卫），
+        // 但它的上一位是 alice，所以只能额外拿到**本轮** alice 那条。
+        val bobView = GroupTurnCoordinator
+            .viewerMessages(config, messages, stepOf(config, "bob"))
+            .map { it.toText() }
+        assertEquals(
+            listOf("第一轮议题", "旧轮 bob", "第二轮议题", "本轮 alice", "本轮 bob"),
+            bobView,
+        )
+        assertFalse("上一位在上一轮的发言不该被带过来", bobView.contains("旧轮 alice"))
+    }
+
+    /**
+     * 盲区 ④：pipeline 那条 `a viewer never sees a member message ...` 把「自己」与
+     * 「上一位」从断言集合里剔掉了（`allowed = setOfNotNull(viewer.id, step.predecessorId)`），
+     * 于是 3 角色只断了 4 个负向对：alice→{bob,carol}、bob→{carol}、carol→{alice}。
+     * 这里按 `config.roles` 嵌套 forEach 把 **9 个有序对**全遍历，每一对都断——
+     * 该看的（自己 / 上一位）断「看得见」，不该看的断「看不见」。
+     */
+    @Test
+    fun `all nine ordered pipeline viewer pairs are asserted both ways`() {
+        val config = pipelineConfig()
+        val messages = listOf(
+            user("先讨论架构"),
+            assistant("alice 主张 A", "alice"),
+            assistant("bob 主张 B", "bob"),
+            assistant("carol 主张 C", "carol"),
+        )
+        val steps = GroupChat.plan(config, emptyList())
+        assertEquals("pipeline 是 3 角色 → 9 个有序对", 9, config.roles.size * config.roles.size)
+
+        var pairsAsserted = 0
+        val expectedText = mapOf(
+            "alice" to "alice 主张 A",
+            "bob" to "bob 主张 B",
+            "carol" to "carol 主张 C",
+        )
+        config.roles.forEach { viewer ->
+            val step = steps.first { it.role.id == viewer.id }
+            val visibleTexts = GroupTurnCoordinator
+                .viewerMessages(config, messages, step)
+                .map { it.toText() }
+
+            config.roles.forEach { other ->
+                val expected = expectedText.getValue(other.id)
+                val shouldSee = other.id == viewer.id || other.id == step.predecessorId
+                pairsAsserted++
+                if (shouldSee) {
+                    assertTrue(
+                        "(${viewer.id}, ${other.id}) 该看得见：$expected",
+                        visibleTexts.contains(expected),
+                    )
+                } else {
+                    assertFalse(
+                        "(${viewer.id}, ${other.id}) 不该看得见：$expected",
+                        visibleTexts.contains(expected),
+                    )
+                }
+            }
+            // 用户消息对每一对都在。
+            assertTrue("${viewer.id} 应看得见用户消息", visibleTexts.contains("先讨论架构"))
+        }
+        assertEquals("9 个有序对一个都不能漏", 9, pairsAsserted)
+    }
+
     @Test
     fun `mentions are delivered only to the mentioned role`() {
         val config = pipelineConfig()
