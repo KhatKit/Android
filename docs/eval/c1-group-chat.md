@@ -4126,7 +4126,7 @@ trace 关键行：`1791277101097 real:preflight-ok baseUrl=https://api.zenneko.t
 | `c1-live-evidence-real-provider.json` | 10441 | `3b02140b216be4b684927d59a990726ba231d461dc665cf504559814c147b8b1` | **逐字节相同 ⇒ 正式通过证据未被改写** |
 | 其余 16 份 | — | （未逐条登哈希） | 逐字节相同 |
 
-- ✅ **落盘通道打通**：设备端 `c1-real-raw-dump.json` 的 mtime 前进到 **17:10**（正式证据仍停在 16:58 默认跑）——上一轮「截断路径下永远写不出来」的问题已修好（`31b6b5a52` 把写入挪进 `finally` 并重读现场）。⚠️ 两者 mtime 为执行者设备侧实测；本机 pull 副本的 mtime 同为 raw dump 17:10、正式证据 16:58，且 SHA/逐字节对比一致。
+- ✅ **落盘通道打通**：设备端 `c1-real-raw-dump.json` 的 mtime 前进到 **17:10**（正式证据仍停在 16:58 默认跑）——上一轮「截断路径下永远写不出来」的问题已修好（`31b6b5a52` 把写入挪进 `finally` 并重读现场）。⚠️ **两者 mtime 为执行者设备侧实测（本机无法直接复核设备 mtime）**；本机 pull 副本的 mtime 分别是两次 pull 的时刻（`real-default/` 16:58、`real-budget9000/` 17:10，**不能当设备 mtime 引用**），可核的是 **SHA 对比**：raw dump 两次不同（本轮新写）、正式证据两次逐字节相同（未被改写）。
 - raw dump 内容：`block_exception_pending=true`；`block_exception="AssertionError: 等待助手消息超时（300000ms）：期望 3 条，实际 2 条。最后看到的消息=[USER/null, ASSISTANT/a, ASSISTANT/b]；app 错误=[]"`；`assistant_message_count=2`；`group_run_status=BUDGET_STOPPED`、`spent=13571`、`limit=9000`、`committed=["a","b"]`、`skipped=["c"]`、`reason="token_budget_exceeded"`。
 - `wire_name_resolution` 2 条（a/b，均 `wire_response_model`、`wire_and_reverse_lookup_agree=true`）；counts `{wire_response_model:2, uuid_reverse_lookup_fallback:0}`；reconciliation `{calls_with_wire_name:2, differ:0, no_name:0}`。⚠️ **raw dump 是排查文件、不是正式证据**（文件自带 `pass_evidence_note`），这次它记录的是**失败跑的诊断现场**。
 - trace 关键行：`1791277823809 real:raw-dump-written messages=3 assistants=2 run=BUDGET_STOPPED`。
