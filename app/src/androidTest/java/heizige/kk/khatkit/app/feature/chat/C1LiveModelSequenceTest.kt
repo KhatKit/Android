@@ -182,6 +182,35 @@ class C1LiveModelSequenceTest {
     /** 预算充足轮：三个角色都要发言。 */
     private val mainBudget = 100_000
 
+    /** 真机注入预算上限的 instrumentation 参数名（`-e c1TokenBudgetPerRound <Int>`）。 */
+    private val budgetArg = "c1TokenBudgetPerRound"
+
+    /**
+     * 真实网关轮的预算上限，默认 [mainBudget]（100_000，绝不截断）。
+     *
+     * 存在的理由：mock 那条截断用例用 [budgetLimit] = 1，是**假 token**；而真实网关那条
+     * 用例原先把上限写死 100_000，于是整轮真实 token（约 2.0 万）也够不到停跑线，
+     * 「已用/上限/未运行角色」三个数在真实 token 下零份。`-e c1TokenBudgetPerRound <Int>`
+     * 就是补出来的那个注入点。
+     *
+     * ⚠️ **只作用于真实网关那条用例**，不碰 [mainBudget] 本身：`mainBudget` 还被 mock 的
+     * pipeline / roundtable / vote 三处共用（`groupConfig` / `roundtableConfig` /
+     * `voteConfig`），改它会让 `-e` 顺带改掉三个 mock 模式的上限——那三个模式各有逐字钉死
+     * 的基线（含 [budgetLimit] = 1 那条已验证基线），不能让一个真机参数牵动。
+     *
+     * 解析失败（缺省 / 空串 / 非数字 / 溢出）一律回落 [mainBudget]，即不传参数时
+     * `realProviderRoundRecordsGenuineTokenUsage` 的行为与注入点存在之前逐字一致。
+     */
+    private val realProviderBudget: Int by lazy {
+        val raw = runCatching { InstrumentationRegistry.getArguments().getString(budgetArg) }
+            .getOrNull()
+        val parsed = raw?.trim()?.takeIf { it.isNotEmpty() }?.toIntOrNull()
+        if (raw != null && parsed == null) {
+            trace("real:budget-override-unparsed raw=$raw -> fallback=$mainBudget")
+        }
+        parsed ?: mainBudget
+    }
+
     /**
      * 预算截断轮：上限 1。只要第一个角色真产生了 token（必然 > 0）就会停跑。
      *
@@ -1276,7 +1305,7 @@ class C1LiveModelSequenceTest {
 
         settingsStore.update(realProviderSettings())
         trace("real:settings-update-done")
-        val config = realProviderConfig(caseName, mainBudget)
+        val config = realProviderConfig(caseName, realProviderBudget)
         val conversationId = insertGroup(caseName, config)
         trace("real:conversation-inserted id=$conversationId")
         evidenceConversations += conversationId
@@ -1463,7 +1492,7 @@ class C1LiveModelSequenceTest {
         assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
         assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
         assertTrue("预算充足时不应有 skipped 角色，实际=${run.skippedRoleIds}", run.skippedRoleIds.isEmpty())
-        assertEquals("预算上限快照必须等于配置值", mainBudget, run.tokenLimit)
+        assertEquals("预算上限快照必须等于配置值", realProviderBudget, run.tokenLimit)
         assertEquals("正常完成不应有 reason", "", run.reason)
         assertNotNull("运行日志必须已收尾（endedAt 非空）", run.endedAt)
 
