@@ -932,6 +932,24 @@ ID 台账本轮**一份未增**，且这次跑**不是通过** ⇒ 只登记证�
 ⚠️ **本轮只提交本文与 `c1-group-chat.md` 两个文档，未 add / commit / 修改工作区里任何
 其他未提交改动。**
 
+### ⚠️ 第十五批（真机采集第八轮 + `43d607bdd` / `31b6b5a52`，2026-10-06，HEAD `31b6b5a52`）：**真实网关正式证据历史首次产出——硬理由①（真实网关路径）已消；十例仍全 `unverified`**
+
+⚠️⚠️ **先说性质**：一次真机采集窗口 + 两个测试侧 commit（`43d607bdd` 静默失败 → fail-loud / `31b6b5a52` raw dump 无条件落盘），**生产代码零改动**。设备 = 第七轮同一台 OnePlus `PKG110`（`OP5D2BL1`）/ Android 16 / API 36 / `arm64-v8a`，无线调试 `192.168.31.183:37773`。⚠️ **十行状态列仍是 10/10 `unverified`**，20 个状态格一个判定都没改（① 句的订正已逐格追加）。
+
+**① 历史首次产出 `c1-live-evidence-real-provider.json`（最大成果）**：真实网关用例（`am instrument` 退出码 0 / `Time: 14.017` / `OK (1 test)`）在 wire 优先口径下重跑，**这份「全部断言通过才写」的正式证据历史以来第一次被写出**——`wire_model_name_provenance_counts = {wire_response_model: 3, uuid_reverse_lookup_fallback: 0}`、reconciliation 3/0/0、`wire_and_reverse_lookup_agree=true`；真实 usage a `6829/151/6980`、b `6692/60/6752`、c `6895/104/6999`，**Σ=20731 = `spent_tokens`**；序列 `deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`。文件 10441 B / sha256 `3b02140b216be4b684927d59a990726ba231d461dc665cf504559814c147b8b1`（仓库外 `/tmp/opencode/c1-device-round3/`）。
+⇒ **硬理由①（模型名不是 wire 级抓包）对真实网关那条路径已消**（判据 = c1 文档「判定规则」第八条自己给出的操作化形式：设备落盘 JSON 的 provenance 是否为 `wire_response_model`；mock 一侧按第七轮第二套判据也成立）。⚠️ **但这不是「C1-02 可以判通过」**——该行清单项仍未全齐，逐行依据见 c1 文档第八轮⑨。
+⚠️ **诚实点**：角色 c 上一轮那次的静默失败**本轮没有复现**（两次默认预算运行都成功，执行者报告；可核产物是 16:58 一跑）⇒ 定性为**偶发**；**`43d607bdd` 没有加重试、不构成「c 现在能成功」的原因**；本轮**没有拿到任何 HTTP 状态码**。
+
+**② 预算截断（9000）finally 落盘修复真机验证通过**：raw dump 首次在截断路径下写出（5039 B / sha256 `e29046fa8d3dfe6033716ef1a50a083ea834d6bcb9094c20f390d4ca40d9c729`；`BUDGET_STOPPED / spent=13571 / limit=9000 / committed=[a,b] / skipped=[c]`；`block_exception` = 300s await 超时 AssertionError 原文）；正式证据文件**未被改写**（SHA 与 `real-default/` 那份逐字节相同）。⚠️ 两次跑 `13571` vs `13631` 是 completion token 波动，**不是矛盾**；本轮这次 `am instrument` stdout 丢失（**无退出码 / 无 `Tests run`**）。
+
+**③ mock 4/4 + 全量 64/1 + UI 部分覆盖**：4 条 mock 全 `OK (1 test)`（退出码 0；四份 SHA 与「UUID+13 位时间戳规范化后逐字节相同」复核见 c1 文档）；⚠️ **mock 脚本磁盘本体已丢失，现存 20061 B 是从 opencode.db 工具调用记录逐字节恢复的**（write+edit 记录按序重放与恢复件逐字节相同、`py_compile` 通过）。全量 `Tests run: 64, Failures: 1`（唯一失败 = `parseMentionsFromUiText` 缺 `-e uiText`，设计如此）、Coil 单例异常 **0 次**、真实网关那条全量内通过。UI：@ 选择器覆盖较好（真实文本回读 + 生产解析通过）；成员头像组**仅截图**；筛选 chip 三态点击有截图 + 切换前后 DB 计数不变，但**「真的按类型过滤」未验证**（设备助手被测试助手顶替、列表恒空）。
+⚠️ **设备卫生遗留**：全量后主 DataStore 助手 = 测试助手「角色甲/乙/丙」，默认 `0950e2dc…` 消失（`settings.pb` 22365 B / sha256 `924cda89ec5b8140e71540456c4f1b8b16569b05c85730a413305292468845bd6`，`0950e2dc` 0 次）；夹具会话归属 0950e2dc ⇒ 列表恒空。**下次用 UI 夹具前先恢复 settings**（已登记 c1 文档「已知遗留与风险」第 34 条；另有第 35 条：mock 恢复件在仓库外 `/tmp`）。
+
+**④ 为什么十例状态不动**：真实网关这一跑覆盖的只是 **pipeline（C1-02 的路径）**，其余各行点名的路径（显式 @ / roundtable 真实调用 / vote 真实调用 / 取消超时 / 幂等续跑 / 记忆空间 / 酒馆扫码 / UI 筛选）都没被它调用；C1-05 的 raw dump 是诊断文件、正式序列 JSON 仍未产出。逐行依据见 c1 文档「C1 真机证据采集第八轮」⑨。
+📍 全部数字、SHA-256、限制与逐行判定见 `docs/eval/c1-group-chat.md` 的「C1 真机证据采集第八轮」节；台账第十批 22 个 commit 已追加（锚点 `1b0e04a9` 不重算，声明值 46 类 / 501 例未动）。
+
+⚠️ **本批只提交本文与 `c1-group-chat.md` 两个文档，未 add / commit / 修改工作区里任何其他未提交改动。**
+
 ### ⚠️ 第十二批（HEAD `86e88970d` 那一轮采集，2026-10-06）：**`C1LiveModelSequenceTest` 前 4 条真机全绿——硬理由⑤已消**
 
 ⚠️⚠️ **先说清这一批的性质：它是「采集」不是「代码提交」**——
@@ -2023,6 +2041,11 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
       `docs/eval/c1-group-chat.md`「C1 真机证据采集第七轮」。
       ⚠️ 顺带可一并验「旧 Room 库消息树能否反序列化新字段」（第 7 条那件），
       ⚠️ 但**别把 `wireModelName` 显示到 UI 上当成待办**——**没做，也不打算做**。
+      ✅ **第十五批订正（HEAD `31b6b5a52`，2026-10-06）：上面第 8 条已完成**——真实网关用例
+      在 wire 优先口径下重跑并**首次产出**正式证据，`wire_model_name_provenance_counts`
+      = `{wire_response_model:3, fallback:0}` ⇒ **硬理由①对真实网关路径已消**
+      （mock 判据第二套本轮也复核通过）。⚠️ **这不是「十例可以判通过」**——逐行依据见
+      c1 文档「C1 真机证据采集第八轮」⑨。
 3. **登记规则**
    每补齐一项，在 `docs/eval/c1-group-chat.md` 的「证据登记」表**追加一行**
    （不覆盖历史行），四类证据列齐才把用例矩阵状态改成 `verified`。
@@ -2042,7 +2065,7 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
 | B1 工作流 | 规范 JSON、10 类节点、FlowSpec/Lua 导出、3 个等价性用例、Room 三表、失败跳过/续跑/取消、现有 `/api/events` 的 `workflow_run`、通知分类示例与逐步日志。对照见开源参考 B1。`docs/flow.md` §6 已完成 | 自由画布；自然语言经 GenerationLoop 生成；真机把 FlowSpec 交给 `khatkit__run_flow` 跑通卡片；成本统计接真实 Token |
 | B2 ToolPkg | 本地包校验、hooks 能力边界、插件设置 schema、Provider 声明解析、静态审计报告三样例；`marketNewKinds` 默认 false | dex 热加载、市场 UI、服务端上线后联调 |
 | B3 路由 | 三策略、Key 池指数退避/半开、预算降级或只读、7 个消费点调用 `taskBinding()`、统计页路由计数；对照见开源参考 B3 | 设置页策略编辑；价格表 JSON；真机 429 对话无感 |
-| C1 群聊 | 内核和一版 UI 已写入，**未验收**。详见上方「C1 交给下一位」。`docs/eval/c1-group-chat.md` 十例全部 `unverified`。⚠️ **2026-10-06 第六批之后**：真实公网网关目标用例**首次真机全绿**（真实 usage + Σ 与落库精确相等 + 产物 SHA-256 已登记），两个真机 UI 必崩已修并真机复验，Coil 崩溃已结构性修复，**十例状态仍全部 `unverified`**。⚠️ **2026-10-06 第十一批之后（wire 级模型名）**：硬理由①从「缺能力」变成「**已具备 + 待真机复核**」——`StreamChunkHandler` 丢弃 `chunk.model` 的缺陷已修，wire 名现落 `UIMessage.wireModelName`；零设备有两条证据（JVM 9 例 + 真实网关两个 wire 名均 200）。⚠️ **但仪器测试一行没跑**，设备上那份证据**仍是 UUID 反查值**，硬理由①**未消**。⚠️ **这是「能力已具备」，不是「证据已采集」**；另三条硬阻塞（真机 UI 端到端 / 酒馆本体 / 相机扫码）**一条都没解除** | 按该节缺口续写；补证据前不得把 C1 标成已完成。⚠️ **wire 级模型名这一条的下一步就一件事**：真机重跑 `realProviderRoundRecordsGenuineTokenUsage`，确认落盘 JSON 的 `wire_model_name_provenance` 是 `wire_response_model` 而不是 `uuid_reverse_lookup_fallback`。⚠️ **权威操作清单 = `c1-group-chat.md` 的「下一位怎么把剩下的做完（第六个窗口的操作清单）」**（三组：A 需要设备 / B 需要外部环境 / C 零设备可做）<br>⚠️ **2026-10-06 第十三批之后（`GroupChat` 行切分统一到 6 个 Unicode 行终止符）**：修掉了一个**静默丢候选 / 静默丢票**缺陷（切分行只切 3 个分隔符、正则认 6 个 ⇒ 口径不对称），`GroupChatTest` **33 → 39**、台账 **45 类 / 491 例 → 45 类 / 497 例**、app 单测 **111 类 / 915 例 → 111 类 / 921 例**。⚠️ **零设备、零 `androidTest`，且真实模型是否会输出 U+2028/U+0085 本次零实证** ⇒ 这是「消除失败模式」，**不是**「观测到并修掉高频故障」。**十例状态仍全部 `unverified`**，硬理由①未被本批触及、②③④原样<br>⚠️ **第十三批新增的一项未验证义务**：若要主张「这条路径在生产里真的出过问题」，需要一份**真实响应原文**（真实网关或真机落盘 JSON）证明模型输出里出现过这类字符——**探针的输入是手写的，不算** |
+| C1 群聊 | 内核和一版 UI 已写入，**未验收**。详见上方「C1 交给下一位」。`docs/eval/c1-group-chat.md` 十例全部 `unverified`。⚠️ **2026-10-06 第六批之后**：真实公网网关目标用例**首次真机全绿**（真实 usage + Σ 与落库精确相等 + 产物 SHA-256 已登记），两个真机 UI 必崩已修并真机复验，Coil 崩溃已结构性修复，**十例状态仍全部 `unverified`**。⚠️ **2026-10-06 第十一批之后（wire 级模型名）**：硬理由①从「缺能力」变成「**已具备 + 待真机复核**」——`StreamChunkHandler` 丢弃 `chunk.model` 的缺陷已修，wire 名现落 `UIMessage.wireModelName`；零设备有两条证据（JVM 9 例 + 真实网关两个 wire 名均 200）。⚠️ **但仪器测试一行没跑**，设备上那份证据**仍是 UUID 反查值**，硬理由①**未消**。⚠️ **这是「能力已具备」，不是「证据已采集」**；另三条硬阻塞（真机 UI 端到端 / 酒馆本体 / 相机扫码）**一条都没解除** | 按该节缺口续写；补证据前不得把 C1 标成已完成。⚠️ **wire 级模型名这一条的下一步就一件事**：真机重跑 `realProviderRoundRecordsGenuineTokenUsage`，确认落盘 JSON 的 `wire_model_name_provenance` 是 `wire_response_model` 而不是 `uuid_reverse_lookup_fallback`。⚠️ **权威操作清单 = `c1-group-chat.md` 的「下一位怎么把剩下的做完（第六个窗口的操作清单）」**（三组：A 需要设备 / B 需要外部环境 / C 零设备可做）<br>⚠️ **2026-10-06 第十三批之后（`GroupChat` 行切分统一到 6 个 Unicode 行终止符）**：修掉了一个**静默丢候选 / 静默丢票**缺陷（切分行只切 3 个分隔符、正则认 6 个 ⇒ 口径不对称），`GroupChatTest` **33 → 39**、台账 **45 类 / 491 例 → 45 类 / 497 例**、app 单测 **111 类 / 915 例 → 111 类 / 921 例**。⚠️ **零设备、零 `androidTest`，且真实模型是否会输出 U+2028/U+0085 本次零实证** ⇒ 这是「消除失败模式」，**不是**「观测到并修掉高频故障」。**十例状态仍全部 `unverified`**，硬理由①未被本批触及、②③④原样<br>⚠️ **第十三批新增的一项未验证义务**：若要主张「这条路径在生产里真的出过问题」，需要一份**真实响应原文**（真实网关或真机落盘 JSON）证明模型输出里出现过这类字符——**探针的输入是手写的，不算**<br>⚠️ **2026-10-06 第十五批（真机第八轮）**：真实网关在 wire 优先口径下重跑并**首次产出**正式证据 `c1-live-evidence-real-provider.json`（`{wire_response_model:3, fallback:0}`、Σ=20731=spent），**硬理由①（真实网关路径）已消**；预算截断 raw dump 首次落盘（13571/9000/BUDGET_STOPPED）；mock 4/4 + 全量 64/1（唯一失败为缺参设计）+ UI 部分覆盖（@ 选择器较好 / 头像组仅截图 / chip 过滤未验）；**十例状态仍全部 `unverified`**（C1-02 最接近，三项未锁死）。详见 `c1-group-chat.md`「C1 真机证据采集第八轮」。 |
 | C2 工作区 | 现有 workspace/proot 与文件工具可复用 | 五种模板与项目规则；preview；内容寻址 diff/revert 与聊天重发回滚；SSH/SFTP 许可评估和读写后端；APK/HTML 打包；端到端及路径穿越测试 |
 | C3 语音入口 | 现有 VoiceSessionController 可复用 | Sherpa 唤醒/前台服务/VAD/流式 ASR；全双工打断与草稿；ASSIST 面板、Widget、气泡、取词悬浮球；VITS 依赖包；真机误触/保活/500ms 打断/1s ASSIST 验证 |
 | C4 虚拟形象 | 尚未完成审计 | glTF 模块、五状态、口型/视线/情绪事件；桌面宠物；dependency 安装卸载；骁龙 7 系 60fps 真机验证 |
