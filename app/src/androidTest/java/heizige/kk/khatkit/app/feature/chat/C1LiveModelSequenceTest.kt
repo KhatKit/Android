@@ -14,6 +14,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
+import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
@@ -33,6 +34,8 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
+import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.SpeakerStep
 import heizige.kk.khatkit.app.core.data.model.VoteBallot
 import heizige.kk.khatkit.app.core.data.model.VoteOutcome
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
@@ -41,6 +44,7 @@ import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.di.appEntryPoint
 import heizige.kk.khatkit.app.core.util.JsonInstant
+import heizige.kk.khatkit.common.android.appTempFolder
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -49,6 +53,9 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -60,6 +67,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.security.MessageDigest
 import kotlin.uuid.Uuid
 
 /**
@@ -169,6 +177,9 @@ class C1LiveModelSequenceTest {
     private val roundtableCaseName = "roundtable"
     private val voteCaseName = "vote"
 
+    /** 真实网关预算截断用例的 case 名（与既有 mock budget 用例分开）。 */
+    private val realBudgetCaseName = "real-budget"
+
     /**
      * vote 候选集。两个候选、三张票，`a`/`b` 投 `opt-a`、`c` 投 `opt-b` —— 2:1 的真多数决，
      * 于是 `GroupChat.tally` 返回 `VoteOutcome.Decided`，`resolveVote` 走 `Decided` 分支，
@@ -210,6 +221,28 @@ class C1LiveModelSequenceTest {
             trace("real:budget-override-unparsed raw=$raw -> fallback=$mainBudget")
         }
         parsed ?: mainBudget
+    }
+
+    /**
+     * 真实网关**预算截断**用例的默认上限（C1-05）。
+     *
+     * 为什么需要单独一条：`realProviderRoundRecordsGenuineTokenUsage` 断言「等 3 条助手消息」，
+     * 而预算截断**只产 2 条** ⇒ 用注入预算去跑那条用例必然超时，正式证据永不写出。
+     * 所以截断路径必须有自己的测试方法与自己的默认预算。
+     *
+     * 9000 的依据（上一批真机实测）：角色 a `deepseek-v4-flash` 约 6829+136≈6965、
+     * b `glm-5.2` 约 6680+42≈6722、c 约 6876+57≈6933；`-e c1TokenBudgetPerRound 9000`
+     * 那轮实测 `spent=13631 / limit=9000 / committed=[a,b] / skipped=[c]`。9000 落在
+     * 「a 单独不超（约 6965 < 9000）、a+b 累计必超（约 1.37 万 > 9000）」区间内。
+     *
+     * 与 [realProviderBudget]（默认 100_000，绝不截断）**互相独立**，但保留同一注入点
+     * `-e c1TokenBudgetPerRound <Int>`：传了参数就用参数，缺省/解析失败回落
+     * [DEFAULT_REAL_BUDGET_TRUNCATION]。
+     */
+    private val realBudgetTruncationBudget: Int by lazy {
+        val raw = runCatching { InstrumentationRegistry.getArguments().getString(budgetArg) }
+            .getOrNull()
+        raw?.trim()?.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: DEFAULT_REAL_BUDGET_TRUNCATION
     }
 
     /**
@@ -1653,9 +1686,26 @@ class C1LiveModelSequenceTest {
         assertTrue("角色 c 应看到 b", "b" in seenByC)
         assertTrue("角色 c 不应看到 a（pipeline 只串联上一位），实际=$seenByC", "a" !in seenByC)
 
+        // ---------------- 断言 7：viewer 台账（契约 :232-235） + 逐例导出哈希（契约 :206） ----------------
+        // 台账用生产 `visibleMessages` 计算，计划来自生产 `plan`（pipeline 的 predecessor 链）。
+        val viewerPlans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+        val viewerLedger = viewerVisibilityLedger(messages, config, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, messages, config, viewerPlans)
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-real-provider.jsonl")
+        trace("real:export-hash=${exportEvidence["export_sha256"]}")
+
         writeEvidence(
             "c1-live-evidence-real-provider.json",
-            realProviderReport(conversationId, config, messages, run, sumPromptCompletion, perMessageUsage),
+            realProviderReport(
+                conversationId = conversationId,
+                config = config,
+                messages = messages,
+                run = run,
+                sumPromptCompletion = sumPromptCompletion,
+                perMessageUsage = perMessageUsage,
+                viewerVisibility = viewerLedger,
+                exportEvidence = exportEvidence,
+            ),
         )
     }
 
@@ -1704,11 +1754,20 @@ class C1LiveModelSequenceTest {
                 answer = true,
             )
             trace("real-roundtable:sendMessage-returned")
-            messages = awaitAssistantMessages(conversationId, expected = 3, timeoutMillis = realTimeoutMillis)
-            trace("real-roundtable:await-messages-done count=${messages.size}")
-            val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
-            expectedRoundId = GroupChat.roundIdFor(triggerId)
-            run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+            // ⚠️ 竞态修复（上一批真机 2 次失败的根因）：不能只等条数。议长消息「先落库、后盖章」，
+            // 条数一到就快照会拿到末条 roleId=null（expected:<[a, b, c]> but was:<[a, b, null]>），
+            // 而同一轮 finally 的 raw dump 显示 run=COMPLETED/committed=[a,b,c]——产品侧正常，
+            // 是测试快照太早。必须等「全部盖章 + group_runs COMPLETED」两个正向信号。
+            val stamped = awaitStampedTerminalRound(
+                conversationId = conversationId,
+                expected = 3,
+                expectedStatus = GroupRunEntity.STATUS_COMPLETED,
+                timeoutMillis = realTimeoutMillis,
+            )
+            messages = stamped.messages
+            expectedRoundId = stamped.run.roundId
+            run = stamped.run
+            trace("real-roundtable:await-stamped-done count=${messages.size}")
         } catch (t: Throwable) {
             blockFailure = t
             throw t
@@ -1844,9 +1903,26 @@ class C1LiveModelSequenceTest {
             )
         }
 
+        // ---------------- 断言 7：viewer 台账（契约 :232-235） + 逐例导出哈希（契约 :206） ----------------
+        // 计划来自生产 `plan`：a、b 无前置，议长 c 带 chairRound=true（台账记的就是它的实际视角）。
+        val viewerPlans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+        val viewerLedger = viewerVisibilityLedger(messages, config, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, messages, config, viewerPlans)
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-real-roundtable.jsonl")
+        trace("real-roundtable:export-hash=${exportEvidence["export_sha256"]}")
+
         writeEvidence(
             "c1-live-evidence-real-roundtable.json",
-            realRoundtableReport(conversationId, config, messages, run, sumPromptCompletion, perMessageUsage),
+            realRoundtableReport(
+                conversationId = conversationId,
+                config = config,
+                messages = messages,
+                run = run,
+                sumPromptCompletion = sumPromptCompletion,
+                callUsage = perMessageUsage,
+                viewerVisibility = viewerLedger,
+                exportEvidence = exportEvidence,
+            ),
         )
     }
 
@@ -1981,9 +2057,26 @@ class C1LiveModelSequenceTest {
             codes,
         )
 
+        // ---------------- 断言 6：viewer 台账（契约 :232-235） + 逐例导出哈希（契约 :206） ----------------
+        // 计划来自 @ 收窄后的生产 `plan`（只有 b）；未被选中的 a、c 由辅助函数补素视角。
+        val viewerPlans = planViewerLedgerPlans(config, GroupChat.plan(config, trigger.mentionRoleIds))
+        val viewerLedger = viewerVisibilityLedger(messages, config, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, messages, config, viewerPlans)
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-real-mention.jsonl")
+        trace("real-mention:export-hash=${exportEvidence["export_sha256"]}")
+
         writeEvidence(
             "c1-live-evidence-real-mention.json",
-            realMentionReport(conversationId, config, messages, run, usage, wireName),
+            realMentionReport(
+                conversationId = conversationId,
+                config = config,
+                messages = messages,
+                run = run,
+                usage = usage,
+                wireName = wireName,
+                viewerVisibility = viewerLedger,
+                exportEvidence = exportEvidence,
+            ),
         )
     }
 
@@ -2141,6 +2234,14 @@ class C1LiveModelSequenceTest {
             assertEquals("角色 $roleId 只应看到自己那一张选票（vote 模式不共享票面），实际=$seenBallots", listOf(roleId), seenBallots)
         }
 
+        // ---------------- 断言 7：viewer 台账（契约 :232-235） + 逐例导出哈希（契约 :206） ----------------
+        // vote 的 plan 对每个角色既无 predecessor 也无 chairRound；__summary__ 对所有视角可见。
+        val viewerPlans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+        val viewerLedger = viewerVisibilityLedger(messages, config, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, messages, config, viewerPlans)
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-real-vote.jsonl")
+        trace("real-vote:export-hash=${exportEvidence["export_sha256"]}")
+
         writeEvidence(
             "c1-live-evidence-real-vote.json",
             realVoteReport(
@@ -2152,6 +2253,8 @@ class C1LiveModelSequenceTest {
                 callUsage = speakerUsage,
                 ballots = ballots,
                 decided = decided,
+                viewerVisibility = viewerLedger,
+                exportEvidence = exportEvidence,
             ),
         )
     }
@@ -2296,6 +2399,16 @@ class C1LiveModelSequenceTest {
             wireModelNames.map { it.resolvedModelName },
         )
 
+        // ---------------- 断言 6：viewer 台账（契约 :232-235） + 逐例导出哈希（契约 :206） ----------------
+        // 平票轮的特殊处理：raw dump（finally 无条件落盘）里同样会有 viewer_visibility 与
+        // export_sha256，所以即使本用例的正式证据没有写出，导出哈希也不会丢。这里在断言全过时
+        // 也写进正式证据，两份互不替代（raw dump 的 pass_evidence_note 已声明它不是通过证据）。
+        val viewerPlans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+        val viewerLedger = viewerVisibilityLedger(messages, config, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, messages, config, viewerPlans)
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-real-vote-tie.jsonl")
+        trace("real-vote-tie:export-hash=${exportEvidence["export_sha256"]}")
+
         writeEvidence(
             "c1-live-evidence-real-vote-tie.json",
             realVoteTieReport(
@@ -2307,6 +2420,209 @@ class C1LiveModelSequenceTest {
                 callUsage = speakerUsage,
                 ballots = ballots,
                 tie = tie,
+                viewerVisibility = viewerLedger,
+                exportEvidence = exportEvidence,
+            ),
+        )
+    }
+
+    // ==================================================================
+    // 用例 10：真实网关预算截断（C1-05）—— 第 2 个角色提交后停跑，第 3 个进 skipped
+    // ==================================================================
+
+    /**
+     * C1-05「预算截断」的**真实网关**变体，独立于
+     * [realProviderRoundRecordsGenuineTokenUsage]。
+     *
+     * 为什么必须独立一条：那条断言「等 3 条助手消息」，而预算截断**只产 2 条** ⇒ 用注入
+     * 预算去跑它必然超时，正式证据永不写出，截断路径永远拿不到 `export_sha256`。
+     *
+     * 预算默认 9000（见 [realBudgetTruncationBudget] 的实测推导），`-e c1TokenBudgetPerRound`
+     * 仍可覆盖；真实 token 约 a≈6965 / b≈6722，b 提交后累计约 1.37 万 > 9000 触发
+     * `token_budget_exceeded`，c 进 `skipped_role_ids`。
+     *
+     * 证据字段与其余真实网关用例同构：真实 usage 对账、wire 模型序（a→b）、
+     * 生产导出器 JSONL + SHA-256、按 viewer 分组的可见消息 ID 台账。
+     */
+    @Test
+    fun realProviderBudgetTruncationRecordsRunLogAndExport() = runBlocking {
+        val caseName = realBudgetCaseName
+        val budget = realBudgetTruncationBudget
+
+        trace("real-budget:preflight-begin")
+        assertRealGatewayProviderPreflight()
+        trace("real-budget:preflight-ok baseUrl=${realProvider.baseUrl} budget=$budget")
+
+        settingsStore.update(realProviderSettings())
+        val config = realProviderConfig(caseName, budget)
+        val conversationId = insertGroup(caseName, config)
+        evidenceConversations += conversationId
+
+        val messages: List<UIMessage>
+        val run: GroupRunEntity
+        var blockFailure: Throwable? = null
+        try {
+            chatManager.sendMessage(
+                conversationId = conversationId,
+                content = listOf(UIMessagePart.Text("请三位依次发言，每位一句话。")),
+                answer = true,
+            )
+            trace("real-budget:sendMessage-returned")
+            // 截断只产 a、b 两条；等「条数 + 盖章 + BUDGET_STOPPED」三个正向信号
+            // （只等条数会拿到未盖章的末条，理由见 awaitStampedTerminalRound）。
+            val stamped = awaitStampedTerminalRound(
+                conversationId = conversationId,
+                expected = 2,
+                expectedStatus = GroupRunEntity.STATUS_BUDGET_STOPPED,
+                timeoutMillis = realTimeoutMillis,
+            )
+            messages = stamped.messages
+            run = stamped.run
+            trace("real-budget:await-stamped-done count=${messages.size} spent=${run.spentTokens}")
+        } catch (t: Throwable) {
+            blockFailure = t
+            throw t
+        } finally {
+            try {
+                writeRealRawDump(
+                    conversationId = conversationId,
+                    blockFailure = blockFailure,
+                    fileName = "c1-real-raw-dump-budget.json",
+                    passEvidenceName = "c1-live-evidence-real-budget.json",
+                )
+            } catch (dumpError: Throwable) {
+                trace("real-budget:raw-dump-write-error ${dumpError.message}")
+                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            }
+        }
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+
+        // ---------------- 断言 1：只产出 a、b 两条；c 没有任何消息 ----------------
+        assertEquals(
+            "预算截断应只产出 a、b 两条助手消息，实际=" + messages.map { "${it.role}/${it.roleId}" },
+            listOf("a", "b"),
+            assistants.map { it.roleId },
+        )
+        assertTrue("被跳过的 c 不得有任何消息", messages.none { it.roleId == "c" })
+        assertEquals("两条助手消息必须同属一轮", setOf(run.roundId), assistants.map { it.roundId }.toSet())
+        assertTrue(
+            "pipeline 截断轮的两条发言都应是 speaker，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}" },
+            assistants.all { it.turnKind == GroupChat.TURN_SPEAKER },
+        )
+
+        // ---------------- 断言 2：运行日志按预算停跑收尾 ----------------
+        assertEquals("本轮必须以 BUDGET_STOPPED 收尾", GroupRunEntity.STATUS_BUDGET_STOPPED, run.status)
+        assertEquals("超预算原因必须落库", GroupRunEntity.REASON_TOKEN_BUDGET_EXCEEDED, run.reason)
+        assertEquals("已提交角色必须是 a、b", listOf("a", "b"), run.committedRoleIds)
+        assertEquals("未运行角色必须是 c", listOf("c"), run.skippedRoleIds)
+        assertEquals("预算上限快照必须等于配置值", budget, run.tokenLimit)
+        // spent 会因 completion 波动（历史值 13631 / 13571），所以只断言「达到上限」，不钉具体值。
+        assertTrue(
+            "spent_tokens 必须达到上限（>= $budget），实际=${run.spentTokens}",
+            run.spentTokens >= budget,
+        )
+        assertNotNull("运行日志必须已收尾", run.endedAt)
+
+        // ---------------- 断言 3：真实 usage 对账 ----------------
+        val perMessageUsage = assistants.map { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，这条 token 证据不成立"
+            }
+            assertTrue(
+                "角色 ${message.roleId} 的 prompt_tokens 必须为正，实际=${usage.promptTokens}",
+                usage.promptTokens > 0,
+            )
+            assertTrue(
+                "角色 ${message.roleId} 的 completion_tokens 必须为正，实际=${usage.completionTokens}",
+                usage.completionTokens > 0,
+            )
+            assertEquals(
+                "角色 ${message.roleId} 的 totalTokens 必须等于 prompt+completion",
+                usage.promptTokens + usage.completionTokens,
+                usage.totalTokens,
+            )
+            usage
+        }
+        val sumPromptCompletion = perMessageUsage.sumOf { it.promptTokens + it.completionTokens }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于 a、b 两条 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+
+        // ---------------- 断言 4：wire 模型序列 a→b ----------------
+        val wireModelNames = assistants.map { resolveWireModelName(it) }
+        val bothMissing = wireModelNames.filter { it.wireModelName == null && it.uuidReverseLookupName == null }
+        assertTrue(
+            "每条发言都必须至少有一个模型名来源（wire 或 uuid 反查），两者皆空=" +
+                assistants.zip(wireModelNames)
+                    .filter { (_, n) -> n.wireModelName == null && n.uuidReverseLookupName == null }
+                    .map { (m, _) -> m.roleId },
+            bothMissing.isEmpty(),
+        )
+        assertEquals(
+            "截断轮实际调用的模型序列应为 deepseek-v4-flash → glm-5.2",
+            listOf("deepseek-v4-flash", "glm-5.2"),
+            wireModelNames.map { it.resolvedModelName },
+        )
+        listOf("a" to "A", "b" to "B").forEach { (roleId, ownCode) ->
+            val codes = realRoleCodeRegex.findAll(assistants.first { it.roleId == roleId }.toText())
+                .map { it.groupValues[1] }.toList()
+            assertEquals(
+                "角色 $roleId 的回复必须只出现自己的 ROLECODE:$ownCode，实际=$codes",
+                listOf(ownCode),
+                codes,
+            )
+        }
+
+        // ---------------- 断言 5：viewer 台账（契约 :232-235） ----------------
+        // 计划来自生产 `plan`：pipeline 下 c 的前驱是 b（截断前它本该收到 b 的输出）。
+        // c 实际没跑，`group_run.skipped_role_ids` 说明这一点；台账记的是计划视角的形状。
+        val viewerPlans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+        val viewerLedger = viewerVisibilityLedger(messages, config, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, messages, config, viewerPlans)
+
+        // ---------------- 断言 6：生产导出器 JSONL + SHA-256（契约 :206/:232-235） ----------------
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-real-budget.jsonl")
+        trace("real-budget:export-hash=${exportEvidence["export_sha256"]}")
+
+        writeEvidence(
+            "c1-live-evidence-real-budget.json",
+            realGatewayReport(
+                caseName = caseName,
+                conversationId = conversationId,
+                config = config,
+                messages = messages,
+                run = run,
+                sumPromptCompletion = sumPromptCompletion,
+                callMessages = assistants,
+                callUsage = perMessageUsage,
+                expectedSequence = listOf("deepseek-v4-flash", "glm-5.2"),
+                viewerVisible = pipelineViewerVisible(messages, config),
+                visibilityExpectation = buildJsonObject {
+                    put("a_sees", "system+user+own  (NOT b, NOT c)")
+                    put("b_sees", "system+user+own+a  (NOT c)")
+                    put(
+                        "c_sees",
+                        "would-be pipeline view: system+user+own+b; c was skipped by the budget stop",
+                    )
+                },
+                extra = buildJsonObject {
+                    put("c1_05_dedicated_test", true)
+                    put(
+                        "why_dedicated_test",
+                        "realProviderRoundRecordsGenuineTokenUsage asserts 3 assistant messages, so a " +
+                            "truncated round can never reach its pass evidence; this method uses 2.",
+                    )
+                    put("budget_default", DEFAULT_REAL_BUDGET_TRUNCATION)
+                    put("budget_override_arg", budgetArg)
+                    put("budget_effective", budget)
+                    put("spent_tokens_minus_limit", run.spentTokens - budget)
+                },
+                viewerVisibility = viewerLedger,
+                exportEvidence = exportEvidence,
             ),
         )
     }
@@ -2606,6 +2922,9 @@ class C1LiveModelSequenceTest {
         run: GroupRunEntity,
         sumPromptCompletion: Int,
         perMessageUsage: List<TokenUsage>,
+        // 契约 :232-235：按 viewer 分组的可见消息 ID 台账 + 逐例导出哈希（`export_*` 顶层键）。
+        viewerVisibility: JsonObject = JsonObject(emptyMap()),
+        exportEvidence: JsonObject = JsonObject(emptyMap()),
     ): JsonObject {
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val wireModelNames = assistants.map { resolveWireModelName(it) }
@@ -2774,6 +3093,8 @@ class C1LiveModelSequenceTest {
                 put("b_sees", "system+user+own+a  (NOT c)")
                 put("c_sees", "system+user+own+b  (NOT a)")
             }
+            put("viewer_visibility", viewerVisibility)
+            exportEvidence.forEach { (key, value) -> put(key, value) }
             putJsonArray("assistant_role_order") {
                 assistants.forEach { add(JsonPrimitive(it.roleId)) }
             }
@@ -2809,6 +3130,9 @@ class C1LiveModelSequenceTest {
         viewerVisible: JsonObject,
         visibilityExpectation: JsonObject,
         extra: JsonObject = JsonObject(emptyMap()),
+        // 契约 :232-235：按 viewer 分组的可见消息 ID 台账 + 逐例导出哈希（`export_*` 顶层键）。
+        viewerVisibility: JsonObject = JsonObject(emptyMap()),
+        exportEvidence: JsonObject = JsonObject(emptyMap()),
     ): JsonObject {
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val wireModelNames = callMessages.map { resolveWireModelName(it) }
@@ -2955,11 +3279,13 @@ class C1LiveModelSequenceTest {
                 "actual_model_call_sequence[].resolved_model_name (wire-preferred)",
             )
             put("viewer_visible_message_ids", viewerVisible)
+            put("viewer_visibility", viewerVisibility)
             put("visibility_expectation", visibilityExpectation)
             putJsonArray("assistant_role_order") {
                 assistants.forEach { add(JsonPrimitive(it.roleId)) }
             }
             extra.forEach { (key, value) -> put(key, value) }
+            exportEvidence.forEach { (key, value) -> put(key, value) }
         }
     }
 
@@ -2971,6 +3297,8 @@ class C1LiveModelSequenceTest {
         run: GroupRunEntity,
         sumPromptCompletion: Int,
         callUsage: List<TokenUsage>,
+        viewerVisibility: JsonObject = JsonObject(emptyMap()),
+        exportEvidence: JsonObject = JsonObject(emptyMap()),
     ): JsonObject {
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val plan = GroupChat.plan(config, emptyList())
@@ -3020,6 +3348,8 @@ class C1LiveModelSequenceTest {
                     }
                 }
             },
+            viewerVisibility = viewerVisibility,
+            exportEvidence = exportEvidence,
         )
     }
 
@@ -3031,6 +3361,8 @@ class C1LiveModelSequenceTest {
         run: GroupRunEntity,
         usage: TokenUsage,
         wireName: WireModelName,
+        viewerVisibility: JsonObject = JsonObject(emptyMap()),
+        exportEvidence: JsonObject = JsonObject(emptyMap()),
     ): JsonObject {
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val trigger = messages.last { it.role == MessageRole.USER }
@@ -3085,6 +3417,8 @@ class C1LiveModelSequenceTest {
                     put("wire_model_name_provenance", wireName.provenance)
                 }
             },
+            viewerVisibility = viewerVisibility,
+            exportEvidence = exportEvidence,
         )
     }
 
@@ -3098,6 +3432,8 @@ class C1LiveModelSequenceTest {
         callUsage: List<TokenUsage>,
         ballots: List<VoteBallot>,
         decided: VoteOutcome.Decided,
+        viewerVisibility: JsonObject = JsonObject(emptyMap()),
+        exportEvidence: JsonObject = JsonObject(emptyMap()),
     ): JsonObject {
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val speakers = assistants.filter { it.roleId != GroupChat.SUMMARY_ID }
@@ -3152,6 +3488,8 @@ class C1LiveModelSequenceTest {
                     put("text", summary?.toText() ?: "<缺失>")
                 }
             },
+            viewerVisibility = viewerVisibility,
+            exportEvidence = exportEvidence,
         )
     }
 
@@ -3165,6 +3503,8 @@ class C1LiveModelSequenceTest {
         callUsage: List<TokenUsage>,
         ballots: List<VoteBallot>,
         tie: VoteOutcome.Tie,
+        viewerVisibility: JsonObject = JsonObject(emptyMap()),
+        exportEvidence: JsonObject = JsonObject(emptyMap()),
     ): JsonObject {
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val speakers = assistants.filter { it.roleId != GroupChat.SUMMARY_ID }
@@ -3223,6 +3563,8 @@ class C1LiveModelSequenceTest {
                 put("group_run_error_message", run.errorMessage)
                 put("group_run_status", run.status)
             },
+            viewerVisibility = viewerVisibility,
+            exportEvidence = exportEvidence,
         )
     }
 
@@ -3385,6 +3727,327 @@ class C1LiveModelSequenceTest {
     }
 
     /**
+     * 一次「条数 + 盖章 + 运行日志终态」三信号同时成立的轮次快照。
+     *
+     * @param messages 从**内存 flow**读到的完整消息列表（不是仓库快照）。
+     * @param run 对应 round 的 group_runs 行（此时已是 [expectedStatus]）。
+     */
+    private data class StampedRound(
+        val messages: List<UIMessage>,
+        val run: GroupRunEntity,
+    )
+
+    /**
+     * 等「条数到 + 全部助手消息已盖章 + group_runs 到指定终态」三个正向信号同时成立。
+     *
+     * ## 为什么不能只等条数（上一批真机 2 次失败的根因）
+     *
+     * 议长消息是**先落库、后盖章**：`stampGroupTurn` 存消息在 `persistRoundState` 之前，
+     * `roleId` 由盖章写入（`ChatManager.kt:1953` 的 `stampGroupTurn` → `:1975` 的
+     * `persistRoundState`）。只等条数会在最后一条盖章之前就快照，拿到
+     * `ASSISTANT/null`，断言报 `expected:<[a, b, c]> but was:<[a, b, null]>`，
+     * 而同一轮 `finally` 的 raw dump 却显示 `status=COMPLETED / committed=[a,b,c]`——
+     * 产品侧正常，是测试快照太早。
+     *
+     * ## 为什么轮询内存 flow 而不是仓库
+     *
+     * 轮次进行中的产出先更新 session 内存态（`ChatManager.kt:1344` 的 `updateConversation`
+     * 只写 `session.updateConversation`），只有 `finishGeneration` / `stampGroupTurn` 才
+     * `saveConversation` 落库。读仓库会漏掉尚未盖章的瞬时状态（`C1GroupCancelDeviceTest`
+     * 已踩过同一坑）。
+     *
+     * 失败信息分三段，明确区分「等不到条数」「条数到了但没盖章」「盖章完成但 run 未到终态」。
+     */
+    private suspend fun awaitStampedTerminalRound(
+        conversationId: Uuid,
+        expected: Int,
+        expectedStatus: String,
+        timeoutMillis: Long,
+    ): StampedRound {
+        val liveFlow = chatManager.getConversationFlow(conversationId)
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        var last: List<UIMessage> = emptyList()
+        var lastRun: GroupRunEntity? = null
+        var countObserved = false
+        var stampObserved = false
+        var polls = 0
+        while (System.currentTimeMillis() < deadline) {
+            val live = liveFlow.value.currentMessages
+            last = live
+            val assistants = live.filter { it.role == MessageRole.ASSISTANT }
+            if (assistants.size >= expected) countObserved = true
+            val allStamped = assistants.size >= expected && assistants.all { it.roleId != null }
+            if (allStamped) stampObserved = true
+            val trigger = live.lastOrNull { it.role == MessageRole.USER }
+            val roundId = trigger?.let { GroupChat.roundIdFor(it.id.toString()) }
+            val run = roundId?.let { groupRunDao.findByRound(conversationId.toString(), it) }
+            if (run != null) lastRun = run
+            if (polls % 20 == 0) {
+                trace(
+                    "await-stamped:poll=$polls assistants=${assistants.size} " +
+                        "stamped=${assistants.count { it.roleId != null }} run=${run?.status}",
+                )
+            }
+            polls++
+            if (allStamped && run?.status == expectedStatus) return StampedRound(live, requireNotNull(run))
+            Thread.sleep(250)
+        }
+        val assistants = last.filter { it.role == MessageRole.ASSISTANT }
+        val stage = when {
+            !countObserved -> "失败阶段=等不到条数：期望 $expected 条，实际 ${assistants.size} 条，" +
+                "最后消息=${last.map { "${it.role}/${it.roleId}" }}"
+            !stampObserved -> "失败阶段=条数到了但没盖章：实际 ${assistants.size} 条，" +
+                "已盖章=${assistants.count { it.roleId != null }} 条，" +
+                "逐条 roleId=${assistants.map { it.roleId }}"
+            else -> "失败阶段=盖章完成但 group_runs 未到 $expectedStatus：最后状态=${lastRun?.status}，" +
+                "committed=${lastRun?.committedRoleIds} spent=${lastRun?.spentTokens}"
+        }
+        throw AssertionError(
+            "等待盖章 + run=$expectedStatus 超时（${timeoutMillis}ms）：$stage；" +
+                "app 错误=${chatManager.errors.value.map { it.title to it.error }}",
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // 各 viewer 的可见消息 ID 台账（契约 :232-235）与生产导出哈希
+    // ------------------------------------------------------------------
+
+    /**
+     * 一个 viewer 的可见性台账条目。
+     *
+     * @param key 台账里的键（一般等于 [viewerRoleId]；roundtable 的议长轮等特殊视角可另起键）。
+     * @param viewerRoleId 传给生产 [GroupChat.visibleMessages] 的 viewer。
+     * @param predecessorId pipeline 上一位（仅上一位的本轮输出可见）。
+     * @param chairRound 议长汇总轮开关（放开本轮全部 ASSISTANT）。
+     * @param allowedOtherRoleIds 该视角**允许**看见的其他角色（predecessor / 议长轮全员）；
+     *   台账断言据此判定「别人未授权的内容不得出现」。
+     */
+    private data class ViewerLedgerPlan(
+        val key: String,
+        val viewerRoleId: String,
+        val predecessorId: String? = null,
+        val chairRound: Boolean = false,
+        val allowedOtherRoleIds: Set<String> = emptySet(),
+    )
+
+    /**
+     * 由生产 `GroupChat.plan` 的 steps 推导台账计划：每个 step 的实际视角
+     * （predecessor / chairRound）逐项落盘；名单里没被本轮计划选中的角色补一条
+     * 「无前驱、非议长轮」的素视角，保证台账按契约覆盖**全部 viewer**。
+     */
+    private fun planViewerLedgerPlans(
+        config: GroupConfig,
+        planSteps: List<SpeakerStep>,
+    ): List<ViewerLedgerPlan> {
+        val byViewer = LinkedHashMap<String, ViewerLedgerPlan>()
+        planSteps.forEach { step ->
+            byViewer[step.role.id] = ViewerLedgerPlan(
+                key = step.role.id,
+                viewerRoleId = step.role.id,
+                predecessorId = step.predecessorId,
+                chairRound = step.chairRound,
+                allowedOtherRoleIds = when {
+                    step.chairRound -> config.roles.map { it.id }.filter { it != step.role.id }.toSet()
+                    step.predecessorId != null -> setOf(step.predecessorId)
+                    else -> emptySet()
+                },
+            )
+        }
+        config.roles.forEach { role ->
+            byViewer.putIfAbsent(role.id, ViewerLedgerPlan(key = role.id, viewerRoleId = role.id))
+        }
+        return byViewer.values.toList()
+    }
+
+    /**
+     * 契约 `docs/beyond-operit-client-changes.md:232-235` 点名的「各 viewer 的可见消息 ID」
+     * 台账（按 viewer 分组）。可见集合由**生产函数** [GroupChat.visibleMessages] 计算——
+     * 与提示词组装层 `GroupTurnCoordinator.viewerMessages` 同一入口。
+     */
+    private fun viewerVisibilityLedger(
+        messages: List<UIMessage>,
+        config: GroupConfig,
+        plans: List<ViewerLedgerPlan>,
+    ): JsonObject = buildJsonObject {
+        plans.forEach { plan ->
+            val visible = GroupChat.visibleMessages(
+                config = config,
+                messages = messages,
+                viewerId = plan.viewerRoleId,
+                predecessorId = plan.predecessorId,
+                chairRound = plan.chairRound,
+            )
+            putJsonObject(plan.key) {
+                put("viewer_role_id", plan.viewerRoleId)
+                putJsonArray("visible_message_ids") {
+                    visible.forEach { add(JsonPrimitive(it.id.toString())) }
+                }
+                put("visible_count", visible.size)
+                put("predecessor_id", plan.predecessorId)
+                put("chair_round", plan.chairRound)
+                putJsonArray("visible_assistant_role_ids") {
+                    visible.filter { it.role == MessageRole.ASSISTANT }
+                        .mapNotNull { it.roleId }
+                        .forEach { add(JsonPrimitive(it)) }
+                }
+            }
+        }
+    }
+
+    /**
+     * 对台账本身做契约点名的断言（不只是把数字写进 JSON）：
+     *
+     * 1. 每个 viewer 的 `visible_message_ids` 必须与生产 `visibleMessages` 的输出**逐一相等**
+     *    （台账不是手抄的期望值）；
+     * 2. 必须包含该轮的 user 触发消息；
+     * 3. 必须包含**自己**发的助手消息（有的话）；
+     * 4. 轮次摘要（`role_id = __summary__`，若有）对所有 viewer 可见；
+     * 5. 可见集里出现的**其他角色**助手消息必须落在该 viewer 的授权名单内
+     *    （predecessor 或议长轮放开），未授权内容不得出现。
+     */
+    private fun assertViewerVisibilityLedger(
+        ledger: JsonObject,
+        messages: List<UIMessage>,
+        config: GroupConfig,
+        plans: List<ViewerLedgerPlan>,
+    ) {
+        val byId = messages.associateBy { it.id.toString() }
+        val userMessageIds = messages.filter { it.role == MessageRole.USER }.map { it.id.toString() }
+        val summaryIds = messages.filter { it.roleId == GroupChat.SUMMARY_ID }.map { it.id.toString() }
+        plans.forEach { plan ->
+            val entry = requireNotNull(ledger[plan.key]) { "台账缺少 viewer=${plan.key}" }.jsonObject
+            val visibleIds = entry.getValue("visible_message_ids").jsonArray
+                .map { it.jsonPrimitive.content }
+                .toSet()
+            val expected = GroupChat.visibleMessages(
+                config = config,
+                messages = messages,
+                viewerId = plan.viewerRoleId,
+                predecessorId = plan.predecessorId,
+                chairRound = plan.chairRound,
+            ).map { it.id.toString() }.toSet()
+            assertEquals(
+                "viewer=${plan.key} 的台账必须等于生产 visibleMessages 的输出",
+                expected,
+                visibleIds,
+            )
+            userMessageIds.forEach { id ->
+                assertTrue("viewer=${plan.key} 必须可见 user 触发消息 $id", id in visibleIds)
+            }
+            messages.filter { it.role == MessageRole.ASSISTANT && it.roleId == plan.viewerRoleId }
+                .forEach { own ->
+                    assertTrue(
+                        "viewer=${plan.key} 必须可见自己发的助手消息 ${own.id}",
+                        own.id.toString() in visibleIds,
+                    )
+                }
+            summaryIds.forEach { id ->
+                assertTrue("viewer=${plan.key} 必须可见轮次摘要 $id", id in visibleIds)
+            }
+            visibleIds.mapNotNull { byId[it] }
+                .filter { it.role == MessageRole.ASSISTANT }
+                .mapNotNull { it.roleId }
+                .filter { it != plan.viewerRoleId && it != GroupChat.SUMMARY_ID }
+                .forEach { otherRole ->
+                    assertTrue(
+                        "viewer=${plan.key} 的可见集里出现未授权角色 $otherRole 的助手消息",
+                        otherRole in plan.allowedOtherRoleIds,
+                    )
+                }
+        }
+    }
+
+    /**
+     * 契约 `:206`/`:232-235` 的**逐例导出哈希**：把会话用生产导出器
+     * [TavernChatCodec.exportGroupJsonl] 导出成 Tavern 群聊 JSONL，经**生产 IO 助手**
+     * `writeExportTempFile`（`ConversationExport.kt:836`）真写盘，再用同进程
+     * `MessageDigest` 算 SHA-256。
+     *
+     * 为什么不自己拼 JSON：导出字节必须来自生产导出函数，否则「导出哈希」证明不了
+     * 导出器的输出可复现。`C1GroupExportDeviceEvidenceTest` 已在真机上用同一条链
+     * （真 SQLite → exportGroupJsonl → writeExportTempFile → MessageDigest）验证过
+     * 设备侧哈希，这里复用同一路径。
+     *
+     * @return 可直接并入证据 JSON 的顶层字段（`export_*` 前缀）。
+     */
+    private suspend fun exportGroupJsonlEvidence(conversationId: Uuid, exportFileName: String): JsonObject {
+        val stored = requireNotNull(repository.getConversationById(conversationId)) {
+            "会话 $conversationId 必须能从真库读回后才能导出"
+        }
+        val config = requireNotNull(stored.groupConfig) {
+            "群会话必须带 groupConfig 才能走 Tavern 群聊导出"
+        }
+        val exported = TavernChatCodec.exportGroupJsonl(
+            nodes = stored.messageNodes,
+            config = config,
+            cards = stored.groupCards.orEmpty(),
+            userName = EXPORT_USER_NAME,
+            groupName = "C1 live ${stored.title}",
+            createDate = null,
+        )
+        val bytes = exported.toByteArray(Charsets.UTF_8)
+        assertTrue("导出字节不应为空：$exportFileName", bytes.isNotEmpty())
+        assertTrue(
+            "导出的首行必须是带 chat_metadata 的表头（生产 JSONL 形态）",
+            exported.lineSequence().first().contains("chat_metadata"),
+        )
+        val sha = sha256Hex(bytes)
+
+        // 生产 IO 分发：真写进 app 临时目录，返回 FileProvider URI。
+        val uri = writeExportTempFile(context, exportFileName) { it.write(bytes) }
+        val productionFile = File(context.appTempFolder, exportFileName)
+        assertEquals("生产 IO 落盘字节数必须等于导出字节数", bytes.size.toLong(), productionFile.length())
+        assertTrue(
+            "生产 IO 落盘内容必须逐字节等于导出字节",
+            productionFile.readBytes().contentEquals(bytes),
+        )
+
+        // 复制到 external files dir，供 `adb pull` 后在本机复算哈希。
+        val pullDir = File(
+            requireNotNull(context.getExternalFilesDir(null)) { "external files dir 为 null" },
+            EXPORT_PULL_DIR,
+        )
+        assertTrue("导出 pull 目录建不出来：$pullDir", pullDir.mkdirs() || pullDir.isDirectory)
+        val pullFile = File(pullDir, exportFileName)
+        pullFile.writeBytes(bytes)
+        assertEquals("pull 副本哈希必须与导出字节哈希一致", sha, sha256Hex(pullFile.readBytes()))
+
+        return buildJsonObject {
+            put("export_sha256", sha)
+            put("export_bytes", bytes.size)
+            put("export_line_count", exported.lines().count { it.isNotBlank() })
+            put(
+                "export_sha256_source",
+                "same-process MessageDigest(\"SHA-256\") over the bytes produced by production " +
+                    "TavernChatCodec.exportGroupJsonl; the same bytes were re-written through the " +
+                    "production writeExportTempFile (ConversationExport.kt:836) and byte-compared",
+            )
+            put("export_path", pullFile.absolutePath)
+            put("export_file_name", exportFileName)
+            put("export_production_io_file", productionFile.absolutePath)
+            put("export_production_io_uri", uri.toString())
+        }
+    }
+
+    private fun sha256Hex(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+    /** raw dump 的导出副本文件名：`c1-real-raw-dump-vote.json` → `c1-real-raw-dump-vote.jsonl`。 */
+    private fun rawDumpExportFileName(rawDumpFileName: String): String =
+        rawDumpFileName.removeSuffix(".json") + ".jsonl"
+
+    /** pipeline 三视角的旧台账（`viewer_visible_message_ids`），与既有真实网关报告逐字一致。 */
+    private fun pipelineViewerVisible(messages: List<UIMessage>, config: GroupConfig) = buildJsonObject {
+        listOf("a" to null, "b" to "a", "c" to "b").forEach { (viewer, predecessor) ->
+            putJsonArray(viewer) {
+                GroupChat.buildContext(viewer, messages, config, predecessor)
+                    .map { it.id.toString() }
+                    .forEach { add(JsonPrimitive(it)) }
+            }
+        }
+    }
+
+    /**
      * 无条件写 `c1-real-raw-dump.json`（**原始事实**文件，不是「通过证据」）。
      *
      * 调用点只有一处：真实网关用例 try/finally 的 finally —— 所以成功、等待超时、
@@ -3415,9 +4078,11 @@ class C1LiveModelSequenceTest {
         fileName: String = "c1-real-raw-dump.json",
         passEvidenceName: String = "c1-live-evidence-real-provider.json",
     ) {
-        val messages = repository.getConversationById(conversationId)?.currentMessages.orEmpty()
+        val stored = repository.getConversationById(conversationId)
+        val messages = stored?.currentMessages.orEmpty()
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val wireModelNames = assistants.map { resolveWireModelName(it) }
+        val config = stored?.groupConfig
         val triggerMessage = messages.lastOrNull { it.role == MessageRole.USER }
         val roundId = triggerMessage?.let { GroupChat.roundIdFor(it.id.toString()) }
         val run = roundId?.let { groupRunDao.findByRound(conversationId.toString(), it) }
@@ -3562,6 +4227,27 @@ class C1LiveModelSequenceTest {
                         wireModelNames.count { it.wireModelName == null && it.uuidReverseLookupName == null },
                     )
                 }
+
+                // ---- 各 viewer 可见消息 ID 台账（契约 :232-235）----
+                // 计划来自生产 `GroupTurnCoordinator.roundPlanFor`，所以记的是**本轮实际视角**
+                // （pipeline 的 predecessor、roundtable 的 chairRound）；未被计划选中的角色补一条
+                // 「无前驱、非议长轮」的素视角。读不到 config 时记 null——仍是事发事实。
+                if (config != null) {
+                    val planSteps = GroupTurnCoordinator.roundPlanFor(config, messages)?.plan.orEmpty()
+                    put(
+                        "viewer_visibility",
+                        viewerVisibilityLedger(messages, config, planViewerLedgerPlans(config, planSteps)),
+                    )
+                } else {
+                    put("viewer_visibility", JsonNull)
+                }
+
+                // ---- 逐例导出哈希（契约 :206/:232-235）----
+                // raw dump 无条件落盘（finally），所以平票那条（正式证据只在断言全过时写）
+                // 也能拿到导出哈希。导出失败时把错误原样落盘，不吞掉、也不替换原始异常。
+                runCatching { exportGroupJsonlEvidence(conversationId, rawDumpExportFileName(fileName)) }
+                    .onSuccess { export -> export.forEach { (key, value) -> put(key, value) } }
+                    .onFailure { error -> put("export_error", "${error::class.simpleName}: ${error.message}") }
             },
         )
         trace("real:raw-dump-written messages=${messages.size} assistants=${assistants.size} run=${run?.status}")
@@ -3655,6 +4341,18 @@ class C1LiveModelSequenceTest {
         /** `provider_model_table` 里那一列来自本地模型表，不是网关回传的。 */
         const val TABLE_WIRE_MODEL_STRING_NOTE =
             "local provider_model_table field; NOT the value echoed back by the gateway"
+
+        /**
+         * C1-05 真实网关截断用例的默认预算。见 [realBudgetTruncationBudget] 的推导：
+         * a 单独约 6965 < 9000 ≤ a+b 约 1.37 万，所以 b 提交后必停、c 进 skipped。
+         */
+        const val DEFAULT_REAL_BUDGET_TRUNCATION = 9_000
+
+        /** 导出证据 JSONL 里写的「用户名」（导出器必填参数，不是隐私数据）。 */
+        const val EXPORT_USER_NAME = "C1 验证用户"
+
+        /** `adb pull` 导出副本的目录（挂在 external files dir 下）。 */
+        const val EXPORT_PULL_DIR = "c1-live-export"
 
         val PRETTY = Json { prettyPrint = true; encodeDefaults = true }
     }
