@@ -43,6 +43,7 @@ import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.model.Conversation
@@ -291,7 +292,7 @@ fun GroupChatPage(
             // committed_role_ids / last_user_message_id 与实际消息错位，与重新生成/删除/
             // 切分支同级（那三个已由 ChatList 按 groupChat 关掉）。改用户提问是合法且常用的，
             // 轮次由新的 user 消息重新派生，不会错位。
-            canEditMessage = { it.role == MessageRole.USER },
+            canEditMessage = groupCanEditMessage,
         )
     }
 
@@ -337,24 +338,7 @@ fun GroupChatPage(
             importedCards = conversation.groupCards,
             settings = setting,
             onSave = { newConfig, importedCards ->
-                // 落库前必须过一遍 validate，失败绝不入库。与 importShare 同一份判定口径。
-                val errors = GroupChat.validate(newConfig, id.toString())
-                if (errors.isNotEmpty()) {
-                    errors
-                } else {
-                    vm.updateConversation(
-                        conversation.copy(
-                            type = GroupChat.TYPE_GROUP,
-                            groupConfig = newConfig,
-                            title = conversation.title.ifBlank { "群聊" },
-                            // null = 这次保存与角色卡无关（手动编辑配置），保留库里已有的一份；
-                            // 非 null = 导入带来的卡片，整体替换（含空列表：载荷里确实一张都没有）。
-                            groupCards = importedCards ?: conversation.groupCards,
-                        )
-                    )
-                    vm.saveConversationAsync()
-                    null
-                }
+                groupConfigSave(vm, id, conversation, newConfig, importedCards)
             },
             // 酒馆群聊文件回导。与 onSave 分开是因为它要往 messageNodes 追加消息，
             // 而 onSave 只改群配置与角色卡快照。
@@ -366,6 +350,57 @@ fun GroupChatPage(
         )
     }
 }
+
+/**
+ * [GroupConfigSheet] 保存 / 导入后的落库映射：**校验通过才写入会话**。
+ *
+ * 单聊与群聊现在复用同一个页面（[ChatPage]），但这条落库链路只有群聊会话会走到
+ * （`GroupConfigSheet` 由 [ChatPage] 按 [isGroupConversation] 条件渲染），所以抽成顶层
+ * 函数、留在本文件，调用方只把结果（`List<GroupConfigError>?`）交回面板展示。
+ *
+ * ## 为什么这里必须过 validate
+ *
+ * 落库前必须过一遍 [GroupChat.validate]，失败绝不入库，与 `importShare` 同一份判定口径。
+ *
+ * ## importedCards 的语义
+ *
+ * - `null` = 这次保存与角色卡无关（手动编辑配置），保留库里已有的一份；
+ * - 非 `null` = 导入带来的卡片，整体替换（含空列表：载荷里确实一张都没有）。
+ */
+internal fun groupConfigSave(
+    vm: ChatViewModel,
+    conversationId: Uuid,
+    conversation: Conversation,
+    newConfig: GroupConfig,
+    importedCards: List<RoleCardMeta>?,
+): List<GroupConfigError>? {
+    val errors = GroupChat.validate(newConfig, conversationId.toString())
+    return if (errors.isNotEmpty()) {
+        errors
+    } else {
+        vm.updateConversation(
+            conversation.copy(
+                type = GroupChat.TYPE_GROUP,
+                groupConfig = newConfig,
+                title = conversation.title.ifBlank { "群聊" },
+                groupCards = importedCards ?: conversation.groupCards,
+            )
+        )
+        vm.saveConversationAsync()
+        null
+    }
+}
+
+/**
+ * 群聊下气泡「编辑」动作的门禁：只放行**用户自己那条提问**。
+ *
+ * 挂在 [ChatScaffold] 的 `canEditMessage` 缝上（单聊不注入，落默认 `{ true }`）。
+ * 改写**角色发言**会让群运行日志里的 `committed_role_ids` / `last_user_message_id`
+ * 与实际消息错位 —— 与重新生成、删除、切分支同类（那三个在 `ChatList` 里已按
+ * `groupChat` 关掉）。而改用户提问是合法且常用的操作：轮次由新的 user 消息重新派生，
+ * 不会错位。
+ */
+internal val groupCanEditMessage: (UIMessage) -> Boolean = { it.role == MessageRole.USER }
 
 /**
  * 群聊轻量顶栏：返回 + 群标题 + 打开群配置面板的入口。
@@ -380,7 +415,7 @@ fun GroupChatPage(
  * Miuix / MD3，这里不另造一套。
  */
 @Composable
-private fun GroupTopBar(
+internal fun GroupTopBar(
     title: String,
     subtitle: String?,
     scrollBehavior: TopAppBarScrollBehavior,
@@ -419,7 +454,7 @@ private fun GroupTopBar(
  * 抢成员头像组的位置。
  */
 @Composable
-private fun GroupInfoChip(
+internal fun GroupInfoChip(
     config: GroupConfig?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -478,7 +513,7 @@ private fun GroupInfoChip(
  *   被拒收的分支根本不会走到这里（`TavernGroupImportOutcome.Rejected` 不带可落库的载荷）。
  */
 @Composable
-private fun GroupConfigSheet(
+internal fun GroupConfigSheet(
     conversationId: Uuid,
     conversation: Conversation,
     config: GroupConfig?,
