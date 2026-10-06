@@ -77,6 +77,16 @@ fun ColumnScope.ChatMessageActionButtons(
      */
     onUpdate: (MessageNode) -> Unit,
     onRegenerate: () -> Unit,
+    /**
+     * 群聊「失败续跑」入口（C1）。非 null 时在群聊里额外渲染一个续跑按钮。
+     *
+     * 只有**失败角色的错误节点且是全轮最后一个节点**才会非 null（判定见
+     * `GroupRetryEntry.canResume`）。它走的是同一个 `ChatManager.regenerateAtMessage`，
+     * 但触发点被收窄到错误节点，所以能复用同一 `round_id` 并跳过已提交 turn，不会出现
+     * 「重新生成」那种把已提交角色的发言顶掉、账面对不上的问题（见 `ChatMessage.groupChat`
+     * 与 `GroupRetryEntry` 的 KDoc）。
+     */
+    onGroupResume: (() -> Unit)? = null,
     onOpenActionSheet: () -> Unit,
     onTranslate: ((UIMessage, Locale) -> Unit)? = null,
     onClearTranslation: (UIMessage) -> Unit = {},
@@ -136,6 +146,23 @@ fun ColumnScope.ChatMessageActionButtons(
                             onRegenerate()
                         }
                     }
+                    .padding(8.dp)
+                    .size(16.dp),
+                tint = actionIconColor
+            )
+        }
+
+        // 群聊「失败续跑」：与单聊「重新生成」是**不同意图**。单聊那个对任意可重建的
+        // 助手消息都成立；群聊这个只允许指向失败角色的错误节点（`GroupRetryEntry.canResume`
+        // 已把条件收窄），点击后仍走 `regenerateAtMessage`，靠同一 `round_id` + 已提交角色
+        // 过滤实现「跳过已提交 turn 的续跑」。单聊路径 `onGroupResume` 恒为 null，不渲染。
+        if (onGroupResume != null) {
+            Icon(
+                imageVector = sync,
+                contentDescription = stringResource(R.string.chat_page_voice_retry),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onGroupResume() }
                     .padding(8.dp)
                     .size(16.dp),
                 tint = actionIconColor

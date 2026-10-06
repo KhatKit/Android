@@ -521,6 +521,22 @@ private fun ChatListNormal(
                             onRegenerate = {
                                 if (!groupChat) onRegenerate(currentMessage)
                             },
+                            // 群聊「失败续跑」：**只在失败角色的错误节点且是全轮最后一个节点**
+                            // 上出现（判定见 GroupRetryEntry.canResume）。它走同一个
+                            // `onRegenerate`（→ `ChatManager.regenerateAtMessage`），但触发点被
+                            // 收窄，所以复用同一 round_id 并跳过已提交 turn，不会像「重新生成」
+                            // 那样顶掉已提交角色的发言、让运行日志账面错位。单聊恒为 null。
+                            onGroupResume = if (
+                                GroupRetryEntry.canResume(
+                                    isGroup = groupChat,
+                                    isLastMessage = index == lastMessageIndex,
+                                    message = currentMessage,
+                                )
+                            ) {
+                                { onRegenerate(currentMessage) }
+                            } else {
+                                null
+                            },
                             // ⚠️ 口径与上面三个**不同**，别照抄成 `if (!groupChat)`：群聊下
                             // 「改角色发言」被 ChatPage 的 canEditMessage 拦掉（GroupChatPage
                             // 传入 `it.role == MessageRole.USER`），但「改用户自己那条提问」

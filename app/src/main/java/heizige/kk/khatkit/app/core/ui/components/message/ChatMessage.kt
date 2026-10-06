@@ -114,6 +114,13 @@ fun ChatMessage(
     lastMessage: Boolean = false,
     onFork: () -> Unit,
     onRegenerate: () -> Unit,
+    /**
+     * 群聊「失败续跑」入口（C1）。非 null 时由 [ChatMessageActionButtons] 渲染续跑按钮；
+     * 单聊与「非失败节点」恒为 null。判定由调用方用 `GroupRetryEntry.canResume` 给出，
+     * 不在这里另立一套。它同样落到 `ChatManager.regenerateAtMessage`，但只在失败角色的
+     * 错误节点上开放，因此能复用同一 `round_id` 且跳过已提交 turn（见 [groupChat] KDoc）。
+     */
+    onGroupResume: (() -> Unit)? = null,
     onEdit: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
@@ -138,6 +145,11 @@ fun ChatMessage(
      * 前两个（`ChatManager.regenerateAtMessage` / `deleteMessage`）不群聊感知，会让群运行日志
      * 的账面和实际轮次错位：顶掉或删掉一条角色发言后，运行日志里那一轮仍声称该角色已提交，
      * 续跑就会跳过没人再发言的角色。
+     *
+     * 群聊**不是完全没有重试**：失败角色的错误节点上另有一个收窄的「失败续跑」入口
+     * （`onGroupResume`，判定见 `GroupRetryEntry.canResume`）。它触发的仍是同一个
+     * `ChatManager.regenerateAtMessage`，但只在「失败角色的错误节点且是全轮最后一个节点」
+     * 上开放，因此复用同一 `round_id` 且跳过已提交 turn，不会顶掉已提交角色、账面对得上。
      *
      * 「创建分支」（`forkConversationAtMessage`）的**理由不一样**，别顺着上一句一起理解。
      * fork 对源会话只读——`createForkConversation` 造出新 id 后只 `saveConversation(新 id)`，
@@ -258,6 +270,7 @@ fun ChatMessage(
                 ChatMessageActionButtons(
                     message = message,
                     onRegenerate = onRegenerate,
+                    onGroupResume = onGroupResume,
                     node = node,
                     onUpdate = onUpdate,
                     onOpenActionSheet = {
