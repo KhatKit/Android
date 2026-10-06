@@ -964,6 +964,24 @@ ID 台账本轮**一份未增**，且这次跑**不是通过** ⇒ 只登记证�
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动。**
 
+### ⚠️ 第十七批（页面入口合并 + UI 三条 androidTest 纳入 + 一次失败收尾的真机采集，2026-10-06，HEAD `d133b400b`）：**群聊单聊合并为 `ChatPage` 唯一入口；成员头像组首条 androidTest 断言真机通过；chip/@ 未跑完；一次 `kill -3` 操作失误；十例仍全 `unverified`**
+
+⚠️⚠️ **先说性质**：本批 = **3 个代码 / 测试 commit**（`6b4a56d9f` / `a4b8be9da` / `d133b400b`）+ **一次未收尾的真机采集窗口**（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`，无线 `192.168.31.183:37773`）。⚠️ **20 个状态格一个都没升级，仍是 10/10 `unverified`**（只有 C1-10 两处状态格就地追加第十轮订正）。
+
+**① 页面入口合并（`6b4a56d9f` / `a4b8be9da`）**：用户指令「现在先把群聊和单聊页面合并到一起 服用同一个页面」。合并前有分派点 `GroupOrDirectPage`（按 `type` 选页）+ 单聊 `ChatPage` + 群聊 `GroupChatPage`；`ChatScaffold` 及 `GroupTopBar` / `GroupInfoChip` / `GroupConfigSheet` / `GroupMemberBar` **早已是共享组件**。`6b4a56d9f` 把 `GroupTopBar` / `GroupInfoChip` / `GroupConfigSheet` 由 `private fun` 升 `internal fun`、抽出顶层 `groupConfigSave` 与 `internal val groupCanEditMessage`（**val lambda 非 fun**）。`a4b8be9da` 让 `ChatPage.kt` 按 `isGroup = isGroupConversation(conversation)`（定于 `ChatManager.kt:2352`）条件注入 5 槽（`topBar` / `listOverlay` / `bottomBarAboveInput` / `extraCompletionProviders` / `canEditMessage`），删掉 `GroupOrDirectPage` 与 `GroupChatPage` 两个函数 + KDoc + 19 个 import；`RouteActivity.kt` 直接调 `ChatPage(`。**`ChatPage` 现是唯一页面入口**。⚠️ **编译陷阱**：`if (isGroup) { { … } } else {}` 不能编译（外层 `{}` 是代码块、块值非 lambda），必须写 `if (isGroup) ({ … }) else ({})`。⚠️ **行为变化（知情接受）**：删掉 `type == null -> Unit` 门控后所有会话早一帧挂载 `ChatPage`；单聊侧注入参数显式传但全等于 `ChatScaffold` 默认值。
+
+**② UI 三条 androidTest 纳入（`d133b400b`）**：新增 `app/src/androidTest/.../C1GroupFilterAndAvatarUiTest.kt`（**569 行 / 3 `@Test`**，SHA-256 `a1ffffd6…9fc84e`），引用 testTag `chat_input` / `group_member_bar` / `drawer_conversation_list`（生产代码里本就存在；`d133b400b` 本身生产代码零改动）。⚠️ 后两个 testTag 是**更早的两个独立 commit**（`15ce2f251` GroupMemberBar、`467f67ad9` ChatDrawer，只加语义不改行为）加的。
+
+**③ 真机结果（如实）**：两个 APK `install -r -t` 均 `Success`；**三条里只有测 2 `groupMemberBarRendersOneAvatarPerRole` 通过**（`round5-instrument.log` 里 `INSTRUMENTATION_STATUS_CODE: 0`）——**这是硬理由②的第一条 androidTest 级自动化断言**；测 1 `typeFilterChipsFilterWithoutLosingData` 刚启动（`STATUS_CODE: 1`）即 `INSTRUMENTATION_RESULT: shortMsg=Process crashed.`，测 3 `atMentionPickerInsertsParseableMention` **从未出现**（`numtests=3` 只跑到 2）。
+
+**④ `kill -3` 操作失误（不是测试失败）**：18:59:50 执行者为看线程栈对测试进程执行 `run-as … kill -3 28072`，ColorOS 记 **`reason=13 OTHER KILLS BY SYSTEM … o-stop(40)`**，把 instrumentation 一并杀停 ⇒ 上面那句 `Process crashed.`；此后设备无线调试端口 `37773`→`38493`→全部 `Connection refused`，`adb devices` 持续为空。
+
+**⑤ 非空验证未执行 + 设备设置未恢复**：三条断言的「非空」只是**按构造推断**（**三次破坏未做**）；唯一证据 `round5-instrument.log`（SHA-256 `1e43d6c4…d348a04`）+ `logcat-full.txt`（`e5e66471…46b1d3f`）在仓库外 `/tmp/opencode/c1-ui-assert/`，**设备侧未能 pull**；`screen_off_timeout` 现为 **`600000`（原值 `30000`）**、`stayon true` 未恢复，设备已不可达 **无法改回**（已登记 c1 文档遗留第 38 条）。
+
+**⑥ 为什么十例仍全 `unverified`**：契约 `:206` 四类产物本行仍零份；契约 `:232-235`「测试未运行 / 只看截图或只看 UI 状态 → `unverified`」；本次通过的那条断言对象是**成员头像组渲染（`:184-185` 那半句的前半）**，**不是 C1-10 点名的筛选 / 混排 / 不丢数据路径**，且同批 2 条未跑完、非空未验。⇒ **C1-10 不升级**（逐行依据见 `c1-group-chat.md`「C1 真机证据采集第十轮」⑨）。
+
+⚠️ **本批只提交 `docs/`（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动。**
+
 ### ⚠️ 第十二批（HEAD `86e88970d` 那一轮采集，2026-10-06）：**`C1LiveModelSequenceTest` 前 4 条真机全绿——硬理由⑤已消**
 
 ⚠️⚠️ **先说清这一批的性质：它是「采集」不是「代码提交」**——
@@ -2031,9 +2049,16 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
       授权 token。
    6. ✅ **已完成**：C1 相关 **25 条全绿**（12 + 7 + 6，exit 0），另有一轮合跑
       **45/45 全绿、exit 0**，新增 `C1DeviceEvidenceTest` 3 条。
-      ⚠️ **但全量 56 条跑不完**（`BrowserRuntimeTest` 触发 Coil 单例崩溃，**未修**），
-      未单独跑过的是 `NodeTreeSmokeTest`(4) / `DependencyReadOnlyLoadTest`(2) /
-      `ExampleInstrumentedTest`(1)。
+       ⚠️ **但全量 56 条跑不完**（`BrowserRuntimeTest` 触发 Coil 单例崩溃，**未修**），
+       未单独跑过的是 `NodeTreeSmokeTest`(4) / `DependencyReadOnlyLoadTest`(2) /
+       `ExampleInstrumentedTest`(1)。
+       ✅ **第十七批订正（HEAD `d133b400b`，2026-10-06）**：仓库**新增一个 androidTest 类**
+       `C1GroupFilterAndAvatarUiTest`（3 条，`d133b400b` 入库），**`git ls-files` 口径的
+       androidTest `@Test` 总数由 61 → 64**（登记时逐文件 `grep -c` 实测）。这三条里
+       **真机只跑了 1 条且通过**（成员头像组），另 2 条因执行者 `kill -3` 招致 ColorOS
+       杀 instrumentation **未跑完**（见本批 ④）。⚠️ **这一条尚未达成「C1 相关全绿」**：
+       `C1GroupFilterAndAvatarUiTest` 的 chip / @ 两条**没跑完**，成员头像组那条虽通过但
+       非空验证未做 ⇒ **别把本项读成「C1 相关又多 3 条全绿」**。
    7. ❌ **仍未做**：装一个从 Room 31 升上来的旧库，确认升级不崩、`group_cards` 是空串、
       群聊页刷新后「已导入的角色卡」仍在——这三件是 B1 剩下的全部尾巴。
       ⚠️ 真机库里 `rikka_hub` 的 `PRAGMA user_version = 32` /
