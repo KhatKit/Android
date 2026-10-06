@@ -6,7 +6,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * `ChatService.handleMessageComplete` 的通知标题护栏。
+ * 通知标题公式（`resolveNotificationSenderName`）的**全仓唯一性**护栏。
  *
  * ## 这条护栏防的是什么
  *
@@ -14,36 +14,37 @@ import java.io.File
  * （消费方 `ChatNotificationManager.sendGenerationDoneNotification`：`title = senderName`），
  * 它的值由 [resolveNotificationSenderName] 按**本轮实际使用**的 (assistant, model) 求。
  *
- * 仓库里有**两个**生成入口都消费 `AppEvent.ChatGenerationEnded(conversationId, senderName, …)`：
+ * 纯函数只能证明**公式**，证明不了「全仓只有一份实现」。历史上仓库里有**两个**生成入口
+ * 都消费 `AppEvent.ChatGenerationEnded(conversationId, senderName, …)`：`ChatManager.kt`
+ * 与 `core/service/ChatService.kt`。后者**逐字抄了一份**内联的
+ * `if (assistant.useAssistantAvatar) …`，于是同一个公式有两份实现、两份可能漂移。
+ * 已经发生的漂移就是 B4 —— 通知标题显示会话级模型而非本轮发言角色的模型，在 `ChatManager`
+ * 侧于 `ed21db6e` 修掉了，但那份副本不会被那次修复覆盖。
  *
- * | 入口 | 文件 | 群聊路径 | 现状 |
- * |---|---|---|---|
- * | 主入口 | `ChatManager.kt` | 有（`takeGroupTurn`） | 群聊分支里重算 `senderName`（`ed21db6e`） |
- * | 次入口 | `ChatService.kt` | 无（`grep -c groupConfig` = 0） | 只求一次，单聊等价 |
+ * 纯函数只能证明**公式**，证明不了「只有一份实现」，故用文本护栏（与
+ * `ConversationDrawerFolderScopeTest`、`ChatManagerNotificationSenderNameTest` 同一取舍；
+ * `handleMessageComplete` 是 `private suspend` 且依赖一堆 Hilt 注入的协作者，JVM 单测构造不出来）。
  *
- * 定时炸弹就在次入口：它原先**逐字抄了一份**内联的 `if (assistant.useAssistantAvatar) …`，
- * 于是同一个公式有两份实现、两份可能漂移。已经发生的漂移就是 B4 —— 通知标题显示会话级
- * 模型而非本轮发言角色的模型，在 `ChatManager` 侧于 `ed21db6e` 修掉了，但**次入口那份
- * 副本不会被那次修复覆盖**。它当下无害，只因为 `ChatService` 里没有群聊路径；一旦有人
- * 把群聊能力搬进 `ChatService`（或给它加一个群聊分支），`assistant` / `model` 会在群聊
- * 分支里被换成发言角色那一套，而在这之前求出的 `senderName` 不会跟着重算 —— 同一个 bug
- * 在次入口复现，且没有任何编译期信号。
+ * ## 2026-10-06：`core/service/` 已整体删除后的现状
  *
- * 纯函数只能证明**公式**，证明不了「调用点在正确的位置 / 只有一份实现」。这里三件事都
- * 必须在源码层钉住，故用文本护栏（与 `ConversationDrawerFolderScopeTest`、
- * `ChatManagerNotificationSenderNameTest` 同一取舍；`handleMessageComplete` 是
- * `private suspend` 且依赖一堆 Hilt 注入的协作者，JVM 单测构造不出来）。
+ * `core/service/ChatService.kt` 是 2026-09-25 `f7463f814` **主动搬走**、2026-10-01 同步
+ * 上游 RikkaHub（`8cf9bec2d`）时被 vendor merge 当新文件整包搬回来的死副本，现已删除。
+ * 于是：
  *
- * 分工：
- * - [senderNameFormula_isImplementedExactlyOnce_inAllMainSources] —— 结构层：公式不允许有第二份实现
- * - [bothGenerationEntryPoints_consumeTheSharedFunction] —— 两个入口都调共享纯函数
- * - [chatService_gainsGroupPath_onlyIfItRecomputesSenderName] —— 触发器：真给次入口加群聊路径时，重算义务随之而来
+ * - [bothGenerationEntryPoints_consumeTheSharedFunction] —— **已删**（两个入口里少了一个）
+ * - [chatService_gainsGroupPath_onlyIfItRecomputesSenderName] —— **已删**（保护对象不存在了）
  *
- * 前两条让「重复」不可能悄悄回来；第三条让「搬群聊」这件事必须先面对重算义务。
+ * ⚠️ 剩下这一条**不是**「收窄版」：它扫的是**全仓所有 `src/main`** 的 Kotlin 源码
+ * （[mainSourceFiles]），断言公式只允许在 `ChatManager.kt` 一处实现。所以「有人在别处
+ * 再抄一份内联 if」这个原始风险**仍然被完整覆盖**，覆盖面与删前完全相同。
+ *
+ * `ChatManager` 侧的群聊重算另有行为护栏，见 `ChatManagerNotificationSenderNameTest`
+ * 的 `groupBranch_recomputesSenderName_afterResolvingModel` 与
+ * `groupTurnTitle_followsTheSpeakerNotTheConversation`。
  */
 class ChatServiceSenderNameGuardTest {
 
-    // ---------- 1. 结构层：公式全仓只有一份实现 ----------
+    // ---------- 结构层：公式全仓只有一份实现 ----------
 
     /**
      * 任何 `src/main` 源码里都**不允许**再出现第二处 `if (assistant.useAssistantAvatar)` 分支。
@@ -72,101 +73,17 @@ class ChatServiceSenderNameGuardTest {
         )
     }
 
-    // ---------- 2. 两个生成入口都消费共享纯函数 ----------
-
-    @Test
-    fun bothGenerationEntryPoints_consumeTheSharedFunction() {
-        for (entry in listOf(CHAT_MANAGER_FILE, CHAT_SERVICE_FILE)) {
-            val source = code(File(repoRoot(), entry).readText())
-            assertTrue(
-                "$entry 必须调用共享纯函数 resolveNotificationSenderName(" +
-                    "，而不是自己求值：两个生成入口消费同一个 AppEvent.ChatGenerationEnded，" +
-                    "标题口径必须同源。",
-                source.contains("resolveNotificationSenderName("),
-            )
-        }
-    }
-
     // ---------- 3. 触发器：给次入口加群聊路径 ⇒ 必须重算 ----------
-
-    /**
-     * `ChatService.kt` 里**一旦出现群聊上下文**，就必须同时承担「按本轮发言角色重算
-     * `senderName`」的义务，否则这条断言立刻红。
-     *
-     * 今天 `ChatService` 里没有任何群聊标记（`groupConfig` / `takeGroupTurn` /
-     * `GroupTurnEntry` / `SpeakerStep` / `resolveGroupTurnModelId`），所以这个分支现在是
-     * 空条件 —— 它钉的**不是**「次入口不许有群聊」，而是「有群聊就必须重算」，与
-     * `ChatManagerNotificationSenderNameTest` 里那条群聊重算护栏同口径。这样一次**正确**
-     * 的「把群聊能力搬进 `ChatService`」仍然能过，而一次**漏了重算**的搬运必然被拦下，
-     * 失败信息直接指出要做什么。
-     */
-    @Test
-    fun chatService_gainsGroupPath_onlyIfItRecomputesSenderName() {
-        val source = code(File(repoRoot(), CHAT_SERVICE_FILE).readText())
-        val groupMarkers = GROUP_MARKERS.filter { source.contains(it) }
-
-        // 触发器，**先跑**：一旦有人写了群聊分支而没重算，这条就是要拦下的那次 —— 失败信息
-        // 直接告诉他要做什么。今天 `ChatService` 没有任何群聊标记，所以这个分支空转。
-        if (groupMarkers.isNotEmpty()) {
-            assertTrue(
-                "$CHAT_SERVICE_FILE 出现群聊上下文（$groupMarkers）后，senderName 必须改成 " +
-                    "var 并在群聊分支里重算，否则通知标题显示会话级模型而非本轮发言角色的模型。" +
-                    "照抄 ChatManager.handleMessageComplete 群聊分支的做法：先 " +
-                    "model = TaskRoutes.resolve(...)，再 senderName = resolveNotificationSenderName(...)",
-                source.contains("var senderName"),
-            )
-            val groupIndex = groupMarkers.minOf { source.indexOf(it) }
-            // 必须是**第二次**赋值，不能只靠初值那一次：群聊分支若排在初值之前，光检查
-            // 「标记之后有没有 `senderName = `」会被初值本身满足，护栏就漏了。所以先卡总数
-            // ≥2（初值 + 重算），再卡位置。位置检查放在其后，这样失败信息指向的是真正
-            // 缺的那一半。
-            val assigns = Regex("""senderName\s*=\s*resolveNotificationSenderName\s*\(""")
-                .findAll(source).count()
-            assertTrue(
-                "$CHAT_SERVICE_FILE 有群聊上下文（$groupMarkers）就必须把 senderName 至少重算一次" +
-                    "（即总共 ≥2 处 `senderName = resolveNotificationSenderName(`，现在 $assigns 处）。" +
-                    "只有初值一处 = 通知标题用的是会话级模型。",
-                assigns >= 2,
-            )
-            assertTrue(
-                "$CHAT_SERVICE_FILE 里群聊分支之后必须重算 senderName（命中标记 $groupMarkers）",
-                source.indexOf("senderName = resolveNotificationSenderName(", groupIndex) > groupIndex,
-            )
-        }
-
-        // 现状锚点，**后跑**：上面那条拦的是「搬了群聊却忘了重算」；这一条拦的是「搬了群聊、
-        // 也重算了，但没让人显式确认过第二个生成入口现在也带群聊语义」。两次搬运、两次红，
-        // 逼着改动者在这条测试里显式登记，而不是悄悄让护栏失去覆盖。
-        assertEquals(
-            "$CHAT_SERVICE_FILE 不该有群聊上下文。若这是有意新增的群聊路径，" +
-                "请先确认本测试的「重算」分支对新的标记词生效，并把标记词补进 GROUP_MARKERS。",
-            emptyList<String>(),
-            groupMarkers,
-        )
-    }
 
     companion object {
         private const val CHAT_MANAGER_FILE =
             "app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt"
-        private const val CHAT_SERVICE_FILE =
-            "app/src/main/java/heizige/kk/khatkit/app/core/service/ChatService.kt"
-
         /** 唯一允许实现公式的文件：`resolveNotificationSenderName` 定义所在处。 */
         private const val SHARED_FN_FILE = CHAT_MANAGER_FILE
 
         /** 「按助手头像开关分支」的形状。允许空 `assistant?.` 以覆盖等价写法。 */
         private val INLINE_FORMULA =
             Regex("""if\s*\(\s*assistant[?!]?\s*\.\s*useAssistantAvatar\s*\)""")
-
-        /** `ChatService` 里出现任一词就算「有群聊上下文」。 */
-        private val GROUP_MARKERS = listOf(
-            "groupConfig",
-            "takeGroupTurn",
-            "GroupTurnEntry",
-            "SpeakerStep",
-            "resolveGroupTurnModelId",
-            "groupStep",
-        )
 
         private val SKIP_DIRS = setOf(
             "build", ".git", ".gradle", ".idea", "node_modules", "out", ".kotlin",
