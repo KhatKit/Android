@@ -961,6 +961,7 @@ ID 台账本轮**一份未增**，且这次跑**不是通过** ⇒ 只登记证�
 **③ 酒馆解析器级接受 16/16（硬理由③的部分推进，未消）**：导出物 = 生产编解码器 `TavernChatCodec.exportGroupJsonl` 经 `C1pGroupExportHashTest`（gradle 退出码 0 / `tests="5"`）产出的 3615 B / `36e6585f…c8b9` 文件；SillyTavern 钉死 commit `06bde939fb1e9c4c8d8641d810f0a916b5bce127`（blob SHA 与 `docs/beyond-operit-open-source-references.md:221` 登记一致）；harness **16/16、退出码 0（登记时自跑复核）**。⚠️ **只是解析器层**：没起服务 / 没跑 UI / 没走写盘、**没有群注册**（野生 `.jsonl` 不会出现在某群下）；`open→save` 丢私有表头块 ⇒ 重存后回导得 `NoConfig`；**相机扫码仍零份**。**不许写成「酒馆已能打开」。**
 
 **④ 新缺陷（未修，只报告）**：只有 1 个助手时删除会崩——`AssistantViewModel.removeAssistant`（`AssistantViewModel.kt:48-61`）置空 settingsFlow → `SettingsRepository.getCurrentAssistant()`（`SettingsRepository.kt:745`）的 `assistants.first()` 抛 `NoSuchElementException`（`ChatViewModel` 的 main 收集器）⇒ 删不掉、进 SafeMode（崩溃栈 `ui/r4-12-after-3.xml`）。另：成员头像组仍只有弱证据（截图有、无断言、点按未证实）；上一轮的 `RUNNING` 残留行仍在、未清。详见 c1 文档「C1 真机证据采集第九轮」与遗留第 36 / 37 条。
+✅ **第十八批订正（2026-10-06，HEAD `81147639a`）：本条的「未修、只报告」已过期**——`85f708169`（production 2 文件 +29/−9）与 `81147639a`（6 例单测）已修：`normalizeAssistants` 读写路径共用、`getCurrentAssistant()` 变全函数、`AssistantViewModel.removeAssistant` 改走 `Settings.removeAssistant`。⚠️ **真机 SafeMode 路径未复测**（零设备，只有单测 + 探针证据）。见本文件「第十八批」与 c1 文档「生成失败健壮性与助手空列表修复」节 ② / ④。
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动。**
 
@@ -981,6 +982,22 @@ ID 台账本轮**一份未增**，且这次跑**不是通过** ⇒ 只登记证�
 **⑥ 为什么十例仍全 `unverified`**：契约 `:206` 四类产物本行仍零份；契约 `:232-235`「测试未运行 / 只看截图或只看 UI 状态 → `unverified`」；本次通过的那条断言对象是**成员头像组渲染（`:184-185` 那半句的前半）**，**不是 C1-10 点名的筛选 / 混排 / 不丢数据路径**，且同批 2 条未跑完、非空未验。⇒ **C1-10 不升级**（逐行依据见 `c1-group-chat.md`「C1 真机证据采集第十轮」⑨）。
 
 ⚠️ **本批只提交 `docs/`（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动。**
+
+### ⚠️ 第十八批（两处静默 `close(null)` 修复 + 助手删空崩溃修复，2026-10-06，HEAD `81147639a`）：**都不是 C1 验收项 ⇒ 20 状态格仍 10/10 `unverified`**
+
+⚠️⚠️ **先说性质**：本批 = **4 个真缺陷修复 commit**（`e628d9d82` / `8b05fde70` / `85f708169` / `81147639a`），**零设备、零 `adb`、零仪器测试**；验证全是 JVM 单测（AI 侧用真实本地 HTTP + 真实 `EventSources`，助手侧是纯函数）。⚠️ **都不是 C1 验收项**：C1 走 **chat-completions** 路径，本批动的是 **responses API / Claude** 与**助手删除**，与 C1 十例均无关 ⇒ **20 个状态格一个升级都没有**（仍是 10/10 `unverified`）。
+
+**① 两处「非 2xx 空/乱码 body 被静默当零产出」修复（`e628d9d82` / `8b05fde70`）**：根因在 `common/.../http/okhttp/sse/EventSource.kt:85-99`——非 2xx 时 `KtorEventSource` **固定以 `t = null` 回调** `onFailure`，错误信息只能来自响应体；调用方 `var exception = t` + 仅当 body 非空才解析 ⇒ 非 2xx + 空 body（或乱码 body）时 `close(null)`，`callbackFlow` 当正常完成收场，上游只能报「本轮没有产出内容」。这是 `43d607bdd`（上一批修好的 **chat-completions**）的**同构副本**。改法：内联 listener 机械搬为顶层 `internal fun`（`responseApiStreamListener` / `claudeStreamListener`），兜底行改 `closeFlow(exception ?: HttpException("Failed to get response: HTTP <code> <message>"))`；Claude 额外在 catch 补 `exception = e`。**同构第三处扫描结论：全仓无第三处**（Google / Interactions 已有 `?: Exception(...)` 兜底；`SSE.kt:78` 先发 `SseEvent.Failure` 且三个 TTS 消费方都有兜底）。新增 2 类 × 6 例 = 12（`@Test` 实测 6/6）。
+
+**② 助手删空崩溃修复（`85f708169` production + `81147639a` 测试）**：真机（OnePlus `PKG110` / Android 16）只剩 1 个助手时删除它即崩进 SafeMode。崩溃链：`AssistantViewModel.removeAssistant` 过滤成空列表 → `SettingsRepository.update()` 先赋值 `settingsFlow` 再落盘 → 直接暴露的 `MutableStateFlow` 在 `Main.immediate` 上同步唤醒 `ChatViewModel` 收集器 → `getCurrentAssistant()` 的 `assistants.first()` 抛 `NoSuchElementException`（崩在 persist 之前）。**关键事实**：`SettingsRepository.kt:365` 的 `ifEmpty` 是 `dataStore.data.map{...}` **读时兜底**，空列表**确实会落盘**，保护不了 `settingsFlow` 中间态。方案采用「允许删空 + 立即回落默认」：新增 `normalizeAssistants`（读写路径共用）、`Settings.removeAssistant`，`getCurrentAssistant()` 变全函数。production 2 文件 **+29/−9**；新增 `AssistantRemovalInvariantTest` **6 例**（未直测 VM，测它调用的纯函数/扩展）。
+
+**③ 新基线（改后实测）**：`:app:testDebugUnitTest` **113 类 / 931 例 / 0F0E0S**（原 112/925）；`:ai:test` **30 类 / 220 例 / 0F0E0S**（原 28/208）；lint app `0 / 581 / 6 = 587`（**未变**，未加字符串）、全模块 621（未变）；`c1_doc_stats.py` **OK 18 / WARN 0 / FAIL 0 exit 0**，台账仍 **46 行 / 501 例**（本批新增测试类不在册）；脚本 sha256 `238bb45f…4321` **未改**。
+
+**④ 诚实边界**：真机行为未复测（修复效果零真机证据）；`AssistantViewModel` 未直测、DataStore 落盘与 `Main.immediate` 时序未端到端；Claude 的 `exception = e` 在 JVM 因 `Log.w` 先抛而不可达 ⇒ 靠代码审查。逐条见 `c1-group-chat.md`「生成失败健壮性与助手空列表修复」节 ④。
+
+📍 全部源码行号、测试用例表、SHA-256 与四条限制见 `docs/eval/c1-group-chat.md` 的「生成失败健壮性与助手空列表修复」节；台账第十三批 10 个 commit 已追加（锚点 `1b0e04a9` 不重算，声明值 46 行 / 501 例未动）。
+
+⚠️ **本批只提交 `docs/` 三个文件（`c1-group-chat.md`、`lua-card-development.md`、本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 三个在途改动未碰）。**
 
 ### ⚠️ 第十二批（HEAD `86e88970d` 那一轮采集，2026-10-06）：**`C1LiveModelSequenceTest` 前 4 条真机全绿——硬理由⑤已消**
 
