@@ -1200,6 +1200,32 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 
+### ⚠️ 第二十三批（零设备，2026-10-07，HEAD `d6494e49a`）：**群聊失败续跑入口落地（生产代码）+ C1-07/C1-10 设备侧测试 + C1-06 证据字段补齐；20 状态格全不升；台账 46 行 / 501 例 → 47 行 / 509 例**
+
+⚠️⚠️ **先说性质**：本批 = **一次纯零设备窗口**（**零 `adb`、零仪器执行、零真机证据**），开工与收尾 HEAD 均为 **`d6494e49a`**（`git rev-parse HEAD` 实测）。窗口 `b60aa80c5..d6494e49a` **实测 10 个 commit**（`git log --oneline b60aa80c5..HEAD`）：4 个主角（`34145bf49` / `1c48b1701` / `9d7429216` / `d6494e49a`）+ 6 个补登的第十七批登记本体（`07cf703ce` / `5f9d92269` / `cdf88856a` / `42a0f29ae` / `5c3086882` / `c3e921a5c`，均只改 `docs/`）。⚠️ **20 状态格一个判定都没改**：C1-04 / C1-05 仍 `verified`，其余 18 格仍 `unverified`——逐格依据见 `docs/eval/c1-group-chat.md`「第十五轮（零设备）」⑦。
+
+**① `d6494e49a` = 生产代码变更：群聊「失败续跑」入口（`app/src/main` 5 files / +329）**
+
+新增纯判定 `GroupRetryEntry.canResume(isGroup, isLastMessage, message)`（`app/src/main/java/heizige/kk/khatkit/app/feature/chat/GroupRetryEntry.kt:61-69`）= 群聊 && 最后一个节点 && `MessageRole.ASSISTANT` && `turnKind == GroupChat.TURN_ERROR` && `roleId != GroupChat.SUMMARY_ID`；接通 `ChatList.kt` → `ChatMessageActions.kt:155-169`（按钮）→ `ChatMessage.kt`（透传）；**点击仍落到同一个 `ChatManager.regenerateAtMessage`，未改 `ChatManager.kt`、未发明新机制、未触碰任何 `if (!groupChat)` 门禁**。它填的是契约 `:204` / `:227-228` / `:201` 承诺的「重试可从失败角色续跑」。⚠️ **真机行为零份**（本轮零设备）。
+
+**② 「账面错位」机制（本批最重要的技术发现，逐条核过行号）**
+
+`regenerateAtMessage` 对助手消息走 `handleMessageComplete(..., messageRange = 0..<nodeIndex)`（`ChatManager.kt:638`），产出经 `Conversation.updateCurrentMessages`（`Conversation.kt:74-106`）落在**被点消息所在的 `MessageNode`** 里并切 `selectIndex`（`:82-92`）⇒ ① 被点角色**已提交的发言被顶掉**；② `regenerateAtMessage` **从不调用 `updateCommittedRoles`**（全仓唯一调用点 `ChatManager.kt:1903`，在群聊提交路的 `persistRoundState` 内）⇒ `group_runs.committed_role_ids` 仍声称该角色已提交；③ `pendingSpeakers` 按 committed 过滤（`GroupChat.kt:902-903`）⇒ 该角色**永久被跳过**，而 `roundOutputPresent` 是 `any` 判定（`ChatManager.kt:2361-2373`）**抓不到「个别角色产物被顶掉」**；④ 若该轮已 `COMPLETED`，`claimRound` 返回 `Rejected(ALREADY_COMPLETED)`（`GroupTurnCoordinator.kt:261-263`）⇒ **静默 no-op**；⑤ 群聊分支选择器也被关（`ChatMessageActions.kt:244 if (!groupChat)`）⇒ 用户无法切回被顶掉的候选。**所以「重新生成」在群聊下仍整条关闭**，新入口只是「收窄到失败角色错误节点」的续跑。
+
+**③ 已知限制**：取消（`cancelRound`，只写运行日志、无错误节点，`GroupTurnCoordinator.kt:485-491`）与预算中止（`BUDGET_STOPPED`，无错误节点）的轮次**无续跑入口**——不是「失败角色错误节点」形状，其续跑需 UI 读 `group_runs` 状态，属另一子包（`c1-group-chat.md` 遗留第 48 条）。
+
+**④ C1-07 / C1-10 设备侧测试新增但未真机跑**：`34145bf49` 新增 `C1GroupRetryResumeDeviceTest.kt`（968 行；其 KDoc 自述「群聊 UI 目前没有重试入口」在 `d6494e49a` 之后**已过期**——入口是后一笔补的）；`1c48b1701` 新增 `C1GroupPagingAndFilterDeviceTest.kt`（813 行 / 8 `@Test`）。二者均**只验证到编译 + 结构 + 纯逻辑 JVM 探针，真机结果未知**。
+
+**⑤ C1-06 证据字段补齐（无实际值）+ 超时半做不到**：`9d7429216` 给取消用例补 `viewer_visibility`（a/b/c）/ `actual_model_call_sequence[]` / `export_sha256` 等字段，**下次真机跑才产实际值**；**超时半结构性做不到**——`GROUP_ROUND_STEP_TIMEOUT_MS`（`ChatManager.kt:116`）不可注入、`withTimeout`（`:1005`），测试构造的 `AppScope`（`KhatKitApp.kt:344-352`）**无参 concrete class** 且固定绑 `Dispatchers.Main`，虚拟时间路径须改生产、本轮禁止（`timeout_half_verified=false` 是诚实缺项）。
+
+**⑥ C1-08 缺项评估 = 不产出**：模型调用序列 / token 若要拿须**自造记录型 Provider 拦截**（`MemoryExtractor.extractFromTurn` 调 provider 但丢 usage，只返回写入条数，`MemoryExtractor.kt:99-135`）⇒ 会把确定性隔离用例改成联网/注入型、**语义正交**；导出哈希对记忆隔离**不适用**（导出属 C1-09）。
+
+**⑦ 统计口径（登记子代理本机实测）**：`git log --oneline b60aa80c5..HEAD` = **10**、`--merges` = **0**；`git log --name-only b60aa80c5..HEAD -- 'app/src/test/*'` = **只有 `.../feature/chat/GroupRetryEntryTest.kt`** ⇒ 台账声明值 **46 行 / 501 例 → 47 行 / 509 例**（`+1 类 / +8 例`，XML `tests="8"`）。新基线：`:app:testDebugUnitTest` **114 类 / 939 例 / 0F0E0S**；`:ai:test` **30 类 / 220 例**；lint app `0 / 581 / 6 = 587`、全模块 `0 / 614 / 7 = 621`；仪器 `@Test` **20 文件 / 84 例**（untracked 1 文件 / 3 例：`C1GroupUiE2EFixtureTest.kt`）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**（`--self-test` / `--only tables` 均 exit 0）。⚠️ `c1_doc_stats.py` sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一个字节未改）；锚点 `1b0e04a9` 不重算。
+
+📍 完整逐格判定、逐笔 `--stat`、验证偏差纠正（脚本 ledger 不检查漏列）与诚实限制见 `docs/eval/c1-group-chat.md`「第十五轮（零设备）」+「第十八批」。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
