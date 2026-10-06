@@ -13,6 +13,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
+import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
@@ -32,16 +33,23 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
+import heizige.kk.khatkit.app.core.data.model.SpeakerStep
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FilesRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.di.appEntryPoint
 import heizige.kk.khatkit.app.core.util.JsonInstant
+import heizige.kk.khatkit.common.android.appTempFolder
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -53,6 +61,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.security.MessageDigest
 import kotlin.uuid.Uuid
 
 /**
@@ -455,6 +464,20 @@ class C1GroupCancelDeviceTest {
         assertEquals(GroupRunEntity.STATUS_FAILED, run1.status)
         assertEquals(GroupRunEntity.REASON_ROLE_FAILED, run1.reason)
 
+        // ---------- 断言 5：各 viewer 的可见消息 ID 台账（契约 :232-235） ----------
+        // 台账由生产 GroupChat.visibleMessages 逐 viewer 计算，并逐项断言：
+        // 台账 == 生产输出、含 user 触发消息、含自己的发言、可见集里其他角色必须授权。
+        val cancelConfig = groupConfig()
+        val viewerPlans = planViewerLedgerPlans(cancelConfig, GroupChat.plan(cancelConfig, emptyList()))
+        val viewerLedger = viewerVisibilityLedger(finalMessages, cancelConfig, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, finalMessages, cancelConfig, viewerPlans)
+
+        // ---------- 断言 6：契约 :206 的导出 SHA-256 ----------
+        // 真库读回会话 → 生产 TavernChatCodec.exportGroupJsonl → 生产 writeExportTempFile
+        // 写真实文件 → 同进程 MessageDigest("SHA-256")，并把同一份字节复制到 external files dir
+        // 供 `adb pull` 复算。
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, EXPORT_FILE_NAME)
+
         // ================= 证据 =================
         writeEvidence(
             "c1-device-cancel-report-$attemptLabel.json",
@@ -552,6 +575,48 @@ class C1GroupCancelDeviceTest {
                         "modelId/wireModelName must be mock's + error_message carries the mock marker); round2 " +
                         "waits for a committed AND b mid-stream (in-memory signal) before stopGeneration; b2 is " +
                         "claimed by modelId because a cancelled role is never stamped by stampGroupTurn",
+                )
+                // ===== 契约 :206 / :232-235 逐例字段（本轮补齐） =====
+                // `viewer_visibility`: 各 viewer 的可见消息 ID 台账（生产 visibleMessages）。
+                put("viewer_visibility", viewerLedger)
+                put("viewer_visibility_asserted", true)
+                // 实际模型调用序列：每条助手消息的 wire 身份 + 归属 + token（源自真机落库事实）。
+                // `role_id`/`round_id` 为 null 的那条即被取消、永远盖不上章的部分产出。
+                putJsonArray("actual_model_call_sequence") {
+                    finalAssistants.forEach { message ->
+                        add(
+                            buildJsonObject {
+                                put("message_id", message.id.toString())
+                                put("role_id", message.roleId)
+                                put("round_id", message.roundId)
+                                put("turn_kind", message.turnKind)
+                                put("model_id", message.modelId?.toString())
+                                put("wire_model_name", message.wireModelName)
+                                put("stamped_as_committed", message.roleId != null && message.turnKind != GroupChat.TURN_ERROR)
+                                put("prompt_tokens", message.usage?.promptTokens ?: -1)
+                                put("completion_tokens", message.usage?.completionTokens ?: -1)
+                            },
+                        )
+                    }
+                }
+                // 导出哈希：生产导出器 → 生产 IO 助手落盘 → MessageDigest("SHA-256")。
+                exportEvidence.forEach { (key, value) -> put(key, value) }
+                put(
+                    "contract_fields_added_this_round",
+                    "docs/beyond-operit-client-changes.md:206 + :232-235 fields newly written by this " +
+                        "run: viewer_visibility (each viewer's visible message IDs, from production " +
+                        "GroupChat.visibleMessages), actual_model_call_sequence, export_sha256/export_bytes/" +
+                        "export_line_count/export_path. Timeout half (GROUP_ROUND_STEP_TIMEOUT_MS=15min) " +
+                        "remains unverified, see timeout_half_verified / timeout_half_note.",
+                )
+                put("timeout_half_verified", false)
+                put(
+                    "timeout_half_note",
+                    "The cancellation half is asserted by this run; the timeout half is NOT verified. " +
+                        "Production wraps one role's turn in withTimeout(GROUP_ROUND_STEP_TIMEOUT_MS) " +
+                        "(ChatManager.kt:116 = 15*60*1000 = 900000 ms, applied at ChatManager.kt:1005). " +
+                        "Reaching that branch requires either waiting ~15 minutes or touching production " +
+                        "code (test-only injection point not allowed), so the timeout half stays unverified.",
                 )
             },
         )
@@ -799,6 +864,215 @@ class C1GroupCancelDeviceTest {
         obj.put("ended_at", run.endedAt)
     }
 
+    // ==================================================================
+    // 契约 :206 / :232-235：viewer 可见台账 + 导出哈希
+    // ==================================================================
+
+    /**
+     * 台账计划：由生产 [GroupChat.plan] 的步骤推导每个 viewer 的实际视角
+     * （predecessor / chairRound），未被本轮计划选中的角色补一条素视角，
+     * 保证台账按契约覆盖**全部** viewer。
+     *
+     * 与 `C1LiveModelSequenceTest.planViewerLedgerPlans` 语义逐字相同；本文件重复一份
+     * 是为了不动那个刚被另一任务大改过的文件（契约允许测试侧重复 helper）。
+     */
+    private data class ViewerLedgerPlan(
+        val key: String,
+        val viewerRoleId: String,
+        val predecessorId: String? = null,
+        val chairRound: Boolean = false,
+        val allowedOtherRoleIds: Set<String> = emptySet(),
+    )
+
+    private fun planViewerLedgerPlans(
+        config: GroupConfig,
+        planSteps: List<SpeakerStep>,
+    ): List<ViewerLedgerPlan> {
+        val byViewer = LinkedHashMap<String, ViewerLedgerPlan>()
+        planSteps.forEach { step ->
+            byViewer[step.role.id] = ViewerLedgerPlan(
+                key = step.role.id,
+                viewerRoleId = step.role.id,
+                predecessorId = step.predecessorId,
+                chairRound = step.chairRound,
+                allowedOtherRoleIds = when {
+                    step.chairRound -> config.roles.map { it.id }.filter { it != step.role.id }.toSet()
+                    step.predecessorId != null -> setOf(step.predecessorId)
+                    else -> emptySet()
+                },
+            )
+        }
+        config.roles.forEach { role ->
+            byViewer.putIfAbsent(role.id, ViewerLedgerPlan(key = role.id, viewerRoleId = role.id))
+        }
+        return byViewer.values.toList()
+    }
+
+    /**
+     * 契约 `docs/beyond-operit-client-changes.md:232-235` 点名的「各 viewer 的可见消息 ID」
+     * 台账（按 viewer 分组）。可见集合由**生产函数** [GroupChat.visibleMessages] 计算 ——
+     * 与提示词组装层 `GroupTurnCoordinator.viewerMessages` 同一入口。
+     */
+    private fun viewerVisibilityLedger(
+        messages: List<UIMessage>,
+        config: GroupConfig,
+        plans: List<ViewerLedgerPlan>,
+    ): JsonObject = buildJsonObject {
+        plans.forEach { plan ->
+            val visible = GroupChat.visibleMessages(
+                config = config,
+                messages = messages,
+                viewerId = plan.viewerRoleId,
+                predecessorId = plan.predecessorId,
+                chairRound = plan.chairRound,
+            )
+            putJsonObject(plan.key) {
+                put("viewer_role_id", plan.viewerRoleId)
+                putJsonArray("visible_message_ids") {
+                    visible.forEach { add(JsonPrimitive(it.id.toString())) }
+                }
+                put("visible_count", visible.size)
+                put("predecessor_id", plan.predecessorId)
+                put("chair_round", plan.chairRound)
+                put("allowed_other_role_ids", plan.allowedOtherRoleIds.joinToString(","))
+                putJsonArray("visible_assistant_role_ids") {
+                    visible.filter { it.role == MessageRole.ASSISTANT }
+                        .mapNotNull { it.roleId }
+                        .forEach { add(JsonPrimitive(it)) }
+                }
+            }
+        }
+    }
+
+    /**
+     * 对台账本身做契约点名的断言（不只是把数字写进 JSON）：
+     *
+     * 1. 每个 viewer 的 `visible_message_ids` 必须与生产 `visibleMessages` 的输出**逐一相等**；
+     * 2. 必须包含该轮的 user 触发消息；
+     * 3. 必须包含**自己**发的助手消息（有的话）；
+     * 4. 轮次摘要（`role_id = __summary__`，若有）对所有 viewer 可见；
+     * 5. 可见集里出现的**其他角色**助手消息必须落在该 viewer 的授权名单内。
+     */
+    private fun assertViewerVisibilityLedger(
+        ledger: JsonObject,
+        messages: List<UIMessage>,
+        config: GroupConfig,
+        plans: List<ViewerLedgerPlan>,
+    ) {
+        val byId = messages.associateBy { it.id.toString() }
+        val userMessageIds = messages.filter { it.role == MessageRole.USER }.map { it.id.toString() }
+        val summaryIds = messages.filter { it.roleId == GroupChat.SUMMARY_ID }.map { it.id.toString() }
+        plans.forEach { plan ->
+            val entry = requireNotNull(ledger[plan.key]) { "台账缺少 viewer=${plan.key}" }.jsonObject
+            val visibleIds = entry.getValue("visible_message_ids").jsonArray
+                .map { it.jsonPrimitive.content }
+                .toSet()
+            val expected = GroupChat.visibleMessages(
+                config = config,
+                messages = messages,
+                viewerId = plan.viewerRoleId,
+                predecessorId = plan.predecessorId,
+                chairRound = plan.chairRound,
+            ).map { it.id.toString() }.toSet()
+            assertEquals(
+                "viewer=${plan.key} 的台账必须等于生产 visibleMessages 的输出",
+                expected,
+                visibleIds,
+            )
+            userMessageIds.forEach { id ->
+                assertTrue("viewer=${plan.key} 必须可见 user 触发消息 $id", id in visibleIds)
+            }
+            messages.filter { it.role == MessageRole.ASSISTANT && it.roleId == plan.viewerRoleId }
+                .forEach { own ->
+                    assertTrue(
+                        "viewer=${plan.key} 必须可见自己发的助手消息 ${own.id}",
+                        own.id.toString() in visibleIds,
+                    )
+                }
+            summaryIds.forEach { id ->
+                assertTrue("viewer=${plan.key} 必须可见轮次摘要 $id", id in visibleIds)
+            }
+            visibleIds.mapNotNull { byId[it] }
+                .filter { it.role == MessageRole.ASSISTANT }
+                .mapNotNull { it.roleId }
+                .filter { it != plan.viewerRoleId && it != GroupChat.SUMMARY_ID }
+                .forEach { otherRole ->
+                    assertTrue(
+                        "viewer=${plan.key} 的可见集里出现未授权角色 $otherRole 的助手消息",
+                        otherRole in plan.allowedOtherRoleIds,
+                    )
+                }
+        }
+    }
+
+    /**
+     * 契约 `:206`/`:232-235` 的**逐例导出哈希**：真库读回会话 → 生产导出器
+     * [TavernChatCodec.exportGroupJsonl] → **生产 IO 助手** `writeExportTempFile`
+     * （`ConversationExport.kt:836`）真写盘 → 同进程 `MessageDigest("SHA-256")`，
+     * 并把同一份字节复制到 external files dir 供 `adb pull` 后本机复算。
+     */
+    private suspend fun exportGroupJsonlEvidence(conversationId: Uuid, exportFileName: String): JsonObject {
+        val stored = requireNotNull(repository.getConversationById(conversationId)) {
+            "会话 $conversationId 必须能从真库读回后才能导出"
+        }
+        val config = requireNotNull(stored.groupConfig) {
+            "群会话必须带 groupConfig 才能走 Tavern 群聊导出"
+        }
+        val exported = TavernChatCodec.exportGroupJsonl(
+            nodes = stored.messageNodes,
+            config = config,
+            cards = stored.groupCards.orEmpty(),
+            userName = EXPORT_USER_NAME,
+            groupName = "C1 cancel ${stored.title}",
+            createDate = null,
+        )
+        val bytes = exported.toByteArray(Charsets.UTF_8)
+        assertTrue("导出字节不应为空：$exportFileName", bytes.isNotEmpty())
+        assertTrue(
+            "导出的首行必须是带 chat_metadata 的表头（生产 JSONL 形态）",
+            exported.lineSequence().first().contains("chat_metadata"),
+        )
+        val sha = sha256Hex(bytes)
+
+        // 生产 IO 分发：真写进 app 临时目录，返回 FileProvider URI。
+        val uri = writeExportTempFile(context, exportFileName) { it.write(bytes) }
+        val productionFile = File(context.appTempFolder, exportFileName)
+        assertEquals("生产 IO 落盘字节数必须等于导出字节数", bytes.size.toLong(), productionFile.length())
+        assertTrue(
+            "生产 IO 落盘内容必须逐字节等于导出字节",
+            productionFile.readBytes().contentEquals(bytes),
+        )
+
+        // 复制到 external files dir，供 `adb pull` 后在本机复算哈希。
+        val pullDir = File(
+            requireNotNull(context.getExternalFilesDir(null)) { "external files dir 为 null" },
+            EXPORT_PULL_DIR,
+        )
+        assertTrue("导出 pull 目录建不出来：$pullDir", pullDir.mkdirs() || pullDir.isDirectory)
+        val pullFile = File(pullDir, exportFileName)
+        pullFile.writeBytes(bytes)
+        assertEquals("pull 副本哈希必须与导出字节哈希一致", sha, sha256Hex(pullFile.readBytes()))
+
+        return buildJsonObject {
+            put("export_sha256", sha)
+            put("export_bytes", bytes.size)
+            put("export_line_count", exported.lines().count { it.isNotBlank() })
+            put(
+                "export_sha256_source",
+                "same-process MessageDigest(\"SHA-256\") over the bytes produced by production " +
+                    "TavernChatCodec.exportGroupJsonl; the same bytes were re-written through the " +
+                    "production writeExportTempFile (ConversationExport.kt:836) and byte-compared",
+            )
+            put("export_path", pullFile.absolutePath)
+            put("export_file_name", exportFileName)
+            put("export_production_io_file", productionFile.absolutePath)
+            put("export_production_io_uri", uri.toString())
+        }
+    }
+
+    private fun sha256Hex(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
     private fun writeEvidence(name: String, payload: kotlinx.serialization.json.JsonObject) {
         val dir = requireNotNull(context.getExternalFilesDir(null)) {
             "getExternalFilesDir(null) 不应为 null"
@@ -819,6 +1093,15 @@ class C1GroupCancelDeviceTest {
 
         /** mock SSE 帧自报的 wire 模型名；别的名字 = 真网关顶包。 */
         val MOCK_WIRE_MODEL_NAMES = setOf("mock-cancel-a", "mock-cancel-b", "mock-cancel-c")
+
+        /** 导出证据 JSONL 里写的「用户名」（导出器必填参数，不是隐私数据）。 */
+        const val EXPORT_USER_NAME = "C1 验证用户"
+
+        /** `adb pull` 导出副本的目录（挂在 external files dir 下）。 */
+        const val EXPORT_PULL_DIR = "c1-cancel-export"
+
+        /** 本用例导出的群聊 JSONL 文件名。 */
+        const val EXPORT_FILE_NAME = "c1-export-cancel.jsonl"
 
         val PRETTY = Json { prettyPrint = true; encodeDefaults = true }
     }
