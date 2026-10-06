@@ -2514,6 +2514,17 @@ class C1LiveModelSequenceTest {
                 assistants.map { "${it.roleId}:${it.turnKind}" },
             assistants.all { it.turnKind == GroupChat.TURN_SPEAKER },
         )
+        // 上面用的是内存 flow 快照（盖章等待必须读它）；这里再独立从真库复查一次「库内
+        // 助手发言数 == 2」，证明快照与落库一致、不是只在内存里成立。
+        val storedAssistants = requireNotNull(repository.getConversationById(conversationId)) {
+            "会话必须能从真库读回"
+        }.currentMessages.filter { it.role == MessageRole.ASSISTANT }
+        assertEquals("库内助手发言数必须等于 2", 2, storedAssistants.size)
+        assertEquals(
+            "库内两条助手消息必须带角色署名 a、b",
+            listOf("a", "b"),
+            storedAssistants.mapNotNull { it.roleId },
+        )
 
         // ---------------- 断言 2：运行日志按预算停跑收尾 ----------------
         assertEquals("本轮必须以 BUDGET_STOPPED 收尾", GroupRunEntity.STATUS_BUDGET_STOPPED, run.status)
