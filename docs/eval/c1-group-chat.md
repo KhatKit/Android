@@ -4474,6 +4474,103 @@ untracked fixture `C1GroupUiE2EFixtureTest.kt`（实测 **461 行 / 3 个 `@Test
 **⑪ `architecture-map.md` 说明（登记时实测）**：`docs/architecture-map.md` 当前**没有任何一处引用 `GroupOrDirectPage` / `GroupChatPage` / `ChatPage`**（`grep` 零命中），其「UI 结构 / 包结构」只到「`feature/chat` 35 个 kt」这一级（本次合并删的是函数、不是文件，`chat` 包 kt 数不变），故本次合并**不需要同步该文件**；⚠️ 该文件另有一处**他人在途未提交改动**（service 命名计数与 suggestion 孤儿清理，与本合并无关），本批**未碰**。
 
 
+### 生成失败健壮性与助手空列表修复（零设备，2026-10-06，HEAD `81147639a`）
+
+⚠️⚠️ **先说性质**：本批 = **4 个真缺陷修复 commit**（`e628d9d82` / `8b05fde70` / `85f708169` / `81147639a`），**零设备、零 `adb`、零仪器测试**；两处 AI 修复的验证是 JVM 单测（真实本地 HTTP + 真实 `EventSources`），助手那处是纯函数单测。⚠️ **这 4 个 commit 都不构成本文件任何用例的验收证据**——C1 走的是 **chat-completions** 路径（`43d607bdd` 修好的正是它），而本批两处是 **responses API 与 Claude**；助手删除更是与 C1 无关 ⇒ **20 个状态格一格未动，仍是 10/10 `unverified`**。下文的「非空验证」只证明「测试有牙齿」，**不是**验收证据。
+
+**① 三处「非 2xx 空/乱码 body 被静默当零产出」缺陷的全景（`e628d9d82` / `8b05fde70`，对照 `43d607bdd`）**
+
+根因链条（三处完全同构，逐行读码核实）：
+
+1. **`common/.../http/okhttp/sse/EventSource.kt:85-99`**（本 fork 自研 `KtorEventSource`）：响应**非 2xx** 时**无条件硬编码传 `null`**——`:85` 判 `response.status.value !in 200..299`，`:89-99` 调 `listener.onFailure(this@KtorEventSource, null, Response(code, message, body))`（第二个实参就是 `null`）⇒ **错误信息只能来自响应体**。
+2. **调用方**若写成 `var exception = t` + **仅当 body 非空才 `parseErrorDetail()`** + 末尾 `close(exception)`，则**非 2xx + 空 body** ⇒ `exception` 保持 `null` ⇒ `close(null)` ⇒ `callbackFlow` 当**正常完成**收场：零 chunk、零异常 ⇒ 上游只能报「本轮没有产出内容」。
+
+三处对照：
+
+| commit | 文件（现位置，实测） | 触发面 | 兜底改法 |
+|---|---|---|---|
+| `43d607bdd`（上一批，**C1 走的正是它**） | `openai/ChatCompletionsAPI.kt`（`:839-840`） | chat-completions 非 2xx + 空 body | 上一批已修，本批只作对照 |
+| `e628d9d82`（本批） | `openai/ResponseAPI.kt`（顶层 `internal fun responseApiStreamListener` `:700`，兜底 `:743-744`） | responses API 非 2xx + 空 body；且它的 catch 分支**只 log 不赋 `exception = e`** ⇒ 非 2xx + **乱码 body** 也会 `close(null)` | 监听器机械搬为顶层 `internal fun responseApiStreamListener(decoder, sendChunks, closeFlow)`；兜底行改 `closeFlow(exception ?: HttpException(response?.let { "Failed to get response: HTTP ${it.code} ${it.message}" } ?: "Stream failed: unknown error"))` |
+| `8b05fde70`（本批） | `claude/ClaudeProvider.kt`（顶层 `internal fun claudeStreamListener` `:898`，兜底 `:942-943`） | 形状与上面逐字相同 | 同上；额外在 catch 里补 `exception = e`（`:936`），并把 try 之前的 `Log.e`/`printStackTrace` 移入 try、`exception = parseErrorDetail()` 提到 `Log.i` 之前（**纯位移/顺序微调，Android 上行为不变**） |
+
+⚠️ **为什么要把内联 listener 搬成顶层 `internal` 函数**：JVM 单测里 `android.util.Log` 未 mock 会抛——搬出来才能用**真实 `EventSources` + 真实监听器**驱动失败路径（与 `43d607bdd` 同一手法）。
+
+**同构第三处扫描结论：全仓无第三处（本机 grep 实测）。**
+- `google/GoogleProvider.kt:317` 与 `google/InteractionsAPI.kt:153` 已是 `close(exception ?: Exception("Stream failed"))`（带兜底，安全）；
+- 各 `*StreamDecoder.kt` 只抛异常、**不 close channel**；
+- `common/.../http/SSE.kt:78` 的 `channel.close(t)` 的 `t` 确实可 null，但**先**在 `:77` `trySend(SseEvent.Failure(t, response))`，消费方 `MiniMaxTTSProvider.kt:126-138` / `MiMoTTSProvider.kt:106-117` / `VolcengineTTSProvider.kt:90-95` 都有兜底（安全）；
+- **均未改。**
+
+**新增测试（各 6 例，共 12；JUnit4 + JDK `com.sun.net.httpserver.HttpServer` + 真实 `EventSources`，未新引依赖；`@Test` = 6/6 本机实测）**
+
+| # | 用例（方法名） | 断言要点 |
+|---|---|---|
+| 1 | `non 2xx with blank body must close with non null exception` | 非 2xx + 空 body ⇒ 传给 `closeFlow` 的值**非 null** |
+| 2 | `non 2xx blank body fallback message must carry http status code` | 兜底信息含 `HTTP <code>`（测试用 502） |
+| 3 | `non 2xx with json body must keep existing parsed detail` | 有 body 且可解析 ⇒ 仍是 `HttpException`、信息 = `upstream exploded`、**不含** `HTTP 500` |
+| 4 | `non 2xx with unparseable body must still close with non null exception` | 非 2xx + 乱码 body（`<html>bad gateway</html>`）⇒ **非 null** 且含 `HTTP 500` |
+| 5 | `2xx blank stream must stay a normal completion` | 2xx 空流 = **正常完成（null）**，语义不变 |
+| 6 | `2xx sse stream still yields text chunks` | 2xx 正常流产出 chunk，正文逐字 `"你好"` |
+
+文件（行数/SHA-256 本机实测）：`ai/src/test/.../openai/ResponseApiStreamFailureTest.kt`（169 行 / `65e6e9ca0c24c0d6e00f8a64b714d5dfee40e4299217bd16140a2abbcdbb19db`）、`ai/src/test/.../claude/ClaudeStreamFailureTest.kt`（174 行 / `998fb6171e9ce1cf050fb846dfe73556a58efa2f511a1607bf8e24ff81ca9f7a`）。
+
+⚠️ **非空验证（执行者报告，登记时未复现——约束：不跑任何 gradle）**：两处各把兜底行改回 `closeFlow(exception)` ⇒ **恰好各 3 条红**（非 2xx 空 body 非 null / 空 body 状态码 / 乱码 body），**exit 1**，其余 3 条绿；随后精确还原，`git diff` 为空。
+
+**② 「删除最后一个助手必崩」修复（`85f708169` production + `81147639a` 测试）**
+
+真机复现（执行者报告；崩溃栈 **本机复核**）：只剩 1 个助手时删除它 ⇒ 崩溃进 SafeMode。崩溃栈留档 `/tmp/opencode/c1-device-round4/ui/r4-12-after-3.xml`（15846 B / SHA-256 `c63e14e7386c75d42a1eb365055a931ce60d5a5008f1501cd0329d4166e65677`，**本机 `sha256sum` 实测与之一致**）。
+
+崩溃链（本机读码核实）：`AssistantViewModel.removeAssistant`（原 `:48-61`）把 `assistants` 过滤成空列表 → `SettingsRepository.update()`（原 `:442-449`）**先 `settingsFlow.value = settings` 再 `persistSettings`** → `settingsFlow` 是直接暴露给全 app 的 `MutableStateFlow`，在 `Main.immediate` 上**同步**唤醒 `ChatViewModel` 的 `settings.map { it.getCurrentAssistant().enableWebSearch }` 收集器 → `getCurrentAssistant()`（原 `:745`）的 `this.assistants.first()` 抛 `NoSuchElementException` → **崩在 persist 之前** ⇒ 删不掉、进 SafeMode。
+
+**关键事实（本机读码核实）**：`SettingsRepository.kt:365` 的读取兜底位于 `settingsFlowRaw = dataStore.data.map { ... }`（`:254` 起，`:348` 是那个 `.map {`）**读取管线内**——是**读时兜底不是写时兜底** ⇒ 空列表**确实会落盘**（`preferences[ASSISTANTS] = "[]"`），只是下次读取被换成默认。**它保护不了 `update()` 里直接赋值 `settingsFlow` 的中间态。**
+
+**选中方案（B 允许删空 + C 兜底）与理由**：允许删空并**立即恢复默认**（而不是加「不许删最后一个」限制），因为与既有读时 `ifEmpty` 设计意图一致、且「删完后立刻的状态」=「重启后的状态」；改动最小、不动 UI、不加字符串。
+
+改动清单（production 2 文件，净 **+29/−9**，本机 `git show --stat` 实测）：
+
+| 文件 | 改动 |
+|---|---|
+| `app/.../datastore/SettingsRepository.kt` | 新增纯函数 `internal fun normalizeAssistants(assistants) = if (assistants.isEmpty()) DEFAULT_ASSISTANTS else assistants`（`:760`）；读路径 `:365` 改用它；`update()` 写路径先 `val updated = settings.copy(assistants = normalizeAssistants(settings.assistants))`（`:450`）再赋值 + 落盘；新增纯扩展 `fun Settings.removeAssistant(assistant) = copy(assistants = normalizeAssistants(assistants.filterNot { it.id == assistant.id }))`（`:768`）；`getCurrentAssistant()`（`:747`）变全函数 `find { it.id == assistantId } ?: firstOrNull() ?: DEFAULT_ASSISTANTS.first()` |
+| `app/.../feature/assistant/AssistantViewModel.kt` | `removeAssistant` 改用 `settingsStore.update(settings.removeAssistant(assistant))` |
+
+**新增测试** `app/src/test/.../core/data/datastore/AssistantRemovalInvariantTest.kt`（81 行 / SHA-256 `8a10723f54567403a59bc4ce5445bbafed6949d23d16ac74ad3e68f5e049a462`，本机实测），**6 例（`@Test` = 6 本机实测）**：
+
+| # | 用例（方法名） | 断言要点 |
+|---|---|---|
+| 1 | `removing the last assistant does not crash and falls back to defaults` | **核心回归**：删最后助手后列表 = `DEFAULT_ASSISTANTS`，`getCurrentAssistant()` 不抛且 = 默认 |
+| 2 | `getCurrentAssistant tolerates empty list from any source` | 直接构造空列表（C 兜底）也有确定返回值 |
+| 3 | `removing one of many keeps the rest unchanged` | 删多个之一保持其余不变 |
+| 4 | `removing an unknown assistant is a no-op` | 删不存在的助手是 no-op |
+| 5 | `normalizeAssistants replaces only empty lists` | 只替换空列表（非空列表 `assertSame`） |
+| 6 | `update write path never persists empty assistants` | 写入路径（`copy(assistants = normalizeAssistants(...))`）永不落空列表 |
+
+⚠️ **未测 `AssistantViewModel`**（Hilt + Compose + Main 收集器耦合太重，不为测试重构），改为测 VM 现在调用的纯函数/扩展；第 6 例是**模拟**写路径（不调真实 `SettingsRepository.update()`，那要 DataStore）。
+
+⚠️ **非空验证（执行者报告，登记时未复现）**：还原两个 production 文件 + 移走新单测，跑探针复刻原 `removeAssistant` ⇒ `NoSuchElementException`、`1 test completed, 1 failed`、`PROBE_EXIT=1`（**恰好**核心回归变红）；随后 `git apply` 还原，`diff` 得 `DIFF_IDENTICAL`。
+
+**同类空列表风险扫描结论：全仓 `assistants.(first()|last()|single()|reduce|maxBy|minBy|maxOf|minOf|elementAt|[index])` 扫描 = 0 命中（本机 grep 实测，无匹配退出码 1）。** 修复前唯一的 `first()` 就是 `getCurrentAssistant()`；其余调用形态（`map`×18、`none`×7、`find`×4、`filter`×4、`firstOrNull`×3 等）均安全；`getCurrentChatModel()` 经 `getCurrentAssistant()` 已随之安全。**无其它假设非空的读取点。**
+
+**③ 新基线（改后实测；app/ai 取 XML 属性、lint 取脚本输出）**
+
+| 项 | 值 |
+|---|---|
+| `:app:testDebugUnitTest` | **113 类 / 931 例 / 0F0E0S**（原 112/925；+1 类 +6 例全部来自 `AssistantRemovalInvariantTest`） |
+| `:ai:test` | **30 类 / 220 例 / 0F0E0S**（原 28/208；+2 类 +12 例） |
+| lint app | `error 0 / warning 581 / hint 6 = 587`（**未变**，未加字符串）；全模块 621（未变） |
+| `c1_doc_stats.py` | **OK 18 / WARN 0 / FAIL 0 exit 0**；台账 **46 行 / 501 例**（未动） |
+| 脚本 sha256 | `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`（**未改**） |
+
+⚠️ 上表 app/ai 两行是**登记时本机读 `test-results` XML 实测**（app `TEST-*.xml` 113 个、`tests` 求和 931；ai `TEST-*.xml` 30 个、求和 220）；lint 与脚本行是**本机跑 `c1_doc_stats.py` 实测**。⚠️ **本批新增测试类在 `app/src/test/.../datastore/` 目录、不在台账那 46 个 C1 在册类名单里** ⇒ 台账声明值 `46 行 / 501 例` **不动**（本机实测：`台账行数 46 行` / `声明合计 501 例` / `逐行核对 46 行全部相等`）。
+
+**④ 四条限制（不许美化）**
+
+1. **真机行为未复测**：两处 AI 修复与助手删除修复**都没有在真机上复跑过**（零设备）；「删最后一个助手不再崩」只有**单测 + 探针**，**真机 SafeMode 复现路径未再走一遍**。
+2. **`AssistantViewModel` 未直测**：6 例测的是它现在调用的纯函数/扩展，**不是 VM 本身**（`Main.immediate` 时序、Hilt 注入、UI 层均未覆盖）。
+3. **DataStore 落盘与 `Main.immediate` 时序未端到端**：修复断言的是「列表非空」这个不变量，**没测**「同步收集器在写入过程中读 `settingsFlow`」的真实并发时序（第 6 例是模拟）。
+4. **Claude 的 `exception = e` 在 JVM 单测里因 `Log.w` 先抛而不可达** ⇒ 该分支的运行时行为**靠代码审查**（不是实测）；乱码 body 用例覆盖的是「`closeFlow` 收尾必非 null」（走的是 `?: HttpException` 兜底），**两条分支的实际日志路径未在单测中观测**。
+
+⚠️ **本节标「执行者报告」者均未被登记代理独立复现**（约束：不跑任何 gradle，以免重写 test-results XML）；其余标「本机实测 / 本机读码核实」者均为登记代理当场执行。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
@@ -5541,6 +5638,27 @@ UI 端到端 / 酒馆本体 / 相机扫码**仍然零份**。
 ⚠️ **本批对台账声明值的影响：一个数都没动**——10 个 commit 里没有任何 `app/src/test` 在册类的新增/扩写（`d133b400b` 加的是 `androidTest`，**不进台账口径**；其余是 main 源码 / 文档）⇒ 声明值仍 **46 行 / 501 例**（`python3 tools/verification/c1_doc_stats.py` 实测 `台账行数 46 行` / `声明合计 501 例` / `逐行核对 46 行全部相等`）。⚠️ **别把 `d133b400b` 的 3 条仪器用例算进 501。**
 ⚠️ **本批同样不改变任何判定**：页面合并是**入口重构 + 零行为变化的重构**，UI 三条 androidTest 只有 1 条真机通过、2 条未跑完，**20 个状态格一个升级都没有**（C1-10 两处仅就地追加第十轮订正）——逐行依据见「C1 真机证据采集第十轮」⑨。
 
+#### ⚠️⚠️ 再往后一批（第十三批，2026-10-06，`d133b400b..81147639a`）：**两处静默 `close(null)` 缺陷修复 + 助手删空崩溃修复 + 第十二批登记本体补登**
+
+⚠️⚠️ **本小节覆盖 `d133b400b..81147639a` 这 10 个 commit**（`git log --oneline d133b400b..81147639a | wc -l` 实测 **10**、`--merges` = **0**；逐条 `git show --stat` 核实）。它 = **上一批（第十二批）按惯例留到本批补登的登记本体 6 个** + **本批主角 4 个**（`e628d9d82` / `8b05fde70` / `85f708169` / `81147639a`）。⚠️ **锚点 `1b0e04a9` 仍然没有被重算**：10 个一个都不计入本台账任何计数——不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或子包标签 ⇒ **`78 / 6 / 17` 与两张分布表一个数都没动**。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `16dbddeae` | `coder: 登记C1真机第十轮证据节——群聊单聊合并为ChatPage唯一入口、成员头像组首条androidTest断言真机通过、chip/@未跑完、kill -3操作失误，判定未升级` | 文档（=第十二批登记本体，按惯例本批补登） |
+| `165e86b29` | `coder: 补回被上一提交误删的「## 仪器测试状态」标题（标题在替换旧文本时被一并吃掉）` | 文档（=第十二批登记本体） |
+| `3041ef27a` | `coder: C1-10 两处状态格就地追加第十轮订正（头像组已有androidTest断言但chip/@未跑、非空未验，判定仍不升级）` | 文档（=第十二批登记本体） |
+| `64980db61` | `coder: 台账追加第十二批10个commit（页面合并3个+testTag2个+第十一批登记本体5个，锚点1b0e04a9不重算，声明值46行501例未动）` | 文档（=第十二批登记本体） |
+| `7b1d03991` | `coder: 遗留补第38条——设备screen_off_timeout未恢复600000、stayon未恢复、kill -3招致ColorOS杀 instrumentation 的操作教训` | 文档（=第十二批登记本体） |
+| `7782607d5` | `coder: 实施状态补第十七批——页面入口合并为ChatPage唯一入口、UI三条androidTest纳入（头像组真机通过/chip和@未跑）、kill -3失误、设备设置未恢复；行动顺序第2.6条追加订正` | 文档（status，=第十二批登记本体） |
+| `e628d9d82` | `coder: 修复 responses API 非 2xx 空/乱码 body 被静默当零产出` | **功能（静默失败 → fail-loud；`ai/` 生产代码 + 1 新测试类）** |
+| `8b05fde70` | `coder: 修复 Claude 非 2xx 空/乱码 body 被静默当零产出` | **功能（同上，Claude provider）** |
+| `85f708169` | `coder: 删除最后一个助手时回落默认助手，避免空列表令 getCurrentAssistant 崩溃` | **功能（`app/` 生产代码 2 文件，+29/−9）** |
+| `81147639a` | `coder: 补充助手删除空列表不变量单测（含删除最后一个助手回归护栏）` | 测试（`app/src/test`，+1 类 6 例） |
+
+⚠️ **本批对台账声明值的影响：一个数都没动**——本批没有任何**已在册**的 `app/src/test` 类被新增/扩写；`81147639a` 新增的 `AssistantRemovalInvariantTest` 在 `app/src/test/.../datastore/` 目录、**不在台账那 46 个 C1 在册类名单里**，`e628d9d82` / `8b05fde70` 的新测试类在 `ai/src/test`（**台账口径根本不含 `ai` 模块**）⇒ 声明值仍 **46 行 / 501 例**（`python3 tools/verification/c1_doc_stats.py` 本机实测：`台账行数 46 行` / `声明合计 501 例` / `逐行核对 46 行全部相等`）。
+
+⚠️ **本批同样不改变任何判定**：两处 AI 修复走的是 **responses API / Claude** 路径（C1 走 chat-completions），助手删除与 C1 完全无关，**20 个状态格一个升级都没有，仍是 10/10 `unverified`**——逐行依据见「生成失败健壮性与助手空列表修复」节。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
@@ -6491,6 +6609,7 @@ git status --short
     「当前助手：角色丙」）。触发条件：**删除剩余最后一个助手**。⚠️ 本轮只取证未修；
     修复方向（删最后一个助手时不置空 settingsFlow / `getCurrentAssistant()` 对空列表回退默认）
     **不在本轮授权内**。完整现场见「C1 真机证据采集第九轮」③。
+    ✅ **已修（2026-10-06，第十三批，HEAD `81147639a`）**：见「生成失败健壮性与助手空列表修复」节 ②——`85f708169` 让 `update()` 写路径与读路径共用 `normalizeAssistants`（空列表回落 `DEFAULT_ASSISTANTS`），`getCurrentAssistant()` 变全函数（`firstOrNull()` 兜底），`AssistantViewModel.removeAssistant` 改走 `Settings.removeAssistant`；`81147639a` 补 6 例单测（含「删最后助手」核心回归）。⚠️ **但真机 SafeMode 路径未复测**（零设备），修复的运行时行为只有单测 + 探针证据（详见该节 ④ 的四条限制）。
 37. **⚠️ 上一轮留下的 `RUNNING` 残留行仍未清理（第九轮复查仍在）。**
     我直读两份 pull 回的库（`db-before` / `db-after-chips`）复核：`group_runs` 里
     status=`RUNNING` 的行 `conversation_id=2b6c129f-35da-4934-bfa7-6bf8d8099480`、
