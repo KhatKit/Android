@@ -45,6 +45,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupConfigError
@@ -331,6 +332,7 @@ fun GroupChatPage(
     if (showConfigSheet) {
         GroupConfigSheet(
             conversationId = id,
+            conversation = conversation,
             config = config,
             importedCards = conversation.groupCards,
             settings = setting,
@@ -353,6 +355,12 @@ fun GroupChatPage(
                     vm.saveConversationAsync()
                     null
                 }
+            },
+            // 酒馆群聊文件回导。与 onSave 分开是因为它要往 messageNodes 追加消息，
+            // 而 onSave 只改群配置与角色卡快照。
+            onImportTavernGroup = { imported ->
+                vm.updateConversation(imported)
+                vm.saveConversationAsync()
             },
             onDismiss = { showConfigSheet = false },
         )
@@ -463,14 +471,21 @@ private fun GroupInfoChip(
  * @param importedCards 已落库的导入快照（`conversation.groupCards`），null = 从没导入过。
  * @param onSave 第二个实参是「本次导入带进来的角色卡」，null 表示这次保存与角色卡无关
  *   （手动编辑配置），调用方据此保留库里已有的一份；非 null 则整体替换，空列表也替换。
+ * @param conversation 当前会话本体。酒馆群聊文件回导要往它的 `messageNodes` 追加消息，
+ *   卡片内部按 [isGroupConversation] 的严格口径决定出不出现（单聊恒为 false）。
+ * @param onImportTavernGroup 酒馆群聊文件回导的落库回调。入参已经是 [Conversation.applyTavernGroupImport]
+ *   算好的新会话——落库前那道 `GroupChat.validate` 在 `resolveTavernGroupImport` 里就跑过了，
+ *   被拒收的分支根本不会走到这里（`TavernGroupImportOutcome.Rejected` 不带可落库的载荷）。
  */
 @Composable
 private fun GroupConfigSheet(
     conversationId: Uuid,
+    conversation: Conversation,
     config: GroupConfig?,
     importedCards: List<RoleCardMeta>?,
     settings: Settings,
     onSave: (GroupConfig, List<RoleCardMeta>?) -> List<GroupConfigError>?,
+    onImportTavernGroup: (Conversation) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -736,6 +751,19 @@ private fun GroupConfigSheet(
                 KedgeTextButton(onClick = { showScanner = true }) { Text("扫码导入") }
             }
             ImportResultView(importResult)
+
+            // ---------- 导入：酒馆群聊文件（.jsonl / JSON 数组） ----------
+            //
+            // 与上面那条扫码/粘贴**不是同一条路**：上面解的是 KhatKit 分享载荷 JSON
+            // （GroupChat.importShare，五道闸门），这里解的是酒馆群聊文件
+            // （TavernChatCodec.importGroup）。两条路径的判定口径、结果视图、错误文案
+            // 各归各位，不共用一份——所以这里调的是 [TavernGroupImportCard]，不是
+            // applyImport。落库只发生在 Accepted 分支，且落库前那道
+            // GroupChat.validate 已在 resolveTavernGroupImport 里跑过。
+            TavernGroupImportCard(
+                conversation = conversation,
+                onImported = onImportTavernGroup,
+            )
 
             // ---------- 已落库的导入快照（刷新页面后仍在；导出不用它） ----------
             ImportedRoleCardsView(importedCards)
