@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
+import heizige.kk.khatkit.app.core.data.datastore.removeAssistant
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Avatar
@@ -50,11 +51,8 @@ class AssistantViewModel @Inject constructor(
             cleanupAssistantFiles(assistant)
 
             val settings = settings.value
-            settingsStore.update(
-                settings.copy(
-                    assistants = settings.assistants.filter { it.id != assistant.id }
-                )
-            )
+            // 删除最后一个助手时回落到默认助手，避免出现空列表中间态（getCurrentAssistant().first() 会崩）
+            settingsStore.update(settings.removeAssistant(assistant))
             memoryRepository.deleteMemoriesOfAssistant(assistant.id.toString())
             conversationRepo.deleteConversationOfAssistant(assistant.id)
         }

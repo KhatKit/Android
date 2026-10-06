@@ -362,7 +362,7 @@ class SettingsRepository @Inject constructor(
                     )
                 } else provider
             }.toMutableList()
-            val assistants = it.assistants.ifEmpty { DEFAULT_ASSISTANTS }
+            val assistants = normalizeAssistants(it.assistants)
             val ttsProviders = it.ttsProviders.ifEmpty { DEFAULT_TTS_PROVIDERS }.toMutableList()
             DEFAULT_TTS_PROVIDERS.forEach { defaultTTSProvider ->
                 if (ttsProviders.none { provider -> provider.id == defaultTTSProvider.id }) {
@@ -444,8 +444,12 @@ class SettingsRepository @Inject constructor(
             Log.w(TAG, "Cannot update dummy settings")
             return
         }
-        settingsFlow.value = settings
-        persistSettings(dataStore, settings)
+        // 助手列表非空是全局不变量。读取路径已兜底（见 settingsFlowRaw 里的 normalizeAssistants），
+        // 写入路径也必须兜底：否则 settingsFlow 会在 persist 之前短暂持有空列表，
+        // 让 getCurrentAssistant() 的 first() 抛 NoSuchElementException（真机删除最后一个助手即崩溃）。
+        val updated = settings.copy(assistants = normalizeAssistants(settings.assistants))
+        settingsFlow.value = updated
+        persistSettings(dataStore, updated)
     }
 
     suspend fun incrementLaunchCount(): Int {
@@ -742,8 +746,26 @@ fun Settings.getCurrentChatModel(): Model? {
 }
 
 fun Settings.getCurrentAssistant(): Assistant {
-    return this.assistants.find { it.id == assistantId } ?: this.assistants.first()
+    // 正常情况下 assistants 永不为空（见 normalizeAssistants）；这里再兜一层，
+    // 让该函数成为全函数，任何来源的空列表都不会再抛 NoSuchElementException。
+    return this.assistants.find { it.id == assistantId }
+        ?: this.assistants.firstOrNull()
+        ?: DEFAULT_ASSISTANTS.first()
 }
+
+/**
+ * 助手列表非空不变量：空列表回落到 [DEFAULT_ASSISTANTS]。
+ * 读取路径与写入路径共用，保证 settingsFlow 与磁盘都不会持有空助手列表。
+ */
+internal fun normalizeAssistants(assistants: List<Assistant>): List<Assistant> =
+    if (assistants.isEmpty()) DEFAULT_ASSISTANTS else assistants
+
+/**
+ * 删除助手；删除后若列表为空，则原子地回落到 [DEFAULT_ASSISTANTS]（而不是留下空列表的中间态），
+ * 从而让 [SettingsRepository.update] 始终以非空助手列表写入。
+ */
+fun Settings.removeAssistant(assistant: Assistant): Settings =
+    copy(assistants = normalizeAssistants(assistants.filterNot { it.id == assistant.id }))
 
 fun Settings.getAssistantById(id: Uuid): Assistant? {
     return this.assistants.find { it.id == id }
