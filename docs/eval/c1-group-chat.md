@@ -4473,6 +4473,9 @@ untracked fixture `C1GroupUiE2EFixtureTest.kt`（实测 **461 行 / 3 个 `@Test
 
 **⑪ `architecture-map.md` 说明（登记时实测）**：`docs/architecture-map.md` 当前**没有任何一处引用 `GroupOrDirectPage` / `GroupChatPage` / `ChatPage`**（`grep` 零命中），其「UI 结构 / 包结构」只到「`feature/chat` 35 个 kt」这一级（本次合并删的是函数、不是文件，`chat` 包 kt 数不变），故本次合并**不需要同步该文件**；⚠️ 该文件另有一处**他人在途未提交改动**（service 命名计数与 suggestion 孤儿清理，与本合并无关），本批**未碰**。
 
+
+## 仪器测试状态
+
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
 「25/25 全绿」，下面第 1 条与第 2 条按既有惯例保留原样不覆写，新数据见
 「C1 真机证据采集（2026-10-05，OnePlus PKG110）」那一节的
