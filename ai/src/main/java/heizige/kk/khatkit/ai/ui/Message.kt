@@ -37,6 +37,12 @@ data class UIMessage(
     val roundId: String? = null,
     /** 契约字段 `turn_kind`：`user` / `speaker` / `chair` / `vote_summary` / `error`。 */
     val turnKind: String? = null,
+    /**
+     * 网关响应体/流式帧里自报的模型名（wire 级原样字符串）。
+     * 与 [modelId]（本地模型配置 UUID）不同：本字段不改写、不回查、不归一化，
+     * 网关没返回时为 null。用于验收「实际模型调用序列」时无需反查本地模型表。
+     */
+    val wireModelName: String? = null,
     // 请求期间生成的内部消息；该标记仅在内存中使用
     @Transient
     val isSynthetic: Boolean = false,
