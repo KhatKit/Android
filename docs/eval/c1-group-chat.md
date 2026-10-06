@@ -4218,6 +4218,171 @@ untracked fixture `C1GroupUiE2EFixtureTest.kt`（实测 **461 行 / 3 个 `@Test
 
 ⇒ **一个 `verified` 都没有**：按「判定规则」第 2/6/8 条逐行核完，没有任何一行「四类产物在本行点名路径上全齐」。⚠️ **C1-02 是本批离升级最近的一行，本批选择不升级**——理由列在上表；要升级得先把那三项补齐并在证据登记表追加一行。
 
+### C1 真机证据采集第九轮（2026-10-06，HEAD `4d73a26b4`：**筛选 chip 两半真机通过 + 设置污染 pb 手术恢复 + 酒馆解析器级接受 16/16 + 新缺陷「删最后一个助手必崩」**）
+
+⚠️⚠️ **先说性质：本轮 = 一次真机采集窗口（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`，无线调试 `192.168.31.183:37773`）+ 一次仓库外酒馆解析器验证（本机 node）**，生产代码零改动、仓库零源码改动（`tools/` 一个字节未动），工作区三处他人的未提交改动一个未碰。⚠️ **20 个状态格一个判定都没改，仍是 10/10 `unverified`**——逐行依据见 ⑧。⚠️ 本节所有 SHA-256 与字节数均为**登记时本机重新计算**（`sha256sum` / `stat -c%s` / Python `bytes.count`），与执行者报告不一致处已逐条标注。
+
+**① 筛选 chip：「真的按类型过滤」+「不丢数据」两半都拿到真机 UI 证据（C1-10 的关键一半）**
+
+上一轮（第八轮）只验到「切换前后 DB 计数不变」，且三种 chip 下列表恒空（settings 被测试助手顶替，见 ②）。本轮污染修复后重跑，`uiautomator dump` + 截图实测（`ui/r4-17…r4-20`，XML 与 PNG 都有）：
+
+| chip | DIRECT 可见 | GROUP 可见 | 合计 | 「群」徽标 |
+|---|---:|---:|---:|---:|
+| 全部 | 4 | 2 | 6 | 2 |
+| 单聊 | 4 | 0 | 4 | 0 |
+| 群聊 | 0 | 2 | 2 | 2 |
+| 切回全部 | 4 | 2 | 6 | 2 |
+
+- 上表由我**独立按 XML `text=` 逐节点复算**（6 个已知会话标题 `C1 UI E2E 单聊甲/单聊乙/群聊` + `yunx工具测试` + `打招呼` + 标题就叫「群聊」的群会话，扣除 chip 自身标签「群聊」的 1 次出现，另数「群」徽标节点数），与执行者报告逐格一致。
+- **过滤真实生效**：单聊下 GROUP 可见 **0** 条、群聊下 DIRECT 可见 **0** 条；「群」徽标只出现在含群会话的视图（2/0/2/2）。
+- **切回精确复原**：`r4-20-chip-all-after.xml` 与 `r4-17-chip-all-before.xml` **逐字节相同**（均 25851 B / sha256 `f4c2b0170dd2e73d24b462f62df3daecafcd8cb140a549ce5c5eafa6357fbb56`，我 `sha256sum` 复核）。顺带发现同一 SHA 的还有 `r4-14`（修复后首次打开抽屉）与 `r4-28`（force-stop 重启后）——即**重启后的抽屉树与切回后逐字节相同**。另两份 chip XML 的 SHA：单聊 `28963ad55f2fb0270270c90b6606594b272efd3fe4a748e346d6afb697f48c72`（22981 B）、群聊 `433580313d3d48e5498f781aad0cb9da65aeb3bcaa2c9217d53feae3b789c729`（21529 B）。
+- **不丢数据**：切换前后主库行数 **6**（DIRECT 4 / GROUP 2，全部归属 `0950e2dc-9bd5-4801-afa3-aa887aa36b4e`）不变——我用 Python `sqlite3` 只读直查两份 pull 回的库（`db-before/rikka_hub` 与 `db-after-chips/rikka_hub`）复算；`rikka_hub` / `-wal` / `-shm` 三个文件的 SHA-256 **前后完全相同**（`copy.db` 也一样）：
+
+| 文件 | 字节 | SHA-256（切换前 = 切换后） |
+|---|---:|---|
+| `rikka_hub` | 152576 | `2b160acdeda089e34733c4330b48697951d07ea053d4ed22860684909eb5db72` |
+| `rikka_hub-wal` | 740968 | `cc076dd756c034e6a53e44f0740a838ab899e4102b8279989e0d773fea5668d5` |
+| `rikka_hub-shm` | 32768 | `d3d1501fd413e34272d7078dbbded3956a26aef3882ff84eca339f171adabfdc` |
+| `copy.db` | 156672 | `8c17c4c935c3a53a1a521c91c2f3d7ee39165fb75927a0583caf4cbebb44a8ac` |
+
+⚠️⚠️ **必须如实标注的边界**：这是**真机 UI（uiautomator 无障碍树 + 截图）级别的证据，不是仪器测试的自动化断言——仓库里没有任何对应的 `androidTest` 用例**（`ui/` 与 `avatar/` 全部文件都是 adb 手工交互的 dump/截图，未入库）。按契约 `:232-235`「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」+ `:206`「不得仅凭 UI 截图勾选」，**本行不能升级**。另：chip 的「选中态」在 uiautomator dump 里读不到（Compose `selected` 不导出，第八轮已登记同一坑），选中态只有截图目视。
+
+**② 用户 app 设置被测试污染：取证 + pb 字节手术恢复（涉及用户真实数据，全过程如实登记）**
+
+（a）污染态取证（本机复核）
+
+- 污染文件 = 主 DataStore `settings.preferences_pb` 的 17:40 pull 副本 `settings-before/settings.preferences_pb`：**22365 B / sha256 `6a0423c42c093cfccb25f3c858b4d395227f97ceb3ffd620a85a2288e85d4883`**（与第八轮 17:18 拉回那份 `924cda89…845bd6` SHA 不同——两次 pull 时刻不同，**都是污染态**）；无 `.bak`、无 backup 文件、无 `.corrupt-*`。
+- 字节级复核（我 Python `bytes.count`）：`0950e2dc` 出现 **0** 次、`0c1c11ae` 出现 **4** 次。
+- 污染内容（pb 解析，47 键）：`assistants`=[角色甲 a1 / 角色乙 b1 / 角色丙 c1]（real-provider 用例签名：真实模型 id `5a86b2d6`=deepseek-v4-flash 等）、`select_assistant`=a1（后一度变 c1，见下）。**其余 45 个键是用户真实数据**（极客猫 provider、kode_purple 主题等），**未被 mock 覆盖**。
+- 污染前用户原状证据：`ui-e2e-evidence.txt`（11202 B / `37067526f3fe2d045a30dec84bafcc8cb39c06ee0a2ba53c1676a11a23a54be0`）三次夹具运行均记 `device_assistant=0950e2dc-9bd5-4801-afa3-aa887aa36b4e name= useAssistantAvatar=false` ⇒ 原状就是**唯一的内置默认助手**（空名、Dummy 头像）。
+
+（b）根因（读测试代码得出，行号我自己核过）
+
+- `C1LiveModelSequenceTest.kt` `setUp`（`:511`）：`:517` `originalSettings = settingsStore.settingsFlow.value` —— **纯内存快照，无磁盘备份**。
+- `tearDown`（`:639`）：`:643-645` `originalSettings?.let { runCatching { runBlocking { settingsStore.update(original) } } }` —— `runCatching` 吞掉的正是这条 update 的异常；且 `SettingsRepository.update(settings)`（真实路径 `app/src/main/java/heizige/kk/khatkit/app/core/data/datastore/SettingsRepository.kt:442-446`，⚠️ **不是第八轮执行者转述里的 `core/data/repository/`**）在 `init == true` 时直接 no-op。
+- trace（`c1-live-trace.txt`，714149 B / `be9c0f48ea4d7604b1e34282649e7812f449951bc14be4643821336ced3c45ec`）：28 次 setUp 全 `init=false`，最后一次 settings 写入 17:15:46（real-provider 用例）；**首次污染后，后续快照本身就是污染值** ⇒ tearDown 等于写回污染。
+- 无任何磁盘备份、无历史备份（round3 的 `settings.pb` 也已污染）、`bmgr list sets` 无恢复集（执行者报告）。
+
+（c）路径选择（代码核实后的死路/活路）
+
+- 路径 1（用测试自己的备份）**死路**：只有内存快照；路径 2（重跑 seed 测试）**死路**：夹具只写会话、完全不碰 settings；路径 4（UI 重加助手）走到一半**发现 app 自身 bug（见 ③）**，且无法产生固定 id。最终走**路径 3：pb 字节手术**。
+
+（d）手术与安全保证（执行者报告 + 本机可核 SHA）
+
+- `assistants` 值 → `[]`（1681 B→20 B，重算两层长度前缀）+ `select_assistant` 36 B 等长替换为 `0950e2dc-…bb4e`；app 先 `force-stop`；两级备份；自研解析器（`pb_tool.py`，6031 B / `e5633ba8b6cc5e023edebc8e4e2ed9cefad8f7679f07d71e1a739ab352e2f6ea`）改后重解析并**断言其余 45 键 value 逐字节不变、key 顺序不变**；`.new` 远程 SHA 比对 + `chmod 600` + 同目录 `mv` 原子替换。
+- **SHA 链（我逐文件 `sha256sum` + `stat -c%s` 复核；文件均在 `/tmp/opencode/c1-device-round4/`）**：
+
+| 阶段 | 文件 | 字节 | SHA-256 | `0950e2dc` / `0c1c11ae` 计数（我复算） |
+|---|---|---:|---|---|
+| 污染态 | `settings-before/settings.preferences_pb` | 22365 | `6a0423c42c093cfccb25f3c858b4d395227f97ceb3ffd620a85a2288e85d4883` | 0 / 4 |
+| 删 2 个测试助手后 | `settings-afterdelete3.pb` | 19047 | `fadfe1ffafb06ac7868c9808fec952d16e62b7d779dd0e2afda20b0cbbe8029e` | 0 / 2 |
+| 手术前 pull（删第 3 个失败后） | `settings-pre-edit.pb` | 19047 | `9129ebb6865038cc99235bd58a5fd524a1f6f082b805df33bb12c8d3676fda5c` | 0 / 2 |
+| 手术版（assistants=[]，select 替换） | `settings-fixed.pb` | 17386 | `a2fa5fa3de6b7b2a652285b22f62760d6af401bc4a8a48d23f7a98d3e46faf45` | 1 / 0 |
+| app 选中默认助手后 | `settings-after-select.pb` | 18440 | `9b6478abc7b274af7ebd9a774cb8857d48d11f81f718947631fe7282d2e41d11` | 2 / 0 |
+| 重启后终态 | `settings-final.pb` | 18440 | `37baf83f8566e90fd1c79646144d04b87d3fefcdcaf875f6dc7f34368088e324` | 2 / 0 |
+
+- 之后启动 app 触发 `ifEmpty { DEFAULT_ASSISTANTS }`（`SettingsRepository.kt:365`）→ 抽屉里选中「默认助手」→ **app 自己把完整默认助手 JSON 落盘**。恢复内容与代码 `DEFAULT_ASSISTANTS` **逐字段一致**（空名 / Dummy 头像 / 7 个本地工具 / 四个 `enable*=true`）。
+- UI 结果：抽屉从「没有对话记录」（`r4-01-drawer.xml`，19037 B / `21cba012…ec17`）→ **6 条会话**（`r4-14-drawer.xml`），**force-stop 重启后仍 6 条**（`r4-28-restart-persist.xml`，与 `r4-14`/`r4-17`/`r4-20` 同 SHA）。
+- 主库 6 个会话（全部归属 `0950e2dc`）**全程未动**；删除测试助手前已核实其 0 会话 / 0 memory 引用（执行者报告）。
+- ⚠️ **边界**：整个过程是 adb + Python 脚本人手编排（`pb_tool.py` 脚本本体在仓库外），**不是自动化测试**；「其余 45 键逐字节不变」的断言由执行者的自研解析器完成，我**未能独立复现该断言**（我独立可核的是：六个文件的 SHA/字节数、两个 UUID 的出现次数、以及手术版可被 app 自己重新落盘成完整默认助手）。
+
+**③ ⚠️ 新发现 app 真 bug：删除最后一个助手会崩（未修，只报告）**
+
+- `AssistantViewModel.removeAssistant`（真实路径 `app/src/main/java/heizige/kk/khatkit/app/feature/assistant/AssistantViewModel.kt:48-61`，行号我自己核过）把 settingsFlow 临时置空 → `SettingsRepository.getCurrentAssistant()`（`SettingsRepository.kt:745`）的 `assistants.first()` 抛 `NoSuchElementException`（`ChatViewModel` 的 main 收集器）→ **在 persist 之前崩溃 ⇒ 删不掉、进 SafeMode**。
+- 崩溃栈自 XML `ui/r4-12-after-3.xml`（15846 B / `c63e14e7386c75d42a1eb365055a931ce60d5a5008f1501cd0329d4166e65677`）读出（我逐帧复核）：`NoSuchElementException: List is empty.` → `CollectionsKt.first(_Collections.kt:222)` → `SettingsRepositoryKt.getCurrentAssistant(SettingsRepository.kt:745)` → `ChatViewModel$special$$inlined$map$1$2.emit(Emitters.kt:218)` → `StateFlowImpl.collect(StateFlow.kt:401)`；同一 XML 里可见 SafeMode 文案「应用上次启动时崩溃了…」「安全模式」「当前助手：角色丙」「切换助手」。
+- 触发条件：**只有 1 个助手时删除**（删第 2、3 个用安全模式 UI 成功，见 `r4-04c` / `r4-05c`；删最后一个崩在 `r4-06c` / `r4-12`）。
+- ⚠️ **未修，也不在本轮范围**。登记为**已知缺陷**（「已知遗留与风险」第 36 条）。
+
+**④ 成员头像组：仍然只有弱证据（不许拔高）**
+
+- `uiautomator dump` 里**找不到任何头像节点**（`UIAvatar` 无 `content-desc` / 无 semantics；`ui/r4-21-groupchat.xml` 的 `content-desc` 全集只有 返回 / 复制 / 更多选项 / 群配置 / 语音 / 两个模型名 / Input / Output / 翻译 等，**没有任何头像或角色名语义**）。
+- 截图可见：消息列表 Alice / 阿尔法 / 小结 3 处头像；输入框上方 **3 个彩色头像**（粉/紫/蓝 = 3 角色）从输入框后探出（`avatar/r4-21-crop-input-area.png`，55471 B / `036ab40cbb1a43d8b8d334061f5f814a239c34431675bfa32df8848fa7f0f246`）。⚠️ **像素级我用 PIL 独立复核**：全图（1080×2376）左下粉色可见区 bbox **x41-112 / y2159-2235**（执行者报告 `y2160-2232 @ x60`，同一区域）；裁剪图左侧饱和色簇含紫/粉/蓝三类。
+- ⚠️ **伽马的消息行两帧都没有头像**（`ui/r4-21-groupchat.png` 与 `avatar/r4-27-groupchat-2nd.png`；两帧 dump SHA 相同 `0855e010526d827f6d612cab676575489d5e8acc78cc07f874a53f15e30eab22`，尺寸 37048 B）——**如实记录，原因未查**。
+- 额外尝试：在粉色头像可见区点两次（`ui/r4-22-avatar-tap.xml` / `ui/r4-23-avatar-tap2.xml`，两帧 dump 与 `r4-21` 同 SHA），**未**插入 `@Alice Johnson `（输入框仍占位符；`avatar/r4-22-after-avatar-tap.png` 219794 B / `cd304660…307d`）。
+- ⇒ 结论只能是「**截图里存在头像组**」，**不是自动化断言**，**点按可用性未证实**。契约要求的「成员头像组」**不能算已验**。
+
+**⑤ ⭐ 酒馆解析器验证：硬理由③在「解析器级」通过（16/16）——不是「用户在真 SillyTavern 里打开过」**
+
+（a）导出物来源（**不是手写样本**）
+
+- 仓库既有 golden 测试 `app/src/test/java/heizige/kk/khatkit/app/core/data/ai/tavern/C1pGroupExportHashTest.kt`（路径我核实）调用生产编解码器 `TavernChatCodec.exportGroupJsonl`（`TavernChatCodec.kt:240`）把导出物写盘到 `app/build/c1p-group-export-hash/pipeline_3roles_2rounds_jsonl.txt`。
+- 命令 `./gradlew --offline :app:testDebugUnitTest --rerun --tests '…C1pGroupExportHashTest'` → **退出码 0**、`BUILD SUCCESSFUL in 5s`、XML `tests="5" skipped="0" failures="0" errors="0"`（我读 `gradle-c1p-run.log` 18616 B / `18e40bb1142b365aeaece0db4e8e05dbfc1250a12e62cfb39262ab0e5dab81a2` 与现存 `app/build/test-results/.../TEST-…C1pGroupExportHashTest.xml` 复核；后者就是当前唯一一份单测 XML，即 `c1_doc_stats.py` 报「1 类 / 5 例」的那个子集）。
+- 产物 **3615 字节，SHA-256 `36e6585f9aa4a028eb8277bc70578fd2c802cdd730e3981f0d52b02430f0c8b9`**（我 `stat`+`sha256sum` 复核），与 golden `tools/verification/c1p_group_export_hash.golden.json` 一致（golden 我核过 `bytes:3615` / 同 SHA）。
+- 官方校验脚本 `python3 tools/verification/c1p_group_export_hash.py` → **退出码 0**（执行者运行；⚠️ **该脚本内部会调 gradle（`tools/verification/c1p_group_export_hash.py:170`），本轮为避构建锁没有重跑**；登记依据 = `c1p-verify.log` 7457 B / `c858abd84959370a0bc098942c81da7f89ad02be0954ac12cd85ed6f19d5ca00` 里 [run1]/[run2] 两个退出码 0、11 个产物逐条「一致」）。
+
+（b）酒馆侧（SillyTavern commit `06bde939fb1e9c4c8d8641d810f0a916b5bce127`，与仓库既有登记 `docs/beyond-operit-open-source-references.md:221` **同一 SHA**，未用浮动 master；**AGPL-3.0**；clone 在 `/tmp/opencode/sillytavern-verify/SillyTavern`）
+
+- **我独立复核**：`git rev-parse HEAD` = 同一 SHA；四个被引用文件在该 commit 的 **blob SHA** 与登记一致（`src/endpoints/chats.js` `390abc3cb2aeefd0edeffe4294186f199a14b3ec`、`src/util.js` `ad5afb1539b59799ede088e883e5a6ab6c117438`、`public/scripts/group-chats.js` `7b82ca84132f2e04ab41ee8ee26a1bf7c1796a1f`、`public/script.js` `777a2d5983a6283ef9b26726e75192da1e3f3cea`）。
+- 解析链位置（只给路径 + 行号，不贴代码）：服务端逐行解析 `src/endpoints/chats.js:577-590` `getChatData`（`tryParse` 在 `src/util.js:571-577`；`tryReadFileSync` 在 `src/util.js:1528-1538`）；客户端群聊装载 `public/scripts/group-chats.js:255-320` `getGroupChat`（`:268` 只取 `data[0].chat_metadata`；`:272-274` 首行含 `chat_metadata` 才 `shift()`；`:305-309` 装载消息）；聊天列表扫描 `src/endpoints/chats.js:459-484`；消息消费 `public/script.js:2575-2576`、`:2634-2652`。⚠️ 我逐一 grep 核过 `getChatData:577`、`tryParse:571`、`getGroupChat:255`、`:268` / `:272` 的存在与语义。
+- harness `harness.mjs`（18848 B / `97969fa4752dd3ac18debf16bdf15d895f0dbbd066176873453ebb36fcaa87ea`，**只在 /tmp，未进仓库**）。直接 import 被否（`src/endpoints/chats.js` 依赖 express / sanitize-filename / write-file-atomic / lodash / middleware；`src/util.js` 还依赖 yaml / command-exists / yauzl / mime-types / simple-git / chalk / bytes；node_modules 未安装）⇒ 按允许的退路提取最小片段：`tryParse` / `tryReadFileSync` / `getChatData` 为**逐字提取**，群聊表头处理 / `updateChatMetadata` / `getChatInfo` 扫描语义 / 消息渲染取值 / 保存序列化为**同语义转写**（逐条标注文件:行号）。
+- **16/16 断言全过，harness 退出码 0**——⚠️ **我自己用 `node harness.mjs` 独立重跑过**：输出 `16/16 assertions passed`、exit code **0**，且重跑后 `harness-report.json` 与重跑前**逐字节相同**（4097 B / `4578185df1c09a0dfe487c9f5d4a8f58892dc790d03ba69bde0da3b92dd834dc`）。
+
+（c）六条断言结果（照记）
+
+| # | 断言 | 结果 | 关键读数 |
+|---|---|---|---|
+| 1 | 逐行 JSON 解析无坏行 | ✅ | 9 行全解析，0 坏行 |
+| 2 | `name` / `is_user` / `is_system` / `mes` 可读 | ✅ | 8 条全部类型正确（如 `阿尔法:false/false`、`阿达:true/false`） |
+| 3 | 三个角色名对上 | ✅ | a/b/c → 阿尔法/贝塔/伽马；非用户说话人集合 {阿尔法,贝塔,伽马,多数决} |
+| 4 | 顺序一致 | ✅ | `[阿达,阿尔法,贝塔,伽马,阿达,多数决,贝塔,伽马]`；swipe 消息 swipes=2、swipe_id=1、`mes` 取选中 swipe |
+| 5 | 扩展字段被忽略还是报错 | ✅ **被忽略、不报错** | 酒馆只抬 `data[0].chat_metadata`（=`{is_group:true}`），`khatkit_group` 随表头行一起被丢弃；消息级契约键原样保留且能过保存序列化；`getChatInfo` 接受（chat_items=8） |
+| 6 | Normalized 归一化产物仍可读 | ✅（**代理验证**） | 无真实 Normalized 导出 fixture；用「只改 `khatkit_group` 数值 / 删掉整个私有块」两种改写跑同一解析，结果与原件逐项相同 |
+
+**结论：A —— 格式被酒馆自己的解析器接受。**
+
+（d）⚠️ **必须一并保留的边界（5 条 + AGPL）**
+
+1. **只是解析器层，不是完整 app**：没起 node 服务、没装依赖、没跑 UI、没走写盘。
+2. **群注册是另一件事**：酒馆打开群聊要求该群已注册在该用户的 `groups` 里且文件已挂到 `group.chats`（`group-chats.js:2199-2200`）；群名/成员名单存在服务端 `groups/<id>.json`，**不在**聊天文件里。**野生 `.jsonl` 单独存在不会出现在某个群下。**
+3. **角色归因靠每条消息的 `name`**；`khatkit_character_names` 酒馆不读。
+4. **无 `send_date`**：酒馆显示空时间戳，不报错（导出确定性的代价）。
+5. ⚠️⚠️ **酒馆 open→save 会丢掉私有表头块**（它用 `chat_metadata` 重建表头，`group-chats.js:632-636`）⇒ **被酒馆重存过的文件再回 KhatKit 导入会得到 `NoConfig`**（消息仍可导入）。这是设计后果、不是解析拒绝，但**影响「打开并回导」的叙事**，必须写清楚。
+6. ⚠️ **AGPL 边界**：SillyTavern 代码只在 `/tmp`。本登记**只给路径 + 行号 + SHA，不贴大段代码**。
+
+（e）附加发现（也登记）：数组形态 `exportGroup`（仅 golden 测试的第二载体）**不是**酒馆聊天文件（整行一个数组 ⇒ 表头判定不触发；harness A7 实测 `data.length=1 / headerDetected=false / firstIsArray=true`）；但 UI 出货路径只用 `exportGroupJsonl`（`GroupExportCard.kt:206`；扩展名常量 `GroupExportCard.kt:40`），**不构成缺陷**。
+
+（f）harness 相关 SHA（我复核）：`harness.mjs` = `97969fa4…a87ea`；`c1p-verify.log` = `c858abd8…5ca00`；`gradle-c1p-run.log` = `18e40bb1…b81a2`；`SUMMARY.md` 6778 B / `1dd1db361979a539978976f57de13ff23f64b7da2c280d216682fcc24f94426a`；`harness-report.json` = `4578185d…834dc`。
+
+**⑥ 设备副作用与遗留（如实登记）**
+
+- `screen_off_timeout` 原值 **30000**，本轮**从未修改**，收尾 **30000**。
+- `svc power stayon`：**原值未能留证**（按任务先设后读）；收尾设 0 时曾观察到被 ColorOS 重置回 15，再次设 0 并确认（执行者报告）。
+- 上一轮留下的 `RUNNING` 残留行**仍在**（我直读两份 pull 回的 DB 复核，字段逐项一致）：`conversation_id=2b6c129f-35da-4934-bfa7-6bf8d8099480`、`round_id=round-a8d28946-4685-461c-9ada-20095319ca53`、status=`RUNNING`、`token_limit=9000`、`spent_tokens=0`、`started_at=1791271593923`（≈2026-10-06 15:26:33）、`ended_at=NULL` —— **未删，只报告**（另立遗留第 37 条）。
+- 未 `pm clear` / `pm uninstall`，未用 `connectedAndroidTest`；本轮**没有跑任何仪器测试**。
+
+**⑦ 本批的诚实局限（不许美化）**
+
+1. 全部 UI 证据是 adb 手工交互 + uiautomator/截图，**零 androidTest 运行、仓内零对应断言**；
+2. pb 手术的「其余 45 键逐字节不变」断言系执行者自研解析器完成，我**未独立复现**；
+3. 头像组无断言、点按未证实、伽马头像缺失原因未查；
+4. 酒馆侧只有解析器级 16/16，完整 app 未跑（群注册 / 写盘 / UI 全未做）；
+5. 设置污染的**测试代码根因未修**（`C1LiveModelSequenceTest` 的内存快照 + `runCatching` 吞异常仍在仓库里）——下一轮全量仪器测试**会再次污染**，登记为遗留第 34 条续项。
+
+**⑧ 判定影响：20 个状态格一个判定都没改（仍是 10/10 `unverified`），逐行依据**
+
+| 行 | 本批新增了哪类产物 | 仍然缺哪一项（不升级的理由） |
+|---|---|---|
+| C1-01 | — | 显式 @ 的投递收窄仍无真机证据（夹具的 @ 落在用户消息上） |
+| C1-02 | — | 上一轮的三项未锁死原样（逐调用运行日志对照 / 独立断言 / shell 退出码落盘）；本批未触碰 |
+| C1-03 | — | 真实网关 roundtable 议长汇总轮零份 |
+| C1-04 | — | 真实网关 vote 与平票失败路径零份 |
+| C1-05 | — | 正式 `actual_model_call_sequence` JSON 未产出（raw dump 是诊断文件、不是正式证据） |
+| C1-06 | — | 取消 / 超时路径真机零份 |
+| C1-07 | — | 同 `round_id` 重试幂等的真机台账零份 |
+| C1-08 | — | 三个记忆空间检索可见性 + `source_message_id` 归因零份 |
+| C1-09 | **解析器级接受 16/16（本批最大推进）**；导出物来自生产编解码器（3615 B / `36e6585f…`） | 契约 `:206` 要的「酒馆本体打开」= **完整 app 打开未做**（群注册 / 写盘 / UI 全未跑）；`open→save` 丢私有表头块影响「打开并回导」；**相机扫码仍零份**；真机导出文件 SHA 与回导链路仍不完整 |
+| C1-10 | **chip 两半首次拿到真机 UI 证据**（过滤生效 + 切回精确复原 + 三文件 SHA 不变 + 双库 6 行未动） | ① 契约 `:232-235` 明写「只看截图或只看 UI 状态 → `unverified`」，仓内无对应 androidTest；② 成员头像组仍只有弱证据（无断言、点按未证实）；③ 契约四类产物（viewer 集合 / 调用序列 / token / 导出哈希）本行仍零份。**离升级比上一轮更近，但一格不改** |
+
+⇒ **一个 `verified` 都没有**：按「判定规则」第 2/6/8 条逐行核完，没有任何一行「四类产物在本行点名路径上全齐」。⚠️ 20 格里 ② 句的原文「成员头像组 / @ 选择器 / 筛选 chip 三项一项都没做」自本轮起已过期一半（chip 已通过、@ 已有覆盖、头像组仍弱）——**已在 20 格就地追加第九轮订正**，但**不构成任何一格的判定改变**。
+
+**⑨ 四条硬理由现状（本轮更新后）**
+
+- **硬理由①（模型名不是 wire 级抓包）**：上一轮已判定**对真实网关路径已消**（`wire_model_name_provenance_counts={wire_response_model:3, fallback:0}`）；**本轮无变化**，不重复登记。
+- **硬理由②（真机 UI 端到端零份）**：**从「@ 一项较好」推进到「chip 两半落实、头像组仍弱」** —— @ 选择器第七 / 八轮已覆盖较好（真实文本回读 + 生产解析函数真机通过）；**chip 本批通过（UI 级）**；头像组仍只有截图与像素证据、无任何断言、点按未证实。⇒ **部分消，未消**。缺的三件：① 头像组的自动化断言（至少 `content-desc` 级）；② 头像点按插入 @ 的可用性；③ 混排列表行为的 androidTest（或契约认可的等价自动化）。
+- **硬理由③（酒馆本体零份）**：**从「零份」推进到「解析器级接受 16/16」**，但「**用户在完整 SillyTavern app 里打开过**」仍零份（没起服务、没跑 UI、没走写盘、没有群注册）⇒ **降级为「只剩完整 app 一半」，未消**。措辞必须是「**解析器级接受**」，**不许写成「酒馆已能打开」**。
+- **硬理由④（相机扫码）**：**仍零份**，本轮未碰（相机链路需要物理二维码进入视野，需用户配合）。
+
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
