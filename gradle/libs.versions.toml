@@ -209,6 +209,14 @@ shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizu
 kedge = { module = "heizige.kk:kedge", version.ref = "kedge" }
 khromia = { module = "heizige.kk:khromia", version.ref = "khromia" }
 
+# 依赖分组。只收「同一组 >=2 个 artifact」且「各模块配置名与 api/implementation 语义
+# 完全一致」的组合——bundle 会把组内所有成员绑到同一个 configuration 上,只要有一处
+# 是 api(...) 其余是 implementation(...),打包成 bundle 就会悄悄改动模块的 API surface。
+# 逐组取舍与被否掉的候选见 docs/architecture-map.md「版本目录与 bundles」一节。
+[bundles]
+# 仪器测试(javax/androidx 两件套)。7 个模块重复声明同一对,故分组。
+androidTest = ["androidx-junit", "androidx-espresso-core"]
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
