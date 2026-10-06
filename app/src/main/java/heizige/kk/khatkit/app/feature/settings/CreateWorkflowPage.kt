@@ -48,7 +48,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
     val nav = LocalNavController.current
     val context = androidx.compose.ui.platform.LocalContext.current
     val loaded = remember(workflowId) {
-        workflowId?.let { id -> WorkflowStore.load(context).firstOrNull { it.id == id } }
+        workflowId?.let { id -> WorkflowPreferencesRepository.load(context).firstOrNull { it.id == id } }
     }
     var editing by remember(workflowId) { mutableStateOf(loaded) }
     var name by remember(workflowId) { mutableStateOf(loaded?.name ?: "新工作流") }
@@ -88,7 +88,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             KedgeTextButton(
                 onClick = {
                     val saved = currentDefinition(editing?.id, name, nodes.toList())
-                    WorkflowStore.save(context, saved)
+                    WorkflowPreferencesRepository.save(context, saved)
                     scope.launch {
                         runCatching {
                             repository.save(WorkflowLegacy.fromStored(saved))

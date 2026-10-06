@@ -31,7 +31,7 @@ data class WorkflowDefinition(
 /**
  * 本地工作流编排存储。节点定义与现有卡片执行器解耦，便于后续把模块注册表接入运行时。
  */
-object WorkflowStore {
+object WorkflowPreferencesRepository {
     private const val PREFS = "khatkit_workflows"
     private const val KEY = "definitions"
 

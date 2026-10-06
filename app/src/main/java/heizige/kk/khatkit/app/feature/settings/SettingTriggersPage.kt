@@ -105,7 +105,7 @@ fun SettingTriggersPage() {
     val triggerState by controller.settings.state.collectAsStateWithLifecycle()
     val cards by controller.cards.collectAsStateWithLifecycle()
     val logEntries by controller.logs.entries.collectAsStateWithLifecycle()
-    var workflows by remember { mutableStateOf(WorkflowStore.load(context)) }
+    var workflows by remember { mutableStateOf(WorkflowPreferencesRepository.load(context)) }
 
     val permissionState = rememberPermissionState(
         permissions = buildSet {
@@ -281,8 +281,8 @@ fun SettingTriggersPage() {
                                 trailingContent = {
                                     KedgeTextButton(
                                         onClick = {
-                                            WorkflowStore.delete(context, workflow.id)
-                                            workflows = WorkflowStore.load(context)
+                                            WorkflowPreferencesRepository.delete(context, workflow.id)
+                                            workflows = WorkflowPreferencesRepository.load(context)
                                         },
                                     ) { Text("删除") }
                                 },

@@ -5,7 +5,7 @@ import heizige.kk.khatkit.app.core.data.db.dao.WorkflowDao
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunStepEntity
-import heizige.kk.khatkit.app.feature.settings.WorkflowStore
+import heizige.kk.khatkit.app.feature.settings.WorkflowPreferencesRepository
 import java.util.UUID
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -18,7 +18,7 @@ class WorkflowRepository(
     suspend fun importLegacyIfEmpty() {
         if (dao.count() > 0) return
         val now = System.currentTimeMillis()
-        WorkflowStore.load(context).forEach { stored ->
+        WorkflowPreferencesRepository.load(context).forEach { stored ->
             val graph = WorkflowLegacy.fromStored(stored)
             dao.upsert(graph.toEntity(now))
         }
