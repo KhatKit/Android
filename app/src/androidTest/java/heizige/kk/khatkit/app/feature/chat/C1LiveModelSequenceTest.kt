@@ -458,6 +458,140 @@ class C1LiveModelSequenceTest {
         ),
     )
 
+    // ------------------------------------------------------------------
+    // 真实网关：roundtable / vote / 显式 @ 三个变体共用的 case 名与夹具
+    // ------------------------------------------------------------------
+
+    private val realRoundtableCaseName = "real-roundtable"
+    private val realMentionCaseName = "real-mention"
+    private val realVoteCaseName = "real-vote"
+    private val realVoteTieCaseName = "real-vote-tie"
+
+    /**
+     * 真实网关 vote 的候选集。**必须是三个候选**：三个投票者投两个候选永远只能得 2:1
+     * 或 3:0，凑不出平票；三候选各投一票才是 1:1:1 的 `VoteOutcome.Tie`。
+     */
+    private val realVoteCandidates = listOf("opt-a", "opt-b", "opt-c")
+
+    /** 真实网关多数决：a/b→opt-a、c→opt-b ⇒ 2:1 ⇒ `VoteOutcome.Decided`（胜者 opt-a）。 */
+    private val realDecisiveBallots = mapOf("A" to "opt-a", "B" to "opt-a", "C" to "opt-b")
+
+    /** 真实网关平票：a/b/c 各投不同候选 ⇒ 1:1:1 ⇒ `TIE_FAIL` 下 `VoteOutcome.Tie`。 */
+    private val realTieBallots = mapOf("A" to "opt-a", "B" to "opt-b", "C" to "opt-c")
+
+    /**
+     * roundtable 真实网关配置：复用 [realProviderConfig] 的角色/预算/议长，**只换 mode**。
+     *
+     * 不原地改 [realProviderConfig]：它的 mode 是 pipeline，既有真实网关用例逐字依赖它；
+     * `copy` 出来既复用了同一份 `realRoles(caseName)` 绑定，又不牵动那条用例。
+     */
+    private fun realRoundtableConfig(caseName: String, budget: Int): GroupConfig =
+        realProviderConfig(caseName, budget).copy(mode = GroupChat.MODE_ROUNDTABLE)
+
+    /** vote 真实网关配置：三候选 + 显式平票策略（`fail` / `chair`）。 */
+    private fun realVoteConfig(caseName: String, budget: Int, tiePolicy: String): GroupConfig =
+        realProviderConfig(caseName, budget).copy(
+            mode = GroupChat.MODE_VOTE,
+            voteCandidates = realVoteCandidates,
+            tiePolicy = tiePolicy,
+        )
+
+    /**
+     * 真实网关 vote 的 system prompt。
+     *
+     * 与 [realPersona] 的**根本差别**：vote 的票面必须是一整行 `VOTE: <候选id> | <理由>`
+     * （`GroupChat.parseBallot` 只认 `trim()` 后以 [GroupChat.BALLOT_PREFIX] 开头、且 id 在
+     * 候选集内的行），散文回复一律判成无票。所以这里把输出格式钉成一行模板，并把
+     * **本轮必须投的候选**直接写进 prompt——真实模型无从「发现」候选集（它根本不进
+     * prompt，见 `GroupTurnCoordinator.roundPlanFor` 的说明），只能由测试显式告知，
+     * 才能确定性地跑出多数决 / 平票两条路径。
+     */
+    private fun realVotePersona(code: String, ballot: String) = buildString {
+        append("你是 KhatKit C1 群聊验证角色。你的代号是 ").append(code).append("。")
+        append("ROLECODE:").append(code).append(" ")
+        append("CASE:").append(realVoteCaseName).append(" ")
+        append("你正在参加一场三人投票群聊，本轮候选只有三个：")
+        append(realVoteCandidates.joinToString("、")).append("。")
+        append("输出规则（必须严格遵守）：")
+        append("1. 只输出一行，不要任何前言、解释或思考过程。")
+        append("2. 这一行必须严格以 VOTE: 开头，格式为：VOTE: <候选id> | <不超过20字的理由>")
+        append("3. 候选id 必须且只能取自 ").append(realVoteCandidates.joinToString("、"))
+        append("；本轮你必须投 ").append(ballot).append("。")
+        append("4. 禁止 markdown、代码块、列表、标题，禁止模拟其它角色。")
+        append("正确示例：VOTE: ").append(ballot).append(" | 该方案最稳妥。")
+    }
+
+    private fun realVoteAssistant(
+        id: Uuid,
+        name: String,
+        code: String,
+        modelId: Uuid,
+        ballot: String,
+    ) = Assistant(
+        id = id,
+        name = name,
+        chatModelId = modelId,
+        systemPrompt = realVotePersona(code, ballot),
+        // 与真实 pipeline 用例逐字一致：关掉一切额外能力，请求里只剩 system + 对话消息。
+        enableMemory = false,
+        useGlobalMemory = false,
+        autoExtractMemory = false,
+        enableWebSearch = false,
+        localTools = emptyList(),
+        enableTimeReminder = false,
+        enableRecentChatsReference = false,
+    )
+
+    /** vote 真实网关的设置：三个角色绑不同的模型，且各带一张要投的候选（见 [realVotePersona]）。 */
+    private fun realVoteProviderSettings(ballots: Map<String, String>) = Settings(
+        init = false,
+        chatModelId = realFlashModel.id,
+        fastModelId = realFlashModel.id,
+        providers = listOf(realProvider),
+        assistants = listOf(
+            realVoteAssistant(assistantAId, "角色甲", "A", realFlashModel.id, requireNotNull(ballots["A"])),
+            realVoteAssistant(assistantBId, "角色乙", "B", realGlmModel.id, requireNotNull(ballots["B"])),
+            realVoteAssistant(assistantCId, "角色丙", "C", realFlashModel.id, requireNotNull(ballots["C"])),
+        ),
+    )
+
+    /**
+     * 真实网关四条新用例共用的前置自检：确认拿到的是生产内置「极客猫」公网网关，
+     * 而不是回环 mock；两个模型 uuid 与契约一致；走的是 `/chat/completions`。
+     *
+     * 既有 [realProviderRoundRecordsGenuineTokenUsage] 里那份内联自检**原样保留**
+     * （不改动该用例一个字符），这里只是给新用例一份等价的。
+     */
+    private fun assertRealGatewayProviderPreflight() {
+        assertTrue(
+            "本用例必须打真实公网网关，baseUrl 却是 ${realProvider.baseUrl}",
+            realProvider.baseUrl.startsWith("https://") &&
+                !realProvider.baseUrl.contains("127.0.0.1") &&
+                !realProvider.baseUrl.contains("localhost"),
+        )
+        assertTrue("内置 provider 必须默认启用", realProvider.enabled)
+        assertEquals(
+            "内置 deepseek-v4-flash 的 uuid 必须与契约一致",
+            Uuid.parse("5a86b2d6-9c3c-4c58-9b27-f9295ba39201"),
+            realFlashModel.id,
+        )
+        assertEquals(
+            "内置 glm-5.2 的 uuid 必须与契约一致",
+            Uuid.parse("8b6bf21c-56d8-40fd-93c8-6d657cac71a4"),
+            realGlmModel.id,
+        )
+        assertEquals(
+            "内置 provider 未开 Responses API，应走 /chat/completions",
+            false,
+            realProvider.useResponseApi,
+        )
+        assertEquals(
+            "chat completions 路径必须是 /chat/completions",
+            "/chat/completions",
+            realProvider.chatCompletionsPath,
+        )
+    }
+
     private fun roles(caseName: String) = listOf(
         GroupRole(
             id = "a",
@@ -1526,6 +1660,658 @@ class C1LiveModelSequenceTest {
     }
 
     // ==================================================================
+    // 用例 6：真实网关 roundtable —— 议长汇总轮的真实调用（对应 C1-03）
+    // ==================================================================
+
+    /**
+     * C1-03 的**真实网关**变体。既有 [roundtableRoundRecordsChairSummaryCallSequence] 走的是
+     * `adb reverse` 到本机 mock，只能证明调度形状；这一条打生产内置「极客猫」公网网关，
+     * 拿真实模型 / 真实 usage / wire 模型名。
+     *
+     * 要证明的三件事（与 mock 版同口径）：
+     * 1. 议长 c 排在最后，且只有它那条是 `turn_kind=chair`；
+     * 2. a、b 两个普通步的可见集合里**没有**彼此、也没有议长（roundtable 非议长步
+     *    `predecessorId = null`、`chairRound = false`）；
+     * 3. 议长带 `chairRound = true` 时能看到本轮 a、b 的全部输出——这是「只有议长的汇总
+     *    prompt 里含全员内容」的库内证据。
+     *
+     * 调用序列期望：`deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`（a/b/c 的绑定）。
+     */
+    @Test
+    fun realProviderRoundtableRecordsChairSummaryCallSequence() = runBlocking {
+        val caseName = realRoundtableCaseName
+
+        trace("real-roundtable:preflight-begin")
+        assertRealGatewayProviderPreflight()
+        trace("real-roundtable:preflight-ok baseUrl=${realProvider.baseUrl}")
+
+        settingsStore.update(realProviderSettings())
+        trace("real-roundtable:settings-update-done")
+        val config = realRoundtableConfig(caseName, realProviderBudget)
+        val conversationId = insertGroup(caseName, config)
+        trace("real-roundtable:conversation-inserted id=$conversationId")
+        evidenceConversations += conversationId
+
+        // 与既有真实网关用例逐字同构：触发 + 两次等待包进 try/finally，raw dump 无条件落盘。
+        val messages: List<UIMessage>
+        val expectedRoundId: String
+        val run: GroupRunEntity
+        var blockFailure: Throwable? = null
+        try {
+            chatManager.sendMessage(
+                conversationId = conversationId,
+                content = listOf(UIMessagePart.Text("请三位依次发言，议长最后汇总。")),
+                answer = true,
+            )
+            trace("real-roundtable:sendMessage-returned")
+            messages = awaitAssistantMessages(conversationId, expected = 3, timeoutMillis = realTimeoutMillis)
+            trace("real-roundtable:await-messages-done count=${messages.size}")
+            val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+            expectedRoundId = GroupChat.roundIdFor(triggerId)
+            run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+        } catch (t: Throwable) {
+            blockFailure = t
+            throw t
+        } finally {
+            try {
+                writeRealRawDump(
+                    conversationId = conversationId,
+                    blockFailure = blockFailure,
+                    fileName = "c1-real-raw-dump-roundtable.json",
+                    passEvidenceName = "c1-live-evidence-real-roundtable.json",
+                )
+            } catch (dumpError: Throwable) {
+                trace("real-roundtable:raw-dump-write-error ${dumpError.message}")
+                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            }
+        }
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val byRole = assistants.associateBy { it.roleId }
+
+        // ---------------- 断言 1：议长排在最后，且只有议长那条是 chair ----------------
+        assertEquals(
+            "roundtable 必须按名单顺序产出 a、b、议长 c 三条发言，实际=" +
+                messages.map { "${it.role}/${it.roleId}" },
+            listOf("a", "b", "c"),
+            assistants.map { it.roleId },
+        )
+        assertEquals("三个助手消息必须同属一轮", setOf(expectedRoundId), assistants.map { it.roundId }.toSet())
+        assertEquals("运行日志 round_id 必须与消息上的 round_id 一致", expectedRoundId, run.roundId)
+        assertEquals(
+            "只有议长 c 的发言是 turn_kind=chair，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}" },
+            mapOf("a" to GroupChat.TURN_SPEAKER, "b" to GroupChat.TURN_SPEAKER, "c" to GroupChat.TURN_CHAIR),
+            assistants.associate { it.roleId to it.turnKind },
+        )
+
+        // ---------------- 断言 2：生产 plan 的 roundtable 形状 ----------------
+        val plan = GroupChat.plan(config, emptyList())
+        assertEquals(
+            "议长汇总排在最后（GroupChat.plan 的 roundtable 分支）",
+            listOf("a", "b", "c"),
+            plan.map { it.role.id },
+        )
+        assertEquals(
+            "只有议长那一步 chairRound=true，实际=" + plan.map { "${it.role.id}:${it.chairRound}" },
+            mapOf("a" to false, "b" to false, "c" to true),
+            plan.associate { it.role.id to it.chairRound },
+        )
+        assertTrue(
+            "roundtable 普通步不得带 predecessorId，实际=" + plan.map { "${it.role.id}:${it.predecessorId}" },
+            plan.all { it.predecessorId == null },
+        )
+
+        // ---------------- 断言 3：视角隔离（A/B 看不到彼此未完成输出，议长看得到全部） ----------------
+        val seenByA = GroupChat.buildContext("a", messages, config, null).mapNotNull { it.roleId }
+        assertTrue("角色 a 看不见 b 或 c 的本轮发言，实际=$seenByA", seenByA.none { it == "b" || it == "c" })
+        val seenByB = GroupChat.buildContext("b", messages, config, null).mapNotNull { it.roleId }
+        assertTrue("角色 b 看不见 a 或 c 的本轮发言，实际=$seenByB", seenByB.none { it == "a" || it == "c" })
+        val seenByChair = GroupChat.buildContext("c", messages, config, null, chairRound = true).mapNotNull { it.roleId }
+        assertTrue("议长必须看见本轮角色 a 的发言，实际=$seenByChair", "a" in seenByChair)
+        assertTrue("议长必须看见本轮角色 b 的发言，实际=$seenByChair", "b" in seenByChair)
+        val chairWithoutFlag = GroupChat.buildContext("c", messages, config, null).mapNotNull { it.roleId }
+        assertTrue(
+            "不传 chairRound 时议长不该看见他人（否则证明不了 chairRound 是放开开关），实际=$chairWithoutFlag",
+            chairWithoutFlag.none { it == "a" || it == "b" },
+        )
+
+        // ---------------- 断言 4：模型调用序列（wire 优先 + uuid 反查回退） ----------------
+        val perMessageUsage = assistants.map { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，这条 token 证据不成立"
+            }
+            assertTrue("角色 ${message.roleId} 的 prompt_tokens 必须为正，实际=${usage.promptTokens}", usage.promptTokens > 0)
+            assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正，实际=${usage.completionTokens}", usage.completionTokens > 0)
+            assertEquals(
+                "角色 ${message.roleId} 的 totalTokens 必须等于 prompt+completion",
+                usage.promptTokens + usage.completionTokens,
+                usage.totalTokens,
+            )
+            usage
+        }
+        val wireModelNames = assistants.map { resolveWireModelName(it) }
+        val bothMissing = wireModelNames.filter { it.wireModelName == null && it.uuidReverseLookupName == null }
+        assertTrue(
+            "每条发言都必须至少有一个模型名来源（wire 或 uuid 反查），两者皆空=" +
+                assistants.zip(wireModelNames)
+                    .filter { (_, n) -> n.wireModelName == null && n.uuidReverseLookupName == null }
+                    .map { (m, _) -> m.roleId },
+            bothMissing.isEmpty(),
+        )
+        wireModelNames.forEach { name ->
+            assertEquals(
+                "provenance 与是否回退必须自洽：wireModelName=${name.wireModelName}",
+                name.wireModelName == null,
+                name.fallbackTaken,
+            )
+        }
+        assertEquals(
+            "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
+            listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            wireModelNames.map { it.resolvedModelName },
+        )
+
+        // ---------------- 断言 5：token 对账 ----------------
+        val sumPromptCompletion = perMessageUsage.sumOf { it.promptTokens + it.completionTokens }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于三条发言 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+        assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+        assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+        assertTrue("预算充足时不应有 skipped 角色，实际=${run.skippedRoleIds}", run.skippedRoleIds.isEmpty())
+        assertEquals("预算上限快照必须等于配置值", realProviderBudget, run.tokenLimit)
+        assertEquals("正常完成不应有 reason", "", run.reason)
+        assertNotNull("运行日志必须已收尾", run.endedAt)
+
+        // ---------------- 断言 6：正文来自真实模型 ----------------
+        listOf("a" to "A", "b" to "B", "c" to "C").forEach { (roleId, ownCode) ->
+            val codes = realRoleCodeRegex.findAll(byRole.getValue(roleId).toText()).map { it.groupValues[1] }.toList()
+            assertTrue(
+                "角色 $roleId 的回复里必须出现自己的 ROLECODE:$ownCode，实际=$codes；正文=${byRole.getValue(roleId).toText()}",
+                ownCode in codes,
+            )
+        }
+        // a、b 的 prompt 里不含他人输出，正文里就不该出现别人的代号——视角隔离的第二条独立证据。
+        listOf("a" to "A", "b" to "B").forEach { (roleId, ownCode) ->
+            val codes = realRoleCodeRegex.findAll(byRole.getValue(roleId).toText()).map { it.groupValues[1] }.toList()
+            assertEquals(
+                "角色 $roleId 看不见他人，回复里必须只出现自己的 ROLECODE:$ownCode，实际=$codes",
+                listOf(ownCode),
+                codes,
+            )
+        }
+
+        writeEvidence(
+            "c1-live-evidence-real-roundtable.json",
+            realRoundtableReport(conversationId, config, messages, run, sumPromptCompletion, perMessageUsage),
+        )
+    }
+
+    // ==================================================================
+    // 用例 7：真实网关显式 @ —— 只被 @ 的角色被调用（对应 C1-01）
+    // ==================================================================
+
+    /**
+     * C1-01 的**真实网关**变体：正文写 `@角色乙`，走 `ChatManager.sendQueuedMessage` 的
+     * `GroupChat.parseMentions` → `GroupChat.plan` 收窄发言者，最终**只有 b 被调用**。
+     *
+     * 证据分两层：
+     * - **模型调用序列**：这一轮有且只有一次真实调用（b 绑的 `glm-5.2`），若 @ 路由失效
+     *   （三个角色全跑）消息数断言会先炸。
+     * - **viewer 可见消息 ID 台账**：记录 a/b/c 三个视角的可见集合。
+     *
+     * ⚠️ **「其他角色不可见」在生产口径下必须读准**（见 `docs/eval/c1-group-chat.md`
+     * 遗留第 15 条）：被 @ 的是**用户消息**，而 `GroupChat.visibleMessages` 对 USER 消息
+     * 无条件放行给所有视角，所以「A/C 看不到用户那条」不成立。@ 真正收窄的是**发言者集合**，
+     * 因此可观测的形状是：本轮只有 b 有助手输出，A/C 的可见集合里**没有任何本轮助手消息**、
+     * 也就看不到 b 的回复。断言 4 就是这个形状，证据 JSON 里同时记下两个事实，避免误读。
+     */
+    @Test
+    fun realProviderMentionNarrowsSpeakersToMentionedRole() = runBlocking {
+        val caseName = realMentionCaseName
+
+        trace("real-mention:preflight-begin")
+        assertRealGatewayProviderPreflight()
+        trace("real-mention:preflight-ok baseUrl=${realProvider.baseUrl}")
+
+        settingsStore.update(realProviderSettings())
+        val config = realProviderConfig(caseName, realProviderBudget)
+        val conversationId = insertGroup(caseName, config)
+        evidenceConversations += conversationId
+
+        val messages: List<UIMessage>
+        val expectedRoundId: String
+        val run: GroupRunEntity
+        var blockFailure: Throwable? = null
+        try {
+            chatManager.sendMessage(
+                conversationId = conversationId,
+                content = listOf(UIMessagePart.Text("@角色乙 请只由你发言一次。")),
+                answer = true,
+            )
+            trace("real-mention:sendMessage-returned")
+            messages = awaitAssistantMessages(conversationId, expected = 1, timeoutMillis = realTimeoutMillis)
+            trace("real-mention:await-messages-done count=${messages.size}")
+            val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+            expectedRoundId = GroupChat.roundIdFor(triggerId)
+            run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+        } catch (t: Throwable) {
+            blockFailure = t
+            throw t
+        } finally {
+            try {
+                writeRealRawDump(
+                    conversationId = conversationId,
+                    blockFailure = blockFailure,
+                    fileName = "c1-real-raw-dump-mention.json",
+                    passEvidenceName = "c1-live-evidence-real-mention.json",
+                )
+            } catch (dumpError: Throwable) {
+                trace("real-mention:raw-dump-write-error ${dumpError.message}")
+                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            }
+        }
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val trigger = messages.last { it.role == MessageRole.USER }
+
+        // ---------------- 断言 1：触发消息解析出 b，且 plan 只留 b ----------------
+        assertEquals("触发消息必须解析出被 @ 的角色 b", listOf("b"), trigger.mentionRoleIds)
+        val plan = GroupChat.plan(config, trigger.mentionRoleIds)
+        assertEquals("显式 @ 必须把本轮发言者收窄到被提及角色", listOf("b"), plan.map { it.role.id })
+        assertEquals("被 @ 角色在 pipeline 下不带 predecessorId", null, plan.single().predecessorId)
+
+        // ---------------- 断言 2：只有 b 被调用 ----------------
+        assertEquals(
+            "本轮只有被 @ 的角色 b 产出助手消息，实际=" + messages.map { "${it.role}/${it.roleId}" },
+            listOf("b"),
+            assistants.map { it.roleId },
+        )
+        assertEquals("该条助手消息必须同属本轮", expectedRoundId, assistants.single().roundId)
+        assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+        assertEquals("committed 名单只能有 b", listOf("b"), run.committedRoleIds)
+        assertTrue("没有角色被跳过，实际=${run.skippedRoleIds}", run.skippedRoleIds.isEmpty())
+
+        // ---------------- 断言 3：真实 usage 与模型名 ----------------
+        val usage = requireNotNull(assistants.single().usage) { "角色 b 没有 usage，token 证据不成立" }
+        assertTrue("角色 b 的 prompt_tokens 必须为正", usage.promptTokens > 0)
+        assertTrue("角色 b 的 completion_tokens 必须为正", usage.completionTokens > 0)
+        assertEquals(
+            "spent_tokens 必须等于 b 的 prompt+completion",
+            usage.promptTokens + usage.completionTokens,
+            run.spentTokens,
+        )
+        val wireName = resolveWireModelName(assistants.single())
+        assertTrue(
+            "角色 b 的模型名必须至少有一个来源，实际=${wireName.provenance}",
+            wireName.wireModelName != null || wireName.uuidReverseLookupName != null,
+        )
+        assertEquals("被 @ 的角色 b 绑的是 glm-5.2", "glm-5.2", wireName.resolvedModelName)
+
+        // ---------------- 断言 4：viewer 台账（A/C 看不到 b 的本轮输出） ----------------
+        val triggerId = trigger.id.toString()
+        val visibleByB = GroupChat.buildContext("b", messages, config, null)
+        assertTrue("角色 b 必须收到被 @ 的那条触发消息", triggerId in visibleByB.map { it.id.toString() })
+        assertTrue(
+            "角色 b 必须看得见自己本轮的输出",
+            assistants.single().id.toString() in visibleByB.map { it.id.toString() },
+        )
+        listOf("a", "c").forEach { viewer ->
+            val visible = GroupChat.buildContext(viewer, messages, config, null)
+            val assistantSeen = visible.filter { it.role == MessageRole.ASSISTANT }.mapNotNull { it.roleId }
+            assertTrue(
+                "viewer=$viewer 不得看见 b 的本轮输出（@ 收窄后 b 无前驱、也非议长轮），实际=$assistantSeen",
+                assistantSeen.isEmpty(),
+            )
+            assertTrue(
+                "viewer=$viewer 仍可见触发的用户消息（生产口径：USER 消息对所有视角放行），实际=" +
+                    visible.map { "${it.role}/${it.roleId}" },
+                triggerId in visible.map { it.id.toString() },
+            )
+        }
+
+        // ---------------- 断言 5：正文来自真实模型且只报自己的代号 ----------------
+        val codes = realRoleCodeRegex.findAll(assistants.single().toText()).map { it.groupValues[1] }.toList()
+        assertEquals(
+            "角色 b 的回复必须只出现自己的 ROLECODE:B，实际=$codes；正文=${assistants.single().toText()}",
+            listOf("B"),
+            codes,
+        )
+
+        writeEvidence(
+            "c1-live-evidence-real-mention.json",
+            realMentionReport(conversationId, config, messages, run, usage, wireName),
+        )
+    }
+
+    // ==================================================================
+    // 用例 8：真实网关 vote（多数决）—— 三张结构化选票 + __summary__（对应 C1-04）
+    // ==================================================================
+
+    /**
+     * C1-04 的**真实网关**多数决变体。既有 [voteRoundRecordsBallotCallsAndSummarySequence]
+     * 走 mock；这一条打公网网关，选票由真实模型按 [realVotePersona] 的格式产出。
+     *
+     * 三票 2:1（a/b→opt-a、c→opt-b）⇒ `VoteOutcome.Decided` ⇒ `voteSummaryMessage` 落
+     * `role_id=__summary__` / `turn_kind=vote_summary` 的节点。
+     */
+    @Test
+    fun realProviderVoteRoundRecordsBallotCallsAndDecision() = runBlocking {
+        val caseName = realVoteCaseName
+
+        trace("real-vote:preflight-begin")
+        assertRealGatewayProviderPreflight()
+        trace("real-vote:preflight-ok baseUrl=${realProvider.baseUrl}")
+
+        settingsStore.update(realVoteProviderSettings(realDecisiveBallots))
+        val config = realVoteConfig(caseName, realProviderBudget, GroupChat.TIE_FAIL)
+        val conversationId = insertGroup(caseName, config)
+        evidenceConversations += conversationId
+
+        val messages: List<UIMessage>
+        val expectedRoundId: String
+        val run: GroupRunEntity
+        var blockFailure: Throwable? = null
+        try {
+            chatManager.sendMessage(
+                conversationId = conversationId,
+                content = listOf(UIMessagePart.Text("请三位各投一票，选出你支持的方案。")),
+                answer = true,
+            )
+            trace("real-vote:sendMessage-returned")
+            // 3 条角色发言 + 1 条 __summary__。
+            messages = awaitAssistantMessages(conversationId, expected = 4, timeoutMillis = realTimeoutMillis)
+            trace("real-vote:await-messages-done count=${messages.size}")
+            val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+            expectedRoundId = GroupChat.roundIdFor(triggerId)
+            run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+        } catch (t: Throwable) {
+            blockFailure = t
+            throw t
+        } finally {
+            try {
+                writeRealRawDump(
+                    conversationId = conversationId,
+                    blockFailure = blockFailure,
+                    fileName = "c1-real-raw-dump-vote.json",
+                    passEvidenceName = "c1-live-evidence-real-vote.json",
+                )
+            } catch (dumpError: Throwable) {
+                trace("real-vote:raw-dump-write-error ${dumpError.message}")
+                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            }
+        }
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val speakers = assistants.filter { it.roleId != GroupChat.SUMMARY_ID }
+        val summary = assistants.singleOrNull { it.roleId == GroupChat.SUMMARY_ID }
+
+        // ---------------- 断言 1：三条角色发言 + 唯一 __summary__ ----------------
+        assertEquals(
+            "vote 模式应产出 3 条角色发言 + 1 条 __summary__，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}" },
+            listOf("a", "b", "c", GroupChat.SUMMARY_ID),
+            assistants.map { it.roleId },
+        )
+        assertNotNull("必须有且仅有一条 __summary__ 节点（parseBallot + tally 的产出）", summary)
+        requireNotNull(summary)
+        assertEquals("__summary__ 必须是 turn_kind=vote_summary", GroupChat.TURN_VOTE_SUMMARY, summary.turnKind)
+        assertEquals("__summary__ 必须与本轮同 round", expectedRoundId, summary.roundId)
+        assertTrue(
+            "__summary__ 正文应由 voteSummaryMessage 生成（应含「本轮投票结果」），实际=${summary.toText()}",
+            summary.toText().contains("本轮投票结果"),
+        )
+        assertEquals("__summary__ 是本地合成节点，不该有模型 usage", null, summary.usage)
+        assertTrue(
+            "三条角色发言都应是 speaker，实际=" + speakers.map { "${it.roleId}:${it.turnKind}" },
+            speakers.all { it.turnKind == GroupChat.TURN_SPEAKER },
+        )
+
+        // ---------------- 断言 2：parseBallot 真的解析出了三张选票 ----------------
+        val ballots = speakers.mapNotNull { message ->
+            GroupChat.parseBallot(message.toText(), requireNotNull(message.roleId), config.voteCandidates)
+        }
+        assertEquals("三个角色都必须投出候选集内的有效选票，实际=$ballots", 3, ballots.size)
+        assertEquals(
+            "选票应为 a/b→opt-a、c→opt-b，实际=$ballots",
+            mapOf("a" to "opt-a", "b" to "opt-a", "c" to "opt-b"),
+            ballots.associate { it.roleId to it.candidateId },
+        )
+        assertTrue("每张选票都应带上理由（`|` 之后那段），实际=$ballots", ballots.all { it.reason.isNotBlank() })
+
+        // ---------------- 断言 3：多数决结果 ----------------
+        val outcome = GroupChat.tally(ballots, config.voteCandidates, config.tiePolicy)
+        assertTrue("三张选票 2:1 应得出明确结论，实际=$outcome", outcome is VoteOutcome.Decided)
+        val decided = outcome as VoteOutcome.Decided
+        assertEquals("胜者必须是 opt-a", "opt-a", decided.winner)
+        assertEquals("票数必须是 opt-a 2 / opt-b 1", mapOf("opt-a" to 2, "opt-b" to 1), decided.tally)
+        assertTrue("__summary__ 正文应带上胜者，实际=${summary.toText()}", summary.toText().contains("opt-a"))
+
+        // ---------------- 断言 4：token 对账（只有角色发言计入） ----------------
+        val speakerUsage = speakers.map { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，这条 token 证据不成立"
+            }
+            assertTrue("角色 ${message.roleId} 的 prompt_tokens 必须为正，实际=${usage.promptTokens}", usage.promptTokens > 0)
+            assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正，实际=${usage.completionTokens}", usage.completionTokens > 0)
+            usage
+        }
+        val sumPromptCompletion = speakerUsage.sumOf { it.promptTokens + it.completionTokens }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于三条角色发言 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+        assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+        assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+        assertEquals("预算上限快照必须等于配置值", realProviderBudget, run.tokenLimit)
+        assertNotNull("运行日志必须已收尾", run.endedAt)
+
+        // ---------------- 断言 5：模型调用序列 ----------------
+        val wireModelNames = speakers.map { resolveWireModelName(it) }
+        val bothMissing = wireModelNames.filter { it.wireModelName == null && it.uuidReverseLookupName == null }
+        assertTrue(
+            "每条角色发言都必须至少有一个模型名来源（wire 或 uuid 反查），两者皆空=" +
+                speakers.zip(wireModelNames)
+                    .filter { (_, n) -> n.wireModelName == null && n.uuidReverseLookupName == null }
+                    .map { (m, _) -> m.roleId },
+            bothMissing.isEmpty(),
+        )
+        assertEquals(
+            "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
+            listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            wireModelNames.map { it.resolvedModelName },
+        )
+
+        // ---------------- 断言 6：视角隔离（票面不共享；__summary__ 对所有视角可见） ----------------
+        listOf("a", "b", "c").forEach { roleId ->
+            val allVisible = GroupChat.buildContext(roleId, messages, config, null)
+            assertTrue(
+                "角色 $roleId 应看得见投票结果摘要（__summary__ 对所有视角可见），实际=" +
+                    allVisible.mapNotNull { it.roleId },
+                GroupChat.SUMMARY_ID in allVisible.mapNotNull { it.roleId },
+            )
+            val seenBallots = allVisible
+                .filter { it.role == MessageRole.ASSISTANT }
+                .mapNotNull { it.roleId }
+                .filter { it != GroupChat.SUMMARY_ID }
+            assertEquals("角色 $roleId 只应看到自己那一张选票（vote 模式不共享票面），实际=$seenBallots", listOf(roleId), seenBallots)
+        }
+
+        writeEvidence(
+            "c1-live-evidence-real-vote.json",
+            realVoteReport(
+                caseName = caseName,
+                conversationId = conversationId,
+                config = config,
+                messages = messages,
+                run = run,
+                callUsage = speakerUsage,
+                ballots = ballots,
+                decided = decided,
+            ),
+        )
+    }
+
+    // ==================================================================
+    // 用例 9：真实网关 vote 平票 —— 按配置失败并落错误节点（对应 C1-04 平票路径）
+    // ==================================================================
+
+    /**
+     * C1-04 点名的**平票按配置失败**路径，真实网关单独跑一次。
+     *
+     * 夹具：三候选、三人各投不同候选 ⇒ 1:1:1；`tiePolicy = TIE_FAIL`（契约默认）。
+     * `GroupChat.tally` 返回 `VoteOutcome.Tie` ⇒ `resolveVote` 走 `undecided` ⇒
+     * `ChatManager.completeGroupRound` 追加 `voteFailureNode`（`role_id=__summary__`、
+     * `turn_kind=error`），`group_runs` 落 `status=FAILED` / `reason=vote_no_decision` /
+     * `error_message=平票：opt-a, opt-b, opt-c`。**不得**产出 `vote_summary` 摘要。
+     *
+     * 平票用**三个候选**的原因：三个投票者投两个候选永远只能 2:1 或 3:0，凑不出平票。
+     */
+    @Test
+    fun realProviderVoteTieFailsPerConfiguredPolicy() = runBlocking {
+        val caseName = realVoteTieCaseName
+
+        trace("real-vote-tie:preflight-begin")
+        assertRealGatewayProviderPreflight()
+        trace("real-vote-tie:preflight-ok baseUrl=${realProvider.baseUrl}")
+
+        settingsStore.update(realVoteProviderSettings(realTieBallots))
+        val config = realVoteConfig(caseName, realProviderBudget, GroupChat.TIE_FAIL)
+        val conversationId = insertGroup(caseName, config)
+        evidenceConversations += conversationId
+
+        val messages: List<UIMessage>
+        val expectedRoundId: String
+        val run: GroupRunEntity
+        var blockFailure: Throwable? = null
+        try {
+            chatManager.sendMessage(
+                conversationId = conversationId,
+                content = listOf(UIMessagePart.Text("请三位各投一票，选出你支持的方案。")),
+                answer = true,
+            )
+            trace("real-vote-tie:sendMessage-returned")
+            // 3 条角色发言 + 1 条失败节点（role_id=__summary__, turn_kind=error）。
+            messages = awaitAssistantMessages(conversationId, expected = 4, timeoutMillis = realTimeoutMillis)
+            trace("real-vote-tie:await-messages-done count=${messages.size}")
+            val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+            expectedRoundId = GroupChat.roundIdFor(triggerId)
+            run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+        } catch (t: Throwable) {
+            blockFailure = t
+            throw t
+        } finally {
+            try {
+                writeRealRawDump(
+                    conversationId = conversationId,
+                    blockFailure = blockFailure,
+                    fileName = "c1-real-raw-dump-vote-tie.json",
+                    passEvidenceName = "c1-live-evidence-real-vote-tie.json",
+                )
+            } catch (dumpError: Throwable) {
+                trace("real-vote-tie:raw-dump-write-error ${dumpError.message}")
+                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            }
+        }
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val speakers = assistants.filter { it.roleId != GroupChat.SUMMARY_ID }
+        val failure = assistants.singleOrNull { it.roleId == GroupChat.SUMMARY_ID }
+
+        // ---------------- 断言 1：三条角色发言 + 一条失败节点（不是 vote_summary） ----------------
+        assertEquals(
+            "vote 平票应产出 3 条角色发言 + 1 条失败节点，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}" },
+            listOf("a", "b", "c", GroupChat.SUMMARY_ID),
+            assistants.map { it.roleId },
+        )
+        requireNotNull(failure)
+        assertEquals("平票失败节点必须是 turn_kind=error（不是 vote_summary）", GroupChat.TURN_ERROR, failure.turnKind)
+        assertTrue(
+            "失败节点正文必须解释「本轮未能得出结论」，实际=${failure.toText()}",
+            failure.toText().contains("本轮未能得出结论"),
+        )
+        assertTrue(
+            "失败节点正文必须带平票明细与候选 id，实际=${failure.toText()}",
+            failure.toText().contains("平票") && realVoteCandidates.all { failure.toText().contains(it) },
+        )
+        assertTrue(
+            "平票失败不得写 vote_summary 摘要，实际=" + assistants.map { "${it.roleId}:${it.turnKind}" },
+            assistants.none { it.turnKind == GroupChat.TURN_VOTE_SUMMARY },
+        )
+
+        // ---------------- 断言 2：三张有效且互不相同的选票 → 1:1:1 ----------------
+        val ballots = speakers.mapNotNull { message ->
+            GroupChat.parseBallot(message.toText(), requireNotNull(message.roleId), config.voteCandidates)
+        }
+        assertEquals("三票必须都是候选集内的有效票，实际=$ballots", 3, ballots.size)
+        assertEquals(
+            "三票必须分别投 opt-a / opt-b / opt-c，实际=$ballots",
+            setOf("opt-a", "opt-b", "opt-c"),
+            ballots.map { it.candidateId }.toSet(),
+        )
+        val outcome = GroupChat.tally(ballots, config.voteCandidates, config.tiePolicy)
+        assertTrue("1:1:1 必须判平票，实际=$outcome", outcome is VoteOutcome.Tie)
+        val tie = outcome as VoteOutcome.Tie
+        assertEquals("平票候选必须是全部三个", realVoteCandidates.sorted(), tie.candidates)
+
+        // ---------------- 断言 3：按配置失败的运行日志 ----------------
+        assertEquals("本轮必须按配置失败", GroupRunEntity.STATUS_FAILED, run.status)
+        assertEquals(
+            "失败原因必须是 vote_no_decision",
+            GroupTurnCoordinator.REASON_VOTE_NO_DECISION,
+            run.reason,
+        )
+        assertTrue(
+            "group_runs.error_message 必须带平票明细，实际=${run.errorMessage}",
+            run.errorMessage.contains("平票"),
+        )
+        assertNotNull("运行日志必须已收尾", run.endedAt)
+
+        // ---------------- 断言 4：token 对账（失败轮的三条角色发言仍计入） ----------------
+        val speakerUsage = speakers.map { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，这条 token 证据不成立"
+            }
+            assertTrue("角色 ${message.roleId} 的 prompt_tokens 必须为正，实际=${usage.promptTokens}", usage.promptTokens > 0)
+            assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正，实际=${usage.completionTokens}", usage.completionTokens > 0)
+            usage
+        }
+        val sumPromptCompletion = speakerUsage.sumOf { it.promptTokens + it.completionTokens }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于三条角色发言 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+
+        // ---------------- 断言 5：模型调用序列 ----------------
+        val wireModelNames = speakers.map { resolveWireModelName(it) }
+        assertEquals(
+            "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
+            listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            wireModelNames.map { it.resolvedModelName },
+        )
+
+        writeEvidence(
+            "c1-live-evidence-real-vote-tie.json",
+            realVoteTieReport(
+                caseName = caseName,
+                conversationId = conversationId,
+                config = config,
+                messages = messages,
+                run = run,
+                callUsage = speakerUsage,
+                ballots = ballots,
+                tie = tie,
+            ),
+        )
+    }
+
+    // ==================================================================
     // 报告组装
     // ==================================================================
 
@@ -1994,6 +2780,463 @@ class C1LiveModelSequenceTest {
         }
     }
 
+    /**
+     * 真实网关证据报告的共同骨架（roundtable / 显式 @ / vote / vote 平票四条共用）。
+     *
+     * 格式与既有 [realProviderReport] 保持一致：`actual_model_call_sequence` 逐条带
+     * `wire_model_name` + `uuid_reverse_lookup_model_string` + `wire_model_name_provenance`，
+     * `wire_model_name_provenance_counts` / `wire_model_name_reconciliation` 两个计数块、
+     * `provider_model_table` 对照表、`messages` / `group_run` / viewer 台账。
+     *
+     * 与 [realProviderReport] 的两点差别：
+     * - `callMessages` / `callUsage` 只包含**真的发过模型请求**的助手消息（vote 模式下
+     *   `__summary__` / 失败节点是本地合成，不进调用序列）；
+     * - `viewerVisible` / `visibilityExpectation` / `extra` 由调用方按模式给，避免为每种
+     *   mode 复制整段公共字段。
+     *
+     * 继续沿用 `resolveWireModelName` 那套（wire 优先 + uuid 反查回退 + provenance）。
+     */
+    private fun realGatewayReport(
+        caseName: String,
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        sumPromptCompletion: Int,
+        callMessages: List<UIMessage>,
+        callUsage: List<TokenUsage>,
+        expectedSequence: List<String>,
+        viewerVisible: JsonObject,
+        visibilityExpectation: JsonObject,
+        extra: JsonObject = JsonObject(emptyMap()),
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val wireModelNames = callMessages.map { resolveWireModelName(it) }
+        return buildJsonObject {
+            put("evidence_kind", "real-gateway-call-direct-from-device-no-proxy")
+            put("token_source", "genuine-usage-returned-by-public-openai-compatible-gateway")
+            put(
+                "model_sequence_source",
+                "UIMessage.wireModelName (gateway 'model' field, verbatim) preferred; " +
+                    "UIMessage.modelId uuid reverse-lookup only as a recorded fallback",
+            )
+            put(
+                "wire_model_name_provenance",
+                "per-call; allowed values: " +
+                    "'$PROVENANCE_WIRE_RESPONSE_MODEL' = the gateway's own 'model' field, verbatim; " +
+                    "'$PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK' = wireModelName was null, so the name was " +
+                    "reverse-looked-up from the UIMessage.modelId uuid via provider_model_table below " +
+                    "(a FALLBACK, not a wire-level observation). Both names are emitted for every call " +
+                    "so a mismatch stays visible. See wire_model_name_provenance_counts for the tally.",
+            )
+            putJsonObject("wire_model_name_provenance_counts") {
+                put(PROVENANCE_WIRE_RESPONSE_MODEL, wireModelNames.count { !it.fallbackTaken })
+                put(PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK, wireModelNames.count { it.fallbackTaken })
+            }
+            putJsonObject("wire_model_name_reconciliation") {
+                put(
+                    "note",
+                    "wire_model_name vs uuid_reverse_lookup_model_string, per call; null means " +
+                        "that source had no value for that call",
+                )
+                put("calls_with_wire_name", wireModelNames.count { it.wireModelName != null })
+                put(
+                    "calls_where_both_names_present_and_differ",
+                    wireModelNames.count { name ->
+                        name.wireModelName != null &&
+                            name.uuidReverseLookupName != null &&
+                            name.wireModelName != name.uuidReverseLookupName
+                    },
+                )
+                put(
+                    "calls_with_no_name_at_all",
+                    wireModelNames.count { it.wireModelName == null && it.uuidReverseLookupName == null },
+                )
+                put(
+                    "independent_recheck_tool",
+                    "tools/verification/c1_wire_model_probe.py --base-url <url> --api-key <key> " +
+                        "--model <name>; run it separately and compare against wire_model_name here " +
+                        "(the app-side parse is covered by WireModelNameProvenanceTest)",
+                )
+            }
+            put("generated_at_device", System.currentTimeMillis())
+            put("provider_id", realProvider.id.toString())
+            put("provider_name", realProvider.name)
+            put("provider_base_url", realProvider.baseUrl)
+            put("provider_uses_response_api", realProvider.useResponseApi)
+            put("case", caseName)
+            put("conversation_id", conversationId.toString())
+            put("mode", config.mode)
+            put("chair_role_id", config.chairRoleId)
+            put("tie_policy", config.tiePolicy)
+            put("token_budget_per_round", config.tokenBudgetPerRound)
+            putJsonArray("vote_candidates") {
+                config.voteCandidates.forEach { add(JsonPrimitive(it)) }
+            }
+            put("device", deviceBlock())
+            put("provider_model_table_note", TABLE_WIRE_MODEL_STRING_NOTE)
+            putJsonArray("provider_model_table") {
+                realProvider.models.forEach { model ->
+                    add(
+                        buildJsonObject {
+                            put("uuid", model.id.toString())
+                            put("wire_model_string", model.modelId)
+                            put("display_name", model.displayName)
+                            put("type", model.type.name)
+                            put("abilities", JsonArray(model.abilities.map { JsonPrimitive(it.name) }))
+                        },
+                    )
+                }
+            }
+            putJsonArray("bindings") {
+                config.roles.forEach { role ->
+                    add(
+                        buildJsonObject {
+                            put("role_id", role.id)
+                            put("assistant_id", role.assistantId)
+                            put("chair", role.chair)
+                            put("model_uuid", role.modelId)
+                            put(
+                                "wire_model_string",
+                                realProvider.models.first { it.id.toString() == role.modelId }.modelId,
+                            )
+                            put("wire_model_string_source", TABLE_WIRE_MODEL_STRING_NOTE)
+                        },
+                    )
+                }
+            }
+            put("messages", messageBlock(messages))
+            put("group_run", runBlock(run))
+            put("sum_prompt_plus_completion", sumPromptCompletion)
+            put("spent_tokens", run.spentTokens)
+            put("spent_tokens_equals_sum_prompt_plus_completion", run.spentTokens == sumPromptCompletion)
+            putJsonArray("actual_model_call_sequence") {
+                callMessages.forEachIndexed { index, message ->
+                    val uuid = message.modelId
+                    val name = wireModelNames[index]
+                    add(
+                        buildJsonObject {
+                            put("seq", index + 1)
+                            put("role_id", message.roleId)
+                            put("turn_kind", message.turnKind)
+                            put("model_uuid", uuid?.toString())
+                            put("wire_model_name", name.wireModelName)
+                            put("uuid_reverse_lookup_model_string", name.uuidReverseLookupName)
+                            put("resolved_model_name", name.resolvedModelName)
+                            put("wire_model_name_provenance", name.provenance)
+                            put(
+                                "wire_and_reverse_lookup_agree",
+                                if (name.wireModelName == null || name.uuidReverseLookupName == null) {
+                                    null
+                                } else {
+                                    name.wireModelName == name.uuidReverseLookupName
+                                },
+                            )
+                            put("usage_prompt_tokens", callUsage[index].promptTokens)
+                            put("usage_completion_tokens", callUsage[index].completionTokens)
+                            put("usage_total_tokens", callUsage[index].totalTokens)
+                            put("cached_tokens", callUsage[index].cachedTokens)
+                            put(
+                                "rolecodes_found_in_text",
+                                JsonArray(
+                                    realRoleCodeRegex.findAll(message.toText())
+                                        .map { JsonPrimitive(it.groupValues[1]) }.toList(),
+                                ),
+                            )
+                        },
+                    )
+                }
+            }
+            putJsonArray("expected_model_call_sequence") {
+                expectedSequence.forEach { add(JsonPrimitive(it)) }
+            }
+            put(
+                "expected_sequence_compared_against",
+                "actual_model_call_sequence[].resolved_model_name (wire-preferred)",
+            )
+            put("viewer_visible_message_ids", viewerVisible)
+            put("visibility_expectation", visibilityExpectation)
+            putJsonArray("assistant_role_order") {
+                assistants.forEach { add(JsonPrimitive(it.roleId)) }
+            }
+            extra.forEach { (key, value) -> put(key, value) }
+        }
+    }
+
+    /** 真实网关 roundtable 报告：议长视角台账 + plan 形状。 */
+    private fun realRoundtableReport(
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        sumPromptCompletion: Int,
+        callUsage: List<TokenUsage>,
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val plan = GroupChat.plan(config, emptyList())
+        return realGatewayReport(
+            caseName = realRoundtableCaseName,
+            conversationId = conversationId,
+            config = config,
+            messages = messages,
+            run = run,
+            sumPromptCompletion = sumPromptCompletion,
+            callMessages = assistants,
+            callUsage = callUsage,
+            expectedSequence = listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            viewerVisible = buildJsonObject {
+                listOf("a", "b", "c").forEach { viewer ->
+                    putJsonArray(viewer) {
+                        GroupChat.buildContext(viewer, messages, config, null)
+                            .map { it.id.toString() }
+                            .forEach { add(JsonPrimitive(it)) }
+                    }
+                }
+                putJsonArray("c(chairRound=true)") {
+                    GroupChat.buildContext("c", messages, config, null, chairRound = true)
+                        .map { it.id.toString() }
+                        .forEach { add(JsonPrimitive(it)) }
+                }
+            },
+            visibilityExpectation = buildJsonObject {
+                put("a_sees", "system+user+own  (NOT b, NOT c)")
+                put("b_sees", "system+user+own  (NOT a, NOT c)")
+                put("c_without_chair_round", "system+user+own  (NOT a, NOT b)")
+                put("c_with_chair_round", "system+user+own+a+b  <- chair may see the whole round")
+            },
+            extra = buildJsonObject {
+                putJsonObject("speaker_order_and_turn_kind") {
+                    assistants.forEach { message -> put(message.roleId ?: "?", message.turnKind ?: "?") }
+                }
+                putJsonObject("roundtable_plan") {
+                    plan.forEach { step ->
+                        put(
+                            step.role.id,
+                            buildJsonObject {
+                                put("chair_round", step.chairRound)
+                                put("predecessor_id", step.predecessorId)
+                            },
+                        )
+                    }
+                }
+            },
+        )
+    }
+
+    /** 真实网关显式 @ 报告：mention 路由 + 三视角台账。 */
+    private fun realMentionReport(
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        usage: TokenUsage,
+        wireName: WireModelName,
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val trigger = messages.last { it.role == MessageRole.USER }
+        return realGatewayReport(
+            caseName = realMentionCaseName,
+            conversationId = conversationId,
+            config = config,
+            messages = messages,
+            run = run,
+            sumPromptCompletion = usage.promptTokens + usage.completionTokens,
+            callMessages = assistants,
+            callUsage = listOf(usage),
+            expectedSequence = listOf("glm-5.2"),
+            viewerVisible = buildJsonObject {
+                listOf("a", "b", "c").forEach { viewer ->
+                    putJsonArray(viewer) {
+                        GroupChat.buildContext(viewer, messages, config, null)
+                            .map { it.id.toString() }
+                            .forEach { add(JsonPrimitive(it)) }
+                    }
+                }
+            },
+            visibilityExpectation = buildJsonObject {
+                put(
+                    "note",
+                    "explicit @<role> on the USER trigger narrows the speaker set; USER messages stay " +
+                        "visible to every viewer (GroupChat.visibleMessages USER branch), so 'other roles " +
+                        "cannot see it' is observed as: A/C have no assistant output this round and cannot " +
+                        "see B's reply. See docs/eval/c1-group-chat.md legacy item 15.",
+                )
+                put("a_sees", "user trigger only; NOT b's reply")
+                put("b_sees", "user trigger + own reply")
+                put("c_sees", "user trigger only; NOT b's reply")
+            },
+            extra = buildJsonObject {
+                put(
+                    "mention_routing_source",
+                    "GroupChat.parseMentions over the real user text (ChatManager.sendQueuedMessage)",
+                )
+                put("user_trigger_text", trigger.toText())
+                putJsonArray("trigger_mention_role_ids") {
+                    trigger.mentionRoleIds.forEach { add(JsonPrimitive(it)) }
+                }
+                putJsonArray("plan_selected_role_ids") {
+                    GroupChat.plan(config, trigger.mentionRoleIds).forEach { add(JsonPrimitive(it.role.id)) }
+                }
+                put("only_mentioned_role_invoked", assistants.map { it.roleId } == listOf("b"))
+                putJsonObject("wire") {
+                    put("wire_model_name", wireName.wireModelName)
+                    put("uuid_reverse_lookup_model_string", wireName.uuidReverseLookupName)
+                    put("resolved_model_name", wireName.resolvedModelName)
+                    put("wire_model_name_provenance", wireName.provenance)
+                }
+            },
+        )
+    }
+
+    /** 真实网关 vote（多数决）报告：选票 + tally + __summary__。 */
+    private fun realVoteReport(
+        caseName: String,
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        callUsage: List<TokenUsage>,
+        ballots: List<VoteBallot>,
+        decided: VoteOutcome.Decided,
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val speakers = assistants.filter { it.roleId != GroupChat.SUMMARY_ID }
+        val summary = assistants.firstOrNull { it.roleId == GroupChat.SUMMARY_ID }
+        val sumPromptCompletion = callUsage.sumOf { it.promptTokens + it.completionTokens }
+        return realGatewayReport(
+            caseName = caseName,
+            conversationId = conversationId,
+            config = config,
+            messages = messages,
+            run = run,
+            sumPromptCompletion = sumPromptCompletion,
+            callMessages = speakers,
+            callUsage = callUsage,
+            expectedSequence = listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            viewerVisible = voteViewerVisible(messages, config),
+            visibilityExpectation = buildJsonObject {
+                put("a_sees", "system+user+own ballot + __summary__  (NOT b, NOT c)")
+                put("b_sees", "system+user+own ballot + __summary__  (NOT a, NOT c)")
+                put("c_sees", "system+user+own ballot + __summary__  (NOT a, NOT b)")
+                put("summary_node", "synthetic; visible to every viewer but carries no model usage")
+            },
+            extra = buildJsonObject {
+                putJsonObject("ballots_parsed_by_production_code") {
+                    put("source", "GroupChat.parseBallot over the message text read back from the database")
+                    put("ballot_prefix", GroupChat.BALLOT_PREFIX)
+                    putJsonArray("ballots") {
+                        ballots.forEach { ballot ->
+                            add(
+                                buildJsonObject {
+                                    put("role_id", ballot.roleId)
+                                    put("candidate_id", ballot.candidateId)
+                                    put("reason", ballot.reason)
+                                },
+                            )
+                        }
+                    }
+                }
+                putJsonObject("tally") {
+                    put("winner", decided.winner)
+                    putJsonObject("counts") {
+                        decided.tally.forEach { (candidate, count) -> put(candidate, count) }
+                    }
+                    put("outcome_type", "VoteOutcome.Decided")
+                    put("tie_branch_taken", false)
+                }
+                putJsonObject("summary_node") {
+                    put("role_id", summary?.roleId ?: "<缺失>")
+                    put("turn_kind", summary?.turnKind ?: "<缺失>")
+                    put("round_id", summary?.roundId ?: "<缺失>")
+                    put("has_usage", summary?.usage != null)
+                    put("text", summary?.toText() ?: "<缺失>")
+                }
+            },
+        )
+    }
+
+    /** 真实网关 vote 平票报告：选票 + Tie + 失败节点 + 失败运行日志。 */
+    private fun realVoteTieReport(
+        caseName: String,
+        conversationId: Uuid,
+        config: GroupConfig,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        callUsage: List<TokenUsage>,
+        ballots: List<VoteBallot>,
+        tie: VoteOutcome.Tie,
+    ): JsonObject {
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val speakers = assistants.filter { it.roleId != GroupChat.SUMMARY_ID }
+        val failure = assistants.firstOrNull { it.roleId == GroupChat.SUMMARY_ID }
+        val sumPromptCompletion = callUsage.sumOf { it.promptTokens + it.completionTokens }
+        return realGatewayReport(
+            caseName = caseName,
+            conversationId = conversationId,
+            config = config,
+            messages = messages,
+            run = run,
+            sumPromptCompletion = sumPromptCompletion,
+            callMessages = speakers,
+            callUsage = callUsage,
+            expectedSequence = listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            viewerVisible = voteViewerVisible(messages, config),
+            visibilityExpectation = buildJsonObject {
+                put("a_sees", "system+user+own ballot + failure node  (NOT b, NOT c)")
+                put("b_sees", "system+user+own ballot + failure node  (NOT a, NOT c)")
+                put("c_sees", "system+user+own ballot + failure node  (NOT a, NOT b)")
+                put("failure_node", "synthetic; turn_kind=error; no vote_summary is written on a tie")
+            },
+            extra = buildJsonObject {
+                putJsonObject("ballots_parsed_by_production_code") {
+                    put("source", "GroupChat.parseBallot over the message text read back from the database")
+                    put("ballot_prefix", GroupChat.BALLOT_PREFIX)
+                    putJsonArray("ballots") {
+                        ballots.forEach { ballot ->
+                            add(
+                                buildJsonObject {
+                                    put("role_id", ballot.roleId)
+                                    put("candidate_id", ballot.candidateId)
+                                    put("reason", ballot.reason)
+                                },
+                            )
+                        }
+                    }
+                }
+                putJsonObject("tally") {
+                    put("outcome_type", "VoteOutcome.Tie")
+                    put("tie_branch_taken", true)
+                    putJsonArray("tied_candidates") {
+                        tie.candidates.forEach { add(JsonPrimitive(it)) }
+                    }
+                    putJsonObject("counts") {
+                        tie.tally.forEach { (candidate, count) -> put(candidate, count) }
+                    }
+                }
+                putJsonObject("failure_node") {
+                    put("role_id", failure?.roleId ?: "<缺失>")
+                    put("turn_kind", failure?.turnKind ?: "<缺失>")
+                    put("round_id", failure?.roundId ?: "<缺失>")
+                    put("text", failure?.toText() ?: "<缺失>")
+                }
+                put("group_run_reason", run.reason)
+                put("group_run_error_message", run.errorMessage)
+                put("group_run_status", run.status)
+            },
+        )
+    }
+
+    /** vote 三视角台账（每个角色只看得见自己那张票 + __summary__/失败节点）。 */
+    private fun voteViewerVisible(messages: List<UIMessage>, config: GroupConfig) = buildJsonObject {
+        listOf("a", "b", "c").forEach { viewer ->
+            putJsonArray(viewer) {
+                GroupChat.buildContext(viewer, messages, config, null)
+                    .map { it.id.toString() }
+                    .forEach { add(JsonPrimitive(it)) }
+            }
+        }
+    }
+
     /** 从角色正文里抽 ROLECODE 代号；与 [realPersona] 的格式约定成对。 */
     private val realRoleCodeRegex = Regex("""ROLECODE:([A-Z])""")
 
@@ -2164,7 +3407,14 @@ class C1LiveModelSequenceTest {
      * @param blockFailure 被 try 包住的那段传播出来的异常；null 表示该段正常完成
      *   （**不代表全部断言已通过**，后续断言是独立的失败点）。
      */
-    private suspend fun writeRealRawDump(conversationId: Uuid, blockFailure: Throwable?) {
+    private suspend fun writeRealRawDump(
+        conversationId: Uuid,
+        blockFailure: Throwable?,
+        // 默认值保证既有真实网关用例的调用点（两个参数）行为逐字不变；
+        // 新增的四条真实网关用例各传自己的文件名，避免同一进程里互相覆盖。
+        fileName: String = "c1-real-raw-dump.json",
+        passEvidenceName: String = "c1-live-evidence-real-provider.json",
+    ) {
         val messages = repository.getConversationById(conversationId)?.currentMessages.orEmpty()
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val wireModelNames = assistants.map { resolveWireModelName(it) }
@@ -2173,7 +3423,7 @@ class C1LiveModelSequenceTest {
         val run = roundId?.let { groupRunDao.findByRound(conversationId.toString(), it) }
 
         writeEvidence(
-            "c1-real-raw-dump.json",
+            fileName,
             buildJsonObject {
                 put(
                     "note",
@@ -2186,8 +3436,22 @@ class C1LiveModelSequenceTest {
                 put(
                     "pass_evidence_note",
                     "this file is NOT the pass evidence; the pass evidence is " +
-                        "c1-live-evidence-real-provider.json and it is written only when every assertion passed",
+                        "$passEvidenceName and it is written only when every assertion passed",
                 )
+                // 真实网关偶发「非 2xx + 空 body」失败时，异常文本（含 HTTP 状态码）只挂在
+                // ChatManager.errors 上，不落进 group_runs.error_message（那是轮次终态摘要）。
+                // 这里把 app 侧错误原样落盘，超时/失败时 `adb pull` 就能看到状态码。
+                putJsonArray("app_errors") {
+                    chatManager.errors.value.forEach { error ->
+                        add(
+                            buildJsonObject {
+                                put("title", error.title)
+                                put("error_class", error.error::class.simpleName)
+                                put("error", error.error.toString())
+                            },
+                        )
+                    }
+                }
                 put("generated_at_device", System.currentTimeMillis())
                 put("conversation_id", conversationId.toString())
                 put("message_count", messages.size)
