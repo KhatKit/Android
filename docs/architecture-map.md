@@ -71,9 +71,11 @@ find app/src/main/java/heizige/kk/khatkit/app/feature/*/ -name '*.kt' | wc -l
 `build.gradle.kts` 和两个 JVM 测试类，物理上不可能再塞进 `core/` 下的一个包里。
 在 `app` 里再造一个 `core/auth/` 只放转发代码，是纯粹的空壳。
 
-**`core/files` 为什么不提为兄弟**：`core/data/files/` 的 7 个文件全部只碰 DataStore 与
-本地文件系统（`FilesManager` / `FileUtils` / `SkillManager` / `SkillPaths` /
+**`core/files` 为什么不提为兄弟**：`core/data/files/` 的 7 个文件全部围绕**文件的读写、
+导入与路径解析**（`FilesManager` / `FileUtils` / `SkillManager` / `SkillPaths` /
 `SkillFrontmatterParser` / `BuiltinSkills` / `CardMediaImporter`），是"数据的文件形态"。
+`FileUtils.kt` 走 `ContentResolver` / `DocumentsContract` / `MimeTypeMap`，
+`CardMediaImporter` 走图片存储，都是围绕文件而不是围绕业务实体。
 为了对齐目录图把它搬到 `core/files/`，下一次上游同步要在这两个路径之间做人工三方合并
 （见 §3），收益是目录树好看一格。
 
