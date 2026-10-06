@@ -1068,7 +1068,6 @@
   <string name="setting_provider_page_include_history_reasoning">回傳歷史思考過程</string>
   <string name="setting_model_page_fast_model">快速模型</string>
   <string name="setting_model_page_fast_model_desc">標題、建議、背景任務</string>
-  <string name="setting_model_page_enable_suggestion">啟用聊天建議</string>
   <string name="assistant_page_gradient_background">漸層背景</string>
   <string name="assistant_page_gradient_background_desc">在聊天頁面上使用動態漸變背景</string>
   <string name="assistant_page_workspace">工作區</string>
