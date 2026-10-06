@@ -13,7 +13,7 @@ data class BrowserHistoryEntry(
     val visitedAt: Long,
 )
 
-class BrowserHistoryStore(
+class BrowserHistoryRepository(
     private val file: File,
     private val maxEntries: Int = 200,
     private val json: Json = Json,

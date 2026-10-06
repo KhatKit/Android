@@ -5,13 +5,13 @@ import org.junit.Test
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 
-class BrowserHistoryStoreTest {
+class BrowserHistoryRepositoryTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
     @Test
     fun `records unique urls and keeps newest entries`() {
-        val store = BrowserHistoryStore(temporaryFolder.root.resolve("history.json"), maxEntries = 2)
+        val store = BrowserHistoryRepository(temporaryFolder.root.resolve("history.json"), maxEntries = 2)
         store.clear()
         store.record("https://one.example", now = 1)
         store.record("https://two.example", now = 2)

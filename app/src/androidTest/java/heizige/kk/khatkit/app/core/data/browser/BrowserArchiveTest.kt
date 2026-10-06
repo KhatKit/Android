@@ -27,7 +27,7 @@ class BrowserArchiveTest {
             assertEquals("{broken", legacy.readText())
             assertEquals("failed", database.archive().metadata("json_history_import_v1"))
             archive.clearHistory()
-            BrowserHistoryStore(legacy).record("https://old.example", "Old", 0)
+            BrowserHistoryRepository(legacy).record("https://old.example", "Old", 0)
             assertTrue(archive.history().isEmpty())
         } finally {
             database.close()
@@ -59,7 +59,7 @@ class BrowserArchiveTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val name = "browser-archive-test-${UUID.randomUUID()}.db"
         val legacy = File(context.cacheDir, "$name.json")
-        BrowserHistoryStore(legacy).apply {
+        BrowserHistoryRepository(legacy).apply {
             record("https://one.example", "One", 1)
             record("https://two.example", "Two", 2)
         }
