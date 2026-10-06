@@ -1174,6 +1174,32 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 三个在途改动未碰）。**
 
+### ⚠️ 第二十二批（真机第十四轮，2026-10-06，HEAD `b60aa80c5`）：**5 条带完整证据通过（显式@/vote 多数决/vote 平票/预算截断/记忆隔离）；roundtable/pipeline 第 3 位角色零产出 6/6；C1-04 与 C1-05 首次升 `verified`（本文件首次出现状态升级）**
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（设备同前：OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`），开工与收尾 HEAD 均为 **`b60aa80c5`**；窗口内 3 个 commit（`a9df57c96` / `b1473f5d1` / `b60aa80c5`）全部只动 `app/src/androidTest/.../C1LiveModelSequenceTest.kt`，**生产代码零改动**（逐 commit `git show --stat` 核过）。另补登上一批（第十六批）两个登记本体 `165d30b5a` / `a8449768c`（均只改 `docs/`）。
+
+**① 5 条带完整证据通过（8 项契约字段齐备）**
+
+- **C1-01 显式 @**：`OK (1 test)` / Time 6.567；只调用 b（wire `glm-5.2` / `provenance=wire_response_model`）、usage `6546+98=6644`=spent、viewer 台账 a/c 仅见 USER、b 见 USER+自己回复、导出 `6e2ec8ce…`（1747 B/3 行）。⇒ **不升**：契约 `:201`「其他角色不可见」的字面半仍未观测（触发是 USER 消息，A/C 仍可见它，遗留第 15 条）。
+- **C1-04 vote**：**两条路径都通过**——多数决（`Decided/opt-a 2:1`、Σ=20368=spent、导出 `8e42c5b9…` 2672 B/6 行；Time 17.917）与平票（`Tie → FAILED/vote_no_decision`、错误节点 `__summary__/error`、Σ=20302=spent、导出 `65f76608…` 2695 B/6 行；Time 16.506）；viewer 三角色各见「自己 + `__summary__`」。⇒ **升 `verified`**（契约 8 项齐备；「导出哈希结构性不产出」旧结论被本批推翻）。
+- **C1-05 预算截断**：专用用例 `realProviderBudgetTruncationRecordsRunLogAndExport` 通过（Time 17.793）；`BUDGET_STOPPED/token_budget_exceeded/spent=13594/token_limit=9000/committed=[a,b]/skipped=[c]`、序列 a deepseek 6934 / b glm 6660、Σ=13594=spent、**库内 `messages.count=3`/`assistant_role_order=["a","b"]` 直读**、导出 `da0f81c5…` 2044 B/4 行。⇒ **升 `verified`**（遗留第 43 条已消）。
+- **C1-08 记忆隔离**：`realProviderGroupMemoryIsolationRecordsPerSpaceHits` 通过（Time 0.647）：三空间 `group:<conv>:role:a|b|c` 各命中 1 条 + `role_id` + `source_message_id`（`…a008`/`…b008`/`…c008`）、外来查询全 `[0,0]`、viewer 重过滤 a 的记忆对 b 可见 **0**、全局/助手空间金丝雀命中 0。⇒ **不升**：**契约 8 项缺 3 项**（模型调用序列 / token / 导出哈希）——本例 `evidence_kind=…no-gateway`，**设计上不走网关、不产出群导出**。
+
+**② 2 条 3/3 全失败（同一根因，六条结论）**
+
+- roundtable 3 跑（Time 301.583/300.969/301.756）+ pipeline 3 跑（Time 27.627/25.884/19.129）**全失败**：第 3 位角色 c 零产出（`turn_kind=error` / 正文「本轮没有产出内容」/ `model_id=null` / usage 全 -1 / `group_run=FAILED/role_failed/committed=[a,b]` / `app_errors=[]`）。只有 raw dump（`10d7ae2f…` / `64e84d65…`），**通过证据文件不存在**（语义是「全断言通过才写」）。
+- **六条新结论**：① **不是** `43d607bdd` 修的「非 2xx + 空 body 静默当零产出」（否则错误正文是 `HttpException:` 且 `app_errors` 非空）；② 真因 = **网关 HTTP 200 但 SSE 无 content delta**，`ConversationSession.finishGeneration`（`:97-116`）丢空占位 → `stampGroupTurn`（`ChatManager.kt:1980-2003`）返回 null → `commitGroupTurn`（`:1957`）写 error 节点 + `FAILED/role_failed`，**全程无异常**；③ **6/6 稳定复现 ⇒ 不是偶发**，**推翻** `c1-group-chat.md:4114` 与判定规则第十条的「偶发」结论（已就地加订正块、保留原文）；④ **`app_errors` 有采集盲区**（零产出不写 / 超时 `:1020` rethrow / 取消 `:317` 早退都不写）⇒ 不能拿 `app_errors=[]` 当「一切正常」；⑤ refute 掉「c 的 prompt 很长所以失败」（c 在 pipeline 的 `prompt_tokens` 从未落库；vote 里 c 同模型第 3 次调用成功）；⑥ `reasoning-only` 响应会被保留并盖章成 speaker ⇒ c 连 reasoning 都没有。
+
+**③ 判定影响（本文件首次出现状态升级）**
+
+20 格中 **4 格升 `verified`**：**C1-04** 与 **C1-05**，各自在用例矩阵表 + 证据登记表两个格子改值；其余 16 格保持 `unverified`。详见 `c1-group-chat.md`「C1 真机证据采集第十四轮」⑤/⑦ 与 20 格订正。⚠️ **这是「C1 群聊」从全部 `unverified` 走向部分 `verified` 的第一步**——升的两行均为**后台轮次生成**路径（vote / budget），**不涉及**真机 UI / 酒馆本体 / 相机扫码三项硬阻塞。
+
+**④ 统计口径（登记子代理本机实测）**：`git log --oneline 18d730465..HEAD` = **5**（`165d30b5a` / `a8449768c` / `a9df57c96` / `b1473f5d1` / `b60aa80c5`）；`git log --name-only 18d730465..HEAD -- 'app/src/test/*'` **空** ⇒ 台账声明值仍 **46 行 / 501 例**；锚点 `1b0e04a9` 不重算。新增遗留：`c1-group-chat.md` 第 45 条（第 3 位角色零产出 6/6）与第 46 条（`app_errors` 采集盲区）；第 43 条已消；第 40 条与本批**不同源**（夹具 vs 生产）。
+
+📍 完整数字、SHA-256、逐字段值与限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十四轮」。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
