@@ -126,16 +126,21 @@ git ls-tree -r --name-only main | grep '\.kt$' | xargs -n1 basename \
 
 | 后缀 | 全仓 kt 数 | §2 判定 |
 |---|---:|---|
-| `*Service.kt` | 32 | ❌ 规范要弃用（见 §2.2，且调研给的「AIDL/Binder」理由不成立） |
+| `*Service.kt` | 29 | ❌ 规范要弃用（见 §2.2，且调研给的「AIDL/Binder」理由不成立） |
 | `*Manager.kt` | 19 | ✅ 合规 |
 | `*Util.kt` | 9 | ❌ 规范要改成 `Extensions` |
 | `*Utils.kt` | 11 | ❌ 同上 |
-| `*Store.kt` | 11 | ❌ 规范要改成 `Repository` |
-| `*Repository.kt` | 11 | ✅ 合规 |
-| `*Helper.kt` | 0 | ✅ 合规（本仓库一个都没用） |
+| `*Store.kt` | 4 | ❌ 规范要改成 `Repository` |
+| `*Repository.kt` | 17 | ✅ 合规 |
+| `*Helper.kt` | 1 | ✅ 合规 |
 | `*Extensions.kt` | 0 | ✅ 合规 |
 
-**合规率 = (19 + 11 + 0 + 0) / (32+19+9+11+11+11+0) = 30 / 93 = 32.3%。**
+**合规率 = (19 + 17 + 1 + 0) / (29+19+9+11+4+17+1+0) = 37 / 90 = 41.1%。**
+
+> ⚠️ **2026-10-06 改名后（A 类 8 个，全部无上游对应物；逐文件判定见 §2.4）**：
+> `*Service.kt` 32 → **29**（`core/service/` 删空 −2 + 本轮改名 −1）、
+> `*Manager.kt` 19 → **19**（删空 −1 + 改名 +1）、`*Store.kt` 11 → **4**、
+> `*Repository.kt` 11 → **17**、`*Helper.kt` 0 → **1**。非合规 **61 → 53**。
 
 ⚠️ **与调研基线的出入**：任务书给的 `Utils=14` 我复算不出。同一条命令给的是 **11**；
 若改成"文件名任意位置含 `Utils`"则是 13（多出 `DiffUtilsTest.kt` 与
@@ -328,6 +333,158 @@ grep -n "ChatService\|ChatManager" core/di/AppHiltModule.kt
 manifest **没有漏声明**（漏声明会让 lint / `adb install` 阶段报错，而 lint 实测
 `error 0`），所以解释 (2)「manifest 漏了声明」已被排除。解释 (1)「layer-first 残留」
 成立，**但真正的原因是 vendor merge 复活**，见 §9。
+
+### 2.4 逐文件判定表（2026-10-06，全量分类；**A 类已执行**）
+
+> **覆盖口径**：本节覆盖改名前的全部 **61 个**非合规文件（`Service 30 + Util 9 + Utils 11
+> + Store 11`）。**A 类 8 个已改名**（6 个 commit，全部已 push `origin main`）；
+> **B/C/D 类 53 个为主人决策后仍不改，理由如下**（每行都带证据与来源命令）。
+>
+> 复算命令（`*Service.kt` 示例，其余词同构）：
+>
+> ```bash
+> git ls-tree -r --name-only main | grep '\.kt$' | xargs -n1 basename | grep -cE 'Service\.kt$'
+> git ls-tree -r --name-only upstream-ssh/master | grep -E '(Service|Util|Utils|Store)\.kt$'   # 上游对应面
+> ```
+>
+> ⚠️ §2.2 标题里的「`*Service.kt` = 32」与 (c) 里列的文件是**改名前的历史口径**，
+> 其中的 `core/service/*` 已随 D1 删除（§9.4）；现行基线只看 §2.1 与本节。
+
+#### 2.4.1 A 类：已改名（8 文件 / 6 commit）
+
+| 原文件 | 新名字 | 为什么是这个词（§2 四词表） | commit |
+|---|---|---|---|
+| `app/…/feature/chat/AILiveNotificationService.kt` | `AILiveNotificationManager.kt` | 普通类（`class AILiveNotificationManager(private val context: Context)`），非框架组件；**有状态**（`currentJob` / `thinkingStateIndex` / `elapsedSeconds`）且管通知生命周期 ⇒ Manager | `5972207dd` |
+| `app/…/core/data/browser/BrowserHistoryStore.kt` | `BrowserHistoryRepository.kt` | 历史记录落盘读写（JSON 文件）⇒ Repository；测试类 `BrowserHistoryStoreTest` 同步改名 | `27b14335f` |
+| `app/…/feature/automation/CardScheduleStore.kt` | `CardScheduleRepository.kt` | 定时任务元数据持久化（SharedPreferences）⇒ Repository；测试类同步改名 | `563c716d2` |
+| `app/…/feature/settings/WorkflowStore.kt` | `WorkflowPreferencesRepository.kt` | 工作流定义持久化 ⇒ Repository；⚠️ 直接叫 `WorkflowRepository` 会撞 `feature/workflow/WorkflowRepository.kt`（Room 版），加 `Preferences` 限定 | `6d2aad0e8` |
+| `khatkit/…/bridge/impl/CardSqlStore.kt` | `CardSqlRepository.kt` | 卡片 SQLite 库的数据入口 ⇒ Repository | `e3cbf926b` |
+| `khatkit/…/bridge/impl/SecretStore.kt` | `SecretRepository.kt` | 密钥加密落盘（Keystore AES/GCM）⇒ Repository | `e3cbf926b` |
+| `khatkit/…/bridge/impl/SharedStore.kt` | `SharedFileRepository.kt` | 卡片间共享文件区 ⇒ Repository（文件形态）；测试类同步改名 | `e3cbf926b` |
+| `khatkit/…/dependency/DependencyArtifactStore.kt` | `DependencyArtifactHelper.kt` | **无状态**文件操刀（sha256 / 原子写 / 只读化）有副作用 ⇒ Helper；测试类同步改名 | `367a5ebf1` |
+
+**A 类的共同判定依据**：这 8 个文件在 `upstream/master` 与 `upstream-ssh/master` 里
+**都没有同名对应物**（逐个 `git grep -l '<类名>' upstream/master -- '*.kt'` ⇒ **0 命中**），
+也没有被 manifest / 反射 / 字符串引用（全仓非 `.kt` 引用实测只有 `docs/`），改名零上游成本。
+
+#### 2.4.2 B 类：Android 框架语义，不改（9 个）
+
+`grep -nE 'import|class' <file>` 的原文证据（行号即该文件行号）：
+
+| 文件 | 父类证据 | manifest 声明 |
+|---|---|---|
+| `app/…/core/network/WebServerService.kt` | `:29 class WebServerService : Service()`；`:4 import android.app.Service` | `app/src/main/AndroidManifest.xml:153` |
+| `app/…/feature/chat/ChatGenerationForegroundService.kt` | `:32 class ChatGenerationForegroundService : Service()`；`:4 import android.app.Service` | `:149` |
+| `app/…/feature/automation/TriggerService.kt` | `:39 class TriggerService : Service()`；`:5 import android.app.Service` | `:161` |
+| `app/…/feature/automation/TriggerTileService.kt` | `:18 abstract class TriggerTileServiceBase : TileService()`；`:54/:59/:64` 为 `TriggerTileService`/`2`/`3`；`:4 import android.service.quicksettings.TileService` | `:170` / `:180` / `:190` |
+| `app/…/feature/automation/AutomationOverlayService.kt` | `:173 class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner`；`:7 import android.app.Service` | `:200` |
+| `app/…/feature/automation/KhatKitNotificationListenerService.kt` | `:33 class KhatKitNotificationListenerService : NotificationListenerService()`；`:8 import android.service.notification.NotificationListenerService` | `:208` |
+| `app/…/feature/automation/KhatKitAccessibilityService.kt` | `:16 class KhatKitAccessibilityService : AccessibilityService()`；`:3 import android.accessibilityservice.AccessibilityService` | `:262` |
+| `khatkit/…/bridge/impl/KhatKitDownloadService.kt` | `:21 class KhatKitDownloadService : Service()`；`:6 import android.app.Service`；`ContextCompat.startForegroundService(Intent(context, KhatKitDownloadService::class.java))` | `khatkit/src/main/AndroidManifest.xml:28` |
+| `oauth/…/oauth/OAuthCallbackForegroundService.kt` | `:23 class OAuthCallbackForegroundService : Service()`；`:6 import android.app.Service` | `oauth/src/main/AndroidManifest.xml:11` |
+
+不改理由：`Service` 是 Android 组件名，改名要同步改 manifest 的 `android:name`、
+`foregroundServiceType` 与 `Intent(context, X::class.java)` / `PendingIntent` 跳转目标。
+其中 6 个（Trigger×2、Overlay、NotificationListener、Accessibility、Download）在上游
+**连同名文件都没有**（`git grep -l` 两个上游 ref ⇒ 0），纯粹为框架语义保留；
+另 3 个（WebServer / ChatGenerationFGS / OAuthCallback）还叠加了上游 1:1 的同步成本。
+
+#### 2.4.3 C 类：`:search` 20 个 —— 不改（上游 1:1 + 持久化判别串在同模块）
+
+目录：`search/src/main/java/heizige/kk/khatkit/search/`；上游同名文件在
+`search/src/main/java/me/rerere/search/`。`@SerialName` 性质逐文件（`grep -n '@SerialName' <file>` 原文）：
+
+| 文件 | 上游同名 | 本文件 `@SerialName` 的性质 |
+|---|---|---|
+| `BingSearchService.kt` | ✓ | 无 `@SerialName` |
+| `BochaSearchService.kt` | ✓ | 传输（`:117 "code"` 等 8 处） |
+| `BraveSearchService.kt` | ✓ | 无 |
+| `CustomJsSearchService.kt` | ✓ | 无 |
+| `DoubaoSearchService.kt` | ✓ | 传输（`:144 "Error"` 等 8 处） |
+| `ExaSearchService.kt` | ✓ | 传输（`:173 "requestId"` 等 9 处） |
+| `FirecrawlSearchService.kt` | ✓ | 无显式 `@SerialName`（`:229/:236/:244` 是传输 DTO 的 `@Serializable`） |
+| `GrokSearchService.kt` | ✓ | 传输（`:174 "start_index"` / `:175 "end_index"`） |
+| `JinaSearchService.kt` | ✓ | 无 |
+| `KhatKitSearchService.kt` | ✓（对应上游 `RikkaHubSearchService.kt`，品牌化重命名） | 无 |
+| `LinkUpService.kt` | ✓ | 无 |
+| `MetasoSearchService.kt` | ✓ | 传输（`:114 "credits"` 等 8 处） |
+| `OllamaSearchService.kt` | ✓ | 无 |
+| `PerplexitySearchService.kt` | ✓ | 传输（`:140 "text"`） |
+| `SearchService.kt`（interface + `SearchServiceOptions`） | ✓ | **持久化**：`:176`–`:317` 的 19 个 Options 判别串 + `:364/:367` 的 `global`/`custom` 枚举值 |
+| `SearXNGService.kt` | ✓ | 传输（`:132 "results"` 等 4 处） |
+| `SerperSearchService.kt` | ✓ | 无 |
+| `TavilySearchService.kt` | ✓ | 传输（`:194 "raw_content"`） |
+| `TinyfishSearchService.kt` | ✓ | 传输（`:151 "total_results"` 等 3 处） |
+| `ZhipuSearchService.kt` | ✓ | 传输（`:111 "search_result"` 等 7 处） |
+
+**硬证据 1（AIDL/Binder 理由不成立，复跑）**：
+`grep -rn 'android\.app\.Service|IBinder|IInterface|\.Stub|RemoteException' search/src/main/ | wc -l`
+⇒ **0**。`SearchService.kt:22` 是普通 Kotlin `interface SearchService<T : SearchServiceOptions>`。
+
+**硬证据 2（哪些 `@SerialName` 是持久化的）**：
+`SettingsRepository.kt:221` 执行
+`preferences[SEARCH_SERVICES] = JsonInstant.encodeToString(settings.searchServices)`，
+而 `settings.searchServices: List<SearchServiceOptions>`（`:581`）⇒ 多态判别串来自 Options 的
+`@SerialName`。持久化的 19 个值是：`bing_local / zhipu / doubao / tavily / exa / searxng /
+linkup / brave / metaso / ollama / perplexity / firecrawl / jina / bocha / rikkahub / grok /
+tinyfish / serper / custom_js`。⚠️ `"rikkahub"`（`:285`）是 `KhatKitOptions` 的判别串 ——
+历史品牌名，**不能顺手改**。20 个 provider 文件里的 `@SerialName` 则**全部是传输 DTO**，
+不在任何持久化路径上 —— 这一点如实登记：**单独改 19 个 provider 对象名不会动这些盘上的
+key**，但（a）§2 四词表里没有 `Provider`，要改就得把 interface + `SearchServiceOptions`
+一起卷进 `Manager`/`Repository`，那会碰持久化契约；（b）19 个文件上游 1:1，改名的收益要
+靠每次上游同步的人工比对来付。⇒ **整个模块维持 C 类不改。**
+
+#### 2.4.4 D 类：其余不改（24 个：上游 1:1 或专有名词）
+
+`app/core/util/` 15 个（上游 `app/src/main/java/me/rerere/rikkahub/utils/` 逐个同名）：
+
+| 文件 | 上游同名 | 文件 | 上游同名 |
+|---|---|---|---|
+| `CacheUtil.kt` | ✓ | `CollectionUtils.kt` | ✓ |
+| `ChatUtil.kt` | ✓ | `CoroutineUtils.kt` | ✓ |
+| `ClipboardUtil.kt` | ✓ | `DiffUtils.kt` | ✓ |
+| `ContextUtil.kt` | ✓ | `EmojiUtils.kt` | ✓ |
+| `DatabaseUtil.kt` | ✓ | `ImageUtils.kt` | ✓ |
+| `NotificationUtil.kt` | ✓ | `MarkdownUtils.kt` | ✓ |
+| `PlayStoreUtil.kt` | ✓ | `StringUtils.kt` | ✓ |
+| `TimeUtil.kt` | ✓ | | |
+
+其余 9 个：
+
+| 文件 | 上游对应（`upstream-ssh/master`） | 不改理由 |
+|---|---|---|
+| `common/…/common/android/ContextUtil.kt` | 同路径同名 | 上游 1:1 |
+| `ai/…/provider/providers/ProviderMessageUtils.kt` | 同路径同名 | 上游 1:1 |
+| `app/…/core/data/db/migrations/MigrationUtils.kt` | `app/…/data/db/migrations/MigrationUtils.kt` | 上游 1:1 |
+| `app/…/core/data/files/FileUtils.kt` | `app/…/data/files/FileUtils.kt` | 上游 1:1 |
+| `app/…/core/network/routes/RouteUtils.kt` | `app/…/web/routes/RouteUtils.kt` | 上游 1:1（本 fork 已把 `web/` 重构进 `core/network/`） |
+| `common/…/common/cache/CacheStore.kt` | 同路径同名 | 上游 1:1；磁盘缓存实现，改 `Repository` 是退化 |
+| `common/…/common/cache/PerKeyFileCacheStore.kt` | 同路径同名 | 同上 |
+| `common/…/common/cache/SingleFileCacheStore.kt` | 同路径同名 | 同上 |
+| `app/…/core/ui/hooks/PlayStore.kt` | `app/…/ui/hooks/PlayStore.kt` | ⚠️ `Store` 是 **Google Play 专有名词**（`rememberIsPlayStoreVersion()` → `PlayStoreUtil.isInstalledFromPlayStore`），与存储无关 |
+
+D 类不改的共同理由：24 个里 23 个在上游有同名对应物（改名给每次上游同步追加人工比对），
+另 1 个（`PlayStore.kt`）不是 §2 意义上的 `Store`。
+
+#### 2.4.5 复算与验证记录（2026-10-06，全部实测）
+
+- **新基线**（§2.1 同一条 `git ls-tree` 命令）：`Service 29 / Manager 19 / Util 9 /
+  Utils 11 / Store 4 / Repository 17 / Helper 1 / Extensions 0` ⇒ 合规率
+  **37 / 90 = 41.1%**，非合规 **53**（原 61 − 已改 8）。
+- `./gradlew --offline :app:compileDebugKotlin`：每个改名 commit 后都跑，退出码全 **0**。
+- `./gradlew --offline :app:testDebugUnitTest`：**112 类 / 925 例 / 0 失败 0 错误 0 跳过**
+  （与改名前的任务基线逐位相同；同步改名的测试类 2 个：
+  `BrowserHistoryRepositoryTest` / `CardScheduleRepositoryTest`，例数不变）。
+- `./gradlew --offline :khatkit:testDebugUnitTest`：**33 类 / 198 例 / 0 失败 0 错误
+  7 跳过**（`SharedFileRepositoryTest` / `DependencyArtifactHelperTest` 为同步改名的测试类）。
+- `./gradlew --offline :app:lintDebug`：退出码 **0**，app 报告 **error 0 / warning 581 /
+  hint 6 = 587**。⚠️ 比上一条磁盘记录（`584W + 6H = 590`）少 **3 条 warning**，
+  **全部在 `UnusedResources`**，与本轮改名无关：改名 commit 零资源改动，且 3 条位于改名
+  文件的 warning（`ObsoleteSdkInt`×1、`UseKtx`×2）改后仍在，只是路径从旧名变新名；
+  差额方向与 `0040463b1` + `b432a69a4` 删除的 4 个孤儿字符串一致（旧 XML 已被本次重跑
+  覆盖，无法逐条复算到单个 string，如实标注）。
+- `python3 tools/verification/c1_doc_stats.py`：**OK 18 / WARN 0 / FAIL 0**，退出码 **0**
+  （脚本 sha256 未变：`238bb45f…9f4321`）。
 
 ---
 
