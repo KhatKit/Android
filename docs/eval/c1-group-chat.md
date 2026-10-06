@@ -4259,7 +4259,7 @@ untracked fixture `C1GroupUiE2EFixtureTest.kt`（实测 **461 行 / 3 个 `@Test
 （b）根因（读测试代码得出，行号我自己核过）
 
 - `C1LiveModelSequenceTest.kt` `setUp`（`:511`）：`:517` `originalSettings = settingsStore.settingsFlow.value` —— **纯内存快照，无磁盘备份**。
-- `tearDown`（`:639`）：`:643-645` `originalSettings?.let { runCatching { runBlocking { settingsStore.update(original) } } }` —— `runCatching` 吞掉的正是这条 update 的异常；且 `SettingsRepository.update(settings)`（真实路径 `app/src/main/java/heizige/kk/khatkit/app/core/data/datastore/SettingsRepository.kt:442-446`，⚠️ **不是第八轮执行者转述里的 `core/data/repository/`**）在 `init == true` 时直接 no-op。
+- `tearDown`（`:639`）：`:643-645` `originalSettings?.let { runCatching { runBlocking { settingsStore.update(original) } } }` —— `runCatching` 吞掉的正是这条 update 的异常；且 `SettingsRepository.update(settings)`（真实路径 `app/src/main/java/heizige/kk/khatkit/app/core/data/datastore/SettingsRepository.kt:442-446`；⚠️ 仓库里**没有** `core/data/repository/SettingsRepository.kt`，引用时注意子包是 `datastore`）在 `init == true` 时直接 no-op。
 - trace（`c1-live-trace.txt`，714149 B / `be9c0f48ea4d7604b1e34282649e7812f449951bc14be4643821336ced3c45ec`）：28 次 setUp 全 `init=false`，最后一次 settings 写入 17:15:46（real-provider 用例）；**首次污染后，后续快照本身就是污染值** ⇒ tearDown 等于写回污染。
 - 无任何磁盘备份、无历史备份（round3 的 `settings.pb` 也已污染）、`bmgr list sets` 无恢复集（执行者报告）。
 
