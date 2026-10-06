@@ -4383,7 +4383,95 @@ untracked fixture `C1GroupUiE2EFixtureTest.kt`（实测 **461 行 / 3 个 `@Test
 - **硬理由④（相机扫码）**：**仍零份**，本轮未碰（相机链路需要物理二维码进入视野，需用户配合）。
 
 
-## 仪器测试状态
+### C1 真机证据采集第十轮 / 页面入口合并（2026-10-06，HEAD `d133b400b`：单聊群聊合并为 ChatPage 唯一入口 + 成员头像组首条 androidTest 断言真机通过 + chip/@ 未跑完 + 一次 kill -3 操作失误）
+
+⚠️⚠️ **先说性质**：本批 = **3 个代码 / 测试 commit**（`6b4a56d9f` / `a4b8be9da` / `d133b400b`）+ **一次未收尾的真机采集窗口**（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`，无线 `192.168.31.183:37773`）。⚠️ **20 个状态格一个都没升级，仍是 10/10 `unverified`**（只有 C1-10 两处状态格就地追加了第十轮订正，判据见 ⑨）。⚠️ 本节 SHA / 字节 / 行数 / `@Test` 计数凡标「**实测**」者为**登记时本机重新计算**；标「**执行者报告**」者为**转述执行者**，登记时未独立复现（约束：不跑任何 gradle）。
+
+**① 页面入口合并：单聊群聊合并为 `ChatPage` 唯一入口（`6b4a56d9f` / `a4b8be9da`，2 个 commit）**
+
+用户指令原文：「现在先把群聊和单聊页面合并到一起 服用同一个页面」。
+
+合并两端（`a4b8be9da` 之前）：
+
+| 端 | 内容 |
+|---|---|
+| 分派点 | `GroupOrDirectPage`（原 `GroupChatPage.kt:80-105`）按 `type` 选页 |
+| 单聊页 | 已有的 `ChatPage`（`ChatPage.kt`） |
+| 群聊页 | `GroupChatPage`（原 `GroupChatPage.kt:145-368`） |
+| **已在共享组件内** | `ChatScaffold` 已抽出（`8528ecda`）且群聊页已复用（`4e97ff57`）；`GroupTopBar` / `GroupInfoChip` / `GroupConfigSheet` 及 7 个子 composable、`GroupMemberBar` 都**已存在于 `GroupChatPage.kt`** |
+
+合并做了三件事：
+
+1. **`6b4a56d9f`（1 file, +57/−22，`GroupChatPage.kt`）**：`GroupTopBar` / `GroupInfoChip` / `GroupConfigSheet` 由 `private fun` → `internal fun`（实测 `:116` / `:155` / `:214`）；抽出顶层 `internal fun groupConfigSave(...)` 留在 `GroupChatPage.kt`（实测 `:68`）；新增顶层 `internal val groupCanEditMessage: (UIMessage) -> Boolean = { it.role == MessageRole.USER }`（实测 `:101`；⚠️ **是 val lambda 不是 fun**——fun 体里写 `it` 无法编译；该字面量在本文件恰 1 次）。
+2. **`a4b8be9da`（3 files, +99/−340）**：
+   - `ChatPage.kt` 新增（实测行号）：`val config = conversation.groupConfig`（`:225`）、`val isGroup = isGroupConversation(conversation)`（`:226`）、`val roleCompletionProvider = remember(config) { GroupRoleCompletionProvider { config } }`（`:227`）、`var showConfigSheet by rememberSaveable { mutableStateOf(false) }`（`:228`）；两次 `ChatScaffold(...)` 重构成单个 `val scaffold: @Composable (Boolean) -> Unit`（`:270`），条件注入 5 个槽（`:288-292`）。
+   - **条件注入 5 槽对照**（实测 `ChatPage.kt:233-268`）：`topBar` = `GroupTopBar`；`listOverlay` = `GroupInfoChip`；`bottomBarAboveInput` = `GroupMemberBar`；`extraCompletionProviders` = `listOf(roleCompletionProvider)`；`canEditMessage` = `groupCanEditMessage`。单聊分支依次落 `null` / `({})` / `({})` / `emptyList()` / `({ true })`。
+   - **删除**：`GroupOrDirectPage` 与 `GroupChatPage` 两个函数及其 KDoc + 19 个因此未使用的 import（执行者报告）。`GroupConfigSheet` 及 7 个子 composable、`GroupTopBar`、`GroupInfoChip` **原地未动**（实测仍在 `GroupChatPage.kt`）。
+   - `RouteActivity.kt`：删 `import …GroupOrDirectPage`，`entry<Screen.Chat>` 内改调 `ChatPage(`（实测 `RouteActivity.kt:379`），5 个参数原样传。
+3. **入口判定**：`isGroupConversation(conversation)` 定义在 `ChatManager.kt:2352`（实测），严格口径「`group_config` 非空**且** `type == GROUP`」。现在 **`ChatPage` 是唯一页面入口**。
+
+**② 5 个源码护栏测试（执行者报告「全绿且未改任何断言」；`@Test` 计数为登记时实测）**
+
+| 测试类 | `@Test`（实测） | 执行者报告 |
+|---|---:|---|
+| `GroupChatPageDisplayLineSourceGuardTest` | 2 | tests=2 / failures=0 |
+| `GroupEditActionVisibilitySourceGuardTest` | 5 | tests=5 / failures=0 |
+| `BottomSheetScrollSourceGuardTest` | 4 | tests=4 / failures=0（65 计数未变） |
+| `PrimaryBottomSheetIconSourceGuardTest` | 4 | tests=4 / failures=0 |
+| `ConversationGroupCardsSchemaTest` | 7 | tests=7 / failures=0 |
+
+⚠️ 上表「执行者报告」列的退出码与 failures 数**由执行者提供**，登记时**未重跑**（约束：不跑任何 gradle，以免重写 test-results XML 使刚登记的 mtime 证据失效）。
+
+**③ 编译陷阱（值得登记）**：`if (isGroup) { { ... } } else {}` **不能编译**——外层 `{}` 被解析成 if/else 的代码块，块值是 `Boolean`/`Unit` 而不是 lambda，类型对不上。必须写 `if (isGroup) ({ ... }) else ({})`。代码里已按后者写并留了注释（实测 `ChatPage.kt:230-232`）。
+
+**④ 知情接受的行为变化**：删掉分派点的 `type == null -> Unit` 门控后，所有会话（含单聊）比改前**早一帧**挂载 `ChatPage`；单聊侧注入参数**全部等于 `ChatScaffold` 默认值**（默认实参实测 `ChatPage.kt:410-414`：`listOverlay = {}`、`bottomBarAboveInput = {}`、`extraCompletionProviders = emptyList()`、`topBar = null`、`canEditMessage = { true }`），但**显式传了一遍**。
+
+**⑤ 三条 androidTest 断言纳入（`d133b400b`，1 file, +569）**
+
+新入库 `app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1GroupFilterAndAvatarUiTest.kt`：**569 行 / 3 个 `@Test`**（实测），SHA-256 `a1ffffd64c594a119f14e875f166184cbfeb7b1557995c1bc0018ab5291fc84e`（实测；与执行者报告一致）。三条用例：
+
+1. `typeFilterChipsFilterWithoutLosingData`（筛选 chip 过滤 + 不丢数据）
+2. `groupMemberBarRendersOneAvatarPerRole`（成员头像组）
+3. `atMentionPickerInsertsParseableMention`（@ 选择器）
+
+引用的 testTag（生产代码里本就存在，**`d133b400b` 本身生产代码零改动**；行号为登记时实测）：`chat_input`（`app/core/ui/components/ai/ChatInput.kt:931`）、`group_member_bar`（`GroupMemberBar.kt:70`）、`drawer_conversation_list`（`ChatDrawer.kt:571`）。⚠️ 后两个 testTag 是**本批更早的两个独立 commit**（`15ce2f251` / `467f67ad9`，只加语义不改行为）加的，不是 `d133b400b` 加的。
+
+**⑥ 真机结果（如实登记，不美化）**
+
+设备 OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a` / 无线 `192.168.31.183:37773`；两个 APK `install -r -t` 均 `Success`（执行者报告）。
+
+- ✅ **三条里只有测 2 `groupMemberBarRendersOneAvatarPerRole` 真机通过**。原始 `round5-instrument.log`（实测 1162 B / SHA-256 `1e43d6c4525bf0f4596d2965065e3dba98614b0148148bb83a8a71b37d348a04`）逐行：`numtests=3`、`test=groupMemberBarRendersOneAvatarPerRole`、**`INSTRUMENTATION_STATUS_CODE: 0`**。该用例断言（执行者报告）：`bar.assertExists()` + `assertEquals("成员头像组里的可点击头像数必须等于群角色数（夹具=3）", fixtureConfig.roles.size, avatarNodes.size)`（用 `hasAnyAncestor(hasTestTag(MEMBER_BAR_TAG)) and hasClickAction()` 取节点）+ `bar.onChildren().assertCountEquals(3)`。⚠️ **这是硬理由②的第一条 androidTest 级自动化断言**（此前成员头像组只有截图 / uiautomator 弱证据）。
+- ❌ **测 1 与测 3 未跑完**。同一份日志逐行：测 2 通过后进入 `test=typeFilterChipsFilterWithoutLosingData`（`STATUS_CODE: 1`，已启动），紧接着 **`INSTRUMENTATION_RESULT: shortMsg=Process crashed.`**；**测 3 `atMentionPickerInsertsParseableMention` 从未出现**（`numtests=3` 只跑到第 2 条）。
+
+**⑦ 操作失误（必须原样登记，不是测试失败）**
+
+18:59:50 执行者为看线程栈对测试进程执行了 `run-as … kill -3 28072`（执行者报告原文）。ColorOS 记 **`reason=13 OTHER KILLS BY SYSTEM … o-stop(40)`**，把 instrumentation 一并杀停 ⇒ 上面那句 `INSTRUMENTATION_RESULT: shortMsg=Process crashed.`。**这是操作失误，不是测试失败**。此后设备无线调试端口从 `37773` 变 `38493`（mDNS）继而全部 `Connection refused`，`adb devices` 持续为空。
+
+**⑧ 非空验证未执行 + 证据面 + 设备设置未恢复**
+
+- ⚠️ **非空验证（三次破坏）未执行**——三条断言的「非空」目前只是**按构造推断**，**不是实测**。
+- 证据面（均实测）：`round5-instrument.log`（1162 B，SHA-256 见 ⑥）；`logcat-full.txt`（2366823 B，SHA-256 `e5e66471b11868f13be86452f501366a584eee2471c1541c2999483ec46b1d3f`）；同目录另有 `threaddump.txt`（2329885 B）。三者都在 `/tmp/opencode/c1-ui-assert/`（仓库外）。**设备侧证据文件因掉线未能 pull**。
+- **设备设置未恢复**：`screen_off_timeout` 现为 `600000`（原值 `30000`），`stayon true` 未恢复——设备已不可达，**无法改回**（执行者报告；已登记「已知遗留与风险」第 38 条）。
+
+**⑨ 判定影响：20 个状态格一个升级都没有，仍是 10/10 `unverified`——C1-10 为什么不升级（逐行理由）**
+
+本次拿到的是**真正的 androidTest 断言**（不是截图），比第九轮的 uiautomator/截图级更硬；但**只有 3 条里的 1 条通过**，且 chip / @ 未跑、非空验证未做。逐条核契约：
+
+- 契约 `:206`：「每例保存输入、各角色可见消息集合、实际模型调用序列、token 计数和导出哈希……**不得仅凭 UI 截图勾选**」——C1-10 行这**四类产物一份未增**；本次通过的那条断言对象是**成员头像组的可点击头像数**，**不是 C1-10 点名的「同一列表混排 / 类型筛选只过滤 / 切换后数据不丢」**那条路径。
+- 契约 `:232-235`：「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」——本批属于比「只看 UI 状态」更硬的一档（**真的跑了一条自动化断言且通过**），但**整类 3 条里 2 条没跑完，且通过的那条并不是 C1-10 点名的路径**。
+- 契约 `:184-185`：「群条目 = **成员头像组** +「群」徽标」——头像组断言只覆盖「条目里头像数 = 角色数」，**「群」徽标与筛选/混排行为都没断言**。
+- 本文「判定规则」第 2 条：缺可见消息集合 / 调用序列 / 哈希的行不算通过。
+
+⇒ **独立判断：C1-10 仍不能升级为 `verified`**，三条理由——① 三条用例里两条（chip / @）**没跑完**，无法构成「本行路径已被自动化覆盖」；② 唯一通过的用例断言的是**头像组渲染**，不是 C1-10 点名的**筛选 / 混排 / 不丢数据**；③ 契约 `:206` 的四类产物本行**仍零份**。已在 C1-10 两处状态格就地追加第十轮订正（保留原文、不覆写）。
+
+**⑩ 四条限制（不许美化）**
+
+1. 唯一通过的一条是 **Compose UI 断言**，且**非空验证未做**——「夹具=3」不足时会不会假绿，**未证**；
+2. **截图 / uiautomator 证据一样没入库**，本批只有一份 `round5-instrument.log`（外加 `logcat-full.txt` / `threaddump.txt`），**设备侧重证据未 pull**；
+3. 页面合并的**真机 UI 表现零验证**——合并后单聊页是否与改前逐字相同，**没有真机对比截图**；
+4. **设备现在不可达**（`adb devices` 空），以上任何一条都**无法在本批内补跑**。
+
+**⑪ `architecture-map.md` 说明（登记时实测）**：`docs/architecture-map.md` 当前**没有任何一处引用 `GroupOrDirectPage` / `GroupChatPage` / `ChatPage`**（`grep` 零命中），其「UI 结构 / 包结构」只到「`feature/chat` 35 个 kt」这一级（本次合并删的是函数、不是文件，`chat` 包 kt 数不变），故本次合并**不需要同步该文件**；⚠️ 该文件另有一处**他人在途未提交改动**（service 命名计数与 suggestion 孤儿清理，与本合并无关），本批**未碰**。
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
 「25/25 全绿」，下面第 1 条与第 2 条按既有惯例保留原样不覆写，新数据见
