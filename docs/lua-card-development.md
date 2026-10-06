@@ -941,7 +941,7 @@ end
 
 ### 4.9 web（网页登录与站点 Cookie，L0）
 
-WebView 登录弹层 + 按站点隔离的站点 Cookie。**Cookie 只加密保存在本机（`SecretStore`），不上传服务端，也绝不返回给脚本内容。**
+WebView 登录弹层 + 按站点隔离的站点 Cookie。**Cookie 只加密保存在本机（`SecretRepository`），不上传服务端，也绝不返回给脚本内容。**
 
 | 方法（签名） | 参数 | 返回 | 说明 |
 |---|---|---|---|
