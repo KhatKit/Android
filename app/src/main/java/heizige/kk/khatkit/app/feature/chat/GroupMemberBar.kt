@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -63,6 +64,10 @@ fun GroupMemberBar(
 
     Row(
         modifier = modifier
+            // C1 真机 UI 测试的定位锚点：UIAvatar 自身不带 contentDescription/testTag
+            // （语义只有内部 KedgeSurface 的 clickable），头像组只能靠容器定位。
+            // 仅新增语义属性，不改布局/行为。
+            .testTag("group_member_bar")
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
