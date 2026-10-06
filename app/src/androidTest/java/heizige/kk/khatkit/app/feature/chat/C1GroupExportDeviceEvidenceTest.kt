@@ -189,18 +189,20 @@ class C1GroupExportDeviceEvidenceTest {
     }
 
     @After
-    fun tearDown() = runBlocking {
-        // 金丝雀记忆：硬删分块 + 删空间，不留痕。
-        memoryCanaryChunkId?.let { runCatching { memoryStore.deleteMemory(it) } }
-        runCatching {
-            val production = AppDatabaseFactory.create(appContext)
-            production.memoryChunkDao().hardDeleteSpace(CANARY_MEMORY_SPACE)
-            production.memorySpaceDao().deleteSpace(CANARY_MEMORY_SPACE)
-            production.close()
+    fun tearDown() {
+        runBlocking {
+            // 金丝雀记忆：硬删分块 + 删空间，不留痕。
+            memoryCanaryChunkId?.let { runCatching { memoryStore.deleteMemory(it) } }
+            runCatching {
+                val production = AppDatabaseFactory.create(appContext)
+                production.memoryChunkDao().hardDeleteSpace(CANARY_MEMORY_SPACE)
+                production.memorySpaceDao().deleteSpace(CANARY_MEMORY_SPACE)
+                production.close()
+            }
+            originalSettings?.let { runCatching { settingsStore.update(it) } }
+            if (::database.isInitialized) database.close()
+            context.deleteDatabase(EXPORT_DB)
         }
-        originalSettings?.let { runCatching { settingsStore.update(it) } }
-        if (::database.isInitialized) database.close()
-        context.deleteDatabase(EXPORT_DB)
     }
 
     @Test
