@@ -6186,6 +6186,32 @@ git show --stat bfe1c982c                          # 1 file changed：docs/beyon
 ⚠️ **本批对判定的影响：20 个状态格一个升级都没有，仍是 10/10 `unverified`**——C1-06 取消路径首次拿到完整真机证据（先前三次全部零测量），但超时半未跑、viewer 集合未按契约落盘、单次通过、导出哈希一格仍缺；mention / vote / vote-tie 的重复稳定性首次满足，但「导出哈希」一格仍无内容（按判定规则第 2 条不升级）；roundtable 两次 FAIL 归因测试自身竞态（修复未验证）。逐行依据见「C1 真机证据采集第十三轮」⑤，新增遗留见第四十一~四十四条。
 
 
+#### ⚠️⚠️ 再往后一批（第十七批，2026-10-06，`18d730465..b60aa80c5`）：**真机第十四轮（显式@/vote 多数决/vote 平票/预算截断/记忆隔离 五条带完整证据通过；roundtable/pipeline 第 3 位角色零产出 6/6）；C1-04/C1-05 首次升 `verified`；补登第十六批登记本体 2 个；声明值 46 行 / 501 例未动**
+
+⚠️ **核验命令（登记子代理本机实测，原文）**：
+
+```
+git log --oneline 18d730465..HEAD                              # 5 行
+git log --oneline 18d730465..HEAD | wc -l                      # 5
+git log --oneline --merges 18d730465..HEAD | wc -l             # 0
+git log --name-only 18d730465..HEAD -- 'app/src/test/*'        # 空输出（无 app/src/test 在册类变化）
+git rev-parse HEAD                                             # b60aa80c5fd1082fa8a32c1aa9c718db22607354
+```
+
+⚠️ **本批 = 上一批（第十六批）按惯例留到本批补登的登记本体 2 个（`165d30b5a` / `a8449768c`，均只改 `docs/`）+ 本批主角 3 个（`a9df57c96` / `b1473f5d1` / `b60aa80c5`，逐条 `git show --stat` 核实全部只改 `app/src/androidTest/.../C1LiveModelSequenceTest.kt`）。**
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `165d30b5a` | `coder: 登记C1真机第十三轮证据节…20状态格就地订正仍全unverified，台账第十六批，新增遗留41-44并复核36/37/39/40` | 文档（=第十六批登记本体，本批补登；`c1-group-chat.md` +128/−25） |
+| `a8449768c` | `coder: 实施状态补第二十一批…20状态格仍10/10 unverified，mock旧sha256订正` | 文档（status，=第十六批登记本体，本批补登） |
+| `a9df57c96` | `coder: C1真实网关逐例导出SHA-256+viewer可见台账，修roundtable盖章竞态，新增预算截断专用用例` | 测试（`C1LiveModelSequenceTest.kt` +707/−9；生产代码零改动） |
+| `b1473f5d1` | `coder: 新增C1-08记忆隔离设备侧用例——生产空间键/归因/检索/ viewer过滤四段证据` | 测试（`C1LiveModelSequenceTest.kt` +351；生产代码零改动） |
+| `b60aa80c5` | `coder: 预算截断用例补库内助手发言数==2直读断言` | 测试（`C1LiveModelSequenceTest.kt` +11；生产代码零改动） |
+
+⚠️ **本批对台账声明值的影响：一个数都没动**——`git log --name-only 18d730465..HEAD -- 'app/src/test/*'` **空输出**；本批三个主角全改 `app/src/androidTest/`（不进台账口径）⇒ 声明值仍 **46 行 / 501 例**（`python3 tools/verification/c1_doc_stats.py` 本机实测见下）。⚠️ **锚点 `1b0e04a9` 仍然没有被重算**：本批 5 个一个都不计入本台账任何计数——不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或子包标签 ⇒ **`78 / 6 / 17` 与两张分布表一个数都没动**。
+
+⚠️ **本批对判定的影响（本文件首次出现状态升级）：20 格里 4 格从 `unverified` 升 `verified`**——**C1-04（vote 多数决 + 平票两条路径，契约 8 项齐备、必须断言成立）** 与 **C1-05（预算截断，8 项齐备 + 库内 `messages.count=3`/`assistant_role_order=["a","b"]` 直读）**，各自在**用例矩阵表**与**证据登记表**两个格子里改值（共 4 格）。其余 16 格保持 `unverified` 并就地追加第十四轮订正：C1-01（契约 `:201`「其他角色不可见」字面半仍未观测）/ C1-02、C1-03（本批 3/3 全失败）/ C1-06 / C1-07（续跑测试仍未写）/ C1-08（缺模型序列·token·导出哈希三项）/ C1-09 / C1-10。逐行依据见「C1 真机证据采集第十四轮」⑤/⑦ 与 20 格订正；新增遗留见第 45/46 条，并对第 40 条做同源复核（不同来源）。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
@@ -7169,8 +7195,12 @@ git status --short
      三次尝试（attempt 1 测试 7.903s 后失败 / attempt 2 设备中途掉线 / attempt 3 设备在 `am instrument` 生效前掉线）**一条取消断言都没有实测值**，超时半（`GROUP_ROUND_STEP_TIMEOUT_MS` 15 分钟）未跑。⚠️ **attempt 1 的现场**：mock `mock-requests-attempt1.jsonl` seq2 对角色 B 注入 `injected_http_500=true`（无 `reply_bytes`/`usage`，服务端确实返回 500），但 `trace-phaseB-attempt1.txt` 显示 `round1:terminal status=COMPLETED reason=`，库内 B 是一条 **speaker** 消息、正文 `"B 已收到，本轮取消用例正常执行，无异常。"`，C 也被调用，且 **mock 未收到第二次 B 请求**。该文本在**仓库源码 / 两份 mock 日志 / 生产库快照 `proddb/rikka_hub` / attempt 2 遗留库**四处**均 0 命中**（登记代理逐处实测）。⇒ 现象未定性：下一轮要带 `adb logcat` 抓这个 500 的客户端处理路径与重试来源，并确认「取消根本没执行到」是否与 mock 注入方式有关。完整现场见「C1 真机证据采集第十二轮」②。 ✅ **已定性（第十六批，2026-10-06，HEAD `18d730465`）**：根因 = 测试 settings 的 provider 列表被 `SettingsRepository.kt:349-352` 补回全部 `DEFAULT_PROVIDERS`，mock 的 HTTP 500 错误消息含 `"500"` ⇒ `ProviderFailover.isEligible` 判可切换 + `enableAutoRetry=true` ⇒ B 的请求被 failover **重放给内置「极客猫」真网关**，那段文本就是真模型的回复（所以四处 0 命中）。`18d730465` 以 `enableAutoRetry=false` + mock 来源守卫堵住；`610edbf86` 把零内容注入改成真 0 content 事件。⚠️ 生产 `ProviderFailover` 行为本身**未改**，此现象只影响测试夹具。详见第十三轮②。
 41. **⚠️⚠️ 全项目取证方法订正：`am instrument` 的 shell 退出码不能当判据（2026-10-06，第十三轮）。** 本轮 19 个采集 run 里**含全部 FAIL 在内，设备侧 `INSTRUMENT_EXIT` 一律 0**（`exitcode.txt` 逐份实测）；且 `INSTRUMENTATION_CODE: -1` 在通过日志（vt-run1）与失败日志（rp-run1）里**完全相同**（`Activity.RESULT_OK` 的 shell 约定，同样不可区分）。⇒ 判据必须读日志正文里的 `OK (1 test)` / `FAILURES!!!`（`Tests run: 1, Failures: 1`）。契约 `:232-235`「测试命令及退出码」的「退出码」应同时记 `INSTRUMENT_EXIT` 与日志判据，且**以日志判据为准**。这影响本文件所有「`exit 0` ⇒ 通过」旧表述的解释方式。
 42. **⚠️ roundtable 测试自身竞态（议长消息「先落库后盖章」被快照到 null）——已转出修复，未验证（2026-10-06，第十三轮）。** rt-run1/run2 的 FAIL 原文是测试侧 `awaitAssistantMessages` 只等条数；同轮 finally raw dump `run=COMPLETED / committed=[a,b,c]` 证明**产品侧正常**。修复（另一代理）完成并重跑通过前，roundtable 的稳定性记录按「2 次测试故障 + 1 次通过」读。
-43. **⚠️ C1-05 正式证据结构性不可达（2026-10-06，第十三轮）。** 预算截断用的测试方法写死「等 3 条助手消息」，而截断只产 2 条 ⇒ **必然超时失败 ⇒ 正式 JSON 永不写出**。可能需拆出独立的、期望 2 条的测试方法（或把期望按 `skipped_role_ids` 参数化）。
+43. **⚠️ C1-05 正式证据结构性不可达（2026-10-06，第十三轮）。** 预算截断用的测试方法写死「等 3 条助手消息」，而截断只产 2 条 ⇒ **必然超时失败 ⇒ 正式 JSON 永不写出**。可能需拆出独立的、期望 2 条的测试方法（或把期望按 `skipped_role_ids` 参数化）。 ✅ **已消（第十四轮，2026-10-06，HEAD `b60aa80c5`）**：`a9df57c96` 新增专用方法 `realProviderBudgetTruncationRecordsRunLogAndExport`（期望 2 条助手消息），真机通过并产出正式证据 `c1-live-evidence-real-budget.json`；`b60aa80c5` 再补库内 `messages.count==3`/`assistant_role_order==["a","b"]` 直读断言。C1-05 据此升 `verified`。详见「C1 真机证据采集第十四轮」①。
 44. **⚠️ `settingsStore.update` 只能追加 provider、不能减少（2026-10-06，第十三轮）。** `SettingsRepository.kt:349-352` 读取时对缺 id 的 provider 逐个补回 `DEFAULT_PROVIDERS`（内置「极客猫」是默认表里唯一带 `models` 的 provider，`enabled=true` + 硬编码 key）⇒ **任何「只留某一家 provider」的测试都会被这条坑**——按 `providers=[mock]` 保存，读回必然变成 `[mock]+全部内置`。测试若要隔离 provider，必须走 `enableAutoRetry=false`（或改读取路径的预期），不要指望「列表里只剩 mock」。
+45. **⚠️⚠️ pipeline / roundtable 第 3 位顺序发言者零产出（网关 HTTP 200 空内容），6/6 稳定复现；与本条无关的历史「偶发」结论冲突（2026-10-06，第十四轮）。** 真实网关下第 3 位角色「c」一律落为 `turn_kind=error` / 正文「[角色丙] 本轮生成失败：本轮没有产出内容」/ `model_id=null` / `wire_model_name=null` / usage 全 `-1`；`group_run=FAILED / reason=role_failed / committed=[a,b] / app_errors=[]`。roundtable 3 跑（Time 301.583/300.969/301.756）+ pipeline 3 跑（Time 27.627/25.884/19.129）**全失败**。**真因 = 网关返回 HTTP 200 但 SSE 流里没有任何 content delta（空白完成）**——`ConversationSession.finishGeneration`（`ConversationSession.kt:97-116`）丢弃空占位助手消息 → `stampGroupTurn`（`ChatManager.kt:1980-2003`）返回 null → `commitGroupTurn`（`ChatManager.kt:1957`）写 error 节点 + `FAILED/role_failed`，**全程无异常**。⚠️ **不是** `43d607bdd` 修的那个「非 2xx + 空 body 静默当零产出」（走那条错误正文会是 `HttpException: …` 且 `app_errors` 非空；实测恰是「本轮没有产出内容」+ `app_errors=[]`）。⚠️ **refute 掉的假设**：「c 的 prompt 很长所以失败」不被数据支持——c 在 pipeline 的 `prompt_tokens` 从未落库；vote 里 c 同一模型第 3 次调用成功（6877/6882）；基线 `prompt_tokens≈6827` 对 ~300 字符 system prompt 明显失真（网关侧自报含自身开销）。**判定影响**：C1-02 / C1-03 本批 3/3 全失败 ⇒ 不升；本文件 `:4114` 与判定规则第十条的「偶发」结论已加订正块（保留原文）。完整现场见「C1 真机证据采集第十四轮」②/③。
+46. **⚠️ `app_errors` 有采集盲区，不能当「一切正常」的证据（2026-10-06，第十四轮·新发现）。** `app_errors` 只由 `ChatManager.addError`（`:311-321`）写入，而**零产出路径不抛异常**（不写）、**超时**的 `TimeoutCancellationException` 在 `ChatManager.kt:1020` 先 rethrow（不写）、**用户取消**被 `:317` 早期 return（不写）。⇒ **拿 `app_errors=[]` 推断「没有错误」是错的**——本批 roundtable/pipeline 的失败跑全部 `app_errors=[]`，而它们其实稳定失败（见第 45 条）。下一轮采集若要靠 `app_errors` 判健康，必须先补这三条路径的写入点，否则应改用 `logcat` / `group_run.status` / 消息 `turn_kind` 作判据。⚠️ 相关但**不同源**的第 40 条（failover 顶包极客猫）是**测试夹具**问题（mock 500 + `enableAutoRetry`），本批的第 45 条是**生产路径**问题（真实网关 200 空内容）——**两者来源不同，不要互相解释**。
+
+**⚠️ 历史遗留第 40 条与本批的关系（复核结论：不同来源）**：第 40 条「mock 注入 HTTP 500 整轮却 `COMPLETED`」的根因是**测试夹具**——测试 settings 的 provider 列表被 `SettingsRepository.kt:349-352` 补回全部 `DEFAULT_PROVIDERS`，mock 的 500 错误消息含 `"500"` ⇒ `ProviderFailover.isEligible` 判可切换 + `enableAutoRetry=true` ⇒ B 请求被 **failover 重放给内置「极客猫」真网关**。本批第 45 条零产出的根因是**生产流式路径**——真实网关 HTTP 200 + SSE 无 content delta，**不涉及 failover、不涉及 mock**、`app_errors=[]`。**两者一个在夹具、一个在生产；一个是 5xx + 顶包、一个是 200 + 空内容**，不得拿一个解释另一个。第 40 条已在第十六批定性并修复（`18d730465`），本批不重开。
 
 
 ### ⚠️ 真机窗口之后，「下一位怎么把 unverified 变成 verified」还剩什么
