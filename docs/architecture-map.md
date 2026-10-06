@@ -30,7 +30,7 @@ find app/src/main/java/heizige/kk/khatkit/app/core/*/ -name '*.kt' | wc -l   # �
 find app/src/main/java/heizige/kk/khatkit/app/feature/*/ -name '*.kt' | wc -l
 ```
 
-### 1.1 `core/` 六个子包
+### 1.1 `core/` 子包（**2026-10-06 起是五个，不是六个**）
 
 | `core/` 子包 | kt 数 | `ARCHITECTURE.md` §1 是否要求 | 判定 |
 |---|---:|---|---|
@@ -39,10 +39,14 @@ find app/src/main/java/heizige/kk/khatkit/app/feature/*/ -name '*.kt' | wc -l
 | `ui` | 315 | ✅ 要求 | ✅ 原样存在（内含 `icons/` 150 个 kt，满足 §3） |
 | `util` | 24 | ✅ 要求 | ✅ 原样存在 |
 | `di` | 4 | ❌ 未要求 | **多出来的**，合理：Hilt module 集中地 |
-| `service` | 5 | ❌ 未要求 | **多出来的**，见 §1.4 的重复类问题 |
-| — | **540** | | |
+| ~~`service`~~ | ~~5~~ → **0（目录已删）** | ❌ 未要求 | ✅ **已删除**：待决策 D1 拍板后按「删功能 = 删文件夹」整体清理，见 §9.4 |
+| — | **535**（原 540 − 5） | | |
 
 （`core/` 下没有游离于子包之外的 kt。）
+
+⚠️ **`AGENTS.md` 里那句「`app/core/` 现有六个子包 …… `di`(4) / `service`(5)」已过期**
+—— `service` 那 5 个文件在本轮删掉了。⚠️ `AGENTS.md` 不在本轮文档更新的授权范围内，
+**留给下一个人改**，这里先登记事实。
 
 ### 1.2 `core/data/` 二级子包
 
@@ -648,13 +652,24 @@ Cynic 的 `libs.versions.toml` 逐行相等。**那份表是 Cynic 的版本快�
 core 那份缺 `@AndroidEntryPoint`（`@Inject` 字段永不注入）、唯一调用方
 `ChatService.kt:298/307` 自身不可达 —— 三层封口，零设备可判。完整依据见 §2.3.1。
 
+✅✅ **2026-10-06 更新：那 5 个文件已随 D1 全部删除（§9.4），本清单因此
+「又少一项待验」。⚠️ 删除动作本身只有编译 + JVM 单测证据**：本轮零设备、零 androidTest
+运行，所以「删掉之后运行时行为确实不变」这件事**没有真机证据**。⚠️ 但删除的是**零构造点**
+的代码（§9.2 已论证 `HistoryPage` 零路由引用 ⇒ 零构造点），且 `HistoryVM` 已改指
+`ChatManager`，编译期可查的部分已全部查过。
+
 | # | 事项 | 为什么待验 |
 |---|---|---|
 | 1 | `heroAnimation` 的 7 个调用点是否都在 `NavEntry.Content` 内（§5 §8.4-4） | 作用域由组合位置决定，静态不可判 |
 | 3 | `predictivePopTransitionSpec` 跑 spring 的**实际手感影响**（§5 §8.4-2） | 需要人拿设备对比；改法本身超出记账范围 |
+| **4** | ⚠️ **新增待验**：`core/service/` 删除后，`HistoryPage`（`HistoryPage.kt:69`）仍**零路由引用**。本轮**有意保留**这个页面（删 UI 是产品决定），⇒ 「它是不是也该接进路由 / 删掉」是一条**未决的产品问题**，需要主人拍板 | ⚠️ 属产品决策，不是清理项；静态可判（零引用）但**处置要人定** |
 ---
 
 ## 9. `core/service/` 死代码复活的根因与对策（本轮新增，**下一个人必读**）
+
+✅✅ **2026-10-06 更新：待决策项 D1 已由主人拍板（选项 a），本节的 5 个文件
+`core/service/` 已全部删除、空目录一并删除。** 处置清单见 **§9.4**。
+⚠️ **§9.1–§9.3 的根因分析与对策**一个字都没改 —— 它们仍然是下一次同步后复查的依据。
 
 ⚠️ **这一节存在的唯一理由**：上一轮之前的某个人**已经决定删过**这 5 个文件，
 删完 6 天后它们**原样回来了**。不知道这件事的人会**再删一次、再被复活一次**。
@@ -685,15 +700,22 @@ vendor merge 复活」。** 复活后只有 `ChatService.kt` 继续被改（`git
 
 ### 9.2 逐个判定（**不要笼统说「core/service 都是死代码」**）
 
+> ✅ **2026-10-06：这 5 条判定全部已执行完毕**，逐条处置见 §9.4。表里的「判定」列是
+> **删除前**的原始判定，保留作依据；「状态」列是删除后的落点。
+
 行数用 `wc -l`，diff 用 `diff core/service/X.kt feature/chat/X.kt`。
 
-| 文件 | 行数 | 判定 | 依据 |
-|---|---:|---|---|
-| `ChatService.kt` | 1506 | ⚠️ **活接线 / 运行时不可达（不可直接删）** | `@Inject constructor`（`:177`）⇒ Hilt JIT 绑定**存在**；`HistoryVM.kt:28` 注入、`:55` 调 `toggleConversationPinned`；**但** `HistoryPage.kt:69` 全仓零路由引用 ⇒ 零构造点。⇒ **直接 `rm` 会炸编译**，必须先拆 §9.2.1 三处依赖 |
-| `ChatGenerationForegroundService.kt` | 175 | ✅ **死（无争议）** | manifest 只注册 feature 版（`:149`，`grep -n "core\.service" AndroidManifest.xml` 空）；core 版**缺 `@AndroidEntryPoint`** ⇒ `@Inject` 字段永不注入，即使被拉起也必 NPE；唯一调用方 `ChatService.kt:298/307` 自身不可达 |
-| `MessageQueue.kt` | 118 | ✅ **死，且是逐字副本** | 与 `feature/chat/MessageQueue.kt` 的 `diff` **只有 package 一行** |
-| `ConversationSessionManager.kt` | 114 | ✅ **死，且是逐字副本** | `diff` **2 行**：package + KDoc 里 `ChatService`→`ChatManager` 一个词 |
-| `ConversationSession.kt` | 180 | ✅ **死，且已过期** | `diff` **42 行**，缺 `existingMessageIds` / `dropUngeneratedAssistantMessages` |
+| 文件 | 行数 | 判定（删除前） | 状态 | 依据 |
+|---|---:|---|---|---|
+| `ChatService.kt` | 1506 | ⚠️ **活接线 / 运行时不可达（不可直接删）** | ✅ **已删**（commit `86da59fa0`，1496 行） | `@Inject constructor`（`:177`）⇒ Hilt JIT 绑定**存在**；`HistoryVM.kt:28` 注入、`:55` 调 `toggleConversationPinned`；**但** `HistoryPage.kt:69` 全仓零路由引用 ⇒ 零构造点。⇒ **直接 `rm` 会炸编译**，必须先拆 §9.2.1 三处依赖 —— **三处已全拆完（§9.4）** |
+| `ChatGenerationForegroundService.kt` | 175 | ✅ **死（无争议）** | ✅ **已删**（175 行） | manifest 只注册 feature 版（`:149`，`grep -n "core\.service" AndroidManifest.xml` 空）；core 版**缺 `@AndroidEntryPoint`** ⇒ `@Inject` 字段永不注入，即使被拉起也必 NPE；唯一调用方 `ChatService.kt:298/307` 自身不可达 |
+| `MessageQueue.kt` | 118 | ✅ **死，且是逐字副本** | ✅ **已删**（118 行） | 与 `feature/chat/MessageQueue.kt` 的 `diff` **只有 package 一行** |
+| `ConversationSessionManager.kt` | 114 | ✅ **死，且是逐字副本** | ✅ **已删**（114 行） | `diff` **2 行**：package + KDoc 里 `ChatService`→`ChatManager` 一个词 |
+| `ConversationSession.kt` | 180 | ✅ **死，且已过期** | ✅ **已删**（180 行） | `diff` **42 行**，缺 `existingMessageIds` / `dropUngeneratedAssistantMessages` |
+
+合计 **2083 行删除**（`git show --stat 86da59fa0` = `5 files changed, 2083 deletions(-)`），
+空目录 `app/src/main/java/heizige/kk/khatkit/app/core/service/` 一并删除
+（`ARCHITECTURE.md` §1.1「删功能 = 删文件夹，不留孤儿代码」）。
 
 #### 9.2.0 ⚠️ `ConversationSession` 的方向必须说清楚，否则会删反
 
@@ -758,6 +780,73 @@ vendor merge 复活」。** 复活后只有 `ChatService.kt` 继续被改（`git
 | 判成「死代码」直接删，结果炸编译 | 判定必须分三类（§9.2），`ChatService.kt` 那条是**活接线**，删前必拆 §9.2.1 三处 |
 
 ⚠️ **一句话**：这个坑不是「有人不仔细」，是**vendor merge 的结构性行为**。
+
+### 9.4 ✅ 待决策 D1 的最终处置（2026-10-06，**已完成**）
+
+#### 9.4.0 主人拍板原文
+
+`docs/beyond-operit-implementation-status.md` 的**待决策项 D1**（原文标注「这条需要主人
+拍板，agent 不得自行决定」）—— 主人回话：
+
+> **「不要那个消息建议了」**
+
+⇒ 即选项 **(a)：认定「聊天建议（追问推荐）」功能已废弃，连同它一起清理。**
+⇒ 「🚩 待主人拍板，agent 不得自行决定」这条**已解除**，`core/service/` 的处置授权同时下达。
+
+#### 9.4.1 清理动作清单（每个逻辑步骤一个 commit，全部已 push 到 `origin main`）
+
+| commit | 动作 | 对应 §9.2.1 的哪一条 |
+|---|---|---|
+| `2f94b72d8` | **拆 1**：`forkConversationTitle` + `forkTitleSuffixRegex` 搬到 `feature/chat/ChatManager.kt`（紧挨同族纯函数 `createForkConversation`），删 `ChatManagerTest.kt:18` 那行**跨包 import**（同包免 import） | ① |
+| `41e29ab20` | **拆 3**：`HistoryVM.kt:28` 注入类型 `ChatService` → **`ChatManager`**（`ChatManager.kt:1358` 有**逐字同签名**的 `suspend fun toggleConversationPinned(conversationId: Uuid)`），`:55` 调用照旧；**`HistoryPage` 与 `HistoryVM` 都保留**。同时删 `AppHiltModule.kt:51` 那行**复核后确认仍未使用**的 import | ③ |
+| `86da59fa0` | **拆完才 `git rm`** 5 个文件 + 空目录（**2083 行**） | 全部 |
+| `0040463b1` | 删 `enableSuggestion` 偏好 flag（**4 处**）+ **7 个 locale** 的 `setting_model_page_enable_suggestion` 字符串 | D1 本体 |
+| `f957af14f` | **拆 2**：删两个护栏测试里依赖已删文件的方法 | ② |
+
+#### 9.4.2 §9.2.1 三条依赖的**实际落点**（与原文给的建议不同，逐条说明）
+
+1. ⚠️ **原文建议「常量改指 `feature/chat/ChatManager.kt`」—— 没采纳，改成「删方法」**。
+   原建议会让两个护栏测试**继续**在 `ChatManager.kt` 上断言「零群聊逻辑」/「必须
+   `require(!isGroupConversation)`」。⚠️ **`ChatManager` 侧不需要也不该有那个闸门**：
+   `ChatManager.kt:787` 原生 `takeGroupTurn`，「拒绝群聊会话」才是错的契约。硬改指会把
+   **今天绿的测试改成红的**。⇒ 「群聊经 `ChatService` 生成」现在由**文件根本不存在**保证，
+   比任何文本护栏都强。
+   - `ChatServiceGroupChatFailLoudGuardTest`：**4 例 → 1 例**，留下
+     `diProviderNameMatchesItsProduct`（护 `AppHiltModule` 的命名陷阱，**与被删文件无关，
+     必须保留**）。顺手清掉只服务于被删方法的私有成员
+     （`bodyOf` / `CHAT_SERVICE_FILE` / `CHAT_MANAGER_FILE` / `GROUP_MARKERS`）。
+   - `ChatServiceSenderNameGuardTest`：**3 例 → 1 例**，留下
+     `senderNameFormula_isImplementedExactlyOnce_inAllMainSources`。⚠️ **剩下这条不是
+     「收窄版」**：它扫的是**全仓所有 `src/main` 的 `.kt`**（`mainSourceFiles()`），
+     断言公式只允许在 `ChatManager.kt` 一处实现 ⇒ **覆盖面与删前完全相同**。
+2. ⚠️ **`HistoryPage` 没删**（原文说「要么删、要么接进路由」）。删 UI 页面是**产品决定**，
+   不是清理决定。`ChatManager` 有等价能力 ⇒ 走「**改指**」这条路，页面与 VM 都保留。
+
+#### 9.4.3 ⚠️⚠️ 本轮新增的**行为后果**（诚实登记）
+
+`chatSuggestions` 现在**恒为空**：`ChatService.kt:1026` 的
+`chatSuggestions = suggestions.take(10)` 是**全 app 唯一**填充非空 `chatSuggestions` 的地方，
+随文件删除；活管线 `ChatManager.kt:770/1336` **全都只 `= emptyList()`**。
+⚠️ 查无 UI 消费方、无开关入口 ⇒ **今天就不可见**，删除不改变任何用户可见行为。
+
+⚠️ **`Conversation.chatSuggestions` 字段本身保留** —— 它是持久化字段
+（`ConversationEntity.kt:22`、`ConversationRepository.kt:413,437`），删它会改数据形状、
+影响老库反序列化。
+
+⚠️⚠️ **`ChatManager` 侧没有 fail-loud 闸门的等价护栏，而这是正确的**（见 §9.4.2 第 1 条）。
+⚠️ **sender name 侧有等价护栏**，证据：`ChatManagerNotificationSenderNameTest` 的
+`groupBranch_recomputesSenderName_afterResolvingModel` 与
+`groupTurnTitle_followsTheSpeakerNotTheConversation`，加上保留下来的
+`senderNameFormula_isImplementedExactlyOnce_inAllMainSources`。
+
+⚠️ **本轮遗留的孤儿（有意未删，等主人决定）**：`suggestionPrompt` / `SUGGESTION_PROMPT`
+（`SettingsRepository.kt` 4 处）、字符串 `setting_model_page_suggestion_model` /
+`_desc` / `_prompt_vars`、`setting_model_page_prompt_suggestion`。⚠️ 本轮**只**被授权删
+`enableSuggestion` 这一个 flag 与 `setting_model_page_enable_suggestion` 一个字符串，
+**不擅自扩大**。
+
+⚠️ **本任务零设备、零 androidTest 运行** ⇒ 验收状态**零变化**，
+`docs/eval/c1-group-chat.md` 状态列 **20 个 `unverified` 一个都没动**。
 每同步一次上游就要复查一次，登记在册才不会重复劳动。
 
 ---

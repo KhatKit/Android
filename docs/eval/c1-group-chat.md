@@ -806,7 +806,7 @@ gradle 跑的是带 `--tests` 过滤的），`xml.get(c)` 全部取不到。⚠�
 | `C1pGroupExportHashTest` | 5 | 群聊导出确定性哈希 + golden 清单 |
 | **`ChatManagerNotificationSenderNameTest`** | **5** | **通知标题公式 + 群聊分支必须重算**（`67f49726`） |
 | **`ConversationDrawerFolderScopeTest`** | **4** | **抽屉两条查询的 `folder_id` 口径现状**（`b43f7e9f`） |
-| **`ChatServiceSenderNameGuardTest`** | **3** | **第二生成入口通知标题护栏**（本轮 `8bc28105` / `c940813b`） |
+| **`ChatServiceSenderNameGuardTest`** | **1** | **通知标题公式全仓唯一性护栏**：扫全仓 `src/main` 的 `.kt`，`if (assistant.useAssistantAvatar)` 只允许出现在 `ChatManager.kt` 一处（⚠️ 原 3 例，**4 → 1**：`bothGenerationEntryPoints_consumeTheSharedFunction`、`chatService_gainsGroupPath_onlyIfItRecomputesSenderName` 两条依赖已删的 `core/service/ChatService.kt`，随 D1 清理删除；剩下这条覆盖面与删前**完全相同**）**（`8bc28105` / `c940813b` / D1 清理）** |
 | **`ConversationSearchLikePatternTest`** | **12** | **LIKE 转义纯函数 + 两条源码护栏（5 条 DAO 查询带 ESCAPE / 5 个 Repository 转发点都过转义）（本轮 `79b13080`）** |
 | `GroupMemorySpacePolicyTest` | 6 | 群记忆空间懒建策略 |
 | `ConversationTypeFilterSourceGuardTest` | 2 | 抽屉类型筛选源码护栏（**第 3 条断言的期望串本轮改了一行**，见「C1-S」那节的显眼登记） |
@@ -820,7 +820,7 @@ gradle 跑的是带 `--tests` 过滤的），`xml.get(c)` 全部取不到。⚠�
 | **合计** | **366** | **35 类** |
 | **`GroupStaleJobCommitSourceGuardTest`** | **7**<br>**9**<br>**10**（HEAD `d00880fc` 实测；旧值 9 是 `a74c1820` 那版的，7 是 `2fdee352` 那版的） | **源码护栏：提交路——`commitGroupTurn` 必须在 `stampGroupTurn` 之前调 `checkCommitAdmission`、`Denied` 分支只 Logging 不碰 `groupRunsInFlight`、令牌必须从 `takeGroupTurn` 返回值捕获（不得反查镜像）、`Halted` 分支不得 `persistRoundState`**（`2fdee352`）**＋（`bed09118` +2 例）禁「按 key 无条件删」的旧形状 `groupRunsInFlight.remove(conversationId)`（右括号前不许出现逗号）、`null ->` 分支必须走 `clearGroupRunMirrorIfMine` 按 runToken 清** |
 | **`GroupStaleJobFailureSourceGuardTest`** | **6**<br>**7**（HEAD `d00880fc` 实测；旧值 6 是 `8ccc0264` 那版的） | **源码护栏：失败路——`failGroupTurn` 必须在四个副作用（`appendGroupMessages` / `persistRoundState` / `dropTieBreakScaffolding` / `groupRunsInFlight.remove`）全部之前判 `checkFailureAdmission`，拒收分支只有 Logging + return**（`8ccc0264`） |
-| **`ChatServiceGroupChatFailLoudGuardTest`** | **4** | **源码护栏：`ChatService` 里零群聊逻辑（不许复制 `viewerMessages` 那套）、`handleMessageComplete` 顶部必须 `require(!isGroupConversation(...))` 且排在一切副作用之前、它是 `ChatService` 里唯一的生成漏斗（⚠️ 原写「3 处 `finishInterruptedPendingTools` 除外且已登记」**已订正**：`finishInterruptedPendingTools` 里**零 `generateText`**，另三处 `providerHandler.generateText` 属 `generateTitle`/`generateSuggestion`/`compressConversation`，见遗留第 28 条的证伪）、DI provider 名 `provideChatManager` 必须与产物一致**（`bed09118`） |
+| **`ChatServiceGroupChatFailLoudGuardTest`** | **1** | **DI provider 名 `provideChatManager` 必须与产物一致**（⚠️ 原 4 例，**4 → 1**：`ChatService` 里零群聊逻辑 / `handleMessageComplete` 顶部 `require(!isGroupConversation(...))` / `ChatService` 里唯一生成漏斗这三条保护对象 `core/service/ChatService.kt` 已被 D1 清理删除，`File(CHAT_SERVICE_FILE).readText()` 会抛 `FileNotFoundException`，故一并删除；**剩下一条护的是 `AppHiltModule`，与被删文件无关，必须保留**。⚠️ `ChatManager` 侧**不需要** fail-loud 闸门 —— 它原生支持群聊（`ChatManager.kt:787` `takeGroupTurn`），「拒绝群聊会话」才是错的契约）「群聊经 `ChatService` 生成」现在由**文件根本不存在**保证，比文本护栏更强**（`bed09118` / D1 清理）** |
 | **`GroupRunAbandonDrainSourceGuardTest`** | **5** | **源码护栏：`abandonDanglingGroupRuns` 必须分批循环读到清空（不是单页 `limit = 8`）、循环必须有具名收敛上限、页大小必须是具名常量而不是内联字面量、每行判死前必须 `findByRound` 重读并 `isTerminal` 跳过**（`bed09118`） |
 | **`GroupForkDisableReasonSourceGuardTest`** | **2** | **源码护栏：`ChatMessage.groupChat` KDoc 的 fork 段落禁因是「静默换会话类型」而不是账目错位；姊妹例要求重新生成 / 删除那两半必须保留它们自己的账目错位理由（防止整段被一刀切删掉）**（`bed09118`，**只加护栏、KDoc 一个字没改**） |
 | **合计（新窗口，HEAD `361c7cf6`）** | **395** | **37 类**（上两行是本轮新增的 2 类 13 例；另有两个在册类的用例数同时更新：`GroupTurnCoordinatorTest` **72 → 84**（`+12`）、`GroupTieBreakScaffoldingDropSourceGuardTest` **3 → 7**（`+4`），合计 `+16`，所以整表是 `366 + 13 + 16 = 395` ✅。⚠️ 上面的 **366 / 35 类**那一行是第四个窗口的实测值，按惯例**保留不覆写**） |
@@ -5686,6 +5686,36 @@ git status --short
        见 `docs/beyond-operit-implementation-status.md` 的**待决策项 D1**
        （选项 (a) 认定废弃 / 选项 (b) port 进 `ChatManager` 并补 UI）。
        ⚠️ **D1 没拍板前不要动 `core/service/` 任何一个文件。**
+
+    #### ✅ 处置结果（2026-10-06，第八个窗口）：**主人已拍板，D1 走选项 (a)，清理完毕**
+
+    🚩 **主人原话：「不要那个消息建议了」** ⇒ 认定「聊天建议（追问推荐）」功能**已废弃**，
+    连同它一起清理。上面第 3 条那个「🚩 待主人拍板，agent 不得自行决定」**已解除**。
+    原文全部保留在上（仅追加本块）。
+
+    **实际执行（每个逻辑步骤一个 commit）**：
+
+    | commit | 动作 |
+    |---|---|
+    | `2f94b72d8` | 把 `forkConversationTitle` + `forkTitleSuffixRegex` 搬到 `feature/chat/ChatManager.kt`（紧挨同族的 `createForkConversation`），删掉 `ChatManagerTest.kt:18` 那行**跨包 import**（同包免 import）。**5 条断言一字未改，仍绿**（`ChatManagerTest` XML `tests=8 failures=0 errors=0`）。⚠️ `core/service/ChatService.kt` 自己的 `createForkConversation` 原本也调它，已在死文件内联成与 feature 版逐字相同的写法 —— 不改活代码行为 |
+    | `41e29ab20` | `HistoryVM.kt:28` 注入类型 `ChatService` → **`ChatManager`**（`ChatManager.kt:1358` 有**逐字同签名**的 `suspend fun toggleConversationPinned(conversationId: Uuid)`），`:55` 调用照旧；**`HistoryPage` 与 `HistoryVM` 都保留**（删页面是产品决定）。删 `AppHiltModule.kt:51` 那行**复核后确认仍未使用**的 import |
+    | `86da59fa0` | `git rm` 5 个文件（`ChatService.kt` / `ChatGenerationForegroundService.kt` / `MessageQueue.kt` / `ConversationSessionManager.kt` / `ConversationSession.kt`，共 **2083 行删除**），空目录一并删 |
+    | `0040463b1` | 删 `enableSuggestion` flag（4 处：`ENABLE_SUGGESTION` key 声明 + getter/setter 对 + `Settings` 默认值）+ 7 个 locale 的 `setting_model_page_enable_suggestion` 字符串 |
+    | `f957af14f` | 删两个护栏测试里依赖已删文件的方法 |
+
+    ⚠️⚠️ **本轮新增的诚实后果**：`chatSuggestions` 现在**恒为空**。
+    `ChatService.kt:1026` 的 `chatSuggestions = suggestions.take(10)` 是全 app 唯一的非空写入，
+    随文件删除；活管线 `ChatManager.kt:770/1336` **全都只 `= emptyList()`**。
+    查无 UI 消费方、无开关入口，所以**今天就不可见**、删了也不改变任何用户可见行为。
+    ⚠️ **`Conversation.chatSuggestions` 字段本身保留** —— 它是持久化字段
+    （`ConversationEntity.kt:22` / `ConversationRepository.kt:413,437`），
+    删它会改数据形状、影响老库反序列化。
+
+    ⚠️ **护栏侧诚实结论**：`ChatManager` 侧**没有** fail-loud 闸门的等价物 ——
+    因为**它不需要**：`ChatManager.kt:787` 原生 `takeGroupTurn`，「拒绝群聊会话」才是错的契约。
+    「群聊经 `ChatService` 生成在结构上不可能」现在由**文件根本不存在**保证，比任何文本护栏都强。
+    ⚠️ sender name 侧**有**等价护栏，证据见台账那两行的订正。
+    ⚠️ **本任务零设备、零 androidTest 运行**：状态列 **20 个 `unverified` 一个都没动**。
 
     ⚠️ 上面的「零行为改动」结论**只对那 4 个不受 D1 影响的文件成立**
     （`ChatGenerationForegroundService.kt` / `MessageQueue.kt` /

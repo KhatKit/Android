@@ -505,6 +505,33 @@ vs `ChatService` **142** 行，且 `ChatManager` 在共同代码**中间插了 1
 `ConversationSessionManager.kt` / `ConversationSession.kt` / `ChatGenerationForegroundService.kt`
 这 4 个**判定不受本条影响**，可以独立处置；`ChatService.kt` 必须等这条定了）。
 
+#### ✅✅ D1【**已决策 · 2026-10-06**】：主人选 (a)，`core/service/` **已按 D1 清理完毕**
+
+> 🚩 **主人原话：「不要那个消息建议了」** ⇒ **选项 (a)：认定「聊天建议（追问推荐）」功能
+> 已废弃，连同它一起清理。**
+> ⇒ 「🚩🚩🚩 待主人拍板，agent 不得自行决定」**已解除**，`core/service/` 处置授权同时下达。
+> ⚠️ 上面那张两个选项的表、以及「待主人拍板」的原文**全部保留**（仅追加本块）。
+
+**「已按 D1 清理完毕」—— 逐条落实**：
+
+| 项 | 结果 |
+|---|---|
+| `core/service/` 5 个文件 | ✅ 全删（commit `86da59fa0`，**2083 行**），空目录一并删（`ARCHITECTURE.md` §1.1「删功能 = 删文件夹」） |
+| 选项 (a) 点名的 `enableSuggestion` flag | ✅ 删 **4 处**：`ENABLE_SUGGESTION` key 声明 + getter/setter 对 + `Settings` 默认值（commit `0040463b1`） |
+| 选项 (a) 点名的 7 个 locale 字符串 | ✅ 删 **7 种语言**：`values` / `values-ar` / `values-ja` / `values-ko-rKR` / `values-ru` / `values-zh` / `values-zh-rTW`，全部 `res/values*/strings.xml`（commit `0040463b1`）。⚠️ **删前用不带 `--include` 的全类型 grep 复核过**：`.kt` **0 引用**（唯一命中在 `docs/` 的散文里），排除了上一轮 `--include=*.kt` 造成的假阴性 |
+| `generateSuggestion` 本体 | ✅ 随 `core/service/ChatService.kt` 删除（commit `86da59fa0`），无需单独动作 |
+| ⚠️ **`chatSuggestions` 字段本身** | ✅ **保留**（`Conversation.chatSuggestions` 是持久化字段，删它改数据形状、影响老库反序列化）。⚠️ **它现在恒为空** —— 证据 1 那条唯一的非空写入随文件删除，活管线 `ChatManager.kt:770/1336` 只 `= emptyList()`。证据 3 已证无 UI 消费方 ⇒ **用户可见行为零变化** |
+| ⚠️ **选项 (a) 里还点名的 `suggestionPrompt`** | ⚠️ **有意未删** —— 本轮授权只覆盖 `enableSuggestion` 这一个 flag 与那一个字符串，**不擅自扩大**。⇒ 现在 `suggestionPrompt` / `SUGGESTION_PROMPT`（`SettingsRepository.kt` 4 处）也是孤儿，**留给主人** |
+
+**为什么能删干净（§9.2.1 三处依赖的落点，细节见 `docs/architecture-map.md` §9.4.2）**：
+`forkConversationTitle` 搬到 `feature/chat/ChatManager.kt`（跨包 import 消除，**5 条断言
+一字未改、仍绿**）；`HistoryVM.kt:28` 注入**改指 `ChatManager`**（`:1358` 有逐字同签名的
+`toggleConversationPinned`），**`HistoryPage` 与 `HistoryVM` 都保留**；两个护栏测试里
+依赖已删文件的方法删除（**4 → 1**、**3 → 1**），留下的那两条覆盖面与删前**相同**。
+
+⚠️ **本任务零设备、零 androidTest 运行** ⇒ **十行状态列一个格都没动，仍是 10/10
+`unverified`**（`docs/eval/c1-group-chat.md` 全文 **20 个 `unverified`** 同样一个没动）。
+
 #### ③ 本批的统计口径（⚠️ 上一批那些数字按惯例保留不覆写）
 
 ⚠️ **本批之前是 `107 类 / 855 例`，本批之后是 `110 类 / 881 例`**
