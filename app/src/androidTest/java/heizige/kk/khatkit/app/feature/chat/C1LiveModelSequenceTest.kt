@@ -1319,6 +1319,9 @@ class C1LiveModelSequenceTest {
                                 put("role_id", message.roleId)
                                 put("turn_kind", message.turnKind)
                                 put("model_id", message.modelId?.toString())
+                                // 事发当时的原始值：网关自报的 wire 模型名（没报就是 null）。
+                                // 正式报告里的 `wire_model_name_provenance` 判定在后面做。
+                                put("wire_model_name", message.wireModelName)
                                 put("usage_prompt", message.usage?.promptTokens ?: -1)
                                 put("usage_completion", message.usage?.completionTokens ?: -1)
                                 put("usage_total", message.usage?.totalTokens ?: -1)
@@ -1530,6 +1533,10 @@ class C1LiveModelSequenceTest {
                         put("round_id", message.roundId)
                         put("turn_kind", message.turnKind)
                         put("model_id", message.modelId?.toString())
+                        // 网关自报的 wire 模型名原样落在这里（没报就是 null）。
+                        // 不 trim、不归一、不用 modelId 回填——`model_id` 是本地配置 uuid，
+                        // 两者对不上才说明网关做了别名映射，那正是要看见的差异。
+                        put("wire_model_name", message.wireModelName)
                         put("mention_role_ids", JsonArray(message.mentionRoleIds.map { JsonPrimitive(it) }))
                         put("usage_prompt_tokens", message.usage?.promptTokens ?: -1)
                         put("usage_completion_tokens", message.usage?.completionTokens ?: -1)
@@ -1776,15 +1783,18 @@ class C1LiveModelSequenceTest {
      *
      * 与前三个报告的**关键差别**在 `token_source` / `model_sequence_source` 两行：
      * 前者是 mock 估算 + mock 请求日志，这里是**网关按真实分词返回的 usage** +
-     * `UIMessage.modelId`（由 `resolveGroupTurnModelId` / `TaskRoutes.resolve` 落下的
-     * 那个真实选型结果）。
+     * **网关响应体自己报的模型名**（`UIMessage.wireModelName`）。
      *
-     * 因此本报告多记两段别处没有的东西：
+     * 因此本报告多记几段别处没有的东西：
      * - `provider_model_table`：uuid ↔ 上线模型名 ↔ abilities 的对照表。没有它，
-     *   `actual_model_call_sequence` 里的模型名就只是断言自己的期望值，没法独立复核。
-     * - `wire_model_name_provenance`：如实写明「上线模型名是由 uuid 经上面那张表反查
-     *   得到的，不是网关回传的字段」——app 不保存响应里的 `model`，所以这一点必须
-     *   讲清楚，不能让人误以为有第三方抓包记录。
+     *   `uuid_reverse_lookup_model_string` 那列就只是断言自己的期望值，没法独立复核。
+     *   ⚠️ 表里的 `wire_model_string` 键名是历史留下的，它是**本地表字段**，不是网关回传值。
+     * - `actual_model_call_sequence` 里每条都带**两个**模型名（`wire_model_name` 与
+     *   `uuid_reverse_lookup_model_string`）加一个 `wire_model_name_provenance`
+     *   （`wire_response_model` = 网关自报原样串；`uuid_reverse_lookup_fallback` = wire 名为
+     *   null 才走的**回退**）。两个都记，对不上才看得见；两者皆空会被断言 1b 挡掉。
+     * - `wire_model_name_reconciliation`：三个计数（有几条有 wire 名、几条 wire 名与反查名
+     *   不一致、几条一个名字都没有），外加独立复核工具 `c1_wire_model_probe.py` 的用法。
      */
     private fun realProviderReport(
         conversationId: Uuid,
@@ -1795,11 +1805,65 @@ class C1LiveModelSequenceTest {
         perMessageUsage: List<TokenUsage>,
     ): JsonObject {
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val wireModelNames = assistants.map { resolveWireModelName(it) }
         return buildJsonObject {
             put("evidence_kind", "real-gateway-call-direct-from-device-no-proxy")
             put("token_source", "genuine-usage-returned-by-public-openai-compatible-gateway")
-            put("model_sequence_source", "UIMessage.modelId-as-written-by-resolveGroupTurnModelId-and-TaskRoutes.resolve")
-            put("wire_model_name_provenance", "derived from UIMessage.modelId uuid via provider_model_table below; the app does not persist the response 'model' field, so no third-party packet capture exists for this case")
+            put(
+                "model_sequence_source",
+                "UIMessage.wireModelName (gateway 'model' field, verbatim) preferred; " +
+                    "UIMessage.modelId uuid reverse-lookup only as a recorded fallback",
+            )
+            // 这一行说的是**判定口径**（每条发言各自的取值在 actual_model_call_sequence
+            // 里的 wire_model_name_provenance 字段，逐条不混）。
+            put(
+                "wire_model_name_provenance",
+                "per-call; allowed values: " +
+                    "'$PROVENANCE_WIRE_RESPONSE_MODEL' = the gateway's own 'model' field, verbatim; " +
+                    "'$PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK' = wireModelName was null, so the name was " +
+                    "reverse-looked-up from the UIMessage.modelId uuid via provider_model_table below " +
+                    "(a FALLBACK, not a wire-level observation). Both names are emitted for every call " +
+                    "so a mismatch stays visible. See wire_model_name_provenance_counts for the tally.",
+            )
+            putJsonObject("wire_model_name_provenance_counts") {
+                put(
+                    PROVENANCE_WIRE_RESPONSE_MODEL,
+                    wireModelNames.count { !it.fallbackTaken },
+                )
+                put(
+                    PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK,
+                    wireModelNames.count { it.fallbackTaken },
+                )
+            }
+            putJsonObject("wire_model_name_reconciliation") {
+                put(
+                    "note",
+                    "wire_model_name vs uuid_reverse_lookup_model_string, per call; null means " +
+                        "that source had no value for that call",
+                )
+                put(
+                    "calls_with_wire_name",
+                    wireModelNames.count { it.wireModelName != null },
+                )
+                put(
+                    "calls_where_both_names_present_and_differ",
+                    wireModelNames.count { name ->
+                        name.wireModelName != null &&
+                            name.uuidReverseLookupName != null &&
+                            name.wireModelName != name.uuidReverseLookupName
+                    },
+                )
+                put(
+                    "calls_with_no_name_at_all",
+                    wireModelNames.count { it.wireModelName == null && it.uuidReverseLookupName == null },
+                )
+                put(
+                    "independent_recheck_tool",
+                    "tools/verification/c1_wire_model_probe.py --base-url <url> --api-key <key> " +
+                        "--model <name>; run it separately and compare against wire_model_name here " +
+                        "(the app-side parse is covered by WireModelNameProvenanceTest)",
+                )
+            }
             put("generated_at_device", System.currentTimeMillis())
             put("provider_id", realProvider.id.toString())
             put("provider_name", realProvider.name)
@@ -1811,6 +1875,11 @@ class C1LiveModelSequenceTest {
             put("chair_role_id", config.chairRoleId)
             put("token_budget_per_round", config.tokenBudgetPerRound)
             put("device", deviceBlock())
+            // `wire_model_string` 这个键名是历史留下的，读起来像抓包。**它不是。**
+            // 它是本地 provider 模型表里的 `Model.modelId`，只用来解释「这个 uuid 对应
+            // 哪个上线名」，不能当成网关回传的值。真正的 wire 名在
+            // actual_model_call_sequence 的 wire_model_name 字段。
+            put("provider_model_table_note", TABLE_WIRE_MODEL_STRING_NOTE)
             putJsonArray("provider_model_table") {
                 realProvider.models.forEach { model ->
                     add(
@@ -1836,6 +1905,7 @@ class C1LiveModelSequenceTest {
                                 "wire_model_string",
                                 realProvider.models.first { it.id.toString() == role.modelId }.modelId,
                             )
+                            put("wire_model_string_source", TABLE_WIRE_MODEL_STRING_NOTE)
                         },
                     )
                 }
@@ -1848,15 +1918,26 @@ class C1LiveModelSequenceTest {
             putJsonArray("actual_model_call_sequence") {
                 assistants.forEachIndexed { index, message ->
                     val uuid = message.modelId
+                    val name = wireModelNames[index]
                     add(
                         buildJsonObject {
                             put("seq", index + 1)
                             put("role_id", message.roleId)
                             put("turn_kind", message.turnKind)
                             put("model_uuid", uuid?.toString())
+                            // 两个名字**都**输出，即使采信的是其中一个：对不上时要看得见。
+                            put("wire_model_name", name.wireModelName)
+                            put("uuid_reverse_lookup_model_string", name.uuidReverseLookupName)
+                            put("resolved_model_name", name.resolvedModelName)
+                            put("wire_model_name_provenance", name.provenance)
+                            // 两者都在时是否逐字一致；只在一侧存在时为 null（无从比起）。
                             put(
-                                "wire_model_string",
-                                realProvider.models.firstOrNull { it.id == uuid }?.modelId ?: "<不在模型表里>",
+                                "wire_and_reverse_lookup_agree",
+                                if (name.wireModelName == null || name.uuidReverseLookupName == null) {
+                                    null
+                                } else {
+                                    name.wireModelName == name.uuidReverseLookupName
+                                },
                             )
                             put("usage_prompt_tokens", perMessageUsage[index].promptTokens)
                             put("usage_completion_tokens", perMessageUsage[index].completionTokens)
@@ -1872,6 +1953,10 @@ class C1LiveModelSequenceTest {
                 add(JsonPrimitive("glm-5.2"))
                 add(JsonPrimitive("deepseek-v4-flash"))
             }
+            put(
+                "expected_sequence_compared_against",
+                "actual_model_call_sequence[].resolved_model_name (wire-preferred)",
+            )
             putJsonObject("viewer_visible_message_ids") {
                 listOf("a" to null, "b" to "a", "c" to "b").forEach { (viewer, predecessor) ->
                     putJsonArray(viewer) {
