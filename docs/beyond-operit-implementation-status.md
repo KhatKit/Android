@@ -1138,7 +1138,7 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 **③ 第十二轮阶段 B：C1-06 取消 ❌ 三次尝试全部不成立（零测量）**
 
-- 生产取消入口 = `ChatManager.stopGeneration(conversationId: Uuid)`（`ChatManager.kt:2277`，未改生产代码）；新测试 `C1GroupCancelDeviceTest` + mock `tools/verification/mock_openai_slow_cancel.py`（sha256 `8af6e13d…177e`）。
+- 生产取消入口 = `ChatManager.stopGeneration(conversationId: Uuid)`（`ChatManager.kt:2277`，未改生产代码）；新测试 `C1GroupCancelDeviceTest` + mock `tools/verification/mock_openai_slow_cancel.py`（sha256 `0f2af473…3fde`）。
 - attempt 1：测试 7.903s 后在第 1 轮错误节点断言失败；**异常现象**：mock 对 B 注入 HTTP 500（服务端日志可证）但整轮仍 `COMPLETED`、B 是 speaker 消息且正文 `"B 已收到，本轮取消用例正常执行，无异常。"` 在仓库 / 两份 mock 日志 / 生产库快照 / attempt 2 遗留库**四处均 0 命中**，mock 未收到第二次 B 请求——**原因未定，已登记 c1 文档遗留第 40 条**。attempt 2 设备中途掉线、attempt 3 设备在 `am instrument` 生效前掉线。
 - ⚠️ **四项断言（空气泡 / 已生成消息 / 错误节点 / spent / status / reason）一条实测值都没有**；超时半（15 分钟）未跑；阶段 C 稳定性复跑因设备丢失未执行。
 
@@ -1151,6 +1151,26 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 `git log --oneline 0e312cbb2..HEAD` = **8 个 commit**（`b20de6805` / `46ba5c8a7` / `129403b38` / `a8302e463` / `92af89247` / `d6870f977` / `579dc193a` / `cddaa9959`）；`git log --name-only 0e312cbb2..cddaa9959 -- 'app/src/test/*'` **空** ⇒ 台账声明值仍 **46 行 / 501 例**；`c1_doc_stats.py` 仍 **OK / exit 0**。锚点 `1b0e04a9` 不重算。
 
 📍 完整数字、SHA-256、逐字段值与限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十一轮」「C1 真机证据采集第十二轮」；逐行判定见第十一轮⑨。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 三个在途改动未碰）。**
+
+### ⚠️ 第二十一批（真机第十三轮：C1-06 取消首次真机通过 + 真实网关 5 条×3 稳定性复跑 + 两项关键发现，2026-10-06，HEAD `18d730465`）：**20 状态格仍 10/10 `unverified`；设备清理已完成**
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（设备同前：OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`，无线 serial `192.168.31.183:39345`），开工 HEAD `cddaa9959`、收尾 HEAD `18d730465`，窗口内 2 个 commit（`610edbf86` mock 工具 + `18d730465` 取消测试），**生产代码零改动**（登记代理逐 commit `git show --stat` 核过）。另补登上一批（第十五批）两个登记本体 `e9091ffec` / `bfe1c982c`（均只改 `docs/`）。
+
+**① C1-06 取消路径首次真机通过**（`C1GroupCancelDeviceTest#cancelMidStreamKeepsGeneratedMessagesAndErrorNodeWithoutEmptyBubbles`，Time 2.246 / `OK (1 test)`）：空气泡 0；第二轮 a 完整保留（id `95f302c5…`，usage 6236+22=6258）；被取消 b 的半截产出保留（id `5f97ad23…`，恰 24 字符 = 1 chunk，其余 18 块丢失）；第一轮错误节点保留（id `7e91c213…`，`turn_kind=error`）；`group_runs=CANCELLED / cancelled / spent=6258 / committed=[a]`；`b2.isNotEmpty()` 强断言通过（旧断言已证为空断言）。⚠️ **仍缺**：超时半（15 分钟）未跑、各 viewer 可见集合未按契约落盘、导出哈希一格、单次通过 ⇒ **不升级**。证据 SHA（登记代理复算）：report `c5225560…`、raw-final `d70c6379…`、raw-round1 `4825b59a…`、instrument log `e7169883…`、trace `aa773b64…`、exitcode `1f2d78ea…`。
+
+**② 根因（解释前三次为何全不成立）**：① 测试写 `providers=[mock]` 被 `SettingsRepository.kt:349-352` 补回全部 `DEFAULT_PROVIDERS`；mock HTTP 500 的错误消息含 `"500"` ⇒ `ProviderFailover.isEligible` 判可切换 + `enableAutoRetry=true` ⇒ B 请求被 **failover 重放给内置「极客猫」真网关**（这正是第十二轮遗留第 40 条「文本四处 0 命中」的答案）；② 第二轮只等 a 落库就取消 ⇒ B 未必已开始流式 / `jobs.isEmpty()` 分支只写状态没真取消 / `commitGroupTurn` 先存消息后写 run；③ 旧断言按 `roundId+roleId=="b"` 过滤，而被取消角色永不盖章 ⇒ 恒空断言；④ mock `failed_once` 锁外 check-then-add、无 reset、日志不记实际 status/body、「24-byte」实为字符、「零内容」实际发 `{"content":""}`。修复见 `610edbf86` / `18d730465`；mock 新 sha256 `0f2af473…`（旧 `8af6e13d…` 已订正）。JVM 判据级证明（登记代理亲自重跑，用真实 `UIMessage` 类，`FILTER-PROOF OK` / exit 0）：旧过滤在该构造列表里命中的是**真网关顶包回复**，新过滤命中半截产出；`old_assert_holds_vacuously=true`。⚠️ 这是 JVM 侧证明，**不是** androidTest 真机执行。
+
+**③ 真实网关 5 条×3 稳定性**：mention 3/3、vote 3/3、vote-tie 3/3、roundtable 1/3（另 2 次为**测试自身竞态**——议长消息「先落库后盖章」被快照到 null；同轮 raw dump 显示产品侧 `run=COMPLETED / committed=[a,b,c]`，修复中）、pipeline 0/3 + 补测 1/3（角色 a/c 间歇零内容）。通过项 SHA（复算）：`d9473daf…` / `bb4007c4…` / `62c777e3…` / `dffe2f8a…` / `5c17960a…` / `13144d44…` / `3421fff8…` / `a7a20299…` / `e4d67be6…` / `ff9139f6…` / `f98f053d…`。
+
+**④ 两项关键发现**：① **`INSTRUMENT_EXIT` 不能当判据**——全部 19 个 run（含 FAIL）设备侧均 0，且 `INSTRUMENTATION_CODE: -1` 在通过/失败日志里完全相同；判据必须读日志 `OK (1 test)` / `FAILURES!!!`（影响全项目取证方法，c1 文档遗留第 41 条）；② **前台化时机**——启动后 ~20s 才 `am start` 的 3 次 pipeline 全灭；改成 4s 即前台化 + 每 10s 反复后产出恢复（⚠️ **执行者推断，非受控实验**）。独立对账：网关与设备侧 curl 均正常（`device-sse-full2.txt` 有完整 content 帧）⇒ pipeline 零内容为 app 流式路径间歇行为。
+
+**⑤ 设备清理已完成**：`c1-cancel-evidence.db` 不存在；`rikka_hub` RUNNING 两行已清（备份三件套 SHA `c33e8dae…` / `a7809e3b…` / `15018d54…`，回推后设备库 `40d2eb76…`、7→5 行、RUNNING=0，登记代理对 pull 副本逐行复核）；`screen_off_timeout` 改回 30000、`stayon=false`、`adb reverse --remove-all`、8766 mock 已停。⚠️ 登记代理读备份时触发过一次 SQLite 隐式 WAL 恢复（逻辑不变、备份三件套文件形态与 SHA 改变，MANIFEST.sha256 记的是原值）——如实登记。
+
+**⑥ 统计口径（登记代理本机实测）**：`git log --oneline bfe1c982c..18d730465` = **2**（`610edbf86` / `18d730465`）；`git log --name-only bfe1c982c..18d730465 -- 'app/src/test/*'` **空** ⇒ 台账声明值仍 **46 行 / 501 例**；`c1_doc_stats.py` 三条命令（正文 / `--self-test` / `--only tables`）退出码均 0、18 条全 OK、表格列数不符 0 行。锚点 `1b0e04a9` 不重算。
+
+**⑦ 20 状态格一个升级都没有，仍 10/10 `unverified`**——最接近的两行：C1-04（两条 vote 路径 3/3，仅缺「导出哈希」一格）与 C1-06（取消半完整，超时半 / viewer 集合 / 重复性仍缺）。逐行依据见 `c1-group-chat.md`「C1 真机证据采集第十三轮」⑤；新增遗留（退出码判据 / roundtable 测试竞态 / C1-05 结构性不可达 / provider 只能追加）见该文件第四十一~四十四条。
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 三个在途改动未碰）。**
 
