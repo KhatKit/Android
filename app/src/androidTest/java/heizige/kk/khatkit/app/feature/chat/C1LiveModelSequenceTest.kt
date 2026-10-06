@@ -16,11 +16,13 @@ import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
+import heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeResolver
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
 import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
@@ -42,6 +44,7 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FilesRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
+import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.di.appEntryPoint
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.common.android.appTempFolder
@@ -2625,6 +2628,354 @@ class C1LiveModelSequenceTest {
                 exportEvidence = exportEvidence,
             ),
         )
+    }
+
+    // ==================================================================
+    // 用例 11：记忆隔离（C1-08）—— 三角色各写各的空间，检索互不串、无全局/助手回退
+    // ==================================================================
+
+    /**
+     * C1-08「记忆隔离」的**设备侧证据**（仪器环境，不需要真网关）。
+     *
+     * 契约 `:203`：「记忆空间键固定为 `group:<conversationId>:role:<roleId>`，首次发言懒创建；
+     * 不得回退到全局/助手空间。群消息写入记忆时带 `source_message_id` 与 `role_id`，
+     * 检索结果再次经过 viewer 过滤。」
+     *
+     * ## 证明范围与「不用真网关」的代价（必须如实读）
+     *
+     * 本用例证明的是**空间边界 / 归因字段 / viewer 过滤**，与模型质量无关：
+     *
+     * - 空间键从生产 [heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeResolver.forGroupChat]
+     *   取得（群聊工具/检索/抽取共用的唯一入口），并断言等于 `GroupChat.memorySpaceId`；
+     * - 写入走生产 [MemoryExtractor.parseAndStore]（`ChatManager` 自动记忆抽取的落库段：
+     *   生产 `MemoryAttribution` + `MemoryRepository.addMemory`），逐条 fact 的 `source_line`
+     *   指向**该角色自己的**消息，从而真的写出 `source_message_id` 与 `role_id`；
+     * - 检索走生产 [MemoryRepository.searchHybridInSpace]（`memory_search` 工具的数据入口），
+     *   逐角色给“命中列表（消息 id / 角色 / source_message_id）”；
+     * - 再把别人的记忆塞给本角色，跑生产 [GroupTurnCoordinator.memoriesForViewer] 记负例。
+     *
+     * ⚠️ **模型响应是确定性的 JSON 事实数组**（等价于 mock provider 的输出，见 [CANNED_*]），
+     * 不是真网关产物，也**不是** `MemoryExtractor.extractFromTurn` 的完整路径（那里要先
+     * 调 provider）。因此本证据**不覆盖模型调用**，只覆盖落库、归因、检索、过滤四段。
+     *
+     * 夹具消息（1 条 user 触发 + 3 条已盖章助手消息）是直接落库的静态夹具，**不是**模型生成，
+     * 只为给 `source_message_id` 提供指向真实消息 id 的锚点。
+     */
+    @Test
+    fun realProviderGroupMemoryIsolationRecordsPerSpaceHits() = runBlocking {
+        val caseName = "real-memory-isolation"
+        val entry = appEntryPoint(appContext)
+        val memoryRepository = entry.memoryRepository()
+        val memoryExtractor = MemoryExtractor(memoryRepository, entry.providerManager(), JsonInstant)
+
+        val config = realProviderConfig(caseName, mainBudget)
+        val conversationId = insertGroup(caseName, config)
+
+        // ---- 夹具：1 条触发 + 3 条已盖章助手消息（每条都带真实角色署名） ----
+        val triggerId = Uuid.parse("0c1c11ae-0000-0000-0000-00000000d008")
+        val ownMessageIds = mapOf(
+            "a" to Uuid.parse("0c1c11ae-0000-0000-0000-00000000a008"),
+            "b" to Uuid.parse("0c1c11ae-0000-0000-0000-00000000b008"),
+            "c" to Uuid.parse("0c1c11ae-0000-0000-0000-00000000c008"),
+        )
+        val canaries = mapOf(
+            "a" to "C1MEMOALPHA 只属于角色甲的记忆",
+            "b" to "C1MEMOBETA 只属于角色乙的记忆",
+            "c" to "C1MEMOGAMMA 只属于角色丙的记忆",
+        )
+        val roundId = GroupChat.roundIdFor(triggerId.toString())
+        val fixtureNodes = listOf(
+            MessageNode.of(
+                UIMessage.user("C1-08 记忆隔离验证：请三角色各自记住自己的口令。")
+                    .copy(id = triggerId, roundId = roundId, turnKind = GroupChat.TURN_USER),
+            ),
+        ) + listOf("a", "b", "c").map { role ->
+            MessageNode.of(
+                UIMessage.assistant("角色 $role 的口令是 ${canaries.getValue(role)}")
+                    .copy(
+                        id = ownMessageIds.getValue(role),
+                        roleId = role,
+                        roundId = roundId,
+                        turnKind = GroupChat.TURN_SPEAKER,
+                    ),
+            )
+        }
+        val stored = requireNotNull(repository.getConversationById(conversationId)) { "群会话必须读得回来" }
+        repository.updateConversation(stored.copy(messageNodes = fixtureNodes))
+        val messages = requireNotNull(repository.getConversationById(conversationId)).currentMessages
+        assertEquals("夹具消息必须从真库原样读回（1 user + 3 assistant）", 4, messages.size)
+
+        // ---- 生产空间键：MemoryToolScopeResolver.forGroupChat 是群聊侧唯一入口 ----
+        val roles = listOf("a", "b", "c")
+        val scopes = roles.associateWith { role ->
+            MemoryToolScopeResolver.forGroupChat(conversationId.toString(), role)
+        }
+        roles.forEach { role ->
+            assertEquals(
+                "空间键必须固定为 group:<conversationId>:role:<roleId>",
+                GroupChat.memorySpaceId(conversationId.toString(), role),
+                scopes.getValue(role).spaceId,
+            )
+            assertEquals("群聊作用域必须带 roleId", role, scopes.getValue(role).roleId)
+        }
+
+        // ---- 写入前：空间必须不存在（契约「首次发言懒创建」） ----
+        roles.forEach { role ->
+            assertEquals(
+                "写入前空间不得存在（懒创建），实际 space=${scopes.getValue(role).spaceId}",
+                null,
+                memoryRepository.getSpace(scopes.getValue(role).spaceId),
+            )
+        }
+
+        val writtenChunks = mutableMapOf<String, AssistantMemory>()
+        try {
+            // ---- 写入：生产 parseAndStore（内部是 MemoryAttribution + addMemory），
+            //      逐条 source_line 指向该角色自己的消息 ----
+            roles.forEach { role ->
+                val viewerMessages = GroupChat.buildContext(role, messages, config)
+                val window = viewerMessages.takeLast(MemoryExtractor.MAX_EXTRACT_WINDOW)
+                val ownLine = window.indexOfFirst { it.roleId == role } + 1
+                assertTrue(
+                    "角色 $role 的 viewer 窗口里必须有自己的消息，实际=" +
+                        window.map { "${it.role}/${it.roleId}" },
+                    ownLine > 0,
+                )
+                val canned = """[{"content":"${canaries.getValue(role)}","source_line":$ownLine,"confidence":0.9}]"""
+                val written = memoryExtractor.parseAndStore(
+                    spaceId = scopes.getValue(role).spaceId,
+                    response = canned,
+                    sourceMessageId = null,
+                    roleId = role,
+                    messageIdOfLine = { line -> window.getOrNull(line - 1)?.id?.toString() },
+                )
+                assertEquals("角色 $role 的抽取必须恰好写入 1 条记忆，实际=$written", 1, written)
+            }
+
+            // ---- 读回：空间归属、role_id、source_message_id、互不串 ----
+            roles.forEach { role ->
+                val space = scopes.getValue(role).spaceId
+                val chunks = memoryRepository.getMemoriesOfAssistant(space)
+                assertEquals(
+                    "角色 $role 的空间必须恰好 1 条记忆，实际=${chunks.map { it.id to it.content }}",
+                    1,
+                    chunks.size,
+                )
+                val chunk = chunks.single()
+                writtenChunks[role] = chunk
+                assertEquals("分块 spaceId 必须是生产空间键", space, chunk.spaceId)
+                assertEquals("写入必须带 role_id", role, chunk.roleId)
+                assertEquals(
+                    "写入必须带 source_message_id 且指向该角色自己的消息",
+                    ownMessageIds.getValue(role).toString(),
+                    chunk.sourceMessageId,
+                )
+                assertTrue("分块正文必须是对应 canary", chunk.content.contains(canaries.getValue(role)))
+                val foreign = canaries.filterKeys { it != role }.values
+                assertTrue(
+                    "角色 $role 的空间不得混入别人的 canary，实际=${chunk.content}",
+                    foreign.none { chunk.content.contains(it.substringBefore(' ')) },
+                )
+                assertNotNull(
+                    "首次写入后空间必须已存在（懒创建），space=$space",
+                    memoryRepository.getSpace(space),
+                )
+            }
+
+            // ---- 检索：各自空间的关键词检索只命中自己的记忆 ----
+            val searchHits = roles.associateWith { role ->
+                memoryRepository.searchHybridInSpace(
+                    spaceId = scopes.getValue(role).spaceId,
+                    query = canaries.getValue(role).substringBefore(' '),
+                    limit = 10,
+                )
+            }
+            val searchReport = buildJsonObject {
+                roles.forEach { role ->
+                    val hits = searchHits.getValue(role)
+                    assertEquals(
+                        "角色 $role 的空间检索必须命中恰好 1 条自己的记忆，实际=" +
+                            hits.map { "${it.id}:${it.content}" },
+                        1,
+                        hits.size,
+                    )
+                    assertEquals("检索命中必须是自己那条", writtenChunks.getValue(role).id, hits.single().id)
+                    assertEquals("检索命中的 role_id 必须是本角色", role, hits.single().roleId)
+                    assertEquals(
+                        "检索命中的 source_message_id 必须指向本角色消息",
+                        ownMessageIds.getValue(role).toString(),
+                        hits.single().sourceMessageId,
+                    )
+                    putJsonObject(role) {
+                        put("space_id", scopes.getValue(role).spaceId)
+                        put("query", canaries.getValue(role).substringBefore(' '))
+                        put("hit_count", hits.size)
+                        putJsonArray("hits") {
+                            hits.forEach { memory ->
+                                add(
+                                    buildJsonObject {
+                                        put("id", memory.id)
+                                        put("content", memory.content)
+                                        put("role_id", memory.roleId)
+                                        put("source_message_id", memory.sourceMessageId)
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- 反例 1：拿别人的 query 进自己的空间检索必须为空 ----
+            val crossSearchHits = roles.associateWith { role ->
+                canaries.filterKeys { it != role }.map { (other, content) ->
+                    other to memoryRepository.searchHybridInSpace(
+                        spaceId = scopes.getValue(role).spaceId,
+                        query = content.substringBefore(' '),
+                        limit = 10,
+                    )
+                }
+            }
+            val crossSearch = buildJsonObject {
+                roles.forEach { role ->
+                    val hitsByQuery = crossSearchHits.getValue(role)
+                    putJsonObject(role) {
+                        putJsonArray("foreign_queries") {
+                            canaries.filterKeys { it != role }.values.forEach { content ->
+                                add(JsonPrimitive(content.substringBefore(' ')))
+                            }
+                        }
+                        putJsonArray("foreign_query_hit_counts") {
+                            hitsByQuery.forEach { (_, hits) -> add(JsonPrimitive(hits.size)) }
+                        }
+                    }
+                }
+            }
+            roles.forEach { role ->
+                crossSearchHits.getValue(role).forEach { (other, hits) ->
+                    assertTrue(
+                        "角色 $role 的空间不得检索到角色 $other 的记忆（空间边界），实际=" +
+                            hits.map { "${it.id}:${it.content}" },
+                        hits.isEmpty(),
+                    )
+                }
+            }
+
+            // ---- 反例 2：检索结果再过一遍生产 viewer 过滤 ---- 
+            // 角色甲的记忆（source_message_id = 甲的消息）对角色乙不可见：乙的可见消息集合里
+            // 没有甲的消息、roleId 也不是乙，必须被 memoriesForViewer 丢掉。
+            val memoryOfA = listOf(writtenChunks.getValue("a"))
+            val bViewerMessageIds = GroupChat.buildContext("b", messages, config).mapTo(mutableSetOf()) { it.id.toString() }
+            val filteredForB = GroupTurnCoordinator.memoriesForViewer(
+                viewerRoleId = "b",
+                viewerMessageIds = bViewerMessageIds,
+                memories = memoryOfA,
+            )
+            assertTrue(
+                "角色甲的记忆不得通过 viewer 过滤进角色乙：实际=$filteredForB",
+                filteredForB.isEmpty(),
+            )
+            val filteredForA = GroupTurnCoordinator.memoriesForViewer(
+                viewerRoleId = "a",
+                viewerMessageIds = GroupChat.buildContext("a", messages, config).mapTo(mutableSetOf()) { it.id.toString() },
+                memories = memoryOfA,
+            )
+            assertEquals("自己的记忆必须能通过自己的 viewer 过滤", 1, filteredForA.size)
+
+            // ---- 反例 3：全局空间 / 助手空间不得出现本用例 canary（无回退写入） ----
+            // 直接走 DAO 读，不用 getMemoriesOfAssistant（那个会 ensureSpace，凭空建空间）。
+            val canaryTokens = canaries.values.map { it.substringBefore(' ') }
+            val productionRead = AppDatabaseFactory.create(appContext)
+            val globalCanaryHits: Int
+            val assistantCanaryHits: Int
+            try {
+                val globalChunks = productionRead.memoryChunkDao()
+                    .getChunksOfSpace(MemoryRepository.GLOBAL_MEMORY_ID)
+                val assistantChunks = productionRead.memoryChunkDao()
+                    .getChunksOfSpace(assistantAId.toString())
+                globalCanaryHits = globalChunks.count { chunk -> canaryTokens.any { chunk.content.contains(it) } }
+                assistantCanaryHits = assistantChunks.count { chunk -> canaryTokens.any { chunk.content.contains(it) } }
+            } finally {
+                productionRead.close()
+            }
+            assertEquals("全局空间不得出现本用例 canary（无回退写入）", 0, globalCanaryHits)
+            assertEquals("助手空间不得出现本用例 canary（无回退写入）", 0, assistantCanaryHits)
+
+            writeEvidence(
+                "c1-live-evidence-memory-isolation.json",
+                buildJsonObject {
+                    put("evidence_kind", "device-instrumentation-memory-isolation-no-gateway")
+                    put(
+                        "scope_note",
+                        "NOT a real-gateway test: the extractor model response is a canned deterministic " +
+                            "JSON fact array (mock-provider equivalent). Write path is the production " +
+                            "MemoryExtractor.parseAndStore (MemoryAttribution + addMemory); search path is " +
+                            "the production MemoryRepository.searchHybridInSpace; the viewer re-filter is the " +
+                            "production GroupTurnCoordinator.memoriesForViewer. The model call itself is out of scope.",
+                    )
+                    put("generated_at_device", System.currentTimeMillis())
+                    put("device", deviceBlock())
+                    put("case", caseName)
+                    put("conversation_id", conversationId.toString())
+                    put("round_id", roundId)
+                    put("memory_space_key_format", "group:<conversationId>:role:<roleId>")
+                    put("space_key_resolver", "MemoryToolScopeResolver.forGroupChat")
+                    putJsonObject("fixture_messages") {
+                        put("source", "static fixture inserted into the real Room DB (not model output)")
+                        put("trigger_user_message_id", triggerId.toString())
+                        roles.forEach { role ->
+                            put("${role}_assistant_message_id", ownMessageIds.getValue(role).toString())
+                        }
+                    }
+                    putJsonObject("spaces") {
+                        roles.forEach { role ->
+                            put(
+                                role,
+                                buildJsonObject {
+                                    put("space_id", scopes.getValue(role).spaceId)
+                                    put("space_existed_before_write", false)
+                                    put("written_chunk_id", writtenChunks.getValue(role).id)
+                                    put("written_content", writtenChunks.getValue(role).content)
+                                    put("role_id", writtenChunks.getValue(role).roleId)
+                                    put("source_message_id", writtenChunks.getValue(role).sourceMessageId)
+                                },
+                            )
+                        }
+                    }
+                    put("search_hits_per_space", searchReport)
+                    put("cross_space_search_negative", crossSearch)
+                    putJsonObject("viewer_refilter_negative") {
+                        put(
+                            "source",
+                            "GroupTurnCoordinator.memoriesForViewer over the real written chunks",
+                        )
+                        put("memory_of_a_id", writtenChunks.getValue("a").id)
+                        put("visible_to_a_count", filteredForA.size)
+                        put("visible_to_b_count", filteredForB.size)
+                    }
+                    putJsonObject("no_global_or_assistant_fallback") {
+                        put("global_space_id", MemoryRepository.GLOBAL_MEMORY_ID)
+                        put("global_space_canary_hits", globalCanaryHits)
+                        put("assistant_space_id", assistantAId.toString())
+                        put("assistant_space_canary_hits", assistantCanaryHits)
+                    }
+                },
+            )
+        } finally {
+            // ---- 清理生产记忆库：只删本用例的三个群空间与其分块 ----
+            runCatching {
+                val production = AppDatabaseFactory.create(appContext)
+                try {
+                    roles.forEach { role ->
+                        val space = scopes.getValue(role).spaceId
+                        production.memoryChunkDao().hardDeleteSpace(space)
+                        production.memorySpaceDao().deleteSpace(space)
+                    }
+                } finally {
+                    production.close()
+                }
+            }
+        }
     }
 
     // ==================================================================
