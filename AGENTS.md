@@ -134,10 +134,31 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 
 ⇒ 写新代码时，若一个类不是框架组件，就**不要**叫 `XxxService`。
 
-### 存量不改名（重要）
+### 存量改名结果（2026-10-06，主人要求执行，**A 类已完成**）
 
-现存 `*Service` **30** 个 + `*Util` **9** 个 + `*Utils` **11** 个 + `*Store` **11** 个
-= **61 个文件**，**不做批量改名**。理由：
+**A 类（本 fork 独有、无上游对应物的 8 个文件）已改名；B/C/D 类 53 个文件不改。**
+逐文件判定表（每个文件的父类 / manifest / 上游路径 / 持久化证据）见
+**[docs/architecture-map.md](docs/architecture-map.md) §2.4**。改名后基线：
+
+| 后缀 | 现存 | 构成 |
+|---|---:|---|
+| `*Service` | **29** | 9 个 Android 框架组件（B 类）+ 20 个 `:search`（C 类） |
+| `*Util` | **9** | 全部上游 1:1（D 类） |
+| `*Utils` | **11** | 全部上游 1:1（D 类） |
+| `*Store` | **4** | 3 个 `common/cache/*Store`（上游 1:1）+ `PlayStore`（Google Play 专有名词） |
+
+⇒ 非合规 **53 个**（原 61 − 已改 8），合规率 **37/90 = 41.1%**。
+
+已改名清单（8 文件 / 6 commit，均已 push `origin main`）：
+
+| 旧名 → 新名 | commit |
+|---|---|
+| `AILiveNotificationService` → `AILiveNotificationManager`（有状态通知生命周期） | `5972207dd` |
+| `BrowserHistoryStore` → `BrowserHistoryRepository`（含测试类同步改名） | `27b14335f` |
+| `CardScheduleStore` → `CardScheduleRepository`（含测试类同步改名） | `563c716d2` |
+| `WorkflowStore` → `WorkflowPreferencesRepository`（避开既有 `WorkflowRepository`） | `6d2aad0e8` |
+| `CardSqlStore` / `SecretStore` / `SharedStore` → `CardSqlRepository` / `SecretRepository` / `SharedFileRepository` | `e3cbf926b` |
+| `DependencyArtifactStore` → `DependencyArtifactHelper`（无状态打杂） | `367a5ebf1` |
 
 > **复算口径（必须照抄，否则数字会漂）**：全仓 kt 文件、**按文件名后缀**计数、
 > **排除 vendor 进来的 `material3/material-color-utilities/`**、排除所有 `build/`：
@@ -151,28 +172,41 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 > done
 > ```
 >
-> 两个关键点：**按文件名后缀**而非 grep 类名 —— 否则 `*Util` 会命中 `*Utils`
-> 内部；**排除 material3** —— `material3/material-color-utilities` 是 **git submodule**
+> 上述命令在 2026-10-06 改名后的实测输出：**29 / 9 / 11 / 4**。两个关键点：
+> **按文件名后缀**而非 grep 类名 —— 否则 `*Util` 会命中 `*Utils` 内部；
+> **排除 material3** —— `material3/material-color-utilities` 是 **git submodule**
 > （`.gitmodules`，mode `160000`），里面 3 个 `*Utils.kt`（`ColorUtils` / `MathUtils` /
 > `StringUtils`）不是本 fork 的代码。
 >
 > ⚠️ **这就是历史上同一件事给出 11 / 13 / 14 三个数的根因**：`material3/…` 是 submodule，
 > 所以 `git ls-tree -r --name-only main`（**不递归进 submodule**）得 **11**，
 > 而 `find .`（**看得见已 checkout 的 submodule 文件**）得 **14**。
-> `docs/architecture-map.md` §2.1 用的就是 `git ls-tree` 那条，与此处等价。
+> `docs/architecture-map.md` §2.4 用的就是 `git ls-tree` 那条，两条等价。
 >
-> `*Service` 从 32 降到 30，是因为 `core/service/` 被删空时带走了
-> `ChatService.kt` 与 `ChatGenerationForegroundService.kt` 两个（commit `86da59fa0`）。
+> `*Service` 的变迁：32 → **30**（`core/service/` 删空带走 `ChatService.kt` 与
+> `ChatGenerationForegroundService.kt`，commit `86da59fa0`）→ **29**（`5972207dd`
+> 把 fork 独有的 `AILiveNotificationService` 改名 `AILiveNotificationManager`）。
+
+B/C/D 类不改的硬理由：
 
 1. 本 fork 约 **54% 的 app 文件来自上游**（405 / 744），整树做过
    `me.rerere.* -> heizige.kk.khatkit.*` 重命名，**`git merge` 上游早已不可用** ——
    commit `8cf9bec2d` 明确写了「直接 merge 会产生大量伪冲突, 因此逐文件三方合并」。
-   改名等于给每一次上游同步追加一遍人工三方比对。
-2. `:search` 的 18 个 `*SearchService.kt` 还带 `@SerialName` 持久化 key
-   （`"bing_local"` 等），改名会让用户已有设置读不出来。
-3. `common/cache/CacheStore.kt` 这类确实只做存取的类，改成 `Repository` 是退化。
+   这批 53 个文件里 **47 个**在上游有同名对应物（20 个 `:search` + 24 个 Util/Utils/Store
+   + 3 个框架 Service），改名等于给每一次上游同步追加一遍人工三方比对。
+2. `:search` 模块 20 个 `*Service.kt`（18 个 `*SearchService.kt` + `LinkUpService` /
+   `SearXNGService`）**100% 上游一一对应**；且持久化契约挂在这个模块的命名上 ——
+   `SearchService.kt` 里 `SearchServiceOptions` 的 19 个 `@SerialName`
+   （`"bing_local"` / `"zhipu"` / … / `"rikkahub"` / `"custom_js"`）是**已落盘的设置判别串**
+   （`SettingsRepository.kt:221` 把 `searchServices` 序列化进 DataStore）。
+   ⚠️ 20 个 provider 文件自身的 `@SerialName` 全是 HTTP 响应 DTO，**不在**持久化路径上；
+   但模块级改名会把 interface + Options 一起卷进来，**不做半截改名**。
+3. 9 个 `*Service` 继承 `android.app.Service` / `TileService` / `AccessibilityService` /
+   `NotificationListenerService`，改名要同步改 manifest 与 `PendingIntent` 跳转目标（B 类）。
+4. `common/cache/CacheStore.kt` 这类确实只做存取的类，改成 `Repository` 是退化；
+   `PlayStore.kt` 的 `Store` 是 Google Play 专有名词，与存储无关。
 
-**新代码按上表命名；旧代码保持原样。** 不要在无关 PR 里夹带改名。
+**新代码按上表命名；旧代码保持原样（B/C/D 类不再改）。** 不要在无关 PR 里夹带改名。
 
 ## 快速决策卡
 
