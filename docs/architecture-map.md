@@ -272,17 +272,58 @@ app/…/feature/settings/WorkflowStore.kt              khatkit/…/bridge/impl/C
 两份都执行 `Intent(context, ChatGenerationForegroundService::class.java)`（`:40`/`:42`
 与 `:54`/`:56`），即各自 start 自己。
 
-**为什么记下来**：`core/service/ChatService.kt` 是活代码（`core/di/AppHiltModule.kt:51`
-绑定，`feature/history/HistoryVM.kt:28` 注入），它的 `launchGenerationJob` 在
-`keepAliveInBackground = true` 时会走到 `core.service` 那一份，而那一份在
-`AndroidManifest.xml` 里**没有 `<service>` 声明**。按 Android 的组件解析规则，
-`startForegroundService` 指向未声明组件应当抛异常。**⚠️ 待验（需真机）** —— 我没有
-设备，无法确认这条路径是否真被走到、以及是否被上层 try/catch 兜住。
+### ⚠️ 订正（2026-10-06）：上一轮这条结论是**错的**，原文保留在下面
 
-**两种可能的解释，本次都不做判定**：（1）`core/service/` 那份是 layer-first 时代
-（上游 `me.rerere.rikkahub/service/` 有 7 个 kt）的残留，应删；
-（2）反过来，manifest 漏了 `.core.service.ChatGenerationForegroundService` 的声明。
-**两种改法都会动代码或 manifest，都超出本任务范围。**
+**⚠️ 上一轮原文（已证伪，勿照抄）**：「`core/service/ChatService.kt` 是活代码
+（`core/di/AppHiltModule.kt:51` 绑定，`feature/history/HistoryVM.kt:28` 注入）」——
+**`AppHiltModule.kt:51` 那行不是绑定，是一条未使用的 import。**
+
+实测依据（命令与退出码见 §2.3.1）：
+
+```bash
+# ① 没有任何 @Provides / @Binds 产出 ChatService —— 命中的 2 处都不是绑定
+grep -rn "ChatService" --include=*.kt . | grep -E "@Provides|@Binds"
+#   → core/service/ChatService.kt:153（**KDoc 里的一句注释**）
+#   → …/ChatServiceGroupChatFailLoudGuardTest.kt:133（**断言字符串字面量**）
+#   ⇒ 真绑定 0 处
+
+# ② 没有任何直接 new
+grep -rnE "ChatService\s*\(" --include=*.kt . | grep -vE "fun |class |//|\*"
+#   ⇒ 空（EXIT=1）
+
+# ③ AppHiltModule 里 ChatService 只出现在 import 行
+grep -n "ChatService\|ChatManager" core/di/AppHiltModule.kt
+#   → :36 import …feature.chat.ChatManager
+#   → :51 import …core.service.ChatService   ← 全文再无第二次出现 ⇒ 未使用 import
+#   → :189 @Provides / :191 fun provideChatManager( / :211 ): ChatManager = ChatManager(
+```
+
+⇒ **`ChatService.kt` 的正确判定是「活接线 / 运行时不可达」，既不是活代码也不是死代码。**
+措辞与 §2.3.1、与 `docs/beyond-operit-implementation-status.md:1500`（「已核实当前不可达」）
+统一，三处现在说的是同一件事。⚠️ **这个区别决定处置方式**：直接 `rm` 会炸编译。
+
+### 2.3.1 因此 core 那份 FGS 是**静态可判死**，已判死 —— 原「需真机验」是多余的
+
+上一轮把「指向未声明组件」列进 §8 待验清单第 1 条（**需真机跑一次后台生成**）。
+⚠️ **那条真机验证是多余的**：`keepAliveInBackground` 那条路径**根本走不到**
+`startForegroundService`。两条**各自独立、任一即足**的理由：
+
+| # | 理由 | 实测 |
+|---|---|---|
+| 1 | manifest 只注册 feature 版 | `AndroidManifest.xml:149` = `.feature.chat.ChatGenerationForegroundService`；`grep -n "core\.service" AndroidManifest.xml` ⇒ **空（EXIT=1）** |
+| 2 | core 那份**缺 `@AndroidEntryPoint`** ⇒ `@Inject` 字段永不注入，**即使被拉起也必 NPE** | `grep -n AndroidEntryPoint core/service/ChatGenerationForegroundService.kt` ⇒ **空（EXIT=1）**；feature 版在 `:19` import、`:31` 标注 |
+
+再加上第三层封口：**唯一调用方 `core/service/ChatService.kt:298`（`acquire`）与 `:307`
+（`release`）自身不可达**（§2.3.1 的零构造点结论）。
+
+⇒ **静态可判死，已判死。不需要真机。** §8 待验清单里那条已移除（见 §8 的订正说明）。
+⚠️ 注意这**只是**「core 那份 FGS 判死」，**不等于**「`ChatService.kt` 可以直接删」——
+后者的三处依赖见 §9.2。
+
+上一轮原文的另两条「两种可能的解释都不做判定」也随之失效：判据 1 与 2 都是实测，
+manifest **没有漏声明**（漏声明会让 lint / `adb install` 阶段报错，而 lint 实测
+`error 0`），所以解释 (2)「manifest 漏了声明」已被排除。解释 (1)「layer-first 残留」
+成立，**但真正的原因是 vendor merge 复活**，见 §9。
 
 ---
 
@@ -602,8 +643,184 @@ Cynic 的 `libs.versions.toml` 逐行相等。**那份表是 Cynic 的版本快�
 
 ## 8. 待验清单（本轮无法只读判定）
 
+⚠️ **上一轮的第 1 条已删除**（`core/service/ChatGenerationForegroundService.kt` 指向未声明组件）。
+**它不是「待验」，是「静态可判死、已判死」**：manifest 只注册 feature 版（`:149`）、
+core 那份缺 `@AndroidEntryPoint`（`@Inject` 字段永不注入）、唯一调用方
+`ChatService.kt:298/307` 自身不可达 —— 三层封口，零设备可判。完整依据见 §2.3.1。
+
 | # | 事项 | 为什么待验 |
 |---|---|---|
-| 1 | `core/service/ChatGenerationForegroundService.kt` 指向未声明组件（§2.3） | 需真机跑一次后台生成 |
-| 2 | `heroAnimation` 的 7 个调用点是否都在 `NavEntry.Content` 内（§5 §8.4-4） | 作用域由组合位置决定，静态不可判 |
+| 1 | `heroAnimation` 的 7 个调用点是否都在 `NavEntry.Content` 内（§5 §8.4-4） | 作用域由组合位置决定，静态不可判 |
 | 3 | `predictivePopTransitionSpec` 跑 spring 的**实际手感影响**（§5 §8.4-2） | 需要人拿设备对比；改法本身超出记账范围 |
+---
+
+## 9. `core/service/` 死代码复活的根因与对策（本轮新增，**下一个人必读**）
+
+⚠️ **这一节存在的唯一理由**：上一轮之前的某个人**已经决定删过**这 5 个文件，
+删完 6 天后它们**原样回来了**。不知道这件事的人会**再删一次、再被复活一次**。
+
+### 9.1 根因时间线（实测）
+
+| 日期 | commit | 发生了什么 |
+|---|---|---|
+| 2026-09-25 | `f7463f814` | `refactor(structure): move chat pages and conversation services to feature/chat` —— **项目主动**把 5 个文件从 `core/service/` 搬到 `feature/chat/`（`git show --stat` 里 5 行 `{service => feature/chat}/…` rename） |
+| 2026-10-01 | `8cf9bec2d` | `merge: 同步上游 RikkaHub master(2.5.5 + 29 个提交)` —— **上游那侧路径没变**，5 个文件被当成新文件**整包搬回来** |
+
+决定性的一条实测：
+
+```bash
+$ git diff --stat 8cf9bec2d^1 8cf9bec2d -- app/src/main/java/heizige/kk/khatkit/app/core/service/
+ …/service/ChatGenerationForegroundService.kt     | 175 +++
+ …/kk/khatkit/app/core/service/ChatService.kt     | 1407 ++++++++++++++++++++
+ …/app/core/service/ConversationSession.kt        | 180 +++
+ …/app/core/service/ConversationSessionManager.kt | 114 ++
+ …/kk/khatkit/app/core/service/MessageQueue.kt    | 118 ++
+ 5 files changed, 1994 insertions(+)
+```
+
+**1994 insertions(+)，0 deletions** —— 纯新增。**不是「有人忘了删」，是「已经决定删过、被
+vendor merge 复活」。** 复活后只有 `ChatService.kt` 继续被改（`git log --oneline
+8cf9bec2d..HEAD -- core/service/` 恰好 **7** 个 commit，全中 `ChatService.kt`），
+另外 4 个**一动没动**，说明没人把它们当成有意保留的活代码。
+
+### 9.2 逐个判定（**不要笼统说「core/service 都是死代码」**）
+
+行数用 `wc -l`，diff 用 `diff core/service/X.kt feature/chat/X.kt`。
+
+| 文件 | 行数 | 判定 | 依据 |
+|---|---:|---|---|
+| `ChatService.kt` | 1506 | ⚠️ **活接线 / 运行时不可达（不可直接删）** | `@Inject constructor`（`:177`）⇒ Hilt JIT 绑定**存在**；`HistoryVM.kt:28` 注入、`:55` 调 `toggleConversationPinned`；**但** `HistoryPage.kt:69` 全仓零路由引用 ⇒ 零构造点。⇒ **直接 `rm` 会炸编译**，必须先拆 §9.2.1 三处依赖 |
+| `ChatGenerationForegroundService.kt` | 175 | ✅ **死（无争议）** | manifest 只注册 feature 版（`:149`，`grep -n "core\.service" AndroidManifest.xml` 空）；core 版**缺 `@AndroidEntryPoint`** ⇒ `@Inject` 字段永不注入，即使被拉起也必 NPE；唯一调用方 `ChatService.kt:298/307` 自身不可达 |
+| `MessageQueue.kt` | 118 | ✅ **死，且是逐字副本** | 与 `feature/chat/MessageQueue.kt` 的 `diff` **只有 package 一行** |
+| `ConversationSessionManager.kt` | 114 | ✅ **死，且是逐字副本** | `diff` **2 行**：package + KDoc 里 `ChatService`→`ChatManager` 一个词 |
+| `ConversationSession.kt` | 180 | ✅ **死，且已过期** | `diff` **42 行**，缺 `existingMessageIds` / `dropUngeneratedAssistantMessages` |
+
+#### 9.2.0 ⚠️ `ConversationSession` 的方向必须说清楚，否则会删反
+
+上一轮担心的「`core/service` 里可能藏着力步失败的修复」—— **确实存在，但修复在
+`feature/chat` 一侧，不在 `core/service` 一侧**：
+
+- 修复来自 `97b0fa1cc`（2026-10-04，`fix(c1-r): finishGeneration 落库前丢弃本次生成新增的
+  空气泡助手消息…`），`git show --stat` = **只改 1 个文件**：
+  `feature/chat/ConversationSession.kt`（+36 / −4）。
+- `grep -rln "existingMessageIds\|dropUngeneratedAssistantMessages" --include=*.kt app/src/`
+  ⇒ `feature/chat/ConversationSession.kt`、`feature/chat/UngeneratedMessageFilter.kt`
+  及其测试 —— **`core/service/` 侧零命中**。
+
+⇒ **删掉 `core/service` 那份过期副本是「修正」不是「退化」**：活路径用的 feature 版
+带着修复，留着 core 版只会让人误读成「有两份实现，得挑一份」。
+
+#### 9.2.0.1 两份 FGS 的差异只有 **6 行**，其余 169 行逐字相同
+
+`diff` 输出 24 行 = 4 个 hunk，共 **6 处实质差异 + 2 处新增空行**：
+
+| 差异 | core 版 | feature 版 |
+|---|---|---|
+| package | `…app.core.service` | `…app.feature.chat` |
+| import 顺序 | — | 多 `import dagger.hilt.android.AndroidEntryPoint`（`:19`） |
+| 类注解 | **无** | `@AndroidEntryPoint`（`:31`） |
+| KDoc | `[ChatService]`（`:27`） | `[ChatManager]`（`:28`） |
+| 注入字段类型 | `chatService: ChatService`（`:71`） | `chatService: ChatManager`（`:75`） |
+
+175 − 6 = **169 行逐字相同**。⇒ 两份是**同一份代码的两个拷贝**，不是两种实现。
+
+#### 9.2.1 ⚠️ 删 `ChatService.kt` 前**必须**先拆的三处依赖
+
+⚠️ **这就是「不可直接删」的具体含义**。三处都在 `app/src/test/`（JVM 单测，会编译失败）：
+
+1. **`forkConversationTitle` 被跨包 import** — 它是 `core/service/ChatService.kt:111` 的
+   `internal` 顶层函数，而 `feature/chat/ChatManagerTest.kt:18` 直接
+   `import heizige.kk.khatkit.app.core.service.forkConversationTitle`，
+   `:43-47` 有 **5 条断言**。⇒ 删文件 = 删掉这 5 条断言的**被测对象**。
+   ⚠️ 处置：把这一个纯函数**搬进 `feature/chat`**（feature 版已有同名等价物或直接搬），
+   import 改指同包，断言一行不动。
+2. **两个护栏测试硬编码了 `File(...).readText()` 的绝对路径**：
+   - `ChatServiceGroupChatFailLoudGuardTest.kt:156-157`
+     `CHAT_SERVICE_FILE = "app/src/main/java/heizige/kk/khatkit/app/core/service/ChatService.kt"`
+   - `ChatServiceSenderNameGuardTest.kt:152` 同一路径
+   两者都 `File(repoRoot(), …).readText()` 读源码做文本断言。⇒ 文件一删，
+   `assertTrue("函数没找到…")` / 断言直接红。⚠️ 处置：常量改指
+   `feature/chat/ChatManager.kt`（这两个护栏守的就是那份**活**实现的内容）。
+3. **`HistoryVM` / `HistoryPage` 孤儿** — `HistoryVM.kt:28` 的注入点必须先摘掉
+   （它只用 `toggleConversationPinned`，`:55`），`HistoryPage.kt:69` 本身零路由引用，
+   整对一起处置（要么删、要么接进路由），**不能留一个注入着已删类的 ViewModel**。
+
+⇒ **顺序**：拆 1 → 拆 2 → 处置 3 → 才 `rm ChatService.kt` → 再判另外 4 个。
+⚠️ 三处拆完前**一步都别动**。
+
+### 9.3 对策：为什么还会再发生，怎么防
+
+| 风险 | 对策（可执行） |
+|---|---|
+| **vendor merge 复活按路径删除的文件** —— 上游 `me.rerere.rikkahub/service/` 路径不变，本 fork 搬走后，merge 把它们当新文件带回 | **每次上游同步后必查**：见 §4 ④ 的 tracking ref 检查，**加一条** `git diff --stat <同步前> <同步后> -- app/src/main/java/heizige/kk/khatkit/app/core/service/`，看有没有 `insertions(+)` 而 0 deletions。**有 ⇒ 又是复活，立刻回到本节** |
+| 下一个不知道历史的人再删一次 | **删除后必须在本文件登记**（就是这张表）。删完不登记 = 这个坑重新埋一遍 |
+| 同一路径下次同步再被搬回来 | 把上游路径差异记在这里：上游侧仍是 `me.rerere.rikkahub/service/{ChatService, ChatGenerationForegroundService, ConversationSession, ConversationSessionManager, MessageQueue}.kt`，**本 fork 侧这些路径应当为空**。⚠️ **只要上游还在那个路径上，同步就一定会再搬回来一次** —— 所以真正的解法是「每次同步后复查」，不是「删一次就完事」 |
+| 判成「死代码」直接删，结果炸编译 | 判定必须分三类（§9.2），`ChatService.kt` 那条是**活接线**，删前必拆 §9.2.1 三处 |
+
+⚠️ **一句话**：这个坑不是「有人不仔细」，是**vendor merge 的结构性行为**。
+每同步一次上游就要复查一次，登记在册才不会重复劳动。
+
+---
+
+## 10. `ChatService.kt` × `ChatManager.kt` 重复度复算（**口径写清，否则不可复现**）
+
+⚠️ 「86.7%」这个旧数字**没有口径就是废话**，而且换个口径能差 20 个百分点。
+下表两种口径都给出来，并写清各自算法。
+
+| 口径 | A 覆盖率 | Jaccard |
+|---|---:|---:|
+| **RAW**（全部行，1506 vs 2362） | **86.06%** | **67.06%** |
+| **CODE**（剥空行 + `//` + `*` + `/*`，1197 vs 1749） | **88.97%** | **72.30%** |
+
+**A 覆盖率 = 共同行数 ÷ ChatService 的行数**（问的是「ChatService 有多少行是抄来的」）。
+**Jaccard = 共同行数 ÷ 两边并集行数**（问的是「两个文件整体有多像」）。
+⇒ **同一个数字被记成 86.7%，实际是 RAW 口径的 A 覆盖率**，不是 Jaccard。
+
+⚠️ **旧记录的 86.7% ≈ RAW A 覆盖率 86.06%**，口径是「**`ChatService` 的行里有多少行
+在 `ChatManager` 里逐字不变**」（`diff` 的 `<` 侧取反），**不是 Jaccard**。
+⇒ 用 Jaccard 只有 **67.06%**，两者差近 19 个百分点。
+
+### 10.1 ⚠️ 为什么 Jaccard 差这么多 —— 单看 RAW 会被「块插入」骗
+
+`ChatManager` 有 **412** 行注释（`//` / `*` / `/*`，不含空行）vs `ChatService` **142** 行。
+更关键的是：`diff` 显示 `ChatManager` 在**共同代码中间插了 1066 行**
+（`>` 侧 1066 行 vs `<` 侧 210 行）。
+
+⇒ **两文件行号完全错位**。任何按行号对齐的口径（以及人眼对 `diff` 的直觉）都会把
+「插入块」误读成「不相似」。**必须同时看 RAW 和 CODE 两行**：
+CODE 口径下 A 覆盖率反而**升到 88.97%**，说明那 1066 行里大部分是注释/空行，
+不是逻辑分歧。
+
+⚠️ **代码级差异只有 132 行**在 `ChatService` 一侧（CODE 口径 `diff` 的 `<` 侧
+132 行；RAW 口径是 210 行）—— **不是 210 行**。引用「210」时必须写明是 RAW 口径。
+
+### 10.2 可复现命令
+
+```bash
+C=app/src/main/java/heizige/kk/khatkit/app/core/service/ChatService.kt
+M=app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt
+
+# A 覆盖率（diff 的 `<` 侧取反），两口径各跑一次
+for f in raw code; do
+  for x in "$C" "$M"; do
+    if [ "$f" = code ]; then
+      grep -vE '^\s*$|^\s*//|^\s*\*|^\s*/\*' "$x" > "/tmp/$f.$(basename "$x")"
+    else cp "$x" "/tmp/$f.$(basename "$x")"; fi
+  done
+  n=$(wc -l < "/tmp/$f.ChatService.kt")
+  lt=$(diff "/tmp/$f.ChatService.kt" "/tmp/$f.ChatManager.kt" | grep -c '^<')
+  gt=$(diff "/tmp/$f.ChatService.kt" "/tmp/$f.ChatManager.kt" | grep -c '^>')
+  echo "$f: |A|=$n diff_lt=$lt diff_gt=$gt A-cover=$(python3 -c "print(f'{($n-$lt)/$n*100:.2f}')")%"
+done
+```
+
+⚠️ **本轮实测值**（`difflib.SequenceMatcher(autojunk=False)`，`2×matched/(|A|+|B|)`）：
+
+| 口径 | \|A\| | \|B\| | `diff` `<` | `diff` `>` | A 覆盖率 | Jaccard |
+|---|---:|---:|---:|---:|---:|---:|
+| RAW | 1506 | 2362 | 210 | **1066** | **86.06%** | **67.06%** |
+| CODE | 1197 | 1749 | **132** | 684 | **88.97%** | **72.30%** |
+
+⇒ RAW `86.06%` = `1296/1506`；CODE `88.97%` = `1065/1197`。
+⚠️ 旧记录的 **86.7%** 与实测 **86.06%** 有 0.6pp 落差 —— 引用时**一律用实测值
+86.06%**，别再用 86.7%。（86.7% 那个值来源已不可考，疑为旧版行数或不同工具输出。）
