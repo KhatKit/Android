@@ -660,6 +660,103 @@ it.roleId in roleIds`：
 而不是 `uuid_reverse_lookup_fallback`。📍 判据不是「代码里现在能不能拿到 wire 名」，
 而是「**设备上那份落盘 JSON 里的 provenance 取值是什么**」。
 
+### ⚠️ 第十二批（HEAD `86e88970d` 那一轮采集，2026-10-06）：**`C1LiveModelSequenceTest` 前 4 条真机全绿——硬理由⑤已消**
+
+⚠️⚠️ **先说清这一批的性质：它是「采集」不是「代码提交」**——
+`git diff` **只有 `docs/`**，一行代码都没改。
+做的是在**真机（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`，无线 TLS
+serial `adb-3B6F5ME910B6H059-Sqr0AX._adb-tls-connect._tcp`）**上把
+`C1LiveModelSequenceTest` **前 4 条各单跑一遍**，并把产物拉回主机。
+⚠️ **十行状态列仍是 10/10 `unverified`**——本轮**零 UI 动作、零酒馆动作、零扫码动作**。
+
+**① 构建与跑法（逐条照记）**：
+
+| 项 | 实测值 |
+|---|---|
+| 构建 | `./gradlew --offline :app:assembleDebug :app:assembleDebugAndroidTest` ⇒ **`BUILD SUCCESSFUL in 5s`**，退出码 **0**（`394 actionable tasks: 12 executed, 382 up-to-date`） |
+| ⚠️ **主 APK 是 per-abi 的** | arm64 设备上真实路径 **`app/build/outputs/apk/debug/app-arm64-v8a-debug.apk`**；androidTest 是**无后缀单 APK** |
+| 安装 | 两次 `adb install -r -t` 均 **`Success`** |
+| 端口转发 | `adb reverse tcp:8765 tcp:8765` 退出码 **0** |
+| ⚠️ **未用 `connectedAndroidTest`** | 它**会卸载 app 并删掉外置目录里的证据文件** ⇒ 采集一律手动 `install -r -t` + 手动 `am instrument` |
+| mock 服务 | `/tmp/opencode/roundtable-vote/mock_openai_v2.py`。⚠️ **`/tmp/opencode/mock-llm/mock_openai.py` 是 v1、没有 `BALLOT:` 逻辑**，用它会让第 4 条（vote）**按设计失败** |
+
+**② 四条执行结果（退出码 / `OK` 原文 / Time 逐条照抄原始日志）**：
+
+| # | 方法名 | 退出码 | `OK` 原文 | Time | 证据文件 | 字节 | SHA-256 |
+|---|---|---:|---|---:|---|---:|---|
+| 1 | `pipelineRoundRecordsRealModelSequenceAndRealTokenUsage` | **0** | **`OK (1 test)`** | 2.142 | `c1-live-evidence-main.json` | 5919 | `5641c7f3144dd5bc895a08d0b03ff54a1919039f4e4fd1c40e26b10075a363e4` |
+| 2 | `budgetTruncationSkipsRemainingRolesAndRecordsRunLog` | **0** | **`OK (1 test)`** | 1.746 | `c1-live-evidence-budget.json` | 3824 | `890a1f89036092b651cf505d10c722e15443ba1a4440ad627ae2d4026158d46b` |
+| 3 | `roundtableRoundRecordsChairSummaryCallSequence` | **0** | **`OK (1 test)`** | 3.896 | `c1-live-evidence-roundtable.json` | 6399 | `49d437f58ffd282f8a855ed18c6ca7af23f8ace9927cf3b28432d412ec8bcda2` |
+| 4 | `voteRoundRecordsBallotCallsAndSummarySequence` | **0** | **`OK (1 test)`** | 1.842 | ⚠️ **未 pull** | — | — |
+
+⚠️⚠️⚠️ **第 4 条只有旁证、没有 app 侧主证据**：
+有 `am instrument` 原始日志（退出码 `0`、`OK (1 test)`、`Time: 1.842`）
+＋ mock 服务端独立记录（`t4-mock-requests.jsonl`，3 条）；
+**没有** app 自己写出的 `c1-live-evidence-vote.json`——**本轮没 pull**。
+app **未被卸载**，那份 JSON **按理应仍在设备**
+`/sdcard/Android/data/heizige.kk.khatkit.debug/files/`，**可补拉**。
+⚠️ **旁证 ≠ 主证据**：服务端日志能证明「请求发出去了、服务端按预期回了」，
+**不能**证明「app 落库 / 解析 / 多数决出了什么」。
+⚠️ 顺带一个**必须说清的口径**：服务端日志里的
+`ballot_in_candidates=true` / `parse_ballot_accepted=true`
+**是 mock 服务端自己算的**（`mock_openai_v2.py` 解析自己发出的回复文本），
+**不是 app 侧的断言结果**——**不能当成 app 解析成功的证据**。
+
+**③ 前 3 条的实际数字**：
+
+- **t1 pipeline**：**3 次真实 HTTP 调用**，wire 模型名依次 `mock-model-a` →
+  `mock-model-b` → `mock-model-c`，`stream=true`；usage a `201/34`、b `235/34`、
+  c `235/34` ⇒ **`Σ(prompt+completion) = 773`**，落库 `group_runs.spent_tokens = 773`，
+  **逐条相等**。✅ **这个 773 与 `c1-group-chat.md` C1-02 早已登记的 `773`
+  （及其 `235 + 269 + 269` 逐项拆分）逐字节一致**。
+- **t2 预算**：`token_budget_per_round=1` ⇒ **恰好 1 次调用**（服务端独立记录确认只收到
+  1 个请求），B/C 被 skip，`msg_count=2`，`status=BUDGET_STOPPED`、
+  `spent_tokens=236`、`token_limit=1`、`reason=token_budget_exceeded` ⇒ **截断正确**。
+- **t3 roundtable**：**议长 C `prompt_tokens=274` vs A/B 各 `203`** ⇒
+  **`chairRound` 的可见性放宽在真实 prompt 字节里可见**；
+  `turn_kind` a/b = `speaker`、c = `chair`，`chair_role_id=c`；
+  **`Σ = 239 + 239 + 310 = 788`**，落库 `spent_tokens = 788`，**逐条相等**。
+  ⚠️ **788 这个数此前没在文档登记过**（旧登记只有 pipeline 773 / budget 236）；
+  ⚠️ 且它是 **mock 估算口径**（`ceil(bytes/4)`），**不是真实模型推理**。
+
+**④ wire 级模型名：真机复核到位了一半（硬理由①的进展与它仍不消的理由）**：
+
+- ✅ **t1/t3 两份 pulled JSON 里每条发言的 `wire_model_name` 是 `mock-model-a/b/c`
+  这种服务端自报串**，而同行 `model_id` 是**本地 UUID**
+  （`0c1c11ae-…000a` 等）；`bindings[].model_string_sent_on_wire` 也逐条记着这三个串
+  ⇒ **新增的 wire 优先逻辑在真机上生效了**（反查出来会是本地别名，不会恰好等于 wire 串）。
+- ⚠️⚠️ **一处订正，不能照抄「`wire_model_name_provenance` = `wire_response_model`」**：
+  t1/t2/t3 这三份 **mock** 证据 JSON 里**根本没有 `provenance` 字段**
+  （`grep -c provenance` = **0**）——该字段**只有真实网关那份证据的写出器才落**
+  （`C1LiveModelSequenceTest.kt:1933`），mock 两个写出器（`:1325` / `:1540`）
+  **只落 `wire_model_name`**。⇒ **上一批 ⑧ 那条判据只对真实网关那份 JSON 适用**。
+- ⚠️ **所以硬理由①仍不消**：硬理由①里「仪器测试一行都没跑过」「设备上那份证据仍是
+  反查值」这两条子理由**在 mock 下已消**，但**真实网关那次
+  `realProviderRoundRecordsGenuineTokenUsage` 还没在 wire 优先逻辑下重跑过**，
+  设备上那份 `c1-live-evidence-real-provider.json` **仍是反查值**。
+
+**⑤ 这一批消掉了什么 / 没消掉什么**：
+
+| 硬理由 | 本批之后 |
+|---|---|
+| ⑤ `C1LiveModelSequenceTest` 其余 4 条未全绿 | ✅ **已消**（⚠️ 第 4 条只有旁证） |
+| ① wire 优先逻辑未在真机复核 | ⚠️ **仍不消**：mock 下已复核，**真实网关下未复核** |
+| ② 真机 UI 端到端 | ❌ **零份不变** |
+| ③ 酒馆本体 | ❌ **零份不变** |
+| ④ 相机扫码 | ❌ **零份不变** |
+
+⚠️⚠️ **这四条跑的是 mock provider，不能替代真实网关那一轮**：
+「`C1LiveModelSequenceTest` 5 条都在真机绿过一次」**成立**；
+「10 行里有 10 行的路径被真机调用过」**不成立**。
+⚠️ **本批对台账声明值影响为零**：`45 类 / 491 例` 与锚点 `78 / 0 merges` **一个数都没动**
+（`c1_doc_stats.py` 本轮实测 `ledger` 仍 `45 行全部相等` / 合计 **491**）。
+⚠️ **工作区那两处不属于任何 agent 的未提交改动（`TavernMacroExpander.kt` modified、
+`C1GroupUiE2EFixtureTest.kt` untracked）全程未 add、未 commit、未修改。**
+⚠️ **下一位两件事**：① 把第 4 条的 `c1-live-evidence-vote.json` 从设备补拉回来；
+② 真机重跑 `realProviderRoundRecordsGenuineTokenUsage`（真实网关），
+把 `wire_model_name_provenance` 拉回来确认取值。
+
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
@@ -1595,6 +1692,14 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
       确认 `wire_model_name_provenance` 是 **`wire_response_model`**
       而不是 `uuid_reverse_lookup_fallback`。
       ⚠️ **当前设备上那份记的仍是反查值**——**这一条没有真机数字**。
+      ⚠️⚠️ **第十二批订正（HEAD `86e88970d`）：这条已经部分完成，但还没做完**——
+      **mock 下已在真机复核**（t1/t3 pulled JSON 的 `wire_model_name` =
+      `mock-model-a/b/c` 服务端自报串，同行 `model_id` 是本地 UUID ⇒ wire 优先生效）；
+      ⚠️ **真实网关那次仍未重跑**，设备上那份**仍是反查值** ⇒ **硬理由①不消**。
+      ⚠️ **另订正判据适用范围**：`wire_model_name_provenance` **在 mock 证据 JSON 里
+      根本不存在**（grep = 0），它只由真实网关的写出器落 ⇒ 上面那句判据**只对
+      `c1-live-evidence-real-provider.json` 适用**。详见「第十二批」与
+      `docs/eval/c1-group-chat.md`「C1 真机证据采集第七轮」。
       ⚠️ 顺带可一并验「旧 Room 库消息树能否反序列化新字段」（第 7 条那件），
       ⚠️ 但**别把 `wireModelName` 显示到 UI 上当成待办**——**没做，也不打算做**。
 3. **登记规则**
