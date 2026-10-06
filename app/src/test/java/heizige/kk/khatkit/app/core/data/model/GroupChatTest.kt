@@ -304,14 +304,19 @@ class GroupChatTest {
     }
 
     /**
-     * **已知假阳性，本轮只钉现状、不改行为。**
+     * 缺陷③ 已修：[parseBallot] 跳过 markdown 围栏代码块，块里的**示例** `VOTE:` 行不再算票。
      *
-     * `parseBallot` 不感知 markdown fence，也不感知引用：代码块里独占一行的示例 `VOTE: opt-a`
-     * 会被当成真票。契约没有要求区分代码块，修它要先定义一整套 markdown 感知规则
-     * （fence 配对、行内引用、缩进代码块…），所以这里只把现状钉住。
+     * 修前实测（`df560180` 钉的就是这两条现状）：第一段拿到的是 `"opt-a"`，而那是 fence 里的
+     * **示例**行。第二条形状更糟：模型后文里**真的投了** `opt-b`，`firstOrNull` 取的却是排在
+     * 前面的示例行——**真票被示例行顶替**，群里就这么记下了一票它没投过的选择。
+     *
+     * 为什么要修（不是学术问题）：群聊 prompt 本来就要把投票格式告诉模型（`候选：` / `VOTE: <id>`），
+     * 模型**很可能照抄格式示例**。它一旦在正文里带一个 ``` 格式说明块，那个示例就成了一票。
+     *
+     * 围栏的识别口径写在 [GroupChat.linesOutsideCodeFences] 的 KDoc 里。
      */
     @Test
-    fun `a vote line inside a code fence is still counted as a ballot`() {
+    fun `a vote line inside a code fence never becomes a ballot`() {
         val candidates = listOf("opt-a", "opt-b")
         val fenced = """
             这是示例格式，请照抄：
@@ -321,16 +326,179 @@ class GroupChatTest {
             我选 opt-b。
         """.trimIndent()
 
-        // 已知假阳性：fence 里的示例行被当真票。
-        assertEquals("opt-a", GroupChat.parseBallot(fenced, "alice", candidates)?.candidateId)
-        // 更糟的形状：模型**后文里真的投了** opt-b，但 fence 里的示例行排在前面，
-        // `firstOrNull` 取的是第一条，于是真票被示例行顶替。
+        // 修前拿到 `"opt-a"`（示例行被当真票）；修后这段输出没有独立的 `VOTE:` 行 → 无票。
+        assertNull(GroupChat.parseBallot(fenced, "alice", candidates))
+        // 更糟的形状：示例行在前、真票在后。修前真票被顶替成 `opt-a`，修后拿到 `opt-b`。
+        assertEquals(
+            "opt-b",
+            GroupChat.parseBallot("示例：\n```text\nVOTE: opt-a\n```\nVOTE: opt-b", "alice", candidates)
+                ?.candidateId,
+        )
+        // 波浪线围栏同样跳过，`~~~` 以上（4 个及以上）的等价标记一样算围栏。
+        assertNull(GroupChat.parseBallot("~~~\nVOTE: opt-a\n~~~", "alice", candidates))
+        assertNull(GroupChat.parseBallot("~~~~\nVOTE: opt-a\n~~~~", "alice", candidates))
+        assertNull(GroupChat.parseBallot("````text\nVOTE: opt-a\n````", "alice", candidates))
+        // 下面三条钉围栏文法本身。判别式有两种形状，分别说明：
+        // ① 闭围栏必须**同字符**——反引号闭不掉波浪线围栏。若把它错判成闭围栏，块内的
+        //    `VOTE: opt-a` 就跑到围栏外被收走，`firstOrNull` 会返回 `opt-a` 而不是 `opt-b`。
+        assertEquals(
+            "opt-b",
+            GroupChat.parseBallot("~~~\n```\nVOTE: opt-a\n~~~\nVOTE: opt-b", "alice", candidates)
+                ?.candidateId,
+        )
+        // ② 闭围栏**不得短于**开围栏（CommonMark）：4 个反引号开的块，3 个闭不掉。这条的
+        //    判别式**反过来**是 null——正确实现下整个块一直开到文本结尾（失败关闭），末尾
+        //    那票真票被一起吞掉；若错判成闭围栏，末尾那票就会被收走而暴露成 `opt-b`。
+        assertNull(GroupChat.parseBallot("````text\nVOTE: opt-a\n```\nVOTE: opt-b", "alice", candidates))
+        // ③ 闭围栏后面只许有空白：`` ```python `` 是块内容、不是闭围栏，后面真正的 ``` 才闭围栏。
+        //    若把 `` ```python `` 错判成闭围栏，块内的 `VOTE: opt-a` 就会赢。
+        assertEquals(
+            "opt-b",
+            GroupChat.parseBallot("```text\n```python\nVOTE: opt-a\n```\nVOTE: opt-b", "alice", candidates)
+                ?.candidateId,
+        )
+        // 反证：把内层标记换成**合法的**闭围栏（长度相同、其后只有空白），那一票立刻算数。
+        assertEquals(
+            "opt-b",
+            GroupChat.parseBallot("````text\nVOTE: opt-a\n````\nVOTE: opt-b", "alice", candidates)
+                ?.candidateId,
+        )
+    }
+
+    /**
+     * 围栏配对不完整时**失败关闭**（fail-closed）：只有开围栏、没有闭围栏时，开围栏之后的行
+     * 一律当代码丢掉。
+     *
+     * 两种口径都有代价，选 fail-closed 的理由逐条：
+     *  1. **损害不同量级**。伪造出来的一票会被 [GroupChat.tally] 照单全收，可能直接产出一个
+     *     **错误的胜者**并署名给某个真实角色，而链路上没有任何一处还能把它认出来。丢一票则是
+     *     本模块**早就在生产**的结果：`GroupTurnCoordinator.collectBallots` 对
+     *     `turnKind == TURN_ERROR` 的节点、对候选集外的票，本来就是静默不收票。
+     *  2. **未闭合的主因是截断**，而截断恰恰意味着「模型还没来得及说真票」。要构造出
+     *     「围栏没闭合、后面还跟着一票真票」，得先假设输出**没有**被截断——可那样它就该把
+     *     围栏闭上。两种场景近乎互斥，所以 fail-open 要防的那种损害，在真实输入里主要就落在
+     *     「模型正在演示格式、正文被截断」这一种上，而那恰恰是 fail-closed 要挡的。
+     *  3. **损害有界**。fail-closed 最多让一个角色在这一轮没有票（开围栏之后的全部内容被忽略），
+     *     不跨轮传播；全轮都没票时 [GroupChat.tally] 判 [VoteOutcome.Invalid]「没有有效选票」，
+     *     是一次**响亮、可归因、可重试**的失败。
+     *  4. **与本模块既有默认一致**。平票按 [GroupChat.TIE_FAIL] 判本轮失败而不猜、预算到点
+     *     [RoundBudget.Stop] 而不是 `Continue`、上一轮 `parseCandidates` 首行没有声明就判无候选集
+     *     （本轮判失败）而不去正文深处搜——全是「宁可判失败，也不猜」。
+     *
+     * 第 1 条的代价要说清楚：只有**全轮都没票**时才会落到 `Invalid`；别的角色有票的话本轮照样
+     * 按剩下的票计，只是不含这一票——这与「失败节点不投票」那条既有口径同一种损害。
+     */
+    @Test
+    fun `an unclosed code fence swallows the rest of the message fail closed`() {
+        val candidates = listOf("opt-a", "opt-b")
+        // 典型输入：输出被 max_tokens 截断，只有开围栏没有闭围栏。示例行不得成为票。
+        assertNull(
+            GroupChat.parseBallot("格式如下：\n```text\nVOTE: opt-a\nVOTE: opt-b|我的理由", "alice", candidates),
+        )
+        // fail-closed 的代价也显式钉住：开围栏**之后**的合法票一样丢（不是「真票优先」）。
+        assertNull(GroupChat.parseBallot("我先说结论\n```\n\n```忘了关\nVOTE: opt-b", "alice", candidates))
+        // 方向是失败关闭：本轮一个角色都没票时 `tally` 判 Invalid「没有有效选票」，
+        // 而不是把示例行算成票再产出一个胜者。
+        assertEquals(
+            VoteOutcome.Invalid("没有有效选票"),
+            GroupChat.tally(emptyList(), candidates, GroupChat.TIE_FAIL),
+        )
+    }
+
+    /**
+     * fail-closed 的作用域**只到开围栏那一行为止**：它之前的行照旧扫，闭围栏之后的行也照旧扫。
+     * 所以「先投票、后贴格式示例」这个最常见的正常形状一点没受影响。
+     */
+    @Test
+    fun `votes before and after a closed code fence still count`() {
+        val candidates = listOf("opt-a", "opt-b")
+        // 票在开围栏之前 → 照收（哪怕后面的围栏压根没闭合）。
         assertEquals(
             "opt-a",
-            GroupChat.parseBallot("示例：\n```text\nVOTE: opt-a\n```\nVOTE: opt-b", "alice", candidates)?.candidateId,
+            GroupChat.parseBallot("VOTE: opt-a\n格式如下：\n```text\nVOTE: opt-b", "alice", candidates)
+                ?.candidateId,
         )
-        // 顺带钉住另一个相邻事实：`startsWith` 是整行前缀匹配，行内出现不算票。
+        // 票在闭围栏之后 → 照收，且**优先于**块内的示例行。
+        assertEquals(
+            "opt-b",
+            GroupChat.parseBallot("```text\nVOTE: opt-a\n```\nVOTE: opt-b", "alice", candidates)
+                ?.candidateId,
+        )
+        // 反过来：块后没有票就只有块内示例 → 无票（钉「示例不顶替真票」这条）。
+        assertNull(GroupChat.parseBallot("```text\nVOTE: opt-a\n```\n我选 opt-b。", "alice", candidates))
+    }
+
+    /**
+     * `parseCandidates` 的围栏处置：**不上状态机，只加一条窄守卫**。
+     *
+     * 为什么不需要状态机（结构上证明，不是「懒得改」）：判据只看
+     * `lineSequence().firstOrNull { it.isNotBlank() }`，也就是**第一个非空行**。而某一行要落在围栏
+     * **里面**，必须由**更早的一行**开围栏；第一个非空行之前只有空行，空行里藏不下围栏标记
+     * （含反引号或波浪号的行不是空行）。所以「第一个非空行落在围栏内部」这个状态**根本到不了**：
+     * 要么第一个非空行**就是**开围栏那行（它自己匹配不上声明正则 → 空候选集），要么它前面没有开围栏。
+     * 两条路都已经是失败关闭，跑完整状态机会是**够不到的死代码**。
+     *
+     * 对照面很清楚：`parseBallot` 扫的是**整条消息**取第一条命中，所以它结构上**是**暴露的——
+     * 这正是它那边要上状态机的原因。两条路径的暴露面不同，这就是处置不同的全部理由。
+     *
+     * ⚠️ 但**真有一个**同类假阳性漏到了这边，就在本组用例的中间那几条：声明写在**闭围栏那一行
+     * 自己身上**（`~~~ 候选：a,b\n~~~`）。修前实测拿到的是 `[a, b]`——块里的示例成了本轮候选集。
+     * 它够不到围栏**内部**，但确实是「围栏分隔行被当正文读」，与 `parseBallot` 修掉的那一个**完全同类**，
+     * 所以用一条「声明行自己不能是围栏标记」的窄守卫堵掉。危害本来就小（形态怪、且方向是失败关闭：
+     * 判成空候选集 → 本轮判失败），但两条路径的围栏文法必须一致，否则下一个「顺手也加个围栏判断」
+     * 的人会踩到互相矛盾的两套口径。
+     */
+    @Test
+    fun `a candidate declaration can never sit inside a code fence`() {
+        // 开围栏那行本身就是第一个非空行 → 匹配不上声明正则 → 空候选集。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("```\n候选：a,b\n```"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("```text\n候选：a,b\n```"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("~~~\n候选：a,b\n~~~"))
+        // 只有开围栏、没有闭围栏，同上（空候选集而不是去块里捞）。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("```\n候选：a,b"))
+        // 声明与开围栏挤在同一行 → 前缀是反引号，`^(?:候选|…)` 锚不上 → 空候选集。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("```候选：a,b"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("~~~候选：a,b"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("~~~ 候选：a,b"))
+        // ⚠️ 本轮新堵的那一个：**闭围栏那一行自己**带着声明。修前实测 `= [a, b]`。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("~~~ 候选：a,b\n~~~"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("``` 候选：a,b\n```"))
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("```` 候选：a,b\n````"))
+        // 波浪线之外的等价标记同样算围栏标记（4 个及以上），所以这条窄守卫对两者一视同仁。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("~~~~ 候选：a\n~~~~"))
+        // 反向对照：围栏**外面**、且落在第一个非空行的声明照旧算数（证明上面不是把声明掐了）。
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：a,b\n```\n候选：c,d\n```"))
+        // 反过来，闭围栏**之后**那行声明同样够不到——判据只看第一个非空行，开围栏那行已经占掉了它。
+        // ⚠️ 这是「首个非空行」那条**既有主判据**带来的限制，不是围栏感知带来的新限制。
+        assertEquals(emptyList<String>(), GroupChat.parseCandidates("```\n候选：a,b\n```\n候选：c"))
+    }
+
+    /**
+     * 反向对照（防「一刀切拦过头」）：围栏之外的语义**一条都没动**，下面这些输入改前改后逐字一致。
+     */
+    @Test
+    fun `votes outside code fences keep exactly the behaviour they had before`() {
+        val candidates = listOf("opt-a", "opt-b")
+        // 独占一行的 `VOTE: <id>` 照收，含小写 `vote:`（`ignoreCase`）与缩进（本来就逐行 trim）。
+        assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a", "alice", candidates)?.candidateId)
+        assertEquals("opt-b", GroupChat.parseBallot("vote: opt-b", "alice", candidates)?.candidateId)
+        assertEquals("opt-a", GroupChat.parseBallot("    VOTE: opt-a", "alice", candidates)?.candidateId)
+        // 竖线后的理由照旧解析。
+        assertEquals(
+            VoteBallot("alice", "opt-b", "因为乙更稳"),
+            GroupChat.parseBallot("VOTE: opt-b|因为乙更稳", "alice", candidates),
+        )
+        // 行内出现仍不算票（`startsWith` 是整行前缀匹配）。
         assertNull(GroupChat.parseBallot("我选 VOTE: opt-b", "alice", candidates))
+        assertNull(GroupChat.parseBallot("请用 VOTE: <id> 的格式", "alice", candidates))
+        // 行内代码里的 `VOTE:` 仍不算票——两条都不满足 `startsWith`，所以**没有为它改任何行为**。
+        assertNull(GroupChat.parseBallot("格式是 `VOTE: <id>` 这样", "alice", candidates))
+        assertNull(GroupChat.parseBallot("``VOTE: opt-a``", "alice", candidates))
+        // 候选集外的票照旧丢；压根没有 `VOTE:` 行也照旧是票。
+        assertNull(GroupChat.parseBallot("VOTE: opt-z", "alice", candidates))
+        assertNull(GroupChat.parseBallot("我选 opt-b", "alice", candidates))
+        // 反引号不足 3 个不构成围栏标记 → 那行之后的内容照旧被扫。
+        assertEquals("opt-a", GroupChat.parseBallot("``\nVOTE: opt-a", "alice", candidates)?.candidateId)
     }
 
     @Test

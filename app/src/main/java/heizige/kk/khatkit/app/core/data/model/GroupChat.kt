@@ -784,15 +784,31 @@ object GroupChat {
      * 声明就只认它，首行没有就判无候选集（本轮判失败），不猜。
      *
      * `firstOrNull` 语义不变：只取一条声明，绝不跨行收集。
+     *
+     * **为什么这里不需要 [linesOutsideCodeFences] 那种围栏状态机**（问过、结论记在这）：
+     * 判据只看 `lineSequence().firstOrNull { it.isNotBlank() }`，也就是**第一个非空行**。而某一行要
+     * 落在围栏**里面**，必须由**更早的一行**开围栏；第一个非空行之前只有空行，空行里藏不下围栏标记
+     * （含反引号或波浪号的行不是空行）。所以「第一个非空行落在围栏内部」这个状态**根本到不了**：
+     * 要么第一个非空行**就是**开围栏那行（匹配不上声明正则 → 空候选集），要么它前面没有开围栏。
+     * 两条路都已经是失败关闭。对照面：`parseBallot` 扫的是**整条消息**取第一条命中，所以它结构上
+     * **是**暴露的——这正是它那边要上状态机的原因。两条路径的暴露面不同，这就是处置不同的全部理由。
+     *
+     * ⚠️ 唯一**真的**漏到这里的形状是**闭围栏那一行自己**带着声明（`~~~ 候选：a,b ~~~`）——所以下面
+     * 只加一条「声明行自己不能是围栏标记」的窄守卫。它够不到围栏**内部**，但堵住了「围栏分隔行被
+     * 当正文读」这个与 `parseBallot` **完全同类**的假阳性；跑完整状态机会是死代码。
      */
     fun parseCandidates(text: String): List<String> {
         // 正则只作用在**首个非空行**这一行上。不能改成 `(?i)\A\s*`——`\s` 含 `\n`，
         // `\A\s*` 会跨过空行把后面某一行的声明照样捞进来，等于没改。
         val declaration = text.lineSequence().firstOrNull { it.isNotBlank() } ?: return emptyList()
+        val trimmed = declaration.trim()
+        // 声明行自己就是围栏标记 → 不是声明（`~~~ 候选：a,b ~~~` 修前会被收成 `[a, b]`）。
+        // `CODE_FENCE_MARKER` 是 `^` 锚定的，所以这条判据就是「这一行以围栏标记开头」。
+        if (CODE_FENCE_MARKER.containsMatchIn(trimmed)) return emptyList()
         val match = Regex(
             "^(?:候选|候选项|CANDIDATES?)\\s*[:：]\\s*(.+)$",
             RegexOption.IGNORE_CASE,
-        ).find(declaration.trim()) ?: return emptyList()
+        ).find(trimmed) ?: return emptyList()
         return match.groupValues[1]
             .split(',', '，', '|', '、')
             .map(::normalizeCandidateId)
@@ -902,10 +918,20 @@ object GroupChat {
 
     // ---------------- 结构化投票 ----------------
 
-    /** 只接受候选集内的 `VOTE: <candidate_id>`；其余一律视为无票，不猜。 */
+    /**
+     * 只接受候选集内的 `VOTE: <candidate_id>`；其余一律视为无票，不猜。
+     *
+     * 扫描范围是**围栏代码块之外**的全部行（见 [linesOutsideCodeFences]）。修前扫的是整条消息，
+     * 于是 markdown 代码块里独占一行的**示例** `VOTE: opt-a` 会被当成真票；更糟的形状是
+     * `firstOrNull` 取**第一条**命中，示例行排在前面时会把模型后文里**真的投了**的那票顶替掉——
+     * 群里就这么记下了一票它没投过的选择。群聊 prompt 本来就要把投票格式告诉模型
+     * （`候选：` / `VOTE: <id>`），模型**很可能照抄格式示例**，所以这不是学术问题。
+     *
+     * **不改**的两处：行内出现（`我选 VOTE: opt-b`）与行内代码（`` `VOTE: <id>` ``）本来就不满足
+     * `startsWith`，照旧不算票——没有为它们加任何规则。
+     */
     fun parseBallot(text: String, roleId: String, candidates: List<String>): VoteBallot? {
-        val line = text.lineSequence()
-            .map { it.trim() }
+        val line = linesOutsideCodeFences(text)
             .firstOrNull { it.startsWith(BALLOT_PREFIX, ignoreCase = true) }
             ?: return null
         // 前缀是忽略大小写匹配的，截断也必须同样忽略大小写：否则 `vote: opt-a` 会因为
@@ -915,6 +941,55 @@ object GroupChat {
         if (id !in candidates) return null
         val reason = body.substringAfter('|', "").trim()
         return VoteBallot(roleId = roleId, candidateId = id, reason = reason)
+    }
+
+    /**
+     * markdown 围栏标记行：**3 个及以上**连续的 ` 或 ~，其后允许跟 info string
+     * （` ```text ` / ` ```python `）。`^` 锚定，所以 `containsMatchIn` 的含义就是「该行以围栏标记开头」。
+     */
+    private val CODE_FENCE_MARKER = Regex("^(`{3,}|~{3,})(.*)$")
+
+    /**
+     * 只返回**围栏代码块之外**的行（逐行 `trim()`）；围栏内的行、以及开/闭围栏行本身都丢掉。
+     *
+     * 存在的理由见 [parseBallot] 的 KDoc。口径逐条说清（含代价）：
+     *  - **闭合**条件（CommonMark）：与开围栏**同字符**、**不短于**开围栏、其后**只有空白**。
+     *    所以 `` ```python `` 只是块内容而不是闭围栏，4 个反引号开的块闭不掉在 3 个上。
+     *  - **开围栏**条件故意比 CommonMark **松**（后者只容许 3 个以内前导缩进，且反引号 info string
+     *    里不许再出现反引号）：票面匹配本来就逐行 `trim()`，若围栏判据更严，就会出现「票照样收、
+     *    块里的示例照样收」的自相矛盾。判严的收益只是少跳过一点代码，代价却是两条路都可能命中，
+     *    收益不抵代价。
+     *  - **未闭合的围栏按「一直开到文本结尾」处理，即失败关闭（fail-closed）**。选它的理由写在
+     *    `an unclosed code fence swallows the rest of the message fail closed` 那条用例的 KDoc 里：
+     *    少一票会落到 [VoteOutcome.Invalid]「没有有效选票」这种响亮失败，而多一票可能被算成某个
+     *    角色的真票并产出错误胜者，且链路上没有任何一处还能把它认出来。
+     *  - **刻意不处理缩进代码块（四空格）与引用块（`>`）**：它们同样可能藏着示例，但补进去要再定一
+     *    整套规则，缩进代码块还要求「前一行是空行」，判据更脆。本轮只处理围栏——围栏是模型贴格式
+     *    示例时用得最多、也是漏票代价最高的那种。
+     */
+    private fun linesOutsideCodeFences(text: String): List<String> = buildList {
+        // null = 当前不在围栏里；非 null = 围栏字符（` 或 ~）。
+        var openChar: Char? = null
+        var openLength = 0
+        for (raw in text.lineSequence()) {
+            val line = raw.trim()
+            val fence = CODE_FENCE_MARKER.find(line)
+            val marker = fence?.groupValues?.get(1)
+            if (openChar == null) {
+                if (marker == null) {
+                    add(line)
+                } else {
+                    openChar = marker[0]
+                    openLength = marker.length
+                }
+            } else if (marker != null && marker[0] == openChar &&
+                marker.length >= openLength && fence.groupValues[2].isBlank()
+            ) {
+                openChar = null
+                openLength = 0
+            }
+            // 围栏内的其它行、以及开/闭围栏行本身，都不进正文。
+        }
     }
 
     /** 多数决。同一角色重复投票只算最后一票；平票按 `tiePolicy`。 */
