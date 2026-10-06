@@ -19,16 +19,32 @@ Environment variables (all optional):
   MOCK_PORT       listen port (default 8766)
   MOCK_DELAYS     per-role seconds between content chunks, e.g. "A:0.02,B:0.5,C:0.1"
                   (first content chunk is always immediate; default "A:0.02,B:0.5,C:0.1")
-  MOCK_EMPTY_ROLE role code whose FIRST request returns HTTP 200 with **zero content
-                  chunks** (default "B"; empty to disable). This is the production
+  MOCK_FAIL_ROLE  role code whose FIRST request returns HTTP 500 (default "" = disabled).
+                  The test disables `networkSetting.enableAutoRetry`, so the 500 is
+                  NOT replayed to the next provider — it propagates to the production
+                  failure path (FAILED/role_failed + error node).
+  MOCK_EMPTY_ROLE role code whose FIRST request returns HTTP 200 with a valid SSE
+                  stream that has **zero content events** (default "B"; empty to
+                  disable): role-only opener -> finish_reason=stop -> usage-only
+                  trailer -> data: [DONE]. This is the production
                   "本轮没有产出内容" path (GroupTurnCoordinator/commitGroupTurn), which
                   writes a real error node + FAILED/role_failed run row.
   MOCK_PAD        extra padding characters appended to the reply per role, e.g. "B:400"
   MOCK_LOG_DIR    directory for requests.jsonl (default /tmp/opencode/c1-cancel)
 
+Every request record in requests.jsonl now carries the **actually sent**
+`http_status` and a `body_summary` (for SSE: frame shape + content-chunk count),
+so the log proves what the server wrote, not only what it intended to inject.
+
+`POST /__reset` (also `GET /__reset`) clears the in-process `failed_once` set and
+returns `{"reset": true, "cleared": [...]}`. Reuse a long-lived server across test
+attempts and still get the injection for the same role on the next attempt; no
+server restart needed.
+
 Wire shape is copied from mock_openai_v2.py (proven against the real app):
-role-only opener, 24-byte content chunks with flush, finish_reason chunk,
-usage-only trailer, data: [DONE], Connection: close.
+role-only opener, 24-**character** content chunks with flush (a CJK chunk is
+~72 bytes on the wire), finish_reason chunk, usage-only trailer, data: [DONE],
+Connection: close.
 """
 
 import json
@@ -85,8 +101,12 @@ def parse_pads():
 PADS = parse_pads()
 
 write_lock = threading.Lock()
+# in-process set of roles whose one-shot injection (500 or empty) was already consumed.
+# Cleared by `/__reset` so a long-lived server can serve repeated test attempts.
 failed_once = set()
 seq_counter = 0
+
+CHUNK_CHARS = 24
 
 
 def write_record(record):
@@ -94,6 +114,35 @@ def write_record(record):
     with write_lock:
         with open(LOG_PATH, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def split_chunks(text):
+    """按**字符**切片（与 wire 上的字节数无关；中文一块约 72 字节）。"""
+    return [text[i:i + CHUNK_CHARS] for i in range(0, len(text), CHUNK_CHARS)]
+
+
+def claim_injection(role):
+    """原子占用一次注入机会，返回 True 仅当本次调用成功占用。
+
+    ⚠️ check-then-add 必须在 write_lock 内：否则并发到达的两个请求会同时看到
+    `role not in failed_once`，双双注入。三角色串行时碰不到，但
+    ThreadingHTTPServer 允许并发，这里按并发正确性写。
+    """
+    if not role:
+        return False
+    with write_lock:
+        if role in failed_once:
+            return False
+        failed_once.add(role)
+        return True
+
+
+def reset_injections():
+    """清空 failed_once，返回被清掉的角色列表（供 /__reset 回显）。"""
+    with write_lock:
+        cleared = sorted(failed_once)
+        failed_once.clear()
+    return cleared
 
 
 def extract_speaker(body_obj):
@@ -139,8 +188,29 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
         self.close_connection = True
 
+    def _is_reset_path(self):
+        return self.path.split("?", 1)[0].rstrip("/").endswith("/__reset")
+
+    def _handle_reset(self):
+        cleared = reset_injections()
+        record = {"seq": None, "ts": time.time(), "event": "__reset", "cleared": cleared}
+        write_record(record)
+        sys.stderr.write("[mock-slow] __reset cleared failed_once=%s\n" % cleared)
+        sys.stderr.flush()
+        self._json(200, {"reset": True, "cleared": cleared})
+
+    def do_GET(self):
+        if self._is_reset_path():
+            self._handle_reset()
+            return
+        self._json(404, {"error": "not found: %s" % self.path})
+
     def do_POST(self):
         global seq_counter
+        if self._is_reset_path():
+            self._handle_reset()
+            return
+
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length) if length else b""
         try:
@@ -156,10 +226,13 @@ class Handler(BaseHTTPRequestHandler):
             seq_counter += 1
             seq = seq_counter
 
-        injected_fail = False
-        if FAIL_ROLE and speaker == FAIL_ROLE and speaker not in failed_once:
-            failed_once.add(speaker)
-            injected_fail = True
+        if claim_injection(FAIL_ROLE if speaker == FAIL_ROLE else ""):
+            error_body = {"error": {
+                "message": "c1-cancel mock injected 500 for role %s (first request)" % speaker,
+                "type": "server_error",
+                "code": "mock_injected_failure",
+            }}
+            body_summary = json.dumps(error_body, ensure_ascii=False)
             record = {
                 "seq": seq,
                 "ts": time.time(),
@@ -168,27 +241,44 @@ class Handler(BaseHTTPRequestHandler):
                 "model": requested_model,
                 "stream": stream,
                 "injected_http_500": True,
+                "http_status": 500,
+                "body_summary": body_summary[:240],
                 "raw_body_bytes": len(raw),
             }
             write_record(record)
-            sys.stderr.write("[mock-slow] seq=%d speaker=%s INJECTED HTTP 500\n" % (seq, speaker))
+            sys.stderr.write("[mock-slow] seq=%d speaker=%s INJECTED HTTP 500 "
+                             "actual_status=500 body=%s\n"
+                             % (seq, speaker, body_summary[:120]))
             sys.stderr.flush()
-            self._json(500, {"error": {
-                "message": "c1-cancel mock injected 500 for role %s (first request)" % speaker,
-                "type": "server_error",
-                "code": "mock_injected_failure",
-            }})
+            self._json(500, error_body)
             return
 
         # Zero-content stream for the first request of EMPTY_ROLE: production writes
         # "本轮没有产出内容" -> FAILED/role_failed + a real error node.
-        injected_empty = False
-        if EMPTY_ROLE and speaker == EMPTY_ROLE and speaker not in failed_once:
-            failed_once.add(speaker)
-            injected_empty = True
+        # Truly zero content events: opener -> finish -> usage-only trailer -> [DONE].
+        if claim_injection(EMPTY_ROLE if speaker == EMPTY_ROLE else ""):
             prompt_tokens = max(1, len(raw) // 4)
             usage = {"prompt_tokens": prompt_tokens, "completion_tokens": 0,
                      "total_tokens": prompt_tokens}
+            response_id = "chatcmpl-mockslow-empty-%d" % seq
+            response_body = {
+                "id": response_id,
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": requested_model,
+                "choices": [{
+                    "index": 0,
+                    "message": {"role": "assistant", "content": ""},
+                    "logprobs": None,
+                    "finish_reason": "stop",
+                }],
+                "usage": usage,
+            }
+            body_summary = (
+                "SSE 200: role-only opener; content chunks=0; finish_reason=stop; "
+                "usage-only trailer; data: [DONE]"
+                if stream else json.dumps(response_body, ensure_ascii=False)
+            )
             record = {
                 "seq": seq,
                 "ts": time.time(),
@@ -197,29 +287,20 @@ class Handler(BaseHTTPRequestHandler):
                 "model": requested_model,
                 "stream": stream,
                 "injected_empty_output": True,
+                "http_status": 200,
+                "body_summary": body_summary[:240],
                 "raw_body_bytes": len(raw),
                 "usage": usage,
             }
             write_record(record)
-            sys.stderr.write("[mock-slow] seq=%d speaker=%s INJECTED EMPTY OUTPUT\n" % (seq, speaker))
+            sys.stderr.write("[mock-slow] seq=%d speaker=%s INJECTED EMPTY OUTPUT "
+                             "actual_status=200 body=%s\n"
+                             % (seq, speaker, body_summary[:120]))
             sys.stderr.flush()
             if stream:
-                self._respond_stream("chatcmpl-mockslow-empty-%d" % seq, requested_model,
-                                     "", usage, speaker)
+                self._respond_stream(response_id, requested_model, [], usage, speaker)
             else:
-                self._json(200, {
-                    "id": "chatcmpl-mockslow-empty-%d" % seq,
-                    "object": "chat.completion",
-                    "created": int(time.time()),
-                    "model": requested_model,
-                    "choices": [{
-                        "index": 0,
-                        "message": {"role": "assistant", "content": ""},
-                        "logprobs": None,
-                        "finish_reason": "stop",
-                    }],
-                    "usage": usage,
-                })
+                self._json(200, response_body)
             return
 
         pad = "补" * PADS.get(speaker, 0)
@@ -233,6 +314,26 @@ class Handler(BaseHTTPRequestHandler):
             "completion_tokens": completion_tokens,
             "total_tokens": prompt_tokens + completion_tokens,
         }
+        response_id = "chatcmpl-mockslow-%d" % seq
+        pieces = split_chunks(reply_text)
+        response_body = {
+            "id": response_id,
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": requested_model,
+            "choices": [{
+                "index": 0,
+                "message": {"role": "assistant", "content": reply_text},
+                "logprobs": None,
+                "finish_reason": "stop",
+            }],
+            "usage": usage,
+        }
+        body_summary = (
+            "SSE 200: role-only opener; content chunks=%d; finish_reason=stop; "
+            "usage-only trailer; data: [DONE]" % len(pieces)
+            if stream else json.dumps(response_body, ensure_ascii=False)
+        )
         record = {
             "seq": seq,
             "ts": time.time(),
@@ -241,35 +342,30 @@ class Handler(BaseHTTPRequestHandler):
             "model": requested_model,
             "stream": stream,
             "injected_http_500": False,
+            "http_status": 200,
+            "body_summary": body_summary[:240],
             "raw_body_bytes": len(raw),
             "reply_bytes": completion_bytes,
             "usage": usage,
             "delay_per_chunk": DELAYS.get(speaker, 0.1),
         }
         write_record(record)
-        sys.stderr.write("[mock-slow] seq=%d speaker=%s stream=%s usage=%s\n"
-                         % (seq, speaker, stream, usage))
+        sys.stderr.write("[mock-slow] seq=%d speaker=%s stream=%s actual_status=200 "
+                         "body=%s usage=%s\n"
+                         % (seq, speaker, stream, body_summary[:120], usage))
         sys.stderr.flush()
 
-        response_id = "chatcmpl-mockslow-%d" % seq
         if stream:
-            self._respond_stream(response_id, requested_model, reply_text, usage, speaker)
+            self._respond_stream(response_id, requested_model, pieces, usage, speaker)
         else:
-            self._json(200, {
-                "id": response_id,
-                "object": "chat.completion",
-                "created": int(time.time()),
-                "model": requested_model,
-                "choices": [{
-                    "index": 0,
-                    "message": {"role": "assistant", "content": reply_text},
-                    "logprobs": None,
-                    "finish_reason": "stop",
-                }],
-                "usage": usage,
-            })
+            self._json(200, response_body)
 
-    def _respond_stream(self, response_id, model, text, usage, speaker):
+    def _respond_stream(self, response_id, model, pieces, usage, speaker):
+        """SSE 形状：role-only opener -> content 块* -> finish_reason -> usage 尾块 -> [DONE]。
+
+        `pieces` 由调用方预先切好，**空列表表示真正零个 content 事件**（零内容注入路径）；
+        这样 requests.jsonl 里记的 `body_summary` 与实际写出的帧逐字一致。
+        """
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
@@ -288,7 +384,6 @@ class Handler(BaseHTTPRequestHandler):
         })
 
         delay = DELAYS.get(speaker, 0.1)
-        pieces = [text[i:i + 24] for i in range(0, len(text), 24)] or [""]
         for i, piece in enumerate(pieces):
             if i > 0 and delay > 0:
                 time.sleep(delay)
@@ -317,8 +412,9 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     server.daemon_threads = True
-    sys.stderr.write("[mock-slow] listening on 0.0.0.0:%d log=%s fail_role=%s delays=%s\n"
-                     % (PORT, LOG_PATH, FAIL_ROLE, DELAYS))
+    sys.stderr.write("[mock-slow] listening on 0.0.0.0:%d log=%s fail_role=%r "
+                     "empty_role=%r delays=%s\n"
+                     % (PORT, LOG_PATH, FAIL_ROLE, EMPTY_ROLE, DELAYS))
     sys.stderr.flush()
     try:
         server.serve_forever()
