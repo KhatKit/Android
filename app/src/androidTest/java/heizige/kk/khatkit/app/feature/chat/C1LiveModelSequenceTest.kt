@@ -1169,6 +1169,8 @@ class C1LiveModelSequenceTest {
      * - `message.usage` 是网关按真实分词返回的 `input_tokens` / `output_tokens`；
      * - `message.modelId` 是 `resolveGroupTurnModelId` / `TaskRoutes.resolve`
      *   真正为该角色选中的模型 uuid；
+     * - `message.wireModelName` 是网关响应体 / SSE 帧顶层 `model` 字段里的**原样字符串**，
+     *   与 `modelId`（本地配置 uuid）是两回事，见下面「模型名从哪来」一节；
      * - 走的还是那份配置的原生路径：`POST /chat/completions` + `stream_options.include_usage`，
      *   usage 由 SSE 收尾块解析（`ChatCompletionsAPI` 的 `parseTokenUsage`）。
      *
@@ -1179,43 +1181,46 @@ class C1LiveModelSequenceTest {
      * （三个角色都退回会话的 `chatModelId`），序列会塌成同一个模型三遍，断言当场失败。
      * 所以这一条同时压住了「路由按角色选型」与「真实调用真的发生」两件事。
      *
-     * ## `actual_model_call_sequence` 里的模型名**不是 wire 级抓包**（C7）
+     * ## `actual_model_call_sequence` 里的模型名从哪来（wire 优先）
      *
-     * 报告里 `provider_model_table` 那行 `wire_model_string` 字段名很容易让人以为这是
-     * 「从网线上抓下来的模型名」。**它不是。** 完整来源链路是：
+     * 每条发言记**两个**模型名字段，两条来源都留，方便对账：
      *
-     * ```
-     * 群配置里角色绑的 model uuid（config.roles[i].modelId）
-     *   → TaskRoutes.resolve / resolveGroupTurnModelId 选型
-     *   → 落进 UIMessage.modelId（一个 uuid，不是模型名）
-     *   → 本测试拿 uuid 去 realProvider.models 里反查
-     *   → 得到 model.modelId（真正发到 wire body 里的那个字符串）
-     * ```
+     * - `wire_model_name`：**首选**。网关响应体 / SSE 帧顶层 `model` 字段里的原样字符串，
+     *   由 `StreamChunk.Finish` 落到 `UIMessage.wireModelName`，随对话 JSON 一起入库。
+     *   本用例的消息是**从库里读回来的**（`awaitAssistantMessages` 走
+     *   `repository.getConversationById(...).currentMessages`），所以这个值是**落盘后**的值。
+     * - `uuid_reverse_lookup_model_string`：`UIMessage.modelId`（本地配置 uuid）经
+     *   `realProvider.models` 反查出来的 `Model.modelId`。**仅在 wire 名为 null 时采信**。
      *
-     * 也就是说 `wire_model_string` 是**我们自己那张 provider 模型表里的字段**，
-     * 而 `actual_model_call_sequence` 是「按 uuid 反查自己那张表」的结果。
+     * 逐条还有 `wire_model_name_provenance`：
      *
-     * **为什么不能做成 wire 抓包**：app **不持久化响应的 `model` 字段**。它只把
-     * `UIMessage.modelId`（uuid）存进数据库，响应体里网关回给的那个 `model` 字符串
-     * 解析完就丢掉了，既没落库也没进日志。所以即使真的直连公网（这个用例确实直连：
-     * 不走 `adb reverse`、不走本机 mock、不装抓包代理），也**没有任何第三方旁路记录**
-     * 能给出这一串名字。证据 JSON 里那行 `wire_model_name_provenance` 就是在如实写明这件事。
+     * | 取值 | 含义 |
+     * |---|---|
+     * | `wire_response_model` | 来自响应体 / SSE 帧原样字符串，这是 wire 级 |
+     * | `uuid_reverse_lookup_fallback` | **回退**：`wireModelName` 为 null，用 uuid 反查自己那张表 |
+     *
+     * ## 为什么还留着 uuid 反查这一条回退
+     *
+     * wire 名依赖网关**主动**报 `model` 字段。真网关不报时仍要能记下调用序列，所以留了回退；
+     * 但它**必须**被标成 `uuid_reverse_lookup_fallback`，不能让读者误以为那是网关回传的。
+     * 「两者皆空」（wire 名为 null 且 uuid 查不到）不允许静默通过——断言 1b 当场炸。
+     *
+     * ⚠️ `provider_model_table` 里那一列仍叫 `wire_model_string`，但它是**我们自己那张
+     * provider 模型表的字段**，不是网关回传的值；它只用来解释「uuid 对应哪个上线名」，
+     * 不能当成 wire 级观测（JSON 里已用 `local_table_field_not_gateway_echoed` 标出）。
      *
      * **因此它能证明**：真实网关确实被调用了（`message.usage` 是网关按真实分词返回的，
      * 见上面的 `token_source`）；`resolveGroupTurnModelId` / `TaskRoutes.resolve` 为每个角色
-     * 选出的** uuid** 确实随轮次推进而变化，且顺序与角色顺序一致；由那张表反查出来的
-     * `wire_model_string` 就是这些 uuid 各自对应的上线模型名 —— 也就是**「选型结果」这一层**。
+     * 选出的 **uuid** 确实随轮次推进而变化，且顺序与角色顺序一致；**网关自报的模型名**
+     * （`wire_model_name`）与那份期望序列一致——这一条是 wire 级的，来源就是响应里那个字段。
      *
-     * **因此它不能证明**：网关**实际上接受并按此执行**的就是这个字符串。请求体里的
-     * `model` 字段由同一张表经同一套 `TaskRoutes.resolve` 落成，与本测试的反查路径同源，
-     * 所以「反查」与「发送」一致这件事在代码层面自洽，但**这不是独立观测**。若某天
-     * 请求构造与模型表分叉（例如网关侧做了模型别名映射、或请求体里发的是别的字段），
-     * 这条证据**看不见**。要真正闭合这个缺口，需要在响应侧记录网关回传的 `model`
-     * （那是另一个改动，不在本用例范围内）。
+     * **因此它仍不能证明**：本用例**不是第三方抓包**——wire 名由 app 自己解析响应体取得，
+     * 没有任何网线侧旁路记录。app 侧的可信度由
+     * `ai/src/test/.../WireModelNameProvenanceTest.kt`（真实解码器 + 序列化往返）钉住，
+     * 网关侧的独立复核用 `tools/verification/c1_wire_model_probe.py` 另跑一次对账。
      *
-     * ⚠️ 别把这条读成「模型名未经核对」。核对确实发生了——但核对的是**我们自己**
-     * 「uuid ↔ 上线名」那张表的内部一致性，以及 uuid 序列与角色顺序的一致性；
-     * 它**不是**对 wire 上实际字符串的第三方观测。
+     * ⚠️ 别把这条读成「模型名未经核对」。核对发生了两轮：wire 名 vs 期望序列，
+     * 以及 wire 名 vs uuid 反查名（两者都记在 JSON 里，对不上能直接看出来）。
      *
      * ## 两个必须记住的坑
      *
@@ -1377,15 +1382,50 @@ class C1LiveModelSequenceTest {
             setOf(realFlashModel.id, realGlmModel.id),
             assistants.mapNotNull { it.modelId }.toSet(),
         )
+        // 模型名**优先读 wire 级**（网关响应体 / SSE 帧顶层 `model` 字段的原样字符串，
+        // 由 `StreamChunk.Finish` 落盘），只有 wire 名缺失才回退到 uuid 反查——回退的那几条
+        // 会带着 PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK 落进证据 JSON，不会冒充 wire 级证据。
+        val wireModelNames = assistants.map { resolveWireModelName(it) }
+
+        // ---------------- 断言 1b：不允许 wire 名与反查名「两者皆空」 ----------------
+        // 这条钉的是「静默退化」：如果哪天 `wireModelName` 又悄悄不落了、而 uuid 反查也
+        // 查不到（模型表漂了、uuid 为空……），旧写法会把占位符当成一个合法的模型名塞进
+        // `actual_model_call_sequence`，读者看不出来。空实现必须当场炸。
+        val bothMissing = wireModelNames.filter {
+            it.wireModelName == null && it.uuidReverseLookupName == null
+        }
+        assertTrue(
+            "每条发言都必须至少有一个模型名来源：要么 wireModelName 非空，要么 uuid 能反查到；" +
+                "两者皆空的角色=" +
+                assistants.zip(wireModelNames)
+                    .filter { (_, name) -> name.wireModelName == null && name.uuidReverseLookupName == null }
+                    .map { (message, _) -> message.roleId } +
+                "。全量模型名来源=" + assistants.zip(wireModelNames).map { (m, n) -> "${m.roleId}:${n.provenance}" },
+            bothMissing.isEmpty(),
+        )
+        // 反过来也要钉住：回退必须真的被标成回退，不能悄悄混进 wire 那一档。
+        wireModelNames.forEach { name ->
+            assertEquals(
+                "provenance 与是否回退必须自洽：wireModelName=${name.wireModelName}",
+                name.wireModelName == null,
+                name.fallbackTaken,
+            )
+        }
+
         assertEquals(
             "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
             listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
-            assistants.map { message ->
-                requireNotNull(message.modelId) { "角色 ${message.roleId} 的 modelId 为空" }
-                requireNotNull(realProvider.models.firstOrNull { it.id == message.modelId }) {
-                    "角色 ${message.roleId} 的 modelId=${message.modelId} 不在内置 provider 的模型表里"
-                }.modelId
-            },
+            wireModelNames.map { it.resolvedModelName },
+        )
+        // wire 名与反查名都记下来了，所以能直接断言「走 wire 路径的那些，反查名必须也查得到
+        // （否则这条记录连对照都没有）」，且两者取值一致时不需要 fallback 标记。
+        val wirePathNames = wireModelNames.filterNot { it.fallbackTaken }
+        assertTrue(
+            "走 wire 路径的记录必须同时留下反查名用于对账，实际=" +
+                assistants.zip(wireModelNames)
+                    .filter { (_, n) -> !n.fallbackTaken }
+                    .map { (m, n) -> "${m.roleId}:wire=${n.wireModelName}/reverse=${n.uuidReverseLookupName}" },
+            wirePathNames.all { it.uuidReverseLookupName != null },
         )
 
         // ---------------- 断言 2：usage 是网关返回的真数字 ----------------
@@ -2008,10 +2048,85 @@ class C1LiveModelSequenceTest {
         assertTrue("证据文件不应为空：${file.absolutePath}", file.length() > 0)
     }
 
+    /**
+     * 一次调用的模型名判定结果。
+     *
+     * @param wireModelName 网关响应体 / SSE 帧顶层 `model` 字段里的原样字符串（`UIMessage.wireModelName`）。
+     *   为 null 表示**网关没报**（或只报了空白），不是「模型名为空串」。
+     * @param uuidReverseLookupName 拿 `UIMessage.modelId`（本地配置 uuid）去
+     *   [realProvider] 模型表反查出来的 `Model.modelId`。**无论走没走 wire 路径都记下来**，
+     *   这样将来两者对不上时能一眼看出是网关改了别名还是本地表漂了。
+     * @param resolvedModelName 本次采信的模型名（wire 优先，否则反查）。
+     * @param fallbackTaken 是否退回了 uuid 反查。
+     */
+    private data class WireModelName(
+        val wireModelName: String?,
+        val uuidReverseLookupName: String?,
+        val resolvedModelName: String,
+        val provenance: String,
+        val fallbackTaken: Boolean,
+    )
+
+    /**
+     * 模型名**优先读 wire 级**：`UIMessage.wireModelName` 是网关响应体 / SSE 帧顶层
+     * `model` 字段里的原样字符串，由 `StreamChunkHandler` 的 `StreamChunk.Finish` 分支
+     * 落盘（`ai/.../ui/StreamChunkHandler.kt:297-303`），非流式路径由
+     * `handleTextGenerationResult` 对称写入。
+     *
+     * 判定顺序（**只有 wire 名缺失才回退**，两个都拿不到就是硬失败，不允许静默放过）：
+     * 1. `wireModelName` 非空 → 采信它，provenance = [PROVENANCE_WIRE_RESPONSE_MODEL]。
+     *    空白串不算有效名（网关没报 ≠ 模型名为空）。
+     * 2. `wireModelName == null` → 回退到 `modelId` uuid 经 provider 模型表反查，
+     *    provenance = [PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK]，**必须**落进证据 JSON。
+     * 3. 两条都空 → [WIRE_MODEL_NAME_MISSING]，由「不允许两者皆空」那条断言当场炸掉。
+     *
+     * 为什么 2 还留着：wire 名依赖网关**主动**报 `model`。真实网关不报时仍要能记录
+     * 调用序列，只是必须诚实标成回退，不能让它冒充 wire 级证据。
+     */
+    private fun resolveWireModelName(message: UIMessage): WireModelName {
+        val wire = message.wireModelName?.takeIf { it.isNotBlank() }
+        val reverseLookup = message.modelId?.let { uuid ->
+            realProvider.models.firstOrNull { it.id == uuid }?.modelId
+        }
+        return if (wire != null) {
+            WireModelName(
+                wireModelName = wire,
+                uuidReverseLookupName = reverseLookup,
+                resolvedModelName = wire,
+                provenance = PROVENANCE_WIRE_RESPONSE_MODEL,
+                fallbackTaken = false,
+            )
+        } else {
+            WireModelName(
+                wireModelName = null,
+                uuidReverseLookupName = reverseLookup,
+                resolvedModelName = reverseLookup ?: WIRE_MODEL_NAME_MISSING,
+                provenance = PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK,
+                fallbackTaken = true,
+            )
+        }
+    }
+
     private companion object {
         const val EVIDENCE_DB = "c1-live-evidence.db"
         const val TRACE_TAG = "C1Live"
         const val TRACE_FILE = "c1-live-trace.txt"
+
+        /** wire 名来自网关响应体 / SSE 帧顶层 `model` 字段，原样字符串。 */
+        const val PROVENANCE_WIRE_RESPONSE_MODEL = "wire_response_model"
+
+        /**
+         * wire 名为 null，回退到 `UIMessage.modelId` uuid 经 provider 模型表反查。
+         * 语义必须说清是**回退**：这种取法不是 wire 级观测。
+         */
+        const val PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK = "uuid_reverse_lookup_fallback"
+
+        /** wire 名与反查名都拿不到时的占位符；出现即意味着那条断言已经炸了。 */
+        const val WIRE_MODEL_NAME_MISSING = "<wire 名缺失且 uuid 反查不到>"
+
+        /** `provider_model_table` 里那一列来自本地模型表，不是网关回传的。 */
+        const val TABLE_WIRE_MODEL_STRING_NOTE =
+            "local provider_model_table field; NOT the value echoed back by the gateway"
 
         val PRETTY = Json { prettyPrint = true; encodeDefaults = true }
     }
