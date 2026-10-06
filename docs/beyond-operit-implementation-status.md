@@ -767,6 +767,78 @@ it.roleId in roleIds`：
 而不是 `uuid_reverse_lookup_fallback`。📍 判据不是「代码里现在能不能拿到 wire 名」，
 而是「**设备上那份落盘 JSON 里的 provenance 取值是什么**」。
 
+### ⚠️ 第十三批（`be7952a83` / `19545e076`，2026-10-06）：**`GroupChat` 行切分统一到 6 个 Unicode 行终止符**
+
+⚠️⚠️ **先说清性质：这是锚点之后第一次为「补一条 `GroupChat` 护栏」而真的去动
+`app/src/main` 的生产代码**（前面 `5186349f` / `8a24b5d0` 那两批也动过 `GroupChat.kt`，
+本批是同一条线的第三批）。⚠️ **它同样一条验收证据都没产出**——零设备、零 `adb`、
+零 `androidTest`。
+
+**① 缺陷：切分行与正则行终止符口径不对称 ⇒ 静默丢候选 / 静默丢票**
+
+`parseCandidates` 与 `linesOutsideCodeFences` 原先**两处都**用 Kotlin 的
+`text.lineSequence()`，它**只在** `\n` / `\r` 处断行；而 Java `Pattern` 的行终止符是
+**6 个**（`\n` / `\r\n` / `\r` / `\u0085`NEL / `\u2028`LS / `\u2029`PS）。⇒ 模型一旦输出
+`U+2028` / `U+2029` / `U+0085`，声明行正则的 `.` 跨不过行终止符、`$` 又只锚行尾，
+**必然失配** ⇒ **静默丢候选 / 静默丢票**。
+
+**② 修法**：新增**私有** helper `GroupChat.unicodeLines(text)`（`GroupChat.kt:994`），
+`parseCandidates`（`:807`）与 `linesOutsideCodeFences`（`:1047`）**两处共用**它。
+✅ **「两处必须共用」有可观察证据**：只把 `parseCandidates` 单独换成 `text.lines()`
+⇒ **恰好 2 条红，且恰好是两条 `parseCandidates` 用例**，票面 / 围栏那 4 条**仍绿**。
+
+**③ 探针实测（离线 `kotlinc` 探针，输出在仓库外 `/tmp/opencode/probe/probe-out.txt`）**
+
+| 探针 | 实测 | 结论 |
+|---|---|---|
+| `lineSequence()` | LF / CRLF / CR **各 2 行**；NEL / LS / PS **各 1 行** | 缺的正好是 **NEL / LS / PS** |
+| `Pattern` 反证 | `(?s)候选：a.b` 跨 LS / NEL / PS **全命中**；`(?m)^b$` 在 `a<sep>b` 上五个**全 true** | 三者**本来就是** `Pattern` 行终止符 |
+| `String.lines()` | NEL / LS / PS **各 1 行** | 与 `lineSequence()` **口径完全一样**，⚠️ **不能蒙混** |
+| `trim()` | `isWhitespace('\u2028')`/`('\u2029')` = **true** ⇒ **会剥**；`isWhitespace('\u0085')` = **false**（类别 15 = CONTROL）⇒ **不剥** | ⚠️ **NEL 才是那个真洞** |
+
+⚠️⚠️ **两条被实测推翻的说法（按实测记，不要照抄旧说法）**：
+① 「前置分隔符的票修后仍能解析」——**错**，实测 `parseBallot("VOTE: \u2028opt-a")` /
+`\u2029` / 前置 `\u0085` **三者修后都是 `null`**；
+② 「`trim()` 会剥三个分隔符」——**错**，只剥 LS / PS，**NEL 不剥**。
+**真正修掉的洞是尾随 NEL**：`parseBallot("VOTE: opt-a\u0085", …)` 修**前 `null`**
+（id 变成 `opt-a\u0085` 配不上候选 ⇒ 静默丢票）、修**后 `opt-a`** ✅，
+护栏用例 `a trailing NEL no longer corrupts the candidate id`（**改前红、改后绿的真洞**）。
+
+**④ ⚠️ 一处有意的行为收紧（改变了可观察行为）**：`parseBallot("VOTE: \u2028opt-a")`
+改**前能**解析出 `opt-a`（靠 `trim()` 剥 LS），改**后 `null`**（LS 成行终止符 ⇒
+`VOTE: ` 成空 body 票行 ⇒ 集外）。**裁决**：`trim()` 剥而切分不剥**纯属两个 JDK API
+口径不一致的巧合，不是设计**；统一后「空 body 判无票」与本文件既定立场
+**「宁可让畸形 id 配不上票，也不静默改写用户写的东西」**一致。
+✅ 护栏用例 `a ballot with a leading unicode separator is no longer accepted` 钉住它。
+
+**⑤ 测试**：`GroupChatTest` **33 → 39**（`19545e076`，**+229 / −7**）——改 **2** 条既有
+断言的期望值（`:264` / `:269`，`emptyList()` → `[a, b]`）+ 新增 **6** 个用例方法；
+`:273` / `:274` / `:276` / `:277` **四条一字未动**（有意：证明**方向没变**、仍然失败关闭、
+仍然不泄漏）。反向验证 **3 处**：helper 退回只切 `\n`/`\r` ⇒ **6 条红**；换成
+`lineSequence()` ⇒ **6 条红**；只换 `parseCandidates` ⇒ **2 条红**。
+
+**⑥ 本批唯一改变数字的地方**：C1 相关 JVM 测试类台账 **45 类 / 491 例 → 45 类 / 497 例**
+（`GroupChatTest` `33 → 39`；✅ 复算实测 `45 行全部相等` / 声明合计 **497**）；
+`:app:testDebugUnitTest` **111 类 / 915 例 → 111 类 / 921 例**（`+6` **全部**来自
+`GroupChatTest`，**类数 111 未变**，因为本批**没新增测试类**）；lint app
+**0 error / 584W / 6H = 590**（与基线**逐字一致**）。
+⚠️ 台账锚点 `1b0e04a9` 的 **78 个 commit 仍然没有被重算**，本批一个都不计入。
+📍 完整证据、逐条边界见 `docs/eval/c1-group-chat.md` 的
+「Unicode 行终止符统一切分（零设备，2026-10-06，HEAD `19545e076`）」那一节。
+
+⚠️⚠️⚠️ **取证局限（逐条如实记）**：
+- **零设备**：本轮**没跑任何 `androidTest`**，全部只有 JVM 验证；
+  `parseBallot` / `parseCandidates` 的**真实调用零份**。
+- **探针是离线探针**，**不是真机 / 真实网关的模型输出**——输入全是**手写**字符串。
+- ⚠️⚠️ **真实模型是否真的会输出 `U+2028` / `U+0085`，本次没有任何实证** ⇒ 修的是
+  「**一旦出现就静默丢票**」这个**失败模式**，**不是**「模型经常这么输出」。
+- **「假阳性率下降」无实测依据**，只是失败关闭方向；
+  **`unicodeLines` 的大文本性能未测**。
+⚠️ **十行状态列仍是 10/10 `unverified`**——硬理由①未被本批触及，②③④
+（真机 UI 端到端 / 酒馆本体 / 相机扫码）**全部原样**。
+⚠️ **工作区那两处不属于任何 agent 的未提交改动（`TavernMacroExpander.kt` modified、
+`C1GroupUiE2EFixtureTest.kt` untracked）全程未 add、未 commit、未修改。**
+
 ### ⚠️ 第十二批（HEAD `86e88970d` 那一轮采集，2026-10-06）：**`C1LiveModelSequenceTest` 前 4 条真机全绿——硬理由⑤已消**
 
 ⚠️⚠️ **先说清这一批的性质：它是「采集」不是「代码提交」**——
@@ -1503,6 +1575,52 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
     契约没要求区分代码块，而修它要先定义一整套 markdown 感知规则（fence 配对、缩进代码块、
     行内引用…），属于超出本轮范围的行为变更。已用 `a vote line inside a code fence is still
     counted as a ballot` 把现状钉住。
+
+  **⑤ ⚠️ 订正块（2026-10-06，第十三批 `be7952a83` / `19545e076` 之后加）——
+  上面 ③ 里那三条「只钉现状」的记述按惯例保留原文，但其中三条都已不再是现状，
+  逐条订正如下（⚠️ 别再照抄上面那段当现状）：**
+
+  - ⚠️⚠️ **「修它要先经确认，本轮只钉现状」——确认已拿到，规则已定，本段已作废（保留原文）**。
+    上面那条「`lineSequence()` 只认 `\n` / `\r\n` / `\r`，**不认** Unicode 行/段分隔符
+    U+2028 / U+2029，所以『首行声明 + U+2028/9 + 后续文本』解析不出候选」——
+    **这条假阴性已修**。**规则已定：分隔符集合取 6 个**
+    （`\n` / `\r\n` / `\r` / `\u0085`NEL / `\u2028`LS / `\u2029`PS），与 Java `Pattern`
+    的行终止符集合**逐条对齐**；实现是 `GroupChat.unicodeLines`（**私有**），
+    `parseCandidates` 与 `linesOutsideCodeFences` **共用**它。
+    **依据（离线探针实测，`kotlinc`，输出在仓库外 `/tmp/opencode/probe/probe-out.txt`）**：
+    ① `Pattern` 默认把 `.` 视为不匹配行终止符，而实测 `(?s)候选：a.b` 能跨
+    `\u0085`/`\u2028`/`\u2029` 命中、`(?m)^b$` 也能在 `a<sep>b` 上命中 ⇒ 三者**本来就是**
+    `Pattern` 的行终止符；② `String.lineSequence()` / `String.lines()` **只切**
+    `\n`/`\r\n`/`\r`，那三个**都当普通字符**（实测三者切出来仍是 1 行）⇒
+    「切分行」与「正则行终止符」口径不对称，**那就是本缺陷的成因**；③ 两个现成 API
+    口径**完全一样**，**都不能拿来蒙混**。
+    ⚠️ 上面那句「U+2028/9 在聊天输入里基本不出现（Android `EditText` / IME / 剪贴板都不产生）」
+    **仍然成立且没有被推翻**——但它**只说明触发概率低，不说明可以不修**：真实模型输出
+    **不经过 `EditText` / IME / 剪贴板**。⚠️ **真实模型是否真的会输出这几个字符，
+    本次仍然零实证**。
+  - ⚠️ **「`.trim('-', '*', '"')` 是字符集 trim、遇空格就停」这条已修（保留原文）**：
+    `8a24b5d0` 已用 `GroupChat.normalizeCandidateId` 取代它——改成**剥成对**的包裹符号
+    （`**x**` / `*x*` / `"x"` / `'x'` → `x`）再剥**列表符号**前缀/后缀，
+    所以 `候选：- **a**` 现在能规范化成 `a`。⚠️ 成对引号剥不干净时**原样保留**
+    （`"a` 不再被静默补成 `a`），这是**刻意的收紧**；`_` / `__` **有意不剥**
+    （`_` 在 snake_case id 里远比 markdown 下划线强调频繁）。
+  - ⚠️ **「`parseBallot` 不感知 markdown fence / 引用（已知假阳性，未修）」已修（保留原文）**：
+    `5186349f` 加了 `linesOutsideCodeFences`（围栏内与开/闭围栏行本身都丢掉，
+    **未闭合围栏失败关闭**），`8a24b5d0` 又把声明行收成「只认首个非空行」。
+    ⚠️ **`parseCandidates` 侧没有上围栏状态机**，理由是「只认首个非空行」使
+    「首行落在围栏内部」**结构上不可达**——⚠️ **这是结构性论证，不是实测**。
+    ⚠️ 订正后那条把现状钉住的用例名也变了：`a vote line inside a code fence is still
+    counted as a ballot` 已被改写成**钉修后行为**，并新增了
+    `an unclosed code fence swallows the rest of the message fail closed` /
+    `votes before and after a closed code fence still count` 等四条。
+    ⚠️ **缩进代码块与行内引用仍未处理**——上面那句「修它要先定义一整套 markdown 感知规则」
+    **对这两个形状仍然成立**。
+  - ⚠️ **「正确口径是让 `^` 只锚定首行」这条建议已被采纳，但实现路径不同**：
+    `8a24b5d0` **没有**去掉 `m` 或改 `\A`，而是先切行再取
+    `unicodeLines(text).firstOrNull { it.isNotBlank() }`——**效果等价**（声明只认首个
+    非空行），且顺带把「行从哪来」也统一了。⚠️ 正则里的 `(?im)` **仍保留**。
+  📍 完整证据与全部取证局限见本文「⚠️ 第十三批」与
+    `docs/eval/c1-group-chat.md` 的「Unicode 行终止符统一切分（零设备）」那一节。
 
   **④ 指针订正（第十批核实，只登记不改别的文件）**——⚠️ **`docs/eval/c1-group-chat.md` 与
   `docs/beyond-operit-client-changes.md` 本轮一个字都没动**（按硬约束），下面全是**只登记**：
