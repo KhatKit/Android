@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,42 +8,29 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.adaptive.currentWindowDpSize
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
-import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
@@ -53,303 +39,15 @@ import heizige.kk.khatkit.app.core.data.model.GroupConfigError
 import heizige.kk.khatkit.app.core.data.model.GroupImportResult
 import heizige.kk.khatkit.app.core.data.model.GroupRole
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
-import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.QRCode
 import heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheet
-import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.tune
-import heizige.kk.khatkit.app.core.util.base64Decode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlin.uuid.Uuid
-
-/**
- * 会话路由：按 `type` 分流到群聊页或单聊页。
- *
- * `text` / `files` / `nodeId` / `messageId` 必须**原样透传**给两个分支：
- * - 分享进来的文本与附件要进输入框（`text` 是 base64）；
- * - `nodeId` 是从收藏/历史跳过来时要滚动定位的节点；
- * - `messageId` 是要聚焦的消息。
- *
- * C1 之前这里给 `GroupChatPage(id)` 只传了 `id`，群聊里这四项全被丢弃。
- */
-@Composable
-fun GroupOrDirectPage(
-    id: Uuid,
-    text: String?,
-    files: List<Uri>,
-    nodeId: Uuid?,
-    messageId: Uuid?,
-) {
-    val repo = rememberAppEntryPoint().conversationRepository()
-    var type by remember(id) { mutableStateOf<String?>(null) }
-    LaunchedEffect(id) {
-        type = repo.getConversationById(id)?.type ?: GroupChat.TYPE_DIRECT
-    }
-    when (type) {
-        null -> Unit
-        GroupChat.TYPE_GROUP -> GroupChatPage(
-            id = id,
-            text = text,
-            files = files,
-            nodeId = nodeId,
-            messageId = messageId,
-        )
-
-        else -> ChatPage(id = id, text = text, files = files, nodeId = nodeId, messageId = messageId)
-    }
-}
-
-/**
- * 群聊页：**复用单聊页的消息管线**（[ChatScaffold]），只把单聊语义换掉。
- *
- * C1 之前这里自己手写了一套 `LazyColumn` + `Text` 气泡 + `KedgeOutlinedTextFieldWithSlots` 输入框，
- * 于是单聊侧已经调通的行为——抽屉、大屏分栏、语音模式、停止生成、毛玻璃、键盘跟随、
- * 说话者与角色头像、@ 选择器插槽——群聊一个都没接上，两套页面各自漂移。现在：
- *
- * - 骨架 = [ChatScaffold]，抽屉 / 大屏分栏 / 输入框 / 语音 / 停止生成全部复用；
- * - 顶栏 = 自己的轻量版 [GroupTopBar]（单聊那个 `TopBar` 有 394 行，含「切换模型」这种
- *   群聊没有定义的交互）；
- * - 输入框上方 = [GroupMemberBar]（成员头像组，点一下在**光标处**插 `@角色名 `）；
- * - @ 选择器 = [GroupRoleCompletionProvider]，走 [ChatScaffold] 的 `extraCompletionProviders`；
- * - 群配置 / 导入 / 导出全部收进 [GroupConfigSheet]。
- *
- * ## 视角隔离不需要 UI 过滤
- *
- * 群聊的视角隔离只发生在**生成侧**（`ChatManager` 把 `GroupPerspectiveTransformer` 塞进
- * `inputTransformers`），落库的消息是全量追加的。所以 [ChatList] 遍历
- * `conversation.messageNodes` 天然就能看到全部角色的消息，本页不做任何过滤。
- *
- * ## 抽屉里的 `vm`
- *
- * [ChatDrawerContent] 的 `vm` 参数类型锁定 [ChatViewModel]，没有替代品；好消息是它只用到
- * `.id`（当前会话高亮），所以群聊可以原样复用。
- *
- * ## 会改写消息内容的动作，只放行编辑用户自己那条
- *
- * 群聊的轮次进度记在 `group_runs` 的 `committed_role_ids` / `last_user_message_id` 里，任何
- * 改写**角色发言**内容的动作都会让这两张账面和实际消息错位（账面说该角色已提交、界面上
- * 那条却是另一个版本，续跑还会跳过没人再发言的角色）。所以：
- *
- * - 重新生成 / 删除 / 创建分支 / 切分支：群聊下整个入口都不出现
- *   （`ChatList` 按 `groupChat` 关门，见 `ChatMessageActions.kt`）。
- * - 编辑：`canEditMessage` 本页只放行 `it.role == MessageRole.USER`。改用户提问是合法且常用的，
- *   轮次由新的 user 消息重新派生，不会错位；改角色发言则与上面四个同级。
- *
- * 也就是说「角色发言不可改写」这条现在**没有已知残留**了。
- */
-@Composable
-fun GroupChatPage(
-    id: Uuid,
-    text: String? = null,
-    files: List<Uri> = emptyList(),
-    nodeId: Uuid? = null,
-    messageId: Uuid? = null,
-) {
-    val vm: ChatViewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
-        creationCallback = { it.create(id.toString()) }
-    )
-    val filesManager = rememberAppEntryPoint().filesManager()
-    val navController = LocalNavController.current
-    val softwareKeyboardController = LocalSoftwareKeyboardController.current
-    val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-
-    val setting by vm.settings.collectAsStateWithLifecycle()
-    val conversation by vm.conversation.collectAsStateWithLifecycle()
-    val loadingJob by vm.conversationJob.collectAsStateWithLifecycle()
-    val processingStatus by vm.processingStatus.collectAsStateWithLifecycle()
-    val currentChatModel by vm.currentChatModel.collectAsStateWithLifecycle()
-    val enableWebSearch by vm.enableWebSearch.collectAsStateWithLifecycle()
-    val errors by vm.errors.collectAsStateWithLifecycle()
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-    // 抽屉打开时收起键盘，否则弹窗动画会把键盘顶回来。
-    LaunchedEffect(drawerState.isOpen) {
-        if (drawerState.isOpen) {
-            focusManager.clearFocus(force = true)
-            softwareKeyboardController?.hide()
-        }
-    }
-
-    val windowAdaptiveInfo = currentWindowDpSize()
-    val isBigScreen =
-        windowAdaptiveInfo.width > windowAdaptiveInfo.height && windowAdaptiveInfo.width >= 1100.dp
-
-    // 进入大屏（永久抽屉）模式时重置抽屉状态为关闭，避免从横屏旋转回竖屏后模态抽屉
-    // 残留为打开且无法关闭（与 ChatPage 同一个 #1304）。
-    LaunchedEffect(isBigScreen) {
-        if (isBigScreen && drawerState.isOpen) {
-            drawerState.close()
-        }
-    }
-
-    val startVoiceMode = rememberVoiceModeStarter(vm, setting)
-    val inputState = vm.inputState
-    val config = conversation.groupConfig
-
-    // 分享进来的附件 / 文本要进输入框。与 ChatPage 同一段逻辑：附件复制与 MIME 查询
-    // 是磁盘 IO，不能在主线程做。C1 之前群聊页压根没有这段，text/files 全被丢弃。
-    LaunchedEffect(files, text) {
-        if (files.isNotEmpty()) {
-            val (localFiles, contentTypes) = withContext(Dispatchers.IO) {
-                filesManager.createChatFilesByContents(files) to files.mapNotNull { file ->
-                    filesManager.getFileMimeType(file)
-                }
-            }
-            val parts = buildList {
-                localFiles.forEachIndexed { index, file ->
-                    val type = contentTypes.getOrNull(index)
-                    if (type?.startsWith("image/") == true) {
-                        add(UIMessagePart.Image(url = file.toString()))
-                    } else if (type?.startsWith("video/") == true) {
-                        add(UIMessagePart.Video(url = file.toString()))
-                    } else if (type?.startsWith("audio/") == true) {
-                        add(UIMessagePart.Audio(url = file.toString()))
-                    }
-                }
-            }
-            inputState.messageContent = parts
-        }
-        text?.base64Decode()?.let { decodedText ->
-            if (decodedText.isNotEmpty()) {
-                inputState.setMessageText(decodedText)
-            }
-        }
-    }
-
-    val chatListState = rememberLazyListState()
-    LaunchedEffect(messageId, conversation.messageNodes.size) {
-        val target = messageId ?: return@LaunchedEffect
-        if (conversation.messageNodes.isEmpty()) return@LaunchedEffect
-        vm.focusMessage(target)
-    }
-    LaunchedEffect(nodeId, conversation.messageNodes.size) {
-        if (!vm.chatListInitialized && conversation.messageNodes.isNotEmpty()) {
-            if (nodeId != null) {
-                val index = conversation.messageNodes.indexOfFirst { it.id == nodeId }
-                if (index >= 0) {
-                    chatListState.scrollToItem(index)
-                }
-            } else {
-                chatListState.requestScrollToItem(conversation.currentMessages.size + 5)
-            }
-            vm.chatListInitialized = true
-        }
-    }
-
-    // @ 角色选择器。provider 持有 config 的读取器而不是快照，配置换新时由上面的
-    // remember(config) 一起换掉；extraCompletionProviders 只在末尾追加（见 ChatScaffold KDoc）。
-    val roleCompletionProvider = remember(config) { GroupRoleCompletionProvider { config } }
-
-    var showConfigSheet by rememberSaveable { mutableStateOf(false) }
-
-    val scaffold: @Composable (Boolean) -> Unit = { bigScreen ->
-        ChatScaffold(
-            onStartVoiceMode = startVoiceMode,
-            inputState = inputState,
-            loadingJob = loadingJob,
-            processingStatus = processingStatus,
-            setting = setting,
-            conversation = conversation,
-            drawerState = drawerState,
-            navController = navController,
-            vm = vm,
-            chatListState = chatListState,
-            enableWebSearch = enableWebSearch,
-            currentChatModel = currentChatModel,
-            bigScreen = bigScreen,
-            errors = errors,
-            onDismissError = { vm.dismissError(it) },
-            onClearAllErrors = { vm.clearAllErrors() },
-            topBar = { scrollBehavior ->
-                GroupTopBar(
-                    title = conversation.title.ifBlank { "群聊" },
-                    subtitle = config?.let { "${it.mode} · ${it.roles.size} 个角色" },
-                    scrollBehavior = scrollBehavior,
-                    onBack = { navController.popBackStack() },
-                    onOpenConfig = { showConfigSheet = true },
-                )
-            },
-            listOverlay = {
-                GroupInfoChip(
-                    config = config,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    onClick = { showConfigSheet = true },
-                )
-            },
-            bottomBarAboveInput = {
-                GroupMemberBar(config = config, settings = setting, inputState = inputState)
-            },
-            extraCompletionProviders = listOf(roleCompletionProvider),
-            // 群聊只放行「编辑用户自己那条提问」：改写角色发言会让群运行日志的
-            // committed_role_ids / last_user_message_id 与实际消息错位，与重新生成/删除/
-            // 切分支同级（那三个已由 ChatList 按 groupChat 关掉）。改用户提问是合法且常用的，
-            // 轮次由新的 user 消息重新派生，不会错位。
-            canEditMessage = groupCanEditMessage,
-        )
-    }
-
-    when {
-        isBigScreen -> {
-            PermanentNavigationDrawer(
-                drawerContent = {
-                    ChatDrawerContent(
-                        navController = navController,
-                        current = conversation,
-                        vm = vm,
-                        settings = setting,
-                    )
-                }
-            ) {
-                scaffold(true)
-            }
-        }
-
-        else -> {
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
-                    ChatDrawerContent(
-                        navController = navController,
-                        current = conversation,
-                        vm = vm,
-                        settings = setting,
-                        drawerState = drawerState,
-                    )
-                }
-            ) {
-                scaffold(false)
-            }
-        }
-    }
-
-    if (showConfigSheet) {
-        GroupConfigSheet(
-            conversationId = id,
-            conversation = conversation,
-            config = config,
-            importedCards = conversation.groupCards,
-            settings = setting,
-            onSave = { newConfig, importedCards ->
-                groupConfigSave(vm, id, conversation, newConfig, importedCards)
-            },
-            // 酒馆群聊文件回导。与 onSave 分开是因为它要往 messageNodes 追加消息，
-            // 而 onSave 只改群配置与角色卡快照。
-            onImportTavernGroup = { imported ->
-                vm.updateConversation(imported)
-                vm.saveConversationAsync()
-            },
-            onDismiss = { showConfigSheet = false },
-        )
-    }
-}
 
 /**
  * [GroupConfigSheet] 保存 / 导入后的落库映射：**校验通过才写入会话**。

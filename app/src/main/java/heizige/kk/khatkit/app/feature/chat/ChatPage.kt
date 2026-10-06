@@ -218,6 +218,81 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
         }
     }
 
+    // ---------- 群聊复用同一个页面 ----------
+    // 单聊与群聊现在都走这一个 [ChatPage]：群聊专属件通过 [ChatScaffold] 的注入缝挂上，
+    // 单聊时全部落默认值（渲染结果与 C1 之前逐字相同）。判定用 [isGroupConversation]
+    // 的严格口径（group_config 非空**且** type == GROUP）。
+    val config = conversation.groupConfig
+    val isGroup = isGroupConversation(conversation)
+    val roleCompletionProvider = remember(config) { GroupRoleCompletionProvider { config } }
+    var showConfigSheet by rememberSaveable { mutableStateOf(false) }
+
+    // 群聊专属注入件。单聊（isGroup == false）全部落 ChatScaffold 的默认值，逐字不变。
+    // ⚠️ lambda 分支必须写在括号里（`if (c) ({ ... }) else (...)`）：`if (c) { ... } else {}`
+    //    会被解析成 if/else 的**代码块**而不是 lambda，块值是 Boolean/Unit，类型对不上。
+    val topBarSlot: (@Composable (TopAppBarScrollBehavior) -> Unit)? = if (isGroup) {
+        ({ scrollBehavior ->
+            GroupTopBar(
+                title = conversation.title.ifBlank { "群聊" },
+                subtitle = config?.let { "${it.mode} · ${it.roles.size} 个角色" },
+                scrollBehavior = scrollBehavior,
+                onBack = { navController.popBackStack() },
+                onOpenConfig = { showConfigSheet = true },
+            )
+        })
+    } else {
+        null
+    }
+    val listOverlaySlot: @Composable BoxScope.() -> Unit = if (isGroup) {
+        ({
+            GroupInfoChip(
+                config = config,
+                modifier = Modifier.align(Alignment.TopEnd),
+                onClick = { showConfigSheet = true },
+            )
+        })
+    } else {
+        ({})
+    }
+    val bottomBarAboveInputSlot: @Composable () -> Unit = if (isGroup) {
+        ({ GroupMemberBar(config = config, settings = setting, inputState = inputState) })
+    } else {
+        ({})
+    }
+    val extraCompletionProvidersSlot: List<ChatCompletionProvider> =
+        if (isGroup) listOf(roleCompletionProvider) else emptyList()
+    // 群聊只放行「编辑用户自己那条提问」：改写角色发言会让群运行日志的
+    // committed_role_ids / last_user_message_id 与实际消息错位，与重新生成/删除/
+    // 切分支同级（那三个已由 ChatList 按 groupChat 关掉）。
+    val canEditMessageSlot: (UIMessage) -> Boolean =
+        if (isGroup) groupCanEditMessage else ({ true })
+
+    val scaffold: @Composable (Boolean) -> Unit = { bigScreen ->
+        ChatScaffold(
+            onStartVoiceMode = startVoiceMode,
+            inputState = inputState,
+            loadingJob = loadingJob,
+            processingStatus = processingStatus,
+            setting = setting,
+            conversation = conversation,
+            drawerState = drawerState,
+            navController = navController,
+            vm = vm,
+            chatListState = chatListState,
+            enableWebSearch = enableWebSearch,
+            currentChatModel = currentChatModel,
+            bigScreen = bigScreen,
+            errors = errors,
+            onDismissError = { vm.dismissError(it) },
+            onClearAllErrors = { vm.clearAllErrors() },
+            topBar = topBarSlot,
+            listOverlay = listOverlaySlot,
+            bottomBarAboveInput = bottomBarAboveInputSlot,
+            extraCompletionProviders = extraCompletionProvidersSlot,
+            canEditMessage = canEditMessageSlot,
+        )
+    }
+
     when {
         isBigScreen -> {
             PermanentNavigationDrawer(
@@ -230,24 +305,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
                     )
                 }
             ) {
-                ChatScaffold(
-                    onStartVoiceMode = startVoiceMode,
-                    inputState = inputState,
-                    loadingJob = loadingJob,
-                    processingStatus = processingStatus,
-                    setting = setting,
-                    conversation = conversation,
-                    drawerState = drawerState,
-                    navController = navController,
-                    vm = vm,
-                    chatListState = chatListState,
-                    enableWebSearch = enableWebSearch,
-                    currentChatModel = currentChatModel,
-                    bigScreen = true,
-                    errors = errors,
-                    onDismissError = { vm.dismissError(it) },
-                    onClearAllErrors = { vm.clearAllErrors() },
-                )
+                scaffold(true)
             }
         }
 
@@ -264,26 +322,30 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
                     )
                 }
             ) {
-                ChatScaffold(
-                    onStartVoiceMode = startVoiceMode,
-                    inputState = inputState,
-                    loadingJob = loadingJob,
-                    processingStatus = processingStatus,
-                    setting = setting,
-                    conversation = conversation,
-                    drawerState = drawerState,
-                    navController = navController,
-                    vm = vm,
-                    chatListState = chatListState,
-                    enableWebSearch = enableWebSearch,
-                    currentChatModel = currentChatModel,
-                    bigScreen = false,
-                    errors = errors,
-                    onDismissError = { vm.dismissError(it) },
-                    onClearAllErrors = { vm.clearAllErrors() },
-                )
+                scaffold(false)
             }
         }
+    }
+
+    // 群配置面板：只有群聊会话会出现（单聊恒不渲染，与 C1 之前完全相同）。
+    if (isGroup && showConfigSheet) {
+        GroupConfigSheet(
+            conversationId = id,
+            conversation = conversation,
+            config = config,
+            importedCards = conversation.groupCards,
+            settings = setting,
+            onSave = { newConfig, importedCards ->
+                groupConfigSave(vm, id, conversation, newConfig, importedCards)
+            },
+            // 酒馆群聊文件回导。与 onSave 分开是因为它要往 messageNodes 追加消息，
+            // 而 onSave 只改群配置与角色卡快照。
+            onImportTavernGroup = { imported ->
+                vm.updateConversation(imported)
+                vm.saveConversationAsync()
+            },
+            onDismiss = { showConfigSheet = false },
+        )
     }
 }
 

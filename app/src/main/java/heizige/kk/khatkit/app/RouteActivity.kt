@@ -88,7 +88,6 @@ import heizige.kk.khatkit.app.feature.assistant.detail.AssistantPromptPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantRequestPage
 import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
-import heizige.kk.khatkit.app.feature.chat.GroupOrDirectPage
 import heizige.kk.khatkit.app.feature.chat.FolderDetailPage
 import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
@@ -377,7 +376,7 @@ class RouteActivity : ComponentActivity() {
                                 metadata = NavDisplay.transitionSpec { fadeIn() togetherWith fadeOut() }
                                     + NavDisplay.popTransitionSpec { fadeIn() togetherWith fadeOut() }
                             ) { key ->
-                                GroupOrDirectPage(
+                                ChatPage(
                                     id = Uuid.parse(key.id),
                                     text = key.text,
                                     files = key.files.map { it.toUri() },
