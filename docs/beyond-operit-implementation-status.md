@@ -866,6 +866,72 @@ it.roleId in roleIds`：
 ⚠️ **工作区那两处不属于任何 agent 的未提交改动（`TavernMacroExpander.kt` modified、
 `C1GroupUiE2EFixtureTest.kt` untracked）全程未 add、未 commit、未修改。**
 
+### ⚠️ 第十四批（真机采集 + 注入点 `08702d88b`，2026-10-06，HEAD `f507ebc9a`）：**真实 token 下的预算截断第一次采到库内七值——但这是一次失败跑，状态仍 10/10 `unverified`**
+
+⚠️⚠️ **先说清性质**：这是**一次真机采集 + 一个测试注入点 commit**（`08702d88b`），
+不是一个「通过」——`am instrument` 实测 **`Tests run: 1, Failures: 1`** /
+**`INSTRUMENTATION_CODE: -1`** / `Time: 585.298`。⚠️ **失败是注入截断的预期后果**：
+用例写死「期望 3 条助手消息」，预算截断只产 2 条 ⇒ `awaitAssistantMessages` 先超时
+（断言原文与行号见 c1 新证据节 ⑤）。⚠️ **十行状态列仍是 10/10 `unverified`**。
+
+**① 之前为什么零份 / 这轮补的注入点**：mock 截断用例用 `token_budget_per_round=1`
+（**构造入参，不是 provider 返回的真实 token**）；真实网关用例预算写死
+`mainBudget=100_000`（`C1LiveModelSequenceTest.kt:183`），整轮真实 token（约 2.0 万）
+**从不触发截断**。`08702d88b` 加 instrumentation 注入点
+`-e c1TokenBudgetPerRound <Int>`（参数名 `:185-186`、getter `:204-212`，缺省/解析失败
+回落 `mainBudget`；**只作用于真实网关用例**），本轮注入 **9000**。
+
+**② 七值（主机侧逐值复核；跨两个库）**：
+
+| # | 字段 | 值 | 出处 |
+|---|---|---|---|
+| 1 | `spent_tokens` | **13631** | `db-poll/s2/rikka_hub` → `group_runs`（生产库；`group_runs` 无法隔离） |
+| 2 | `token_limit` | **9000** | 同上 |
+| 3 | `skipped_role_ids` | **`["c"]`** | 同上 |
+| 4 | `committed_role_ids` | **`["a","b"]`** | 同上 |
+| 5 | `status` | **`BUDGET_STOPPED`** | 同上 |
+| 6 | `reason` | **`token_budget_exceeded`** | 同上 |
+| 7 | 库内助手发言条数 | **2 条**（a、b；+user 共 3 个 `message_node`） | `db-poll/e1/c1-live-evidence.db`（会话/消息走独立证据库） |
+
+⚠️ conversation `8e060471-…8cf2` / round `round-4db4c9d7-…e7d1`；**s2 是前六值的唯一存证**
+（更晚 `s5` 快照里该行已被 teardown 删除、行数 0）；⚠️ `rikka_hub` 的 `message_node`
+**没有**该会话的行——第 7 值只能从证据库取（主机复核实测）。
+
+**③ 用量自洽**：a（wire `deepseek-v4-flash`）`prompt 6829 + completion 101 = 6930`
+（cached 6144）、b（`glm-5.2`）`6643 + 58 = 6701`，**Σ = 13631 = `spent_tokens`** ✅。
+a 后 `6930 < 9000` ⇒ b 执行；b 后 `13631 ≥ 9000` ⇒ c 跳过（库里 c 零痕迹；
+⚠️「c 从未被调用」是 DB 痕迹上的推断，无独立抓包）。
+
+**④ 四条限制（照 c1 新证据节，不许美化）**：
+
+1. **`c1-real-raw-dump.json` 本轮没写出，且代码位置证明它在截断路径下永远写不出**——
+   `writeEvidence`（`:1338-1339`）在两个 `await`（`:1321-1325` / `:1329`）之后；失败跑
+   拉回的 dump 是更早那次跑的（sha `e50bf524…`、conversation `166e3e5b…`，与更早
+   `files/` 那份逐字节相同）⇒ 七值只能来自运行中 DB 快照。
+2. **`am instrument` 的 shell 退出码无法提供**：`setsid nohup` 脱离运行、退出码无人回收；
+   权威结果是 `INSTRUMENTATION_CODE: -1` + `Tests run: 1, Failures: 1`。
+3. **`wire_model_name_provenance_counts` / `wire_model_name_reconciliation` / 正式
+   `actual_model_call_sequence` 仍零份**（只在测试通过时才写的那份 JSON 从未产出）；
+   DB 快照里的 wire 名 a `deepseek-v4-flash` / b `glm-5.2`，provider 表名对得上
+   （`DefaultProviders.kt:307-308` / `:312-313`）——⚠️ **provenance=`wire_response_model`
+   是派生推断，不是落盘证据**。
+4. **设备副作用**：熄屏 30s 后 ColorOS 冻结整进程（两次；`Time: 585.298` 含约 9 分钟冻结）、
+   `am start` 解冻 + `svc power stayon true`（**原值未记录**）、首轮残留一条 `RUNNING` 行
+   （`2b6c129f-…9480` / `round-a8d28946-…ca53`，spent=0，**未删**）、未 `pm clear` /
+   未用 `connectedAndroidTest`、未 kill gradle/Kotlin daemon。
+
+**⑤ 为什么状态不动**：契约 `:206` 要求的「实际模型调用序列」正式 JSON 与 viewer 可见消息
+ID 台账本轮**一份未增**，且这次跑**不是通过** ⇒ 只登记证据，**十行状态列一个格都没动**。
+📍 七值表、失败断言原文、trace 关键行、SHA-256 清单与全部边界见
+`docs/eval/c1-group-chat.md` 的「真实 token 下的预算截断（零 mock，真机，2026-10-06，
+注入点 `08702d88b`）」一节（本批两份主存证实测 SHA-256：`s2/rikka_hub` =
+`f693176a2bf26006a9111cb103aad3cc559024dc3835810caf1b7eaa8899332f`、
+`e1/c1-live-evidence.db` = `df0cb26a748d42f742778f083d2593ae2338365f7a202decaa88d1faa2a817d5`；
+均在仓库外 `/tmp/opencode/c1-budget-real2/`）。
+
+⚠️ **本轮只提交本文与 `c1-group-chat.md` 两个文档，未 add / commit / 修改工作区里任何
+其他未提交改动。**
+
 ### ⚠️ 第十二批（HEAD `86e88970d` 那一轮采集，2026-10-06）：**`C1LiveModelSequenceTest` 前 4 条真机全绿——硬理由⑤已消**
 
 ⚠️⚠️ **先说清这一批的性质：它是「采集」不是「代码提交」**——
