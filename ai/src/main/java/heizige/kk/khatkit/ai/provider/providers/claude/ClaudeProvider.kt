@@ -57,6 +57,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.ai.ui.handleTextGenerationResult
 import heizige.kk.khatkit.ai.ui.metadataAs
 import heizige.kk.khatkit.ai.ui.toMetadata
+import heizige.kk.khatkit.ai.util.HttpException
 import heizige.kk.khatkit.ai.util.KeyRoulette
 import heizige.kk.khatkit.ai.util.mergeCustomHeaders
 import heizige.kk.khatkit.ai.util.configureReferHeaders
@@ -375,49 +376,11 @@ class ClaudeProvider(private val client: OkHttpClient, context: Context? = null)
             }
         }
 
-        val listener = object : EventSourceListener() {
-            override fun onEvent(
-                eventSource: EventSource,
-                id: String?,
-                type: String?,
-                data: String
-            ) {
-                Log.d(TAG, "onEvent: type=$type, data=$data")
-                try {
-                    val result = decoder.accept(SseEvent(id = id, event = type, data = data))
-                    sendChunks(result.chunks)
-                    if (result.completed) close()
-                } catch (e: Throwable) {
-                    close(e)
-                }
-            }
-
-            override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                var exception = t
-
-                t?.printStackTrace()
-                Log.e(TAG, "onFailure: ${t?.javaClass?.name} ${t?.message} / $response")
-
-                val bodyRaw = response?.body?.stringSafe()
-                try {
-                    if (!bodyRaw.isNullOrBlank()) {
-                        val bodyElement = Json.parseToJsonElement(bodyRaw)
-                        Log.i(TAG, "Error response: $bodyElement")
-                        exception = bodyElement.parseErrorDetail()
-                    }
-                } catch (e: Throwable) {
-                    Log.w(TAG, "onFailure: failed to parse from $bodyRaw")
-                    e.printStackTrace()
-                } finally {
-                    close(exception)
-                }
-            }
-
-            override fun onClosed(eventSource: EventSource) {
-                sendChunks(decoder.onClosed())
-                close()
-            }
-        }
+        val listener = claudeStreamListener(
+            decoder = decoder,
+            sendChunks = ::sendChunks,
+            closeFlow = { close(it) },
+        )
 
         val eventSource = EventSources.createFactory(client)
             .newEventSource(request, listener)
@@ -924,4 +887,69 @@ internal fun String?.isClaudeServerToolUseType(): Boolean =
 internal fun JsonElement?.isClaudeServerToolError(): Boolean {
     val content = this as? JsonObject ?: return false
     return content["type"]?.jsonPrimitive?.contentOrNull?.endsWith("_error") == true
+}
+
+/**
+ * 构造 Claude messages 的 SSE 监听器。
+ *
+ * 抽成顶层 `internal` 函数是为了让失败路径能在 JVM 单测里用真实 [EventSource]
+ * 驱动验证（`streamTextOnce` 自身依赖 `android.util.Log`，不便在单测里直接收集）。
+ */
+internal fun claudeStreamListener(
+    decoder: ClaudeStreamDecoder,
+    sendChunks: (Iterable<StreamChunk>) -> Unit,
+    closeFlow: (Throwable?) -> Unit,
+): EventSourceListener = object : EventSourceListener() {
+    override fun onEvent(
+        eventSource: EventSource,
+        id: String?,
+        type: String?,
+        data: String
+    ) {
+        Log.d(TAG, "onEvent: type=$type, data=$data")
+        try {
+            val result = decoder.accept(SseEvent(id = id, event = type, data = data))
+            sendChunks(result.chunks)
+            if (result.completed) closeFlow(null)
+        } catch (e: Throwable) {
+            closeFlow(e)
+        }
+    }
+
+    override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+        var exception = t
+
+        val bodyRaw = response?.body?.stringSafe()
+        try {
+            if (!bodyRaw.isNullOrBlank()) {
+                val bodyElement = Json.parseToJsonElement(bodyRaw)
+                exception = bodyElement.parseErrorDetail()
+                Log.i(TAG, "Error response: $bodyElement")
+            }
+            t?.printStackTrace()
+            Log.e(TAG, "onFailure: ${t?.javaClass?.name} ${t?.message} / $response")
+        } catch (e: Throwable) {
+            Log.w(TAG, "onFailure: failed to parse from $bodyRaw")
+            e.printStackTrace()
+            // 响应体存在但无法解析（乱码/非 JSON）时也要保留真实异常，
+            // 否则 t==null 会让 exception 退回 null 并 close(null) 静默收场。
+            exception = e
+        } finally {
+            // 非 2xx 时 KtorEventSource 固定以 t=null 回调（错误信息只能来自响应体）；
+            // 响应体为空时 exception 保持 null，原样 close(null) 会让 callbackFlow
+            // 按正常完成收场——零 chunk、零异常，上游只能报出「本轮没有产出内容」。
+            // 兜底成带 HTTP 状态码的异常，保证失败回调必然以异常收场。
+            closeFlow(
+                exception ?: HttpException(
+                    response?.let { "Failed to get response: HTTP ${it.code} ${it.message}" }
+                        ?: "Stream failed: unknown error"
+                )
+            )
+        }
+    }
+
+    override fun onClosed(eventSource: EventSource) {
+        sendChunks(decoder.onClosed())
+        closeFlow(null)
+    }
 }
