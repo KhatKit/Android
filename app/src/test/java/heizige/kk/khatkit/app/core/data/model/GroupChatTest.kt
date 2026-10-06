@@ -226,6 +226,36 @@ class GroupChatTest {
      * （Android `EditText` / IME / 剪贴板都不产生）。要认它们就得先定义「U+2028/9 算不
      * 算行分隔符」这条新规则，**修它要先经确认**，本轮只钉现状。
      *
+     * ⚠️ **上面这段是历史记述，已被下面的订正块取代，但保留原文不删**（它记录了为什么这条
+     * 缺陷会被挂起，以及挂起时的判断）。订正见下。
+     *
+     * ### 订正：该规则已定，U+2028/U+2029（以及 U+0085）已修
+     *
+     * 「U+2028/9 算不算行分隔符」这条新规则**已经定义并确认**：分隔符集合取 **6 个**——
+     * `\n` / `\r\n` / `\r` / `\u0085`(NEL) / `\u2028`(LS) / `\u2029`(PS)——与 Java `Pattern`
+     * 的行终止符集合逐条对齐。实现是 `GroupChat.unicodeLines`（**私有**），`parseCandidates`
+     * 与 `linesOutsideCodeFences` **共用**它。
+     *
+     * 依据（`kotlinc` 探针实测）：`Pattern` 默认的 `.` 不匹配行终止符，而 `(?s)候选：a.b`
+     * 能跨 `\u0085`/`\u2028`/`\u2029` 命中、`(?m)^b$` 也能在 `a<sep>b` 上命中 ⇒ 三者都是
+     * `Pattern` 的行终止符；而 `String.lineSequence()` / `String.lines()` 只切 `\n`/`\r\n`/`\r`，
+     * `\u0085`/`\u2028`/`\u2029` 三个**都当普通字符** ⇒ 「切分行」与「正则行终止符」口径
+     * 不对称，那就是本缺陷的成因。两个现成 API 口径**完全一样**，都不能拿来蒙混。
+     *
+     * 顺带订正上面那段的一处事实错误：原文写「`trim()` 视 U+2028 为空白」是对的，但更早
+     * 一次讨论里有人说过「`Character.isWhitespace('\u2028')` 为 false」——**实测为 true**
+     * （U+2028/U+2029 的 Unicode 类别是 13/14 = SPACE_SEPARATOR，两个重载都返回 true）。
+     * 只有 `\u0085` 是 false（类别 15 = CONTROL）。这个差别直接决定了下面两条钉桩的走向。
+     *
+     * 下面 6 条断言里**只有 2 条改了期望值**（U+2028/U+2029 那两条「首行声明 + 后续文本」），
+     * 另外 4 条**实测一字未变**、断言一个字符都没动：
+     *  - 改：`候选：a,b<LS>引用：<LS>> 候选：second` 由 `emptyList()` 变 `[a, b]`（U+2029 同）。
+     *    这就是缺陷本体——声明行不再被 `\u2028` 撑成一整行而整条正则失配。
+     *  - 不变：`请大家讨论<LS>候选：second` 仍是 `emptyList()`。**方向没变**：声明仍在
+     *    第二行，首行「请大家讨论」没有声明 → 仍判无候选集，仍然失败关闭，仍然不泄漏。
+     *  - 不变：`<LS>候选：a` 仍是 `[a]`。`<LS>` 现在切出一个空行，空行被 `isNotBlank()`
+     *    跳过，声明照样落在第一个非空行上。
+     *
      * 顺带实测到 Kotlin `Char.isWhitespace()` 与 Java `Character.isWhitespace` 在
      * U+00A0 / U+202F 上**不一致**（Kotlin `true` / Java `false`，NBSP 类窄不换行空格）。
      * 本实现只用 Kotlin 的 `isNotBlank()`，方向无害（NBSP 当空白更符合直觉），不影响
@@ -257,24 +287,216 @@ class GroupChatTest {
             assertEquals(tag(sep), listOf("a", "b"), GroupChat.parseCandidates("${sep}  ${sep}候选：a,b"))
         }
 
-        // ---- U+2028 / U+2029：钉「失败关闭」，不钉成「能认」 ----
+        // ---- U+2028 / U+2029：已修，期望值从 `emptyList()` 改为 `[a, b]`（见上面订正块）----
         assertEquals(
-            "U+2028 首行声明 + 后续文本：已知假阴性，解析不出候选（刻意不修）",
-            emptyList<String>(),
+            "U+2028 首行声明 + 后续文本：已修——<LS> 是行终止符，声明行不再被撑成整行而失配",
+            listOf("a", "b"),
             GroupChat.parseCandidates("候选：a,b\u2028引用：\u2028> 候选：second"),
         )
         assertEquals(
             "U+2029 同上",
-            emptyList<String>(),
+            listOf("a", "b"),
             GroupChat.parseCandidates("候选：a,b\u2029引用：\u2029> 候选：second"),
         )
-        // 关键：方向是失败关闭而非泄漏——正文深处的声明赢不了（U+2028/9 不当分隔符时，
-        // 整段文本是「一行」，首行无声明 + `$` 锚不到 → 空候选集）。
+        // 关键：方向是失败关闭而非泄漏——正文深处的声明赢不了（<LS>/<PS> 现在切行，
+        // 首行「请大家讨论」无声明 → 空候选集）。修前修后都是 `emptyList()`，一字未变。
         assertEquals(emptyList<String>(), GroupChat.parseCandidates("请大家讨论\u2028候选：second"))
         assertEquals(emptyList<String>(), GroupChat.parseCandidates("请大家讨论\u2029候选：second"))
-        // 单个 U+2028/9 顶在最前面时，`trim()`（Kotlin 视其为空白）会把它去掉，声明仍算数。
+        // <LS>/<PS> 顶在最前面时切出一个空行，空行被跳过，声明仍落在第一个非空行上。
         assertEquals(listOf("a"), GroupChat.parseCandidates("\u2028候选：a"))
         assertEquals(listOf("a"), GroupChat.parseCandidates("\u2029候选：a"))
+    }
+
+    /**
+     * `parseCandidates` 在 **U+2028 / U+2029 / U+0085** 三种分隔符下都能解析出**多个**候选。
+     *
+     * 覆盖 `unicode line separators cut candidate declarations the same way the regex does`
+     * 里已铺开的 `\n`/`\r\n`/`\r` 回归护栏之外的另一半：这三个分隔符修前**全部**让
+     * `parseCandidates` 返回 `emptyList()`——模型输出 `候选：a,b\u2028引用：` 时，声明行被
+     * `\u2028` 撑成一整行，`.` 跨不过行终止符、`$` 又只锚行尾，整条正则必然失配，于是
+     * **一个候选都读不出来**，本轮直接落到「本轮没有候选」。
+     *
+     * `\u0085`(NEL) 值得单独点名：它和 `\u2028` 不同，`trim()` **不**剥它
+     * （`Character.isWhitespace('\u0085')` = false，Unicode 类别 15 = CONTROL），所以修前
+     * 它连 `VOTE:` 票面都会被静默丢票（见下面票面那条用例）。
+     *
+     * 「首个非空行 + `firstOrNull`」语义不变：这里只认**第一条**声明，绝不跨行收集——
+     * 第二个 `候选：` 出现在哪一行都不算数。
+     */
+    @Test
+    fun `unicode line separators cut candidate declarations the same way the regex does`() {
+        fun tag(sep: String) = "sep=" + sep.replace("\u0085", "<NEL>").replace("\u2028", "<LS>").replace("\u2029", "<PS>")
+        // 6 个分隔符逐个过：声明在首行 → 解析出多个候选；声明后的 Unicode 行不污染 id。
+        for (sep in listOf("\n", "\r\n", "\r", "\u0085", "\u2028", "\u2029")) {
+            assertEquals(tag(sep), listOf("a", "b"), GroupChat.parseCandidates("候选：a,b${sep}引用："))
+            assertEquals(tag(sep), listOf("a", "b"), GroupChat.parseCandidates("候选：a , b${sep}"))
+            // 方向仍是失败关闭：声明不在首行 → 空候选集，Unicode 分隔符下的深处声明赢不了。
+            assertEquals(tag(sep), emptyList<String>(), GroupChat.parseCandidates("请大家讨论${sep}候选：second"))
+            // 前导分隔符切出的空行被 `isNotBlank()` 跳过，声明照样算数。
+            assertEquals(tag(sep), listOf("a", "b"), GroupChat.parseCandidates("${sep}  ${sep}候选：a,b"))
+        }
+        // 三个 Unicode 分隔符各自的「声明 + 后文」形状（修前实测全部是 `emptyList()`）。
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：a,b\u2028引用："))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：a,b\u2029引用："))
+        assertEquals(listOf("a", "b"), GroupChat.parseCandidates("候选：a,b\u0085引用："))
+        // 单个分隔符把声明切成两行时只认首行（`firstOrNull`），不是跨行收集。
+        assertEquals(listOf("a"), GroupChat.parseCandidates("候选：a\u2028b"))
+        assertEquals(listOf("a"), GroupChat.parseCandidates("候选：a\u0085b"))
+    }
+
+    /**
+     * `parseBallot` 的行边界：`\u0085` / `\u2028` / `\u2029` 分隔的**多条** `VOTE:` 行各自
+     * 成行为独立的一行，于是**第一条命中**能被识别（修前整段被当成一行而丢票）。
+     *
+     * **语义明确钉住：保持现有「取第一条命中」，不是多票。** 模型连着写两行 `VOTE:` 时
+     * 仍只记第一条——本次只修「行从哪来」，没碰「取第几条」这条既定语义。
+     *
+     * 修前实测：`VOTE: opt-a\u2028VOTE: opt-b`（候选 `[opt-a]`）返回 **null**，因为整段是
+     * 一行、body 变成 `opt-a\u2028VOTE: opt-b`、`substringBefore('|')` 之后不在候选集里。
+     * 修后返回 `opt-a`。
+     */
+    @Test
+    fun `unicode separated VOTE lines are found and the first one still wins`() {
+        fun tag(sep: String) = "sep=" + sep.replace("\u0085", "<NEL>").replace("\u2028", "<LS>").replace("\u2029", "<PS>")
+        val two = listOf("opt-a", "opt-b")
+        // 6 个分隔符逐个过：两条 `VOTE:` 行 → 命中**第一条**（不是第二条，也不是两票）。
+        for (sep in listOf("\n", "\r\n", "\r", "\u0085", "\u2028", "\u2029")) {
+            assertEquals(
+                tag(sep),
+                "opt-a",
+                GroupChat.parseBallot("VOTE: opt-a${sep}VOTE: opt-b", "r1", two)?.candidateId,
+            )
+        }
+        // 三种 Unicode 形状各自点名单独断言（修前实测全部是 null）。
+        assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a\u2028VOTE: opt-b", "r1", two)?.candidateId)
+        assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a\u2029VOTE: opt-b", "r1", two)?.candidateId)
+        assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a\u0085VOTE: opt-b", "r1", two)?.candidateId)
+        // 理由跟在竖线后，仍然只认第一条那条票的理由（不是把两条的理由并起来）。
+        assertEquals(
+            "只认第一条那条票的理由",
+            "第一条",
+            GroupChat.parseBallot("VOTE: opt-a|第一条\u2028VOTE: opt-b|第二条", "r1", two)?.reason,
+        )
+    }
+
+    /**
+     * 代码围栏在 Unicode 分隔符下**仍然生效**（围栏开/闭判定本身一字未改，只改了行从哪来）。
+     *
+     * 修前实测：` ```<LS>VOTE: opt-a<LS>```<LS>VOTE: opt-b ` 返回 **null**——整段被当成
+     * **一行**，开围栏那行的 info string（`group(2)`）不空，于是状态机认定围栏**开了却没关**，
+     * 把后文全吞了。围栏因此在 Unicode 分隔符下**形同失效**（这里恰好与期望同为 null，
+     * 但理由完全不同：一个是吞掉了本该收的真票，一个是正确跳过块内示例）。
+     *
+     * 修后：块内的示例 `VOTE: opt-a` 被跳过，围栏后的真票 `VOTE: opt-b` 被收下。
+     * `\n` 那条是回归护栏（修前修后都必须收到 `opt-b`）。
+     */
+    @Test
+    fun `code fences are still skipped when the fence lines are unicode separated`() {
+        val two = listOf("opt-a", "opt-b")
+        for (sep in listOf("\n", "\r\n", "\r", "\u0085", "\u2028", "\u2029")) {
+            assertEquals(
+                "sep=" + sep.replace("\u0085", "<NEL>").replace("\u2028", "<LS>").replace("\u2029", "<PS>"),
+                "opt-b",
+                GroupChat.parseBallot("```${sep}VOTE: opt-a${sep}```${sep}VOTE: opt-b", "r1", two)?.candidateId,
+            )
+            // 块内示例仍**不**算票：围栏一直开到结尾，失败关闭 → 无票。
+            assertNull(
+                GroupChat.parseBallot("```${sep}VOTE: opt-a${sep}```", "r1", two),
+            )
+        }
+        // 三种 Unicode 形状点名单独断言。
+        assertEquals("opt-b", GroupChat.parseBallot("```\u2028VOTE: opt-a\u2028```\u2028VOTE: opt-b", "r1", two)?.candidateId)
+        assertEquals("opt-b", GroupChat.parseBallot("```\u2029VOTE: opt-a\u2029```\u2029VOTE: opt-b", "r1", two)?.candidateId)
+        assertEquals("opt-b", GroupChat.parseBallot("```\u0085VOTE: opt-a\u0085```\u0085VOTE: opt-b", "r1", two)?.candidateId)
+    }
+
+    /**
+     * **有意收紧的护栏**：票面前面带 Unicode 行终止符（`VOTE: <LS>opt-a`）现在判**无票**。
+     *
+     * 这是从「能解析」到「null」的**行为变化**，**刻意为之**，不是回归事故：
+     *  - 修**前**实测：`parseBallot("VOTE: \u2028opt-a", "r1", listOf("opt-a"))` 返回
+     *    `candidateId = "opt-a"`——**票收到了**。
+     *  - 修**后**返回 `null`。理由：`Char.isWhitespace('\u2028')` 为 true，所以 `trim()`
+     *    会剥掉 `\u2028`，而 `lineSequence()` 不剥——修前能解析**纯粹是 JDK 两个 API 口径
+     *    不一致的巧合**，不是设计。统一成行终止符后，`VOTE: ` 就是一条**空 body** 的票行，
+     *    空 id 不在候选集 → 无票。
+     *  - 这正是本文件既定立场的延伸：「宁可让畸形 id 配不上票，也不静默改写用户写的东西」。
+     *    票面格式是 `VOTE: <id>`，id 必须与前缀**同行**；跨行接续 id 是另一种格式，
+     *    本实现不认（也不为此开特例）。
+     *
+     * 三个分隔符一律如此——**包括 `\u0085`**：它虽然 `trim()` 剥不掉（修前因此真的丢票），
+     * 但把它当行终止符之后，形状与 `\u2028` 完全同构，所以结论相同。
+     *
+     * 将来谁想改回去（例如给「空 body 的 `VOTE:` 行接续下一行」开特例），会先撞到这条断言。
+     */
+    @Test
+    fun `a ballot with a leading unicode separator is no longer accepted`() {
+        val one = listOf("opt-a")
+        assertNull("U+2028 前置分隔符：有意收紧，判无票", GroupChat.parseBallot("VOTE: \u2028opt-a", "r1", one))
+        assertNull("U+2029 同上", GroupChat.parseBallot("VOTE: \u2029opt-a", "r1", one))
+        assertNull("U+0085 同上（形状与前两者同构）", GroupChat.parseBallot("VOTE: \u0085opt-a", "r1", one))
+    }
+
+    /**
+     * **真·回归护栏**：票面后面**尾随** `\u0085`(NEL) 时，id 必须干净、票必须收到。
+     *
+     * 这是 `\u0085` 唯一一个「修前真的丢票、修后修好」的形状，也是 NEL 值得进那 6 个
+     * 分隔符的直接证据：
+     *  - `Character.isWhitespace('\u0085')` = **false**（Unicode 类别 15 = CONTROL），所以
+     *    `trim()` **不**剥 NEL。
+     *  - 修**前**实测：`parseBallot("VOTE: opt-a\u0085", "r1", listOf("opt-a"))` 返回
+     *    **null**——id 变成 `"opt-a\u0085"`、不在候选集里，于是这一票被**静默丢掉**，
+     *    且链路上没有任何一处能指出是编码问题；票数不足最后落到 [VoteOutcome.Invalid]。
+     *  - 修**后**返回 `candidateId = "opt-a"`。
+     *
+     * 对照：`\u2028` / `\u2029` 的尾随形状修前就能解析（靠 `trim()` 剥掉），修后照样能解析，
+     * 所以那两条是「一字不变」的回归护栏，不是修好的证据。
+     */
+    @Test
+    fun `a trailing NEL no longer corrupts the candidate id`() {
+        val one = listOf("opt-a")
+        // 缺陷本体：修前 null，修后 opt-a。
+        assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a\u0085", "r1", one)?.candidateId)
+        // 尾随分隔符不污染理由：`|` 在首条命中那条票**之内**，分隔符切出的空行排在它后面。
+        assertEquals(
+            "尾随 NEL 不污染理由",
+            "理由",
+            GroupChat.parseBallot("VOTE: opt-a|理由\u0085", "r1", one)?.reason,
+        )
+        assertEquals(
+            "尾随 LS 不污染理由",
+            "理由",
+            GroupChat.parseBallot("VOTE: opt-a|理由\u2028", "r1", one)?.reason,
+        )
+        // `\u2028` / `\u2029` 尾随：修前修后一致（修前靠 `trim()` 剥掉），回归护栏。
+        assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a\u2028", "r1", one)?.candidateId)
+        assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a\u2029", "r1", one)?.candidateId)
+        // 纯 `\n` / `\r\n` / `\r` 尾随：回归护栏。
+        for (sep in listOf("\n", "\r\n", "\r")) {
+            assertEquals("opt-a", GroupChat.parseBallot("VOTE: opt-a$sep", "r1", one)?.candidateId)
+        }
+    }
+
+    /**
+     * 非法 id 仍被拒：这条**不能**因为切分口径统一而被放松。
+     *
+     * 统一到 6 个分隔符后，「集外票返回 null」这条判据在三种新分隔符下同样成立——
+     * 修前其中两种是**因为别的理由**返回 null（整段被当成一行、id 被 `\u0085` 污染），
+     * 修后必须是因为**正确理由**（id 干净、但确实不在候选集里）返回 null。
+     */
+    @Test
+    fun `out of set and malformed ballots are still rejected under every separator`() {
+        val two = listOf("opt-a", "opt-b")
+        for (sep in listOf("\n", "\r\n", "\r", "\u0085", "\u2028", "\u2029")) {
+            // 集外 id → 无票。
+            assertNull(GroupChat.parseBallot("VOTE: opt-z${sep}", "r1", two))
+            assertNull(GroupChat.parseBallot("VOTE: opt-z${sep}VOTE: opt-a", "r1", two))
+            // 行内（非行首）出现照旧不算票。
+            assertNull(GroupChat.parseBallot("我选 VOTE: opt-a${sep}", "r1", two))
+            assertNull(GroupChat.parseBallot("前缀VOTE: opt-a${sep}", "r1", two))
+            // 空 body → 无票。
+            assertNull(GroupChat.parseBallot("VOTE:${sep}", "r1", two))
+        }
     }
 
     /**
