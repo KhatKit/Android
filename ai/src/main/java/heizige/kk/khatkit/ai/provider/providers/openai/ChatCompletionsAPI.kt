@@ -48,6 +48,7 @@ import heizige.kk.khatkit.ai.ui.UIMessageAnnotation
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.ai.ui.metadataAs
 import heizige.kk.khatkit.ai.ui.toMetadata
+import heizige.kk.khatkit.ai.util.HttpException
 import heizige.kk.khatkit.ai.util.KeyRoulette
 import heizige.kk.khatkit.ai.util.mergeCustomHeaders
 import heizige.kk.khatkit.ai.util.configureReferHeaders
@@ -167,51 +168,11 @@ class ChatCompletionsAPI(
             }
         }
 
-        val listener = object : EventSourceListener() {
-            override fun onEvent(
-                eventSource: EventSource,
-                id: String?,
-                type: String?,
-                data: String
-            ) {
-                Log.d(TAG, "onEvent: $data")
-                try {
-                    val result = decoder.accept(SseEvent(id = id, event = type, data = data))
-                    sendChunks(result.chunks)
-                    if (result.completed) close()
-                } catch (e: Throwable) {
-                    close(e)
-                }
-            }
-
-            override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                var exception = t
-
-                t?.printStackTrace()
-                println("[onFailure] 发生错误: ${t?.javaClass?.name} ${t?.message} / $response")
-
-                val bodyRaw = response?.body?.stringSafe()
-                try {
-                    if (!bodyRaw.isNullOrBlank()) {
-                        val bodyElement = Json.parseToJsonElement(bodyRaw)
-                        println(bodyElement)
-                        exception = bodyElement.parseErrorDetail()
-                        Log.i(TAG, "onFailure: $exception")
-                    }
-                } catch (e: Throwable) {
-                    Log.w(TAG, "onFailure: failed to parse from $bodyRaw")
-                    e.printStackTrace()
-                    exception = e
-                } finally {
-                    close(exception)
-                }
-            }
-
-            override fun onClosed(eventSource: EventSource) {
-                sendChunks(decoder.onClosed())
-                close()
-            }
-        }
+        val listener = chatCompletionsStreamListener(
+            decoder = decoder,
+            sendChunks = ::sendChunks,
+            closeFlow = { close(it) },
+        )
 
         val eventSource = EventSources.createFactory(client).newEventSource(request, listener)
 
@@ -822,5 +783,70 @@ class ChatCompletionsAPI(
         val gonnaSend = filter { it is UIMessagePart.Text || it is UIMessagePart.Image }.size
         val texts = filter { it is UIMessagePart.Text }.size
         return gonnaSend == texts && texts == 1
+    }
+}
+
+/**
+ * 构造 chat-completions 的 SSE 监听器。
+ *
+ * 抽成顶层 `internal` 函数是为了让失败路径能在 JVM 单测里用真实 [EventSource]
+ * 驱动验证：`streamText` 自身依赖 `android.util.Log`，未 mock 的 JVM 单测无法收集。
+ */
+internal fun chatCompletionsStreamListener(
+    decoder: ChatCompletionsStreamDecoder,
+    sendChunks: (Iterable<StreamChunk>) -> Unit,
+    closeFlow: (Throwable?) -> Unit,
+): EventSourceListener = object : EventSourceListener() {
+    override fun onEvent(
+        eventSource: EventSource,
+        id: String?,
+        type: String?,
+        data: String
+    ) {
+        Log.d(TAG, "onEvent: $data")
+        try {
+            val result = decoder.accept(SseEvent(id = id, event = type, data = data))
+            sendChunks(result.chunks)
+            if (result.completed) closeFlow(null)
+        } catch (e: Throwable) {
+            closeFlow(e)
+        }
+    }
+
+    override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+        var exception = t
+
+        t?.printStackTrace()
+        println("[onFailure] 发生错误: ${t?.javaClass?.name} ${t?.message} / $response")
+
+        val bodyRaw = response?.body?.stringSafe()
+        try {
+            if (!bodyRaw.isNullOrBlank()) {
+                val bodyElement = Json.parseToJsonElement(bodyRaw)
+                println(bodyElement)
+                exception = bodyElement.parseErrorDetail()
+                Log.i(TAG, "onFailure: $exception")
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "onFailure: failed to parse from $bodyRaw")
+            e.printStackTrace()
+            exception = e
+        } finally {
+            // 非 2xx 时 KtorEventSource 固定以 t=null 回调（错误信息只能来自响应体）；
+            // 响应体为空时 exception 保持 null，原样 close(null) 会让 callbackFlow
+            // 按正常完成收场——零 chunk、零异常，上游只能报出「本轮没有产出内容」。
+            // 兜底成带 HTTP 状态码的异常，保证失败回调必然以异常收场。
+            closeFlow(
+                exception ?: HttpException(
+                    response?.let { "Failed to get response: HTTP ${it.code} ${it.message}" }
+                        ?: "Stream failed: unknown error"
+                )
+            )
+        }
+    }
+
+    override fun onClosed(eventSource: EventSource) {
+        sendChunks(decoder.onClosed())
+        closeFlow(null)
     }
 }
