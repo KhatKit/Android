@@ -3790,7 +3790,13 @@ untracked `64`）、锚点 `78`。
   ✅ **订正（2026-10-06 第四轮，HEAD `d96d64e1`）**：这句话到 2026-10-05 为止成立，
   **但现已不再成立**——`realProviderRoundRecordsGenuineTokenUsage` 已在真机跑出
   `exit 0` / `OK (1 test)`，**这 5 条里的第 1 条真机全绿了**。见「C1 真机证据采集第四轮」。
-  ⚠️ **其余 4 条仍未在真机全绿过。**
+  ⚠️ ~~**其余 4 条仍未在真机全绿过。**~~
+  ✅ **再订正（2026-10-06 第七批，HEAD `86e88970d`）**：**这句也已过期**——
+  **那 4 条现在全部真机全绿**（四条 `am instrument` 退出码均 `0`、输出均 `OK (1 test)`，
+  Time 2.142 / 1.746 / 3.896 / 1.842）。
+  ⇒ **`C1LiveModelSequenceTest` 这 5 条现在每一条都在真机绿过一次**（第 5 条见第四轮，
+  前 4 条见第七轮）。⚠️ **但前 4 条跑的是 mock provider**（第 5 条那次才是真实网关），
+  且**硬理由①未随之消掉**——逐条见「C1 真机证据采集第七轮」。
 
 - **C1 相关仪器测试 25 个注解，执行结果为零，需设备。**（C1-D 之后新增了
   `Migration_31_32_Test` 6 条，早前版本记的 19 已过期。）
@@ -3835,7 +3841,10 @@ untracked `64`）、锚点 `78`。
 （OnePlus OEM 回收策略杀进程，按「OOM 立即停止重试」共试 11 次后停止）。
 ✅ **订正（2026-10-06 第四轮，HEAD `d96d64e1`）**：`C1LiveModelSequenceTest` 里的
 `realProviderRoundRecordsGenuineTokenUsage` **已在真机全绿**（`exit 0`、`OK (1 test)`），
-见「C1 真机证据采集第四轮」；⚠️ **其余 4 条仍未全绿**，且本轮 `:app:connectedDebugAndroidTest`
+见「C1 真机证据采集第四轮」；
+⚠️ ~~**其余 4 条仍未全绿**~~ ✅ **第七批（HEAD `86e88970d`）已订正：那 4 条全绿了**
+（四条退出码 `0` / 均 `OK (1 test)`），见「C1 真机证据采集第七轮」；
+当时 `:app:connectedDebugAndroidTest`
 仍因 `BrowserRuntimeTest` 的 Coil 单例崩溃**在 9 过 1 挂后中止**。
 ⚠️ **本轮这三批修的缺陷恰好是「仪器测试原理上覆盖不到」的那一类**——
   它们要在**真实协程取消 + 真实流式响应 + 真实 DAO 时序**下才可能复现，
@@ -4808,7 +4817,11 @@ EOF
 总数）、**`failures="0"`**、**不再出现** `The singleton image loader has already been
 created`。⚠️ **当前磁盘上那份是 `tests="10" failures="1"`——那是修复前的现场，不是结果。**
 
-**A2. `C1LiveModelSequenceTest` 其余 4 条真机全绿**（现在只有第 5 条绿了）
+**A2. ~~`C1LiveModelSequenceTest` 其余 4 条真机全绿~~** ✅ **第七批（HEAD `86e88970d`）已做完**：
+四条退出码全 `0`、全 `OK (1 test)`。⚠️ **第四条的 app 侧 JSON 未 pull**，只剩旁证——
+要补的就是把那份 `c1-live-evidence-vote.json` 从设备
+`/sdcard/Android/data/heizige.kk.khatkit.debug/files/` 拉回来。
+（下面这段 `adb` 命令即当时用的那套，仍然有效。）
 
 ```
 adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
@@ -5636,7 +5649,7 @@ roundtable / vote 的真实调用仍然零份。**最短的下一步**是第 1 �
 | 2. 实际模型调用序列 | ⚠️ **完全不变**。仍是 `deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`，**模型名仍非 wire 抓包**、**用例仍没有一次全绿记录**、**roundtable / vote 真实调用仍零份** |
 | 3. token 计数 | ⚠️ **完全不变**。真实 usage 6803+159 / 6667+68 / 6880+102、Σ = 20679，**仍无落盘产物**、**仍只跑了 pipeline** |
 | 4. 导出 SHA-256 | ⚠️ **完全不变**（真机文件 + 真机 `MessageDigest` + 本机 `sha256sum` 三重一致）。`ACTION_SEND` 真实分发**没走过**、**酒馆本体零证据** |
-| 5. 仪器测试 | ⚠️ **不变**。本轮**一行 `androidTest` 都没动**（全量 `@Test` 仍是 **61**）；上一次全绿仍是 `28/28、exit 0`，`C1LiveModelSequenceTest` 那 5 条**在本窗口内没有一条在真机全绿过**<br>✅ **第六个窗口订正（HEAD `d96d64e1`，2026-10-06）**：那 5 条里的 **`realProviderRoundRecordsGenuineTokenUsage` 已在真机全绿**（`exit 0`、`OK (1 test)`、15.6s 跑完、OEM 未触发），落盘 JSON 拉回并记了 SHA-256；⚠️ ~~**其余 4 条仍未全绿**~~ ✅ **第七批（HEAD `86e88970d`）已订正：那 4 条全绿了**（四条退出码 `0` / 均 `OK (1 test)` / Time 2.142 / 1.746 / 3.896 / 1.842），见「C1 真机证据采集第七轮」；当时 `:app:connectedDebugAndroidTest` 仍因 `BrowserRuntimeTest` 的 Coil 单例崩溃**在 9 过 1 挂后中止**（`exit 1`）。详见「C1 真机证据采集第四轮」 |
+| 5. 仪器测试 | ⚠️ **不变**。本轮**一行 `androidTest` 都没动**（全量 `@Test` 仍是 **61**）；上一次全绿仍是 `28/28、exit 0`，`C1LiveModelSequenceTest` 那 5 条**在本窗口内没有一条在真机全绿过**<br>✅ **第六个窗口订正（HEAD `d96d64e1`，2026-10-06）**：那 5 条里的 **`realProviderRoundRecordsGenuineTokenUsage` 已在真机全绿**（`exit 0`、`OK (1 test)`、15.6s 跑完、OEM 未触发），落盘 JSON 拉回并记了 SHA-256；⚠️ ~~**其余 4 条仍未全绿**~~ ✅ **第七批（HEAD `86e88970d`）已订正：那 4 条全绿了**（四条退出码 `0` / 均 `OK (1 test)` / Time 2.142 / 1.746 / 3.896 / 1.842），见「C1 真机证据采集第七轮」；当时 `:app:connectedDebugAndroidTest` 仍因 `BrowserRuntimeTest` 的 Coil 单例崩溃**在 9 过 1 挂后中止**（`exit 1`）。详见「C1 真机证据采集第四轮」<br>✅ **第七批订正（HEAD `86e88970d`，2026-10-06）**：**这 5 条现在每一条都在真机绿过一次**（第 5 条真实网关 / 前 4 条 mock，四条退出码 `0`、全 `OK (1 test)`）。⚠️ **但 `:app:connectedDebugAndroidTest` 仍未全量跑通**，且**十行状态列仍 10/10 `unverified`** |
 
 ⚠️ **第五个窗口唯一新增的缺口形状**（**不属于上面四类，是四类覆盖不到的那些行**）：
 

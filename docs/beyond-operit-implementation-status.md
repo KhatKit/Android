@@ -307,7 +307,8 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     b `6645/58`、c `6904/242`，**Σ(prompt+completion) = 20780 与落库
     `group_runs.spent_tokens` 精确相等**；三份产物 `adb pull` 回主机并记 SHA-256。
     ⚠️ **十行状态列仍一个格都没动**（模型名非 wire 抓包 / 真机 UI 端到端零份 /
-    其余 4 条 mock 用例仍未真机全绿），逐条见下面「第六批」。
+    ~~其余 4 条 mock 用例仍未真机全绿~~ ✅ **该子项已被第十二批消掉**：那 4 条现已真机全绿），
+    逐条见下面「第六批」与「第十二批」。
   - ⚠️⚠️⚠️ **本轮（`33eb801e..a74c1820`，2026-10-06）：两个真机 Compose 必崩已修并真机
     验证 + Coil 单例崩溃结构性修复 + 四项代码债收口。十例仍全部 `unverified`。**
     逐条见下面新增的「第六批」那一节。**操作清单在
@@ -1651,9 +1652,12 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
       - **A1 全量仪器测试**（验证 Coil 修复，本轮唯一「跑一条命令就能验」的项）：
         `./gradlew --offline :app:connectedDebugAndroidTest`，判据是 XML 的
         `tests ≈ 61` / `failures="0"` / 不再出现那个 Coil 异常。
-      - **A2 `C1LiveModelSequenceTest` 其余 4 条**（现在只有第 5 条绿了）：
-        手动 `adb install -r -t` + `am instrument -e class '…#方法名'`，
-        ⚠️ **`#` 必须加引号**。
+      - ~~**A2 `C1LiveModelSequenceTest` 其余 4 条**（现在只有第 5 条绿了）~~
+        ✅ **第十二批已完成**：四条退出码全 `0`、全 `OK (1 test)`。
+        ⚠️ **剩的尾巴只有一条**：第四条的 app 侧 `c1-live-evidence-vote.json`
+        **未 pull**，把它从设备 `/sdcard/Android/data/heizige.kk.khatkit.debug/files/`
+        拉回来即可（当时的跑法：手动 `adb install -r -t` +
+        `am instrument -e class '…#方法名'`，⚠️ **`#` 必须加引号**）。
       - **C1 先收拾工作区那两处未提交内容**（`TavernMacroExpander.kt` 与
         `C1GroupUiE2EFixtureTest.kt`）——⚠️ **`git add -A` 会把它们卷进下一位的提交**。
       ⚠️ **下面第 2 组（需要真机）的 7 条按惯例保留不覆写**，⚠️ **其中第 3、5、6 条的
