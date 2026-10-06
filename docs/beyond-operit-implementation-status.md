@@ -390,6 +390,61 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
    `toggleConversationPinned`），而 `HistoryPage` 零路由引用。⚠️ 附带发现**第 4 份重复类**
    `core/service/ChatGenerationForegroundService.kt`（175 行）**没进 manifest**，是死副本。
 
+#### ⚠️⚠️ 订正（2026-10-06，本轮，纯文档）：上面第 4 条的「不可达」**措辞要精确化**
+
+第 4 条的**结论正确**（不可达），但「1 个注入点 + 零路由引用」这个描述容易让人以为
+「那它是死代码，直接 `rm` 即可」。⚠️ **不是。** 精确判定是**活接线 / 运行时不可达**：
+
+| 事实 | 来源 |
+|---|---|
+| `@Inject constructor` ⇒ Hilt JIT 绑定**确实存在** | `core/service/ChatService.kt:177` |
+| 有一个真实的注入点，且真被调用 | `HistoryVM.kt:28` 注入、`:55` 调 `toggleConversationPinned` |
+| 零**构造**点 | `HistoryPage.kt:69` 全仓零路由引用 |
+| ⚠️ **`AppHiltModule.kt:51` 那行不是绑定，是未使用的 import** | 该文件里 `ChatService` 只出现在 `:51` 一行（`:36` import 的是 `feature.chat.ChatManager`）；`grep -rn "ChatService" --include=*.kt . \| grep -E "@Provides\|@Binds"` 命中的 2 处都是**注释**与**断言字符串字面量**，真绑定 0 处；`@Provides` 方法是 `:191 fun provideChatManager`、返回 `ChatManager`（`:211`） |
+
+⇒ **⚠️ 所以「删 `ChatService.kt`」会炸编译，不是纯清理。** 删之前**必须**先拆三处
+依赖（`forkConversationTitle` 被活的 `ChatManagerTest.kt:18` 跨包 import + 5 条断言；
+两个护栏测试 `File(...).readText()` 硬编码了它的绝对路径；`HistoryVM`/`HistoryPage` 孤儿）。
+完整拆解顺序见 **`docs/architecture-map.md` §9.2.1**。
+
+⚠️⚠️⚠️ **本轮查实的根因（之前记的是「重复代码待清理」，实际是「删过又被复活」）**：
+
+```
+2026-09-25  f7463f814  refactor(structure): move chat pages and conversation services to feature/chat
+                        ← 项目主动把 5 个文件从 core/service/ 搬到 feature/chat/
+2026-10-01  8cf9bec2d  merge: 同步上游 RikkaHub master(2.5.5 + 29 个提交)
+                        ← 上游那侧路径没变，5 个文件被当成新文件整包搬回来
+```
+
+实测 `git diff --stat 8cf9bec2d^1 8cf9bec2d -- app/src/main/java/heizige/kk/khatkit/app/core/service/`
+⇒ **`5 files changed, 1994 insertions(+)`，纯新增 0 删除**；复活后
+`git log --oneline 8cf9bec2d..HEAD -- core/service/` 恰好 **7** 个 commit 且全中
+`ChatService.kt`，另外 4 个一动没动。
+
+⇒ **这不是「有人忘了删」，是「已经决定删过、被 vendor merge 复活」。**
+⚠️ **不写下来，下一个人会再删一次、再被复活一次。** 根因时间线、5 个文件逐个判定、
+以及「每次上游同步后必查」的对策见 **`docs/architecture-map.md` §9**。
+
+⚠️⚠️⚠️ **顺带订正「重复约 86.7%」这个旧数字 —— 口径必须写清，否则不可复现**：
+实测 `ChatService.kt`（1506 行）× `ChatManager.kt`（2362 行）：
+
+| 口径 | A 覆盖率 | Jaccard |
+|---|---:|---:|
+| RAW（全部行） | **86.06%** | **67.06%** |
+| CODE（剥空行 + `//` + `*` + `/*`） | **88.97%** | **72.30%** |
+
+**86.7% ≈ RAW 口径的 A 覆盖率 86.06%**，口径是「`ChatService` 的行里有多少行在
+`ChatManager` 里逐字不变」（`diff` 的 `<` 侧取反），**不是 Jaccard**。
+⚠️ 用 Jaccard 只有 67.06% —— 差近 19 个百分点，因为 `ChatManager` 有 **412** 行注释
+vs `ChatService` **142** 行，且 `ChatManager` 在共同代码**中间插了 1066 行**，
+两文件行号完全错位 ⇒ **单看 RAW 会被「块插入」骗**。
+⚠️ **代码级差异只有 132 行**在 `ChatService` 一侧（CODE 口径），**不是 RAW 口径的 210 行**。
+可复现命令见 `docs/architecture-map.md` §10.2。
+
+⚠️⚠️⚠️ **本轮最实质的发现 —— 「删 `ChatService.kt`」不是纯清理**：
+它会**永久删掉一个聊天建议 / 追问推荐功能的全部实现**。详见下一条待决策项
+**D1**（**需要主人拍板，agent 不得自行决定**）。
+
 ⚠️ **所以「C5 那个产品决策」也不存在**（没有泄漏就没有决策要定）。⚠️ **真正该做的是删掉
 `ChatService` 这份重复实现 + 那份死 FGS**——纯清理、零行为改动、零设备可做，
 **不在本轮授权内**（本轮不碰 Kotlin 源码），已作为遗留尾巴挂在第 28 条下面。
@@ -398,6 +453,57 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 **一份未增**；`4ee1ad5c` 修掉的是**真实存在**的缺陷，但按判定规则第五条
 **「修掉了真缺陷」不等于「这一行该判通过」**，且泄漏本身**零真机观测**。
 **十行状态列一个格都没动，仍是 10/10 `unverified`。**
+
+#### ⚠️⚠️⚠️ D1【待决策 · 2026-10-06 本轮新增】：`generateSuggestion`（聊天建议 / 追问推荐）删还是留
+
+> 🚩🚩🚩 **这条需要主人拍板，agent 不得自行决定。**
+> 它是**产品决策**（这个功能要不要存在），不是清理决策。
+> ⚠️ 在拍板之前，**不要删 `core/service/ChatService.kt`**。
+
+**为什么它挡在删除前面**：早前把这事记成「`ChatService` 是第二份重复实现，删掉是纯清理、
+零行为改动」。⚠️ **本轮查实后这个前提不成立** —— 它不是纯清理。
+
+**实测证据（四条，每条都有命令）**：
+
+| # | 事实 | 实测 |
+|---|---|---|
+| 1 | ⚠️ **全 app 唯一填充非空 `chatSuggestions` 的地方** | `grep -rn "chatSuggestions" --include=*.kt app/src/main/` ⇒ **`core/service/ChatService.kt:1026` 的 `chatSuggestions = suggestions.take(10)` 是唯一的非空写入** |
+| 2 | ⚠️ **活管线 `ChatManager` 只会清空、从不填充** | `ChatService.kt:704/999/1114` 与 **`ChatManager.kt:758/1324` 全都只会 `= emptyList()`**。⇒ 活的那条管线**永远产不出建议** |
+| 3 | ⚠️ **没有任何 UI 读 `chatSuggestions`** | 7 个命中文件全是数据层 / 网络层（`ConversationEntity` / `Conversation` / `ConversationRepository` / `WebDto` / `ConversationDiff`）+ 两个服务类；按 UI 文件名（`Page.kt` / `VM.kt` / `Screen` / `Composable`）过滤 ⇒ **0 命中（EXIT=1）** |
+| 4 | ⚠️ **没有 UI 开关入口** | `enableSuggestion` flag 存在（`SettingsRepository.kt:208/280/579`，默认 `true`），但 `grep -rn "enableSuggestion" --include=*.kt app/src/main/` ⇒ **只有 `ChatService.kt:991` 读它**；`grep -rn "setting_model_page_enable_suggestion" --include=*.kt .` ⇒ **空** |
+
+⚠️ **第 4 条的一处订正（别照抄上一轮的转述）**：上一轮转述说「7 种语言里连这个字符串
+都没有」。⚠️ **实测是反的** ——
+`grep -rln "setting_model_page_enable_suggestion" app/src/main/res/` ⇒ **7 个文件全部命中**
+（`values/` / `values-ar` / `values-ja` / `values-ko-rKR` / `values-ru` / `values-zh` /
+`values-zh-rTW`），基线值在 `values/strings.xml:817`
+= `Enable Chat Suggestions`。**Android Lint 也独立确认它是未使用资源**
+（`app/build/reports/lint-results-debug.txt:1143`：
+`The resource R.string.setting_model_page_enable_suggestion appears to be unused [UnusedResources]`）。
+
+⇒ 订正后的结论更精确、且**更强**：**字符串资源在 7 种语言里都齐、但没有任何 `.kt`
+引用它**，所以**没有 UI 开关绑定**（上一轮「字符串不存在」的说法错，但「没有开关入口」
+的结论成立，且现在有 lint 的 `UnusedResources` 作独立旁证）。
+
+**⇒ 所以「删 `ChatService.kt`」不是纯清理 —— 它会永久删掉一个（当前已不可见的）
+聊天建议 / 追问推荐功能实现。**
+
+**两个选项**：
+
+| 选项 | 内容 | 代价 |
+|---|---|---|
+| **(a) 认定已废弃** | 连同 `enableSuggestion` flag（`SettingsRepository.kt:127/208/280/579`）、`suggestionPrompt`（`:213/285/580`）、以及 7 个 locale 里的 `setting_model_page_enable_suggestion` 字符串**一起清理** | 功能彻底消失（**但它现在就已不可见**） |
+| **(b) 认定要复活** | 把 `generateSuggestion`（`ChatService.kt:985-1036`）port 进 `feature/chat/ChatManager.kt` **并补 UI**（渲染 `chatSuggestions` + 一个绑定到 `enableSuggestion` 的开关） | ⚠️ **要新增 UI、要真机验证**，且要决定 `ChatManager` 的哪条路径触发它 |
+
+**倾向 (a) 的理由**（**仅供参考，不是结论**）：无 UI 消费方（证据 3）+ 无开关入口
+（证据 4）⇒ **产品层面早已退役**，现在只是一份没人收拾的死副本；且 **git 历史完整**
+（`8cf9bec2d` 就是它被搬回来的那次提交，2026-10-01），**随时可取回** ——
+⚠️ **若上游日后把该功能带回，下次同步会自然恢复**（届时按
+`docs/architecture-map.md` §9.3 的对策复查一次即可）。
+
+**待主人拍板。** 拍板前不动 `core/service/` 任何一个文件（`MessageQueue.kt` /
+`ConversationSessionManager.kt` / `ConversationSession.kt` / `ChatGenerationForegroundService.kt`
+这 4 个**判定不受本条影响**，可以独立处置；`ChatService.kt` 必须等这条定了）。
 
 #### ③ 本批的统计口径（⚠️ 上一批那些数字按惯例保留不覆写）
 
