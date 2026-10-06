@@ -4640,6 +4640,59 @@ git log --oneline ea6b7c4c..74d82476 | wc -l   # 8，就是下面这 8 个
 详见「为什么十例仍然 0/10」第 2 条与「已知遗留与风险」第 18b 条。
 
 
+#### ⚠️⚠️ 再往后一批（第七批，HEAD `86e88970d` 那一轮采集）：**4 条 mock 仪器测试真机全绿**
+
+⚠️⚠️ **本小节记的是「采集」不是「代码提交」**：这一轮**一行代码都没改**（`git diff`
+只有 `docs/`），做的是在**真机上把 `C1LiveModelSequenceTest` 前 4 条各跑一遍**并把
+产物拉回主机。核验命令与实测输出：
+
+```
+git log --oneline ea6b7c4c..86e88970d | wc -l   # 13，就是下面这 13 个
+git log --oneline d45ebd10~1..1b0e04a9 | wc -l  # 78，锚点不重算
+git log --oneline --merges d45ebd10~1..1b0e04a9 | wc -l # 0
+```
+
+⚠️ **台账声明值 `45 类 / 491 例` 一个数都没动**，理由与上一批**逐字相同**：
+`ae285843` 新增的类在 **`ai/src/test/`**，而本文台账的口径是「**能在
+`app/build/test-results/testDebugUnitTest/*.xml` 对上**」；
+`d7971ba1` / `63d0a504` / `74d82476` 改的是**仪器测试 / KDoc**，
+**台账本来就不收仪器测试**。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `f1bf516e` | `feat(ai): UIMessage 增加 wireModelName 字段` | 功能（`ai/`）——硬理由①修复第一块 |
+| `0c239788` | `fix(ai): Finish 落盘 wire 模型名，补上非流式对称路径` | 功能（`ai/`）——第二块 |
+| `ae285843` | `test(ai): 新增 WireModelNameProvenanceTest，钉死 wire 级模型名` | 测试（`ai/src/test/`，**不并入台账**） |
+| `35b90d67` | `feat(tools): 新增 c1_wire_model_probe.py，抓网关自报的 wire 模型名` | 工具（**零测试用例**） |
+| `ab2f9b65` | `docs(app): 修正 ChatList 注释里 StreamChunkHandler 的行号锚点` | ⚠️ 改的是 Kotlin **注释**，零实现改动 |
+| `d7971ba1` | `test(app): 真实网关用例的模型名改 wire 优先取，新增「不允许两者皆空」断言` | 测试（`androidTest/`，**台账不收**） |
+| `63d0a504` | `test(app): 证据 JSON 记两个模型名并逐条标 provenance，硬理由①的采集口径对得上落盘字段` | 测试（同上） |
+| `74d82476` | `docs(app): 修掉 KDoc 里指向不存在 JSON 字面量的引用，改为实际两个字段名` | 纯 KDoc |
+| `f41807c3e` | `docs(c1): 订正两处过期数字——C1LiveModelSequenceTest 现为 2221 行、app 单测 HEAD 实测 893 例` | 文档 |
+| `53d376f9a` | `docs(c1): 硬理由①如实改写——缺陷已定位并修复、wire 名可直接拿到，但真机未跑故仍不划掉` | 文档 |
+| `f2d12e930` | `docs(c1): 台账补登 wire 级模型名那 8 个 commit（锚点 1b0e04a9 不重算，声明值 45 类/491 例未动）` | 文档 |
+| `ff8cadf44` | `docs(c1): 新增 wire 级模型名的两条零设备证据节（JVM 9 例 + 真实网关探测），逐条标注取证局限` | 文档 |
+| `86e88970d` | `docs(status): wire 级模型名从「缺能力」改为「已具备 + 待真机复核」，补第十一批与下一位行动项` | 文档 |
+
+⚠️ **上面这 13 个一个都不计入本台账任何计数**——不改统计区间、不改 `--no-merges`
+口径、不引入新的类型前缀或子包标签。**`78 / 6 / 17` 与声明值 `45 类 / 491 例`
+一个数都没动**（`c1_doc_stats.py` 本轮实测 `ledger` 仍 `45 行全部相等` / 合计 **491**，
+`git` 锚点区间仍 **78** / `--merges` **0**）。
+
+⚠️⚠️ **这一批与上一批的性质完全不同，必须说清**：
+上一批（`f1bf516e..74d82476`）是「**能力已具备 + 零设备**」，
+这一批是「**能力在真机上被采到了**」——
+t1/t3 两份 pulled JSON 里 `wire_model_name` 是 `mock-model-a/b/c` 这种**服务端自报串**
+（同行 `model_id` 是本地 UUID）⇒ **wire 优先逻辑在真机上生效**，
+这正是上一批缺的那份真机数字。
+⚠️ **但硬理由①仍不消**：这一批跑的是 **mock provider**，
+**真实网关那次 `realProviderRoundRecordsGenuineTokenUsage` 还没在 wire 优先逻辑下重跑**，
+设备上那份 `c1-live-evidence-real-provider.json` **仍是反查值**。
+⚠️ **硬理由⑤已消**（那 4 条真机全绿，四条退出码 `0`、全 `OK (1 test)`）。
+⚠️ **十行状态列仍然是 10/10 `unverified`**——本轮**零 UI 动作、零酒馆动作、零扫码动作**，
+UI 端到端 / 酒馆本体 / 相机扫码**仍然零份**。
+逐条边界与全部数字见「C1 真机证据采集第七轮」。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
