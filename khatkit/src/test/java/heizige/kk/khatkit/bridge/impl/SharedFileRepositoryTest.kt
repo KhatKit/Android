@@ -9,12 +9,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-class SharedStoreTest {
+class SharedFileRepositoryTest {
 
     @get:Rule
     val tempFolder = TemporaryFolder()
 
-    private fun store(owner: String) = SharedStore(tempFolder.root, owner)
+    private fun store(owner: String) = SharedFileRepository(tempFolder.root, owner)
 
     @Test
     fun writeAndReadOwnFile() {

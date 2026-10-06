@@ -19,7 +19,7 @@ import javax.crypto.spec.GCMParameterSpec
  * 敏感数据不进 kv：用 Android Keystore 的 AES/GCM 主密钥加密后落盘，
  * 明文永不落盘。密钥名单独维护索引，便于 UI 展示「该卡片存了哪些密钥」。
  */
-internal class SecretStore(context: Context, cardName: String) {
+internal class SecretRepository(context: Context, cardName: String) {
 
     private val prefs = context.getSharedPreferences("khatkit_secret_$cardName", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }

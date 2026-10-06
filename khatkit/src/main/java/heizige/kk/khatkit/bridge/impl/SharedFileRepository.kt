@@ -9,7 +9,7 @@ import java.io.File
  * 显式写到这里：**写只进自己的命名空间，读可以跨卡片按名取**，
  * 删除只能删自己的。这样既保持隔离，又能把上一步产物交给下一步。
  */
-class SharedStore(
+class SharedFileRepository(
     private val rootDir: File,
     private val owner: String,
 ) {

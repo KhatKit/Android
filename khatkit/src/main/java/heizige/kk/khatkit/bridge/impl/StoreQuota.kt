@@ -3,7 +3,7 @@ package heizige.kk.khatkit.bridge.impl
 /**
  * 卡片存储配额：files + JSONL + SQLite 合计的天花板（`card.json` 的 `store.quota_mb`）。
  *
- * SQLite 侧另有 `PRAGMA max_page_count` 硬顶（见 [CardSqlStore]），这里的校验负责
+ * SQLite 侧另有 `PRAGMA max_page_count` 硬顶（见 [CardSqlRepository]），这里的校验负责
  * 拦住「多个存储同时逼近上限」的情况。
  */
 class StoreQuota(quotaMb: Int) {

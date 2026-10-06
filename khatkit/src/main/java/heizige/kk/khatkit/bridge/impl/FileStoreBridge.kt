@@ -41,12 +41,12 @@ class FileStoreBridge(
     private val quota = StoreQuota(quotaMb)
 
     /** 卡片自己的 SQLite 库；files/ 与 db/ 的占用通过 externalUsage 一起计入配额。 */
-    private val sqlStore = CardSqlStore(appContext, cardName, quota) {
+    private val sqlStore = CardSqlRepository(appContext, cardName, quota) {
         directorySize(fileDir) + directorySize(dbDir)
     }
 
-    private val secrets = SecretStore(appContext, cardName)
-    private val shared = SharedStore(File(appContext.filesDir, "khatkit/shared"), cardName)
+    private val secrets = SecretRepository(appContext, cardName)
+    private val shared = SharedFileRepository(File(appContext.filesDir, "khatkit/shared"), cardName)
     private val json = Json { ignoreUnknownKeys = true }
 
     override fun kvGet(key: String, default: String?): String? = prefs.getString(prefKey(key), default)

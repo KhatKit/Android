@@ -24,7 +24,7 @@ import java.io.File
  * FTS5 依系统 SQLite 构建而定，探测结果见 [fts5Supported]，卡片可先用
  * `host.health().fts5` 判断，不支持时退化成普通表 + `LIKE`。
  */
-class CardSqlStore(
+class CardSqlRepository(
     context: Context,
     private val cardName: String,
     private val quota: StoreQuota,
@@ -153,7 +153,7 @@ class CardSqlStore(
             val probe = probeFts5(context.applicationContext)
             fts5Probe = probe
             if (!probe) {
-                Logging.log("CardSqlStore", "平台 SQLite 不支持 FTS5，卡片全文检索需退化为 LIKE")
+                Logging.log("CardSqlRepository", "平台 SQLite 不支持 FTS5，卡片全文检索需退化为 LIKE")
             }
             return probe
         }

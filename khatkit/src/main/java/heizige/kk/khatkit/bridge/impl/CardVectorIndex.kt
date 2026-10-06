@@ -36,7 +36,7 @@ data class VectorHit(
  *
  * 向量以紧凑字符串（`0.1,0.2,…`）存 `vector` 列；维度不一致的旧向量在检索时跳过。
  */
-class CardVectorIndex(private val sql: CardSqlStore) {
+class CardVectorIndex(private val sql: CardSqlRepository) {
 
     /** 写入或覆盖一条向量；同 `(ns, row_id)` 覆盖。 */
     fun upsert(namespace: String, rowId: String, text: String?, vector: FloatArray): Boolean {

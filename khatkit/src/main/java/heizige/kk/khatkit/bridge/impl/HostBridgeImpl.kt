@@ -41,7 +41,7 @@ class HostBridgeImpl(
         "overlay" to true,
         "notifications" to true,
         // store.sql 的全文检索能力：平台 SQLite 不带 FTS5 时卡片应退化为 LIKE
-        "fts5" to CardSqlStore.fts5Supported(context),
+        "fts5" to CardSqlRepository.fts5Supported(context),
     )
 
     override fun capabilities(): List<String> = registry()?.availableBridges()?.sorted().orEmpty()

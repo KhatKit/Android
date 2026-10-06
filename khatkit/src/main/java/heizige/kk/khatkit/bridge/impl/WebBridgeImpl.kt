@@ -11,7 +11,7 @@ internal class WebBridgeImpl(
     context: Context,
     private val ui: UiBridge?,
 ) : WebBridge {
-    private val store = SecretStore(context.applicationContext, "__web_cookie_store")
+    private val store = SecretRepository(context.applicationContext, "__web_cookie_store")
 
     override fun openLogin(
         url: String,
