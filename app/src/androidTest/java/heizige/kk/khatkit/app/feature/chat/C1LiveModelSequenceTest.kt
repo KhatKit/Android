@@ -1207,7 +1207,8 @@ class C1LiveModelSequenceTest {
      *
      * ⚠️ `provider_model_table` 里那一列仍叫 `wire_model_string`，但它是**我们自己那张
      * provider 模型表的字段**，不是网关回传的值；它只用来解释「uuid 对应哪个上线名」，
-     * 不能当成 wire 级观测（JSON 里已用 `local_table_field_not_gateway_echoed` 标出）。
+     * 不能当成 wire 级观测（JSON 里已用 `provider_model_table_note` 与
+     * `bindings[].wire_model_string_source` 两个字段如实标出这一点）。
      *
      * **因此它能证明**：真实网关确实被调用了（`message.usage` 是网关按真实分词返回的，
      * 见上面的 `token_source`）；`resolveGroupTurnModelId` / `TaskRoutes.resolve` 为每个角色
