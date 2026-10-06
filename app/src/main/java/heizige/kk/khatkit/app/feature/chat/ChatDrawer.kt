@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -562,7 +563,12 @@ fun ChatDrawerContent(
                             },
                         ) { Text("新建群聊") }
                     },
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        // C1 真机 UI 测试的定位锚点：会话列表要能被滚动到指定条目
+                        // （performScrollToNode），chip 过滤断言才能覆盖到屏幕外的行。
+                        // 仅新增语义属性，不改布局/行为。
+                        .testTag("drawer_conversation_list"),
                     onClick = {
                         navigateToChatPage(navController, it.id)
                     },
