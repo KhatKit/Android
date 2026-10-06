@@ -19,7 +19,10 @@ Environment variables (all optional):
   MOCK_PORT       listen port (default 8766)
   MOCK_DELAYS     per-role seconds between content chunks, e.g. "A:0.02,B:0.5,C:0.1"
                   (first content chunk is always immediate; default "A:0.02,B:0.5,C:0.1")
-  MOCK_FAIL_ROLE  role code whose FIRST request returns HTTP 500 (default "B", empty to disable)
+  MOCK_EMPTY_ROLE role code whose FIRST request returns HTTP 200 with **zero content
+                  chunks** (default "B"; empty to disable). This is the production
+                  "本轮没有产出内容" path (GroupTurnCoordinator/commitGroupTurn), which
+                  writes a real error node + FAILED/role_failed run row.
   MOCK_PAD        extra padding characters appended to the reply per role, e.g. "B:400"
   MOCK_LOG_DIR    directory for requests.jsonl (default /tmp/opencode/c1-cancel)
 
@@ -39,7 +42,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 PORT = int(os.environ.get("MOCK_PORT", "8766"))
 LOG_DIR = os.environ.get("MOCK_LOG_DIR", "/tmp/opencode/c1-cancel")
 LOG_PATH = os.path.join(LOG_DIR, "requests.jsonl")
-FAIL_ROLE = os.environ.get("MOCK_FAIL_ROLE", "B").strip().upper()
+FAIL_ROLE = os.environ.get("MOCK_FAIL_ROLE", "").strip().upper()
+EMPTY_ROLE = os.environ.get("MOCK_EMPTY_ROLE", "B").strip().upper()
 
 RE_CASE = re.compile(r"CASE:([A-Za-z0-9_\-]+)")
 RE_ROLE = re.compile(r"ROLECODE:([A-Za-z0-9_\-]+)")
@@ -174,6 +178,48 @@ class Handler(BaseHTTPRequestHandler):
                 "type": "server_error",
                 "code": "mock_injected_failure",
             }})
+            return
+
+        # Zero-content stream for the first request of EMPTY_ROLE: production writes
+        # "本轮没有产出内容" -> FAILED/role_failed + a real error node.
+        injected_empty = False
+        if EMPTY_ROLE and speaker == EMPTY_ROLE and speaker not in failed_once:
+            failed_once.add(speaker)
+            injected_empty = True
+            prompt_tokens = max(1, len(raw) // 4)
+            usage = {"prompt_tokens": prompt_tokens, "completion_tokens": 0,
+                     "total_tokens": prompt_tokens}
+            record = {
+                "seq": seq,
+                "ts": time.time(),
+                "speaker": speaker,
+                "case": case,
+                "model": requested_model,
+                "stream": stream,
+                "injected_empty_output": True,
+                "raw_body_bytes": len(raw),
+                "usage": usage,
+            }
+            write_record(record)
+            sys.stderr.write("[mock-slow] seq=%d speaker=%s INJECTED EMPTY OUTPUT\n" % (seq, speaker))
+            sys.stderr.flush()
+            if stream:
+                self._respond_stream("chatcmpl-mockslow-empty-%d" % seq, requested_model,
+                                     "", usage, speaker)
+            else:
+                self._json(200, {
+                    "id": "chatcmpl-mockslow-empty-%d" % seq,
+                    "object": "chat.completion",
+                    "created": int(time.time()),
+                    "model": requested_model,
+                    "choices": [{
+                        "index": 0,
+                        "message": {"role": "assistant", "content": ""},
+                        "logprobs": None,
+                        "finish_reason": "stop",
+                    }],
+                    "usage": usage,
+                })
             return
 
         pad = "补" * PADS.get(speaker, 0)

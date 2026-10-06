@@ -60,9 +60,10 @@ import kotlin.uuid.Uuid
  *
  * 1. **取消/超时不得写入未生成的消息** —— 库内任何助手消息都不得是
  *    [isUngeneratedAssistantMessage]（空产出气泡）；被取消角色之后的角色一条消息都不落库。
- * 2. **已生成消息与错误节点保留** —— 第一轮用真实 HTTP 500 造一个生产路径写出的错误节点
- *    （`FAILED` / `role_failed`），取消第二轮后它必须原样还在；第二轮已完成的角色 a 消息
- *    保留，若 b 已吐出部分内容则该部分内容保留（非空）。
+ * 2. **已生成消息与错误节点保留** —— 第一轮让 B 的第一次请求返回**零内容的合法 SSE**
+ *    （生产判为 `本轮没有产出内容`，走 `commitGroupTurn` 的空产出分支），落成
+ *    `FAILED` / `role_failed` 与一个真实错误节点；取消第二轮后它必须原样还在；
+ *    第二轮已完成的角色 a 消息保留，若 b 已吐出部分内容则该部分内容保留（非空）。
  * 3. **已消耗 token 记入 `group_runs.spent_tokens`** —— 取消时 spent == 已提交角色 a 的
  *    `prompt+completion`，且 > 0；`token_limit` 是配置快照。
  * 4. **`status = CANCELLED`、`reason = cancelled`**，`ended_at` 非空，committed 只含 a。
@@ -71,7 +72,7 @@ import kotlin.uuid.Uuid
  *
  * 设备侧 `adb reverse tcp:8766 tcp:8766` 打到开发机的
  * `/tmp/opencode/c1-cancel/mock_openai_slow.py`（SSE 形状与已入库的 `mock_openai_v2.py`
- * 一致）。该 mock 对角色 **B 的第一个请求**注入 HTTP 500（造错误节点），对其余请求
+ * 一致）。该 mock 对角色 **B 的第一个请求**返回零内容流（造错误节点），对其余请求
  * 按角色节流：A 快（0.02s/chunk）、B 慢（0.5s/chunk，首块立即发）。测试轮询真库直到
  * 第二轮 a 的消息落库（即 b 的生成已开始），随即调用生产取消入口
  * [ChatManager.stopGeneration]——此时 b 的流式响应必然还在进行中。
@@ -230,6 +231,13 @@ class C1GroupCancelDeviceTest {
         trace("round1:terminal status=${run1.status} reason=${run1.reason}")
 
         val afterRound1 = loadMessages(conversationId)
+        writeRawDump(
+            "c1-cancel-raw-round1-$attemptLabel.json",
+            conversationId,
+            round1Id,
+            afterRound1,
+            run1,
+        )
         val round1Assistants = afterRound1.filter {
             it.role == MessageRole.ASSISTANT && it.roundId == round1Id
         }
@@ -289,6 +297,14 @@ class C1GroupCancelDeviceTest {
         val run2 = awaitTerminalRun(conversationId, round2Id, timeoutMillis = 60_000)
         trace("round2:terminal status=${run2.status} reason=${run2.reason} spent=${run2.spentTokens}")
         val finalMessages = loadMessages(conversationId)
+        writeRawDump(
+            "c1-cancel-raw-final-$attemptLabel.json",
+            conversationId,
+            round2Id,
+            finalMessages,
+            run2,
+            extraRun = run1,
+        )
 
         // ---------- 断言 1：库内没有空气泡（生产判据原样复用） ----------
         val emptyBubbles = finalMessages.filter { it.isUngeneratedAssistantMessage() }
@@ -363,7 +379,7 @@ class C1GroupCancelDeviceTest {
                     put("abi", Build.SUPPORTED_ABIS.joinToString(","))
                 }
                 put("mock_base_url", mockBaseUrl)
-                put("mock_server", "/tmp/opencode/c1-cancel/mock_openai_slow.py (HTTP 500 for first B request, B slow-stream 0.5s/chunk)")
+                put("mock_server", "/tmp/opencode/c1-cancel/mock_openai_slow.py (zero-content SSE for first B request -> production role_failed; B slow-stream 0.5s/chunk)")
                 putJsonObject("conversation") {
                     put("id", conversationId.toString())
                     put("group_mode", GroupChat.MODE_PIPELINE)
@@ -433,7 +449,7 @@ class C1GroupCancelDeviceTest {
                         )
                     }
                 }
-                put("note", "production code untouched; slow mock injected HTTP 500 for first B request and throttled B streaming so the cancel lands mid-stream")
+                put("note", "production code untouched; mock returned a zero-content SSE for the first B request (production error node path) and throttled B streaming so the cancel lands mid-stream")
             },
         )
 
@@ -592,6 +608,87 @@ class C1GroupCancelDeviceTest {
             val dir = context.getExternalFilesDir(null) ?: return
             File(dir, TRACE_FILE).appendText(line + "\n")
         }
+    }
+
+    /**
+     * 无条件原始转储：**不管断言是否通过**都在现场读一遍并落盘（成功/失败都有证据）。
+     *
+     * 存在的理由：第一版用例把 500 注入轮的「b 的消息从哪来」判错了，
+     * 而失败时证据 DB 会被 tearDown 删掉——没有现场就查不出 `modelId` / `wireModelName`。
+     */
+    private fun writeRawDump(
+        name: String,
+        conversationId: Uuid,
+        roundId: String,
+        messages: List<UIMessage>,
+        run: GroupRunEntity,
+        extraRun: GroupRunEntity? = null,
+    ) {
+        val payload = buildJsonObject {
+            put("raw_dump", true)
+            put("attempt", attemptLabel)
+            put("conversation_id", conversationId.toString())
+            put("round_id", roundId)
+            putJsonObject("run") { runRowPut(this, run) }
+            extraRun?.let { extra ->
+                putJsonObject("extra_run") { runRowPut(this, extra) }
+            }
+            putJsonArray("app_errors") {
+                chatManager.errors.value.forEach { error ->
+                    add(
+                        buildJsonObject {
+                            put("title", error.title)
+                            put("error_class", error.error::class.qualifiedName)
+                            put("message", error.error.message)
+                        },
+                    )
+                }
+            }
+            putJsonArray("messages") {
+                messages.forEach { message ->
+                    add(
+                        buildJsonObject {
+                            put("id", message.id.toString())
+                            put("role", message.role.name)
+                            put("role_id", message.roleId)
+                            put("round_id", message.roundId)
+                            put("turn_kind", message.turnKind)
+                            put("model_id", message.modelId?.toString())
+                            put("wire_model_name", message.wireModelName)
+                            put("text", message.toText())
+                            putJsonArray("part_types") {
+                                message.parts.forEach { part ->
+                                    add(kotlinx.serialization.json.JsonPrimitive(part::class.simpleName ?: "?"))
+                                }
+                            }
+                            message.usage?.let { usage ->
+                                putJsonObject("usage") {
+                                    put("prompt", usage.promptTokens)
+                                    put("completion", usage.completionTokens)
+                                    put("total", usage.totalTokens)
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        writeEvidence(name, payload)
+    }
+
+    private fun runRowPut(
+        obj: kotlinx.serialization.json.JsonObjectBuilder,
+        run: GroupRunEntity,
+    ) {
+        obj.put("status", run.status)
+        obj.put("reason", run.reason)
+        obj.put("error_message", run.errorMessage)
+        obj.put("spent_tokens", run.spentTokens)
+        obj.put("token_limit", run.tokenLimit)
+        obj.put("run_token", run.runToken)
+        obj.put("committed_role_ids", run.committedRoleIds.joinToString(","))
+        obj.put("skipped_role_ids", run.skippedRoleIds.joinToString(","))
+        obj.put("ended_at", run.endedAt)
     }
 
     private fun writeEvidence(name: String, payload: kotlinx.serialization.json.JsonObject) {
