@@ -4571,6 +4571,96 @@ untracked fixture `C1GroupUiE2EFixtureTest.kt`（实测 **461 行 / 3 个 `@Test
 
 ⚠️ **本节标「执行者报告」者均未被登记代理独立复现**（约束：不跑任何 gradle，以免重写 test-results XML）；其余标「本机实测 / 本机读码核实」者均为登记代理当场执行。
 
+### 全项目总闸门（零设备，2026-10-06，HEAD `0e312cbb2`：assembleDebug test lint 首次整项目 exit 0 + `--rerun` 作用域陷阱）
+
+⚠️⚠️ **先说性质：这是包级 / 项目级门禁证据，不是用例级证据。它证明的是「整项目一条命令 `assembleDebug test lint` 全绿」，不改变本文件任何用例的状态列**——20 个状态格一个字都没动（仍是 10/10 `unverified`；其阻塞项见本文件既有清册）。⚠️ 本节的退出码、日志原文、逐模块数字均为**子代理执行报告转述**（约束：登记代理**不跑任何 gradle**，以免重写 `test-results` XML）；凡标「本机实测」者为登记代理当场执行。
+
+**⓪ 目标依据**
+
+C1 目标里有一条硬性验收标准：「每包末 `./gradlew --offline assembleDebug test lint` 全绿（退出码 0）才写已完成」，并且第 7 条明写「跑通离线 `./gradlew --offline assembleDebug test lint` 全绿，把**命令与退出码写进 `docs/eval/c1-group-chat.md`**」。此前所有验证都是**按模块**跑的，**从未跑过全项目一条命令**；本次补上了，故登记。
+
+**① 命令一：全项目总闸门（首次整项目一条命令）**
+
+```bash
+nice -n 19 ./gradlew --offline assembleDebug test lint
+```
+
+| 项 | 值 |
+|---|---|
+| 输出关键行 | `BUILD SUCCESSFUL in 44s` / `839 actionable tasks: 173 executed, 666 up-to-date` / `Configuration cache entry stored.` |
+| 退出码 | **0** |
+| 日志 | `/tmp/opencode/full-gate/run.log`（1120 行），sha256 **`b0257e0c83a564a7444a2b10a2d82bb224b454d31486c3642d7098a21d1a3128`** |
+| 调用形态 | **单次全项目调用**、无 `--tests` 过滤、无 `connectedAndroidTest`、脱离进程组运行 |
+
+**逐模块 `test` 结果**（解析 `*/build/test-results/*/TEST-*.xml`）：
+
+| 模块 | 类 | 用例 | failures | errors | skipped |
+|---|---:|---:|---:|---:|---:|
+| ai | 30 | 220 | 0 | 0 | 0 |
+| app | 113 | 931 | 0 | 0 | 0 |
+| card-validator | 4 | 77 | 0 | 0 | 0 |
+| common | 2 | 6 | 0 | 0 | 5 |
+| document | 1 | 1 | 0 | 0 | 0 |
+| highlight | 5 | 53 | 0 | 0 | 0 |
+| khatkit | 33 | 198 | 0 | 0 | 7 |
+| khatkit-ui | 2 | 10 | 0 | 0 | 0 |
+| material3 | 1 | 1 | 0 | 0 | 0 |
+| mediapicker | 1 | 9 | 0 | 0 | 0 |
+| oauth | 2 | 2 | 0 | 0 | 0 |
+| search | 3 | 12 | 0 | 0 | 0 |
+| speech | 12 | 43 | 0 | 0 | 0 |
+| web | 1 | 1 | 0 | 0 | 0 |
+| workspace | 3 | 20 | 0 | 0 | 0 |
+| **合计** | **213** | **1584** | **0** | **0** | **12** |
+
+**全模块 lint**：`error 0 / warning 614 / hint 7 = 621`。app 明细 `error 0 / warning 581 / hint 6 = 587`（app 报告 txt 结尾原文 `0 errors, 581 warnings, 6 hints`）。除 app 外的逐模块 warning：`image-toolbox-dependency` 5、`khatkit` 17、`khatkit-ui` 4（+1 hint）、`ai` 2、`common` 1、`oauth` 1、`speech` 1、`workspace` 2（合计 33）；其余（`document` / `highlight` / `material3` / `mediapicker` / `search` / `web`）均为 0。⇒ `581 + 33 = 614` warning、`6 + 1 = 7` hint，与全模块汇总自洽。
+
+**无模块因失败而缺失 XML**：15 个含 `src/test` 的模块全部产出。无 XML 的仅 2 个，且均**无 `src/test` 目录**：`:image-toolbox-dependency`（日志 `testDebugUnitTest NO-SOURCE`，该模块设计上不随应用编译）、`:app:baselineprofile`（仅 `src/main`，benchmark 模块）。历史坑 `:app:mergeLibDexDebug` 本次为 **UP-TO-DATE**，**未复现**此前「停在这里」的中断。
+
+⚠️ **诚实点（不许美化）**：本次 **666 个任务 UP-TO-DATE、仅 173 个执行**；`:app:testDebugUnitTest` 与 `:ai:testDebugUnitTest` 在**命令一里是 UP-TO-DATE**（未重跑），其 XML 产出于 19:23 / 19:35，**晚于受保护源码文件 mtime（10-05 14:04）**，故数字仍代表当前工作区。其余各模块 `test` 任务本次为**实际执行**。⇒ 下面专门补了命令二来消除这个疑点。
+
+**② 命令二：强制重跑 app + ai 单测（消除 UP-TO-DATE 疑点）**
+
+⚠️ **先用主管原给的写法跑了一次，发现是空跑**：
+
+```bash
+./gradlew --offline :app:testDebugUnitTest :ai:test --rerun   # ← 错误写法
+```
+
+结果 `EXIT=0` 但 **`287 actionable tasks: 287 up-to-date`**，两个测试任务**全是 UP-TO-DATE，一个都没执行**。
+
+**根因**：`gradle.properties` 里 `org.gradle.configuration-cache=true`；`--rerun` 是**任务级选项**（`./gradlew help --task :app:testDebugUnitTest` 明示 "Causes the task to be re-run even if up-to-date"），**只作用于紧邻其前的那一个任务**。错误写法里 `--rerun` 落在 `:ai:test` 上——而 `:ai:test` 是**无 action 的生命周期聚合任务**，rerun 它**不会**强制其依赖 `:ai:testDebugUnitTest`；`:app:testDebugUnitTest` 则根本没绑上 rerun。
+
+**修正命令（照抄这个）**：
+
+```bash
+nice -n 19 ./gradlew --offline :app:testDebugUnitTest --rerun :ai:testDebugUnitTest --rerun
+```
+
+| 项 | 值 |
+|---|---|
+| 结果 | `EXIT=0`，`BUILD SUCCESSFUL in 20s`，**`287 actionable tasks: 2 executed, 285 up-to-date`**（两个测试任务都**没有** UP-TO-DATE） |
+| 日志 | `/tmp/opencode/final-rerun/run2.log` |
+
+| 模块 | 类 | 用例 | F | E | S | 旧 XML mtime | 新 XML mtime |
+|---|---:|---:|---:|---:|---:|---|---|
+| `:app:testDebugUnitTest` | 113 | 931 | 0 | 0 | 0 | 19:35:03 | **19:51:44** |
+| `:ai:testDebugUnitTest` | 30 | 220 | 0 | 0 | 0 | 19:23:45 | **19:51:32** |
+
+两个新 mtime **均晚于本轮启动时间 `19:51:24`** ⇒ 确实真实执行过（非 UP-TO-DATE 残留）。与预期逐项相符，**无任何红项**。
+
+**③ 与 `c1_doc_stats.py` 的交叉核对**
+
+重跑后再跑 `python3 tools/verification/c1_doc_stats.py` → **EXIT=0**，`合计 18 条：OK 18 / WARN 0 / FAIL 0`；`台账行数 46 行` / `台账声明例数合计 501 例`；脚本 sha256 跑前跑后都是 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`（**零字节改动**）。
+
+**④ 限制 / 边界（不许美化）**
+
+1. **用了 `--offline`**：**未做联网依赖解析校验**。本门禁只证明「在本地已缓存依赖的前提下 assembleDebug + test + lint 全绿」。
+2. **「无该产物」是推断、不是失败**：`card-validator` 无 lint 报告、`app/baselineprofile` 无单测源，依据目录结构 + `NO-SOURCE` / UP-TO-DATE 日志判定为「本就不产出该产物」，**不是**它们跑失败。
+3. **门禁全绿 ≠ 十例验收达成**：十例仍 **0/10 `verified`**，其阻塞项见本文件既有清册与「下一位怎么把 unverified 变成 verified」。
+
+⚠️ **本次未新增 / 修改任何源码或测试**；`git status --porcelain` 与开工**逐字节一致**（执行者报告：门禁运行前后工作区三处在途改动 `TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 一个未碰）。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
