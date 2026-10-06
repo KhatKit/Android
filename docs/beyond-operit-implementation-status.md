@@ -1115,6 +1115,45 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 把 `wire_model_name_provenance` 拉回来确认取值。
 
 
+### ⚠️ 第二十批（真机第十一轮 + 第十二轮，2026-10-06，HEAD `cddaa9959`）：**真实网关 4 条新用例 + pipeline 复跑 + 两条 UI 首次通过；C1-09 真机导出双哈希 + 四项安全检查；C1-06 取消三次尝试全部不成立；20 状态格仍 10/10 `unverified`**
+
+⚠️⚠️ **先说性质**：本批 = **两个真机采集窗口**（设备 OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`，无线 serial `192.168.31.183:34753`——执行者报告）。第十一轮 HEAD `a8302e463`：4 条真实网关用例 + 1 条 pipeline 复跑 + 2 条 UI 测试；第十二轮 HEAD 收尾 `cddaa9959`：C1-09 真机导出 + C1-06 取消。**生产代码零改动**（窗口内 5 个测试/工具 commit 全部只动 `app/src/androidTest` 与 `tools/verification`）。⚠️ **20 个状态格一个判定都没改，仍是 10/10 `unverified`**——详细逐行依据见 `c1-group-chat.md`「C1 真机证据采集第十一轮」⑨ 与「第十二轮」②；台账见该文件「第十五批」。⚠️ **所有通过项均为单次通过，未做重复稳定性验证。**
+
+**① 第十一轮：4 条真实网关用例 + pipeline 复跑全部 `OK (1 test)`（产物已 pull、SHA-256 登记代理复算一致）**
+
+- **C1-01 显式 @**：真网关 `mode=pipeline`，触发 `@角色乙 请只由你发言一次。` → `mentionRoleIds=[b]`、plan 只留 b、**只调用 b**（wire `glm-5.2`）；b usage `6546+54=6600`=落库 `spent_tokens`；viewer 台账 a/b/c 均为真库 UUID。⚠️ 触发是 **USER 消息**、生产口径下 A/C 仍可见该条（测试把「A/C 看不到 b 的本轮输出」与「A/C 仍可见触发 USER 消息」两条都写成断言）⇒「只被 @ 角色收到该消息」的字面那半仍未观测到（遗留第 15 条不变）。
+- **C1-02 pipeline 复跑（第 4 次尝试）**：wire 级序列 `deepseek-v4-flash → glm-5.2 → deepseek-v4-flash`（测试 `:1569-1573` **断言级**）、provenance `{wire_response_model:3, fallback:0}`、usage `6829/136 + 6680/42 + 6876/57`、**Σ=20620=spent_tokens**、viewer 序列断言级（`c` 不见 `a`）。前三次失败原文全部登记：① OPPO osense SIGKILL（`Cached(nirvana)`，`Process crashed`）② 角色 c modelId `null`（raw `6997cfa5…`，已核实无冻结断档）③ 模型行为偏差（c 复读 `ROLECODE:B`，raw `df882218…`）。
+- **C1-03 roundtable**：重跑 `OK (1 test)`（首跑 FAIL：c 被记为 `turn_kind=error`，raw `00ce40af…`，已核实无冻结断档）；序列 a/b speaker → c chair、Σ=20723=spent、`c(chairRound=true)` 可见全员、a/b 互相不可见（断言级）。
+- **C1-04 vote**：**两条路径都真机跑通**——多数决（`Decided / opt-a 2:1`、`__summary__` 无 usage、Σ=20342=spent）与平票失败（`Tie` → `status=FAILED / reason=vote_no_decision`、error 节点、不写 `vote_summary`、Σ=20361=spent）；两跑 provenance `{3,0}`。
+- **两条 UI 测试首次真机通过**：`typeFilterChipsFilterWithoutLosingData`（Time 4.026；单聊过滤下群条目不可达、切回后 4 条 DB 行原样）与 `atMentionPickerInsertsParseableMention`（Time 4.365；`@Alice Johnson`→`[alice]`、`@阿尔法`→`[alpha]`、反伪 `@johnson`→`[]`）；成员头像组未重跑（复用第十轮证据）。
+- **设备环境坑（新）**：① ColorOS 会冻结后台 instrumentation（uid 级 cgroup，`am unfreeze` 无效），**测试启动约 20s 后主动 `am start RouteActivity` 前台化可解冻**；② OPPO osense 会 SIGKILL 无可见 UI 的 FGS instrumentation（`Cached(nirvana)`）。设备卫生收尾已改回 `screen_off_timeout=30000` + `stayon false`（执行者报告）。
+- **为什么仍全 `unverified`**：C1-02/03/04 的「序列对照 / viewer 断言」已补成断言级，**但契约 `:206` 五要素仍缺「导出哈希」一类、`am instrument` 退出码未落盘（`:232-235` 要求「测试命令及退出码」）、且单次通过未做重复稳定性**；C1-01 差「@ 角色发言」观测；C1-05/07/08 未跑；C1-10 受 `:206`/`:232-235`「不得仅凭 UI 截图勾选 / 只看 UI 状态标记 `unverified`」约束且四类产物仍零份。
+
+**② 第十二轮阶段 A：C1-09 真机导出 ✅ 完成（但 C1-09 仍 `unverified`）**
+
+- `C1GroupExportDeviceEvidenceTest#deviceExportedGroupJsonlHashesMatchAndCarryNoSecrets`：`Time: 0.382` / `OK (1 test)`；走**生产** `TavernChatCodec.exportGroupJsonl` + 生产 IO 助手 `writeExportTempFile`（`ConversationExport.kt:836`，与 `GroupExportCard.kt:201` 同一份）落盘。
+- **双哈希一致**：2938 B；设备侧 `sha256sum` = 本机 pull 后 `sha256sum` = `4945b85426def123b7bc07382dbf03977c35908650a114ffac7cf782f9976f4b`。
+- **四项安全检查全 `true`**（金丝雀先证实真的落进真机 store）：API key / 隐私记忆 / 工具授权 token 均不入包 + 生产黑名单逐行扫描 37 个禁止键 0 命中；带 Tool/Reasoning part 的消息导出 `mes` 只剩 Text。
+- ⚠️ **未覆盖**：`ACTION_SEND` 分享面板 / SillyTavern 本体打开 / 相机扫码 / QR 与导入往返 ⇒ **C1-09 不升级**。
+
+**③ 第十二轮阶段 B：C1-06 取消 ❌ 三次尝试全部不成立（零测量）**
+
+- 生产取消入口 = `ChatManager.stopGeneration(conversationId: Uuid)`（`ChatManager.kt:2277`，未改生产代码）；新测试 `C1GroupCancelDeviceTest` + mock `tools/verification/mock_openai_slow_cancel.py`（sha256 `8af6e13d…177e`）。
+- attempt 1：测试 7.903s 后在第 1 轮错误节点断言失败；**异常现象**：mock 对 B 注入 HTTP 500（服务端日志可证）但整轮仍 `COMPLETED`、B 是 speaker 消息且正文 `"B 已收到，本轮取消用例正常执行，无异常。"` 在仓库 / 两份 mock 日志 / 生产库快照 / attempt 2 遗留库**四处均 0 命中**，mock 未收到第二次 B 请求——**原因未定，已登记 c1 文档遗留第 40 条**。attempt 2 设备中途掉线、attempt 3 设备在 `am instrument` 生效前掉线。
+- ⚠️ **四项断言（空气泡 / 已生成消息 / 错误节点 / spent / status / reason）一条实测值都没有**；超时半（15 分钟）未跑；阶段 C 稳定性复跑因设备丢失未执行。
+
+**④ 设备遗留（下一轮接上设备第一件事）**
+
+`screen_off_timeout` 现为 **600000**（第十一轮曾恢复 30000，第十二轮又调高且 transport 丢失未改回）、`stayon true`；设备 app databases 里 `c1-cancel-evidence.db` 未删。⇒ **先 `settings put system screen_off_timeout 30000` + 复验、`svc power stayon false`、清该库**（c1 文档遗留第 39 条）。
+
+**⑤ 统计口径（登记代理本机实测）**
+
+`git log --oneline 0e312cbb2..HEAD` = **8 个 commit**（`b20de6805` / `46ba5c8a7` / `129403b38` / `a8302e463` / `92af89247` / `d6870f977` / `579dc193a` / `cddaa9959`）；`git log --name-only 0e312cbb2..cddaa9959 -- 'app/src/test/*'` **空** ⇒ 台账声明值仍 **46 行 / 501 例**；`c1_doc_stats.py` 仍 **OK / exit 0**。锚点 `1b0e04a9` 不重算。
+
+📍 完整数字、SHA-256、逐字段值与限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十一轮」「C1 真机证据采集第十二轮」；逐行判定见第十一轮⑨。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 三个在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
