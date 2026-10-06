@@ -5470,6 +5470,41 @@ git status --short
     感知」要定。⚠️ **真正该做的是删掉这份重复实现**（`ChatService` + 那份死 FGS），
     那是**独立的清理项，不在本轮授权内**，已并入本条的遗留尾巴。
 
+    #### ⚠️⚠️⚠️ 订正（2026-10-06，本轮，纯文档）：上面「删掉是独立清理项」的前提**已失效**
+
+    ⚠️ **「纯清理、零行为改动」这个前提被本轮实测推翻**。三处订正（详见
+    `docs/beyond-operit-implementation-status.md` 第 393 行起「订正」小节）：
+
+    1. ⚠️ **`ChatService.kt` 不是死代码，是「活接线 / 运行时不可达」** ——
+       `@Inject constructor`（`:177`）⇒ Hilt JIT 绑定**存在**，
+       `HistoryVM.kt:28` 注入、`:55` 真调 `toggleConversationPinned`。
+       ⚠️ **⇒ 直接删会炸编译**，必须先拆三处依赖（`forkConversationTitle` 被活的
+       `ChatManagerTest.kt:18` 跨包 import + 5 条断言；两个护栏测试
+       `File(...).readText()` 硬编码了它的绝对路径；`HistoryVM`/`HistoryPage` 孤儿）。
+       ⚠️ 顺带订正一处更早的错误说法：早前把 `AppHiltModule.kt:51` 当成 `ChatService`
+       的**绑定**（真相比「活代码」还靠前一步），⚠️ **那是一条未使用的 import** ——
+       真绑定 0 处，`@Provides` 方法是 `:191 fun provideChatManager` 返回 `ChatManager`。
+       完整拆解顺序见 `docs/architecture-map.md` §9.2.1。
+    2. ⚠️ **根因是 vendor merge 复活，不是「有人忘了删」** ——
+       `f7463f814`（2026-09-25）主动搬走，`8cf9bec2d`（2026-10-01）把 5 个文件
+       当新文件搬回（`git diff --stat 8cf9bec2d^1 8cf9bec2d -- …/core/service/`
+       ⇒ **`5 files changed, 1994 insertions(+)`，0 删除**）。
+       ⚠️ **⇒ 下一个人会再删一次、再被复活一次**，除非按
+       `docs/architecture-map.md` §9.3 的对策每次同步后复查。
+    3. ⚠️🚩🚩🚩 **「删 `ChatService.kt`」会永久删掉一个功能实现** ——
+       `ChatService.kt:1026` 是**全 app 唯一填充非空 `chatSuggestions` 的地方**
+       （活管线 `ChatManager.kt:758/1324` 只会 `= emptyList()`）；无 UI 消费方、
+       无开关入口。⇒ **这已经是产品决策，不是清理决策**。
+       **🚩 待主人拍板，agent 不得自行决定** ——
+       见 `docs/beyond-operit-implementation-status.md` 的**待决策项 D1**
+       （选项 (a) 认定废弃 / 选项 (b) port 进 `ChatManager` 并补 UI）。
+       ⚠️ **D1 没拍板前不要动 `core/service/` 任何一个文件。**
+
+    ⚠️ 上面的「零行为改动」结论**只对那 4 个不受 D1 影响的文件成立**
+    （`ChatGenerationForegroundService.kt` / `MessageQueue.kt` /
+    `ConversationSessionManager.kt` / `ConversationSession.kt`，逐个判定见
+    `docs/architecture-map.md` §9.2），**不包含 `ChatService.kt`**。
+
     ⚠️⚠️ **教训（别再犯第二次）**：`ChatService` 这条线上**真正**的群聊泄漏**存在**，
     但**不在 `ChatService` 里**——在 `feature/chat/ChatManager.kt` 的
     `generateTitle` / `compressConversation` 上（它们**直接送未过滤的
