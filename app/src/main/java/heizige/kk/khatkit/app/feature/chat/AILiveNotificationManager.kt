@@ -19,11 +19,11 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * AI 对话焦点通知服务
+ * AI 对话焦点通知管理器
  *
  * 在 AI 生成回复时显示实时更新的焦点通知，支持 Android 15+ 的 Live Update 功能
  */
-class AILiveNotificationService(
+class AILiveNotificationManager(
     private val context: Context
 ) {
     companion object {

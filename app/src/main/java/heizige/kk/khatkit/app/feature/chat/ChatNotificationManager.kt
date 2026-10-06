@@ -34,7 +34,7 @@ class ChatNotificationManager(
     private val settingsStore: SettingsRepository,
 ) {
     private val isForeground = MutableStateFlow(false)
-    private val liveNotificationService = AILiveNotificationService(context)
+    private val liveNotificationService = AILiveNotificationManager(context)
     private var currentGeneratingConversation: String? = null
 
     init {
