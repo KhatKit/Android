@@ -13,7 +13,7 @@ import java.util.zip.ZipFile
  * SecurityException 拦截（W^X 动态代码加载限制），因此下载落盘后必须
  * fsync + setReadOnly 并复核 [File.canWrite]。
  */
-internal object DependencyArtifactStore {
+internal object DependencyArtifactHelper {
 
     fun sha256(file: File): String = file.inputStream().use { input ->
         val digest = MessageDigest.getInstance("SHA-256")

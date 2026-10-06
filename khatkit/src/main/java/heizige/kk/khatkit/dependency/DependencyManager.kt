@@ -139,7 +139,7 @@ class DependencyManager(
             // 缓存必须同时满足 sha256 + ECDSA 签名；任一不符即删除后重新下载
             val cachedBytes = runCatching { artifact.readBytes() }.getOrNull()
             val cacheOk = cachedBytes != null &&
-                DependencyArtifactStore.sha256(cachedBytes).equals(expected, ignoreCase = true) &&
+                DependencyArtifactHelper.sha256(cachedBytes).equals(expected, ignoreCase = true) &&
                 DependencySignature.verify(cachedBytes, signature, pinnedKeyDer)
             if (!cacheOk) {
                 Log.w(TAG, "缓存产物校验失败，删除后重新下载：name=${req.name} version=${req.version}")
@@ -154,7 +154,7 @@ class DependencyManager(
         val finalBytes = runCatching { artifact.readBytes() }.getOrNull()
         if (
             finalBytes == null ||
-            !DependencyArtifactStore.sha256(finalBytes).equals(expected, ignoreCase = true) ||
+            !DependencyArtifactHelper.sha256(finalBytes).equals(expected, ignoreCase = true) ||
             !DependencySignature.verify(finalBytes, signature, pinnedKeyDer)
         ) {
             ensureWritableDir(artifact.parentFile)
@@ -257,7 +257,7 @@ class DependencyManager(
                 retryable = true,
             )
         }
-        val actual = DependencyArtifactStore.sha256(bytes)
+        val actual = DependencyArtifactHelper.sha256(bytes)
         if (!actual.equals(req.sha256, ignoreCase = true)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_HASH_MISMATCH",
@@ -284,16 +284,16 @@ class DependencyManager(
                 "依赖包 ${req.name} 无法写入应用私有目录：${parent?.absolutePath}",
             )
         }
-        DependencyArtifactStore.writeAtomically(target, bytes)
+        DependencyArtifactHelper.writeAtomically(target, bytes)
         // 落盘后复核一次（防写坏/被替换），通过后置为只读：Android 14+ DexClassLoader 拒绝可写代码文件
-        if (!DependencyArtifactStore.sha256(target).equals(req.sha256, ignoreCase = true)) {
+        if (!DependencyArtifactHelper.sha256(target).equals(req.sha256, ignoreCase = true)) {
             target.delete()
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_HASH_MISMATCH",
                 "依赖包 ${req.name} ${req.version} 落盘后 sha256 复核失败，已删除缓存产物，请重试",
             )
         }
-        if (!DependencyArtifactStore.markReadOnly(target)) {
+        if (!DependencyArtifactHelper.markReadOnly(target)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_READONLY_FAILED",
                 "依赖包 ${req.name} 已下载但无法置为只读（Android 14+ 要求动态代码文件只读）：" +
@@ -311,7 +311,7 @@ class DependencyManager(
         key: String,
     ): DependencyEnsureResult {
         val entry = readEntry(artifact) ?: conventionEntry(req.name)
-        if (!DependencyArtifactStore.containsClassesDex(artifact)) {
+        if (!DependencyArtifactHelper.containsClassesDex(artifact)) {
             ensureWritableDir(artifact.parentFile)
             artifact.delete()
             return DependencyEnsureResult.Err(
@@ -386,7 +386,7 @@ class DependencyManager(
             lockDownDir(artifact.parentFile)
             return artifact
         }
-        if (DependencyArtifactStore.markReadOnly(artifact)) {
+        if (DependencyArtifactHelper.markReadOnly(artifact)) {
             lockDownDir(artifact.parentFile)
             return artifact
         }
@@ -395,15 +395,15 @@ class DependencyManager(
         val copy = File(copyDir, "${artifact.nameWithoutExtension}-${expected.take(12)}.jar")
         if (
             copy.isFile && copy.length() > 0L && !copy.canWrite() &&
-            DependencyArtifactStore.sha256(copy).equals(expected, ignoreCase = true)
+            DependencyArtifactHelper.sha256(copy).equals(expected, ignoreCase = true)
         ) {
             return copy
         }
         if (!ensureWritableDir(artifact.parentFile) || !ensureWritableDir(copyDir)) {
             error("只读副本目录不可写：${copyDir.absolutePath}")
         }
-        DependencyArtifactStore.writeAtomically(copy, artifact.readBytes())
-        if (!DependencyArtifactStore.markReadOnly(copy)) {
+        DependencyArtifactHelper.writeAtomically(copy, artifact.readBytes())
+        if (!DependencyArtifactHelper.markReadOnly(copy)) {
             error("只读副本仍可写：${copy.absolutePath}")
         }
         lockDownDir(copyDir)
