@@ -4903,6 +4903,130 @@ FILTER-PROOF OK
 - 收尾还原：`screen_off_timeout` **600000 → 30000**（已复验）、`stayon=false`；`adb reverse --remove-all`；自起的 8766 mock 已停（登记代理本机 `pgrep -f mock_openai_slow` 0 命中、8766 无监听）。
 - ⚠️ **登记代理操作透明说明**：为读备份库，登记代理曾用 `sqlite3`（非 immutable）打开 `p3-backup/rikka_hub`，触发了一次**隐式 WAL 恢复**——备份三件套被合并成单一文件（现 sha256 `6466d950…` / 150528 B），`p3-verify2/rikka_hub-wal`（0 B 空文件）被连带清理。**逻辑内容不变**（恢复 = 应用已提交 WAL 帧），MANIFEST.sha256 记录的是恢复前原值；此处如实登记，避免下一位复核时对不上。本报告引用的其余证据文件均未被触碰（SHA 为登记时复算值）。
 
+### C1 真机证据采集第十四轮（2026-10-06，HEAD b60aa80c5：显式@/vote 多数决/vote 平票/预算截断/记忆隔离 五条首次带完整证据通过 + roundtable/pipeline 第 3 位角色零产出根因）
+
+🚨🚨 **先说性质**：本批 = **一次真机采集窗口**（设备 OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`；`fingerprint=OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`；包 `heizige.kk.khatkit.debug`；证据库 `c1-live-evidence.db`——均为逐份 JSON `device` 字段实测值），**开工与收尾 HEAD 均为 `b60aa80c5`**（`git rev-parse HEAD` 实测）。窗口内 3 个 commit 全部只动 `app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1LiveModelSequenceTest.kt`：`a9df57c96`（真实网关逐例导出 SHA-256 + viewer 可见台账 + 修 roundtable 盖章竞态 + 新增预算截断专用用例）、`b1473f5d1`（新增 C1-08 记忆隔离设备侧用例）、`b60aa80c5`（预算截断用例补库内助手发言数 ==2 直读断言）——**生产代码零改动**（逐 commit `git show --stat` 核实）。另补登上一批（第十六批）两个登记本体 `165d30b5a` / `a8449768c`（均只改 `docs/`）。全部原始证据文件的 SHA-256 由**登记子代理本机复算**（见 ⑤）。
+
+🚨 **结论**：① **5 条首次带完整证据通过**（显式@ / vote 多数决 / vote 平票 / 预算截断 / 记忆隔离）；② **2 条 3/3 全失败**（roundtable / pipeline），根因是**第 3 位角色零产出**（网关 HTTP 200 但 SSE 流里没有任何 content delta），**6/6 稳定复现 ⇒ 不是偶发**；③ **状态判定：C1-04 与 C1-05 首次升 `verified`**（契约 8 项齐备且必须断言成立），其余 8 例保持 `unverified`（逐行理由见 ⑦）。
+
+⚠️ **命令模板**（执行者用，逐 run 单跑）：
+`adb -s <serial> shell am instrument -w -r -e class 'heizige.kk.khatkit.app.feature.chat.C1LiveModelSequenceTest#<方法>' heizige.kk.khatkit.debug.test/androidx.test.runner.AndroidJUnitRunner`
+⚠️ **`am instrument` 的 shell 退出码即使失败也是 0**（遗留第 41 条），**判据只用日志正文的 `OK (1 test)` / `FAILURES!!!`**。本批 `exitcode.txt`（vote / vote-tie / budget / memory 四个 run）= **`0`**；mention run 采于旧脚本、**未落 `exitcode.txt`**（只有 `instrument.log` 的 `OK (1 test)` / `Time: 6.567`）。
+
+**① 通过的 5 条（每条逐列 8 项契约字段：commit / 命令·退出码 / 设备·Android / 用例输入 / viewer 可见消息 ID / 模型调用序列 / prompt+completion token / 导出 SHA-256）**
+
+> ⚠️ 8 项 = 契约 `client-changes.md:206` + `:232-235` 逐例要求的「commit、测试命令及退出码、设备/Android 版本、用例输入、各 viewer 的可见消息 ID、实际模型调用序列、prompt+completion token、导出 SHA-256」。**缺项在下面逐条明写「缺 X」。**
+
+**#3 显式 @（C1-01）——`realProviderMentionNarrowsSpeakersToMentionedRole`，`OK (1 test)`，Time 6.567**
+
+- commit：`a9df57c96`（本用例所在文件已含逐例导出；HEAD `b60aa80c5`）。
+- 命令·退出码：上面的命令模板；shell 退出码**未落盘**（旧脚本），日志判据 `OK (1 test)`。
+- 设备·Android：OnePlus `PKG110` / Android 16 / API `36` / `arm64-v8a`。
+- 用例输入：`mode=pipeline`，`conversation=c78461b4-277e-48cf-9908-a3f685ccc0f5`，USER 消息 `@角色乙 请只由你发言一次。`（`mention_role_ids=["b"]`，`trigger_mention_role_ids=["b"]`，`plan_selected_role_ids=["b"]`）。
+- viewer 可见消息 ID：`a`=`[仅 USER 23043da1-efd2-4cdf-aba3-07f221f3bb8f]`、`b`=`[USER + 自己的回复 0cae6bb4-7f26-497c-a68e-e63f6f585b58]`、`c`=`[仅 USER]`；`viewer_visibility` 的 `visible_assistant_role_ids`：a=`[]`、b=`["b"]`、c=`[]`。
+- 模型调用序列：`actual_model_call_sequence=[{seq:1, role_id:b, turn_kind:speaker, resolved_model_name:glm-5.2, provenance:wire_response_model, usage 6546/98/6644, cached_tokens:384}]`；`only_mentioned_role_invoked=true`、`expected=["glm-5.2"]`。
+- prompt+completion token：`6546+98=6644`；`spent_tokens=6644==sum`（`spent_tokens_equals_sum_prompt_plus_completion=true`）；`group_run=COMPLETED/spent 6644/limit 100000/committed=["b"]`。
+- 导出 SHA-256：`c1-export-real-mention.jsonl` **1747 B / 3 行**，`6e2ec8ceff572bf2ba3af0376907347ebed83768cd7ac0d08293bcb6dff7fcdd`。
+- 证据文件：`c1-live-evidence-real-mention.json`（10270 B，`56efdb48298ab1c6d24401edbaf9f0d2081ece52bc1c56dbf4b3af01d36aea0a`）；`wire_model_name_provenance_counts={wire_response_model:1, uuid_reverse_lookup_fallback:0}`。
+
+**#4 vote 多数决（C1-04）——`realProviderVoteRoundRecordsBallotCallsAndDecision`，`OK (1 test)`，Time 17.917**
+
+- commit：`a9df57c96`（HEAD `b60aa80c5`）。
+- 命令·退出码：命令模板；`exitcode.txt=0`；日志 `OK (1 test)`。
+- 设备·Android：同上（`PKG110` / 16 / 36 / arm64）。
+- 用例输入：`mode=vote`，`tie_policy=fail`，`vote_candidates=["opt-a","opt-b","opt-c"]`，USER `请三位各投一票，选出你支持的方案。`。
+- viewer 可见消息 ID：`a`/`b`/`c` **各见自己那条发言 + `__summary__` 汇总**（`visible_assistant_role_ids`：a=`["a","__summary__"]`、b=`["b","__summary__"]`、c=`["c","__summary__"]`；各 `visible_count=3`）。
+- 模型调用序列：`a=deepseek-v4-flash 6827/50=6877`、`b=glm-5.2 6545/64=6609`、`c=deepseek-v4-flash 6827/55=6882`；`provenance={wire:3, fallback:0}`。
+- prompt+completion token：`Σ=20368==spent_tokens`；`group_run=COMPLETED/spent 20368/limit 100000/committed=["a","b","c"]`。
+- 导出 SHA-256：`c1-export-real-vote.jsonl` **2672 B / 6 行**，`8e42c5b90b858fe7b2b0aa58f51d12caa653a40c4693efef7d66d943c205f5de`。
+- 结构化票 / 判定（必须断言核心）：`ballots_parsed_by_production_code`（生产 `GroupChat.parseBallot` 读库回读）a=`opt-a`、b=`opt-a`、c=`opt-b`；`tally={winner:opt-a, counts:{opt-a:2, opt-b:1}, outcome_type:VoteOutcome.Decided, tie_branch_taken:false}`；`summary_node.role_id=__summary__/turn_kind=vote_summary/has_usage=false/正文「本轮投票结果：opt-a\n票数：opt-a 2 / opt-b 1」`。
+- 证据文件：`c1-live-evidence-real-vote.json`（14744 B，`efe59105dd57e0fb02bba03b916c7f2f1ef1f4b5e084da132cc9a7d8cddedc73`）。
+
+**#5 vote 平票（C1-04）——`realProviderVoteTieFailsPerConfiguredPolicy`，`OK (1 test)`，Time 16.506**
+
+- commit：`a9df57c96`（HEAD `b60aa80c5`）。
+- 命令·退出码：命令模板；`exitcode.txt=0`；日志 `OK (1 test)`。
+- 设备·Android：同上。
+- 用例输入：`mode=vote`，`tie_policy=fail`，`vote_candidates=["opt-a","opt-b","opt-c"]`，USER 同上。
+- viewer 可见消息 ID：a/b/c 各见自己那条 + `__summary__`（同 #4 形状）。
+- 模型调用序列：`a=deepseek 6827/13`、`b=glm 6545/44`、`c=deepseek 6827/46`；`provenance={wire:3, fallback:0}`。
+- prompt+completion token：`a=6840`、`b=6589`、`c=6873`，`Σ=20302==spent_tokens`；`group_run=FAILED/spent 20302/limit 100000/reason=vote_no_decision/error_message=平票：opt-a, opt-b, opt-c/committed=["a","b","c"]`。
+- 导出 SHA-256：`c1-export-real-vote-tie.jsonl` **2695 B / 6 行**，`65f766083cadc4be789b4c90bb5b35fe81c7a3e1e5d20bea7649c9b94e1647a5`。
+- 平票失败语义（必须断言核心）：`ballots` a=`opt-a`、b=`opt-b`、c=`opt-c`；`tally={outcome_type:VoteOutcome.Tie, tie_branch_taken:true, tied_candidates:[opt-a,opt-b,opt-c], counts:{opt-a:1,opt-b:1,opt-c:1}}`；`failure_node={role_id:__summary__, turn_kind:error, 正文「[投票] 本轮未能得出结论：平票：opt-a, opt-b, opt-c」}`；**不写 `vote_summary`**。
+- 证据文件：`c1-live-evidence-real-vote-tie.json`（15019 B，`d295aac9030342a0120801b1a9d1ac61c6ac47ee2478b292abc30f51627c5373`）。
+
+**#6 预算截断（C1-05）——`realProviderBudgetTruncationRecordsRunLogAndExport`，`OK (1 test)`，Time 17.793**
+
+- commit：`a9df57c96`（新增专用用例）+ `b60aa80c5`（补库内助手发言数 ==2 直读断言）（HEAD `b60aa80c5`）。
+- 命令·退出码：命令模板 + 注入 `-e c1TokenBudgetPerRound 9000`（`budget_default=9000`、`budget_override_arg=c1TokenBudgetPerRound`、`budget_effective=9000`）；`exitcode.txt=0`；日志 `OK (1 test)`。
+- 设备·Android：同上。
+- 用例输入：`mode=pipeline`，USER `请三位依次发言，每位一句话。`，预算上限 `9000`。
+- viewer 可见消息 ID：`a`=`["a"]`、`b`=`["a","b"]`（predecessor=a）、`c`=`["b"]`（predecessor=b）。
+- 模型调用序列：`a=deepseek-v4-flash 6829/105=6934`、`b=glm-5.2 6648/12=6660`（`c` 被跳过，**无第 3 次调用**）；`provenance={wire:2, fallback:0}`。
+- prompt+completion token：`Σ=13594==spent_tokens`（`spent_tokens_equals_sum_prompt_plus_completion=true`）。
+- 导出 SHA-256：`c1-export-real-budget.jsonl` **2044 B / 4 行**，`da0f81c534451198e238f19969074df22a17ecb7ee8094a172f65a8f3dedd544`。
+- 运行日志（必须断言核心）：`group_run=BUDGET_STOPPED/spent_tokens=13594/token_limit=9000/reason=token_budget_exceeded/committed_role_ids=["a","b"]/skipped_role_ids=["c"]`；**库内直读 `messages.count=3`（USER+a+b）、`assistant_role_order=["a","b"]`**；`c1_05_dedicated_test=true`（`why_dedicated_test`：原 `realProviderRoundRecordsGenuineTokenUsage` 断言 3 条助手消息，截断只产 2 条 ⇒ 专用方法用 2 条）。
+- 证据文件：`c1-live-evidence-real-budget.json`（11628 B，`126e6b27cb52038ee236463d4711f0e00367558b6b2d1f68c643584b8eda3175`）。
+
+**#7 记忆隔离（C1-08）——`realProviderGroupMemoryIsolationRecordsPerSpaceHits`，`OK (1 test)`，Time 0.647**
+
+- commit：`b1473f5d1`（新增 C1-08 设备侧用例）（HEAD `b60aa80c5`）。
+- 命令·退出码：命令模板；`exitcode.txt=0`；日志 `OK (1 test)`。
+- 设备·Android：同上。
+- 用例输入：静态 fixture 注入真 Room 库（非模型输出），`round_id=round-0c1c11ae-0000-0000-0000-00000000d008`；触发 USER id `…d008`，三角色消息 id `…a008` / `…b008` / `…c008`。
+- viewer 可见消息 ID：三空间 `group:<conversationId>:role:<roleId>`（`space_key_resolver=MemoryToolScopeResolver.forGroupChat`），**每空间命中 1 条**，命中项带 `role_id` 与 `source_message_id`（a→`…a008`、b→`…b008`、c→`…c008`）。
+- 模型调用序列：**缺——本例不走网关**（`evidence_kind=device-instrumentation-memory-isolation-no-gateway`；提取用 canned 确定性 JSON fact array）。写入走生产 `MemoryExtractor.parseAndStore`，检索走生产 `MemoryRepository.searchHybridInSpace`，viewer 重过滤走生产 `GroupTurnCoordinator.memoriesForViewer`。
+- prompt+completion token：**缺——同上，无网关调用、无 usage**。
+- 导出 SHA-256：**缺——本例设计上不产出群导出**（无 `export_*` 字段）。
+- 隔离证据（必须断言核心）：`cross_space_search_negative` 三角色对彼此内容的 `foreign_query_hit_counts` **全 `[0,0]`**；`viewer_refilter_negative`：a 的记忆 `visible_to_a_count=1`、**`visible_to_b_count=0`**；`no_global_or_assistant_fallback`：`global_space_canary_hits=0`、`assistant_space_canary_hits=0`，无回退。
+- 证据文件：`c1-live-evidence-memory-isolation.json`（5264 B，`356454cff621068a0367ef58e9ca9efcf890e7625811f94c5380348f9e5641a3`）。
+
+**② 失败的 2 条（同一根因，如实登记）**
+
+| # | 方法 | 结果 | Time(s) ×3 | 只有 raw dump | raw bytes / SHA-256 |
+|---|---|---|---|---|---|
+| 1 | `realProviderRoundtableRecordsChairSummaryCallSequence`（C1-03） | **FAILURES!!! 3/3** | 301.583 / 300.969 / 301.756 | `c1-real-raw-dump-roundtable.json` | 8323 / `10d7ae2fd816418f776650017ec105aa15cb984c8b6212b6b1687b392cb07f89` |
+| 2 | `realProviderRoundRecordsGenuineTokenUsage`（C1-02） | **FAILURES!!! 3/3** | 27.627 / 25.884 / 19.129 | `c1-real-raw-dump.json` | 8077 / `64e84d6563cc1a676bd049c00fcb683a531e9795757d75765a73ef7e9660ea6e` |
+
+- ⚠️ **通过证据文件不存在**：`c1-live-evidence-real-roundtable.json` / `c1-live-evidence-real-provider.json` 的语义是「**全部断言通过才写**」，本批只有 `finally` 落的 raw（`c1-real-raw-dump*.json`；`pass_evidence_note` 逐份明写「this file is NOT the pass evidence」）。
+- **失败原文（逐 run 一致）**：#1 `AssertionError: 等待盖章 + run=COMPLETED 超时（300000ms）：失败阶段=盖章完成但 group_runs 未到 COMPLETED：最后状态=FAILED，committed=[a, b] spent=13766；app 错误=[]`（三次 spent 分别 13766 / 6596 / 13651）；#2 `AssertionError: 角色 c 的 modelId 必须是 deepseek-v4-flash expected:<5a86b2d6-9c3c-4c58-9b27-f9295ba39201> but was:<null>`。
+- **两者共同形态（登记子代理逐字段读 raw dump 核实）**：第 3 位顺序发言者「角色 c」落为 `turn_kind=error` / 正文 `[角色丙] 本轮生成失败：本轮没有产出内容` / `model_id=null` / `wire_model_name=null` / usage 全 `-1`；`group_run=FAILED / reason=role_failed / committed=["a","b"] / skipped=[] / app_errors=[]`。roundtable raw（r9-01c）里 a/b 是正常 speaker（a 6831/209/7040，b 6546/65/6611；a 的 `parts=[Reasoning(""), Text]`）。
+- ⚠️ raw dump 的 `export_sha256` 是 **raw dump 自身的导出**（`7bc76016…` / 2409 B / 5 行），**不是通过证据**——raw 的 `export_sha256_source` 与通过证据同源（生产 `TavernChatCodec.exportGroupJsonl`），但它属于失败跑的落盘，**不得当 #1/#2 的契约字段填**。
+
+**③ 失败根因（6 条，本批最重要的新结论——推翻旧结论）**
+
+1. **不是**之前修的那个「非 2xx + 空 body 被静默当零产出」缺陷（`43d607bdd` 的修复**在部署 APK 里**，已由 `git merge-base --is-ancestor` 核实；走那条会让错误正文变成 `HttpException: ...` 且 `app_errors` 非空）。实测错误正文恰是 `本轮没有产出内容`、`app_errors=[]` ⇒ **没走那条**。
+2. **真因**：网关返回 **HTTP 200 但 SSE 流里没有任何 content delta**（空白/无内容完成）。应用按既定语义判零产出：`ConversationSession.finishGeneration`（`ConversationSession.kt:97-116`）先丢弃空的占位助手消息 → `stampGroupTurn`（`ChatManager.kt:1980-2003`）找不到 `roleId==null` 的消息返回 null → `commitGroupTurn` 走 `ChatManager.kt:1957` 写 error 节点 + `FAILED/role_failed`，**全程无异常**。
+3. **6/6 稳定复现（roundtable 3 + pipeline 3）⇒ 不是偶发。** ⚠️ **`docs/eval/c1-group-chat.md` 里原先在 `:4114`／判定规则第十条写「这是偶发、不是稳定缺陷」的结论被本批推翻**（原文保留，订正块见 ∮）。注意两处的触发形态不同：旧结论说的是「非 2xx + 空 body 静默当零产出」那一现场未复现；本批复现的是**同一下游症状（零产出）的另一触发**（HTTP 200 空内容），故「偶发」这一表述对**零产出症状**不再成立。
+4. **`app_errors` 有采集盲区（新发现）**：它只由 `ChatManager.addError`（`:311-321`）写入，而**零产出路径不抛异常**（不写）、**超时**的 `TimeoutCancellationException` 在 `ChatManager.kt:1020` 先 rethrow（不写）、**用户取消**被 `:317` 早期 return（不写）。⇒ **拿 `app_errors=[]` 当「一切正常」的证据是错的**，值得单独留档（遗留第 46 条）。
+5. **refute 掉的假设**：任务里「pipeline 里 c 的 prompt 很长所以失败」**不被数据支持**——c 在 pipeline 的 `prompt_tokens` 从未落库；且 vote 里 c 同一模型第 3 次调用**成功**（deepseek 6877/6882）；基线 `prompt_tokens≈6827` 对 ~300 字符的 system prompt 明显失真（网关侧自报含自身开销），**不能用它推断本地 prompt 长度**。
+6. 附注：**`reasoning-only` 响应会被保留并盖章成 speaker**（同批 raw 里角色 a 有 `parts=[Reasoning(""), Text]` 但 `turn_kind=speaker` 的实例）⇒ 说明 c 连 reasoning 都没有（`model_id=null`）。
+
+**④ 导出哈希复算表（登记子代理本机 `hashlib.sha256` 逐份复算 == JSON `export_sha256`）**
+
+| # | export 文件 | 实测 bytes | 实测行数 | 实测 SHA-256 | JSON `export_sha256` | 一致 |
+|---|---|---:|---:|---|---|---|
+| 3 | `c1-export-real-mention.jsonl` | 1747 | 3 | `6e2ec8ceff572bf2ba3af0376907347ebed83768cd7ac0d08293bcb6dff7fcdd` | 同 | ✅ |
+| 4 | `c1-export-real-vote.jsonl` | 2672 | 6 | `8e42c5b90b858fe7b2b0aa58f51d12caa653a40c4693efef7d66d943c205f5de` | 同 | ✅ |
+| 5 | `c1-export-real-vote-tie.jsonl` | 2695 | 6 | `65f766083cadc4be789b4c90bb5b35fe81c7a3e1e5d20bea7649c9b94e1647a5` | 同 | ✅ |
+| 6 | `c1-export-real-budget.jsonl` | 2044 | 4 | `da0f81c534451198e238f19969074df22a17ecb7ee8094a172f65a8f3dedd544` | 同 | ✅ |
+| 7 | **无导出** | — | — | — | —（`evidence_kind=…memory-isolation-no-gateway`） | — |
+
+⚠️ 行数口径：文件无尾随换行，`export_line_count` = `\n` 数 + 1（表头 1 行 + 消息数）。`export_sha256_source` 逐份写明「同进程 `MessageDigest("SHA-256")` over 生产 `TavernChatCodec.exportGroupJsonl` 的字节，并经生产 `writeExportTempFile`（`ConversationExport.kt:836`）重写后逐字节比对」。**这四份导出哈希即 C1-04 / C1-05 契约第 8 项的直接取值。**
+
+**⑤ 判定影响**
+
+- **升 `verified`：C1-04（vote 多数决 + 平票两条路径，契约 8 项齐备、必须断言成立）与 C1-05（预算截断，8 项齐备 + 库内 `messages.count=3`/`assistant_role_order=["a","b"]` 直读）。** 依据：契约 `:206`（输入 / viewer 可见集合 / 调用序列 / token / 导出哈希）+ `:232-235`（8 项）+ 判定规则第 2/4/8 条——本批给了真实网关 usage、wire 级 `provenance={wire:n, fallback:0}`、viewer 台账、逐例导出哈希，且 C1-04 的「导出哈希结构性不产出」旧结论被本批**直接推翻**（两跑都产出），C1-05 的遗留第 43 条（正式证据结构性不可达）被专用用例消掉。
+- **不升（仍 `unverified`）**：C1-01（契约 `:201`「其他角色不可见」字面半仍未观测——触发是 USER 消息，A/C 仍可见它，遗留第 15 条不变）；C1-02 / C1-03（本批 3/3 全失败，零产出根因未消除）；C1-06（超时半未跑、viewer 集合未按契约落盘、重复性未做）；C1-07（续跑/幂等测试**仍未写**）；C1-08（**缺 3 项：模型调用序列 / token / 导出哈希**，本例设计上不走网关、不导出）；C1-09 / C1-10（本批未新增）。逐行订正见 20 格。
+
+**⑥ 诚实限制**
+
+- **仅 5 条通过、2 类 3/3 失败；通过项均为单次通过**——但 C1-04/C1-05 在**第十三轮已有 3/3 稳定性**记录，本批为再次通过，非孤立单次。
+- **mention 的 shell 退出码未落盘**（旧脚本无 `exitcode.txt`），判据为日志 `OK (1 test)`；契约 `:232-235` 的「退出码」以遗留第 41 条口径「日志判据为准」记录。
+- **#7 记忆隔离不走网关**：模型调用序列 / token **结构性缺失**（canned 提取），非采集疏漏；导出哈希**设计上不产出**。⇒ 契约 `:206` 的「每例……模型调用序列、token 计数、导出哈希」对**记忆隔离这一例**存在**契约口径与用例设计张力**（该例 legitimately 不调用模型），本文**不擅自放宽契约**，保持 `unverified` 并如实记缺项。
+- **失败根因的第 2 条（代码路径）是读源码推断**（`ConversationSession.kt` / `ChatManager.kt` 行号），**不是**抓到了网关响应原文/状态码；本轮 raw dump **没有 HTTP 状态码/响应体**字段（遗留第 10 类缺口延续）。
+- **本批所有 SHA-256 为登记子代理本机复算**；设备侧原始文件在 `/tmp/opencode/c1-device-r9/`（仓库外）。**报告里的「第 3 位角色」措辞**：`assistant_role_order` / `wire_name_resolution` 里它按 seq=3 出现，与「角色 c」是同一行。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
