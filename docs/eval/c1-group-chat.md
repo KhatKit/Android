@@ -5521,6 +5521,26 @@ UI 端到端 / 酒馆本体 / 相机扫码**仍然零份**。
 ⚠️ **本批对台账声明值的影响：一个数都没动**——三个 commit 全是文档，本批没有任何 `app/src/test` 在册类的新增/扩写 ⇒ 声明值仍 **46 行 / 501 例**（`python3 tools/verification/c1_doc_stats.py` 实测 `台账行数 46 行` / `声明合计 501 例` / `逐行核对 46 行全部相等`）。
 ⚠️ **本批同样不改变任何判定**：新证据（筛选 chip 真机 UI 通过 / 设置污染 pb 手术恢复 / 酒馆解析器级 16/16 / 新缺陷「删最后助手必崩」）**20 个状态格一个升级都没有**——逐行依据见「C1 真机证据采集第九轮」⑧；② 句第九轮订正已逐格追加、C1-09 / C1-10 两行另加第九轮注记。⚠️ **别把「酒馆解析器级接受」读成「硬理由③已消」**——完整 app 打开仍零份。
 
+#### ⚠️⚠️ 再往后一批（第十二批，2026-10-06，`4d73a26b4..d133b400b`）：**页面入口合并 + UI 三条 androidTest 纳入 + 第十一批登记本体补登**
+
+⚠️⚠️ **本小节覆盖 `4d73a26b4..d133b400b` 这 10 个 commit**（`git log --oneline 4d73a26b4..d133b400b | wc -l` 实测 **10**、`--merges` = **0**）。它 = **上一批（第十一批）按惯例留到本批补登的登记本体 5 个** + **本批更早的两个 testTag commit 2 个** + **本批主角 3 个**。⚠️ **锚点 `1b0e04a9` 仍然没有被重算**：10 个一个都不计入本台账任何计数——不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或子包标签 ⇒ **`78 / 6 / 17` 与两张分布表一个数都没动**。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `3e5596f9b` | `coder: 登记C1真机第九轮证据节——筛选chip两半真机UI通过+设置污染pb手术恢复+酒馆解析器级16/16+新缺陷删最后助手必崩` | 文档（=第十一批登记本体，按惯例本批补登） |
+| `69e02f949` | `coder: 20状态格②句就地订正（chip已有真机UI证据）+C1-09/C1-10状态格追加第九轮注记，判定一律未改` | 文档（=第十一批登记本体） |
+| `b91737bff` | `coder: 第九轮遗留补第36条（删最后助手必崩）与第37条（RUNNING残留未清）、台账追加第十一批3个文档commit` | 文档（=第十一批登记本体） |
+| `f34f007f4` | `coder: 实施状态补第十六批——筛选chip真机通过、设置污染pb手术恢复、酒馆解析器级16/16、新缺陷删最后助手必崩、十例仍全unverified` | 文档（status，=第十一批登记本体） |
+| `a6a46face` | `coder: 订正第九轮证据节一处归属表述——SettingsRepository 真实子包是 datastore，去掉对上一轮转述的错误指认` | 文档（=第十一批登记本体） |
+| `15ce2f251` | `coder: GroupMemberBar 容器补 testTag group_member_bar（C1 真机 UI 测试定位锚点，仅加语义不改行为）` | 功能（main 源码，仅加语义；`GroupMemberBar.kt +5`） |
+| `467f67ad9` | `coder: 抽屉会话列表补 testTag drawer_conversation_list（C1 chip 过滤真机测试需滚动定位，仅加语义不改行为）` | 功能（main 源码，仅加语义；`ChatDrawer.kt +7/−1`） |
+| `6b4a56d9f` | `coder: 群聊页复用前置重构——提升 GroupTopBar/GroupInfoChip/GroupConfigSheet 可见性，抽出 groupConfigSave 与 groupCanEditMessage（零行为变化）` | 功能（main 源码，`GroupChatPage.kt +57/−22`） |
+| `a4b8be9da` | `coder: 群聊与单聊合并为同一 ChatPage——按 isGroupConversation 条件注入群聊 6 样专属件，删除 GroupOrDirectPage/GroupChatPage；RouteActivity 直接进入 ChatPage` | 功能（main 源码，3 files `+99/−340`） |
+| `d133b400b` | `coder: 纳入 C1 群聊 androidTest 三条真断言（筛选chip/成员头像组/@选择器）——编译通过，头像组用例真机通过，chip与@因设备掉线未跑` | 测试（`androidTest`，`+569`；**台账不收仪器测试**） |
+
+⚠️ **本批对台账声明值的影响：一个数都没动**——10 个 commit 里没有任何 `app/src/test` 在册类的新增/扩写（`d133b400b` 加的是 `androidTest`，**不进台账口径**；其余是 main 源码 / 文档）⇒ 声明值仍 **46 行 / 501 例**（`python3 tools/verification/c1_doc_stats.py` 实测 `台账行数 46 行` / `声明合计 501 例` / `逐行核对 46 行全部相等`）。⚠️ **别把 `d133b400b` 的 3 条仪器用例算进 501。**
+⚠️ **本批同样不改变任何判定**：页面合并是**入口重构 + 零行为变化的重构**，UI 三条 androidTest 只有 1 条真机通过、2 条未跑完，**20 个状态格一个升级都没有**（C1-10 两处仅就地追加第十轮订正）——逐行依据见「C1 真机证据采集第十轮」⑨。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
