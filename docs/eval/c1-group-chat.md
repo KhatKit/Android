@@ -6497,6 +6497,18 @@ git status --short
     `round_id=round-a8d28946-4685-461c-9ada-20095319ca53`、`token_limit=9000`、
     `spent_tokens=0`、`started_at=1791271593923`（≈2026-10-06 15:26:33）、`ended_at=NULL`。
     **未删，只报告**（不影响本轮任何判定，但会一直出现在随机轮询里）。
+38. **⚠️⚠️ 设备设置未恢复 + 一次 `kill -3` 操作失误招致 ColorOS 杀进程（2026-10-06，第十轮）。**
+    ① **设置未恢复**：`screen_off_timeout` 现为 **`600000`**（原值 **`30000`**），
+    `stayon true` 未恢复——**设备已不可达**（`adb devices` 空），**无法改回**（执行者报告；
+    本次登记时同样无法连上设备复核，故此处只能转述）。② **操作教训**：18:59:50 执行者
+    为看线程栈对测试进程执行了 `run-as … kill -3 28072`，ColorOS 记
+    **`reason=13 OTHER KILLS BY SYSTEM … o-stop(40)`**，把 instrumentation 一并杀停 ⇒
+    `INSTRUMENTATION_RESULT: shortMsg=Process crashed.`（`round5-instrument.log` 实测）。
+    ⇒ **对仪器测试进程发信号会被 ColorOS 连带杀测试**，下次不要为看栈直接 `kill -3`，
+    改用 `logcat` / 设备侧 dump 取栈。此条**不影响任何用例判定**，但设备遗留会持续到
+    下一位接上设备。
+    ⚠️ 本条与第 37 条（`RUNNING` 残留未清）**是两个独立遗留**：37 是库内数据残留，
+    38 是设备环境设置残留 + 一次操作失误的教训。
 
 ### ⚠️ 真机窗口之后，「下一位怎么把 unverified 变成 verified」还剩什么
 
