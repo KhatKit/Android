@@ -3538,6 +3538,108 @@ untracked `64`）、锚点 `78`。
 而十例要的四类产物（可见消息集合 / 模型调用序列 / 导出哈希 / 真机 UI）**一份未增**，
 且本批**零设备、零 `adb`**。
 
+### wire 级模型名的两条零设备证据（`f1bf516e..74d82476`，2026-10-06，**零设备**）
+
+⚠️ **本节是硬理由①的两条零设备证据的正式落点**。**先说清它不是什么**：
+**它不是验收证据**——契约 `:206` 点名的四类产物**一份未增**，十例**仍是 10/10
+`unverified`**。它记录的是「**能力已具备 + 取得途径已改成 wire 直取**」，
+以及**这些结论各自能被证明到什么程度为止**。
+
+#### 缺陷是什么（为什么原先只能反查）
+
+- `ChatCompletionsStreamDecoder.kt` 的 `finish(reason, responseId, model)` **一直正确**
+  发出 wire 上的模型名——`StreamChunk.Finish(reason, responseId, model)`。
+- ⚠️ **缺陷在下游**：`StreamChunkHandler` 收到 `Finish` 时**只取 `finishedAt`**，
+  把 `chunk.model` **直接丢弃**。
+- 后果：助手消息上留不下网关自报的名字，于是验收证据里的 `deepseek-v4-flash` /
+  `glm-5.2` 是拿 `message.modelId`（本地 `Model` 的 **UUID**）**回查本地 provider 模型表
+  反查**出来的。
+
+⚠️ **这意味着修的不是「拿不到 wire 名」，是「拿到了却被丢弃」**——原先文档里那句
+「需要在 `OpenAIProvider` 侧记录响应 `model`（属于加日志）」**是错的**，已在
+「已知遗留与风险」第 18 条作废。
+
+#### 证据①：JVM 侧 `WireModelNameProvenanceTest`（9 例 / 27 处断言 / 退出码 0）
+
+落点：`ai/src/test/java/heizige/kk/khatkit/ai/provider/providers/openai/WireModelNameProvenanceTest.kt`
+（**268 行 / 9 条 `@Test`**）。逐例（断言数按源码逐条数）：
+
+| 用例 | 断言 | 钉住什么 |
+|---|---:|---|
+| `raw sse model literal should land on wireModelName verbatim` | 3 | SSE 帧里的 wire 名**逐字**落到 `wireModelName`（含不 trim 的那一次比较） |
+| `wire model name should survive dotted slashed and uppercase literal unchanged` | 2 | **刁钻字面量逐字透传**：`deepseek-v4-flash-250528`、`zhengyimeng/GLM-5.2-preview`（点、斜杠、大写都不被归一化） |
+| `wire model name should not be derived from local model configuration` | 5 | **反查隔离**：构造 `Model(modelId="local-cfg-alias-9f3c")`，断言 wire 名**既不等于** `model.id`、**也不等于** `modelId` / `displayName` ⇒ 两条路径互斥 |
+| `sse frames without model field should leave wireModelName null` | 4 | 无 `model` 帧 ⇒ `null`——**不是空串，也不回退 `modelId`** |
+| `absent model in sse should not overwrite an existing wire model name` | 2 | 中途缺 `model` 的帧**不覆盖**已落盘的值 |
+| `non streaming result should set wireModelName symmetrically` | 4 | 非流式 `handleTextGenerationResult` **对称**（含 `zhengyimeng/GLM-5.2-preview` 逐字与反查隔离） |
+| `non streaming empty model string should not be treated as a valid model name` | 1 | 非流式**空串不当作有效名** |
+| `wireModelName should survive kotlinx serialization round trip` | 3 | 编码结果**含 `wireModelName` 键**，往返后逐字相等 |
+| `legacy json without wireModelName key should decode to null without throwing` | 3 | 旧版本序列化器写的数据（删掉该键）⇒ 解码成 `null` 且**不抛** |
+
+**非空验证（本轮做过，如实登记）**：临时删掉 `Finish` 分支里那一行
+`wireModelName = …` 重跑 ⇒ **`9 tests completed, 3 failed, EXIT=1`**，
+失败的**恰好是 3 个流式来源用例**；随后从备份还原并 `diff` 确认与 HEAD 一致。
+⚠️ **这条只能证明「那 3 条真的依赖这一行」**，非流式那两条仍绿——
+所以它**不是**「删掉任意一行都会红」的证明。
+
+#### 证据②：真实公网网关 wire 名探测（`tools/verification/c1_wire_model_probe.py`）
+
+⚠️⚠️ **必须先说清这条证明的边界**：脚本**直接打网关**，**完全不经过 `ChatManager` /
+`StreamChunkHandler` / `UIMessage`**。所以它证明的是「**网关会自报这个名字**」，
+**不是**「app 把它落下来了」。后者只有证据①覆盖。
+
+实测输出（key 只走命令行 / 环境变量，脚本内 **0 处硬编码**）：
+
+| requested | wire_model | status | finish_reason | usage |
+|---|---|---:|---|---|
+| `deepseek-v4-flash` | `deepseek-v4-flash` | 200 | `stop` | prompt 15 / completion 39（reasoning 16） |
+| `glm-5.2` | `glm-5.2` | 200 | `stop` | prompt 23 / completion 533（reasoning 502） |
+
+非流式（`--no-stream`）也验过：`deepseek-v4-flash` → `wire_model: "deepseek-v4-flash"`，
+200。⚠️ **密钥卫生**：实测后该 key 在 `git diff ea6b7c4c..HEAD` 与**全部 commit message**
+里出现 **0** 次（本轮复核过，见台账那一批的记述）。
+
+⚠️⚠️ **诚实要点（这一条最容易被拔高，照记）**：**wire 名与请求名一致**，
+说明**原先 UUID 反查出的名字恰好是对的**。所以这**不是「反查错了被纠正」**，
+是「**取得途径从反查变成 wire 直取**」。⚠️ 它**不构成对既有证据的追溯性升级**——
+设备上那份既有证据里的两个名字**本来就写对了**，只是**来源不同**。
+
+#### 取证局限（本节的边界，逐条照记）
+
+① **fixture 级**：证据①是**人造 SSE 帧**喂给真实解码器 + 真实 `StreamChunkHandler`，
+**中间没有替身**（这是它比多数护栏强的地方），但**帧是我们自己写的**——
+**真实网关收尾帧的形状没有在这里被覆盖**。
+② **只覆盖 OpenAI chat-completions 一条路径**：`Claude` / `Google` 两条 provider 路径
+**一行都没测**，`wireModelName` 在那两条上是否落盘**零证据**。
+③ **零设备**：`ai/` 的两处生产改动**没上过真机**；证据②验的是网关不是 app；
+证据①是 JVM。⚠️ **仪器测试一行都没跑过**——
+`C1LiveModelSequenceTest` 里新增的 wire 优先判定、`wire_model_name_provenance`
+取值、`wire_model_name_reconciliation`、`wire_model_name_provenance_counts`、
+`wire_and_reverse_lookup_agree`、以及「**不允许两者皆空**」那条防退化断言，
+**全部只有编译验证**。
+④ **设备上那份 `c1-live-evidence-real-provider.json` 里现在记的仍是 UUID 反查值**。
+要等真机重跑才会变成 wire 值。⚠️ **这里没有任何真机数字。**
+⑤ **旧 Room 库既有消息树（含新字段）的反序列化没对真实数据库跑过**——
+只靠 nullable + 默认值 + JVM 序列化往返保证（`UIMessage` 是 `@Serializable`，
+随对话 JSON 落库，**无需 Room 迁移**，所以风险面确实小，但**没在真实库上验过**）。
+⑥ **`wireModelName` 不在任何 UI 上显示**：**没做，也没打算做**。
+所以本节**不构成任何「用户看得见模型名」的证据**。
+
+#### 三条命令的真实退出码
+
+`:ai:test` **0**（含本类 **9 例 / 0F 0E 0S**）、
+`:app:testDebugUnitTest --rerun` **0**（**110 类 / 893 例 / 0F 0E 0S**）、
+`:app:assembleDebug` **0**、`:app:lintDebug` **0**、
+`:app:compileDebugAndroidTestKotlin` **0**（263/263 executed，含一次 `--rerun-tasks`）、
+`python3 tools/verification/c1_doc_stats.py` **0**（**18 条：OK 18 / WARN 0 / FAIL 0**）。
+⚠️ **`c1_wire_model_probe.py` 的两次 200 不是退出码口径**——它是**要真 key 才能跑**的
+网络探测，**本节只把它当取证手段记录，不当回归护栏**（它**零测试用例**，
+仓库里**没有**任何 task 会自动跑它）。
+
+⚠️ **十例判定一个都没变，仍是 10/10 `unverified`**：本批**零设备、零 `adb`**，
+四类产物**一份未增**。⚠️ **硬理由①本身也仍未消**——
+成因已修、能力已具备，但**真机没跑**（局限 ③/④）。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
