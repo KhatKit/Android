@@ -152,9 +152,14 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 > ```
 >
 > 两个关键点：**按文件名后缀**而非 grep 类名 —— 否则 `*Util` 会命中 `*Utils`
-> 内部（同一份 grep 因此在历史上给出过 11 / 13 / 14 三个数）；**排除 material3**
-> —— 那 3 个 vendored 的 `*Utils.kt`（`ColorUtils` / `MathUtils` / `StringUtils`）
-> 不是本 fork 的代码。
+> 内部；**排除 material3** —— `material3/material-color-utilities` 是 **git submodule**
+> （`.gitmodules`，mode `160000`），里面 3 个 `*Utils.kt`（`ColorUtils` / `MathUtils` /
+> `StringUtils`）不是本 fork 的代码。
+>
+> ⚠️ **这就是历史上同一件事给出 11 / 13 / 14 三个数的根因**：`material3/…` 是 submodule，
+> 所以 `git ls-tree -r --name-only main`（**不递归进 submodule**）得 **11**，
+> 而 `find .`（**看得见已 checkout 的 submodule 文件**）得 **14**。
+> `docs/architecture-map.md` §2.1 用的就是 `git ls-tree` 那条，与此处等价。
 >
 > `*Service` 从 32 降到 30，是因为 `core/service/` 被删空时带走了
 > `ChatService.kt` 与 `ChatGenerationForegroundService.kt` 两个（commit `86da59fa0`）。
