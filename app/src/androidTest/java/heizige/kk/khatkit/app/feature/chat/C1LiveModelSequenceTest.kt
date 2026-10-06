@@ -45,6 +45,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -1311,74 +1312,60 @@ class C1LiveModelSequenceTest {
         evidenceConversations += conversationId
 
         // ---- 走生产入口触发真实生成（真·公网 HTTPS 请求） ----
-        chatManager.sendMessage(
-            conversationId = conversationId,
-            content = listOf(UIMessagePart.Text("请三位依次发言，每位一句话。")),
-            answer = true,
-        )
-        trace("real:sendMessage-returned")
+        //
+        // ⚠️ 「触发 + 两次等待」这一段包进 try/catch/finally 的原因，逐字记录：
+        // `awaitAssistantMessages` 超时时**直接抛 AssertionError**（见本文件该方法里的
+        // `throw AssertionError`），`awaitTerminalRun` 同理。旧版把 raw dump 写在这两次
+        // await **之后**，
+        // 于是**预算截断**（真实 token 超上限、只产出 2 条助手消息）时等待必然先炸，
+        // raw dump 的写入永远执行不到——真机 9000 那轮实测：设备上
+        // `c1-real-raw-dump.json` 的 mtime 与内容都停在更早一轮。
+        // 现在 raw dump 挪进 `finally`，并且**重新从会话仓库 / group_runs 读现场**，
+        // 不依赖 try 里的任何局部变量（超时时它们根本不存在）：
+        // 成功、等待超时、后续断言失败、预算截断，一律落盘。
+        val messages: List<UIMessage>
+        val expectedRoundId: String
+        val run: GroupRunEntity
+        var blockFailure: Throwable? = null
+        try {
+            chatManager.sendMessage(
+                conversationId = conversationId,
+                content = listOf(UIMessagePart.Text("请三位依次发言，每位一句话。")),
+                answer = true,
+            )
+            trace("real:sendMessage-returned")
 
-        val messages = awaitAssistantMessages(
-            conversationId = conversationId,
-            expected = 3,
-            timeoutMillis = realTimeoutMillis,
-        )
-        trace("real:await-messages-done count=${messages.size}")
-        val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
-        val expectedRoundId = GroupChat.roundIdFor(triggerId)
-        val run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+            messages = awaitAssistantMessages(
+                conversationId = conversationId,
+                expected = 3,
+                timeoutMillis = realTimeoutMillis,
+            )
+            trace("real:await-messages-done count=${messages.size}")
+            val triggerId = messages.last { it.role == MessageRole.USER }.id.toString()
+            expectedRoundId = GroupChat.roundIdFor(triggerId)
+            run = awaitTerminalRun(conversationId, expectedRoundId, timeoutMillis = realTimeoutMillis)
+        } catch (t: Throwable) {
+            blockFailure = t
+            throw t
+        } finally {
+            try {
+                writeRealRawDump(conversationId, blockFailure)
+            } catch (dumpError: Throwable) {
+                // raw dump 自身写入失败时不吞掉原始异常（否则超时断言会被替换掉）；
+                // 只有不存在原始异常时才让落盘错误冒泡（成功路径必须留下证据）。
+                trace("real:raw-dump-write-error ${dumpError.message}")
+                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            }
+        }
 
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val byRole = assistants.associateBy { it.roleId }
 
-        // 先落一份「未经任何断言筛选」的原始快照，**独立文件** `c1-real-raw-dump.json`：
-        // 后面若有断言炸了，这份仍是事发当时的真实数据，不用靠猜。
-        // 注意它与正式报告 `c1-live-evidence-real-provider.json` 是两个文件，不会互相覆盖，
-        // 所以跑完记得两个都拿走；它保留失败现场，是排查用的，不是验收证据。
-        writeEvidence(
-            "c1-real-raw-dump.json",
-            buildJsonObject {
-                put("note", "raw snapshot taken right after generation, before any assertion")
-                put("conversation_id", conversationId.toString())
-                put("message_count", messages.size)
-                putJsonArray("messages") {
-                    messages.forEach { message ->
-                        add(
-                            buildJsonObject {
-                                put("role", message.role.name)
-                                put("role_id", message.roleId)
-                                put("turn_kind", message.turnKind)
-                                put("model_id", message.modelId?.toString())
-                                // 事发当时的原始值：网关自报的 wire 模型名（没报就是 null）。
-                                // 正式报告里的 `wire_model_name_provenance` 判定在后面做。
-                                put("wire_model_name", message.wireModelName)
-                                put("usage_prompt", message.usage?.promptTokens ?: -1)
-                                put("usage_completion", message.usage?.completionTokens ?: -1)
-                                put("usage_total", message.usage?.totalTokens ?: -1)
-                                put("text", message.toText())
-                                putJsonArray("parts") {
-                                    message.parts.forEach { part ->
-                                        add(
-                                            buildJsonObject {
-                                                put("type", part::class.simpleName ?: "?")
-                                                put("text", (part as? UIMessagePart.Text)?.text ?: "")
-                                            },
-                                        )
-                                    }
-                                }
-                            },
-                        )
-                    }
-                }
-                put("group_run_status", run.status)
-                put("group_run_spent", run.spentTokens)
-                put("group_run_limit", run.tokenLimit)
-                put("group_run_committed", JsonArray(run.committedRoleIds.map { JsonPrimitive(it) }))
-                put("group_run_skipped", JsonArray(run.skippedRoleIds.map { JsonPrimitive(it) }))
-                put("group_run_ended_at", run.endedAt)
-                put("group_run_reason", run.reason)
-            },
-        )
+        // `c1-real-raw-dump.json` 已在上面 try/finally 的 finally 里**无条件**写出
+        // （见 `writeRealRawDump`），所以从这里往下任何断言炸掉都不会再丢现场。
+        // 它与正式报告 `c1-live-evidence-real-provider.json` 是两份文件、互不覆盖：
+        // raw dump 是排查用的原始事实，**不是**验收证据；正式报告仍是「全部断言通过
+        // 才写」，语义未变。
 
         assertEquals(
             "本轮不应有失败/错误节点（真实网关报错会让轮次转 FAILED），实际消息=" +
@@ -2152,6 +2139,168 @@ class C1LiveModelSequenceTest {
             "等待 group_runs 收尾超时（${timeoutMillis}ms），round=$roundId，" +
                 "最后状态=${last?.status}；app 错误=${chatManager.errors.value.map { it.title to it.error }}",
         )
+    }
+
+    /**
+     * 无条件写 `c1-real-raw-dump.json`（**原始事实**文件，不是「通过证据」）。
+     *
+     * 调用点只有一处：真实网关用例 try/finally 的 finally —— 所以成功、等待超时、
+     * 断言失败、预算截断**都会落盘**。实现上刻意**不接收调用方的局部变量**：
+     * `awaitAssistantMessages` / `awaitTerminalRun` 超时时直接抛 AssertionError，
+     * 那一刻 `messages` / `run` 根本不存在；这里在落盘时重新从会话仓库与
+     * group_runs 读现场（读不到就写 null / 空，仍是事实）。
+     *
+     * 同时写入 wire provenance 的**可独立复算事实**：provider 模型表、逐条模型名解析
+     * 结果、两个计数块（与正式报告 [realProviderReport] 同一定义）。这样即使正式报告
+     * （语义 = 本用例通过，只在通过时写）不落盘，`wire_model_name_provenance_counts` /
+     * `wire_model_name_reconciliation` / `actual_model_call_sequence` 所需的全部原始
+     * 事实也能在本文件里拿到。
+     *
+     * **不写任何期望值**（`expected_model_call_sequence`、期望条数之类的断言口径不进来）。
+     * 也**不写「是否通过」的结论性字段**——`block_exception_pending` 只说明被 try 包住的
+     * 那段（sendMessage + 两次 await）有没有抛异常，之后还有一批断言在它外面；
+     * 「本用例是否通过」只由正式报告文件是否存在来表达。
+     *
+     * @param blockFailure 被 try 包住的那段传播出来的异常；null 表示该段正常完成
+     *   （**不代表全部断言已通过**，后续断言是独立的失败点）。
+     */
+    private suspend fun writeRealRawDump(conversationId: Uuid, blockFailure: Throwable?) {
+        val messages = repository.getConversationById(conversationId)?.currentMessages.orEmpty()
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val wireModelNames = assistants.map { resolveWireModelName(it) }
+        val triggerMessage = messages.lastOrNull { it.role == MessageRole.USER }
+        val roundId = triggerMessage?.let { GroupChat.roundIdFor(it.id.toString()) }
+        val run = roundId?.let { groupRunDao.findByRound(conversationId.toString(), it) }
+
+        writeEvidence(
+            "c1-real-raw-dump.json",
+            buildJsonObject {
+                put(
+                    "note",
+                    "raw facts re-read from the evidence DB at capture time; written from a finally " +
+                        "block for every outcome (success / await timeout / later assertion failure / budget stop)",
+                )
+                put("capture_point", "finally after sendMessage + awaitAssistantMessages + awaitTerminalRun")
+                put("block_exception_pending", blockFailure != null)
+                put("block_exception", blockFailure?.let { "${it::class.simpleName}: ${it.message}" })
+                put(
+                    "pass_evidence_note",
+                    "this file is NOT the pass evidence; the pass evidence is " +
+                        "c1-live-evidence-real-provider.json and it is written only when every assertion passed",
+                )
+                put("generated_at_device", System.currentTimeMillis())
+                put("conversation_id", conversationId.toString())
+                put("message_count", messages.size)
+                put("assistant_message_count", assistants.size)
+                putJsonArray("messages") {
+                    messages.forEach { message ->
+                        add(
+                            buildJsonObject {
+                                put("role", message.role.name)
+                                put("role_id", message.roleId)
+                                put("turn_kind", message.turnKind)
+                                put("model_id", message.modelId?.toString())
+                                // 事发当时的原始值：网关自报的 wire 模型名（没报就是 null）。
+                                put("wire_model_name", message.wireModelName)
+                                put("usage_prompt", message.usage?.promptTokens ?: -1)
+                                put("usage_completion", message.usage?.completionTokens ?: -1)
+                                put("usage_total", message.usage?.totalTokens ?: -1)
+                                put("text", message.toText())
+                                putJsonArray("parts") {
+                                    message.parts.forEach { part ->
+                                        add(
+                                            buildJsonObject {
+                                                put("type", part::class.simpleName ?: "?")
+                                                put("text", (part as? UIMessagePart.Text)?.text ?: "")
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                        )
+                    }
+                }
+                put("group_run_round_id", roundId)
+                put("group_run_status", run?.status)
+                put("group_run_spent", run?.spentTokens)
+                put("group_run_limit", run?.tokenLimit)
+                put(
+                    "group_run_committed",
+                    run?.let { entity -> JsonArray(entity.committedRoleIds.map { JsonPrimitive(it) }) } ?: JsonNull,
+                )
+                put(
+                    "group_run_skipped",
+                    run?.let { entity -> JsonArray(entity.skippedRoleIds.map { JsonPrimitive(it) }) } ?: JsonNull,
+                )
+                put("group_run_ended_at", run?.endedAt)
+                put("group_run_reason", run?.reason)
+
+                // ---- wire provenance 的可复算事实（与 realProviderReport 同一定义） ----
+                put("provider_model_table_note", TABLE_WIRE_MODEL_STRING_NOTE)
+                putJsonArray("provider_model_table") {
+                    realProvider.models.forEach { model ->
+                        add(
+                            buildJsonObject {
+                                put("uuid", model.id.toString())
+                                put("wire_model_string", model.modelId)
+                                put("display_name", model.displayName)
+                                put("type", model.type.name)
+                            },
+                        )
+                    }
+                }
+                putJsonArray("wire_name_resolution") {
+                    assistants.forEachIndexed { index, message ->
+                        val name = wireModelNames[index]
+                        add(
+                            buildJsonObject {
+                                put("seq", index + 1)
+                                put("role_id", message.roleId)
+                                put("turn_kind", message.turnKind)
+                                put("model_uuid", message.modelId?.toString())
+                                put("wire_model_name", name.wireModelName)
+                                put("uuid_reverse_lookup_model_string", name.uuidReverseLookupName)
+                                put("resolved_model_name", name.resolvedModelName)
+                                put("wire_model_name_provenance", name.provenance)
+                                put(
+                                    "wire_and_reverse_lookup_agree",
+                                    if (name.wireModelName == null || name.uuidReverseLookupName == null) {
+                                        null
+                                    } else {
+                                        name.wireModelName == name.uuidReverseLookupName
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
+                putJsonObject("wire_model_name_provenance_counts") {
+                    put(PROVENANCE_WIRE_RESPONSE_MODEL, wireModelNames.count { !it.fallbackTaken })
+                    put(PROVENANCE_UUID_REVERSE_LOOKUP_FALLBACK, wireModelNames.count { it.fallbackTaken })
+                }
+                putJsonObject("wire_model_name_reconciliation") {
+                    put(
+                        "note",
+                        "wire_model_name vs uuid_reverse_lookup_model_string, per call; null means " +
+                            "that source had no value for that call",
+                    )
+                    put("calls_with_wire_name", wireModelNames.count { it.wireModelName != null })
+                    put(
+                        "calls_where_both_names_present_and_differ",
+                        wireModelNames.count { name ->
+                            name.wireModelName != null &&
+                                name.uuidReverseLookupName != null &&
+                                name.wireModelName != name.uuidReverseLookupName
+                        },
+                    )
+                    put(
+                        "calls_with_no_name_at_all",
+                        wireModelNames.count { it.wireModelName == null && it.uuidReverseLookupName == null },
+                    )
+                }
+            },
+        )
+        trace("real:raw-dump-written messages=${messages.size} assistants=${assistants.size} run=${run?.status}")
     }
 
     private fun writeEvidence(name: String, payload: JsonObject) {
