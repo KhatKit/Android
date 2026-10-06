@@ -211,7 +211,7 @@ fun ChatList(
  *
  * 1. **[messageModelId] 非 null 就用它**，它是生成侧写进去的**实际**调用模型
  *    （`GenerationLoop.kt:465` 写 `modelId = model.id`；流式与非流式两条路都在
- *    `StreamChunkHandler.kt:73` / `:329` 写同一个值；provider failover 走
+ *    `StreamChunkHandler.kt:77` / `:341` 写同一个值；provider failover 走
  *    `GenerationLoop.kt:144` 的 `candidateModel`，记的仍然是真正服务了这次响应的那一个）。
  * 2. **它指向的模型已被删掉，就返回 null**——不拿角色绑定去顶替。我们确知有个模型答过这条
  *    消息、只是叫不出名字；拿今天的绑定填上去等于又造一次同样的假记录。这与单聊
