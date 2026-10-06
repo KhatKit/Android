@@ -5416,6 +5416,20 @@ UI 端到端 / 酒馆本体 / 相机扫码**仍然零份**。
 
 ⚠️⚠️ **本批同样不改变任何判定**：除 `31b6b5a52` 让预算截断的 raw dump 首次真正落盘、`43d607bdd` 让静默失败变响亮之外，其余 20 个 commit 是重构/清理/改名/文档；**十行状态列一个格都没改判定，仍是 10/10 `unverified`**——⚠️ **① 句的订正已逐格追加**（真实网关已 wire 级重跑并首次产出正式证据），**但没有任何一行升级**（逐行依据见「C1 真机证据采集第八轮」⑨）。新证据节与全部数字/SHA 见该节。
 
+#### ⚠️⚠️ 再往后一批（第十一批，2026-10-06，`31b6b5a52..4d73a26b4`）：3 个 commit，全部是文档
+
+⚠️⚠️ **本小节覆盖 `31b6b5a52..4d73a26b4` 这 3 个 commit**（`git log --oneline 31b6b5a52..4d73a26b4 | wc -l` 实测 **3**、`--merges` = **0**；逐条 `git show --stat` 核实全部只改 `docs/`）。⚠️ **锚点 `1b0e04a9` 仍然没有被重算**：3 个一个都不计入本台账任何计数——不改统计区间、不改 `--no-merges` 口径、不引入新的类型前缀或子包标签 ⇒ **`78 / 6 / 17` 与两张分布表一个数都没动**。
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `0364cba12` | `coder: 登记C1真机第八轮证据（真实网关正式证据首次产出+预算finally落盘验证+mock4/4+全量64/1+UI部分覆盖），20状态格①句订正、台账第十批22个commit` | 文档（=第十批批次的登记 commit 本体，按惯例在本批补登） |
+| `76217977f` | `coder: 实施状态补第十五批——真实网关正式证据首次产出（硬理由①真实网关路径已消）、预算落盘验证、mock/全量/UI 与设备卫生遗留` | 文档（status） |
+| `4d73a26b4` | `coder: 订正第八轮证据节一处表述——本机 pull 副本 mtime 是 pull 时刻，不能当设备 mtime 引用` | 文档（订正） |
+
+⚠️ **本批（第十一批）的登记 commit 本体 = 第九轮证据节 + 20 状态格订正 + 本节 + 遗留 36/37 + 实施状态第十六批**（分几个 commit 提交，SHA 提交后才知道）——**按惯例留到下一批补登，本表不编造**。
+⚠️ **本批对台账声明值的影响：一个数都没动**——三个 commit 全是文档，本批没有任何 `app/src/test` 在册类的新增/扩写 ⇒ 声明值仍 **46 行 / 501 例**（`python3 tools/verification/c1_doc_stats.py` 实测 `台账行数 46 行` / `声明合计 501 例` / `逐行核对 46 行全部相等`）。
+⚠️ **本批同样不改变任何判定**：新证据（筛选 chip 真机 UI 通过 / 设置污染 pb 手术恢复 / 酒馆解析器级 16/16 / 新缺陷「删最后助手必崩」）**20 个状态格一个升级都没有**——逐行依据见「C1 真机证据采集第九轮」⑧；② 句第九轮订正已逐格追加、C1-09 / C1-10 两行另加第九轮注记。⚠️ **别把「酒馆解析器级接受」读成「硬理由③已消」**——完整 app 打开仍零份。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
@@ -6353,8 +6367,25 @@ git status --short
       （`generateTitle` / `generateSuggestion` 在 `handleMessageComplete` 的 `onSuccess`
       里、位于那道 `require(!isGroupConversation(...))` **之后**；`compressConversation`
       全 app 无调用方）——**这是「不可达」不是「已堵」**，处置见第 28 条尾巴。
-34. **⚠️⚠️ 设备卫生：「全量测试后主 DataStore 的助手被测试助手顶替」导致 UI 夹具会话列表恒空——执行者未修，下次接设备先查。**（2026-10-06，第八轮）证据：17:18 拉回的 `settings.pb`（22365 B / sha256 `924cda89ec5b8140e71540456c4f1b8b16569b05c85730a413305292468845bd6`）里助手只剩「角色甲/乙/丙」（`0c1c11ae-…a1/b1/c1`），默认助手 `0950e2dc…` 出现 **0 次**；17:21/17:22 两张截图底部当前助手 =「角色甲」，三种筛选 chip 下列表全空。夹具会话归属 `0950e2dc` ⇒ 列表恒空是必然。根因：`C1LiveModelSequenceTest` 的 `@After` 恢复（`runCatching` 吞异常）未生效或被污染快照覆盖。⚠️ **下次用 UI 夹具前必须先恢复 settings**（或把夹具会话改挂测试助手），否则「筛选真的按类型过滤」永远看不到东西。完整现场见「C1 真机证据采集第八轮」⑤。
+34. **⚠️⚠️ 设备卫生：「全量测试后主 DataStore 的助手被测试助手顶替」导致 UI 夹具会话列表恒空——执行者未修，下次接设备先查。**（2026-10-06，第八轮）证据：17:18 拉回的 `settings.pb`（22365 B / sha256 `924cda89ec5b8140e71540456c4f1b8b16569b05c85730a413305292468845bd6`）里助手只剩「角色甲/乙/丙」（`0c1c11ae-…a1/b1/c1`），默认助手 `0950e2dc…` 出现 **0 次**；17:21/17:22 两张截图底部当前助手 =「角色甲」，三种筛选 chip 下列表全空。夹具会话归属 `0950e2dc` ⇒ 列表恒空是必然。根因：`C1LiveModelSequenceTest` 的 `@After` 恢复（`runCatching` 吞异常）未生效或被污染快照覆盖。⚠️ **下次用 UI 夹具前必须先恢复 settings**（或把夹具会话改挂测试助手），否则「筛选真的按类型过滤」永远看不到东西。完整现场见「C1 真机证据采集第八轮」⑤。 ✅ **已恢复（第九轮，2026-10-06，采集父 HEAD `4d73a26b4` / 登记 commit `3e5596f9b`）**：走的是**pb 字节手术**（`assistants` → `[]` 重算长度前缀 + `select_assistant` 36 B 等长替换；两级备份 + 自研解析器断言其余 45 键逐字节不变 + `.new` 远程 SHA 比对 + `chmod 600` + 原子 `mv`），随后 app 自己的 `ifEmpty { DEFAULT_ASSISTANTS }`（`SettingsRepository.kt:365`）把完整默认助手重新落盘。SHA 链（我逐文件 `sha256sum`/`stat` 复核）：污染 `6a0423c4…d4883`（22365 B）→ 删 2 个助手 `fadfe1ff…`（19047）→ `9129ebb6…`（19047）→ 手术版 `a2fa5fa3…`（17386）→ app 选中后 `9b6478ab…`（18440）→ **重启后终态 `37baf83f…`（18440；`0950e2dc` 出现 2 次、`0c1c11ae` 0 次）**；UI 侧抽屉从「没有对话记录」恢复到 6 条会话、force-stop 重启后仍 6 条；主库 6 个会话（全部归属 `0950e2dc`）全程未动。⚠️ **但测试代码根因未修**：`C1LiveModelSequenceTest.kt:517` 的内存快照 + `:643-645` 的 `runCatching` 吞异常仍在仓库里，`update()` 在 `init==true` 时仍是 no-op（`SettingsRepository.kt:442-446`）——**下一轮全量仪器测试会再次污染**。完整现场见「C1 真机证据采集第九轮」②。
 35. **⚠️ mock 脚本本体已不在磁盘：`/tmp/opencode/roundtable-vote/mock_openai_v2.py` 现存的 20061 B 是从 opencode.db 工具调用记录逐字节恢复的**（write 记录 `prt_10b67ba…` + edit 记录 `prt_10b6ab4e…` 按序重放，与恢复件逐字节相同；`py_compile` 通过；sha256 `d5c5d9a4c4b09917b8e31379484f783bef17059b13dfb7ab0a96041daae3f8a0`）。⇒ **复现依据是工具记录，不是原始文件**；下一轮若还要跑 mock 四连，**先确认这个恢复件还在**（在仓库外 `/tmp`，随时可能被清）。4/4 通过 + token 与文档基线吻合是其正确性反证。见「C1 真机证据采集第八轮」③。
+36. **⚠️ 新缺陷：只有 1 个助手时删除会崩（SafeMode），未修、只报告（2026-10-06，第九轮）。**
+    `AssistantViewModel.removeAssistant`（`app/src/main/java/heizige/kk/khatkit/app/feature/assistant/AssistantViewModel.kt:48-61`）
+    先把 settingsFlow 更新为空列表，`SettingsRepository.getCurrentAssistant()`
+    （`app/src/main/java/heizige/kk/khatkit/app/core/data/datastore/SettingsRepository.kt:745`）的
+    `assistants.first()` 随即抛 `NoSuchElementException`（`ChatViewModel` 的 main 收集器），
+    发生在持久化与后续清理之前 ⇒ **最后一个助手删不掉、app 进 SafeModeActivity**。
+    崩溃栈证据 `ui/r4-12-after-3.xml`（15846 B / sha256 `c63e14e7…6677`，含
+    `SettingsRepositoryKt.getCurrentAssistant(SettingsRepository.kt:745)` 与 SafeMode 文案
+    「当前助手：角色丙」）。触发条件：**删除剩余最后一个助手**。⚠️ 本轮只取证未修；
+    修复方向（删最后一个助手时不置空 settingsFlow / `getCurrentAssistant()` 对空列表回退默认）
+    **不在本轮授权内**。完整现场见「C1 真机证据采集第九轮」③。
+37. **⚠️ 上一轮留下的 `RUNNING` 残留行仍未清理（第九轮复查仍在）。**
+    我直读两份 pull 回的库（`db-before` / `db-after-chips`）复核：`group_runs` 里
+    status=`RUNNING` 的行 `conversation_id=2b6c129f-35da-4934-bfa7-6bf8d8099480`、
+    `round_id=round-a8d28946-4685-461c-9ada-20095319ca53`、`token_limit=9000`、
+    `spent_tokens=0`、`started_at=1791271593923`（≈2026-10-06 15:26:33）、`ended_at=NULL`。
+    **未删，只报告**（不影响本轮任何判定，但会一直出现在随机轮询里）。
 
 ### ⚠️ 真机窗口之后，「下一位怎么把 unverified 变成 verified」还剩什么
 
