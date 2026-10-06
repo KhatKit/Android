@@ -37,7 +37,7 @@ import kotlin.time.Clock
  *    - `ImageSnapshot`：用最新的完整 Base64 快照替换同 id 图片的旧数据。
  *    - `Annotations`：追加并去重消息注解。
  *    - `Usage`：将本次用量合并到消息已有的 Token 用量中。
- *    - `Finish`：设置消息完成时间，结束尚未关闭的推理 part，并清空事件索引。
+ *    - `Finish`：设置消息完成时间，落盘网关自报的 wire 模型名，结束尚未关闭的推理 part，并清空事件索引。
  * 4. 使用 [UIMessage.copy] 生成更新后的助手消息，将其替换到列表末尾并返回新列表。
  *
  * 一段文本流的典型调用顺序如下：
@@ -50,6 +50,10 @@ import kotlin.time.Clock
  * Flow 时，流可能直接异常结束。此时已经合并的内容仍然保留，但消息的 `finishedAt` 可能为空，尚未
  * 收到 `ReasoningEnd` 的推理 part 也不会由本类自动结束。调用方应在 Flow 的完成或异常处理中执行
  * 必要的 UI 收尾，并丢弃当前 handler；不要将它复用于下一条响应流。
+ *
+ * [StreamChunk.Finish] 同时携带并落盘网关自报的 wire 模型名（`model`，写入 [UIMessage.wireModelName]）。
+ * 它与 [StreamChunk.Finish.responseId] 一样是 wire 级证据，但本次只落盘模型名、不新增字段存 responseId：
+ * 验收「实际模型调用序列」只需要模型名，responseId 目前没有消费方，不值得为它扩数据形状。
  *
  * 该类保存着一次响应流的合并状态，不是无状态转换器。每条并发响应流都必须使用独立实例，且
  * 事件应按 Provider 产生的顺序交给同一实例处理。
@@ -291,7 +295,11 @@ class StreamChunkHandler(private val model: Model? = null) {
             is StreamChunk.Annotations -> copy(annotations = (annotations + chunk.annotations).distinct())
             is StreamChunk.Usage -> copy(usage = usage.merge(chunk.usage))
             is StreamChunk.Finish -> copy(
-                finishedAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                finishedAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
+                // 网关自报的 wire 模型名原样落盘：不 trim、不小写化、不做别名归一。
+                // 缺失或全空白时不覆盖已有值，允许 null 传播；绝不回退到 modelId
+                // （那是本地配置 UUID，由它反查出来的名字不是 wire 级证据）。
+                wireModelName = chunk.model?.takeIf { it.isNotBlank() } ?: wireModelName,
             ).finishReasoning().also {
                 // Finish 同时结束尚未显式结束的 reasoning，并释放本次响应流的索引状态。
                 textPartIndexes.clear()
@@ -325,8 +333,13 @@ fun List<UIMessage>.handleTextGenerationResult(
     model: Model? = null,
 ): List<UIMessage> {
     require(isNotEmpty()) { "messages must not be empty" }
+    // 非流式路径与流式路径对称：把网关自报的 wire 模型名原样落盘。
+    // 空串不是有效模型名（ChatCompletionsAPI 的非流式解析用 `?: ""` 兜底），必须当缺失处理，
+    // 否则会把「网关没报模型名」错记成「模型名为空串」。
+    val wireModel = result.model.takeIf { it.isNotBlank() }
     val incoming = result.message.copy(
         modelId = model?.id,
+        wireModelName = wireModel ?: result.message.wireModelName,
         usage = result.usage,
         finishedAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
     ).finishReasoning()
@@ -335,6 +348,7 @@ fun List<UIMessage>.handleTextGenerationResult(
     } else {
         dropLast(1) + last().appendMessage(incoming).copy(
             modelId = model?.id ?: last().modelId,
+            wireModelName = wireModel ?: last().wireModelName,
             usage = last().usage.merge(result.usage ?: TokenUsage()),
             finishedAt = incoming.finishedAt,
         ).finishReasoning()
