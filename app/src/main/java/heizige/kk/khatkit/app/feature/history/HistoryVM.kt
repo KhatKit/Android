@@ -14,7 +14,7 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.core.service.ChatService
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import kotlin.uuid.Uuid
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -25,7 +25,7 @@ private const val TAG = "HistoryVM"
 class HistoryVM @Inject constructor(
     private val conversationRepo: ConversationRepository,
     private val settingsStore: SettingsRepository,
-    private val chatService: ChatService,
+    private val chatService: ChatManager,
 ) : ViewModel() {
     val assistant = settingsStore.settingsFlow
         .map { it.getCurrentAssistant() }

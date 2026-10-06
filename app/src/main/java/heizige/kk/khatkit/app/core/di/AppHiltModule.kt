@@ -48,7 +48,6 @@ import heizige.kk.khatkit.app.core.network.KhatKitMcpToolHost
 import heizige.kk.khatkit.app.core.network.McpToolHost
 import heizige.kk.khatkit.app.core.network.WebServerManager
 import heizige.kk.khatkit.tts.provider.TTSManager
-import heizige.kk.khatkit.app.core.service.ChatService
 
 @Module
 @InstallIn(SingletonComponent::class)
