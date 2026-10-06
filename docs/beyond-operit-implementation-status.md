@@ -244,8 +244,22 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
     **② `actual_model_call_sequence` 里的模型名不是 wire 级抓包**——它由
     `message.modelId` 的 uuid 经 provider 模型表**反查**（**app 不保存响应的 `model`
     字段**），JSON 里已用 `wire_model_name_provenance` 字段显式标明；
-    📍 **来源指针**：`docs/eval/c1-group-chat.md`「已知遗留与风险」**第 18 条**
-    （另见该文「C1 真机证据采集第四轮」那一节，以及「判定规则」第四条的原因②）；
+    ✅ **订正（2026-10-06，HEAD `74d82476`）：这一条从「缺能力」变成「已具备 + 待真机复核」**
+    ——「app 不保存响应的 `model` 字段」**已不再成立**，成因是 `StreamChunkHandler`
+    收到 `StreamChunk.Finish` 时把 `chunk.model` **丢弃**了（**不是解码器没给**；
+    `ChatCompletionsStreamDecoder.finish(reason, responseId, model)` 一直正确发出）。
+    已修：wire 名现落 `UIMessage.wireModelName`（`@Serializable`，随对话 JSON 落库，
+    **无需 Room 迁移**）。**零设备两条证据**：JVM `WireModelNameProvenanceTest`
+    **9 例 / 27 处断言 / 退出码 0**（逐字透传 + 反查隔离）、真实网关探测两个 wire 名
+    **均 HTTP 200**。⚠️ **但硬理由本身仍未消**：**仪器测试一行没跑**（设备离线，
+    新增断言 / 新 JSON 字段 / wire 优先判定**全部只有编译验证**），
+    **设备上那份证据文件记的仍是 UUID 反查值**——**这里没有任何真机数字**。
+    ⚠️⚠️ **诚实要点**：wire 名与请求名一致 ⇒ **原先反查出的名字恰好是对的**，
+    **这不是「反查错了被纠正」，是「取得途径从反查变成 wire 直取」**，
+    **不构成对既有证据的追溯性升级**。
+    📍 **来源指针**：`docs/eval/c1-group-chat.md`「已知遗留与风险」**第 18 / 18b 条**
+    （另见该文「C1 真机证据采集第四轮」、「为什么十例仍然 0/10」第 2 条、
+    「wire 级模型名的两条零设备证据」整节，以及「判定规则」第四/六/八条）；
     ✅ **它能证明的与不能证明的**（`d00880fc` 已把这句写进
     `androidTest` 侧 `C1LiveModelSequenceTest` 的 KDoc）：能证明「**按角色选型结果这一层**」，
     **不能**证明「网关实际接受并按此执行」。
@@ -551,6 +565,100 @@ it.roleId in roleIds`：
 规矩的正面冲突**，留给下一位按授权处理。
 ⚠️ **没按硬约束动的**：`GroupChat.kt`（`(?im)` 逐行声明那条注入面**核实成立但未修**，
 等确认）、`ChatManager.kt`、`c1-group-chat.md`、`client-changes.md`——**四个文件一个字都没动**。
+
+### ⚠️ 第十一批（`f1bf516e..74d82476`，2026-10-06）：**wire 级模型名从「缺能力」变成「已具备 + 待真机复核」**
+
+⚠️ **本批 8 个 commit、零设备、零 `adb`、`connectedAndroidTest` 未跑**，
+**十例仍 10/10 `unverified`**，契约 `:206` 点名四类产物**一份未增**。
+⚠️ **但这是锚点之后第一批真的改到 `ai/` 生产代码去消一条硬理由的批次**——
+前面那些批改的要么是 `app/`、要么是纯测试/纯文档。
+
+**① 缺陷是什么（一句话：不是拿不到，是拿到了被丢掉）**：
+
+| 环节 | 本批之前的实际状态 |
+|---|---|
+| `ChatCompletionsStreamDecoder.finish(reason, responseId, model)` | ✅ **一直正确**发出 wire 上的模型名（`StreamChunk.Finish` 第三个参数） |
+| `StreamChunkHandler` 收到 `Finish` | ⚠️ **只取 `finishedAt`，把 `chunk.model` 直接丢弃** |
+| 后果 | 助手消息上留不下网关自报的名字 ⇒ 验收证据里的 `deepseek-v4-flash` / `glm-5.2` 是拿 `message.modelId`（本地 `Model` 的 **UUID**）**回查本地 provider 模型表反查**出来的 |
+
+⚠️ **这作废了一条旧记载**：早前说「要变成真抓包需要在 `OpenAIProvider` 侧记录响应
+`model`（属于加日志，不属于本轮范围）」——**是错的**，**不需要在 provider 侧加日志**。
+已在 `c1-group-chat.md`「已知遗留与风险」第 18 条作废。
+
+**② 改了什么（逐 commit）**：
+
+| commit | 改了什么 | 结论 / 边界 |
+|---|---|---|
+| `f1bf516e` | `UIMessage` 加 `val wireModelName: String? = null`（`ai/…/ui/Message.kt`） | ✅ **nullable + 默认值，插在 `turnKind` 后、`@Transient isSynthetic` 前**；`UIMessage` 是 `@Serializable`，随对话 JSON 落库 ⇒ **无需 Room 迁移** |
+| `0c239788` | `StreamChunkHandler` 的 `Finish` 分支落盘 wire 名；非流式 `handleTextGenerationResult` **对称** | ✅ **不回退 `modelId`**（那是本地配置 UUID，由它反查出来的名字不是 wire 级证据）；缺失或全空白时**不覆盖**已有值，允许 `null` 传播 |
+| `ae285843` | 新增 `WireModelNameProvenanceTest`（`ai/src/test/`，268 行 / **9 条 `@Test`**） | ✅ **9 例 / 27 处断言 / 退出码 0**。⚠️ **只覆盖 OpenAI chat-completions 一条路径**，`Claude` / `Google` **一行都没测** |
+| `35b90d67` | 新增 `tools/verification/c1_wire_model_probe.py`（259 行） | ✅ 真实网关实测拿到两个 wire 名，**均 HTTP 200**。⚠️ **它直接打网关，完全不经过 app** ⇒ 证明的是「网关会自报」，不是「app 落得下来」；⚠️ **零测试用例**，仓库里没有 task 会自动跑它，**不是回归护栏** |
+| `ab2f9b65` | `ChatList.kt` 注释里 `StreamChunkHandler` 的行号锚点 | 纯注释（`73`/`329` → `77`/`341`，逐行核对过），**零实现改动** |
+| `d7971ba1` | `C1LiveModelSequenceTest` 模型名改 **wire 优先 + uuid 反查回退** | ⚠️ **仪器测试一行没跑过 ⇒ 只有编译验证** |
+| `63d0a504` | 证据 JSON 记两个模型名并逐条标 `wire_model_name_provenance` | ⚠️ 同上，只有编译验证 |
+| `74d82476` | 修 KDoc 里指向不存在 JSON 字面量的引用 | 纯 KDoc，**零实现改动** |
+
+**③ 零设备证据（两条，逐条照记边界）**：
+
+- **JVM：`WireModelNameProvenanceTest` 9 例 / 27 处断言 / 退出码 0**。含
+  ①SSE 帧里刻意刁钻的字面量（`deepseek-v4-flash-250528`、`zhengyimeng/GLM-5.2-preview`）
+  **逐字透传**；②**反查隔离**（构造 `Model(modelId="local-cfg-alias-9f3c")`，断言 wire 名
+  既不等于 `model.id` 也不等于 `modelId`/`displayName` ⇒ 两条路径互斥）；
+  ③无 `model` 帧 ⇒ `null`（**不是空串、不回退 `modelId`**）；④非流式对称；
+  ⑤非流式空串不当作有效名；⑥序列化往返不丢；⑦旧 JSON 无该键 ⇒ `null` 且不抛。
+  **非空验证**：临时删掉 `Finish` 分支里那一行 `wireModelName = …` 重跑 ⇒
+  **`9 tests completed, 3 failed, EXIT=1`**，恰好是 3 个流式来源用例；随后还原并
+  `diff` 确认与 HEAD 一致。⚠️ **它只证明那 3 条依赖这一行**，非流式两条仍绿。
+- **真实网关探测**（key 只走命令行 / 环境变量，脚本内 **0 处硬编码**）：
+
+  | requested | wire_model | status | finish_reason | usage |
+  |---|---|---:|---|---|
+  | `deepseek-v4-flash` | `deepseek-v4-flash` | 200 | `stop` | prompt 15 / completion 39（reasoning 16） |
+  | `glm-5.2` | `glm-5.2` | 200 | `stop` | prompt 23 / completion 533（reasoning 502） |
+
+  非流式（`--no-stream`）也验过 `deepseek-v4-flash` → `wire_model: "deepseek-v4-flash"`，200。
+  ⚠️ **密钥卫生**：实测后该 key 在 `git diff ea6b7c4c..HEAD` 与**全部 commit message**
+  里出现 **0** 次。
+
+**④ 测试口径已改（但只有编译验证）**：`C1LiveModelSequenceTest` 的模型名现在是
+**`UIMessage.wireModelName` 优先、`modelId` uuid 反查回退**，并加了
+「**不允许两者皆空**」的**防退化断言**；证据 JSON 逐条记
+`wire_model_name_provenance`（取值 `wire_response_model` /
+`uuid_reverse_lookup_fallback`）、`wire_model_name_reconciliation`、
+`wire_model_name_provenance_counts`、`wire_and_reverse_lookup_agree`。
+⚠️⚠️ **这四类新字段与 wire 优先判定逻辑全部只有编译验证**——设备离线。
+
+**⑤ ⚠️⚠️ 诚实要点（这一条最容易被拔高）**：**wire 名与请求名一致**，
+说明**原先 UUID 反查出的名字恰好是对的**。所以这**不是「反查错了被纠正」**，
+是「**取得途径从反查变成 wire 直取**」——⚠️ **不构成对既有证据的追溯性升级**：
+设备上那份既有证据里的两个名字**本来就写对了**，只是**来源不同**。
+
+**⑥ 剩余的设备阻塞项（一条都没解除，照记）**：
+
+| 阻塞项 | 现状 |
+|---|---|
+| **仪器测试跑不起来** | ⚠️ **一行都没跑过**。设备离线（`192.168.31.183` 上不是手机，全端口 65535 扫描无 adbd） |
+| **设备上的证据文件** | ⚠️ **现在记的仍是 UUID 反查值**，要等真机重跑才变。**这里没有任何真机数字** |
+| 旧 Room 库消息树反序列化 | ⚠️ **没对真实数据库跑过**（只靠 nullable+默认值 + JVM 序列化往返） |
+| `wireModelName` 的 UI 呈现 | ⚠️ **没做，也没打算做** —— 所以不构成任何「用户看得见模型名」的证据 |
+
+⚠️ **另外三条硬阻塞本批同样一条都没解除**（设备 / UI 端到端 / 酒馆本体 / 相机扫码四类）。
+**十行状态列一个格都没动，仍是 10/10 `unverified`**。
+
+**⑦ 本批改了什么数**：`:app:testDebugUnitTest` 全量 **110 类 / 893 例 / 0F 0E 0S**。
+⚠️ **这 4 条增量（881 → 893）全部来自上一批的 `5186349f`**（`GroupChatTest` `29 → 33`，
+围栏修复），**与 wire 模型名无关**——本批**一行都没改 `app/src/test`**。
+⚠️ **台账锚点 `1b0e04a9` 的 78 个 commit 仍然没有被重算**，本批 8 个一个都不计入。
+⚠️ **C1 相关测试类台账仍是 45 类 / 491 例**：新增的类在 **`ai/src/test/`**，
+而台账口径是「能在 `app/build/test-results/testDebugUnitTest/*.xml` 对上」，
+所以它**不并入台账**；`d7971ba1` / `63d0a504` 改的是**仪器测试**，台账本来就不收。
+⚠️ **工作区那两处不属于任何 agent 的未提交改动（`TavernMacroExpander.kt` modified、
+`C1GroupUiE2EFixtureTest.kt` untracked）全程未 add、未 commit、未修改。**
+
+**⑧ 下一位要做的一件事**：真机重跑 `realProviderRoundRecordsGenuineTokenUsage`，
+把落盘 JSON 拉回来，确认 `wire_model_name_provenance` 变成 `wire_response_model`
+而不是 `uuid_reverse_lookup_fallback`。📍 判据不是「代码里现在能不能拿到 wire 名」，
+而是「**设备上那份落盘 JSON 里的 provenance 取值是什么**」。
 
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
@@ -1480,6 +1588,15 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
       群聊页刷新后「已导入的角色卡」仍在——这三件是 B1 剩下的全部尾巴。
       ⚠️ 真机库里 `rikka_hub` 的 `PRAGMA user_version = 32` /
       `PRAGMA integrity_check = ok` 已读到，**但那不等于跑过一次 31→32 升级**。
+   8. ⚠️ **新增（2026-10-06，第十一批之后）：wire 级模型名的真机复核**——
+      `wireModelName` **已具备**（`f1bf516e` / `0c239788`），零设备两条证据已采
+      （JVM 9 例 + 真实网关两个 wire 名均 HTTP 200）。**剩下就一件事**：
+      真机重跑 `realProviderRoundRecordsGenuineTokenUsage`，把落盘 JSON 拉回来，
+      确认 `wire_model_name_provenance` 是 **`wire_response_model`**
+      而不是 `uuid_reverse_lookup_fallback`。
+      ⚠️ **当前设备上那份记的仍是反查值**——**这一条没有真机数字**。
+      ⚠️ 顺带可一并验「旧 Room 库消息树能否反序列化新字段」（第 7 条那件），
+      ⚠️ 但**别把 `wireModelName` 显示到 UI 上当成待办**——**没做，也不打算做**。
 3. **登记规则**
    每补齐一项，在 `docs/eval/c1-group-chat.md` 的「证据登记」表**追加一行**
    （不覆盖历史行），四类证据列齐才把用例矩阵状态改成 `verified`。
@@ -1499,7 +1616,7 @@ C1 相关 JVM 测试类台账 **37 类 / 395 例 → 40 类 / 408 例**（复算
 | B1 工作流 | 规范 JSON、10 类节点、FlowSpec/Lua 导出、3 个等价性用例、Room 三表、失败跳过/续跑/取消、现有 `/api/events` 的 `workflow_run`、通知分类示例与逐步日志。对照见开源参考 B1。`docs/flow.md` §6 已完成 | 自由画布；自然语言经 GenerationLoop 生成；真机把 FlowSpec 交给 `khatkit__run_flow` 跑通卡片；成本统计接真实 Token |
 | B2 ToolPkg | 本地包校验、hooks 能力边界、插件设置 schema、Provider 声明解析、静态审计报告三样例；`marketNewKinds` 默认 false | dex 热加载、市场 UI、服务端上线后联调 |
 | B3 路由 | 三策略、Key 池指数退避/半开、预算降级或只读、7 个消费点调用 `taskBinding()`、统计页路由计数；对照见开源参考 B3 | 设置页策略编辑；价格表 JSON；真机 429 对话无感 |
-| C1 群聊 | 内核和一版 UI 已写入，**未验收**。详见上方「C1 交给下一位」。`docs/eval/c1-group-chat.md` 十例全部 `unverified`。⚠️ **2026-10-06 第六批之后**：真实公网网关目标用例**首次真机全绿**（真实 usage + Σ 与落库精确相等 + 产物 SHA-256 已登记），两个真机 UI 必崩已修并真机复验，Coil 崩溃已结构性修复，**十例状态仍全部 `unverified`** | 按该节缺口续写；补证据前不得把 C1 标成已完成。⚠️ **权威操作清单 = `c1-group-chat.md` 的「下一位怎么把剩下的做完（第六个窗口的操作清单）」**（三组：A 需要设备 / B 需要外部环境 / C 零设备可做） |
+| C1 群聊 | 内核和一版 UI 已写入，**未验收**。详见上方「C1 交给下一位」。`docs/eval/c1-group-chat.md` 十例全部 `unverified`。⚠️ **2026-10-06 第六批之后**：真实公网网关目标用例**首次真机全绿**（真实 usage + Σ 与落库精确相等 + 产物 SHA-256 已登记），两个真机 UI 必崩已修并真机复验，Coil 崩溃已结构性修复，**十例状态仍全部 `unverified`**。⚠️ **2026-10-06 第十一批之后（wire 级模型名）**：硬理由①从「缺能力」变成「**已具备 + 待真机复核**」——`StreamChunkHandler` 丢弃 `chunk.model` 的缺陷已修，wire 名现落 `UIMessage.wireModelName`；零设备有两条证据（JVM 9 例 + 真实网关两个 wire 名均 200）。⚠️ **但仪器测试一行没跑**，设备上那份证据**仍是 UUID 反查值**，硬理由①**未消**。⚠️ **这是「能力已具备」，不是「证据已采集」**；另三条硬阻塞（真机 UI 端到端 / 酒馆本体 / 相机扫码）**一条都没解除** | 按该节缺口续写；补证据前不得把 C1 标成已完成。⚠️ **wire 级模型名这一条的下一步就一件事**：真机重跑 `realProviderRoundRecordsGenuineTokenUsage`，确认落盘 JSON 的 `wire_model_name_provenance` 是 `wire_response_model` 而不是 `uuid_reverse_lookup_fallback`。⚠️ **权威操作清单 = `c1-group-chat.md` 的「下一位怎么把剩下的做完（第六个窗口的操作清单）」**（三组：A 需要设备 / B 需要外部环境 / C 零设备可做） |
 | C2 工作区 | 现有 workspace/proot 与文件工具可复用 | 五种模板与项目规则；preview；内容寻址 diff/revert 与聊天重发回滚；SSH/SFTP 许可评估和读写后端；APK/HTML 打包；端到端及路径穿越测试 |
 | C3 语音入口 | 现有 VoiceSessionController 可复用 | Sherpa 唤醒/前台服务/VAD/流式 ASR；全双工打断与草稿；ASSIST 面板、Widget、气泡、取词悬浮球；VITS 依赖包；真机误触/保活/500ms 打断/1s ASSIST 验证 |
 | C4 虚拟形象 | 尚未完成审计 | glTF 模块、五状态、口型/视线/情绪事件；桌面宠物；dependency 安装卸载；骁龙 7 系 60fps 真机验证 |
