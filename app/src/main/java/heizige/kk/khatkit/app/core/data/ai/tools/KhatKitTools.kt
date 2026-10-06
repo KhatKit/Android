@@ -31,7 +31,7 @@ import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
-import heizige.kk.khatkit.app.feature.automation.CardScheduleStore
+import heizige.kk.khatkit.app.feature.automation.CardScheduleRepository
 import heizige.kk.khatkit.app.feature.automation.ScheduleBridgeImpl
 import heizige.kk.khatkit.record.UiBBox
 import heizige.kk.khatkit.record.VisualGrounding
@@ -1613,10 +1613,10 @@ class KhatKitToolProvider(
 
     /** 卸载卡片：连带取消它用 `schedule` 自建的任务（含 WorkManager 队列）。 */
     fun cancelScheduledCardJobs(cardName: String) {
-        val removed = CardScheduleStore(appContext).removeAll(cardName)
+        val removed = CardScheduleRepository(appContext).removeAll(cardName)
         removed.forEach { job ->
             runCatching {
-                WorkManager.getInstance(appContext).cancelUniqueWork(CardScheduleStore.workName(job.jobId))
+                WorkManager.getInstance(appContext).cancelUniqueWork(CardScheduleRepository.workName(job.jobId))
             }
         }
         runCatching { appContext.deleteDatabase("cards/$cardName.db") }

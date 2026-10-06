@@ -28,7 +28,7 @@ class CardScheduleWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
 
-    private val store = CardScheduleStore(applicationContext)
+    private val store = CardScheduleRepository(applicationContext)
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val jobId = inputData.getString(KEY_JOB_ID).orEmpty()
@@ -49,13 +49,13 @@ class CardScheduleWorker(
 
     private fun enqueue(job: CardScheduleJob) {
         val request = OneTimeWorkRequestBuilder<CardScheduleWorker>()
-            .setInitialDelay(CardScheduleStore.nextDelayMs(job), TimeUnit.MILLISECONDS)
+            .setInitialDelay(CardScheduleRepository.nextDelayMs(job), TimeUnit.MILLISECONDS)
             .setInputData(Data.Builder().putString(KEY_JOB_ID, job.jobId).build())
             .addTag(ScheduleBridgeImpl.TAG_CARD_SCHEDULE)
             .build()
         runCatching {
             WorkManager.getInstance(applicationContext)
-                .enqueueUniqueWork(CardScheduleStore.workName(job.jobId), ExistingWorkPolicy.REPLACE, request)
+                .enqueueUniqueWork(CardScheduleRepository.workName(job.jobId), ExistingWorkPolicy.REPLACE, request)
         }.onFailure { Log.w(TAG, "续排定时任务失败：${job.jobId}（${it.message}）") }
     }
 

@@ -37,7 +37,7 @@ data class CardScheduleJob(
  * 任务本身由 WorkManager 排队（[CardScheduleWorker] 每次执行后按这里的规则再排下一次），
  * 这里只保存任务元数据，WorkManager 被清空/重装后也能恢复。
  */
-class CardScheduleStore(context: Context) {
+class CardScheduleRepository(context: Context) {
 
     private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
