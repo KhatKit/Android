@@ -900,6 +900,18 @@ ls app/build/test-results/testDebugUnitTest/TEST-*.xml | wc -l   # 110
 `交叉验证 XML×源码 XML 110 / 源码 110（差 0，容差 5）✅ 一致`。
 
 ⚠️ **按惯例追加、不覆写上面那个 `881`**：`881` 是 `cae27138`/`1052cd25` 当时的实测值（`git grep -c @Test` 逐文件复算那两点的 `app/src/test` 确为 **881**，类数 **110**），历史记录按窗口保留。**但它已经不是当前 HEAD 的数**：⚠️⚠️ **`5186349f`（`parseBallot` 跳过 markdown 围栏）给 `GroupChatTest` 净增 4 条 `@Test`**，所以 HEAD `74d82476` 实测是 **110 类 / 893 例**（XML 与源码两个口径都是 893，`git grep` 逐点复算一致；`failure/errors/skipped` 仍 **0 / 0 / 0**）。**这 12 条差额全部来自 `GroupChatTest`**（`29 → 33`），与 wire 模型名那批无关——那批只碰了 `ai/` 与 `androidTest/`，**没有一行改 `app/src/test`**。
+
+⚠️ **按惯例追加、不覆写上面那个 `893`**：`893` 是 HEAD `74d82476` 当时的实测值，历史按窗口保留。**当前 HEAD `19545e076` 实测是 `111 类 / 921 例`**（`111 类 / 921 例` / `failures/errors/skipped 0 / 0 / 0`；⚠️ **类数从 110 涨到 111**），两个口径一致：
+
+| 口径 | 命令 | 实测 |
+|---|---|---:|
+| ① XML | `ls app/build/test-results/testDebugUnitTest/TEST-*.xml \| wc -l` | **111** |
+| ① XML 例数 | 逐个 `testsuite` 的 `tests` 属性求和 | **921** |
+| ② 源码 `@Test` | `app/src/test/**/*.kt` 里数 `@Test` **出现次数** | **111 个文件 / 921 例** |
+
+⚠️⚠️ **`915 → 921` 的 `+6` 全部来自 `GroupChatTest`（`33 → 39`），这一条是本轮实测的**：`git archive be7952a83~1 app/src/test` 逐文件数 `@Test`，**批前实测 `111 类 / 915 例`**（`GroupChatTest` 33），批后 **111 类 / 921 例**（`GroupChatTest` 39）——**类数 `111` 一个没动**（这两个 commit **没有新增测试文件**，只扩写既有的 `GroupChatTest.kt`）。⚠️ **与 wire 模型名那批无关**：那批只碰 `ai/` 与 `androidTest/`。
+⚠️ **XML 是批后真跑出来的、不是陈旧残留**（这是本条敢直接引用的理由）：111 个 XML 的 mtime **全部落在 `2026-10-06 13:03:18` 这一个窗口内**（`.614`–`.618`），而两个 commit 的提交时间是 `be7952a83` **12:58:32** / `19545e076` **13:01:14** ⇒ **XML 晚于提交约 2 分钟**，且**同一时刻写出 111 个文件**（不是 `--tests` 过滤跑留下的子集）。`TEST-…GroupChatTest.xml` 自身 `tests="39" skipped="0" failures="0" errors="0"`，与源码口径 39 **相等**。
+⚠️⚠️ **口径与台账那一列的关系**（别把两个数混着用）：**921 是 app 全模块单测总数**（111 个类），**497 是「本文台账 45 个在册类的声明例数之和」**。本轮 `GroupChatTest` `+6` 同时进了这两列（`491 → 497` 与 `915 → 921`），**同源但不同义**；台账那一列只统计在册类，`CoilImageLoaderSourceGuardTest` 之类不进去。
 ⚠️ **110 / 881 这个数现在有两个口径可用**（不是「只有源码口径」）——上面「统计口径」表里
 口径 1（XML）与口径 2（源码 `@Test`）**同时成立且互为佐证**。
 ⚠️ **本轮没有为了让它变绿去删 XML、也没有改脚本的判据**，更**没有再跑 gradle**——
