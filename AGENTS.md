@@ -106,8 +106,8 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 | feature 内按 `helper/`、数据、Screen、ViewModel 就近内聚 | 不为了"分层好看"把一个功能拆到 core |
 | 删功能 = 删文件夹 | 不留孤儿代码 |
 
-`app/core/` 现有六个子包：`data`(175 kt) / `network`(17) / `ui`(315，含 `icons/` 150) /
-`util`(24) / `di`(4) / `service`(5)。`auth` 不在这里（认证已切成独立模块 `:oauth`），
+`app/core/` 现有五个子包：`data`(175 kt) / `network`(17) / `ui`(315，含 `icons/` 150) /
+`util`(24) / `di`(4)。`service` 已删（commit `86da59fa0`）。`auth` 不在这里（认证已切成独立模块 `:oauth`），
 `files` 在 `app/core/data/files/`。`app/feature/` 下现有 22 个功能包、201 kt。
 
 ## 命名
@@ -136,14 +136,34 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 
 ### 存量不改名（重要）
 
-现存 `*Service` **32** 个 + `*Util` **9** 个 + `*Utils` **11** 个 + `*Store` **11** 个
-= **63 个文件**，**不做批量改名**。理由：
+现存 `*Service` **30** 个 + `*Util` **9** 个 + `*Utils` **11** 个 + `*Store` **11** 个
+= **61 个文件**，**不做批量改名**。理由：
+
+> **复算口径（必须照抄，否则数字会漂）**：全仓 kt 文件、**按文件名后缀**计数、
+> **排除 vendor 进来的 `material3/material-color-utilities/`**、排除所有 `build/`：
+>
+> ```bash
+> for s in Service Util Utils Store; do
+>   find . -path ./.git -prune -o \
+>     -path '*/material3/material-color-utilities/*' -prune -o \
+>     -path '*/build/*' -prune -o \
+>     -name "*$s.kt" -print | wc -l
+> done
+> ```
+>
+> 两个关键点：**按文件名后缀**而非 grep 类名 —— 否则 `*Util` 会命中 `*Utils`
+> 内部（同一份 grep 因此在历史上给出过 11 / 13 / 14 三个数）；**排除 material3**
+> —— 那 3 个 vendored 的 `*Utils.kt`（`ColorUtils` / `MathUtils` / `StringUtils`）
+> 不是本 fork 的代码。
+>
+> `*Service` 从 32 降到 30，是因为 `core/service/` 被删空时带走了
+> `ChatService.kt` 与 `ChatGenerationForegroundService.kt` 两个（commit `86da59fa0`）。
 
 1. 本 fork 约 **54% 的 app 文件来自上游**（405 / 744），整树做过
    `me.rerere.* -> heizige.kk.khatkit.*` 重命名，**`git merge` 上游早已不可用** ——
    commit `8cf9bec2d` 明确写了「直接 merge 会产生大量伪冲突, 因此逐文件三方合并」。
    改名等于给每一次上游同步追加一遍人工三方比对。
-2. `:search` 的 20 个 `*SearchService.kt` 还带 `@SerialName` 持久化 key
+2. `:search` 的 18 个 `*SearchService.kt` 还带 `@SerialName` 持久化 key
    （`"bing_local"` 等），改名会让用户已有设置读不出来。
 3. `common/cache/CacheStore.kt` 这类确实只做存取的类，改成 `Repository` 是退化。
 
