@@ -883,12 +883,9 @@
   <string name="setting_model_page_prompt">المطالبة</string>
   <string name="setting_model_page_prompt_compress">ضغط السياق</string>
   <string name="setting_model_page_prompt_ocr">التعرف الضوئي على الحروف</string>
-  <string name="setting_model_page_prompt_suggestion">اقتراحات ردود الدردشة</string>
   <string name="setting_model_page_prompt_title">توليد العنوان</string>
   <string name="setting_model_page_prompt_translation">الترجمة</string>
   <string name="setting_model_page_reset_to_default">إعادة التعيين إلى الافتراضي</string>
-  <string name="setting_model_page_suggestion_model">نموذج اقتراحات الدردشة</string>
-  <string name="setting_model_page_suggestion_model_desc">اتركه فارغًا لاستخدام النموذج السريع</string>
   <string name="setting_model_page_suggestion_prompt_vars">المتغيرات: محتوى المحادثة: {content}، اللغة: {locale}</string>
   <string name="setting_model_page_tab_model">النموذج</string>
   <string name="setting_model_page_tab_prompt">المطالبات</string>

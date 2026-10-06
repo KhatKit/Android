@@ -814,8 +814,6 @@
   <string name="setting_model_page_ocr_prompt_vars">Variables: Image data: {images}</string>
   <string name="setting_model_page_prompt">Prompt</string>
   <string name="setting_model_page_reset_to_default">Reset to default</string>
-  <string name="setting_model_page_suggestion_model">Chat Suggestion Model</string>
-  <string name="setting_model_page_suggestion_model_desc">Blank uses the fast model</string>
   <string name="setting_model_page_suggestion_prompt_vars">Variables: Conversation content: {content}, Language: {locale}</string>
   <string name="setting_model_page_title">Model Settings</string>
   <string name="setting_model_page_title_model">Title Summary Model</string>
@@ -1155,7 +1153,6 @@
   <string name="setting_model_page_tab_prompt">Prompts</string>
   <string name="setting_model_page_prompt_translation">Translation</string>
   <string name="setting_model_page_prompt_title">Title Generation</string>
-  <string name="setting_model_page_prompt_suggestion">Chat Reply Suggestions</string>
   <string name="setting_model_page_prompt_ocr">OCR Recognition</string>
   <string name="setting_model_page_prompt_compress">Context Compression</string>
   <string name="setting_display_page_bubble_opacity_title">Bubble Opacity</string>

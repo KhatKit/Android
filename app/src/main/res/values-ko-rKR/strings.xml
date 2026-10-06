@@ -725,8 +725,6 @@
   <string name="setting_model_page_ocr_prompt_vars">변수: 이미지 데이터: {images}</string>
   <string name="setting_model_page_prompt">프롬프트</string>
   <string name="setting_model_page_reset_to_default">기본값으로 재설정</string>
-  <string name="setting_model_page_suggestion_model">채팅 제안 모델</string>
-  <string name="setting_model_page_suggestion_model_desc">비우면 빠른 모델 사용</string>
   <string name="setting_model_page_suggestion_prompt_vars">변수: 대화 내용: {content}, 언어: {locale}</string>
   <string name="setting_model_page_title">모델 설정</string>
   <string name="setting_model_page_title_model">제목 요약 모델</string>
@@ -1052,7 +1050,6 @@
   <string name="setting_model_page_tab_prompt">프롬프트</string>
   <string name="setting_model_page_prompt_translation">번역</string>
   <string name="setting_model_page_prompt_title">제목 생성</string>
-  <string name="setting_model_page_prompt_suggestion">채팅 답변 제안</string>
   <string name="setting_model_page_prompt_ocr">OCR 인식</string>
   <string name="setting_model_page_prompt_compress">컨텍스트 압축</string>
   <string name="setting_display_page_bubble_opacity_title">버블 불투명도</string>
