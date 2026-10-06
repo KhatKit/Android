@@ -772,7 +772,8 @@ object GroupChat {
      * 严格解析候选：仅接受 `候选：a,b,c` / `CANDIDATES: a|b|c` 这类显式声明，
      * 且**声明必须落在首个非空行**。
      *
-     * 「首个非空行」的判据：按 `\n` / `\r\n` 切行，取第一个 `isNotBlank()` 为真的行。
+     * 「首个非空行」的判据：按 [unicodeLines] 的 6 个 Unicode 行终止符切行
+     * （`\n` / `\r\n` / `\r` / `\u0085` / `\u2028` / `\u2029`），取第一个 `isNotBlank()` 为真的行。
      * 空行与纯空白（只有空格/制表符）行都算「空」而被跳过，被跳过的行不参与匹配——
      * 也就是说前导空行不耽误声明算数，但声明本身必须在那第一个非空行上。
      *
@@ -786,7 +787,7 @@ object GroupChat {
      * `firstOrNull` 语义不变：只取一条声明，绝不跨行收集。
      *
      * **为什么这里不需要 [linesOutsideCodeFences] 那种围栏状态机**（问过、结论记在这）：
-     * 判据只看 `lineSequence().firstOrNull { it.isNotBlank() }`，也就是**第一个非空行**。而某一行要
+     * 判据只看 `unicodeLines(text).firstOrNull { it.isNotBlank() }`，也就是**第一个非空行**。而某一行要
      * 落在围栏**里面**，必须由**更早的一行**开围栏；第一个非空行之前只有空行，空行里藏不下围栏标记
      * （含反引号或波浪号的行不是空行）。所以「第一个非空行落在围栏内部」这个状态**根本到不了**：
      * 要么第一个非空行**就是**开围栏那行（匹配不上声明正则 → 空候选集），要么它前面没有开围栏。
@@ -800,7 +801,10 @@ object GroupChat {
     fun parseCandidates(text: String): List<String> {
         // 正则只作用在**首个非空行**这一行上。不能改成 `(?i)\A\s*`——`\s` 含 `\n`，
         // `\A\s*` 会跨过空行把后面某一行的声明照样捞进来，等于没改。
-        val declaration = text.lineSequence().firstOrNull { it.isNotBlank() } ?: return emptyList()
+        // 行从 [unicodeLines] 来（6 个 Unicode 行终止符，与 `Pattern` 对齐），与
+        // [linesOutsideCodeFences] **共用**同一套切分——否则两处口径漂移，
+        // 「切分行」与「正则行终止符」又会不对称（那正是本方法修掉的缺陷）。
+        val declaration = unicodeLines(text).firstOrNull { it.isNotBlank() } ?: return emptyList()
         val trimmed = declaration.trim()
         // 声明行自己就是围栏标记 → 不是声明（`~~~ 候选：a,b ~~~` 修前会被收成 `[a, b]`）。
         // `CODE_FENCE_MARKER` 是 `^` 锚定的，所以这条判据就是「这一行以围栏标记开头」。
@@ -950,6 +954,72 @@ object GroupChat {
     private val CODE_FENCE_MARKER = Regex("^(`{3,}|~{3,})(.*)$")
 
     /**
+     * 按 **Unicode 行终止符**切行（[unicodeLines]），供 [parseCandidates] 与
+     * [linesOutsideCodeFences] **共用**——这两处若各写各的切分，口径必然漂移。
+     *
+     * 分隔符集合 = **6 个**，与 Java `Pattern` 的行终止符集合逐条对齐：
+     * `\n`(LF) / `\r\n`(CRLF) / `\r`(CR) / `\u0085`(NEL) / `\u2028`(LS) / `\u2029`(PS)。
+     *
+     * 依据（`kotlinc` 探针实测，输出见汇报与 `Pattern` 的 `(?m)` / `(?s)` 反证）：
+     *  - Java `Pattern` 默认把 `.` 视为**不匹配行终止符**，而它的行终止符集合**正是这 6 个**。
+     *    实测 `(?s)候选：a.b` 能跨 `\u0085` / `\u2028` / `\u2029` 命中（说明三者本来都是默认
+     *    `.` 的行终止符），`(?m)^b$` 也能在 `a<sep>b` 上命中（说明三者都被 `(?m)` 当行终止符）。
+     *  - 所以**必须**认这 6 个：声明行正则 `^(?:候选|…)\\s*[:：]\\s*(.+)$` 的 `.` 跨不过行终止符、
+     *    `$` 又只锚行尾，模型一旦输出 `候选：a\u2028b`，整条正则**必然失配**。
+     *  - 而 Kotlin 的 `String.lineSequence()` / `String.lines()` **只切** `\n` / `\r\n` / `\r`，
+     *    `\u0085` / `\u2028` / `\u2029` 三个**都当普通字符**（实测三者切出来仍是 1 行）。
+     *    ⇒ 「切分行」与「正则行终止符」口径不对称，就是本 helper 要消灭的那个缺陷。
+     *
+     * 刻意**不**用现成 API 蒙混：`String.lines()` 与 `lineSequence()` 口径**完全一样**
+     * （都不切上面那 4 个），用它等于没修。
+     *
+     * 手写扫描而不是 `Regex("\\R")`：`\R` 虽然 6 个全切，但它会把连续行终止符折叠成**空串**元素
+     * 混进行列（`"a\n\nb"` → 3 段含一个空串），还得再 `filter` 一次才能回到「空行存在」的语义。
+     *
+     * 空行语义保持不变：连续分隔符之间仍然产生**空行**元素（`"a\n\nb"` → `["a","","b"]`），
+     * 所以 [parseCandidates] 的 `firstOrNull { it.isNotBlank() }` 与 [linesOutsideCodeFences]
+     * 的逐行 `trim()` 行为都**一字未改**。
+     *
+     * ⚠️ 与 `trim()` 的一处**已知不一致**（有意保留，护栏见测试
+     * `a ballot with a leading unicode separator is no longer accepted`）：
+     * Kotlin 的 `Char.isWhitespace('\u2028')` / `('\u2029')` = **true**（实测，二者的 Unicode
+     * 类别是 13/14 = SPACE_SEPARATOR），所以 `trim()` 会**剥掉**它们；但
+     * `Char.isWhitespace('\u0085')` = **false**（类别 15 = CONTROL），`trim()` 不剥。
+     * 于是 `VOTE: \u2028opt-a` 修**前**靠 `trim()` 巧合地解析成 `opt-a`、修**后**因为
+     * `\u2028` 成了行终止符而变成「一条空 body 的票行」→ 集外 → `null`。这是**有意的收紧**
+     * （行边界必须与正则一致；宁可让畸形 id 配不上票，也不静默改写用户写的东西），
+     * 不是回归事故。`\u0085` 方向相反：它修**前**让 id 变成 `\u0085opt-a` 而静默丢票，
+     * 修**后**才解析对。
+     */
+    private fun unicodeLines(text: String): List<String> {
+        if (text.isEmpty()) return emptyList()
+        val lines = ArrayList<String>()
+        val current = StringBuilder()
+        var i = 0
+        while (i < text.length) {
+            val c = text[i]
+            // `\r\n` 是一个分隔符（吃掉两个字符），不是两个分隔符。
+            if (c == '\r' && i + 1 < text.length && text[i + 1] == '\n') {
+                lines.add(current.toString())
+                current.setLength(0)
+                i += 2
+                continue
+            }
+            if (c == '\n' || c == '\r' || c == '\u0085' || c == '\u2028' || c == '\u2029') {
+                lines.add(current.toString())
+                current.setLength(0)
+                i++
+                continue
+            }
+            current.append(c)
+            i++
+        }
+        // 末尾分隔符不产生**额外**的空行元素——`"a\n"` 是 1 行，与 `lineSequence()` 一致。
+        if (current.isNotEmpty()) lines.add(current.toString())
+        return lines
+    }
+
+    /**
      * 只返回**围栏代码块之外**的行（逐行 `trim()`）；围栏内的行、以及开/闭围栏行本身都丢掉。
      *
      * 存在的理由见 [parseBallot] 的 KDoc。口径逐条说清（含代价）：
@@ -963,6 +1033,9 @@ object GroupChat {
      *    `an unclosed code fence swallows the rest of the message fail closed` 那条用例的 KDoc 里：
      *    少一票会落到 [VoteOutcome.Invalid]「没有有效选票」这种响亮失败，而多一票可能被算成某个
      *    角色的真票并产出错误胜者，且链路上没有任何一处还能把它认出来。
+     *  - **行从 [unicodeLines] 来**（6 个 Unicode 行终止符，与 `Pattern` 对齐）：围栏开/闭判定
+     *    本身**一字未改**，只改了「行从哪来」。修前 `\u2028` 分隔的围栏整段被当成**一行**，
+     *    开围栏那行 `group(2)` 不空于是把后文全吞了，围栏因此在 Unicode 分隔符下**形同失效**。
      *  - **刻意不处理缩进代码块（四空格）与引用块（`>`）**：它们同样可能藏着示例，但补进去要再定一
      *    整套规则，缩进代码块还要求「前一行是空行」，判据更脆。本轮只处理围栏——围栏是模型贴格式
      *    示例时用得最多、也是漏票代价最高的那种。
@@ -971,7 +1044,7 @@ object GroupChat {
         // null = 当前不在围栏里；非 null = 围栏字符（` 或 ~）。
         var openChar: Char? = null
         var openLength = 0
-        for (raw in text.lineSequence()) {
+        for (raw in unicodeLines(text)) {
             val line = raw.trim()
             val fence = CODE_FENCE_MARKER.find(line)
             val marker = fence?.groupValues?.get(1)
