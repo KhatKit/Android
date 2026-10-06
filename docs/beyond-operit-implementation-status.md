@@ -999,6 +999,25 @@ ID 台账本轮**一份未增**，且这次跑**不是通过** ⇒ 只登记证�
 
 ⚠️ **本批只提交 `docs/` 三个文件（`c1-group-chat.md`、`lua-card-development.md`、本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 三个在途改动未碰）。**
 
+### ⚠️ 第十九批（全项目门禁首次整项目跑通，零设备，2026-10-06，HEAD `0e312cbb2`）：**`./gradlew --offline assembleDebug test lint` 首次整项目 exit 0；`--rerun` 作用域陷阱；十例仍 0/10**
+
+⚠️⚠️ **先说性质**：本批 = **一次全项目门禁日志（零设备、零 `adb`、零 `androidTest`）**，⚠️ **零源码 / 零测试改动、零新 commit**（HEAD 仍 `0e312cbb2`）。⚠️ **门禁绿 ≠ 用例级证据**：它是**包级 / 项目级门禁证据**，20 个状态格一个判定都没改，仍是 **10/10 `unverified`**。详细证据节见 `docs/eval/c1-group-chat.md`「全项目总闸门（零设备，2026-10-06，HEAD `0e312cbb2`）」；台账见该文件「第十四批」。
+
+**① 命令一（全项目总闸门首跑）**：`nice -n 19 ./gradlew --offline assembleDebug test lint` ⇒ **exit 0**，`BUILD SUCCESSFUL in 44s`，`839 actionable tasks: 173 executed, 666 up-to-date`。日志 `/tmp/opencode/full-gate/run.log`（1120 行，sha256 `b0257e0c…3128`）。此前的验证全是**按模块**跑的，**这是首次整项目一条命令**。
+
+**② 逐模块 test 基线（合计 213 类 / 1584 例 / 0F0E0S，skip 12）**：ai 30/220/0/0/0、app 113/931/0/0/0、card-validator 4/77、common 2/6/…/5、document 1/1、highlight 5/53、khatkit 33/198/…/7、khatkit-ui 2/10、material3 1/1、mediapicker 1/9、oauth 2/2、search 3/12、speech 12/43、web 1/1、workspace 3/20；**lint 全模块 `0 / 614 / 7 = 621`**（app `0 / 581 / 6 = 587`）。
+
+**③ `--rerun` 作用域陷阱（本轮实测踩中）**：`./gradlew --offline :app:testDebugUnitTest :ai:test --rerun` **是空跑**——`--rerun` 是**任务级选项**，只作用于**紧邻其前的那一个任务**；它落在无语义的聚合任务 `:ai:test` 上，`:ai:testDebugUnitTest` 没被强制、`:app:testDebugUnitTest` 根本没绑上 ⇒ `287/287 up-to-date`、一个测试都没跑。**修正写法**（逐个任务各带 `--rerun`）：`nice -n 19 ./gradlew --offline :app:testDebugUnitTest --rerun :ai:testDebugUnitTest --rerun` ⇒ `287 actionable tasks: 2 executed, 285 up-to-date`，两个测试任务的新 XML mtime（19:51:44 / 19:51:32）**均晚于启动时间 19:51:24**，确认真实执行、无红项。
+
+**④ 诚实点 + 限制**：命令一里 `:app:testDebugUnitTest` 与 `:ai:testDebugUnitTest` 是 **UP-TO-DATE**（未重跑），故补跑命令二消除疑点；门禁用 `--offline`，**未做联网依赖解析校验**；`card-validator` 无 lint 报告、`app/baselineprofile` 无单测源，是「无该产物」的**推断**（目录结构 + `NO-SOURCE` / UP-TO-DATE 日志），**非失败**。⚠️ **门禁全绿不等于十例验收达成**——契约 `:206` 四类产物在十行上仍零份，**十例仍 0/10 `verified`**。
+
+**⑤ 设备侧仍待（截至本批）**：
+- **`screen_off_timeout` 未还原**：现为 **`600000`（原值 `30000`）**、`stayon true` 未恢复，设备不可达**无法改回**（遗留第 38 条）。
+- **UI 两条 androidTest 未跑完**：`C1GroupFilterAndAvatarUiTest` 的 chip 过滤（测 1）与 @ 选择器（测 3）**未跑完**，只有成员头像组（测 2）真机通过。
+- **非空验证未做**：三条 UI 断言的「非空」只是**按构造推断**，**三次破坏未执行**。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `C1GroupUiE2EFixtureTest.kt` 三个在途改动未碰）。**
+
 ### ⚠️ 第十二批（HEAD `86e88970d` 那一轮采集，2026-10-06）：**`C1LiveModelSequenceTest` 前 4 条真机全绿——硬理由⑤已消**
 
 ⚠️⚠️ **先说清这一批的性质：它是「采集」不是「代码提交」**——
