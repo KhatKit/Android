@@ -30,6 +30,11 @@ Environment variables (all optional):
                   "本轮没有产出内容" path (GroupTurnCoordinator/commitGroupTurn), which
                   writes a real error node + FAILED/role_failed run row.
   MOCK_PAD        extra padding characters appended to the reply per role, e.g. "B:400"
+  MOCK_HANG_ROLE  role code that gets a 200 SSE opener and then NO content at all,
+                  hanging until the client cancels (default "" = disabled). Used by the
+                  C1-06 **timeout** half: the app's injected per-step withTimeout fires
+                  and the zero-content placeholder must be dropped (no empty bubble).
+  MOCK_HANG_SECONDS  how long the hang handler blocks before giving up (default 120)
   MOCK_LOG_DIR    directory for requests.jsonl (default /tmp/opencode/c1-cancel)
 
 Every request record in requests.jsonl now carries the **actually sent**
@@ -60,6 +65,14 @@ LOG_DIR = os.environ.get("MOCK_LOG_DIR", "/tmp/opencode/c1-cancel")
 LOG_PATH = os.path.join(LOG_DIR, "requests.jsonl")
 FAIL_ROLE = os.environ.get("MOCK_FAIL_ROLE", "").strip().upper()
 EMPTY_ROLE = os.environ.get("MOCK_EMPTY_ROLE", "B").strip().upper()
+# "Hang" tier for the C1-06 **timeout** half: the named role gets a 200 SSE opener
+# and then NO content at all until the client cancels (the app's per-step
+# withTimeout fires). Default "" = disabled, so existing cancel evidence behaviour
+# is byte-for-byte unchanged.
+HANG_ROLE = os.environ.get("MOCK_HANG_ROLE", "").strip().upper()
+# How long the hang handler blocks before giving up (bounded so threads do not
+# leak forever if a test is aborted). Must exceed the injected app step timeout.
+HANG_SECONDS = float(os.environ.get("MOCK_HANG_SECONDS", "120"))
 
 RE_CASE = re.compile(r"CASE:([A-Za-z0-9_\-]+)")
 RE_ROLE = re.compile(r"ROLECODE:([A-Za-z0-9_\-]+)")
@@ -226,6 +239,31 @@ class Handler(BaseHTTPRequestHandler):
             seq_counter += 1
             seq = seq_counter
 
+        # Timeout tier: 200 + opener, then no content until the client cancels.
+        # Checked first so it wins even if FAIL/EMPTY are accidentally left at defaults.
+        if HANG_ROLE and speaker == HANG_ROLE:
+            response_id = "chatcmpl-mockslow-hang-%d" % seq
+            body_summary = ("SSE 200: role-only opener; hang before any content "
+                            "(%.0fs or until client cancel)" % HANG_SECONDS)
+            record = {
+                "seq": seq,
+                "ts": time.time(),
+                "speaker": speaker,
+                "case": case,
+                "model": requested_model,
+                "stream": stream,
+                "injected_hang": True,
+                "http_status": 200,
+                "body_summary": body_summary[:240],
+                "raw_body_bytes": len(raw),
+            }
+            write_record(record)
+            sys.stderr.write("[mock-slow] seq=%d speaker=%s INJECTED HANG actual_status=200 body=%s\n"
+                             % (seq, speaker, body_summary[:120]))
+            sys.stderr.flush()
+            self._respond_hang(response_id, requested_model, speaker)
+            return
+
         if claim_injection(FAIL_ROLE if speaker == FAIL_ROLE else ""):
             error_body = {"error": {
                 "message": "c1-cancel mock injected 500 for role %s (first request)" % speaker,
@@ -359,6 +397,32 @@ class Handler(BaseHTTPRequestHandler):
             self._respond_stream(response_id, requested_model, pieces, usage, speaker)
         else:
             self._json(200, response_body)
+
+    def _respond_hang(self, response_id, model, speaker):
+        """SSE 形状：role-only opener 之后**一个 content 事件都不发**，挂到客户端取消。
+
+        这正是 C1-06 超时半条要的形态：生产侧 `withTimeout(stepTimeout)` 到点抛出
+        `TimeoutCancellationException`，被取消角色的预建空助手气泡必须被
+        `dropUngeneratedAssistantMessages` 过滤掉（零内容 = 零空气泡）。
+        """
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        opener = {
+            "id": response_id, "object": "chat.completion.chunk",
+            "created": int(time.time()), "model": model,
+            "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}],
+        }
+        self.wfile.write(("data: %s\n\n" % json.dumps(opener, ensure_ascii=False)).encode("utf-8"))
+        self.wfile.flush()
+        # 挂住：不写任何 content。客户端 withTimeout 到点会取消并断开连接，
+        # 本线程最多再阻塞 HANG_SECONDS（bounded，避免测试中止后线程无限泄漏）。
+        deadline = time.time() + HANG_SECONDS
+        while time.time() < deadline:
+            time.sleep(0.5)
+        self.close_connection = True
 
     def _respond_stream(self, response_id, model, pieces, usage, speaker):
         """SSE 形状：role-only opener -> content 块* -> finish_reason -> usage 尾块 -> [DONE]。
