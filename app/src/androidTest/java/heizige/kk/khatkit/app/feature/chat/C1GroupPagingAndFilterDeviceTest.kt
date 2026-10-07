@@ -619,32 +619,46 @@ class C1GroupPagingAndFilterDeviceTest {
     }
 
     // ==================================================================
-    // 测 9：真实网关群聊轮 —— 在既有夹具会话上产出契约 :206 / :232-235 四类产物
+    // 测 9：真实网关群聊轮 —— **从「群聊」筛选结果里打开群**，再在该群上跑真实一轮
     // ==================================================================
 
     /**
-     * C1-10 的**真实网关**附加证据。
+     * C1-10 的**真实网关**证据，且这条群必须是**从筛选路径内部**抵达的。
      *
-     * 契约 `:232-235` 明写「只看截图或只看 UI 状态均标记 `unverified`」。前面 8 条断言
-     * 全是 UI 语义树 / chip 状态 / 徽标 / PagingSource 页大小 / SQL 谓词 / DB 行数，
-     * 不启模型、不导出。本方法在**同一批夹具会话**里（`groupAId`，同为 `type=GROUP`）
-     * 真跑一轮三方 pipeline，从而产出契约点名的：
-     * - 用例输入（触发文本）；
-     * - 各 viewer 可见消息 ID 台账（生产 `GroupChat.visibleMessages`）；
-     * - 实际模型调用序列（模型名 + prompt/completion token）；
-     * - prompt+completion 总 token；
-     * - 生产 `TavernChatCodec.exportGroupJsonl` → `writeExportTempFile` 的导出 SHA-256。
+     * 契约 `:206` 要求 10 个用例「每例保存输入、各角色可见消息集合、实际模型调用序列、
+     * token 计数和导出哈希」；`:232-235` 明写「只看截图或只看 UI 状态均标记 `unverified`」。
+     *
+     * ## 为什么不能平行挂载
+     *
+     * 旧写法只是 `openGroupChat(groupAId) → sendMessage(...)`：它产的 8 个字段全部来自
+     * 「群聊生成路径」，与 C1-10 点名的「单聊/群聊筛选」路径**正交** —— 既不点 chip、
+     * 也不驱动筛选。所以本方法把两者缝成一条真实用户流程：
+     *
+     * 1. **先走筛选路径**：从一个非目标会话（单聊甲）进入 → 左滑开抽屉 → 点「群聊」chip
+     *    → 断言筛选后的列表里只有群条目（沿用前 8 条相同的 `isReachableQuietly` /
+     *    `countInDrawer` / 群徽标判定）；
+     * 2. **从筛选结果里取第一条群条目的 id**（生产同一条 DAO 查询就是抽屉 PagingSource
+     *    的数据源），显式断言它确实在筛选结果里；不硬编码 `groupAId`；
+     * 3. **从筛选列表里点开它**（点抽屉行 → `navigateToChatPage`/`clearAndNavigate`），
+     *    再反射读 `NavViewModel.currentPage` 断言导航栈顶就是那条群 id —— 这是「筛选」
+     *    与「跑一轮」缝合的关键；
+     * 4. 在这个**从筛选结果打开的群**上真跑一轮三方 pipeline，产出契约点名的：
+     *    - 用例输入（触发文本）；
+     *    - 各 viewer 可见消息 ID 台账（生产 `GroupChat.visibleMessages`）；
+     *    - 实际模型调用序列（模型名 + prompt/completion token）；
+     *    - prompt+completion 总 token；
+     *    - 生产 `TavernChatCodec.exportGroupJsonl` → `writeExportTempFile` 的导出 SHA-256。
+     *
+     * 证据 JSON 里显式记录 `opened_from_filtered_list=true` +
+     * `filtered_group_ids_before_open` + `opened_group_id` + `navigated_chat_id`，
+     * 使「这条群来自筛选结果」可复核。
      *
      * 既有 8 条筛选/分页断言在各自方法里，一行未动。
      */
     @Test
     fun realGatewayRoundInFixtureGroupProducesContractArtifacts() = runBlocking {
-        val entry = appEntryPoint(appContext)
         val originalSettings = settingsStore.settingsFlow.first()
         val groupRunDao: GroupRunDAO = database.groupRunDao()
-        val originalConversation = requireNotNull(repository.getConversationById(groupAId)) {
-            "夹具群会话 $groupAId 必须存在（seedUiFixtures 已插入）"
-        }
 
         // 前置自检：必须打真实公网网关，绝不能退化成回环 mock。
         assertTrue(
@@ -654,12 +668,119 @@ class C1GroupPagingAndFilterDeviceTest {
                 !realProvider.baseUrl.contains("localhost"),
         )
 
+        // ============================================================
+        // 阶段 1：走真实筛选路径 —— 非目标会话进入 → 开抽屉 → 点「群聊」chip
+        // ============================================================
+        // 从单聊甲进入，这样随后「从筛选列表打开群」是一次真实导航（不是点当前会话）。
+        openGroupChat(directAId)
+        openDrawer()
+        val list = compose.onNodeWithTag(DRAWER_LIST_TAG)
+
+        // 切 chip 前的基线：两个夹具群在「全部」下都可达。
+        assertReachable(list, GROUP_A)
+        assertReachable(list, GROUP_B)
+
+        clickChip(CHIP_GROUP)
+        compose.waitUntil(WAIT_MS) { !isReachableQuietly(list, DIRECT_A) }
+
+        // 筛选态断言（沿用前 8 条相同判定方式）：只有群，没有单聊。
+        assertFalse("「群聊」筛选下单聊甲必须不可达", isReachableQuietly(list, DIRECT_A))
+        assertFalse("「群聊」筛选下单聊乙必须不可达", isReachableQuietly(list, DIRECT_B))
+        assertEquals("「群聊」筛选下不得出现单聊甲", 0, countInDrawer(DIRECT_A))
+        assertEquals("「群聊」筛选下不得出现单聊乙", 0, countInDrawer(DIRECT_B))
+        assertReachable(list, GROUP_A)
+        assertReachable(list, GROUP_B)
+        assertTrue("「群聊」筛选下必须出现群徽标", hasGroupBadgeNode())
+        val filteredDirectACount = countInDrawer(DIRECT_A)
+        val filteredDirectBCount = countInDrawer(DIRECT_B)
+
+        // ============================================================
+        // 阶段 2：从**筛选结果**里取第一条群条目的 id（不硬编码 groupAId）
+        // 生产同一条 DAO 查询就是抽屉 PagingSource 的数据源。
+        // ============================================================
+        val currentAssistantId = settingsStore.settingsFlow.first().assistantId.toString()
+        val filteredGroups = loadPage(
+            database.conversationDao()
+                .getUnfiledConversationsOfAssistantByType(currentAssistantId, GroupChat.TYPE_GROUP),
+            prodInitialLoadSize,
+        ).data
+        assertTrue("群聊筛选结果不得为空", filteredGroups.isNotEmpty())
+        assertTrue(
+            "群聊筛选结果每一条都必须是 GROUP 类型，实际脏数据=" +
+                filteredGroups.filter { it.type != GroupChat.TYPE_GROUP }.map { it.id },
+            filteredGroups.all { it.type == GroupChat.TYPE_GROUP },
+        )
+        val filteredGroupIds = filteredGroups.map { it.id }
+        val firstFilteredGroup = filteredGroups.first()
+        val openedGroupId = Uuid.parse(firstFilteredGroup.id)
+        // 关键缝合断言：取到的 id 确实在筛选结果里。
+        assertTrue(
+            "从筛选结果取到的第一条群 id 必须确实在该筛选结果里：$openedGroupId",
+            openedGroupId.toString() in filteredGroupIds,
+        )
+        // 防御：只允许打开本案夹具群，绝不误打用户真实群。
+        assertTrue(
+            "筛选结果第一条群必须是本案夹具群（$groupAId 或 $groupBId），" +
+                "实际 id=$openedGroupId title=${firstFilteredGroup.title}",
+            openedGroupId == groupAId || openedGroupId == groupBId,
+        )
+        val openedTitle = firstFilteredGroup.title
+        // UI 与 DB 同源：这条群在筛选后的抽屉列表里必须可达。
+        assertReachable(list, openedTitle)
+
+        // ============================================================
+        // 阶段 3：从筛选列表里点开这条群（真实用户流程：点抽屉行 → 导航到该会话）
+        // ============================================================
+        compose.onNode(
+            hasAnyAncestor(hasTestTag(DRAWER_LIST_TAG)) and hasText(openedTitle),
+        ).performClick()
+
+        // 等导航栈顶变成从筛选结果取到的那条群 id（反射读生产 NavViewModel.currentPage）。
+        compose.waitUntil(WAIT_MS) { currentChatPageId() == openedGroupId.toString() }
+        val navigatedId = currentChatPageId()
+        assertEquals(
+            "点开筛选列表里的群后，导航栈顶会话必须正是从筛选结果取到的那条群 id",
+            openedGroupId.toString(),
+            navigatedId,
+        )
+        val groupInfoChipVisible = compose
+            .onAllNodes(hasText(GROUP_INFO_SUFFIX, substring = true))
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+        assertTrue("打开后必须落到群聊页（群配置胶囊可见），实际未看到", groupInfoChipVisible)
+
+        emit(
+            "chips",
+            listOf(
+                "case=c1_10_opened_from_filtered_list",
+                "opened_from_filtered_list=true",
+                "filtered_group_ids_before_open=$filteredGroupIds",
+                "opened_group_id=$openedGroupId",
+                "opened_title=$openedTitle",
+                "filtered_only_groups=true",
+                "filtered_direct_a_count=$filteredDirectACount",
+                "filtered_direct_b_count=$filteredDirectBCount",
+                "navigated_chat_id=$navigatedId",
+                "group_info_chip_visible=$groupInfoChipVisible",
+            ),
+        )
+
+        // 打开态已取证：释放 UI，避免它的 ChatViewModel 与测试随后自建的 ChatManager 抢写同一会话。
+        scenario?.close()
+        scenario = null
+
+        // ============================================================
+        // 阶段 4：在这个「从筛选结果打开的群」上真跑一轮，产出契约 8 字段
+        // ============================================================
+        val originalConversation = requireNotNull(repository.getConversationById(openedGroupId)) {
+            "从筛选结果打开的群会话 $openedGroupId 必须能从真库读回"
+        }
         val config = realConfig()
-        val invalid = GroupChat.validate(config, groupAId.toString())
+        val invalid = GroupChat.validate(config, openedGroupId.toString())
         assertTrue("真实网关群配置必须合法，实际违规：$invalid", invalid.isEmpty())
 
         settingsStore.update(realSettings())
-        // 把夹具群会话换成真实群配置 + 清空旧夹具消息，跑真实一轮。
+        // 把这个群会话换成真实群配置 + 清空旧夹具消息，跑真实一轮。
         repository.updateConversation(
             originalConversation.copy(
                 type = GroupChat.TYPE_GROUP,
@@ -671,18 +792,18 @@ class C1GroupPagingAndFilterDeviceTest {
         val chatManager = buildChatManager()
         var started = false
         try {
-            chatManager.addConversationReference(groupAId)
-            chatManager.initializeConversation(groupAId)
+            chatManager.addConversationReference(openedGroupId)
+            chatManager.initializeConversation(openedGroupId)
             started = true
             chatManager.sendMessage(
-                conversationId = groupAId,
+                conversationId = openedGroupId,
                 content = listOf(UIMessagePart.Text(TRIGGER_TEXT)),
                 answer = true,
             )
             val stamped = awaitStampedTerminalRound(
                 chatManager = chatManager,
                 groupRunDao = groupRunDao,
-                conversationId = groupAId,
+                conversationId = openedGroupId,
                 expected = 3,
                 expectedStatus = GroupRunEntity.STATUS_COMPLETED,
                 timeoutMillis = realTimeoutMillis,
@@ -738,7 +859,7 @@ class C1GroupPagingAndFilterDeviceTest {
             assertViewerVisibilityLedger(ledger, messages, config, plans)
 
             // ---------- 生产导出 SHA-256 ----------
-            val exportEvidence = exportGroupJsonlEvidence(groupAId, "c1-export-c1-10-real-gateway.jsonl")
+            val exportEvidence = exportGroupJsonlEvidence(openedGroupId, "c1-export-c1-10-real-gateway.jsonl")
 
             writeEvidence(
                 "c1-round6-real-gateway.json",
@@ -749,7 +870,20 @@ class C1GroupPagingAndFilterDeviceTest {
                     put("device_sdk", android.os.Build.VERSION.SDK_INT)
                     put("device_abi", android.os.Build.SUPPORTED_ABIS.joinToString(","))
                     put("case", realCaseName)
-                    put("conversation_id", groupAId.toString())
+                    put("conversation_id", openedGroupId.toString())
+                    // ---------- 「这条群来自筛选结果」的显式证据 ----------
+                    put("opened_from_filtered_list", true)
+                    putJsonArray("filtered_group_ids_before_open") {
+                        filteredGroupIds.forEach { add(JsonPrimitive(it)) }
+                    }
+                    put("opened_group_id", openedGroupId.toString())
+                    put("opened_group_title", openedTitle)
+                    put("opened_via", "drawer:chip(群聊)→row(openedTitle)→navigateToChatPage→currentPage.id")
+                    put("navigated_chat_id", navigatedId)
+                    put("filter_drawer_direct_a_count", filteredDirectACount)
+                    put("filter_drawer_direct_b_count", filteredDirectBCount)
+                    put("filter_drawer_groups_only", true)
+                    put("group_info_chip_visible_after_open", groupInfoChipVisible)
                     put("conversation_type", GroupChat.TYPE_GROUP)
                     put("mode", config.mode)
                     put("token_budget_per_round", config.tokenBudgetPerRound)
@@ -784,10 +918,10 @@ class C1GroupPagingAndFilterDeviceTest {
             )
         } finally {
             if (started) {
-                try { chatManager.stopGeneration(groupAId) } catch (_: Throwable) { }
-                try { chatManager.removeConversationReference(groupAId) } catch (_: Throwable) { }
+                try { chatManager.stopGeneration(openedGroupId) } catch (_: Throwable) { }
+                try { chatManager.removeConversationReference(openedGroupId) } catch (_: Throwable) { }
             }
-            try { groupRunDao.deleteFinishedOfConversation(groupAId.toString()) } catch (_: Throwable) { }
+            try { groupRunDao.deleteFinishedOfConversation(openedGroupId.toString()) } catch (_: Throwable) { }
             // 还原夹具会话，别把真实轮消息留在用户库里。
             try { repository.updateConversation(originalConversation) } catch (_: Throwable) { }
             try { settingsStore.update(originalSettings) } catch (_: Throwable) { }
@@ -1011,6 +1145,31 @@ class C1GroupPagingAndFilterDeviceTest {
 
     private fun clickChip(label: String) {
         compose.onNodeWithText(label).performClick()
+    }
+
+    /**
+     * 读生产 `RouteActivity` 的导航栈顶会话 id —— 用来证明「点开的群正是从筛选结果里
+     * 取到的那一条」。
+     *
+     * `RouteActivity.navViewModel` 是 `by viewModels()` 委托属性，编译后落地成私有字段
+     * `navViewModel$delegate`（`kotlin.Lazy<NavViewModel>`，见 `javap` 实测）。取值后调
+     * 生产 `NavViewModel.currentPage`（栈顶），若是 `Screen.Chat` 就返回它的 `id`。
+     * 只用公开成员与字段名反射，不触碰被禁改的 `app/src/main`。
+     */
+    private fun currentChatPageId(): String? {
+        val s = scenario ?: return null
+        var id: String? = null
+        s.onActivity { activity ->
+            val field = RouteActivity::class.java.getDeclaredField("navViewModel\$delegate")
+            field.isAccessible = true
+            val delegate = field.get(activity)
+            val vm = (delegate as? Lazy<*>)?.value ?: delegate
+            if (vm != null) {
+                val page = vm.javaClass.getMethod("getCurrentPage").invoke(vm)
+                id = (page as? heizige.kk.khatkit.app.Screen.Chat)?.id
+            }
+        }
+        return id
     }
 
     private fun assertReachable(list: SemanticsNodeInteraction, text: String) {
@@ -1400,6 +1559,9 @@ class C1GroupPagingAndFilterDeviceTest {
         const val CHIP_DIRECT = "单聊"
         const val CHIP_GROUP = "群聊"
         const val GROUP_BADGE = "群"
+
+        /** 群聊页专有的群配置胶囊/副标题尾巴（`GroupInfoChip` / `GroupTopBar` 都含它）。 */
+        const val GROUP_INFO_SUFFIX = "个角色"
 
         const val GROUP_A = "C1-R6 群聊甲"
         const val GROUP_B = "C1-R6 群聊乙"
