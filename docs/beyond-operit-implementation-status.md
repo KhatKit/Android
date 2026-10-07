@@ -1255,6 +1255,24 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 
+### ⚠️ 第二十五批（零设备修复批次，2026-10-07，HEAD `5c362851a`）：**C1-10 分页测试驱动缺陷 + `ConversationRepository` offset 分页 API 生产缺陷 + C1-07 续跑错误节点断言（测试期望写错）；20 状态格全不升；台账 47 行 / 509 例 → 48 行 / 514 例（补登 `ConversationPageLoadParamsTest` 5）**
+
+⚠️⚠️ **先说性质**：本批 = **一次纯零设备窗口**（**零 `adb`、零 `am instrument`、零真机证据**），开工与收尾 HEAD 均为 **`5c362851a`**。本批 = 上一批（真机第十五轮）按惯例留到本批补登的登记本体 3 个（`c4d015e53` / `486117ee3` / `ff9c86359`，均只改 `docs/`）+ 本批主角 3 个，窗口 `37630adb4..HEAD` 实测 **6 个 commit**（`git log --oneline 37630adb4..HEAD | wc -l` = 6，`--merges` = 0）。⚠️ 轮次命名：本文档「C1 真机证据采集第 X 轮」是真机采集序列（已到第十五轮），零设备批次不占该序号，故按「C1 commit 台账」批次序记为第二十批（本节即实施状态侧的第二十五批）。
+
+**① 三笔修复**
+
+- **`0ae9f570a`（C1-10 设备侧测试驱动缺陷，未真机跑）**：`C1GroupPagingAndFilterDeviceTest.loadPage()` 原来无论首屏 / 续读都构造 `LoadParams.Refresh(key, loadSize, false)`，**调用点零改动、关键断言一条未放宽**，改为 `key == null` → `Refresh`、否则 → `Append(key, loadSize, false)`（+29 / −2，生产代码零改动）。根因 = Room 2.8.5 `RoomPagingUtil.getOffset` 对 `Refresh` 做「刷新窗口夹取」、对 `Append` 恒为 `key`。⚠️ **未真机跑**——「5 条转绿」是 JVM 复算推断，**非设备实证**。
+- **`5ca9ecbaf`（生产缺陷，未跑真机 / HTTP 集成）**：`ConversationRepository` 四个 offset 分页 API 的 `LoadParams.Refresh(key = if(offset==0) null else offset, …)` 统一改为 **`LoadParams.Append(key = offset, loadSize = limit, placeholdersEnabled = false)`**（3 个代码块 / 4 个公开 API，+21 / −6）；新增 `ConversationPageLoadParamsTest`（5 例，反射真实调用 Room `getOffset` + 两条源码护栏）。**只影响 HTTP 分页 API，不影响 `Pager` 驱动的 UI 列表**（`Pager` 首请求 Refresh、后续 Append）。
+- **`5c362851a`（C1-07 续跑错误节点断言，判定 = 测试期望写错，非生产缺陷）**：错误节点在续跑后被「同一 `MessageNode` 内追加候选分支 + 切 `selectIndex`」取代是**设计**；契约 `:201` 只要求「单角色失败**记录**错误节点并停止该轮」，**没有**要求续跑成功后继续保留 FAILED 语义，`:204` 只要求同 `round_id` + 跳过已提交 turn（run2 完全满足）。只改设备侧测试（+119 / −40），`app/src/main` 一字未动。⚠️ **未真机复跑**。
+
+**② 判定影响（20 格逐格）：0 格升级**——C1-01 / C1-02 / C1-03 / C1-04 / C1-05 各两格维持 `verified`，C1-06 / C1-07 / C1-08 / C1-09 / C1-10 各两格仍 `unverified`；**每格就地追加「第二十批订正」**（保留原文）。理由：本批零设备、契约 `:206`/`:232-235` 四类产物（viewer 可见消息 ID / 实际模型调用序列 / token / 导出哈希）**零份**；两条测试修复与一条生产修复**均无真机复跑**。逐格依据见 `docs/eval/c1-group-chat.md`「零设备修复批次（2026-10-07，HEAD `5c362851a`）」⑥。
+
+**③ 统计口径（登记子代理本机实测）**：`git log --oneline 37630adb4..HEAD` = **6**（`--merges` = **0**）；`git log --name-only 37630adb4..HEAD -- 'app/src/test/*'` = **只有 `ConversationPageLoadParamsTest.kt`**（XML `tests=5`、源码 `@Test`=5）⇒ 台账声明值 **47 行 / 509 例 → 48 行 / 514 例**（主动补登，脚本不检查漏列故不会 FAIL）；锚点 `1b0e04a9` **不重算**（78 / 0 merges）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test`（0 处失败）/ `--only tables`（155 块 / 1249 行、0 不符）/ `--only ledger`（48 行 / 514 例、逐行相等）**均 exit 0**。⚠️ `c1_doc_stats.py` sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一个字节未改）。
+
+📍 完整三档证据区分（**本机实测 / 转述执行者 / 未复现**）与诚实限制见 `docs/eval/c1-group-chat.md`「零设备修复批次（2026-10-07，HEAD `5c362851a`）」。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
