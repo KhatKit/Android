@@ -32,6 +32,7 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -61,6 +62,15 @@ import java.util.concurrent.TimeUnit
  * - `QrScannerSheetTest`（JVM）：只盖扫码的纯逻辑，不碰 MLKit / Bitmap。
  * - 本类：位图 ↔ 字符串 ↔ 配置的**全链**，外加 FileProvider URI 真可读 + Intent 形状。
  *
+ * ## ⚠️ 真实限制：非 Latin-1 内容有损（本次实测发现，未修）
+ *
+ * `encodeQrBitmap` 原样沿用生产的 `QRCodeWriter().encode(value, QR_CODE, size, size)`，
+ * **没有** `EncodeHintType.CHARACTER_SET`。zxing 3.5.4 此时默认按 **ISO-8859-1** 取字节
+ * （`QRCodeWriter.encode` → `Encoder` 的 `DEFAULT_BYTE_MODE_ENCODING`），因此群名 / 角色名 /
+ * `persona` 里的**中文等非 Latin-1 字符会被替换成 `?`**，位图往返不是逐字无损。
+ * 这条限制由 [nonLatin1ContentIsLossyUnderCurrentEncoderCharset] 显式钉住；本次任务要求
+ * 编码逻辑「行为逐字不变」，故不在此改动生产字符集。
+ *
  * ## 不证明什么
  *
  * - 不证明相机扫码（`analyzeFrame` 的 mediaImage 路径需要真实取景）。
@@ -71,6 +81,8 @@ import java.util.concurrent.TimeUnit
 class C1GroupQrBitmapRoundTripDeviceTest {
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    private val prettyJson = Json { prettyPrint = true }
 
     /** QR v40 / EC 级别 L / 字节模式的容量上限（zxing `QRCodeWriter.encode` 无 hint 时默认 L）。 */
     private val qrV40LCapacityBytes = 2953
@@ -95,6 +107,10 @@ class C1GroupQrBitmapRoundTripDeviceTest {
     /**
      * 中间那张卡 `cardId` / `avatarRef` 为 `null`：`decodeCards` 用 `string` 而非裸 `content`，
      * 否则 `JsonNull`（也是 `JsonPrimitive`，`content == "null"`）会被读成字符串 `"null"`。
+     *
+     * ⚠️ 这里刻意全部用 **Latin-1 可表示** 的内容：当前生产编码路径（zxing 默认 ISO-8859-1，
+     * 未设 `CHARACTER_SET`）会把非 Latin-1 字符（如中文）有损转成 `?`。该真实限制由
+     * [nonLatin1ContentIsLossyUnderCurrentEncoderCharset] 单独记录，不在这里混入。
      */
     private val cards = listOf(
         RoleCardMeta(
@@ -102,7 +118,7 @@ class C1GroupQrBitmapRoundTripDeviceTest {
             name = "Bob",
             assistantId = "asst-r2",
             cardId = null,
-            persona = "热血解说",
+            persona = "hot-blooded commentator",
             avatarRef = null,
         ),
         RoleCardMeta(
@@ -110,7 +126,7 @@ class C1GroupQrBitmapRoundTripDeviceTest {
             name = "Alice",
             assistantId = "asst-r1",
             cardId = "card-r1",
-            persona = "冷面顾问",
+            persona = "cold-faced advisor",
             avatarRef = "avatar://r1",
         ),
         RoleCardMeta(
@@ -118,7 +134,7 @@ class C1GroupQrBitmapRoundTripDeviceTest {
             name = "Cara",
             assistantId = "asst-r3",
             cardId = "card-r3",
-            persona = "议长",
+            persona = "chair of the round table",
             avatarRef = "avatar://r3",
         ),
     )
@@ -159,7 +175,7 @@ class C1GroupQrBitmapRoundTripDeviceTest {
         val bob = payload.cards[0]
         assertEquals("Bob", bob.name)
         assertEquals("asst-r2", bob.assistantId)
-        assertEquals("热血解说", bob.persona)
+        assertEquals("hot-blooded commentator", bob.persona)
         assertNull("card_id 缺省必须仍是 null，不能被读成字符串 \"null\"", bob.cardId)
         assertNull("avatar_ref 缺省必须仍是 null，不能被读成字符串 \"null\"", bob.avatarRef)
 
@@ -177,6 +193,47 @@ class C1GroupQrBitmapRoundTripDeviceTest {
         println("raw_bytes=${raw.toByteArray(Charsets.UTF_8).size}")
         println("decoded_equals_raw=${raw == decoded}")
         println("C1-QR-BITMAP-END")
+    }
+
+    // ------------------------------------------------------------------
+    // ①b 记录真实限制：非 Latin-1 内容被当前编码字符集有损替换
+    // ------------------------------------------------------------------
+
+    /**
+     * zxing `QRCodeWriter.encode` 无 `CHARACTER_SET` 时默认 **ISO-8859-1**（3.5.4 实测），
+     * 非 Latin-1 内容（如中文）会被替换成 `?`。
+     *
+     * 断言刻意**接受两种结果**（已修复 / 仍未修复），只钉住「不会部分静默损坏」这一不变式：
+     * 要么逐字无损（将来给编码器补了 UTF-8 hint），要么非 Latin-1 字符整体变 `?`。这样它
+     * 不是「永久锁死 bug」的变更探测器，同时如实记录当前生产行为。
+     */
+    @Test
+    fun nonLatin1ContentIsLossyUnderCurrentEncoderCharset() {
+        val chinese = "热血解说"
+        val chineseCards = listOf(
+            RoleCardMeta(
+                roleId = "r2", name = "Bob", assistantId = "asst-r2",
+                cardId = null, persona = chinese, avatarRef = null,
+            ),
+        )
+        val raw = GroupChat.encodeQr(config(), chineseCards)
+        assertTrue("夹具里必须确实出现非 Latin-1 字符", raw.contains(chinese))
+
+        val decoded = decodeQrFromBitmap(encodeQrBitmap(raw, 1024, Color.BLACK, Color.WHITE))
+        if (decoded == raw) {
+            println("C1-QR-CHARSET=lossless (编码器已支持非 Latin-1)")
+        } else {
+            assertFalse("非 Latin-1 字符不得原样存活（当前实现有损）", decoded.contains(chinese))
+            assertTrue(
+                "当前实现必须把非 Latin-1 字符替换为 '?'，而不是部分静默损坏",
+                decoded.contains("????"),
+            )
+            // 结构仍可解，只是文本损坏——这正是「位图往返对中文不闭环」的直接证据。
+            val payload = GroupChat.decodeSharePayload(decoded)
+            assertNotNull(payload)
+            assertEquals("????", payload!!.cards.single().persona)
+            println("C1-QR-CHARSET=lossy ISO-8859-1 (非 Latin-1 -> '?')")
+        }
     }
 
     // ------------------------------------------------------------------
@@ -203,7 +260,8 @@ class C1GroupQrBitmapRoundTripDeviceTest {
 
     @Test
     fun largeRealisticPayloadStillFitsWithinQrCapacityAndRoundTrips() {
-        val longPersona = "a".repeat(700)
+        // 3 张卡各 550 个 Latin-1 字符：总载荷 ~2.7KB，明显长于常规分享但仍落在 v40-L 容量内。
+        val longPersona = "a".repeat(550)
         val bigCards = listOf(
             RoleCardMeta("r2", "Bob", "asst-r2", null, longPersona, null),
             RoleCardMeta("r1", "Alice", "asst-r1", "card-r1", longPersona, "avatar://r1"),
@@ -229,7 +287,7 @@ class C1GroupQrBitmapRoundTripDeviceTest {
      */
     @Test
     fun oversizedPayloadIsRejectedByEncoderInsteadOfSilentlyTruncated() {
-        val hugePersona = "a".repeat(2000)
+        val hugePersona = "a".repeat(3000)
         val hugeCards = listOf(RoleCardMeta("r2", "Bob", "asst-r2", null, hugePersona, null))
         val raw = GroupChat.encodeQr(config(), hugeCards)
         val bytes = raw.toByteArray(Charsets.UTF_8).size
@@ -351,6 +409,6 @@ class C1GroupQrBitmapRoundTripDeviceTest {
             put("decoded_text", decoded)
         }
         val file = File(dir, name)
-        file.writeText(Json { prettyPrint = true }.encodeToString(JsonElement.serializer(), report))
+        file.writeText(prettyJson.encodeToString(JsonElement.serializer(), report))
     }
 }
