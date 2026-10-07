@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import android.content.Intent
+import android.app.Application
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -9,26 +10,59 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.provider.Model
+import heizige.kk.khatkit.ai.provider.ModelType
+import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.RouteActivity
+import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
+import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
+import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
+import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
+import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
+import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
+import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
+import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
+import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
+import heizige.kk.khatkit.app.core.data.datastore.NetworkSetting
+import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
 import heizige.kk.khatkit.app.core.data.db.AppDatabaseFactory
+import heizige.kk.khatkit.app.core.data.db.dao.GroupRunDAO
+import heizige.kk.khatkit.app.core.data.db.entity.GroupRunEntity
 import heizige.kk.khatkit.app.core.data.db.fts.MessageFtsManager
 import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
+import heizige.kk.khatkit.app.core.data.model.SpeakerStep
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FilesRepository
+import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.LightConversationEntity
+import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
+import heizige.kk.khatkit.app.core.di.appEntryPoint
+import heizige.kk.khatkit.app.core.util.JsonInstant
+import heizige.kk.khatkit.common.android.appTempFolder
 import io.pebbletemplates.pebble.PebbleEngine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,6 +73,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.security.MessageDigest
 import kotlin.uuid.Uuid
 
 /**
@@ -100,6 +135,7 @@ class C1GroupPagingAndFilterDeviceTest {
     private lateinit var settingsStore: SettingsRepository
     private lateinit var fixtureConfig: GroupConfig
     private var scenario: ActivityScenario<RouteActivity>? = null
+    private val appContext = resolveAppContext()
 
     /**
      * 生产分页参数，从 `ConversationRepository` 的 `private const val` 反射读回。
@@ -120,6 +156,38 @@ class C1GroupPagingAndFilterDeviceTest {
     private val pagingAssistantId = "0c1c0de5-0000-0000-0000-00000000f4a0"
     private val pagingGroupIds: List<Uuid> = (0 until PAGING_GROUP_COUNT).map { pagingId(0x4000 + it) }
     private val pagingDirectIds: List<Uuid> = (0 until PAGING_DIRECT_COUNT).map { pagingId(0x4100 + it) }
+
+    // ==================================================================
+    // C1-10 真实网关群聊轮夹具（口径与 C1LiveModelSequenceTest 的 real-provider 一致）
+    //
+    // 这是一段**附加**的真实模型调用：在既有夹具会话（`groupAId`）上真跑一轮三方
+    // pipeline，从而产出契约 `:206` / `:232-235` 点名的四类产物。既有 8 条筛选/分页
+    // 断言在各自的方法里，一行不动。
+    // ==================================================================
+
+    /** 内置「极客猫」OpenAI 兼容 provider（与 `C1LiveModelSequenceTest` 同一个 id）。 */
+    private val realProviderId = Uuid.parse("5197b3ae-21fd-4924-abb0-2aa70ff4ac42")
+
+    private val realProvider: ProviderSetting.OpenAI =
+        requireNotNull(DEFAULT_PROVIDERS.filterIsInstance<ProviderSetting.OpenAI>().firstOrNull { it.id == realProviderId }) {
+            "DEFAULT_PROVIDERS 里找不到 id=$realProviderId 的内置 provider"
+        }
+
+    private val realFlashModel = requireNotNull(realProvider.models.firstOrNull { it.modelId == "deepseek-v4-flash" }) {
+        "内置 provider 里没有 deepseek-v4-flash"
+    }
+    private val realGlmModel = requireNotNull(realProvider.models.firstOrNull { it.modelId == "glm-5.2" }) {
+        "内置 provider 里没有 glm-5.2"
+    }
+
+    private val realAssistantAId = Uuid.parse("0c1c0de5-0000-0000-0000-00000000c1a1")
+    private val realAssistantBId = Uuid.parse("0c1c0de5-0000-0000-0000-00000000c1b1")
+    private val realAssistantCId = Uuid.parse("0c1c0de5-0000-0000-0000-00000000c1c1")
+
+    private val realCaseName = "c1-ten-real-gateway"
+
+    /** 真实网关轮超时：推理模型可能比 mock 慢两个数量级。 */
+    private val realTimeoutMillis = 300_000L
 
     @Before
     fun setUp() {
@@ -551,6 +619,182 @@ class C1GroupPagingAndFilterDeviceTest {
     }
 
     // ==================================================================
+    // 测 9：真实网关群聊轮 —— 在既有夹具会话上产出契约 :206 / :232-235 四类产物
+    // ==================================================================
+
+    /**
+     * C1-10 的**真实网关**附加证据。
+     *
+     * 契约 `:232-235` 明写「只看截图或只看 UI 状态均标记 `unverified`」。前面 8 条断言
+     * 全是 UI 语义树 / chip 状态 / 徽标 / PagingSource 页大小 / SQL 谓词 / DB 行数，
+     * 不启模型、不导出。本方法在**同一批夹具会话**里（`groupAId`，同为 `type=GROUP`）
+     * 真跑一轮三方 pipeline，从而产出契约点名的：
+     * - 用例输入（触发文本）；
+     * - 各 viewer 可见消息 ID 台账（生产 `GroupChat.visibleMessages`）；
+     * - 实际模型调用序列（模型名 + prompt/completion token）；
+     * - prompt+completion 总 token；
+     * - 生产 `TavernChatCodec.exportGroupJsonl` → `writeExportTempFile` 的导出 SHA-256。
+     *
+     * 既有 8 条筛选/分页断言在各自方法里，一行未动。
+     */
+    @Test
+    fun realGatewayRoundInFixtureGroupProducesContractArtifacts() = runBlocking {
+        val entry = appEntryPoint(appContext)
+        val originalSettings = settingsStore.settingsFlow.first()
+        val groupRunDao: GroupRunDAO = database.groupRunDao()
+        val originalConversation = requireNotNull(repository.getConversationById(groupAId)) {
+            "夹具群会话 $groupAId 必须存在（seedUiFixtures 已插入）"
+        }
+
+        // 前置自检：必须打真实公网网关，绝不能退化成回环 mock。
+        assertTrue(
+            "本用例必须打真实公网网关，baseUrl 却是 ${realProvider.baseUrl}",
+            realProvider.baseUrl.startsWith("https://") &&
+                !realProvider.baseUrl.contains("127.0.0.1") &&
+                !realProvider.baseUrl.contains("localhost"),
+        )
+
+        val config = realConfig()
+        val invalid = GroupChat.validate(config, groupAId.toString())
+        assertTrue("真实网关群配置必须合法，实际违规：$invalid", invalid.isEmpty())
+
+        settingsStore.update(realSettings())
+        // 把夹具群会话换成真实群配置 + 清空旧夹具消息，跑真实一轮。
+        repository.updateConversation(
+            originalConversation.copy(
+                type = GroupChat.TYPE_GROUP,
+                groupConfig = config,
+                messageNodes = emptyList(),
+            ),
+        )
+
+        val chatManager = buildChatManager()
+        var started = false
+        try {
+            chatManager.addConversationReference(groupAId)
+            chatManager.initializeConversation(groupAId)
+            started = true
+            chatManager.sendMessage(
+                conversationId = groupAId,
+                content = listOf(UIMessagePart.Text(TRIGGER_TEXT)),
+                answer = true,
+            )
+            val stamped = awaitStampedTerminalRound(
+                chatManager = chatManager,
+                groupRunDao = groupRunDao,
+                conversationId = groupAId,
+                expected = 3,
+                expectedStatus = GroupRunEntity.STATUS_COMPLETED,
+                timeoutMillis = realTimeoutMillis,
+            )
+            val messages = stamped.messages
+            val run = stamped.run
+
+            val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+            assertEquals(
+                "真实网关轮必须产出 a、b、c 三条助手消息，实际=" + messages.map { "${it.role}/${it.roleId}" },
+                listOf("a", "b", "c"),
+                assistants.map { it.roleId },
+            )
+            assertEquals("三条助手消息必须同属一轮", setOf(run.roundId), assistants.map { it.roundId }.toSet())
+
+            // ---------- 真实 usage + 调用序列 ----------
+            val usages = assistants.map { message ->
+                val usage = requireNotNull(message.usage) {
+                    "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，token 证据不成立"
+                }
+                assertTrue("角色 ${message.roleId} 的 prompt_tokens 必须为正", usage.promptTokens > 0)
+                assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正", usage.completionTokens > 0)
+                usage
+            }
+            val sumPromptCompletion = usages.sumOf { it.promptTokens + it.completionTokens }
+            assertEquals(
+                "group_runs.spent_tokens 必须等于三条发言 (prompt+completion) 之和",
+                sumPromptCompletion,
+                run.spentTokens,
+            )
+            assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+            assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+
+            // 调用序列（wire 优先，缺失则回落 uuid 反查）。
+            val sequence = assistants.map { message ->
+                val wire = message.wireModelName?.takeIf { it.isNotBlank() }
+                val reverse = message.modelId?.let { uuid -> realProvider.models.firstOrNull { it.id == uuid }?.modelId }
+                assertTrue(
+                    "角色 ${message.roleId} 的模型名必须至少有一个来源（wire 或 uuid 反查）",
+                    wire != null || reverse != null,
+                )
+                wire ?: requireNotNull(reverse)
+            }
+            assertEquals(
+                "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
+                listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+                sequence,
+            )
+
+            // ---------- viewer 可见消息 ID 台账 ----------
+            val plans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+            val ledger = viewerVisibilityLedger(messages, config, plans)
+            assertViewerVisibilityLedger(ledger, messages, config, plans)
+
+            // ---------- 生产导出 SHA-256 ----------
+            val exportEvidence = exportGroupJsonlEvidence(groupAId, "c1-export-c1-10-real-gateway.jsonl")
+
+            writeEvidence(
+                "c1-round6-real-gateway.json",
+                buildJsonObject {
+                    put("evidence_kind", "real-gateway-call-direct-from-device-no-proxy")
+                    put("generated_at_device", System.currentTimeMillis())
+                    put("device_model", android.os.Build.MODEL)
+                    put("device_sdk", android.os.Build.VERSION.SDK_INT)
+                    put("device_abi", android.os.Build.SUPPORTED_ABIS.joinToString(","))
+                    put("case", realCaseName)
+                    put("conversation_id", groupAId.toString())
+                    put("conversation_type", GroupChat.TYPE_GROUP)
+                    put("mode", config.mode)
+                    put("token_budget_per_round", config.tokenBudgetPerRound)
+                    put("input_user_text", TRIGGER_TEXT)
+                    putJsonObject("group_run") {
+                        put("round_id", run.roundId)
+                        put("status", run.status)
+                        put("spent_tokens", run.spentTokens)
+                        put("committed_role_ids", run.committedRoleIds.joinToString(","))
+                        put("skipped_role_ids", run.skippedRoleIds.joinToString(","))
+                    }
+                    putJsonArray("actual_model_call_sequence") {
+                        assistants.forEachIndexed { index, message ->
+                            add(
+                                buildJsonObject {
+                                    put("seq", index + 1)
+                                    put("role_id", message.roleId)
+                                    put("turn_kind", message.turnKind)
+                                    put("wire_model_name", message.wireModelName)
+                                    put("resolved_model_name", sequence[index])
+                                    put("usage_prompt_tokens", usages[index].promptTokens)
+                                    put("usage_completion_tokens", usages[index].completionTokens)
+                                    put("usage_total_tokens", usages[index].totalTokens)
+                                },
+                            )
+                        }
+                    }
+                    put("sum_prompt_plus_completion", sumPromptCompletion)
+                    put("viewer_visibility", ledger)
+                    exportEvidence.forEach { (key, value) -> put(key, value) }
+                },
+            )
+        } finally {
+            if (started) {
+                try { chatManager.stopGeneration(groupAId) } catch (_: Throwable) { }
+                try { chatManager.removeConversationReference(groupAId) } catch (_: Throwable) { }
+            }
+            try { groupRunDao.deleteFinishedOfConversation(groupAId.toString()) } catch (_: Throwable) { }
+            // 还原夹具会话，别把真实轮消息留在用户库里。
+            try { repository.updateConversation(originalConversation) } catch (_: Throwable) { }
+            try { settingsStore.update(originalSettings) } catch (_: Throwable) { }
+        }
+    }
+
+    // ==================================================================
     // 分页断言工具
     // ==================================================================
 
@@ -809,6 +1053,341 @@ class C1GroupPagingAndFilterDeviceTest {
         )
     }
 
+    // ==================================================================
+    // 真实网关轮：配置 / 夹具 / 等待 / 台账 / 导出
+    // ==================================================================
+
+    private fun realPersona(code: String) = buildString {
+        append("你是 KhatKit C1 群聊验证角色。你的代号是 ").append(code).append("。")
+        append("ROLECODE:").append(code).append(" ")
+        append("你正在参加一场三人 pipeline 群聊。")
+        append("输出规则（必须严格遵守）：")
+        append("1. 只输出一行。")
+        append("2. 这一行必须以 ROLECODE:").append(code).append(" 开头，后面跟一句不超过20字的中文。")
+        append("3. 极其重要：对话历史里别人的发言也带 ROLECODE: 前缀，但那是别人的代号。")
+        append("你必须始终使用你自己的代号 ").append(code)
+        append("，绝对不能沿用或模仿历史里出现的任何其它代号。")
+        append("4. 禁止模拟其它角色，禁止列表、标题、markdown、思考过程。")
+        append("正确示例：ROLECODE:").append(code).append(" 我已就位。")
+    }
+
+    private fun realAssistant(id: Uuid, name: String, code: String, modelId: Uuid) = Assistant(
+        id = id,
+        name = name,
+        chatModelId = modelId,
+        systemPrompt = realPersona(code),
+        enableMemory = false,
+        useGlobalMemory = false,
+        autoExtractMemory = false,
+        enableWebSearch = false,
+        localTools = emptyList(),
+        enableTimeReminder = false,
+        enableRecentChatsReference = false,
+    )
+
+    private fun realConfig() = GroupConfig(
+        roles = listOf(
+            GroupRole(
+                id = "a",
+                name = "角色甲",
+                assistantId = realAssistantAId.toString(),
+                modelId = realFlashModel.id.toString(),
+                cardId = "c1-ten-a",
+            ),
+            GroupRole(
+                id = "b",
+                name = "角色乙",
+                assistantId = realAssistantBId.toString(),
+                modelId = realGlmModel.id.toString(),
+                cardId = "c1-ten-b",
+            ),
+            GroupRole(
+                id = "c",
+                name = "角色丙",
+                assistantId = realAssistantCId.toString(),
+                chair = true,
+                modelId = realFlashModel.id.toString(),
+                cardId = "c1-ten-c",
+            ),
+        ),
+        mode = GroupChat.MODE_PIPELINE,
+        chairRoleId = "c",
+        tokenBudgetPerRound = 100_000,
+    )
+
+    private fun realSettings() = Settings(
+        init = false,
+        chatModelId = realFlashModel.id,
+        fastModelId = realFlashModel.id,
+        // 关掉 autoRetry：关掉内层网络重试与外层 ProviderFailover，确保打的是显式配置的模型。
+        networkSetting = NetworkSetting(enableAutoRetry = false),
+        providers = listOf(realProvider),
+        assistants = listOf(
+            realAssistant(realAssistantAId, "角色甲", "A", realFlashModel.id),
+            realAssistant(realAssistantBId, "角色乙", "B", realGlmModel.id),
+            realAssistant(realAssistantCId, "角色丙", "C", realFlashModel.id),
+        ),
+    )
+
+    private fun buildChatManager(): ChatManager {
+        val entry = appEntryPoint(appContext)
+        val json = JsonInstant
+        val memoryRepository = entry.memoryRepository()
+        return ChatManager(
+            context = appContext,
+            appScope = AppScope(),
+            appEventBus = entry.appEventBus(),
+            settingsStore = settingsStore,
+            conversationRepo = repository,
+            memoryRepository = memoryRepository,
+            memoryExtractor = MemoryExtractor(memoryRepository, entry.providerManager(), json),
+            generationLoop = GenerationLoop(appContext, entry.providerManager(), json),
+            translationHandler = TranslationHandler(entry.providerManager()),
+            templateTransformer = entry.templateTransformer(),
+            providerManager = entry.providerManager(),
+            chatToolFactory = ChatToolFactory(
+                json = json,
+                memoryRepository = memoryRepository,
+                conversationRepository = repository,
+                localTools = LocalTools(appContext, entry.appEventBus(), entry.ttsManager(), settingsStore),
+                mcpManager = entry.mcpManager(),
+                skillManager = entry.skillManager(),
+                workspaceRepository = entry.workspaceRepository(),
+                filesManager = entry.filesManager(),
+                khatKitToolProvider = entry.khatKitToolProvider(),
+            ),
+            mcpManager = entry.mcpManager(),
+            filesManager = entry.filesManager(),
+            workspaceRepository = entry.workspaceRepository(),
+            folderRepository = FolderRepository(database.folderDao(), database.conversationDao()),
+            placeholderTransformer = PlaceholderTransformer(settingsStore),
+            ocrTransformer = OcrTransformer(appContext, settingsStore, entry.providerManager()),
+            base64ImageToLocalFileTransformer = Base64ImageToLocalFileTransformer(entry.filesManager()),
+        )
+    }
+
+    private data class StampedRound(
+        val messages: List<UIMessage>,
+        val run: GroupRunEntity,
+    )
+
+    /** 等「条数 + 全部助手盖章 + group_runs 到指定终态」三个正向信号同时成立。 */
+    private suspend fun awaitStampedTerminalRound(
+        chatManager: ChatManager,
+        groupRunDao: GroupRunDAO,
+        conversationId: Uuid,
+        expected: Int,
+        expectedStatus: String,
+        timeoutMillis: Long,
+    ): StampedRound {
+        val liveFlow = chatManager.getConversationFlow(conversationId)
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        var last: List<UIMessage> = emptyList()
+        var lastRun: GroupRunEntity? = null
+        while (System.currentTimeMillis() < deadline) {
+            val live = liveFlow.value.currentMessages
+            last = live
+            val assistants = live.filter { it.role == MessageRole.ASSISTANT }
+            val allStamped = assistants.size >= expected && assistants.all { it.roleId != null }
+            val trigger = live.lastOrNull { it.role == MessageRole.USER }
+            val roundId = trigger?.let { GroupChat.roundIdFor(it.id.toString()) }
+            val run = roundId?.let { groupRunDao.findByRound(conversationId.toString(), it) }
+            if (run != null) lastRun = run
+            if (allStamped && run?.status == expectedStatus) return StampedRound(live, requireNotNull(run))
+            Thread.sleep(250)
+        }
+        throw AssertionError(
+            "等待真实网关轮盖章 + run=$expectedStatus 超时（${timeoutMillis}ms）：" +
+                "实际助手=${last.count { it.role == MessageRole.ASSISTANT }} 条，" +
+                "最后状态=${lastRun?.status}；app 错误=${chatManager.errors.value.map { it.title to it.error }}",
+        )
+    }
+
+    // ---------------- viewer 台账（契约 :232-235） ----------------
+
+    private data class ViewerLedgerPlan(
+        val key: String,
+        val viewerRoleId: String,
+        val predecessorId: String? = null,
+        val chairRound: Boolean = false,
+        val allowedOtherRoleIds: Set<String> = emptySet(),
+    )
+
+    private fun planViewerLedgerPlans(
+        config: GroupConfig,
+        planSteps: List<SpeakerStep>,
+    ): List<ViewerLedgerPlan> {
+        val byViewer = LinkedHashMap<String, ViewerLedgerPlan>()
+        planSteps.forEach { step ->
+            byViewer[step.role.id] = ViewerLedgerPlan(
+                key = step.role.id,
+                viewerRoleId = step.role.id,
+                predecessorId = step.predecessorId,
+                chairRound = step.chairRound,
+                allowedOtherRoleIds = when {
+                    step.chairRound -> config.roles.map { it.id }.filter { it != step.role.id }.toSet()
+                    step.predecessorId != null -> setOf(step.predecessorId)
+                    else -> emptySet()
+                },
+            )
+        }
+        config.roles.forEach { role ->
+            byViewer.putIfAbsent(role.id, ViewerLedgerPlan(key = role.id, viewerRoleId = role.id))
+        }
+        return byViewer.values.toList()
+    }
+
+    private fun viewerVisibilityLedger(
+        messages: List<UIMessage>,
+        config: GroupConfig,
+        plans: List<ViewerLedgerPlan>,
+    ): JsonObject = buildJsonObject {
+        plans.forEach { plan ->
+            val visible = GroupChat.visibleMessages(
+                config = config,
+                messages = messages,
+                viewerId = plan.viewerRoleId,
+                predecessorId = plan.predecessorId,
+                chairRound = plan.chairRound,
+            )
+            putJsonObject(plan.key) {
+                put("viewer_role_id", plan.viewerRoleId)
+                putJsonArray("visible_message_ids") {
+                    visible.forEach { add(JsonPrimitive(it.id.toString())) }
+                }
+                put("visible_count", visible.size)
+                put("predecessor_id", plan.predecessorId)
+                put("chair_round", plan.chairRound)
+                putJsonArray("visible_assistant_role_ids") {
+                    visible.filter { it.role == MessageRole.ASSISTANT }
+                        .mapNotNull { it.roleId }
+                        .forEach { add(JsonPrimitive(it)) }
+                }
+            }
+        }
+    }
+
+    private fun assertViewerVisibilityLedger(
+        ledger: JsonObject,
+        messages: List<UIMessage>,
+        config: GroupConfig,
+        plans: List<ViewerLedgerPlan>,
+    ) {
+        val byId = messages.associateBy { it.id.toString() }
+        val userMessageIds = messages.filter { it.role == MessageRole.USER }.map { it.id.toString() }
+        val summaryIds = messages.filter { it.roleId == GroupChat.SUMMARY_ID }.map { it.id.toString() }
+        plans.forEach { plan ->
+            val entry = requireNotNull(ledger[plan.key]) { "台账缺少 viewer=${plan.key}" }.jsonObject
+            val visibleIds = entry.getValue("visible_message_ids").jsonArray
+                .map { it.jsonPrimitive.content }
+                .toSet()
+            val expected = GroupChat.visibleMessages(
+                config = config,
+                messages = messages,
+                viewerId = plan.viewerRoleId,
+                predecessorId = plan.predecessorId,
+                chairRound = plan.chairRound,
+            ).map { it.id.toString() }.toSet()
+            assertEquals(
+                "viewer=${plan.key} 的台账必须等于生产 visibleMessages 的输出",
+                expected,
+                visibleIds,
+            )
+            userMessageIds.forEach { id ->
+                assertTrue("viewer=${plan.key} 必须可见 user 触发消息 $id", id in visibleIds)
+            }
+            messages.filter { it.role == MessageRole.ASSISTANT && it.roleId == plan.viewerRoleId }
+                .forEach { own ->
+                    assertTrue(
+                        "viewer=${plan.key} 必须可见自己发的助手消息 ${own.id}",
+                        own.id.toString() in visibleIds,
+                    )
+                }
+            summaryIds.forEach { id ->
+                assertTrue("viewer=${plan.key} 必须可见轮次摘要 $id", id in visibleIds)
+            }
+            visibleIds.mapNotNull { byId[it] }
+                .filter { it.role == MessageRole.ASSISTANT }
+                .mapNotNull { it.roleId }
+                .filter { it != plan.viewerRoleId && it != GroupChat.SUMMARY_ID }
+                .forEach { otherRole ->
+                    assertTrue(
+                        "viewer=${plan.key} 的可见集里出现未授权角色 $otherRole 的助手消息",
+                        otherRole in plan.allowedOtherRoleIds,
+                    )
+                }
+        }
+    }
+
+    // ---------------- 生产导出 SHA-256（契约 :206） ----------------
+
+    private suspend fun exportGroupJsonlEvidence(conversationId: Uuid, exportFileName: String): JsonObject {
+        val stored = requireNotNull(repository.getConversationById(conversationId)) {
+            "会话 $conversationId 必须能从真库读回后才能导出"
+        }
+        val config = requireNotNull(stored.groupConfig) {
+            "群会话必须带 groupConfig 才能走 Tavern 群聊导出"
+        }
+        val exported = TavernChatCodec.exportGroupJsonl(
+            nodes = stored.messageNodes,
+            config = config,
+            cards = stored.groupCards.orEmpty(),
+            userName = EXPORT_USER_NAME,
+            groupName = "C1-10 real gateway ${stored.title}",
+            createDate = null,
+        )
+        val bytes = exported.toByteArray(Charsets.UTF_8)
+        assertTrue("导出字节不应为空：$exportFileName", bytes.isNotEmpty())
+        assertTrue(
+            "导出的首行必须是带 chat_metadata 的表头（生产 JSONL 形态）",
+            exported.lineSequence().first().contains("chat_metadata"),
+        )
+        val sha = sha256Hex(bytes)
+
+        // 生产 IO 分发：真写进 app 临时目录，返回 FileProvider URI。
+        val uri = writeExportTempFile(context, exportFileName) { it.write(bytes) }
+        val productionFile = File(context.appTempFolder, exportFileName)
+        assertEquals("生产 IO 落盘字节数必须等于导出字节数", bytes.size.toLong(), productionFile.length())
+        assertTrue(
+            "生产 IO 落盘内容必须逐字节等于导出字节",
+            productionFile.readBytes().contentEquals(bytes),
+        )
+
+        val pullDir = File(
+            requireNotNull(context.getExternalFilesDir(null)) { "external files dir 为 null" },
+            EXPORT_PULL_DIR,
+        )
+        assertTrue("导出 pull 目录建不出来：$pullDir", pullDir.mkdirs() || pullDir.isDirectory)
+        val pullFile = File(pullDir, exportFileName)
+        pullFile.writeBytes(bytes)
+        assertEquals("pull 副本哈希必须与导出字节哈希一致", sha, sha256Hex(pullFile.readBytes()))
+
+        return buildJsonObject {
+            put("export_sha256", sha)
+            put("export_bytes", bytes.size)
+            put("export_line_count", exported.lines().count { it.isNotBlank() })
+            put(
+                "export_sha256_source",
+                "same-process MessageDigest(\"SHA-256\") over the bytes produced by production " +
+                    "TavernChatCodec.exportGroupJsonl; re-written through production writeExportTempFile",
+            )
+            put("export_path", pullFile.absolutePath)
+            put("export_file_name", exportFileName)
+            put("export_production_io_file", productionFile.absolutePath)
+            put("export_production_io_uri", uri.toString())
+        }
+    }
+
+    private fun sha256Hex(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+    private fun writeEvidence(name: String, payload: JsonObject) {
+        val dir = requireNotNull(context.getExternalFilesDir(null)) { "getExternalFilesDir(null) 不应为 null" }
+        val file = File(dir, name)
+        file.writeText(PRETTY.encodeToString(JsonObject.serializer(), payload))
+        assertTrue("证据文件不应为空：${file.absolutePath}", file.length() > 0)
+    }
+
     private companion object {
         const val WAIT_MS = 15_000L
 
@@ -836,5 +1415,19 @@ class C1GroupPagingAndFilterDeviceTest {
         const val PAGING_TOTAL = PAGING_GROUP_COUNT + PAGING_DIRECT_COUNT
 
         const val SEARCH_TOKEN = "C1-R6"
+
+        /** 真实网关轮的触发文本。 */
+        const val TRIGGER_TEXT = "请三位依次发言，每位一句话。"
+
+        /** 导出证据 JSONL 里写的「用户名」（导出器必填参数，不是隐私数据）。 */
+        const val EXPORT_USER_NAME = "C1 验证用户"
+
+        /** `adb pull` 导出副本的目录（挂在 external files dir 下）。 */
+        const val EXPORT_PULL_DIR = "c1-live-export-c1-10"
+
+        val PRETTY = Json { prettyPrint = true; encodeDefaults = true }
     }
 }
+
+private fun resolveAppContext(): Application =
+    InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
