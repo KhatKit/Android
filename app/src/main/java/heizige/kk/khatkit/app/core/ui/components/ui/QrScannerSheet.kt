@@ -162,23 +162,35 @@ internal fun buildQrScanner(): BarcodeScanner =
     )
 
 /**
- * 把一帧 [ImageProxy] 交给 MLKit 解码，返回异步任务。
+ * 把一帧 [ImageProxy] 转成 MLKit [InputImage]。
  *
- * 这是相机扫码链路里**唯一**把底层 `android.media.Image`（[ImageProxy.getImage]）转成 MLKit
- * [InputImage] 的地方：`InputImage.fromMediaImage(mediaImage, imageInfo.rotationDegrees)`。
- * 抽成 `internal` 顶层函数是为了让 androidTest 能用真实 `ImageProxy`（ImageReader 合成帧）直接
- * 调用，从而覆盖此前只跑过 `InputImage.fromBitmap`、从未在 `mediaImage` 这一层跑通的路径。
+ * 这是相机扫码链路里**唯一**把底层 `android.media.Image`（[ImageProxy.getImage]）交给 MLKit 的
+ * 地方：`InputImage.fromMediaImage(mediaImage, imageInfo.rotationDegrees)`。抽成 `internal`
+ * 顶层函数是为了让 androidTest 能用真实 `ImageProxy`（ImageReader 合成帧）直接调用并断言
+ * `InputImage.rotationDegrees` / `mediaImage`，从而覆盖此前只跑过 `InputImage.fromBitmap`、
+ * 从未在 `mediaImage` 这一层跑通的路径。
  *
  * `proxy.image` 为 null（非 [android.media.Image] 支撑的代理）时返回 `null`，与 [analyzeFrame]
  * 的早退语义一致。
  */
 @androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
+internal fun toQrInputImage(image: ImageProxy): InputImage? {
+    val mediaImage = image.image ?: return null
+    return InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
+}
+
+/**
+ * 把一帧 [ImageProxy] 交给 MLKit 解码，返回异步任务。
+ *
+ * 生产 `analyzeFrame` 通过本函数走完整解码；androidTest 用真实 `ImageProxy` 调它来覆盖
+ * `mediaImage -> MLKit` 的完整链路。
+ */
 internal fun processQrFrame(
     image: ImageProxy,
     scanner: BarcodeScanner,
 ): Task<List<Barcode>>? {
-    val mediaImage = image.image ?: return null
-    return scanner.process(InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees))
+    val inputImage = toQrInputImage(image) ?: return null
+    return scanner.process(inputImage)
 }
 
 /**
