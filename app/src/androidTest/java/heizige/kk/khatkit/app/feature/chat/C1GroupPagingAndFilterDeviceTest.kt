@@ -656,9 +656,9 @@ class C1GroupPagingAndFilterDeviceTest {
      * 既有 8 条筛选/分页断言在各自方法里，一行未动。
      */
     @Test
-    fun realGatewayRoundInFixtureGroupProducesContractArtifacts() = runBlocking {
-        val originalSettings = settingsStore.settingsFlow.first()
+    fun realGatewayRoundInFixtureGroupProducesContractArtifacts() {
         val groupRunDao: GroupRunDAO = database.groupRunDao()
+        val originalSettings = runBlocking { settingsStore.settingsFlow.first() }
 
         // 前置自检：必须打真实公网网关，绝不能退化成回环 mock。
         assertTrue(
@@ -676,12 +676,23 @@ class C1GroupPagingAndFilterDeviceTest {
         openDrawer()
         val list = compose.onNodeWithTag(DRAWER_LIST_TAG)
 
-        // 切 chip 前的基线：两个夹具群在「全部」下都可达。
+        // 切 chip 前的基线：4 条夹具在「全部」下都可达（否则「切走后不可达」不成立）。
         assertReachable(list, GROUP_A)
         assertReachable(list, GROUP_B)
+        assertReachable(list, DIRECT_A)
+        assertReachable(list, DIRECT_B)
 
+        // 先把单聊甲滚进组合窗口，再切 chip——否则「不可达」可能只是「尚未加载」的假信号。
+        list.performScrollToNode(hasText(DIRECT_A))
         clickChip(CHIP_GROUP)
-        compose.waitUntil(WAIT_MS) { !isReachableQuietly(list, DIRECT_A) }
+        // 条件必须同时要求「群在」且「单聊不在」：只等「单聊不在」会被 PagingData
+        // 换源途中的空窗/旧页误导，随后断言再看到旧页就会假红。
+        compose.waitUntil(WAIT_MS) {
+            isReachableQuietly(list, GROUP_A) &&
+                !isReachableQuietly(list, DIRECT_A) &&
+                !isReachableQuietly(list, DIRECT_B)
+        }
+        compose.waitForIdle()
 
         // 筛选态断言（沿用前 8 条相同判定方式）：只有群，没有单聊。
         assertFalse("「群聊」筛选下单聊甲必须不可达", isReachableQuietly(list, DIRECT_A))
@@ -698,12 +709,14 @@ class C1GroupPagingAndFilterDeviceTest {
         // 阶段 2：从**筛选结果**里取第一条群条目的 id（不硬编码 groupAId）
         // 生产同一条 DAO 查询就是抽屉 PagingSource 的数据源。
         // ============================================================
-        val currentAssistantId = settingsStore.settingsFlow.first().assistantId.toString()
-        val filteredGroups = loadPage(
-            database.conversationDao()
-                .getUnfiledConversationsOfAssistantByType(currentAssistantId, GroupChat.TYPE_GROUP),
-            prodInitialLoadSize,
-        ).data
+        val currentAssistantId = runBlocking { settingsStore.settingsFlow.first().assistantId.toString() }
+        val filteredGroups = runBlocking {
+            loadPage(
+                database.conversationDao()
+                    .getUnfiledConversationsOfAssistantByType(currentAssistantId, GroupChat.TYPE_GROUP),
+                prodInitialLoadSize,
+            ).data
+        }
         assertTrue("群聊筛选结果不得为空", filteredGroups.isNotEmpty())
         assertTrue(
             "群聊筛选结果每一条都必须是 GROUP 类型，实际脏数据=" +
@@ -772,159 +785,163 @@ class C1GroupPagingAndFilterDeviceTest {
         // ============================================================
         // 阶段 4：在这个「从筛选结果打开的群」上真跑一轮，产出契约 8 字段
         // ============================================================
-        val originalConversation = requireNotNull(repository.getConversationById(openedGroupId)) {
+        val originalConversation = requireNotNull(runBlocking { repository.getConversationById(openedGroupId) }) {
             "从筛选结果打开的群会话 $openedGroupId 必须能从真库读回"
         }
         val config = realConfig()
         val invalid = GroupChat.validate(config, openedGroupId.toString())
         assertTrue("真实网关群配置必须合法，实际违规：$invalid", invalid.isEmpty())
 
-        settingsStore.update(realSettings())
-        // 把这个群会话换成真实群配置 + 清空旧夹具消息，跑真实一轮。
-        repository.updateConversation(
-            originalConversation.copy(
-                type = GroupChat.TYPE_GROUP,
-                groupConfig = config,
-                messageNodes = emptyList(),
-            ),
-        )
+        runBlocking {
+            settingsStore.update(realSettings())
+            // 把这个群会话换成真实群配置 + 清空旧夹具消息，跑真实一轮。
+            repository.updateConversation(
+                originalConversation.copy(
+                    type = GroupChat.TYPE_GROUP,
+                    groupConfig = config,
+                    messageNodes = emptyList(),
+                ),
+            )
+        }
 
         val chatManager = buildChatManager()
         var started = false
-        try {
-            chatManager.addConversationReference(openedGroupId)
-            chatManager.initializeConversation(openedGroupId)
-            started = true
-            chatManager.sendMessage(
-                conversationId = openedGroupId,
-                content = listOf(UIMessagePart.Text(TRIGGER_TEXT)),
-                answer = true,
-            )
-            val stamped = awaitStampedTerminalRound(
-                chatManager = chatManager,
-                groupRunDao = groupRunDao,
-                conversationId = openedGroupId,
-                expected = 3,
-                expectedStatus = GroupRunEntity.STATUS_COMPLETED,
-                timeoutMillis = realTimeoutMillis,
-            )
-            val messages = stamped.messages
-            val run = stamped.run
-
-            val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
-            assertEquals(
-                "真实网关轮必须产出 a、b、c 三条助手消息，实际=" + messages.map { "${it.role}/${it.roleId}" },
-                listOf("a", "b", "c"),
-                assistants.map { it.roleId },
-            )
-            assertEquals("三条助手消息必须同属一轮", setOf(run.roundId), assistants.map { it.roundId }.toSet())
-
-            // ---------- 真实 usage + 调用序列 ----------
-            val usages = assistants.map { message ->
-                val usage = requireNotNull(message.usage) {
-                    "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，token 证据不成立"
-                }
-                assertTrue("角色 ${message.roleId} 的 prompt_tokens 必须为正", usage.promptTokens > 0)
-                assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正", usage.completionTokens > 0)
-                usage
-            }
-            val sumPromptCompletion = usages.sumOf { it.promptTokens + it.completionTokens }
-            assertEquals(
-                "group_runs.spent_tokens 必须等于三条发言 (prompt+completion) 之和",
-                sumPromptCompletion,
-                run.spentTokens,
-            )
-            assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
-            assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
-
-            // 调用序列（wire 优先，缺失则回落 uuid 反查）。
-            val sequence = assistants.map { message ->
-                val wire = message.wireModelName?.takeIf { it.isNotBlank() }
-                val reverse = message.modelId?.let { uuid -> realProvider.models.firstOrNull { it.id == uuid }?.modelId }
-                assertTrue(
-                    "角色 ${message.roleId} 的模型名必须至少有一个来源（wire 或 uuid 反查）",
-                    wire != null || reverse != null,
+        runBlocking {
+            try {
+                chatManager.addConversationReference(openedGroupId)
+                chatManager.initializeConversation(openedGroupId)
+                started = true
+                chatManager.sendMessage(
+                    conversationId = openedGroupId,
+                    content = listOf(UIMessagePart.Text(TRIGGER_TEXT)),
+                    answer = true,
                 )
-                wire ?: requireNotNull(reverse)
-            }
-            assertEquals(
-                "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
-                listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
-                sequence,
-            )
+                val stamped = awaitStampedTerminalRound(
+                    chatManager = chatManager,
+                    groupRunDao = groupRunDao,
+                    conversationId = openedGroupId,
+                    expected = 3,
+                    expectedStatus = GroupRunEntity.STATUS_COMPLETED,
+                    timeoutMillis = realTimeoutMillis,
+                )
+                val messages = stamped.messages
+                val run = stamped.run
 
-            // ---------- viewer 可见消息 ID 台账 ----------
-            val plans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
-            val ledger = viewerVisibilityLedger(messages, config, plans)
-            assertViewerVisibilityLedger(ledger, messages, config, plans)
+                val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+                assertEquals(
+                    "真实网关轮必须产出 a、b、c 三条助手消息，实际=" + messages.map { "${it.role}/${it.roleId}" },
+                    listOf("a", "b", "c"),
+                    assistants.map { it.roleId },
+                )
+                assertEquals("三条助手消息必须同属一轮", setOf(run.roundId), assistants.map { it.roundId }.toSet())
 
-            // ---------- 生产导出 SHA-256 ----------
-            val exportEvidence = exportGroupJsonlEvidence(openedGroupId, "c1-export-c1-10-real-gateway.jsonl")
-
-            writeEvidence(
-                "c1-round6-real-gateway.json",
-                buildJsonObject {
-                    put("evidence_kind", "real-gateway-call-direct-from-device-no-proxy")
-                    put("generated_at_device", System.currentTimeMillis())
-                    put("device_model", android.os.Build.MODEL)
-                    put("device_sdk", android.os.Build.VERSION.SDK_INT)
-                    put("device_abi", android.os.Build.SUPPORTED_ABIS.joinToString(","))
-                    put("case", realCaseName)
-                    put("conversation_id", openedGroupId.toString())
-                    // ---------- 「这条群来自筛选结果」的显式证据 ----------
-                    put("opened_from_filtered_list", true)
-                    putJsonArray("filtered_group_ids_before_open") {
-                        filteredGroupIds.forEach { add(JsonPrimitive(it)) }
+                // ---------- 真实 usage + 调用序列 ----------
+                val usages = assistants.map { message ->
+                    val usage = requireNotNull(message.usage) {
+                        "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，token 证据不成立"
                     }
-                    put("opened_group_id", openedGroupId.toString())
-                    put("opened_group_title", openedTitle)
-                    put("opened_via", "drawer:chip(群聊)→row(openedTitle)→navigateToChatPage→currentPage.id")
-                    put("navigated_chat_id", navigatedId)
-                    put("filter_drawer_direct_a_count", filteredDirectACount)
-                    put("filter_drawer_direct_b_count", filteredDirectBCount)
-                    put("filter_drawer_groups_only", true)
-                    put("group_info_chip_visible_after_open", groupInfoChipVisible)
-                    put("conversation_type", GroupChat.TYPE_GROUP)
-                    put("mode", config.mode)
-                    put("token_budget_per_round", config.tokenBudgetPerRound)
-                    put("input_user_text", TRIGGER_TEXT)
-                    putJsonObject("group_run") {
-                        put("round_id", run.roundId)
-                        put("status", run.status)
-                        put("spent_tokens", run.spentTokens)
-                        put("committed_role_ids", run.committedRoleIds.joinToString(","))
-                        put("skipped_role_ids", run.skippedRoleIds.joinToString(","))
-                    }
-                    putJsonArray("actual_model_call_sequence") {
-                        assistants.forEachIndexed { index, message ->
-                            add(
-                                buildJsonObject {
-                                    put("seq", index + 1)
-                                    put("role_id", message.roleId)
-                                    put("turn_kind", message.turnKind)
-                                    put("wire_model_name", message.wireModelName)
-                                    put("resolved_model_name", sequence[index])
-                                    put("usage_prompt_tokens", usages[index].promptTokens)
-                                    put("usage_completion_tokens", usages[index].completionTokens)
-                                    put("usage_total_tokens", usages[index].totalTokens)
-                                },
-                            )
+                    assertTrue("角色 ${message.roleId} 的 prompt_tokens 必须为正", usage.promptTokens > 0)
+                    assertTrue("角色 ${message.roleId} 的 completion_tokens 必须为正", usage.completionTokens > 0)
+                    usage
+                }
+                val sumPromptCompletion = usages.sumOf { it.promptTokens + it.completionTokens }
+                assertEquals(
+                    "group_runs.spent_tokens 必须等于三条发言 (prompt+completion) 之和",
+                    sumPromptCompletion,
+                    run.spentTokens,
+                )
+                assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+                assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+
+                // 调用序列（wire 优先，缺失则回落 uuid 反查）。
+                val sequence = assistants.map { message ->
+                    val wire = message.wireModelName?.takeIf { it.isNotBlank() }
+                    val reverse = message.modelId?.let { uuid -> realProvider.models.firstOrNull { it.id == uuid }?.modelId }
+                    assertTrue(
+                        "角色 ${message.roleId} 的模型名必须至少有一个来源（wire 或 uuid 反查）",
+                        wire != null || reverse != null,
+                    )
+                    wire ?: requireNotNull(reverse)
+                }
+                assertEquals(
+                    "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
+                    listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+                    sequence,
+                )
+
+                // ---------- viewer 可见消息 ID 台账 ----------
+                val plans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+                val ledger = viewerVisibilityLedger(messages, config, plans)
+                assertViewerVisibilityLedger(ledger, messages, config, plans)
+
+                // ---------- 生产导出 SHA-256 ----------
+                val exportEvidence = exportGroupJsonlEvidence(openedGroupId, "c1-export-c1-10-real-gateway.jsonl")
+
+                writeEvidence(
+                    "c1-round6-real-gateway.json",
+                    buildJsonObject {
+                        put("evidence_kind", "real-gateway-call-direct-from-device-no-proxy")
+                        put("generated_at_device", System.currentTimeMillis())
+                        put("device_model", android.os.Build.MODEL)
+                        put("device_sdk", android.os.Build.VERSION.SDK_INT)
+                        put("device_abi", android.os.Build.SUPPORTED_ABIS.joinToString(","))
+                        put("case", realCaseName)
+                        put("conversation_id", openedGroupId.toString())
+                        // ---------- 「这条群来自筛选结果」的显式证据 ----------
+                        put("opened_from_filtered_list", true)
+                        putJsonArray("filtered_group_ids_before_open") {
+                            filteredGroupIds.forEach { add(JsonPrimitive(it)) }
                         }
-                    }
-                    put("sum_prompt_plus_completion", sumPromptCompletion)
-                    put("viewer_visibility", ledger)
-                    exportEvidence.forEach { (key, value) -> put(key, value) }
-                },
-            )
-        } finally {
-            if (started) {
-                try { chatManager.stopGeneration(openedGroupId) } catch (_: Throwable) { }
-                try { chatManager.removeConversationReference(openedGroupId) } catch (_: Throwable) { }
+                        put("opened_group_id", openedGroupId.toString())
+                        put("opened_group_title", openedTitle)
+                        put("opened_via", "drawer:chip(群聊)→row(openedTitle)→navigateToChatPage→currentPage.id")
+                        put("navigated_chat_id", navigatedId)
+                        put("filter_drawer_direct_a_count", filteredDirectACount)
+                        put("filter_drawer_direct_b_count", filteredDirectBCount)
+                        put("filter_drawer_groups_only", true)
+                        put("group_info_chip_visible_after_open", groupInfoChipVisible)
+                        put("conversation_type", GroupChat.TYPE_GROUP)
+                        put("mode", config.mode)
+                        put("token_budget_per_round", config.tokenBudgetPerRound)
+                        put("input_user_text", TRIGGER_TEXT)
+                        putJsonObject("group_run") {
+                            put("round_id", run.roundId)
+                            put("status", run.status)
+                            put("spent_tokens", run.spentTokens)
+                            put("committed_role_ids", run.committedRoleIds.joinToString(","))
+                            put("skipped_role_ids", run.skippedRoleIds.joinToString(","))
+                        }
+                        putJsonArray("actual_model_call_sequence") {
+                            assistants.forEachIndexed { index, message ->
+                                add(
+                                    buildJsonObject {
+                                        put("seq", index + 1)
+                                        put("role_id", message.roleId)
+                                        put("turn_kind", message.turnKind)
+                                        put("wire_model_name", message.wireModelName)
+                                        put("resolved_model_name", sequence[index])
+                                        put("usage_prompt_tokens", usages[index].promptTokens)
+                                        put("usage_completion_tokens", usages[index].completionTokens)
+                                        put("usage_total_tokens", usages[index].totalTokens)
+                                    },
+                                )
+                            }
+                        }
+                        put("sum_prompt_plus_completion", sumPromptCompletion)
+                        put("viewer_visibility", ledger)
+                        exportEvidence.forEach { (key, value) -> put(key, value) }
+                    },
+                )
+            } finally {
+                if (started) {
+                    try { chatManager.stopGeneration(openedGroupId) } catch (_: Throwable) { }
+                    try { chatManager.removeConversationReference(openedGroupId) } catch (_: Throwable) { }
+                }
+                try { groupRunDao.deleteFinishedOfConversation(openedGroupId.toString()) } catch (_: Throwable) { }
+                // 还原夹具会话，别把真实轮消息留在用户库里。
+                try { repository.updateConversation(originalConversation) } catch (_: Throwable) { }
+                try { settingsStore.update(originalSettings) } catch (_: Throwable) { }
             }
-            try { groupRunDao.deleteFinishedOfConversation(openedGroupId.toString()) } catch (_: Throwable) { }
-            // 还原夹具会话，别把真实轮消息留在用户库里。
-            try { repository.updateConversation(originalConversation) } catch (_: Throwable) { }
-            try { settingsStore.update(originalSettings) } catch (_: Throwable) { }
         }
     }
 
