@@ -1273,6 +1273,23 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 
+### ⚠️ 第二十六批（真机第十六轮，2026-10-07，HEAD `bd88aaff2`）：**C1-07 续跑幂等真机首次通过（两状态格升 `verified`，C1-07 首次升）；C1-10 分页筛选修复后 8/8 全绿但仍 `unverified`；台账 48 行 / 514 例未动**
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（设备 OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`），开工与收尾 HEAD 均为 **`bd88aaff2`**（`git rev-parse HEAD` 实测 = `bd88aaff2ae00574cc76badb562f05e3bc13a8df`），**设备轮本身零 commit**。本批 = 上一批（第二十批，零设备修复批次）按惯例留到本批补登的登记本体 3 个（`5e13626c9` / `8bece56f0` / `bd88aaff2`，均只改 `docs/`）+ 本批主角 = 真机窗口。⚠️ 轮次命名：本文档「C1 真机证据采集第 X 轮」是真机采集序列（已到第十六轮），零设备批次不占该序号，本批按「C1 commit 台账」批次序记为第二十一批（本节即实施状态侧的第二十六批）。
+
+**① 两条修复的真机实证**
+
+- **C1-07（失败续跑/幂等）真机首次通过**：`C1GroupRetryResumeDeviceTest#retrySameRoundSkipsCommittedTurnsAndDoesNotDuplicateMessages`，`am instrument` 日志 `OK (1 test)` / Time **13.108**。phase1 `FAILED/role_failed/committed=[a]/skipped=[c]/spent=6208`；phase2 `COMPLETED/reason="" /committed=[a,b,c]/spent=19286`；**`run_token` 两阶段相同**（`ef78e9f6-79fe-4ba2-9a41-4cbf75d02882`，`run_token_reused=true`）、**`group_runs rows=1`**、a 消息 id 不变（`9298d95f-…`）、**`19286==a(6208)+b(6539)+c(6539)`**、旧错误节点「同 `MessageNode` 内候选替换 + 未选中」；导出 `c1-retry-export-x.jsonl` 5063 B/5 行 `be3709800…`（本机复算一致）。契约 `:204`「同一 `round_id` 只允许一个运行实例（持久化 run token + mutex）+ 重试沿用同一 `round_id` 并跳过已提交 turn，避免重复消息」**8 项齐备**。
+- **C1-10（单聊/群聊筛选）8/8 全绿**：`C1GroupPagingAndFilterDeviceTest` 连跑两遍都 **8/8 `OK (1 test)`**，上一批 5 条 `pagingSource_*` 失败全部转绿（`first_size=40/second_size=15`、`page_sizes=[20,20,15] loaded=55 distinct=55 db_unfiled=55`、`group=[20,5]=25 / direct=[20,10]=30`、`type_arg='' rows=55`、`group_hits=25 all_hits=55`）⇒ **设备实证**了 `0ae9f570a`（设备侧测试驱动改 `Refresh`→`Append`）+ `5ca9ecbaf`（生产 `ConversationRepository` 四个 offset 分页 API 改 `Append`）。
+
+**② 判定影响（20 格逐格）：2 格升级**——**C1-07** 在**用例矩阵格** + **证据登记表格**各升 `verified`（共 2 格）；**C1-10 仍 `unverified`**（虽 8/8）：契约 `:232-235`「只看截图或**只看 UI 状态**均标记 `unverified`」（本批 #1/#2/#3 断言落 Compose 语义树可达性与 badge 节点）+ 契约 `:206` 逐例四类产物（viewer 可见消息 ID / 模型调用序列 / token / 导出哈希）本例**结构性不产出**（不启发模型、不导出群文件，同 C1-08 语义正交处置）。C1-01..C1-05 按「已 `verified` 不重开」维持；C1-06 / C1-08 / C1-09 不升。20 格每格就地追加「真机第十六轮订正」（保留原文）。逐格依据见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十六轮」⑤。
+
+**③ 统计口径（登记子代理本机实测）**：`git log --oneline 5c362851a..HEAD` = **3**（第二十批登记本体；设备轮零 commit，`--merges` = **0**）；`git log --name-only 5c362851a..HEAD -- 'app/src/test/*'` = **空** ⇒ 台账声明值仍 **48 行 / 514 例**（锚点 `1b0e04a9` 不重算：78 / 0 merges）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test`（**0 处失败**）/ `--only tables`（**160 块 / 1287 行、0 不符**）/ `--only ledger`（48 行 / 514 例、逐行相等）**均 exit 0**。⚠️ `c1_doc_stats.py` sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一个字节未改）。
+
+📍 完整三档证据区分（**本机实测 / 转述执行者 / 未复现**）与诚实限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十六轮」。⚠️ C1-07 报告内 `scope_note` 末句「Device-side behaviour is NOT verified…（no device）」是该报告源码内的**历史固定文案**，非本次事实（本次为真机实测）。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
