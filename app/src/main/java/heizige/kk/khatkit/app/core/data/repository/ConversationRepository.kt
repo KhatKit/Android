@@ -131,8 +131,13 @@ class ConversationRepository(
         return try {
             when (
                 val result = pagingSource.load(
-                    PagingSource.LoadParams.Refresh(
-                        key = if (offset == 0) null else offset,
+                    // 必须用 Append 而不是 Refresh：Room 的
+                    // `androidx.room.paging.util.RoomPagingUtil.getOffset(params, key, itemCount)`
+                    // 对 Refresh 会做「刷新窗口夹取」——`offset >= itemCount - loadSize` 时
+                    // 静默夹到 `max(0, itemCount - loadSize)`，于是翻页返回与上一页重叠的行；
+                    // 对 Append 恒为 `key`（即 offset），正是 offset 分页需要的语义。
+                    PagingSource.LoadParams.Append(
+                        key = offset,
                         loadSize = limit,
                         placeholdersEnabled = false
                     )
@@ -166,8 +171,13 @@ class ConversationRepository(
         return try {
             when (
                 val result = pagingSource.load(
-                    PagingSource.LoadParams.Refresh(
-                        key = if (offset == 0) null else offset,
+                    // 必须用 Append 而不是 Refresh：Room 的
+                    // `androidx.room.paging.util.RoomPagingUtil.getOffset(params, key, itemCount)`
+                    // 对 Refresh 会做「刷新窗口夹取」——`offset >= itemCount - loadSize` 时
+                    // 静默夹到 `max(0, itemCount - loadSize)`，于是翻页返回与上一页重叠的行；
+                    // 对 Append 恒为 `key`（即 offset），正是 offset 分页需要的语义。
+                    PagingSource.LoadParams.Append(
+                        key = offset,
                         loadSize = limit,
                         placeholdersEnabled = false
                     )
@@ -216,8 +226,13 @@ class ConversationRepository(
         return try {
             when (
                 val result = pagingSource.load(
-                    PagingSource.LoadParams.Refresh(
-                        key = if (offset == 0) null else offset,
+                    // 必须用 Append 而不是 Refresh：Room 的
+                    // `androidx.room.paging.util.RoomPagingUtil.getOffset(params, key, itemCount)`
+                    // 对 Refresh 会做「刷新窗口夹取」——`offset >= itemCount - loadSize` 时
+                    // 静默夹到 `max(0, itemCount - loadSize)`，于是翻页返回与上一页重叠的行；
+                    // 对 Append 恒为 `key`（即 offset），正是 offset 分页需要的语义。
+                    PagingSource.LoadParams.Append(
+                        key = offset,
                         loadSize = limit,
                         placeholdersEnabled = false
                     )
