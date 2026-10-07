@@ -62,14 +62,16 @@ import java.util.concurrent.TimeUnit
  * - `QrScannerSheetTest`（JVM）：只盖扫码的纯逻辑，不碰 MLKit / Bitmap。
  * - 本类：位图 ↔ 字符串 ↔ 配置的**全链**，外加 FileProvider URI 真可读 + Intent 形状。
  *
- * ## ⚠️ 真实限制：非 Latin-1 内容有损（本次实测发现，未修）
+ * ## ✔ 非 Latin-1 内容：已修复为显式 UTF-8 编码
  *
- * `encodeQrBitmap` 原样沿用生产的 `QRCodeWriter().encode(value, QR_CODE, size, size)`，
- * **没有** `EncodeHintType.CHARACTER_SET`。zxing 3.5.4 此时默认按 **ISO-8859-1** 取字节
- * （`QRCodeWriter.encode` → `Encoder` 的 `DEFAULT_BYTE_MODE_ENCODING`），因此群名 / 角色名 /
- * `persona` 里的**中文等非 Latin-1 字符会被替换成 `?`**，位图往返不是逐字无损。
- * 这条限制由 [nonLatin1ContentIsLossyUnderCurrentEncoderCharset] 显式钉住；本次任务要求
- * 编码逻辑「行为逐字不变」，故不在此改动生产字符集。
+ * `encodeQrBitmap` 现在走 5 参重载并显式传 `EncodeHintType.CHARACTER_SET = "UTF-8"`。
+ * 此前不带 hints 时 zxing 3.5.4 默认按 **ISO-8859-1**（`Encoder.DEFAULT_BYTE_MODE_ENCODING`）
+ * 取字节，中文 / emoji 等非 Latin-1 字符被替换成 `?`，位图往返不闭环
+ * （实测 `{"persona":"热血解说"}` → `{"persona":"????"}`）。修复由
+ * [nonLatin1ContentRoundTripsVerbatimThroughBitmapAfterUtf8Fix] 正面钉住。
+ *
+ * 副作用见生产 `QRCode.encodeQrBitmap` 的 KDoc：UTF-8 会触发 zxing 写 **ECI 头**（12 bit），
+ * v40-L 字节模式有效容量因此从 2953 降到 **2952** 字节（[qrV40LCapacityBytes] 已按实测更新）。
  *
  * ## 不证明什么
  *
@@ -84,8 +86,15 @@ class C1GroupQrBitmapRoundTripDeviceTest {
 
     private val prettyJson = Json { prettyPrint = true }
 
-    /** QR v40 / EC 级别 L / 字节模式的容量上限（zxing `QRCodeWriter.encode` 无 hint 时默认 L）。 */
-    private val qrV40LCapacityBytes = 2953
+    /**
+     * QR v40 / EC 级别 L / 字节模式的有效容量上限（zxing `QRCodeWriter.encode` 无 hint 时默认 L）。
+     *
+     * **2952，不是 2953**：生产编码现在显式带 `CHARACTER_SET = UTF-8`，zxing 会在字节模式载荷前
+     * 写 12 bit 的 **ECI 头**（4 bit ECI 模式指示 + 8 bit ECI 设计值 26），比无 ECI 时多吃
+     * 12 bit，正好吃掉 1 个字节的字节模式容量。实测（纯 JVM `QRCodeWriter.encode` 二分）：
+     * 无 hint 时 `"a".repeat(2953)` 成功；带 UTF-8 hint 时 2953 抛 `WriterException`、2952 成功。
+     */
+    private val qrV40LCapacityBytes = 2952
 
     // ------------------------------------------------------------------
     // 夹具：刻意非字典序 id（r2 → r1 → r3），用来暴露「往返时把 roles 排序了」的回归
@@ -108,9 +117,8 @@ class C1GroupQrBitmapRoundTripDeviceTest {
      * 中间那张卡 `cardId` / `avatarRef` 为 `null`：`decodeCards` 用 `string` 而非裸 `content`，
      * 否则 `JsonNull`（也是 `JsonPrimitive`，`content == "null"`）会被读成字符串 `"null"`。
      *
-     * ⚠️ 这里刻意全部用 **Latin-1 可表示** 的内容：当前生产编码路径（zxing 默认 ISO-8859-1，
-     * 未设 `CHARACTER_SET`）会把非 Latin-1 字符（如中文）有损转成 `?`。该真实限制由
-     * [nonLatin1ContentIsLossyUnderCurrentEncoderCharset] 单独记录，不在这里混入。
+     * 这里用 ASCII 内容，专门盖结构往返（字段顺序 / null 语义）；非 Latin-1（中文 + emoji）的
+     * 字符集往返由 [nonLatin1ContentRoundTripsVerbatimThroughBitmapAfterUtf8Fix] 单独覆盖。
      */
     private val cards = listOf(
         RoleCardMeta(
@@ -196,44 +204,60 @@ class C1GroupQrBitmapRoundTripDeviceTest {
     }
 
     // ------------------------------------------------------------------
-    // ①b 记录真实限制：非 Latin-1 内容被当前编码字符集有损替换
+    // ①b 正面钉住修复：非 Latin-1（CJK + emoji）位图往返逐字相等
     // ------------------------------------------------------------------
 
     /**
-     * zxing `QRCodeWriter.encode` 无 `CHARACTER_SET` 时默认 **ISO-8859-1**（3.5.4 实测），
-     * 非 Latin-1 内容（如中文）会被替换成 `?`。
+     * 修复前 zxing `QRCodeWriter.encode` 无 `CHARACTER_SET` 时默认 **ISO-8859-1**（3.5.4 实测），
+     * 中文会被替换成 `?`（`{"persona":"热血解说"}` → `{"persona":"????"}`）。生产现已显式传
+     * `EncodeHintType.CHARACTER_SET = "UTF-8"`。
      *
-     * 断言刻意**接受两种结果**（已修复 / 仍未修复），只钉住「不会部分静默损坏」这一不变式：
-     * 要么逐字无损（将来给编码器补了 UTF-8 hint），要么非 Latin-1 字符整体变 `?`。这样它
-     * 不是「永久锁死 bug」的变更探测器，同时如实记录当前生产行为。
+     * 本测试是**正面强断言**：夹具同时含 **CJK（基本区）+ 非 BMP emoji**（`🔥` U+1F525、
+     * `🀄` U+1F004、`🐉` U+1F409），要求「位图 → MLKit」整串**逐字相等**，并逐字段断言
+     * 解回的群配置 / 角色卡。
+     *
+     * 反空验证：把生产里 `CHARACTER_SET` 那行删掉后，本测试必须真红（`raw != decoded`
+     * 且 persona 变 `????`），证明它确实能判别字符集是否生效，而不是恒绿。
      */
     @Test
-    fun nonLatin1ContentIsLossyUnderCurrentEncoderCharset() {
+    fun nonLatin1ContentRoundTripsVerbatimThroughBitmapAfterUtf8Fix() {
         val chinese = "热血解说"
+        val roleName = "诸葛亮·卧龙"
+        val persona = "冷面军师，运筹帷幄🔥🀄"
+        val avatarRef = "头像://青龙/🐉"
         val chineseCards = listOf(
             RoleCardMeta(
-                roleId = "r2", name = "Bob", assistantId = "asst-r2",
-                cardId = null, persona = chinese, avatarRef = null,
+                roleId = "r2", name = roleName, assistantId = "asst-r2",
+                cardId = null, persona = persona, avatarRef = avatarRef,
             ),
         )
         val raw = GroupChat.encodeQr(config(), chineseCards)
-        assertTrue("夹具里必须确实出现非 Latin-1 字符", raw.contains(chinese))
+        // 夹具必须确实携带非 Latin-1 字符（含 emoji），否则这条测不到字符集路径。
+        assertTrue("夹具里必须出现 CJK", raw.contains(chinese))
+        assertTrue("夹具里必须出现非 BMP emoji", raw.contains("🔥"))
 
         val decoded = decodeQrFromBitmap(encodeQrBitmap(raw, 1024, Color.BLACK, Color.WHITE))
-        if (decoded == raw) {
-            println("C1-QR-CHARSET=lossless (编码器已支持非 Latin-1)")
-        } else {
-            assertFalse("非 Latin-1 字符不得原样存活（当前实现有损）", decoded.contains(chinese))
-            assertTrue(
-                "当前实现必须把非 Latin-1 字符替换为 '?'，而不是部分静默损坏",
-                decoded.contains("????"),
-            )
-            // 结构仍可解，只是文本损坏——这正是「位图往返对中文不闭环」的直接证据。
-            val payload = GroupChat.decodeSharePayload(decoded)
-            assertNotNull(payload)
-            assertEquals("????", payload!!.cards.single().persona)
-            println("C1-QR-CHARSET=lossy ISO-8859-1 (非 Latin-1 -> '?')")
-        }
+
+        // 强断言：整串逐字相等（这是修复生效的直接判据，不是「不是全问号」这种弱断言）。
+        assertEquals("UTF-8 修复后中文/emoji 位图往返必须逐字相等", raw, decoded)
+        assertFalse("修复后不得再出现被替换的 '????'", decoded.contains("????"))
+
+        val payload = GroupChat.decodeSharePayload(decoded)
+        assertNotNull("生产解码器必须解出自产载荷", payload)
+        requireNotNull(payload)
+        assertEquals("群配置必须无损", config(), payload.config)
+        // 逐字段：CJK 角色名 / persona / avatar_ref 与 emoji 必须原样存活。
+        val card = payload.cards.single()
+        assertEquals(roleName, card.name)
+        assertEquals(persona, card.persona)
+        assertEquals(avatarRef, card.avatarRef)
+        assertEquals(chineseCards, payload.cards)
+
+        val imported = GroupChat.importShare(decoded)
+        assertTrue("自产中文载荷必须被 importShare 放行，实际：$imported", imported is GroupImportResult.Accepted)
+        assertEquals(chineseCards, (imported as GroupImportResult.Accepted).payload.cards)
+
+        println("C1-QR-CHARSET=utf8-verbatim cjk=$chinese emoji_ok=${decoded.contains("🔥")} equal=${raw == decoded}")
     }
 
     // ------------------------------------------------------------------
@@ -260,7 +284,8 @@ class C1GroupQrBitmapRoundTripDeviceTest {
 
     @Test
     fun largeRealisticPayloadStillFitsWithinQrCapacityAndRoundTrips() {
-        // 3 张卡各 550 个 Latin-1 字符：总载荷 ~2.7KB，明显长于常规分享但仍落在 v40-L 容量内。
+        // 3 张卡各 550 个 ASCII 字符：总载荷 ~2.7KB，明显长于常规分享但仍落在 v40-L 容量内。
+        // 全 ASCII ⇒ UTF-8 字节数 == 字节模式实际编码字节数，故 `bytes <= 2952`（含 ECI）成立。
         val longPersona = "a".repeat(550)
         val bigCards = listOf(
             RoleCardMeta("r2", "Bob", "asst-r2", null, longPersona, null),
