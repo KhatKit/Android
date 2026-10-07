@@ -8,7 +8,11 @@ import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
+import heizige.kk.khatkit.ai.provider.Provider
+import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
+import heizige.kk.khatkit.ai.provider.TextGenerationParams
+import heizige.kk.khatkit.ai.provider.TextGenerationResult
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
@@ -24,6 +28,7 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
+import heizige.kk.khatkit.app.core.data.datastore.NetworkSetting
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
@@ -2972,8 +2977,304 @@ class C1LiveModelSequenceTest {
                     }
                 },
             )
+
+            // ==================================================================
+            // 真实网关抽取段（契约 :206 / :232-235）
+            //
+            // 上面那段走的是 `MemoryExtractor.parseAndStore` + 确定性 canned JSON，
+            // 断言钉的是空间边界 / 归因字段 / viewer 过滤 —— 一条不动。
+            // 本段把**记忆抽取本身**换成真实网关 `MemoryExtractor.extractFromTurn`
+            //（`TaskRoutes.resolve(MEMORY)` → fastModel `deepseek-v4-flash`），于是产出
+            // 契约点名的四类产物：真实模型调用序列（模型名 + prompt/completion token）、
+            // 逐例导出 SHA-256、各 viewer 可见消息 ID 台账、每空间命中列表。
+            // 用一个独立会话 + 独立空间，避免与上面那段 canned 断言互相污染。
+            // ==================================================================
+            runRealGatewayMemoryExtractionSection(caseName, memoryRepository)
         } finally {
             // ---- 清理生产记忆库：只删本用例的三个群空间与其分块 ----
+            runCatching {
+                val production = AppDatabaseFactory.create(appContext)
+                try {
+                    roles.forEach { role ->
+                        val space = scopes.getValue(role).spaceId
+                        production.memoryChunkDao().hardDeleteSpace(space)
+                        production.memorySpaceDao().deleteSpace(space)
+                    }
+                } finally {
+                    production.close()
+                }
+            }
+        }
+    }
+
+    /**
+     * C1-08 真实网关抽取段：让**记忆抽取本身**走真实 provider
+     * （`MemoryExtractor.extractFromTurn` + `TaskRoutes.resolve(MEMORY)` 绑定的
+     * `deepseek-v4-flash`），产出契约 `:206` / `:232-235` 点名的四类产物：
+     * 真实模型调用序列（模型名 + prompt/completion token）、逐例导出 SHA-256、
+     * 各 viewer 可见消息 ID 台账、每空间命中列表（role_id + source_message_id）。
+     *
+     * 与上面 canned 段**完全分开**：独立会话 + 独立空间，canned 段的断言一条不动。
+     *
+     * 记录 usage 的手段：`MemoryExtractor.extractFromTurn` 只取 `result.message.toText()`、
+     * 丢掉 `result.usage`，所以用 `ProviderManager.registerProvider`（public）把生产
+     * openai provider 包一层记录型 [RealGatewayRecordingProvider]，行为逐字透传。
+     */
+    private suspend fun runRealGatewayMemoryExtractionSection(
+        caseName: String,
+        memoryRepository: MemoryRepository,
+    ): JsonObject {
+        val entry = appEntryPoint(appContext)
+        val realCase = "$caseName-real-gateway"
+        assertRealGatewayProviderPreflight()
+
+        val config = realProviderConfig(realCase, realProviderBudget)
+        val conversationId = insertGroup(realCase, config)
+        evidenceConversations += conversationId
+
+        val triggerId = Uuid.parse("0c1c11ae-0000-0000-0000-00000000d018")
+        val ownMessageIds = mapOf(
+            "a" to Uuid.parse("0c1c11ae-0000-0000-0000-00000000a018"),
+            "b" to Uuid.parse("0c1c11ae-0000-0000-0000-00000000b018"),
+            "c" to Uuid.parse("0c1c11ae-0000-0000-0000-00000000c018"),
+        )
+        val tokens = mapOf("a" to "C1RGWA", "b" to "C1RGWB", "c" to "C1RGWC")
+        val facts = mapOf(
+            "a" to "C1RGWA 角色甲最喜欢的城市是杭州，他计划明年搬去那里长期居住。",
+            "b" to "C1RGWB 角色乙养了一只名叫团子的橘猫，已经三岁了。",
+            "c" to "C1RGWC 角色丙是一名后端工程师，主要使用 Kotlin 编写服务端代码。",
+        )
+        val roles = listOf("a", "b", "c")
+        val roundId = GroupChat.roundIdFor(triggerId.toString())
+        val fixtureNodes = listOf(
+            MessageNode.of(
+                UIMessage.user("C1-08 真实网关记忆抽取验证：请记住各自的设定。")
+                    .copy(id = triggerId, roundId = roundId, turnKind = GroupChat.TURN_USER),
+            ),
+        ) + roles.map { role ->
+            MessageNode.of(
+                UIMessage.assistant(facts.getValue(role)).copy(
+                    id = ownMessageIds.getValue(role),
+                    roleId = role,
+                    roundId = roundId,
+                    turnKind = GroupChat.TURN_SPEAKER,
+                ),
+            )
+        }
+        val stored = requireNotNull(repository.getConversationById(conversationId)) { "真实抽取会话必须读得回来" }
+        repository.updateConversation(stored.copy(messageNodes = fixtureNodes))
+        val messages = requireNotNull(repository.getConversationById(conversationId)).currentMessages
+        assertEquals("真实抽取会话必须读回 4 条夹具消息（1 user + 3 assistant）", 4, messages.size)
+
+        val scopes = roles.associateWith { MemoryToolScopeResolver.forGroupChat(conversationId.toString(), it) }
+        roles.forEach { role ->
+            assertEquals(
+                "真实抽取空间键必须固定为 group:<conversationId>:role:<roleId>",
+                GroupChat.memorySpaceId(conversationId.toString(), role),
+                scopes.getValue(role).spaceId,
+            )
+            assertEquals(
+                "真实抽取空间写入前必须不存在（懒创建），space=${scopes.getValue(role).spaceId}",
+                null,
+                memoryRepository.getSpace(scopes.getValue(role).spaceId),
+            )
+        }
+
+        // autoRetry 关掉：SettingsRepository 读回时会把 DEFAULT_PROVIDERS 补回，内置极客猫
+        // enabled + 有 key ⇒ 会经 ProviderFailover 接盘；关掉 autoRetry 同时关掉内层重试
+        // 与外层 failover，保证这一段打的就是显式配置的那个模型。
+        val settings = realProviderSettings().copy(networkSetting = NetworkSetting(enableAutoRetry = false))
+
+        val calls = mutableListOf<RealGatewayExtractionCall>()
+        val rawOpenAi = entry.providerManager().getProvider("openai")
+        @Suppress("UNCHECKED_CAST")
+        val typedOpenAi = rawOpenAi as Provider<ProviderSetting.OpenAI>
+        val recordingManager = ProviderManager(client = entry.okHttpClient(), context = appContext)
+        recordingManager.registerProvider("openai", RealGatewayRecordingProvider(typedOpenAi, calls))
+        val extractor = MemoryExtractor(memoryRepository, recordingManager, JsonInstant)
+
+        val viewerWindows = roles.associateWith { role -> GroupChat.buildContext(role, messages, config) }
+        val viewerIds = viewerWindows.mapValues { (_, msgs) -> msgs.map { it.id.toString() }.toSet() }
+
+        try {
+            roles.forEach { role ->
+                extractor.extractFromTurn(
+                    spaceId = scopes.getValue(role).spaceId,
+                    messages = viewerWindows.getValue(role),
+                    settings = settings,
+                    roleId = role,
+                )
+            }
+
+            // ---------- 断言 A：真实模型调用序列（模型名 + 真实 token） ----------
+            assertEquals(
+                "真实网关抽取必须逐角色各发起一次模型调用，实际记录=${calls.size}；" +
+                    "响应=${calls.map { it.responseText }}",
+                roles.size,
+                calls.size,
+            )
+            calls.forEachIndexed { index, call ->
+                val usage = requireNotNull(call.usage) {
+                    "第 ${index + 1} 次真实抽取没有 usage；响应=${call.responseText}"
+                }
+                assertTrue(
+                    "第 ${index + 1} 次真实抽取 prompt_tokens 必须为正，实际=${usage.promptTokens}",
+                    usage.promptTokens > 0,
+                )
+                assertTrue(
+                    "第 ${index + 1} 次真实抽取 completion_tokens 必须为正，实际=${usage.completionTokens}",
+                    usage.completionTokens > 0,
+                )
+            }
+            assertEquals(
+                "抽取模型必须是 MEMORY 任务路由绑定的 deepseek-v4-flash",
+                List(roles.size) { "deepseek-v4-flash" },
+                calls.map { it.configuredModelName },
+            )
+            val sumPromptCompletion = calls.sumOf {
+                (it.usage?.promptTokens ?: 0) + (it.usage?.completionTokens ?: 0)
+            }
+
+            // ---------- 断言 B：每空间写入 / 命中列表（role_id + source_message_id） ----------
+            val chunksByRole = roles.associateWith {
+                memoryRepository.getMemoriesOfAssistant(scopes.getValue(it).spaceId)
+            }
+            val hitsByRole = roles.associateWith { role ->
+                memoryRepository.searchHybridInSpace(
+                    spaceId = scopes.getValue(role).spaceId,
+                    query = tokens.getValue(role),
+                    limit = 10,
+                )
+            }
+            roles.forEach { role ->
+                val chunks = chunksByRole.getValue(role)
+                assertTrue(
+                    "角色 $role 的真实网关抽取必须至少写入 1 条记忆，实际=${chunks.map { it.content }}；" +
+                        "逐次响应=${calls.map { it.responseText }}",
+                    chunks.isNotEmpty(),
+                )
+                chunks.forEach { chunk ->
+                    assertEquals("真实抽取 chunk 的 role_id 必须是 $role", role, chunk.roleId)
+                    val source = chunk.sourceMessageId
+                    assertTrue(
+                        "真实抽取 chunk 的 source_message_id 必须指向该角色的 viewer 可见消息，" +
+                            "实际=$source，可见=${viewerIds.getValue(role)}",
+                        source != null && source in viewerIds.getValue(role),
+                    )
+                    assertTrue(
+                        "角色 $role 的空间不得混入他人 token，实际=${chunk.content}",
+                        roles.filter { it != role }.none { other -> chunk.content.contains(tokens.getValue(other)) },
+                    )
+                }
+                val hits = hitsByRole.getValue(role)
+                assertTrue(
+                    "角色 $role 用自己 token 检索自己的空间必须命中，实际=${hits.map { it.content }}",
+                    hits.isNotEmpty(),
+                )
+                hits.forEach { hit ->
+                    assertEquals("检索命中的 role_id 必须是 $role", role, hit.roleId)
+                    val source = hit.sourceMessageId
+                    assertTrue(
+                        "检索命中的 source_message_id 必须指向该角色 viewer 可见消息，实际=$source",
+                        source != null && source in viewerIds.getValue(role),
+                    )
+                }
+                assertNotNull(
+                    "真实抽取写入后空间必须已存在（懒创建）",
+                    memoryRepository.getSpace(scopes.getValue(role).spaceId),
+                )
+            }
+
+            // ---------- 断言 C：各 viewer 可见消息 ID 台账 + 逐例导出 SHA-256 ----------
+            val plans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+            val ledger = viewerVisibilityLedger(messages, config, plans)
+            assertViewerVisibilityLedger(ledger, messages, config, plans)
+            val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-memory-isolation-real.jsonl")
+            trace("real-memory:export-hash=${exportEvidence["export_sha256"]}")
+
+            val report = buildJsonObject {
+                put("evidence_kind", "device-instrumentation-memory-isolation-real-gateway-extraction")
+                put(
+                    "scope_note",
+                    "记忆抽取走真实公网网关 MemoryExtractor.extractFromTurn（TaskRoutes.resolve(MEMORY) " +
+                        "→ deepseek-v4-flash）；产出真实模型调用序列 / token / 导出哈希 / viewer 台账。",
+                )
+                put("generated_at_device", System.currentTimeMillis())
+                put("device", deviceBlock())
+                put("case", realCase)
+                put("conversation_id", conversationId.toString())
+                put("round_id", roundId)
+                put("memory_space_key_format", "group:<conversationId>:role:<roleId>")
+                put("space_key_resolver", "MemoryToolScopeResolver.forGroupChat")
+                put("provider_id", realProvider.id.toString())
+                put("provider_base_url", realProvider.baseUrl)
+                put("network_setting_enable_auto_retry", settings.networkSetting.enableAutoRetry)
+                putJsonObject("fixture_input") {
+                    put("source", "static fixture inserted into the evidence Room DB before extraction")
+                    put("trigger_user_message_id", triggerId.toString())
+                    roles.forEach { role ->
+                        put("${role}_assistant_message_id", ownMessageIds.getValue(role).toString())
+                        put("${role}_content", facts.getValue(role))
+                        putJsonArray("${role}_viewer_message_ids") {
+                            viewerWindows.getValue(role).forEach { add(JsonPrimitive(it.id.toString())) }
+                        }
+                    }
+                }
+                putJsonArray("actual_model_call_sequence") {
+                    calls.forEachIndexed { index, call ->
+                        add(
+                            buildJsonObject {
+                                put("seq", index + 1)
+                                put("role_id", roles[index])
+                                put("wire_model_name", call.wireModelName)
+                                put("configured_model_name", call.configuredModelName)
+                                put("usage_prompt_tokens", call.usage?.promptTokens)
+                                put("usage_completion_tokens", call.usage?.completionTokens)
+                                put("usage_total_tokens", call.usage?.totalTokens)
+                            },
+                        )
+                    }
+                }
+                put("sum_prompt_plus_completion", sumPromptCompletion)
+                putJsonObject("spaces") {
+                    roles.forEach { role ->
+                        putJsonObject(role) {
+                            put("space_id", scopes.getValue(role).spaceId)
+                            put("written_chunk_count", chunksByRole.getValue(role).size)
+                            putJsonArray("search_hits") {
+                                hitsByRole.getValue(role).forEach { hit ->
+                                    add(
+                                        buildJsonObject {
+                                            put("id", hit.id)
+                                            put("content", hit.content)
+                                            put("role_id", hit.roleId)
+                                            put("source_message_id", hit.sourceMessageId)
+                                        },
+                                    )
+                                }
+                            }
+                            putJsonArray("written_chunks") {
+                                chunksByRole.getValue(role).forEach { chunk ->
+                                    add(
+                                        buildJsonObject {
+                                            put("id", chunk.id)
+                                            put("content", chunk.content)
+                                            put("role_id", chunk.roleId)
+                                            put("source_message_id", chunk.sourceMessageId)
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                put("viewer_visibility", ledger)
+                exportEvidence.forEach { (key, value) -> put(key, value) }
+            }
+            writeEvidence("c1-live-evidence-memory-isolation-real-gateway.json", report)
+            return report
+        } finally {
+            // 只删本段真实抽取的三个群空间与其分块。
             runCatching {
                 val production = AppDatabaseFactory.create(appContext)
                 try {
@@ -4717,6 +5018,50 @@ class C1LiveModelSequenceTest {
         const val EXPORT_PULL_DIR = "c1-live-export"
 
         val PRETTY = Json { prettyPrint = true; encodeDefaults = true }
+    }
+}
+
+/**
+ * C1-08 真实网关抽取：一次 `generateText` 调用的记录。
+ *
+ * @param wireModelName 网关响应体顶层 `model` 字段的原样字符串（`TextGenerationResult.model`）。
+ * @param configuredModelName 本次请求 body 里按配置发出的 `model`（`Model.modelId`）。
+ * @param usage 网关返回的真实 token 计数；`MemoryExtractor.extractFromTurn` 本身会丢掉它，
+ *   所以由本记录层留下。
+ * @param responseText 模型原始回复正文（排查「抽不出 fact」时的现场）。
+ */
+private data class RealGatewayExtractionCall(
+    val wireModelName: String,
+    val configuredModelName: String,
+    val usage: TokenUsage?,
+    val responseText: String,
+)
+
+/**
+ * 包住真实 provider 的**记录型** Provider：只多记 usage / 模型名，其余行为逐字透传
+ * （`by delegate` 覆盖全部接口方法，只覆写 [generateText]）。
+ *
+ * 动机：`MemoryExtractor.extractFromTurn` 只取 `result.message.toText()`，`result.usage`
+ * 被丢掉，拿不到契约 `:206` 要求的 prompt+completion token。用 `ProviderManager.registerProvider`
+ * 这个 public 入口把它包一层即可在不改生产代码的前提下把 usage 截下来。
+ */
+private class RealGatewayRecordingProvider(
+    private val delegate: Provider<ProviderSetting.OpenAI>,
+    private val calls: MutableList<RealGatewayExtractionCall>,
+) : Provider<ProviderSetting.OpenAI> by delegate {
+    override suspend fun generateText(
+        providerSetting: ProviderSetting.OpenAI,
+        messages: List<UIMessage>,
+        params: TextGenerationParams,
+    ): TextGenerationResult {
+        val result = delegate.generateText(providerSetting, messages, params)
+        calls += RealGatewayExtractionCall(
+            wireModelName = result.model,
+            configuredModelName = params.model.modelId,
+            usage = result.usage,
+            responseText = result.message.toText(),
+        )
+        return result
     }
 }
 
