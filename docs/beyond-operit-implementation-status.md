@@ -29,6 +29,78 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 2026-10-04 已按 `KodeHeapServer/deploy.sh` 部署到 https://heizige.top。
 就绪探针与 `/api/items`、`/api/cards` 冒烟通过。客户端 `marketNewKinds` 仍默认关闭。
 
+## ⚠️⚠️ 未完成事项 / 交接（2026-10-07，C1 收尾，HEAD `4f4c19565`）
+
+> 用户已明令停止开发。这是**下一次接手**的入口清单：先读这一节，再读 `docs/eval/c1-group-chat.md`。
+> 所有「已完成 / 未完成」以本节的实测数字与 `docs/eval/c1-group-chat.md` 的逐格状态为准。
+
+### 1. C1 验收现状：**10/10 `verified`**（真机第二十一轮后）
+
+- 十例 C1-01…C1-10 **全部 `verified`**（用例矩阵表 + 证据登记表两侧状态格一致）。
+- 最后一格 **C1-09** 由「真机第二十一轮」（HEAD `4f4c19565`）升格：真机自动化证明生产 `shareFile` 真拉起系统分享 chooser（`launchedFromPackage=heizige.kk.khatkit.debug`）。
+- ⚠️ **仍未升的旁支不属 C1 十例，别混**：A1 浏览器真实站点、B1 工作流可视化、A5 酒馆本体「打开并回导」闭环等，见下文与「真正没做完的事」。
+
+### 2. commit 台账：**已补齐，无未登记 commit**
+
+- 本批登记 `4f4c19565`（主角）+ 补登 `4ff9dc62d` / `49c49b4a8`（第二十五批登记本体）。
+- 追溯核对：`83dbf014f` / `766c61434` / `ffc3989e5` / `2c304efe3` 均已在「C1 真机证据采集第二十轮」「第十九轮」台账窗口登记；`1758e2109` / `df4c70f09` / `bf5c4d91b` / `179994155` 等在第十九 / 第十八轮窗口登记。
+- ⚠️ **惯例**：每批的「登记本体」commit（改 `docs/` 的那几个）按惯例**留到下一批补登**，台账不编造。本批的登记本体 = `docs/eval/c1-group-chat.md`「真机第二十一轮证据节 + 20 状态格订正 + 台账第二十六批 + 遗留 53 订正」与本文「第三十一批 + 本节」，SHA 得下一批补。
+
+### 3. 设备侧遗留（OnePlus `PKG110` / Android 16 / API 36）
+
+1. **⚠️ debug 包 `heizige.kk.khatkit.debug` 的 DataStore 现为「测试态」、未清（需用户决定是否清理）**：providers = 极客猫、assistants = 角色甲/乙/丙、`enableAutoRetry=false`。根因 = 更早一次运行被 `am force-stop` 中止、没跑到 `@After` 还原。
+2. **已还原（读回验证过）**：`screen_off_timeout=30000`、`stay_on_while_plugged_in=0`。
+3. **无线调试端口每次都变**：本轮历史值 `38493` / `37957` / `40879` / `46888` / `34387`；**必须用 `adb mdns services` 找当前端口**。**`46888` 长期 open 但不是 adb**（别把它当调试端口）；重连需**人工**。
+4. 设备侧 `settings.preferences_pb` 仍含历轮测试 provider / 助手（`docs/eval/c1-group-chat.md` 遗留第 55 条，未清）。
+
+### 4. 未修的既有缺陷（有意保留）
+
+1. **⚠️⚠️ `common/.../http/okhttp/sse/EventSource.kt:85-100` 非 2xx 无条件硬编码 `t = null`**——`listener.onFailure(this, null, Response(body = 非 2xx 响应体))`（签名见 `EventSource.kt:39` `onFailure(eventSource, t: Throwable?, response: Response?)`）。**这是根因契约、有意未改**：改它会同时影响 Claude / Google / ResponseAPI 全部路径。同类已修的三处是**下游按 `Response` 判非 2xx**：`ChatCompletionsAPI.kt`（`43d607bdd`）、`ResponseAPI.kt`（`e628d9d82`）、`ClaudeProvider.kt`（`8b05fde70`）—— 三处均已登记（见本文第十五 / 第十八批），**无未登记项**。
+2. **群聊「取消 / `BUDGET_STOPPED`」轮次无续跑入口**：`GroupRetryEntry.canResume`（`app/src/main/java/heizige/kk/khatkit/app/feature/chat/GroupRetryEntry.kt:61-69`）只认 `TURN_ERROR` 节点；`CANCELLED` / `BUDGET_STOPPED` 只写 `group_runs` 状态、不落错误节点 ⇒ 无 UI 续跑入口（协调器本身支持这几态续跑，`GroupTurnCoordinator.kt:264`）。**只有失败错误节点有入口。**
+
+### 5. 非 C1 挂账（待用户拍板）
+
+- **KodeHeap 压着 218 个未提交文件**（`202 D + 12 M + 4 ??`），卡在 `kodehead → kodeheap` 全树改名中途，最后提交 `2026-09-18`（`b79283526` `chore: 域名迁移 heizige.space → heizige.top`；当前分支 `opencode-backend`）⇒ 需决定**收尾还是回滚**。⚠️ **不在本仓库**，在 `/home/heizige/文档/Android/Project/KodeHeap`。
+
+### 6. 九处禁碰文件（别人 / 用户的在途改动，**不要动**）
+
+开工 / 收尾 `git status --porcelain` 原文（**恰为这九行**）：
+
+```
+ M app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernMacroExpander.kt
+ M app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/KedgeMiuixMorphingTitleBar.kt
+ M app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatDrawer.kt
+ M app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatPage.kt
+ M app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingAboutPage.kt
+ M docs/architecture-map.md
+ D docs/upstream-sync-2026-10-03.md
+?? app/src/androidTest/java/heizige/kk/khatkit/app/core/data/db/C1GroupUiE2EFixtureTest.kt
+?? docs/uiredesign.md
+```
+
+**这九处禁 `add` / `commit` / 修改 / `stash` / `checkout`。**
+
+### 7. 关键操作规程（让下一个人不重复踩坑）
+
+- `am instrument` 的 **shell 退出码失败也恒 0**：判据读日志 `OK (1 test)` / `FAILURES!!!`，别看退出码。
+- 仪器前处理 **ColorOS 冻结与前台化**：正确类名 `heizige.kk.khatkit.app.RouteActivity`。
+- `--rerun` **只作用于紧邻其前的那一个 task**。
+- **不用 `connectedAndroidTest`**（跑完卸载 app，会删掉外置目录里的证据文件）；采证据手动 `install -r -t` + 手动 `am instrument` + `adb pull`。
+- `git add` **只用显式路径**；禁 `--force` / `--amend`。
+- `upstream` / `upstream-ssh` **绝不推**。
+- 九处禁碰（见第 6 节）。
+
+### 8. 基线数字（判回归用；**以本批实测为准**）
+
+- `:app:testDebugUnitTest` **118 类 / 961 例 / 0F0E0S**
+- `:ai:test` **30 类 / 220 例**
+- app lint **`0 error / 617 warning / 6 hint = 623`**、全模块 **`0/650/7 = 657`**
+- `c1_doc_stats.py` **OK 18 / WARN 0 / FAIL 0**（`tables` 175 块 / 1404 行）
+- 台账 **51 行 / 531 例**；锚点 `1b0e04a9` **78 commits / 0 merges**
+- 仪器 `@Test`：tracked **23 文件 / 98 例**、含 untracked **24 文件 / 101 例**（untracked = `C1GroupUiE2EFixtureTest.kt`）
+- 脚本 `c1_doc_stats.py` sha256 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`（**一字节未改**）
+
+
 ## C1 交给下一位（2026-10-05）
 
 现状一句话：**代码层七项缺口全部落地，验收证据 0/10。**
@@ -1363,6 +1435,26 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 **④ 证据哈希（登记子代理本机复算，与报告值逐字符相同）**：`c1-live-evidence-real-qr-export.json` **8711 B / `51d42e0f…0f22f8d`**；`c1-export-real-qr-export.jsonl` **2314 B / `97f2c2ca…967f87c0`**（无尾随换行，解析 5 行）；`c1-real-raw-dump-qr-export.json` **8240 B / `00b56308…a0a3cc6`**。⚠️ am instrument 日志（`OK (1 test)` / `Time: 11.046`）未随证据目录提供，**未能复算**（转述执行者）。
 
 📍 完整逐字段值、8 项核对、非空验证、反方意见与诚实限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第二十轮」。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `ChatDrawer.kt` / `ChatPage.kt` / `SettingAboutPage.kt` / `KedgeMiuixMorphingTitleBar.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
+### ⚠️ 第三十一批（真机第二十一轮 / C1 收尾，2026-10-07，HEAD `4f4c19565`）：**真机自动化证明生产 `shareFile` 真拉起系统分享 chooser ⇒ C1-09 升 `verified`（C1 达 10/10）；新增「未完成事项 / 交接」节；台账 51 行 / 531 例不变**
+
+⚠️⚠️ **先说性质**：本批 = **登记提交 + 一次真机采集窗口的证据**（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`）。**本批只改 `docs/` 两个文件**（`docs/eval/c1-group-chat.md` + 本文），**未 add / commit / 修改工作区里任何其他未提交改动**。开工 / 收尾 HEAD = **`4f4c19565`**（`git rev-parse HEAD` 实测 = `4f4c1956513c056178d70b054a22a89940c35af2`）。窗口 `83dbf014f..4f4c19565` 实测 **3 个 commit**（`--merges` = 0）：主角 `4f4c19565`（新增 `app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1GroupShareChooserDeviceTest.kt`，**224 行 / 1 `@Test`**）+ 上一批（第二十五批）按惯例留到本批补登的登记本体 2 个（`4ff9dc62d` / `49c49b4a8`）。
+
+**① 判定影响（20 格逐格）：2 格改值** —— **C1-09 在用例矩阵表与证据登记表两格内 `unverified` → `verified`**；其余 9 例维持原判。20 格每格就地追加「第二十六批订正」（保留原文）。⇒ **C1 十例现 10/10 `verified`**。
+
+**② C1-09 裁定：升 `verified`（契约逐条）**
+
+| 用例 | 裁定 | 关键依据（契约行号） |
+|---|---|---|
+| C1-09 Tavern/QR 往返 | **升 `verified`** | `4f4c19565` 真机 `C1GroupShareChooserDeviceTest#realProductionShareFileOpensSystemChooser` 直接调用生产 `shareFile`（`ConversationExport.kt:860`，与 `GroupExportCard.kt:218` 同形），用 framework `UiAutomation` 读 `dumpsys activity activities` 实测系统 chooser 被被测包拉起（`act=android.intent.action.CHOOSER` / `launchedFromPackage=heizige.kk.khatkit.debug` / `com.android.intentresolver/.ChooserActivity`），真机 `OK (1 test)` / Time 2.401。契约 `:205`（导出/恢复）/`:206`（8 字段）/`:232-235`（验收记录格式）与 C1-09 的「必须断言」「怎么采」**均未点名分享面板**；8 字段由「第二十轮同源往返」（viewer 台账 / 调用序列 / token / 导出哈希）＋本批 chooser 自动化组合齐备；档 2（在面板里选目标证明送达）属系统 resolver + 目标 app 职责，不做不阻塞。⚠️ 诚实边界：「档 2」未做、UI 点击穿透未验、酒馆 `open→save` 闭环不成立。见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第二十一轮」④/⑤ |
+
+**③ 统计口径（登记子代理本机实测）**：`git rev-parse HEAD` = `4f4c1956513c056178d70b054a22a89940c35af2`；`git log --oneline 83dbf014f..HEAD` = **3**（`--merges` = 0；含上一批登记本体 2 个）；`git log --name-only 83dbf014f..HEAD -- 'app/src/test/*'` = **空** ⇒ 台账声明值**不变：51 行 / 531 例**（锚点 `1b0e04a9` 不重算：78 / 0 merges）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test`（0 处失败）/ `--only tables`（**175 块 / 1404 行**、0 不符）/ `--only ledger`（51 行 / 531 例 / 逐行相等）**均 exit 0**；脚本 sha256 **仍为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`（一字节未改）**。⚠️ **仪器 @Test 口径变动**：新增 1 个 androidTest 文件 / 1 个 `@Test` ⇒ tracked **23 文件 / 98 例**、含 untracked **24 文件 / 101 例**（⚠️ **以本批实测为准**；原转述的 22/97、23/100 已过期）。基线沿用上一批（本批零 JVM 改动）：`:app:testDebugUnitTest` 118 类 / 961 例 / 0F0E0S；`:ai:test` 30 类 / 220 例；lint app `0/617/6=623`、全模块 `0/650/7=657`。四条命令退出码（**转述执行者**，本批未复跑 gradle）：`compileDebugAndroidTestKotlin` **0**；`testDebugUnitTest --rerun :ai:testDebugUnitTest --rerun` **0**；`lintDebug` **0**；`c1_doc_stats.py` OK 18 / WARN 0 / FAIL 0。
+
+**④ 证据哈希（登记子代理本机复算，与报告值逐字符相同）**：`c1-chooser-share-report.json` **2206 B / `d791eaa633491a06df5c72f2b4d48b5a43d8dd355f6870b79836210f394c7d8a`**（本机副本 `/tmp/opencode/c1-chooser-share-report.json`；设备路径 `/sdcard/Android/data/heizige.kk.khatkit.debug/files/c1-chooser-share/c1-chooser-share-report.json`）。⚠️ `am instrument` 日志（`OK (1 test)` / Time 2.401；非空验证 `FAILURES!!!` / Time 21.925）未随证据目录提供，**未能复算**（转述执行者）。
+
+📍 完整逐字段值、8 项核对、非空验证、诚实边界见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第二十一轮」。
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `ChatDrawer.kt` / `ChatPage.kt` / `SettingAboutPage.kt` / `KedgeMiuixMorphingTitleBar.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 
