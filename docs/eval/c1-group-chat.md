@@ -5440,6 +5440,89 @@ mock 本体 `tools/verification/mock_openai_slow_cancel.py` 本机 `sha256sum` �
 - **第 50 条**（C1-10 `pagingSource_*` 5 失败）：**✅ 已修（`0ae9f570a` + `5ca9ecbaf`）且本批真机 8/8 全绿**。
 - **第 45 条**（零产出间歇性）：本批未碰，不动。
 
+### C1 真机证据采集第十七轮 / C1-09 收尾批次（2026-10-07，HEAD `e2bfce4ad`：真 SillyTavern 服务器应用级导入验证 + 二维码位图真机往返 + 二维码中文有损缺陷修复；台账第二十二批）
+
+> ⚠️ **轮次命名说明**：本文档「C1 真机证据采集第 X 轮」是真机采集序列，上一轮为**真机第十六轮**（HEAD `bd88aaff2`，见上）。本批含**真机采集**（二维码位图往返真机 6 条 + 字符集修复真机复跑），故据序为**第十七轮**；同时它也是「C1 commit 台账」的**第二十二批**（实施状态侧第二十七批）。
+
+🚨 **先说性质**：本批 = **9 个 commit 的混合批次**（`git log --oneline ae08f2525..HEAD` 实测 9 个、`--merges` = 0、`git rev-parse HEAD` = `e2bfce4adbf2ca03195c4030b9763a6a71af37aa`）。内容 = ① 纯 JVM 测试（零生产改动）② 真 SillyTavern 服务器**应用级**导入验证（宿主，仓库外）③ **本批唯一生产改动**（`QRCode.kt` 抽出可测函数）④ **二维码位图端到端真机往返**（设备 OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`，6 条 `OK`）⑤ **二维码非 Latin-1 有损缺陷修复**（含真机非空验证）。⚠️ **本批不重跑任何 gradle**（所有数字由执行者给出）；登记子代理**独立复算**了仓库内文件的 `sha256`、`@Test` 计数、`git log` 计数（见各条「登记子代理实测」）。
+
+**① C1-09③ 可纯代码部分落测（`28c05f2db`，+372/−0，仅测试、生产零改动）**
+
+- 新增 **2 个 `app/src/test` 类**（`git log --name-only ae08f2525..HEAD -- 'app/src/test/*'` 实测只有这两个新文件）：
+  - `app/src/test/java/heizige/kk/khatkit/app/core/data/model/C1GroupQrPayloadCodecRoundTripTest.kt`（**5 例**，登记子代理 `grep -c '@Test'` 实测 5）：二维码**载荷**的字符串 ↔ 配置往返 —— `encodeQr -> importShare` 逐字段（`schema_version` / `mode=roundtable` / `chair_role_id=r3` / `token_budget_per_round=1234` / **roles 顺序**（刻意乱序 `r2,r1,r3`）/ chair 位 / 整体相等）；角色卡最小元数据往返（显式断言中间卡 `cardId==null`、`avatarRef==null` 仍是 null，而非字符串 `"null"`）；`decodeSharePayload` 逐字段；`decodeQr` == `decodeSharePayload().config`；二次往返 `encode->decode->encode` **字节相等**。
+  - `app/src/test/java/heizige/kk/khatkit/app/feature/chat/GroupExportShareIntentSourceGuardTest.kt`（**5 例**，实测 5，**源码护栏**）：`shareFile`（`ConversationExport.kt:860-872`）的 `ACTION_SEND` / `type = mimeType` / `EXTRA_STREAM` / `FLAG_GRANT_READ_URI_PERMISSION` 各恰一次 + `createChooser` + `chat_page_export_share_via`；`writeExportTempFile`（`:836-852`）`FileProvider.getUriForFile` 恰一次、authority 按包名派生恰一次；`ExportHooks.exportAndShare`（`:42-63`）四项各恰一次 + authority；含**反空跑保护**（扫描器仍能找到东西）。
+- **5 组破坏全真红 + 逐字节还原**（执行者报告）：①`GroupChat.kt:349` `chair_role_id`→`_BROKEN` → 4 failed；②`encodeConfigObject` 的 `config.roles`→`.sortedBy{it.id}` → 3 failed；③`decodeCards` 的 `card.string("card_id")`→裸 `content` → `ComparisonFailure …[null]… but was:…["null"]…`；④`shareFile` 的 `addFlags(FLAG_GRANT_READ_URI_PERMISSION)`→`addFlags(0)` → `expected:<1> but was:<0>`；⑤`ExportHooks` `type="application/json"`→`"text/plain"` → 同上。
+- **为什么不做位图往返**（本批前）：编码 `String->Bitmap` 当时内联在 `QRCode.kt:28-40` 的 `@Composable` 里、无可独立调用 API；解码唯一入口是 MLKit（需 Android 运行时）；仓库 `testImplementation` 只有 junit（`app/build.gradle.kts:343`）、无 Robolectric。⇒ 位图往返留给 ④ 的真机 `androidTest`。
+
+**② 真 SillyTavern 服务器应用级导入验证（`5833cbbd9` / `c21cc4028`）**
+
+- **环境**：`git fetch --depth 1` 钉死 commit **`06bde939fb1e9c4c8d8641d810f0a916b5bce127`**（与仓库既有登记同 SHA）、`LICENSE` = **AGPL-3.0**（sha256 `8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef`）；`npm install` 829 包 exit 0；`node server.js --port 8123` 起真服务，`GET /version` → `{"gitRevision":"06bde93","pkgVersion":"1.19.0"}`；默认 `enableUserAccounts: false` ⇒ **免登录**，CSRF 开启（无 token `POST /api/ping` = **403**，带 token = 204）。⚠️ **SillyTavern 本体只在 `/tmp/opencode/sillytavern-server/SillyTavern`，未入库**（登记子代理 `git ls-files` 实测：仓库内**没有任何** SillyTavern 源码，只有一个 HTTP harness）。
+- **导出文件**（登记子代理实测）：`app/build/c1p-group-export-hash/pipeline_3roles_2rounds_jsonl.txt` **3615 B** `36e6585f9aa4a028eb8277bc70578fd2c802cdd730e3981f0d52b02430f0c8b9`（本机 `ls -la` 实测 **3615 字节**）；`/tmp/opencode/c1-device-r7/phaseA-pull/c1-device-export-pipeline.jsonl` **2938 B** `4945b85426def123b7bc07382dbf03977c35908650a114ffac7cf782f9976f4b`（仓库外）。
+- **真实 HTTP 结果**：`POST /api/chats/group/import`（`multipart/form-data`，`file_type=jsonl`）→ **HTTP 200** `{"res":"2026-10-07@10h35m51s091ms"}`（两份各一次）；落盘字节 **3615 / 2938**，与源文件**逐字节相同**（真 copy）；`POST /api/chats/group/get` → 200，golden 9 对象 / device 8 对象（表头+消息）；`POST /api/chats/group/info` → 200，`{"chat_items":8, "mes":"伽马：汇总结论 \"采纳 a\" 🎓", …}`。
+- **服务端解析正确**：条数 / 顺序 ✅、`name` 归因（`阿达`/`阿尔法`/`贝塔`/`伽马`/`多数决`）✅、`is_user`（阿达=True）/ `is_system`（全 False）✅、`chat_items` 排除表头（8/7）✅。
+- **私有顶层键 `khatkit_group` / `khatkit_character_names` 被保留、不报错**（`/group/get` 原样回传）；无 `send_date` 时 `getChatInfo` 回退文件 mtime 作 `last_mes`。
+- **野生 jsonl 行为**：未注册时 `/api/groups/all` = []、`/api/chats/search` 与 `/api/chats/recent` **都查不到**、客户端也打不开（`group-chats.js:2195` `openGroupChat`，注册闸门 `:2199`）；最小注册（`POST /api/groups/create {chats:[id], chat_id:id}`）后群出现、`chat_size=3615`、`/api/chats/search{group_id}` 返回 `message_count=8`。
+- **open→save 往返**：`POST /api/chats/group/save` → 200 `{"ok":true}`；文件 **3615 B → 2230 B**；重存首行 = `{"chat_metadata":{"is_group":true,"integrity":"<uuid>"},"user_name":"unused","character_name":"unused"}` ⇒ **确认丢私有表头块**（`khatkit_group` / `khatkit_character_names` / `spec` / 原 `user_name` / `character_name`）。
+- ⚠️ **推翻一个预置假设（本批关键订正）**：**重存文件回 KhatKit 不是 `NoConfig` 而是 `Unsupported`** —— `TavernChatCodec.importGroup` **`:298`** `payload = document.header[GROUP_FIELD] as? JsonObject ?: return null`（表头无 `khatkit_group` 直接 `return null`），调用方 `GroupTavernImport.kt:176-180` 映射为 `TavernGroupImportOutcome.Unsupported`（`isError=true`）。`NoConfig` 只在「`khatkit_group` 键在、但里面没 `config`」的畸形文件上可达。**登记子代理实测**：`TavernChatCodec.kt:298` 与 `GroupTavernImport.kt:169/177` 现文逐行核实；JVM 测试级证据 `GroupTavernImportTest` 的 `a file without the khatkit_group block at all is not a config problem`（`app/src/test/java/heizige/kk/khatkit/app/feature/chat/GroupTavernImportTest.kt:217`）**PASS**。⚠️ **未做到**：用 JVM 对「重存后的真实字节」直跑 `importGroup`（离线取 `debugUnitTestRuntimeClasspath` 被 AGP 9.3.1 变体消解挡住）。
+- 本 clone 实测行号（执行者报告，登记子代理未逐行复核）：`chats.js` `getChatData`=577、`/group/import`=751、`/group/get`=872、`/group/save`=922、`/search`=949、`/recent`=1054、`getChatInfo`=393；`util.js` `tryParse`=571；`group-chats.js` `getGroupChat`=255（`chat_metadata`:268、`shift`:272、`splice`:305）、`saveGroupChat`=623、`openGroupChat`=2195（闸门:2199）。
+- **交付物**：`tools/verification/verify_sillytavern_import.py`（入库，登记子代理实测 337 行 / sha256 `9c0bfcc1403ba23ae8c4370164a3fde7e38f9049406f2a082c85cbfee2d0b672`）—— 脚本头写明钉死 commit 与 AGPL-3.0；**只走 HTTP、不拷贝任何 SillyTavern 源码进仓库**；自助取 CSRF / 存 cookie、导入 / 回读 / 注册 / 往返全流程，**39/39 断言通过、退出码 0**，可重复运行（`c21cc4028` 把野生 jsonl 判定改为成员检测以支持重复运行）。
+
+**③ `QRCode.kt` 抽出可测函数（`f35c8ccf0`，本批唯一生产改动，行为逐字不变）**
+
+- `app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/QRCode.kt`：新增顶层 `internal fun encodeQrBitmap(value, size, foregroundColor, backgroundColor): Bitmap`，把原先内联在 `@Composable` 里的 `QRCodeWriter().encode(...)` + 逐像素写入逻辑**原样搬出**；`@Composable QRCode(...)` 对外签名不变，改为调用点算 `toArgb()` 传入并 `remember(value, size, foregroundArgb, backgroundArgb)` 缓存。调用方（`GroupChatPage.kt` / `GroupExportCard.kt`）**零改动**。唯一语义差异：去掉 `remember { QRCodeWriter() }`（writer 改在函数内新建，`encode` 是纯函数）。**登记子代理实测**（`read` 全文 + `grep`）：`QRCode.kt` 现文 `:73-88` 即 `encodeQrBitmap`，`:33-40` 的 `remember` 键为 `(value, size, foregroundArgb, backgroundArgb)`，逐像素写法与 `createBitmap` 一致。
+
+**④ 二维码位图端到端真机往返（`5f461d9f6` / `16d00e9f4`）**
+
+- 新文件 `app/src/androidTest/java/heizige/kk/khatkit/app/core/ui/components/ui/C1GroupQrBitmapRoundTripDeviceTest.kt`（登记子代理实测 **6 个 `@Test`**），**6 个方法全部真机 `OK (1 test)`**（设备 OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`）：
+  1. `qrPayloadSurvivesBitmapRoundTripThroughMlkitAndDecodesFieldByField`（0.705s）—— 生产 `encodeQr` → 生产 `encodeQrBitmap` → **MLKit** `BarcodeScanning.getClient(FORMAT_QR_CODE)` + `InputImage.fromBitmap(bitmap,0)`（`Tasks.await(...,30s)`）→ 解出串**逐字等于** `encodeQr` 输出 → `decodeSharePayload` 逐字段断言（含 roles 顺序、中间卡 `cardId=null`/`avatarRef=null` 仍是 null）→ `importShare` 放行且 `config`/`cards` 相等
+  2. `nonLatin1ContentIsLossyUnderCurrentEncoderCharset`（0.744s）—— 当时钉住字符集限制（**后被 ⑤ 改成正面断言**）
+  3. `samePayloadDecodesIdenticallyAtDifferentSizes`（1.715s）—— 512/1024/1536 三个 size 解出同一串
+  4. `largeRealisticPayloadStillFitsWithinQrCapacityAndRoundTrips`（1.283s）—— 3 张卡各 550 字符、载荷 ~2.7KB
+  5. `oversizedPayloadIsRejectedByEncoderInsteadOfSilentlyTruncated`（0.049s）—— 3000 字符夹具断言 zxing 抛 `WriterException`，不静默截断
+  6. `exportTempFileUriIsReadableAndItsBytesEqualProductionJsonl`（0.114s）—— 生产 `writeExportTempFile` → `contentResolver.openInputStream(uri)` 真读 → 字节**逐字节等于** `TavernChatCodec.exportGroupJsonl`；authority = `包名.fileprovider`；**不弹分享面板**，只对同形 `Intent` 断言 `action` / `type=application/json` / `EXTRA_STREAM` / `FLAG_GRANT_READ_URI_PERMISSION`
+- 真机证据已 pull（执行者报告，仓库外）：`/tmp/opencode/qr_evidence/c1-qr-bitmap/c1-qr-bitmap-roundtrip.json`（`raw_bytes=1159`、`decoded_equals_raw=true`、bitmap 1024×1024 ARGB_8888）与 `…-sizes.json`。
+- **4 组破坏全真红 + 逐字节还原**（执行者报告；还原后 sha256 与基线相等）：①`QRCode.kt` `BarcodeFormat.QR_CODE`→`DATA_MATRIX` → `IllegalArgumentException: Can only encode QR_CODE, but got DATA_MATRIX`；②`GroupChat.kt` decode `roles.sortedBy{it.id}` → `expected:<[r2, r1, r3]> but was:<[r1, r2, r3]>`；③`ConversationExport.kt` 写盘后追加 1 字节 → `AssertionError: 通过 FileProvider 读回的字节必须逐字节等于生产 JSONL`；④测试内 Intent 去掉 `addFlags` → `AssertionError: 必须带 FLAG_GRANT_READ_URI_PERMISSION…`。④ 阶段还原后 sha256：`51815ee8b01747eb7ed6da63064dc74e7e0cd3dd5d1b6a5123d6780ba9d2485d`（QRCode.kt，**⑤ 修复前**）/ `0f61ffdd2c63a0ecfcfc670e341db4e87b581bd4bfe2337c65e14895b935c8f9`（GroupChat.kt）/ `b6b821271ddb79dda6c19e68d7784e254a62c11a620c56bcf3e7fb410fa5b775`（ConversationExport.kt）/ `d4382815754d6d03d9af2241788628750409b44c64b849cab73eeacec39f1815`（测试文件，**⑤ 改动前**）。**登记子代理实测**（当前 HEAD）：`GroupChat.kt` = `0f61ffdd…` ✅、`ConversationExport.kt` = `b6b82127…` ✅（两者 ⑤ 未改动，与基线逐字节相等）；`QRCode.kt` 现为 ⑤ 修复版 `ecb78fc6…`（见下）；测试文件现为 ⑤ 版 `134f7763a05a7eb3d26d78a6f9c36839b79a678beb16e517ee376935c38cc85d`（**与 ④ 基线的 `d4382815…` 不同，因 ⑤ 改了它**）。
+
+**⑤ ⭐ 二维码非 Latin-1 有损缺陷已修（`0edc70d67` / `e35f64e39` / `e2bfce4ad`）**
+
+- **缺陷**：`QRCode.kt` 的 `encode` **未设** `EncodeHintType.CHARACTER_SET`；zxing 3.5.4 默认按 **ISO-8859-1**。JVM 探针实测 `{"persona":"热血解说"}` → `{"persona":"????"}`，`EQUAL=false`。
+- **修复**：`QRCodeWriter().encode(value, BarcodeFormat.QR_CODE, size, size, mapOf(EncodeHintType.CHARACTER_SET to "UTF-8"))`（加 `import com.google.zxing.EncodeHintType`，KDoc 记录副作用）。**登记子代理实测**：`QRCode.kt` 现文 `:16` 有 `import com.google.zxing.EncodeHintType`、`:79` `val hints = mapOf(EncodeHintType.CHARACTER_SET to "UTF-8")`、`:80` 5 参重载；文件 sha256 = `ecb78fc67438298aedac48bb7d5afd8c65a8c7618ca9fe8b53b816d70bace849`（与执行者给的「修复版 sha256」**逐字节相等**）。
+- **实测副作用**：UTF-8 会加一个 **12 bit ECI 头**（`Encoder.appendECI`），恰好吃掉 1 字节字节模式容量 ⇒ **v40-L 有效容量 2953 → 2952 字节**（二分实测：带 hint 时 `2953` 抛 `WriterException`、`2952` 成功且为 v40/185 模块）。中文夹具编码字节 883 → 931。
+- **测试改动**：`nonLatin1ContentIsLossy…` → `nonLatin1ContentRoundTripsVerbatimThroughBitmapAfterUtf8Fix`（正面强断言）；容量常数 `qrV40LCapacityBytes` **2953 → 2952**（**收紧不是放宽**）；夹具改为含 `热血解说`。**未新增 `@Test`**（例数不变，仍 6 条）。
+- **真机**：6 条全 `OK (1 test)`，全类复跑 **`OK (6 tests)`**；新增证据 `c1-qr-bitmap-charset.json` 实测 `raw_bytes=931`、`decoded_equals_raw=true`、`raw==decoded=true`、`热血解说` 与 `🔥` 均在 raw/decoded、`decoded` 不含 `????`。
+- **非空验证（关键发现）**：删掉 hints 那行 → 重装主 APK → 中文用例 **`FAILURES!!!` 连续 4/4**，首个断言 `AssertionError: MLKit 未能从生产位图解出任何二维码`；同期 ASCII 用例在同一回退 APK 下仍 `OK (1 test)`（排除环境噪声）。⇒ **旧编码产出的中文二维码 MLKit 直接扫不出来，比「变问号」更严重**；JVM 探针另证该二维码本身可被 zxing 解出且内容为 `????·??`。`cp` 还原 + `sha256sum -c` 成功 + `git diff` 为空 → 重装 → 用例 `OK (1 test)`（双侧验证）。
+- **设备还原**（执行者报告）：`screen_off_timeout=30000`、`stay_on_while_plugged_in=0` ✓。
+
+**⑥ 证据分级（登记时必须保留）**
+
+| 级别 | 内容 |
+|---|---|
+| **应用级已证** | ST@`06bde939` / AGPL / 起服务 / 免登录+CSRF、`import` 接受（**字节级 copy**）、服务端解析（条数 / 顺序 / `name` / `is_user` / `is_system` / `chat_items`）、私有键保留、野生 jsonl 不出现在 search/recent、最小注册后群出现、open→save 丢私有块 |
+| **JVM 测试级 + 源码级** | 重存文件 → `null` → `Unsupported`（`GroupTavernImportTest` 对应用例 PASS + `TavernChatCodec.kt:298` / `GroupTavernImport.kt:176-180` 现文核实） |
+| **真机自动化** | 二维码位图端到端往返 6/6（生产 `encodeQr`→`encodeQrBitmap`→MLKit 解码→逐字段→`importShare`；FileProvider URI 字节 == 生产 JSONL）；⑤ 修复后真机复跑 6/6 + 非空验证 4/4 失败 / 还原后通过 |
+| **源码级（未在浏览器执行）** | 客户端 `getGroupChat` / `openGroupChat` 闸门 |
+| **未验** | `NoConfig` 分支本身（真实服务器）；SillyTavern 多用户 / 开启登录 / `--listen` 模式；**真实相机扫码路径**（`QrScannerSheet` 的 CameraX `analyzeFrame` 的 `mediaImage`，与位图路径只差图片来源）；**真实系统分享面板 UI 交互** |
+
+**⑦ 判定影响：20 格逐格判定（本批 0 格改值）**
+
+⚠️ 20 格 = 用例矩阵 10 格 + 证据登记表 10 格；**每一格保留原文 + 就地追加「第二十二批订正」块**（不覆写历史）。逐格按契约 `:205` / `:206` / `:232-235` 核对（判定结论表见下方「第二十二批订正」块内）。
+
+- **C1-09（本批重点）判定：不升，仍 `unverified`**。理由逐条（引契约）：
+  1. 契约 `:206` 逐例要求的 8 项里，本行**结构性不产出**「各 viewer 的可见消息 ID」「实际模型调用序列」「prompt+completion token」三类（Tavern/QR 往返不启发模型、无 viewer 过滤语义）——按本文件对 C1-08 / C1-10 的既有处置（「缺失不等于满足，语义正交需用户认可才另议」），**未经用户认可不得据此升格**。
+  2. 契约 `:205`「导入先 schema 校验与去重，再创建新 conversation；恢复失败不留下半成品会话」——**App 侧真实用户链路（相机扫码 → `QrScannerSheet` → `importShare` / `importGroup` → 建会话）从未在设备上跑过**；④ 的位图往返用的是**生产函数**，但绕过了相机 `analyzeFrame`（`mediaImage`）这一段，两者只差图片来源**却恰是未验的那一段**。
+  3. 契约 `:232-235`「只看截图或只看 UI 状态均标记 `unverified`」+ 判定规则第九条「源码护栏永远不能顶替验收证据」——ACTION_SEND 的验证是**源码护栏（5 例）+ 同形 `Intent` 断言**，**真实系统分享面板 UI 交互零份**（⑥ 明标「不弹分享面板」）。
+  4. 酒馆侧虽已到**应用级**（真服务器 import 接受 + 解析正确 + 私有键保留），但 `open→save` 丢私有块、重存文件回 KhatKit 得 `Unsupported` ⇒ **「打开并回导」的闭环不成立**；且 **SillyTavern 多用户 / 开启登录 / `--listen` 模式未验**。
+  5. **升格还差什么（逐条）**：㈠ 真机走一次**相机扫码**（CameraX `analyzeFrame` 的 `mediaImage`）→ `importShare` 的完整链路；㈡ 真机点一次**系统分享面板**并取回产物（或明确用户认可「同形 Intent + 源码护栏」等价）；㈢ 用户对「本行 `:206` 三类产物结构性不适用」作出与 C1-08/C1-10 同口径的**明确认可**；㈣（可选、加强）SillyTavern `--listen` / 多用户下的导入复现。
+- **C1-01..08、C1-10：全部维持原判、0 格改值**（本批未触碰各自点名的路径；C1-01/02/03/04/05/07 维持 `verified`、C1-06/08/10 维持 `unverified`）。⚠️ **实际改判定值 = 0 格**（Python 逐格比对结论见下）。
+
+> ⚠️ **改判定值 = 0**：本次未对任何状态格改值，20 格全部为「保留原值 + 就地追加订正块」。用 Python 逐格比对（改前 / 改后各提取状态格首词）实测：20 格状态值**逐格相同**，`changed=[]`。
+
+**⑧ 诚实限制**
+
+- ② 的所有 HTTP 数字（200 / 3615 / 2938 / 2230 B / `message_count=8` 等）与 ④/⑤ 的真机 Time / JSON 字段为**执行者报告**，登记子代理**未复现**（本机无设备、无 `node`）；登记子代理**实测**的是：`git log` 9 commit、两个 `app/src/test` 新文件与计数、`androidTest` 文件 6 `@Test`、`verify_sillytavern_import.py` 存在（337 行 + sha256）、`pipeline_3roles_2rounds_jsonl.txt` 3615 B、`QRCode.kt` / `GroupChat.kt` / `ConversationExport.kt` 三份 sha256 与两条源码行号。
+- ④ 的「还原后 sha256 `51815ee8…`/`d4382815…`」是**⑤ 改动前**的历史值，登记子代理**未复现**（当前工作树已被 ⑤ 改写）；**当前** HEAD 三份生产文件 sha256 已实测并逐条列出。
+- **本节只登记，不改任何生产代码**。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
