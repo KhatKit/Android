@@ -100,6 +100,22 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 - 仪器 `@Test`：tracked **23 文件 / 98 例**、含 untracked **24 文件 / 101 例**（untracked = `C1GroupUiE2EFixtureTest.kt`）
 - 脚本 `c1_doc_stats.py` sha256 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`（**一字节未改**）
 
+#### 未验证项：全项目闸门未在最新 HEAD 重跑
+
+- C1 目标里有一条硬性验收标准：「每包末 `./gradlew --offline assembleDebug test lint` 全绿（退出码 0）才能写已完成」。
+- 该**全项目一条命令**的绿灯最近两次实证是：HEAD `0e312cbb2`（`BUILD SUCCESSFUL in 44s`，`839 actionable tasks: 173 executed, 666 up-to-date`，EXIT=0，日志 `/tmp/opencode/full-gate/run.log` sha256 `b0257e0c83a564a7444a2b10a2d82bb224b454d31486c3642d7098a21d1a3128`）与 HEAD `37630adb4`（`/tmp/opencode/full-gate-r2/run.log`）。
+- **其后有两处 `app/src/main` 生产改动**：`5ca9ecbbaf`（`ConversationRepository` 四个 offset 分页 API `Refresh`→`Append`）与 `4af7a66be`（`ChatManager` 增加可注入 `groupRoundStepTimeoutMs`，默认值不变）。
+- 这两处**各自之后**都跑了 `:app` 级 `testDebugUnitTest --rerun` / `lintDebug` / `compileDebugAndroidTestKotlin`，**全部 exit 0**，且基线（app 118 类/961 例/0F0E0S、lint app 0/617/6=623）**未被打破**。
+- **但在最新 HEAD 上没有再跑过「全项目一条命令」**（`assembleDebug test lint`）⇒ 严格意义上这条验收标准**在最新 HEAD 上未重新验证**。
+- **下一步**：下个会话/人若要让该条铁实，跑一次
+
+  ```
+  nice -n 19 ./gradlew --offline assembleDebug test lint
+  ```
+
+  （脱离进程组：`setsid nohup … < /dev/null & disown`；**不要**用 `connectedAndroidTest`），确认 EXIT=0 且无模块 FAILED。预期无风险（两处改动都只影响 `:app`，且各自之后 `:app` 级全绿）。
+- 另外提醒：**不要用 `--tests` 过滤跑 `:app:testDebugUnitTest`**，否则会把 `app/build/test-results/testDebugUnitTest/*.xml` 打成子集，导致 `c1_doc_stats.py` 报「单测 XML 类数/例数不符」——历史上踩过。若踩了，跑一次不带过滤的 `:app:testDebugUnitTest --rerun :ai:testDebugUnitTest --rerun` 即可恢复。
+
 
 ## C1 交给下一位（2026-10-05）
 
