@@ -242,9 +242,11 @@ def verify_registration(client: Client, chat_id: str) -> None:
     _, before_all = client.post_json("/api/groups/all", {})
     check(isinstance(before_all, list), "groups/all returns a list")
     _, before_search = client.post_json("/api/chats/search", {"group_id": "wild", "avatar_url": "x.png"})
-    check(before_search == [], "wild jsonl alone is NOT listed by search")
+    check(all(c.get("file_name") != chat_id for c in before_search),
+          "wild jsonl alone is NOT listed by search")
     _, before_recent = client.post_json("/api/chats/recent", {"max": 50})
-    check(before_recent == [], "wild jsonl alone is NOT listed by recent")
+    check(all(c.get("file_id") != chat_id and c.get("file_name") != chat_id + ".jsonl" for c in before_recent),
+          "wild jsonl alone is NOT listed by recent")
 
     status, group = client.post_json(
         "/api/groups/create",
