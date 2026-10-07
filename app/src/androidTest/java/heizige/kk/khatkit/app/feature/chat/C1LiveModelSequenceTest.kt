@@ -3200,9 +3200,28 @@ class C1LiveModelSequenceTest {
                             "实际=$source，可见=${viewerIds.getValue(role)}",
                         source != null && source in viewerIds.getValue(role),
                     )
+                    // ⚠️ 空泛（vacuous）保留：检索 query 现在用 fact **正文**（见上面 :3184 的注释），
+                    // 真实模型会重写正文、可能丢掉 `C1RGWA/B/C` 哨兵串，于是「正文不含他人哨兵」
+                    // 对三角色几乎恒真、不具判别力。保留它只为记录现状，**不许据此判绿** ——
+                    // 真正有力的判据是紧跟着的结构性断言（只看归因字段，与正文无关）。
                     assertTrue(
-                        "角色 $role 的空间不得混入他人 token，实际=${chunk.content}",
+                        "角色 $role 的空间不得混入他人 token（⚠️当前空泛：真实模型会改写正文，" +
+                            "此断言对三角色恒真，勿据此判绿），实际=${chunk.content}",
                         roles.filter { it != role }.none { other -> chunk.content.contains(tokens.getValue(other)) },
+                    )
+                    // 结构性串扰判据：替换上面那条空泛内容判据为等效但有力的形式 ——
+                    // 逐条 chunk 的 space_id / role_id / source_message_id 必须全部归属本角色。
+                    val chunkViolations = memoryIsolationViolations(
+                        viewerRoleId = role,
+                        expectedSpaceId = scopes.getValue(role).spaceId,
+                        viewerMessageIds = viewerIds.getValue(role),
+                        hits = listOf(chunk),
+                        ownMessageIdByRole = ownMessageIds.mapValues { it.value.toString() },
+                    )
+                    assertTrue(
+                        "角色 $role 的空间写入出现结构性跨角色串扰（与正文无关）：$chunkViolations；" +
+                            "chunk=${chunk.content}",
+                        chunkViolations.isEmpty(),
                     )
                 }
                 val hits = hitsByRole.getValue(role)
@@ -3218,11 +3237,58 @@ class C1LiveModelSequenceTest {
                         source != null && source in viewerIds.getValue(role),
                     )
                 }
+                // 结构性串扰判据（检索命中侧）：不存在 role_id != viewer 的条目、
+                // source_message_id 落在 viewer 窗口内、空间键正确。与正文无关。
+                val hitViolations = memoryIsolationViolations(
+                    viewerRoleId = role,
+                    expectedSpaceId = scopes.getValue(role).spaceId,
+                    viewerMessageIds = viewerIds.getValue(role),
+                    hits = hits,
+                    ownMessageIdByRole = ownMessageIds.mapValues { it.value.toString() },
+                )
+                assertTrue(
+                    "角色 $role 的检索命中出现结构性跨角色串扰（与正文无关）：$hitViolations；" +
+                        "hits=${hits.map { "${it.roleId}:${it.sourceMessageId}:${it.spaceId}" }}",
+                    hitViolations.isEmpty(),
+                )
                 assertNotNull(
                     "真实抽取写入后空间必须已存在（懒创建）",
                     memoryRepository.getSpace(scopes.getValue(role).spaceId),
                 )
             }
+
+            // ---------- 断言 D：全局 / 助手空间零命中（无回退），结构性判据 ----------
+            // 与 canned 段那条 canary-token 计数不同：这里按 **source_message_id** 判，
+            // 不受「真实模型改写正文、丢掉哨兵」影响。直接走 DAO 读，不用
+            // getMemoriesOfAssistant（那个会 ensureSpace，凭空建空间）。
+            val fixtureMessageIds = (ownMessageIds.values.map { it.toString() } + triggerId.toString()).toSet()
+            val productionRead = AppDatabaseFactory.create(appContext)
+            val globalFallbackHits: Int
+            val assistantFallbackHits: Int
+            try {
+                val globalChunks = productionRead.memoryChunkDao()
+                    .getChunksOfSpace(MemoryRepository.GLOBAL_MEMORY_ID)
+                val assistantChunks = productionRead.memoryChunkDao()
+                    .getChunksOfSpace(assistantAId.toString())
+                globalFallbackHits = globalChunks.count {
+                    it.sourceMessageId != null && it.sourceMessageId in fixtureMessageIds
+                }
+                assistantFallbackHits = assistantChunks.count {
+                    it.sourceMessageId != null && it.sourceMessageId in fixtureMessageIds
+                }
+            } finally {
+                productionRead.close()
+            }
+            assertEquals(
+                "全局空间不得出现本会话夹具消息的回退命中（无回退）",
+                0,
+                globalFallbackHits,
+            )
+            assertEquals(
+                "助手空间不得出现本会话夹具消息的回退命中（无回退）",
+                0,
+                assistantFallbackHits,
+            )
 
             // ---------- 断言 C：各 viewer 可见消息 ID 台账 + 逐例导出 SHA-256 ----------
             val plans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
@@ -3322,6 +3388,23 @@ class C1LiveModelSequenceTest {
                     }
                 }
                 put("viewer_visibility", ledger)
+                putJsonObject("structural_crosstalk_assertions") {
+                    put(
+                        "note",
+                        "旧「chunk.content 含他人 token」判据对三角色空泛（真实模型改写正文、丢掉哨兵）；" +
+                            "以下为替换它的结构性判据，与正文无关。",
+                    )
+                    put("predicate", "memoryIsolationViolations")
+                    put("checks", "space_id==group:<conv>:role:<viewer>; role_id==viewer; " +
+                        "source_message_id in viewer window; no foreign role's own message; " +
+                        "global/assistant zero fallback")
+                    putJsonObject("fallback_structural") {
+                        put("global_space_id", MemoryRepository.GLOBAL_MEMORY_ID)
+                        put("global_fallback_source_hits", globalFallbackHits)
+                        put("assistant_space_id", assistantAId.toString())
+                        put("assistant_fallback_source_hits", assistantFallbackHits)
+                    }
+                }
                 exportEvidence.forEach { (key, value) -> put(key, value) }
             }
             writeEvidence("c1-live-evidence-memory-isolation-real-gateway.json", report)
@@ -5137,3 +5220,55 @@ private class RealGatewayRecordingProvider(
 
 private fun resolveAppContext(): Application =
     InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
+
+/**
+ * C1-08 记忆隔离的**结构性**串扰判据（纯函数，与模型是否改写正文无关）。
+ *
+ * 背景：检索 query 改为 fact **正文**后，真实网关会重写正文、可能丢掉 `C1RGWA/B/C`
+ * 这类哨兵串，于是旧判据 `chunk.content.contains(othersToken)` 对三角色恒真（空泛），
+ * 不具判别力。本函数只看**归因字段**（`space_id` / `role_id` / `source_message_id`），
+ * 与正文内容彻底解耦：
+ *
+ * 1. 每条命中必须落在 `expectedSpaceId`（`group:<conversationId>:role:<viewer>`）；
+ * 2. 每条命中的 `role_id` 必须等于 viewer（即**不存在 `role_id != viewer` 的条目**）；
+ * 3. 每条命中的 `source_message_id` 必须落在该 viewer 的可见消息窗口内；
+ * 4. 命中不得指向其他角色自己的消息（结构性串扰）；
+ * 5. `foreignSpaceHitCount` 必须为 0（全局 / 助手空间无回退命中）。
+ *
+ * 返回违规描述列表；空 = 通过。
+ *
+ * ⚠️ JVM 侧 `C1MemoryIsolationPredicateTest` 持有本函数的一份**逐字镜像** —— `androidTest`
+ * 与 `test` 两个 source set 无法共享源码，而为了让「判别力」能被离线复算，只能用镜像。
+ * 镜像用「混入另一角色 chunk」的变异输入证明本判据会红、正常输入会绿（见该类注释）。
+ */
+internal fun memoryIsolationViolations(
+    viewerRoleId: String,
+    expectedSpaceId: String,
+    viewerMessageIds: Set<String>,
+    hits: List<AssistantMemory>,
+    ownMessageIdByRole: Map<String, String> = emptyMap(),
+    foreignSpaceHitCount: Int = 0,
+): List<String> {
+    val violations = mutableListOf<String>()
+    if (foreignSpaceHitCount != 0) {
+        violations += "全局/助手空间出现 $foreignSpaceHitCount 条回退命中（无回退契约）"
+    }
+    hits.forEachIndexed { index, hit ->
+        if (hit.spaceId != expectedSpaceId) {
+            violations += "命中[$index] 空间键=${hit.spaceId} 不等于期望=$expectedSpaceId"
+        }
+        if (hit.roleId != viewerRoleId) {
+            violations += "命中[$index] role_id=${hit.roleId} 不等于 viewer=$viewerRoleId（跨角色串扰）"
+        }
+        val source = hit.sourceMessageId
+        if (source == null || source !in viewerMessageIds) {
+            violations += "命中[$index] source_message_id=$source 不在 viewer=$viewerRoleId 的可见窗口内"
+        }
+        ownMessageIdByRole.forEach { (other, mid) ->
+            if (other != viewerRoleId && source != null && source == mid) {
+                violations += "命中[$index] source_message_id=$source 指向角色 $other 自己的消息（结构性串扰）"
+            }
+        }
+    }
+    return violations
+}
