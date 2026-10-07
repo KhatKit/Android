@@ -1226,6 +1226,35 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 
+### ⚠️ 第二十四批（真机第十五轮，2026-10-07，HEAD `37630adb4`）：**pipeline/roundtable 首次即通过（C1-02/C1-03 各 2 格升 `verified`，本文件第二次状态升级）；C1-06 取消半补齐 8 项但超时半做不到；C1-07/C1-10 暴露两个测试侧缺陷；零产出改为间歇性；台账 47 行 / 509 例未动**
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（设备同前：OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`），开工与收尾 HEAD 均为 **`37630adb4`**；**设备轮本身零 commit**（`git log --oneline 37630adb4..HEAD` 实测为空）。构建 `:app:assembleDebug :app:assembleDebugAndroidTest` **exit 0**、两个 APK `install -r -t` 均 `Success`。⚠️ `am instrument` 的 shell 退出码即使失败也是 0，判据只用日志正文 `OK (1 test)` / `FAILURES!!!`（遗留第 41 条）。⚠️ 本节标题编号按文档既有「真机证据采集」序列（主管简报写作「第十轮」，但该序列已排到第十四轮，故订正为第十五轮）。全部原始证据在 `/tmp/opencode/c1-verify/`（仓库外）。
+
+**① 三条首次真机通过（契约 8 项齐备）**
+
+- **C1-02 pipeline**（`realProviderRoundRecordsGenuineTokenUsage`，`OK (1 test)` / Time 15.294）：序列 a `deepseek-v4-flash 6829+65` / b `glm-5.2 6609+54` / c `deepseek-v4-flash 6891+55`，`provenance={wire_response_model:3, fallback:0}`，`Σ=20503==spent_tokens`，viewer a/b/c 台账齐全，导出 `5f7914d1…` 2357 B / 5 行。⇒ **升 `verified`**（矩阵格 + 证据表格各 1 格）。
+- **C1-03 roundtable**（`realProviderRoundtableRecordsChairSummaryCallSequence`，`OK (1 test)` / Time 22.201）：`speaker_order_and_turn_kind={a:speaker,b:speaker,c:chair}`，seq3 c（chair）`deepseek-v4-flash 7011+146`，`Σ=20707==spent_tokens`，议长 c 的 `chair_round=true` 见 4 条、a/b 各 2 条（a/b 未见他人未完成输出），导出 `75ca8ea9…` 2371 B / 5 行。⇒ **升 `verified`**（矩阵格 + 证据表格各 1 格）。
+- **C1-06 取消半**（`C1GroupCancelDeviceTest`，`OK (1 test)` / Time 4.292）：viewer a/b/c 台账 + `actual_model_call_sequence` 4 条全 mock + `export_sha256=853033a8…` 2977 B / 7 行；`empty_bubble_count=0`、第一轮错误节点保留、`new_error_nodes_in_round2=0`、b 半截 1 条保留；`round2_b_stream_observed→stop_called=3ms`、`stop_call_duration=33ms`。⚠️ **超时半结构性做不到**（`ChatManager.kt:116` `private const` + `:1005` `withTimeout`、`KhatKitApp.kt:344-352` 无参 `AppScope`，`timeout_half_verified=false`），且单次通过 ⇒ **不升**。
+
+**② 两条失败（测试侧现状，待另一任务判定 / 修复）**
+
+- **C1-07**（`C1GroupRetryResumeDeviceTest`）：**2/2 稳定 `FAILURES!!!`**，失败在 `C1GroupRetryResumeDeviceTest.kt:378`「阶段 1 的 b 错误节点必须原样保留」；phase1 `FAILED/committed=[a]/skipped=[c]/spent=1741/run_token 604b0069-…`，phase2 `COMPLETED/committed=[a,b,c]/spent=14819/同 run_token/同 started_at`、a 消息 id 不变、b/c 各 1 条、`spent==Σusage`。**待判定测试期望错 vs 生产缺陷** ⇒ C1-07 保持 `unverified`。
+- **C1-10**（`C1GroupPagingAndFilterDeviceTest`）：8 方法 **3 通过 / 5 失败**，失败均 `pagingSource_*`（`:357` 15≠20、`:392` 55≠60、`:435` 25≠40、`:493` 55≠60、`:527` 25≠40）；真机 DB **55 行**（GROUP=25 / DIRECT=30），生产 `PAGE_SIZE=20` / `INITIAL_LOAD_SIZE=40` 但累计取回 **60 / 40** ⇒ 重叠 / 超取。**待修** ⇒ C1-10 保持 `unverified`。
+
+**③ 零产出探针未复现 ⇒ 改「间歇性」**
+
+`C1GroupZeroOutputProbeTest#pipelineThirdSpeakerZeroOutputProbe` `OK (1 test)` / Time 14.486，**`diagnosis=null`**；`group_run=COMPLETED/committed=[a,b,c]`、`error_node_role_id=null`、`spent=20750`、`sampler_poll_count=130`、`sampler_transition_count=12`、`placeholders_observed_count=3`、`vanished_unstamped_count=0`，三个占位全部「盖章 + 有正文」。⇒ 遗留第 45 条从「**6/6 稳定复现**」就地订正为「**间歇性、非 100% 必现**」（第十四轮曾 6/6 复现，本轮未复现；触发条件同源 = 网关 HTTP 200 空内容；「有没有 HTTP 状态码 / 响应体」那半仍零份）。
+
+**④ 判定影响（20 格逐格）**
+
+20 格中 **4 格升 `verified`**：**C1-02** 与 **C1-03**，各在**用例矩阵表**与**证据登记表**两个格子改值；其余 **14 格保留原文 + 就地追加「真机第十五轮订正」**——C1-06（超时半做不到、单次通过）/ C1-07（2/2 失败待判定）/ C1-08（缺 3 项、待用户认可）/ C1-09（本批未碰）/ C1-10（3 通过 / 5 失败）不升；C1-01 / C1-04 / C1-05 按「已 `verified` 不重开」惯例不改。逐格依据见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十五轮」⑤。
+
+**⑤ 统计口径（登记子代理本机实测）**：`git log --oneline 37630adb4..HEAD` = **0**；`git log --oneline d6494e49a..37630adb4` = **7**（5 个补登的第十八批登记本体 + 探针 `00bcdd4e9` + C1-01 升格 `37630adb4`）；`git log --name-only d6494e49a..37630adb4 -- 'app/src/test/*'` = **空** ⇒ 台账声明值仍 **47 行 / 509 例**；锚点 `1b0e04a9` **不重算**。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test`（0 处失败）/ `--only tables`（153 块 / 1227 行、0 不符）/ `--only ledger`（47 行 / 509 例、逐行相等）**均 exit 0**。⚠️ `c1_doc_stats.py` sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一个字节未改）。设备设置已还原（执行者报告）：`screen_off_timeout=30000`、`stayon=false`。
+
+📍 完整逐字段值、SHA-256、逐格判定与诚实限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十五轮」。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
