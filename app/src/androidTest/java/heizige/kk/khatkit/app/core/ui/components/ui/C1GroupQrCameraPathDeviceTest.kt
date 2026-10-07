@@ -35,10 +35,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -135,7 +135,7 @@ class C1GroupQrCameraPathDeviceTest {
         val bitmap = encodeQrBitmap(raw, 1024, Color.BLACK, Color.WHITE)
 
         syntheticImageProxy(bitmap, rotationDegrees = 0).use { proxy ->
-            assertEquals("合成帧必须是真实 JPEG mediaImage", ImageFormat.JPEG, proxy.format)
+            assertEquals("合成帧必须是真实 YUV_420_888 mediaImage", ImageFormat.YUV_420_888, proxy.format)
             val decoded = decodeStrings(proxy)
             assertEquals("一帧应恰好解出一个二维码", 1, decoded.size)
             assertEquals(
@@ -148,7 +148,7 @@ class C1GroupQrCameraPathDeviceTest {
                 "c1-qr-camera-roundtrip.json",
                 buildJsonObject {
                     put("case", "C1-09 qr camera path roundtrip")
-                    put("format", "JPEG")
+                    put("format", "YUV_420_888")
                     put("rotation_degrees", 0)
                     put("decoded_count", decoded.size)
                     put("decoded_equals_raw", raw == decoded.single())
@@ -210,35 +210,50 @@ class C1GroupQrCameraPathDeviceTest {
     // ③ rotationDegrees：真实 mediaImage 的旋转参数确实被 MLKit 消费
     // ==================================================================
 
+    /**
+     * rotationDegrees 的**可观测**行为分两层：
+     *
+     * 1. 传递层（强断言）：rotation 必须从 `imageInfo.rotationDegrees` 原样传进 MLKit `InputImage`
+     *    （`toQrInputImage(proxy).rotationDegrees`），且 `InputImage.mediaImage` 就是 `proxy.image`
+     *    那个真实底层 Image。
+     * 2. 解码层（如实记录）：真机实测 MLKit 的 **QR 检测对方向不敏感** —— 位图预旋转 90° 时，
+     *    rotation 传 0 或 90 都能解出同一串。因此「解码成败」无法用来判定 rotation 是否被消费，
+     *    这里只断言四种组合都逐字返回原串；rotation 的传递由第 1 层直接钉住。
+     */
     @Test
+    @androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
     fun rotationDegreesIsAppliedToRealMediaImageFrames() {
         val raw = GroupChat.encodeQr(config(), cards)
         val upright = encodeQrBitmap(raw, 1024, Color.BLACK, Color.WHITE)
 
-        // 正立帧 + rotation 0 → 精确解出（基线）
+        // 正立帧 + rotation 0：rotation 原样传入，mediaImage 就是真实底层 Image，且解出原串。
         syntheticImageProxy(upright, rotationDegrees = 0).use { proxy ->
+            val input = toQrInputImage(proxy)
+            assertNotNull("toQrInputImage 不应为 null", input)
+            assertEquals("rotationDegrees=0 必须原样传给 InputImage", 0, input!!.rotationDegrees)
+            assertSame("InputImage.mediaImage 必须是 proxy.image 那个真实底图", proxy.image, input.mediaImage)
             assertEquals("正立帧 rotation=0 必须解出原串", raw, decodeStrings(proxy).singleOrNull())
         }
 
-        // 位图预旋转 90°，rotation=90 → MLKit 应把它旋回正立后解出原串。
+        // 位图预旋转 90° + rotation 90：rotation 原样传入，且仍解出原串。
         val rotated = rotateBitmap(upright, 90)
         syntheticImageProxy(rotated, rotationDegrees = 90).use { proxy ->
+            val input = toQrInputImage(proxy)
+            assertEquals("rotationDegrees=90 必须原样传给 InputImage", 90, input!!.rotationDegrees)
             assertEquals(
-                "预旋转 90° 的帧配 rotation=90 必须旋回正立并解出原串",
+                "预旋转 90° 的帧必须解出原串（QR 检测与方向无关）",
                 raw,
                 decodeStrings(proxy).singleOrNull(),
             )
         }
 
-        // 同一个预旋转帧若 rotation 传 0（不纠正方向），不得再解出**同一串**。
+        // 同一个预旋转帧 rotation 传 0：rotation 参数照旧原样传递，解码结果仍是原串。
         syntheticImageProxy(rotated, rotationDegrees = 0).use { proxy ->
-            assertFalse(
-                "rotation=0 未纠正 90° 旋转，不应再解出原串",
-                decodeStrings(proxy).contains(raw),
-            )
+            assertEquals("rotationDegrees=0 必须原样传给 InputImage", 0, toQrInputImage(proxy)!!.rotationDegrees)
+            assertEquals("rotation=0 下预旋转帧仍解出原串", raw, decodeStrings(proxy).singleOrNull())
         }
 
-        println("C1-QR-CAMERA-ROTATION=0-and-90-ok")
+        println("C1-QR-CAMERA-ROTATION=propagation-pinned-and-decode-invariant")
     }
 
     // ==================================================================
@@ -267,23 +282,21 @@ class C1GroupQrCameraPathDeviceTest {
         val rawB = GroupChat.encodeQr(config().copy(tokenBudgetPerRound = 4321), cards)
         assertFalse("两个载荷必须不同", rawA == rawB)
 
-        val a = encodeQrBitmap(rawA, 480, Color.BLACK, Color.WHITE)
-        val b = encodeQrBitmap(rawB, 480, Color.BLACK, Color.WHITE)
-        val canvasBitmap = Bitmap.createBitmap(1024, 1024, Bitmap.Config.ARGB_8888).apply {
+        val a = encodeQrBitmap(rawA, 460, Color.BLACK, Color.WHITE)
+        val b = encodeQrBitmap(rawB, 460, Color.BLACK, Color.WHITE)
+        val canvasBitmap = Bitmap.createBitmap(1200, 800, Bitmap.Config.ARGB_8888).apply {
             eraseColor(Color.WHITE)
             val canvas = Canvas(this)
-            canvas.drawBitmap(a, 16f, 16f, null)
-            canvas.drawBitmap(b, 528f, 16f, null)
+            // 左右各留 80px 静默区，两个码之间留 120px，避免静默区被裁掉导致漏检。
+            canvas.drawBitmap(a, 80f, 170f, null)
+            canvas.drawBitmap(b, 660f, 170f, null)
         }
 
         syntheticImageProxy(canvasBitmap, rotationDegrees = 0).use { proxy ->
             val barcodes = decodeBarcodes(proxy)
             val values = barcodes.mapNotNull { it.rawValue }
-            assertTrue("一帧至少应解出一个二维码，实际=$values", values.isNotEmpty())
-            assertTrue(
-                "解出的每一个 rawValue 都必须是两个夹具之一，实际=$values",
-                values.all { it == rawA || it == rawB },
-            )
+            assertEquals("一帧两个二维码应都被解出，实际=$values", 2, values.size)
+            assertEquals("两个夹具载荷都必须被解出", setOf(rawA, rawB), values.toSet())
             // analyzeFrame 原语义：只回调第一个非空 rawValue。
             val first = firstQrValue(barcodes)
             assertNotNull("firstQrValue 不应为 null", first)
@@ -332,30 +345,24 @@ class C1GroupQrCameraPathDeviceTest {
     }
 
     /**
-     * 造一个**真实的** `ImageProxy`：用 `ImageReader`(`JPEG`) + `ImageWriter` 把 [bitmap] 的 JPEG
-     * 字节写进底层 `android.media.Image`，再用 [SyntheticImageProxy] 转发出来。
+     * 造一个**真实的** `ImageProxy`：用 `ImageReader`(`YUV_420_888`) + `ImageWriter` 把 [bitmap]
+     * 的像素写进底层 `android.media.Image`，再用 [SyntheticImageProxy] 转发出来。
+     *
+     * 之所以是 YUV 而不是 JPEG：真机实测 `ImageWriter.dequeueInputImage()` 在
+     * `ImageFormat.JPEG` 上直接抛 `RuntimeException: dequeue buffer failed`（见汇报），
+     * 而 YUV_420_888 是 ImageWriter/ImageReader 的规范格式，且 MLKit `fromMediaImage`
+     * 明确支持它（"Only JPEG and YUV_420_888 are supported now"）。
      */
     private fun syntheticImageProxy(
         bitmap: Bitmap,
         rotationDegrees: Int,
         timestamp: Long = 1_000L,
     ): SyntheticImageProxy {
-        val jpeg = ByteArrayOutputStream().use { out ->
-            assertTrue("位图 JPEG 编码失败", bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out))
-            out.toByteArray()
-        }
-        val reader = ImageReader.newInstance(bitmap.width, bitmap.height, ImageFormat.JPEG, 2)
+        val reader = ImageReader.newInstance(bitmap.width, bitmap.height, ImageFormat.YUV_420_888, 2)
         val writer = ImageWriter.newInstance(reader.surface, 2)
         try {
             val input = writer.dequeueInputImage()
-            val buffer = input.planes[0].buffer
-            assertTrue(
-                "JPEG 字节(${jpeg.size}) 超过合成帧 plane 容量(${buffer.capacity()})",
-                jpeg.size <= buffer.capacity(),
-            )
-            buffer.rewind()
-            buffer.put(jpeg)
-            buffer.rewind()
+            fillYuv420(input, bitmap)
             writer.queueInputImage(input)
         } finally {
             writer.close()
@@ -369,6 +376,55 @@ class C1GroupQrCameraPathDeviceTest {
         }
         assertNotNull("ImageReader 未产出合成帧", image)
         return SyntheticImageProxy(image!!, rotationDegrees, timestamp, reader)
+    }
+
+    /** 把 [bitmap] 的 ARGB 像素按 YUV_420_888 三平面写进 [input]（尊重 rowStride / pixelStride）。 */
+    private fun fillYuv420(input: Image, bitmap: Bitmap) {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        val yPlane = input.planes[0]
+        val uPlane = input.planes[1]
+        val vPlane = input.planes[2]
+        val yBuffer = yPlane.buffer
+        val uBuffer = uPlane.buffer
+        val vBuffer = vPlane.buffer
+
+        yBuffer.rewind()
+        for (y in 0 until height) {
+            val rowBase = y * yPlane.rowStride
+            for (x in 0 until width) {
+                val c = pixels[y * width + x]
+                val r = (c shr 16) and 0xff
+                val g = (c shr 8) and 0xff
+                val b = c and 0xff
+                val yv = (((66 * r + 129 * g + 25 * b + 128) shr 8) + 16).coerceIn(0, 255)
+                yBuffer.put(rowBase + x * yPlane.pixelStride, yv.toByte())
+            }
+        }
+
+        uBuffer.rewind()
+        vBuffer.rewind()
+        val chromaWidth = (width + 1) / 2
+        val chromaHeight = (height + 1) / 2
+        for (cy in 0 until chromaHeight) {
+            val uRowBase = cy * uPlane.rowStride
+            val vRowBase = cy * vPlane.rowStride
+            for (cx in 0 until chromaWidth) {
+                val x = (cx * 2).coerceAtMost(width - 1)
+                val y = (cy * 2).coerceAtMost(height - 1)
+                val c = pixels[y * width + x]
+                val r = (c shr 16) and 0xff
+                val g = (c shr 8) and 0xff
+                val b = c and 0xff
+                val u = (((-38 * r - 74 * g + 112 * b + 128) shr 8) + 128).coerceIn(0, 255)
+                val v = (((112 * r - 94 * g - 18 * b + 128) shr 8) + 128).coerceIn(0, 255)
+                uBuffer.put(uRowBase + cx * uPlane.pixelStride, u.toByte())
+                vBuffer.put(vRowBase + cx * vPlane.pixelStride, v.toByte())
+            }
+        }
     }
 
     private fun assertPayloadFields(decoded: String) {
@@ -421,8 +477,8 @@ class C1GroupQrCameraPathDeviceTest {
 @androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
 private class SyntheticImageProxy(
     private val image: Image,
-    private val rotationDegrees: Int,
-    private val timestamp: Long,
+    private val frameRotation: Int,
+    private val frameTimestamp: Long,
     private val reader: ImageReader,
 ) : ImageProxy {
 
@@ -431,8 +487,8 @@ private class SyntheticImageProxy(
 
     private val imageInfo: ImageInfo = object : ImageInfo {
         override fun getTagBundle(): TagBundle = TagBundle.emptyBundle()
-        override fun getTimestamp(): Long = timestamp
-        override fun getRotationDegrees(): Int = rotationDegrees
+        override fun getTimestamp(): Long = frameTimestamp
+        override fun getRotationDegrees(): Int = frameRotation
         override fun populateExifData(exifBuilder: ExifData.Builder) = Unit
     }
 
