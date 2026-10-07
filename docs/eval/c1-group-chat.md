@@ -5718,7 +5718,7 @@ QR 部分（JSON `qr_same_group`）：`raw_bytes=1018`、`decoded_equals_raw=tru
 
 ⚠️ **诚实边界（一并记）**：㈠ 的缺口**不是**「自动化测试红」，而是「**该步骤从未在真机上以任何形式被触发**」。**升格还差什么** = **一次真机点系统分享面板并取回产物**（可用 `:219` 明许的「真机手动记录」形式），**或**用户对「同形 Intent + 源码护栏等价于分享链路已验证」作出**明确认可**。**在此之前不升。**
 
-⚠️ **反方意见（如实登记，供复核）**：C1-09 的「必须断言」列写的是「群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token」，**字面不含分享面板**；「下一位怎么采」（`:7144`）给的也是「真机导出 SHA + Tavern 本体打开 + QR 扫码导回 + 不含密钥验证」，**同样未点名分享面板**。若严格以「用例矩阵必须断言」为唯一口径，分享面板属 C1-U 交付项、**不阻塞 C1-09**。**本批采保守裁定（维持），理由 = 本文件既有口径（第十七轮 ⑦ reason 3、实施状态 `:1138`）一直把「真实系统分享面板 UI 交互」列为 C1-09 未覆盖项，推翻该口径需用户明确认可。**（另一残留：酒馆 `open→save` 丢私有块、重存回 KhatKit 得 `Unsupported` 的「打开并回导」闭环仍不成立，属 SillyTavern 侧行为，一并记。）
+⚠️ **反方意见（如实登记，供复核）**：C1-09 的「必须断言」列写的是「群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token」，**字面不含分享面板**；「下一位怎么采」（`:7144`）给的也是「真机导出 SHA + Tavern 本体打开 + QR 扫码导回 + 不含密钥验证」，**同样未点名分享面板**。若严格以「用例矩阵必须断言」为唯一口径，分享面板属 C1-U 交付项、**不阻塞 C1-09**。**本批采保守裁定（维持），理由 = 本文件既有口径（第十七轮 ⑦ reason 3、实施状态 `:1138`）一直把「真实系统分享面板 UI 交互」列为 C1-09 未覆盖项，推翻该口径需用户明确认可。**（另一残留：酒馆 `open→save` 丢私有块、重存回 KhatKit 得 `Unsupported` 的「打开并回导」闭环仍不成立，属 SillyTavern 侧行为，一并记。）<br>⚠️⚠️ **订正（真机第二十一轮，HEAD `4f4c19565`，2026-10-07）：本 ③ 的「C1-09 维持 `unverified`」结论已被推翻（原文保留）——真机自动化已证明生产 `shareFile` 真拉起系统 chooser（`launchedFromPackage=heizige.kk.khatkit.debug`），且必须断言/怎么采/契约字面均未点名分享面板 ⇒ C1-09 升 `verified`。见「C1 真机证据采集第二十一轮」④/⑤。**
 
 **④ 统计口径（登记子代理本机实测）**
 
@@ -5740,6 +5740,86 @@ git log --name-only 766c61434..HEAD -- 'app/src/test/*' # （空）
 | 用例 | 裁定 | commit | 命令·退出码 | 设备·Android | 输入 | viewer 可见消息 ID | 调用序列 | prompt+completion | 导出 SHA-256 |
 |---|---|---|---|---|---|---|---|---|---|
 | C1-09 | **维持 `unverified`** | `766c61434`+`83dbf014f` | `OK (1 test)`/Time 11.046（转述；JSON `test_command_exit_code="0"` 不可判） | PKG110/16/36 | conv `e3b44bc2…`、round `round-0910af13-…`、「请三位依次发言，每位一句话。」、pipeline | a/b/c 台账（JSON `viewer_visibility`） | `flash → glm-5.2 → flash`（provenance 均 `wire_response_model`） | `6883+6652+6945=20480`（== spent） | `97f2c2ca…967f87c0` 2314 B/5 行 |
+
+### C1 真机证据采集第二十一轮（2026-10-07，HEAD `4f4c19565`：**真机自动化证明系统分享 chooser 被生产 `shareFile` 真拉起，推翻「分享面板只能真人操作」假设 ⇒ C1-09 升 `verified`（C1 达 10/10）；台账第二十六批**）
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`）+ **1 处 androidTest 新增**（新文件 `app/src/androidTest/java/heizige/kk/khatkit/app/feature/chat/C1GroupShareChooserDeviceTest.kt`，**224 行 / 1 个 `@Test`**）。**生产代码 / `app/src/main` / `app/src/test` / `tools/` / `gradle/` 一字未动**（`4f4c19565` 的 `--stat` 实测只新增该 1 个文件）。开工 / 收尾 HEAD = **`4f4c19565`**（`git rev-parse HEAD` 实测 = `4f4c1956513c056178d70b054a22a89940c35af2`）。窗口 `83dbf014f..HEAD` 实测 **3 个 commit**（`--merges` = 0；含上一批留到本批补登的登记本体 2 个 `4ff9dc62d` / `49c49b4a8`）。⚠️ **轮次命名**：含真机采集，故「C1 真机证据采集」据序为**第二十一轮**；同时按「C1 commit 台账」批次序记为**第二十六批**（本节即实施状态侧的**第三十一批**）。
+
+**① 独立核实（登记子代理本机读源码 / JSON，复算 sha256，逐条；不采信转述）**
+
+新用例 = `heizige.kk.khatkit.app.feature.chat.C1GroupShareChooserDeviceTest#realProductionShareFileOpensSystemChooser`（源码 224 行 / 1 `@Test`，登记子代理 `wc -l` + `grep -c '@Test'` 实测）。
+
+实现方式（登记子代理读码确认）：
+- **没加任何新依赖**：用 framework 级 `android.app.UiAutomation`（`InstrumentationRegistry.getInstrumentation().uiAutomation`）执行 `dumpsys activity activities` / `dumpsys window`（`executeShellCommand` 逐条读）；源码未 `import` 任何 UiAutomator / 新库。
+- 因为生产 `shareFile`（`app/src/main/java/heizige/kk/khatkit/app/feature/chat/ConversationExport.kt:860`）用 `context.startActivity` **无 `FLAG_ACTIVITY_NEW_TASK`**，从 `targetContext` 调会抛 `AndroidRuntimeException`；测试用 `ActivityScenario.launch(RouteActivity)` 拿**真实 Activity context** 再调生产 `shareFile`（与生产调用点 `GroupExportCard.kt:218` 的 `LocalContext.current` 同形）；`shareFile` / `writeExportTempFile` / `GROUP_EXPORT_MIME_TYPE` 均为生产符号（登记子代理读码确认）。
+- 断言 = 硬签名四处：`topResumedActivity=…com.android.intentresolver/.ChooserActivityLauncher`、`Intent { act=android.intent.action.CHOOSER … }`、`launchedFromPackage=heizige.kk.khatkit.debug`、`com.android.intentresolver`（`C1GroupShareChooserDeviceTest.kt:145-164`）。
+
+**② 证据文件（登记子代理本机 `sha256sum` / `stat -c%s` 复算，与报告值逐字符相同）**
+
+| 文件 | 字节 | SHA-256 |
+|---|---:|---|
+| `c1-chooser-share-report.json`（本机副本 `/tmp/opencode/c1-chooser-share-report.json`；设备路径 `/sdcard/Android/data/heizige.kk.khatkit.debug/files/c1-chooser-share/c1-chooser-share-report.json`） | 2206 | `d791eaa633491a06df5c72f2b4d48b5a43d8dd355f6870b79836210f394c7d8a` |
+
+JSON 实读（登记子代理逐字段）：`device={model:PKG110, sdk:36, release:16, abi:arm64-v8a, fingerprint:OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys}`；`package_under_test=heizige.kk.khatkit.debug`；`chooser_detected=true`；`attempts=1`；`top_resumed_activity=topResumedActivity=ActivityRecord{… com.android.intentresolver/.ChooserActivityLauncher …}`；`current_focus=mCurrentFocus=null`；`chooser_markers` 含 `launchedFromUid=10510 launchedFromPackage=heizige.kk.khatkit.debug`、`Intent { act=android.intent.action.CHOOSER flg=0x800000 xflg=0x4 cmp=com.android.intentresolver/.ChooserActivityLauncher (has extras) mCallingUid=10510 }`、`mActivityComponent=com.android.intentresolver/.ChooserActivity`；`file.uri=content://heizige.kk.khatkit.debug.fileprovider/cache/temp/c1-chooser-share.jsonl`、`file.bytes=968`、`file.sha256=dfc48ed850028cdac2b5fcfa2a58a241e48680cdc92df36fa06a933e26ffce49`。
+
+⇒ **真实的系统分享面板确实被我们自己的包拉起来了**（`launchedFromPackage=heizige.kk.khatkit.debug` 决定性地把面板归因到被测包，而不是任何别的 app）。宿主：Android 16 = `com.android.intentresolver`（`/system/priv-app/IntentResolver/IntentResolver.apk`），组件 `com.android.intentresolver/.ChooserActivityLauncher`。⚠️ `activePackage` 曾报 `com.android.systemui`、`mCurrentFocus` 瞬时 null（OxygenOS 面板 UI 可能由 SystemUI 承载）⇒ **断言用「CHOOSER Activity + `launchedFromPackage`」而不是包名**（这一点写进了测试的 KDoc，登记子代理读码确认）。
+
+**③ 非空验证（转述执行者；登记子代理无设备，未能复算）**
+
+把 `shareFile` 调用**临时注释掉** → 真机 **`FAILURES!!!` / `Tests run: 1, Failures: 1` / `Time: 21.925`**，报 `top_resumed=…RouteActivity`、`markers=`（空）⇒ **真红**；`git checkout --` 还原后重跑 → **`OK (1 test)` / `Time: 2.401`**。⚠️ 这构成「断言不是恒真」的判别力证据。⚠️ 该两跑的 `am instrument` 日志**未随证据目录提供**，登记子代理**未能复算**（无设备）。
+
+**④ C1-09 裁定：升 `verified`（20 格 2 格改值，C1 达 10/10）**
+
+⚠️ **结论：本批升。** 先前（第十七轮 / 第二十轮）唯一剩下的不升理由 =「真实系统分享面板（`ACTION_SEND` chooser）零份」。**本批真机自动化直接推翻它**——生产 `shareFile` 真调用后，系统 chooser 被本包真拉起（②，`launchedFromPackage` 归因到本包）。逐条依据（引契约行号）：
+
+1. **契约 `:205`（导出/恢复原文）**：「Tavern 导出保留成员角色卡、群配置、`role_id`/轮次/分支；QR 仅携带群配置与角色卡最小元数据，不携带密钥、隐私记忆或工具授权 token。导入先 schema 校验与去重，再创建新 conversation；恢复失败不留下半成品会话。」——**它根本没点名分享面板**。
+2. **契约 `:206`（8 字段）**：「每例保存输入、各角色可见消息集合、实际模型调用序列、token 计数和导出哈希……未有真机或自动化证据的条目保持未完成，不得仅凭 UI 截图勾选。」——8 字段齐备（第二十轮同源往返用例 + 本批 chooser 自动化）；本批证据是**真机自动化**（`am instrument` + `dumpsys` 硬签名），不是 UI 截图。
+3. **契约 `:219`（C1-U 交付）**：「Compose/UI 测试 + 真机手动记录；无第二套会话列表」——本批提供的是比「真机手动记录」更强的**真机自动化**（`:206` 明许「真机**或自动化**证据」）。⚠️ **是否要点名分享面板**：C1-09 的「必须断言」（用例矩阵 `:259` 行）原文 =「群配置、角色卡、role/轮次/分支哈希一致；不含密钥、记忆、授权 token」，**字面不含分享面板**；「下一位怎么把 unverified 变成 verified」中 C1-09 的「怎么采」（`:7251` 行）原文 =「**真机导出的**那份文件 SHA-256 + Tavern 本体互操作……**单独验证不含密钥/记忆/授权 token**」，**同样未点名分享面板**（以上两处登记子代理逐字读文档确认）。
+4. **契约 `:232-235`**：「测试未运行、只看截图或只看 UI 状态均标记 `unverified`」——本批**真机跑了测试**（`OK (1 test)`），且断言的是 `dumpsys` 硬签名而非「只看 UI 状态」。
+5. **判定规则第九条**（源码护栏不能顶替验收证据）——本批不再只靠源码护栏：`ACTION_SEND` 那一步现在是**真机自动化证据**（生产 `shareFile` 真调用 + 系统 chooser 真出现）。
+
+**C1-09 现在的证据盘子（组合引用，8 字段怎么填）**：
+
+| # | 字段（`:232-235`） | 值 / 出处 |
+|---|---|---|
+| 1 | commit | `4f4c19565`（本批 chooser 自动化；`git rev-parse HEAD` 实测 `4f4c1956513c056178d70b054a22a89940c35af2`）＋ 第二十轮 `766c61434`+`83dbf014f`（同源往返 8 字段各值） |
+| 2 | 测试命令及退出码 | `C1GroupShareChooserDeviceTest#realProductionShareFileOpensSystemChooser`（本批，真机 `OK (1 test)` / Time 2.401；⚠️ 日志未随证据提供，转述执行者）；同源往返命令见第二十轮①#2 |
+| 3 | 设备 / Android 版本 | PKG110 / Android 16 / API 36 / arm64-v8a（本批 JSON `device` 实读） |
+| 4 | 用例输入 | 本批：群 `C1 chooser 群` / 单角色 `a`（阿尔法）/ `pipeline` / `tokenBudgetPerRound=4096` / 2 条消息；同源往返输入见第二十轮①#4 |
+| 5 | 各 viewer 可见消息 ID | 第二十轮同源往返用例（同一真机一轮；a/b/c 台账） |
+| 6 | 实际模型调用序列 | 第二十轮同源往返（`flash → glm-5.2 → flash`，provenance 均 `wire_response_model`） |
+| 7 | prompt+completion token | 第二十轮同源往返（`6883+6652+6945=20480 == spent`） |
+| 8 | 导出 SHA-256 | 第二十轮同源往返 `97f2c2ca…967f87c0`（2314 B/5 行）；本批另证 `shareFile` 的 FileProvider URI 指向真实可读文件（`dfc48ed8…`，968 B） |
+
+**为什么「档 2 未做」不构成阻塞**：档 2 =「在面板里选中一个目标、证明文件真送达目标」。送达是**系统 resolver + 目标 app** 的职责；我方责任到「**正确 intent（`act=CHOOSER` + `content://` URI + 正确 MIME）+ 可读 URI + 面板真弹出**」为止——这三样本轮全部实测（`shareFile` 生产调用、FileProvider URI 真读、chooser 真出现且归因本包）。**因此档 2 不做不影响 C1-09 的必须断言**（必须断言里没有「送达」一项）。
+
+⚠️ **诚实边界（一并记，不阻塞判定）**：㈠ **「档 2」未做**（未在面板里选目标、未证明送达）；㈡ **UI 点「导出/分享」按钮**的多级 Compose 路径未验（接线只有源码可见 `GroupExportCard.kt:218`，本批直接从 Activity context 调生产 `shareFile`，与 `LocalContext.current` 同形但**不是点击穿透**）；㈢ 酒馆 `open→save` 丢私有块、重存回 KhatKit 得 `Unsupported` 的「打开并回导」闭环仍不成立（属 SillyTavern 侧行为，见遗留第 52 条）。这三点都不是 C1-09 必须断言点名的项。
+
+**⑤ 订正：第二十轮 ③ 的「维持 `unverified`」结论（保留原文 + 追加订正块，不覆写）**
+
+⚠️⚠️ **「第二十轮」③ 的「C1-09 维持 `unverified`」结论现在被 `4f4c19565` 推翻（该节原文原地保留不变）。** 第二十轮③ 的不升理由是「真实系统分享面板（`ACTION_SEND` chooser）仍零份」——本批已用**真机自动化**补上（④）。第二十轮③ 里那条「反方意见」（C1-09 必须断言与怎么采均未点名分享面板）**现在成为主口径**：本批改采「以必须断言 + 怎么采 + 契约 `:205`/`:206`/`:232-235` 字面为准」⇒ **升 `verified`**，C1 **10/10**。
+
+**⑥ 统计口径（登记子代理本机实测）**
+
+```
+git rev-parse HEAD                                      # 4f4c1956513c056178d70b054a22a89940c35af2
+git log --oneline 83dbf014f..HEAD | wc -l               # 3
+git log --oneline --merges 83dbf014f..HEAD | wc -l      # 0
+git log --name-only 83dbf014f..HEAD -- 'app/src/test/*' # （空）
+```
+
+- 本批只有 androidTest 新增（`4f4c19565` 只新增 `C1GroupShareChooserDeviceTest.kt`），`app/src/test/*` **无任何新增 / 修改** ⇒ 台账声明值**保持 51 行 / 531 例**。锚点 `1b0e04a9` **不重算**（仍 `78 / 0 merges`）。
+- `c1_doc_stats.py`：主命令 **18 OK / 0 WARN / 0 FAIL**（`unit` app 118 类 / 961 例 / 0F0E0S、`lint` app `0/617/6=623`、全模块 `0/650/7=657`、`ledger` 51 行 / 531 例、`tables` 171 块 / 1383 行）；`--self-test` / `--only tables` / `--only ledger` 均 **exit 0**；脚本 sha256 **仍为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`（一字节未改）**。
+- **仪器 `@Test` 口径变动**：新增 1 个 androidTest 文件 / 1 `@Test` ⇒ tracked **23 文件 / 98 例**、含 untracked **24 文件 / 101 例**（登记子代理 `c1_doc_stats.py` 实测；⚠️ 与上一批声明的 22/97、23/100 相比 `+1 文件 / +1 例`）。
+- 四条命令退出码（**转述执行者**，本批未复跑 gradle）：`compileDebugAndroidTestKotlin` **EXIT=0**；`testDebugUnitTest --rerun :ai:testDebugUnitTest --rerun` **EXIT=0**（app **118 类 / 961 例 / 0F0E0S**、ai **30 类 / 220 例**）；`lintDebug` **EXIT=0**（app **0/617/6 = 623**）；`c1_doc_stats.py` **OK 18/0/0**。
+- 构建文件状态：**未动 `app/src/main`、未动 `app/build.gradle.kts`、未动 `gradle/libs.versions.toml`**（别名 `androidx-uiautomator` 已在版本目录且已在 Gradle 缓存，本次**没用上**）。
+
+**⑦ 裁定表（契约 8 字段逐格）**
+
+| 用例 | 裁定 | commit | 命令·退出码 | 设备·Android | 输入 | viewer 可见消息 ID | 调用序列 | prompt+completion | 导出 SHA-256 |
+|---|---|---|---|---|---|---|---|---|---|
+| C1-09 | **升 `verified`** | `4f4c19565`（chooser）＋`766c61434`+`83dbf014f`（同源往返） | 本批 chooser `OK (1 test)`/Time 2.401（转述）；同源往返 JSON `test_command_exit_code="0"` | PKG110/16/36 | 本批 `C1 chooser 群`/pipeline；同源往返 conv `e3b44bc2…` | 同源往返 a/b/c 台账 | 同源往返 `flash → glm-5.2 → flash`（wire） | 同源往返 `6883+6652+6945=20480`（== spent） | 同源往返 `97f2c2ca…967f87c0` 2314 B/5 行；本批 shareFile URI `dfc48ed8…` 968 B |
+
 
 ## 仪器测试状态
 
