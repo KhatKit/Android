@@ -5122,6 +5122,111 @@ C1-08 用例（`realProviderGroupMemoryIsolationRecordsPerSpaceHits`）缺「模
 - 本批基线数字**未重跑 gradle**（沿用现有 XML / lint 报告）；`c1_doc_stats.py` 主命令实测见 ①。
 - 遗留清单同步：**新增第 47 条**（`d6494e49a` 落地群聊「失败续跑」入口——「群聊 UI 无重试入口」这一缺口**已消**，但范围收窄到失败角色错误节点且真机零份）与**第 48 条**（取消 / 预算中止轮次仍无续跑入口）。
 
+### C1 真机证据采集第十五轮（2026-10-07，HEAD `37630adb4`：pipeline/roundtable 首次即通过 + 取消用例补齐 8 项契约字段 + 零产出探针未复现；C1-07/C1-10 暴露两个测试侧缺陷）
+
+> ⚠️ **标题编号说明**：主管简报给的本节标题写「第十轮」，但本文档「C1 真机证据采集」序列已排到**第十四轮**（见上），简报背景自称「设备第 15 轮」，故按文档既有序列订正为**第十五轮**；简报的副标题文字原样保留。
+
+🚨 **先说性质**：本批 = **一次真机采集窗口**。设备 OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`（`fingerprint=OnePlus/PKG110/OP5D2BL1:16/UKQ1.231108.001/V.50213d4-2c63a59-2c63a56:user/release-keys`——逐份证据 JSON `device` 字段实测值）。开工 / 收尾 HEAD 均为 **`37630adb4`**（`git rev-parse HEAD` 实测）；**设备轮本身零 commit**（`git log --oneline 37630adb4..HEAD` 实测为空）。构建 `:app:assembleDebug :app:assembleDebugAndroidTest` **exit 0**；两个 APK `install -r -t` 均 `Success`。⚠️ `am instrument` 的 shell 退出码即使失败也是 0，判据只用日志正文 `OK (1 test)` / `FAILURES!!!`（遗留第 41 条）。
+
+🚨 **结论**：① **C1-02 / C1-03 首次真机通过（pipeline / roundtable）**，契约 8 项齐备；② **C1-06 取消半补齐全部契约字段并首次真机通过**，但超时半结构性做不到、且为单次通过；③ **C1-07 2/2 稳定失败**（`:378`）；④ **C1-10 8 方法 3 通过 / 5 失败**（全为 `pagingSource_*`）；⑤ **零产出只读探针 `diagnosis=null`（未复现）** ⇒ 该 bug 改为**间歇性**。⑥ **状态判定：C1-02 与 C1-03 各在两个格子升 `verified`（共 4 格）**，其余不升（逐格见 ⑤）。
+
+⚠️ **证据根目录**：`/tmp/opencode/c1-verify/`（仓库外）。本节所有 SHA-256 / 字节数 / 行数由**登记子代理本机独立复算**（`sha256sum` / `stat`），凡标「执行者报告」者为转述、登记时未独立复现。
+
+**① 通过的 3 条（逐列 8 项契约字段：commit / 命令·退出码 / 设备·Android / 用例输入 / viewer 可见消息 ID / 模型调用序列 / prompt+completion token / 导出 SHA-256）**
+
+> ⚠️ 8 项 = 契约 `client-changes.md:206` + `:232-235` 逐例要求的「commit、测试命令及退出码、设备/Android 版本、用例输入、各 viewer 的可见消息 ID、实际模型调用序列、prompt+completion token、导出 SHA-256」。
+
+**#1 C1-02 无 @ 的 pipeline——`C1LiveModelSequenceTest#realProviderRoundRecordsGenuineTokenUsage`，`OK (1 test)` / Time 15.294**
+
+- commit：run 时 HEAD `37630adb4`（设备轮零 commit）。
+- 命令·退出码：`:app:assembleDebug :app:assembleDebugAndroidTest` exit 0，两个 APK `install -r -t` Success，`am instrument -w -r -e class 'heizige.kk.khatkit.app.feature.chat.C1LiveModelSequenceTest#realProviderRoundRecordsGenuineTokenUsage' heizige.kk.khatkit.debug.test/androidx.test.runner.AndroidJUnitRunner`；shell 退出码不可判（遗留 41），日志判据 `OK (1 test)`。
+- 设备·Android：OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`。
+- 用例输入：`mode=pipeline`，`conversation_id=51c16875-6d1a-4594-b36d-306a0c6a9026`，provider「极客猫」`https://api.zenneko.top/v1`，USER「请三位依次发言，每位一句话。」，`token_budget_per_round=100000`。
+- viewer 可见消息 ID（`viewer_visibility`，源生产 `GroupChat.visibleMessages`）：a=`[d2d54852-32ba-480f-8951-12c75c18da2c, 4f0a5585-d1c6-4f5d-a879-b70bc52d1cb2]`；b=`[d2d54852…, 4f0a5585…, 98eea0d4-c559-49bd-bc45-2b5e447c61fc]`；c=`[d2d54852…, 98eea0d4…, 0be40a2d-a00a-440c-90c3-b5b9155a69a7]`（a 见 a、b 见 a+b、c 见 b+c，符合 `pipeline_visibility_expectation`）。
+- 模型调用序列（`actual_model_call_sequence`）：seq1 a `deepseek-v4-flash 6829+65`、seq2 b `glm-5.2 6609+54`、seq3 c `deepseek-v4-flash 6891+55`；`wire_and_reverse_lookup_agree=true`、`wire_model_name_provenance_counts={wire_response_model:3, uuid_reverse_lookup_fallback:0}`；`expected=[deepseek-v4-flash, glm-5.2, deepseek-v4-flash]`。
+- prompt+completion token：a 6894 / b 6663 / c 6946，`sum_prompt_plus_completion=20503`，`spent_tokens=20503`，`spent_tokens_equals_sum_prompt_plus_completion=true`；`group_run=COMPLETED/committed=[a,b,c]/token_limit=100000`。
+- 导出 SHA-256：`c1-export-real-provider.jsonl` **2357 B / 5 行**，`5f7914d13f74c3a3b5ccab7ba1777e281d71a33d7641d7e7e21e8d6ded4e4d05`（与 JSON `export_sha256` 逐字一致）。
+- 证据文件：`c1-live-evidence-real-provider.json`（**12674 B**，`fdd5fc23e2a7cc355bb28f9313aa5e2f713045cc3865c6d3c9d9ca44335afb8a`）；raw `c1-real-raw-dump-C102.json`（**8247 B**，`a20546812a777f2350b36d88572221620e3b00e9b2f042835602927e9ea1ddb9`）。
+
+**#2 C1-03 roundtable——`C1LiveModelSequenceTest#realProviderRoundtableRecordsChairSummaryCallSequence`，`OK (1 test)` / Time 22.201**
+
+- commit：run 时 HEAD `37630adb4`。
+- 命令·退出码：同 #1；日志 `OK (1 test)`。
+- 设备·Android：同上。
+- 用例输入：`mode=roundtable`，`chair_role_id=c`，`tie_policy=fail`，`conversation_id=ef2be184-9053-47d6-9a74-3a276094e6e2`，USER「请三位依次发言，议长最后汇总。」，`token_budget_per_round=100000`。
+- viewer 可见消息 ID：a=`[8f94828c-6da8-4630-8f79-10b1b540e81d, 6f66ac69-3125-415b-9216-dc1f05ba5f82]`；b=`[8f94828c…, 78086327-09db-4120-b932-0534a44a4cbd]`；议长 c（`chair_round=true`）=`[8f94828c…, 6f66ac69…, 78086327…, 5f3468a5-df35-4c65-bb25-731bd2921398]`（a/b 各见 2 条、互不见对方；议长 c 见全部 4 条）。
+- 模型调用序列：seq1 a `deepseek-v4-flash 6831+93`、seq2 b `glm-5.2 6546+80`、seq3 c（`turn_kind=chair`）`deepseek-v4-flash 7011+146`；`speaker_order_and_turn_kind={a:speaker, b:speaker, c:chair}`；`provenance={wire_response_model:3, uuid_reverse_lookup_fallback:0}`。
+- prompt+completion token：a 6924 / b 6626 / c 7157，`Σ=20707==spent_tokens`；`group_run=COMPLETED/committed=[a,b,c]/token_limit=100000`。
+- 导出 SHA-256：`c1-export-real-roundtable.jsonl` **2371 B / 5 行**，`75ca8ea92c135982ca6aa07d9b778aac7703901cf3174cfa3fbec214c40f8a11`（与 JSON 一致）。
+- 证据文件：`c1-live-evidence-real-roundtable.json`（**13423 B**，`d18c4441fbafc970482717f9feabfdfaa6b06ab2a2d9c9b6a9ed3626f69b380d`）；raw `c1-real-raw-dump-roundtable-C103.json`（**8295 B**，`822f2fc9c221e355f5a22741423226d3719b82344e0d2d31e224b53272363d77`）。
+
+**#3 C1-06 取消半——`C1GroupCancelDeviceTest#cancelMidStreamKeepsGeneratedMessagesAndErrorNodeWithoutEmptyBubbles`，`OK (1 test)` / Time 4.292**
+
+- commit：run 时 HEAD `37630adb4`。
+- 命令·退出码：同 #1；日志 `OK (1 test)`。
+- 设备·Android：同上。
+- 用例输入：`mode=pipeline`，conversation `ae8f558f-c4ed-4e3c-aec6-d0f1e9fb74ee`，mock provider `http://127.0.0.1:8766/v1`（`mock_openai_slow_cancel.py`，启动行 `fail_role='' empty_role='B' delays={'A':0.02,'B':0.5,'C':0.1}`；`enableAutoRetry=false` 防 mock 500 被 failover 顶包真网关）；round1 USER「第一轮：请三位依次发言，每位一句话。」，round2 USER「第二轮：继续展开细节。」；round2 等 `a` 已提交且 `b` 流式途中再 `stopGeneration`。
+- viewer 可见消息 ID：a=`[9cdbe6bd-f392-4a24-ae22-110a0c0db911, fb85c94e-7d0a-4c8d-bf5d-000bddae10d0, 0ec27875-2180-4c51-856c-cdf576a8a92f, bfad4b64-8f71-4b57-93ec-4c44593e2913]`；b=`[9cdbe6bd…, b5cefb7b-90ea-4085-bda6-7d4757a7ad19, 0ec27875…, bfad4b64…]`；c=`[9cdbe6bd…, 0ec27875…]`（a/b/c 三台账齐全，`viewer_visibility_asserted=true`）。
+- 模型调用序列（`actual_model_call_sequence`，**4 条全 mock，无真网关顶包**）：a/round1 `mock-cancel-a 6190+22 stamped`、b/round1 `error/null`、a/round2 `mock-cancel-a 6236+22 stamped`、b 半截（`model_id=0c1c06ca-…000000b`、`role_id/round_id=null`、token `-1`）。
+- prompt+completion token：round1 `FAILED/role_failed/committed=[a]/spent=6212`；round2 `CANCELLED/cancelled/committed=[a]/skipped=[]/token_limit=100000/spent=6258`；`a2_prompt_completion=6258`。
+- 导出 SHA-256：`c1-export-cancel-vfy1.jsonl` **2977 B / 7 行**，`853033a897eca830c93d57e9a6fcaa704da896ea51b34662840d4bac6184ea71`（与 JSON 逐字一致）。
+- 必须断言核心（`observed`）：`empty_bubble_count=0`、`a2_present=true`、`b2_partial_message_count=1`（正文 `[mock-slow] CASE:cancel `）、`c2_message_count=0`、`error_node_from_round1_still_present=true`、`new_error_nodes_in_round2=0`；`timing_millis`：`round2_b_stream_observed→stop_called=3ms`、`stop_call_duration=33ms`。
+- 证据文件：`c1-device-cancel-report-vfy1.json`（**9919 B**，`ed4d8b8402911166cb3b4dcc2bc1e675160fbf312a73cc178ebe86c5c9f419d2`）；raw `c1-cancel-raw-round1-vfy1.json` 2111 B `2303561d…`、`c1-cancel-raw-final-vfy1.json` 3924 B `a7723cc6…`；trace `c1-cancel-trace-vfy1.txt` 629 B `581be423…`；mock 本体 `mock_openai_slow_cancel.py` `0f2af473f94931cf97843fee1d7ea41462b4dc94cfecfe4ab10bfd286d0d3fde`。
+- ⚠️ **超时半仍结构性做不到（诚实缺项）**：`ChatManager.kt:116` `private const val GROUP_ROUND_STEP_TIMEOUT_MS` 不可注入、`:1005` `withTimeout`；测试构造的 `AppScope`（`KhatKitApp.kt:344-352`）是无参 concrete class。JSON `timeout_half_verified=false`。
+
+**② 未通过的 2 条（如实登记，不是可升级证据）**
+
+**#4 C1-07——`C1GroupRetryResumeDeviceTest#retrySameRoundSkipsCommittedTurnsAndDoesNotDuplicateMessages`：`FAILURES!!!` 2/2，稳定失败**
+
+- 失败原文（两次一致）：`AssertionError: 阶段 1 的 b 错误节点必须原样保留`，位置 `C1GroupRetryResumeDeviceTest.kt:378`；Time 15.843 / 13.337。
+- raw 字段（phase1 = `c1-retry-raw-phase1-vfy1.json`，1936 B）：`status=FAILED/reason=role_failed/error_message=本轮没有产出内容/spent=1741/run_token=604b0069-19b8-421f-a5e4-26c561d4f654/committed=[a]/skipped=[c]/started_at=1791336038560`。
+- raw 字段（phase2 = `c1-retry-raw-phase2-vfy1.json`，4325 B）：`status=COMPLETED/committed=[a,b,c]/spent=14819/同 run_token/同 started_at`；`extra_run` 即 phase1 的 `FAILED` 块；a 消息 id `cb45d9ef-1e79-4526-961b-fbfda5047a3e` **不变**；b/c 各 1 条；`spent=14819==Σusage(1719+22+6217+322+6517+22)`。
+- ⚠️ **待判定**：是**测试期望错**还是**生产缺陷**，由**另一任务**判；本轮只登记现状与 raw 字段 ⇒ C1-07 **保持 `unverified`**。
+
+**#5 C1-10——`C1GroupPagingAndFilterDeviceTest`：8 方法 3 通过 / 5 失败**
+
+- 通过的 3 条（`OK (1 test)`）：`typeFilter_allChipsFilterIndividuallyAndRestoreExactly`（Time 6.41）、`typeFilter_chipSwitchNeverLosesData_dbCountsStable`（Time 6.021）、`mixedList_groupBadgeRendersOnlyOnGroupRows`（Time 4.547）。
+- 失败的 5 条（均 `pagingSource_*`）：`pagingSource_firstScreenUsesInitialLoadSize_thenPageSize`（`:357` expected 15 but was 20）、`pagingSource_allPagesSumToDbCount_withoutDuplicates`（`:392` expected 55 but was 60）、`pagingSource_typeFilterNarrowsWithinSql`（`:435` expected 25 but was 40）、`pagingSource_filterAllArgumentIsEmpty_equivalentToSqlNoFilter`（`:493` expected 55 but was 60）、`pagingSource_searchPathCarriesTypeAndPages`（`:527` expected 25 but was 40）。
+- 真机 DB 实测 **55 行**（GROUP=25 / DIRECT=30）；生产常量 `PAGE_SIZE=20` / `INITIAL_LOAD_SIZE=40`，但分页 source 累计取回 **60 / 40** ⇒ **重叠 / 超取**。**另一任务在修**；本轮只登记 ⇒ C1-10 **保持 `unverified`**。
+
+**③ 零产出只读根因探针（P1）：未复现**
+
+- `C1GroupZeroOutputProbeTest#pipelineThirdSpeakerZeroOutputProbe`：`OK (1 test)` / Time 14.486，**`diagnosis=null`（零产出未复现）**。
+- 证据 `c1-zero-output-probe.json`（**18862 B**，`615e2150096e500e05d4b6aa2bfa9f607039ccdaa28e8969579a41ca12ab75d6`）：`group_run_status=COMPLETED`、`committed=[a,b,c]`、`error_node_role_id=null`、`group_run_spent=20750`、`sampler_poll_count=130`、`sampler_transition_count=12`、`placeholders_observed_count=3`、`vanished_unstamped_count=0`；三个占位（a/b/c）全部「盖章 + 有正文」（`max_text_length` 22 / 21 / 16），无 `vanished_unstamped`。trace `c1-zero-output-probe-trace.txt`（`diagnosis failing=null cause=null vanished=0`）。
+- ⇒ **该 bug 是间歇性而非 100% 必现**（此前第十四轮曾 6/6 稳定复现）。遗留第 45 条据此就地加订正（保留原文）。
+
+**④ 导出哈希复算（登记子代理本机 `sha256sum` 逐份复算 == JSON `export_sha256`）**
+
+| # | export 文件 | 实测 bytes | 实测行数 | 实测 SHA-256 | JSON `export_sha256` | 一致 |
+|---|---|---:|---:|---|---|---|
+| 1 | `c1-export-real-provider.jsonl` | 2357 | 5 | `5f7914d13f74c3a3b5ccab7ba1777e281d71a33d7641d7e7e21e8d6ded4e4d05` | 同 | 是 |
+| 2 | `c1-export-real-roundtable.jsonl` | 2371 | 5 | `75ca8ea92c135982ca6aa07d9b778aac7703901cf3174cfa3fbec214c40f8a11` | 同 | 是 |
+| 3 | `c1-export-cancel-vfy1.jsonl` | 2977 | 7 | `853033a897eca830c93d57e9a6fcaa704da896ea51b34662840d4bac6184ea71` | 同 | 是 |
+
+⚠️ 行数口径同第十四轮：文件无尾随换行，`export_line_count` = `\n` 数 + 1（表头 1 行 + 消息数）。
+
+**⑤ 判定影响：20 格逐格判定（4 格升级）**
+
+⚠️ 20 格 = 用例矩阵 10 格 + 证据登记表 10 格；**14 格保留原文 + 就地追加「真机第十五轮订正」块**；C1-01 / C1-04 / C1-05 按「已 `verified` 不重开」惯例**不改**（C1-01 的 `verified` 由 HEAD `37630adb4` 本提交建立）。
+
+| 用例 | 判定 | 理由（契约行号） |
+|---|---|---|
+| C1-02 无 @ 的 pipeline | **升 `verified`**（矩阵格 + 证据表格各 1 格） | 契约 `:206` + `:232-235` 8 项齐备且必须断言成立（真实网关 pipeline、wire 级 provenance、Σ=spent、viewer 台账、导出哈希） |
+| C1-03 roundtable | **升 `verified`**（矩阵格 + 证据表格各 1 格） | 契约 `:206` + `:232-235` 8 项齐备；`speaker_order_and_turn_kind` 与「议长前看不到未完成输出」成立 |
+| C1-06 取消与超时 | 不升（仍 `unverified`） | 契约 `:201` 要求「取消 / 超时」两半；超时半结构性做不到（`timeout_half_verified=false`），且通过为单次、未做重复稳定性 |
+| C1-07 失败续跑/幂等 | 不升（仍 `unverified`） | 契约 `:204` 幂等路径本批 2/2 失败（`:378`），当前是未解决的失败 |
+| C1-08 记忆隔离 | 不升（仍 `unverified`） | 契约 `:206` 缺 3 项（模型序列 / token / 导出哈希）；评估语义正交 / 不适用，待用户认可 |
+| C1-09 Tavern/QR 往返 | 不升（仍 `unverified`） | 本批未碰 |
+| C1-10 单聊/群聊共存 | 不升（仍 `unverified`） | 本批 3 通过 / 5 失败（`pagingSource_*`）；契约 `:232-235` 不认仅 UI 级证据且 `pagingSource` 有真缺陷待修 |
+
+**⑥ 诚实限制**
+
+- 通过的 3 条中，**C1-02 / C1-03 各只有一次真机全绿**；C1-06 亦单次。⚠️ **C1-02 / C1-03 的升级依据是契约 8 项齐备 + 必须断言成立，不是重复稳定性**（第十四轮曾 3/3 失败，本轮首次通过；重复稳定性建议后续补）。
+- **C1-06 超时半结构性做不到**（见 ①#3），JSON `timeout_half_verified=false` 是诚实缺项。
+- **C1-07 / C1-10 的失败是测试侧现状**，是否测试期望错由另一任务判定 / 修复，本轮不做结论。
+- **设备设置已还原**（执行者报告，未独立复现）：`screen_off_timeout=30000`、`stayon=false`。
+- 本节所有 SHA-256 / 字节 / 行数为**登记子代理本机独立复算**；设备侧原始文件在 `/tmp/opencode/c1-verify/`（仓库外）。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
