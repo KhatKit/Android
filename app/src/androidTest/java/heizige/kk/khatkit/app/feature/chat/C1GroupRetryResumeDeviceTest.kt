@@ -57,6 +57,7 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -348,7 +349,10 @@ class C1GroupRetryResumeDeviceTest {
         trace("phase2:terminal status=${run2.status} committed=${run2.committedRoleIds}")
         val phase2FinishedAt = System.currentTimeMillis()
 
-        val after2 = loadMessages(conversationId)
+        // 阶段 2 结束后的**整棵消息树**（不是 currentMessages 投影）：错误节点是否被删除要看
+        // messageNodes；currentMessages 只含每个节点的 selectIndex 那条（Conversation.kt:61-64）。
+        val after2Conversation = loadConversation(conversationId)
+        val after2 = after2Conversation.currentMessages
         writeRawDump("c1-retry-raw-phase2-$attemptLabel.json", conversationId, round1Id, after2, run2, extraRun = run1)
 
         val round2All = after2.filter { it.roundId == round1Id && it.role == MessageRole.ASSISTANT }
@@ -364,50 +368,46 @@ class C1GroupRetryResumeDeviceTest {
                     (message.wireModelName != null && message.wireModelName !in MOCK_WIRE_MODEL_NAMES))
         }
 
-        // ---- 断言 P2-A：a 不重复生成 —— 消息 id 不变、整轮 a 仍只有 1 条 ----
-        // pendingSpeakers(plan, committed={a}) 跳过 a（GroupChat.kt:902-903），
-        // 因此 a 不会被再次生成（roundOutputPresent 也确认 a 的产出还在，:2361-2373）。
-        assertEquals("a 的已提交消息 id 不得改变（未重复生成）", a1Message.id, a2.singleOrNull()?.id)
-        assertEquals("a 在整轮里必须恰好 1 条真实发言", 1, a2.size)
-        // ---- 断言 P2-B：b 与 c 各自恰好 1 条 ----
-        assertEquals("b 必须恰好 1 条真实发言", 1, b2.size)
-        assertEquals("c 必须恰好 1 条真实发言", 1, c2.size)
-        assertTrue("b 的补发言必须非空", b2.single().toText().isNotBlank())
-        assertTrue("c 的补发言必须非空", c2.single().toText().isNotBlank())
-        // ---- 断言 P2-C：旧错误节点保留（regenerateAtMessage 对助手消息不截断会话）----
-        assertTrue("阶段 1 的 b 错误节点必须原样保留", after2.any { it.id == errorNodeBMessage.id })
-        // ---- 断言 P2-D：committed == [a,b,c]，skipped 清空（reclaimed:87-95）----
-        assertEquals(listOf("a", "b", "c"), run2.committedRoleIds)
-        assertTrue("续跑完成后 skipped_role_ids 必须清空", run2.skippedRoleIds.isEmpty())
-        assertEquals(GroupRunEntity.STATUS_COMPLETED, run2.status)
-        assertEquals("正常收尾 reason 为空", "", run2.reason)
-        assertNotNull("COMPLETED 必须有 ended_at", run2.endedAt)
-        // ---- 断言 P2-E：同一 round_id 只有 1 行 group_runs ----
-        // 主键 (conversation_id, round_id) + claimRound 对非终态/终态行 reclaim 复用同一行
+        // ================= 阶段 2 的形状判定 + 契约字段（先算完 → 落盘 → 再断言） =================
+        //
+        // ---- 错误节点的正确形状：被「同节点候选替换」，不是被删除 ----
+        // `regenerateAtMessage` 对助手消息走 messageRange = 0..<nodeIndex（ChatManager.kt:636-638），
+        // 生成输入只是「被点节点之前」的消息（:906-912），**不删任何节点**；新产出经
+        // `Conversation.updateCurrentMessages`（Conversation.kt:74-106）落回 index == nodeIndex
+        // 的那个节点，作为新的候选消息追加、并把 selectIndex 切过去（:81-93）。currentMessages
+        // 只返回 selectIndex 那条（:61-64），所以快照里看不到旧错误节点，但它仍**原样留在**
+        // messageNodes 里（saveMessageNodes 存整份 node.messages，ConversationRepository.kt:557-567）。
+        // 这正是 `GroupRetryEntry.kt:42-44` 明写的设计：失败节点被点后续跑时，新产出作为该节点的
+        // 新候选分支、role_id / round_id 一致，「账面对得上」。
+        val after2Nodes = after2Conversation.messageNodes
+        val errorNodeOwningNode = after2Nodes.firstOrNull { node ->
+            node.messages.any { it.id == errorNodeBMessage.id }
+        }
+        val keptErrorNode = after2Nodes.flatMap { it.messages }.firstOrNull { it.id == errorNodeBMessage.id }
+        val newBMessage = b2.singleOrNull()
+        val errorSupersededByNewBInSameNode = errorNodeOwningNode != null &&
+            newBMessage != null &&
+            errorNodeOwningNode.messages.any { it.id == newBMessage.id }
+        val errorNodeStillSelected = after2.any { it.id == errorNodeBMessage.id }
+
+        // ---- 断言之外还要进证据 JSON 的值，全部在写盘之前算好 ----
+        // round_rows：主键 (conversation_id, round_id) + claimRound 对终态行 reclaim 复用同一行
         //（GroupTurnCoordinator.kt:264-266），不新建行。
         val roundRows = groupRunDao.listRecentByConversation(conversationId.toString(), 50)
             .filter { it.roundId == round1Id }
-        assertEquals("同一 round_id 的 group_runs 只允许 1 行", 1, roundRows.size)
-        // ---- 断言 P2-F：run_token 沿用（GroupRunDAO 无改写 run_token 的语句）----
-        assertEquals("续跑必须复用同一 run_token（同一运行实例）", run1.runToken, run2.runToken)
-        // ---- 断言 P2-G：spent_tokens == Σ(各条消息 usage 的 prompt+completion) ----
-        val tokenRows = listOf(a2.single(), b2.single(), c2.single()).map { requireNotNull(it.usage) }
-        val expectedSpent = tokenRows.sumOf { it.promptTokens + it.completionTokens }
-        assertEquals("spent_tokens 必须等于本轮所有产出消息的 prompt+completion 之和", expectedSpent, run2.spentTokens)
-        assertEquals("token_limit 必须是配置快照", budget, run2.tokenLimit)
-        // ---- 断言 P2-H：来源守卫（b/c 的补发言必须是 mock 的）----
-        assertTrue(
-            "阶段 2 不得有真网关顶包，实际=" + round2Leaks.map { "${it.roleId}:${it.modelId}:${it.wireModelName}" },
-            round2Leaks.isEmpty(),
-        )
-
-        // ================= 契约 :232-235 / :206 字段：viewer 台账 / 调用序列 / 导出哈希 =================
         val config = groupConfig()
         val viewerLedger = viewerVisibilityLedger(after2, config)
-        assertViewerLedgerMatchesProduction(viewerLedger, after2, config)
-        // after2 是两阶段结束后的完整会话快照（同一 round_id 的所有助手消息）。
+        // after2 是两阶段结束后的完整会话快照（同一 round_id 的所有助手消息，选中项）。
         val callSequence = actualModelCallSequence(after2, round1Id)
         val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-retry-export-$attemptLabel.jsonl")
+        // spent 期望用 singleOrNull 容错，保证即使某角色不是恰好 1 条，证据也能落盘（断言随后再红）。
+        val a2Message = a2.singleOrNull()
+        val c2Message = c2.singleOrNull()
+        val allRolesSingle = a2Message != null && newBMessage != null && c2Message != null
+        val allRolesHaveUsage = listOf(a2Message, newBMessage, c2Message).all { it?.usage != null }
+        val expectedSpent = listOf(a2Message, newBMessage, c2Message)
+            .mapNotNull { it?.usage }
+            .sumOf { it.promptTokens + it.completionTokens }
 
         // ================= 证据落盘 =================
         writeEvidence(
@@ -458,7 +458,11 @@ class C1GroupRetryResumeDeviceTest {
                     put("a_message_id_stable", a1Message.id == a2.singleOrNull()?.id)
                     put("a_message_id_phase1", a1Message.id.toString())
                     put("a_message_id_phase2", a2.singleOrNull()?.id?.toString())
-                    put("old_error_node_kept", after2.any { it.id == errorNodeBMessage.id })
+                    // 旧错误节点的正确口径：保留在 messageNodes（候选分支），但已被新 b 取代（非选中）。
+                    put("old_error_node_in_message_tree", keptErrorNode != null)
+                    put("old_error_node_selected_in_current", errorNodeStillSelected)
+                    put("old_error_node_shares_node_with_new_b", errorSupersededByNewBInSameNode)
+                    put("new_b_message_id", newBMessage?.id?.toString())
                     put("expected_spent_tokens", expectedSpent)
                     put("actual_spent_tokens", run2.spentTokens)
                 }
@@ -474,6 +478,16 @@ class C1GroupRetryResumeDeviceTest {
                         Triple("P2 group_runs rows=1", "1", roundRows.size.toString()),
                         Triple("P2 a id stable", a1Message.id.toString(), a2.singleOrNull()?.id?.toString() ?: "<missing>"),
                         Triple("P2 spent=Σusage", expectedSpent.toString(), run2.spentTokens.toString()),
+                        Triple(
+                            "P2 error node retained as branch (in messageNodes)",
+                            "true",
+                            (keptErrorNode != null).toString(),
+                        ),
+                        Triple(
+                            "P2 error node superseded by new b (not selected)",
+                            "true",
+                            (!errorNodeStillSelected).toString(),
+                        ),
                     ).forEach { (name, expected, actual) ->
                         add(
                             buildJsonObject {
@@ -506,6 +520,67 @@ class C1GroupRetryResumeDeviceTest {
                 )
             },
         )
+
+        // ================= 断言（放在证据落盘之后：断言失败也不会吞掉报告） =================
+        // ---- 断言 P2-A：a 不重复生成 —— 消息 id 不变、整轮 a 仍只有 1 条 ----
+        // pendingSpeakers(plan, committed={a}) 跳过 a（GroupChat.kt:902-903），
+        // 因此 a 不会被再次生成（roundOutputPresent 也确认 a 的产出还在，:2361-2373）。
+        assertEquals("a 的已提交消息 id 不得改变（未重复生成）", a1Message.id, a2.singleOrNull()?.id)
+        assertEquals("a 在整轮里必须恰好 1 条真实发言", 1, a2.size)
+        // ---- 断言 P2-B：b 与 c 各自恰好 1 条 ----
+        assertEquals("b 必须恰好 1 条真实发言", 1, b2.size)
+        assertEquals("c 必须恰好 1 条真实发言", 1, c2.size)
+        assertTrue("b 的补发言必须非空", b2.single().toText().isNotBlank())
+        assertTrue("c 的补发言必须非空", c2.single().toText().isNotBlank())
+        // ---- 断言 P2-C（修正）：旧错误节点被新产出「同节点候选替换」，不是被删除 ----
+        // 旧断言 `after2.any { it.id == errorNodeBMessage.id }` 把「当前选中快照」当成了
+        // 「整棵消息树」：after2 = currentMessages 只含 selectIndex 那条（Conversation.kt:61-64），
+        // 而续跑的新产出按 updateCurrentMessages（:74-106）落在同一节点、并切走 selectIndex，
+        // 所以旧错误节点必然不在快照里、却仍原样保留在 messageNodes 里（未被删除）。
+        assertNotNull(
+            "阶段 1 的 b 错误节点必须作为候选分支保留在 messageNodes 里（未被删除）",
+            keptErrorNode,
+        )
+        assertNotNull(
+            "旧错误节点必须仍属于某个 MessageNode（整节点未被删除）",
+            errorNodeOwningNode,
+        )
+        assertTrue(
+            "新 b 真实发言必须与被取代的旧错误节点落在同一 MessageNode（原位候选替换）",
+            errorSupersededByNewBInSameNode,
+        )
+        assertTrue(
+            "旧错误节点必须已被新产出取代（不再是 currentMessages 的选中项）",
+            !errorNodeStillSelected,
+        )
+        assertTrue(
+            "被取代的旧错误节点正文必须原样保留（仍是阶段 1 的失败文案），实际=" +
+                keptErrorNode?.toText(),
+            keptErrorNode != null &&
+                keptErrorNode.toText().contains("本轮生成失败") &&
+                keptErrorNode.toText().contains(EMPTY_OUTPUT_MARKER),
+        )
+        // ---- 断言 P2-D：committed == [a,b,c]，skipped 清空（reclaimed:87-95）----
+        assertEquals(listOf("a", "b", "c"), run2.committedRoleIds)
+        assertTrue("续跑完成后 skipped_role_ids 必须清空", run2.skippedRoleIds.isEmpty())
+        assertEquals(GroupRunEntity.STATUS_COMPLETED, run2.status)
+        assertEquals("正常收尾 reason 为空", "", run2.reason)
+        assertNotNull("COMPLETED 必须有 ended_at", run2.endedAt)
+        // ---- 断言 P2-E：同一 round_id 只有 1 行 group_runs（修好 P2-C 后本条必然执行到）----
+        assertEquals("同一 round_id 的 group_runs 只允许 1 行", 1, roundRows.size)
+        // ---- 断言 P2-F：run_token 沿用（GroupRunDAO 无改写 run_token 的语句）----
+        assertEquals("续跑必须复用同一 run_token（同一运行实例）", run1.runToken, run2.runToken)
+        // ---- 断言 P2-G：spent_tokens == Σ(各条消息 usage 的 prompt+completion) ----
+        assertTrue("a/b/c 必须各自恰好 1 条且都带 usage 才能核对 spent", allRolesSingle && allRolesHaveUsage)
+        assertEquals("spent_tokens 必须等于本轮所有产出消息的 prompt+completion 之和", expectedSpent, run2.spentTokens)
+        assertEquals("token_limit 必须是配置快照", budget, run2.tokenLimit)
+        // ---- 断言 P2-H：来源守卫（b/c 的补发言必须是 mock 的）----
+        assertTrue(
+            "阶段 2 不得有真网关顶包，实际=" + round2Leaks.map { "${it.roleId}:${it.modelId}:${it.wireModelName}" },
+            round2Leaks.isEmpty(),
+        )
+        // 契约 :232-235：viewer 台账必须逐一等于当场生产 GroupChat.visibleMessages 输出。
+        assertViewerLedgerMatchesProduction(viewerLedger, after2, config)
 
         println("C1-RETRY-DEVICE-BEGIN")
         println("attempt=$attemptLabel round=$round1Id")
@@ -629,7 +704,11 @@ class C1GroupRetryResumeDeviceTest {
     // ==================================================================
 
     private suspend fun loadMessages(conversationId: Uuid): List<UIMessage> =
-        repository.getConversationById(conversationId)?.currentMessages.orEmpty()
+        loadConversation(conversationId).currentMessages
+
+    /** 整棵消息树（含每个节点的全部候选分支）；判定「错误节点是否被取代/保留」必须用它。 */
+    private suspend fun loadConversation(conversationId: Uuid): Conversation =
+        requireNotNull(repository.getConversationById(conversationId)) { "会话 $conversationId 必须能从库读回" }
 
     private suspend fun awaitUserMessages(
         conversationId: Uuid,
