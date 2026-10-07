@@ -222,7 +222,7 @@ class C1GroupQrBitmapRoundTripDeviceTest {
     @Test
     fun nonLatin1ContentRoundTripsVerbatimThroughBitmapAfterUtf8Fix() {
         val chinese = "热血解说"
-        val roleName = "诸葛亮·卧龙"
+        val roleName = "$chinese·卧龙"
         val persona = "冷面军师，运筹帷幄🔥🀄"
         val avatarRef = "头像://青龙/🐉"
         val chineseCards = listOf(
@@ -257,6 +257,7 @@ class C1GroupQrBitmapRoundTripDeviceTest {
         assertTrue("自产中文载荷必须被 importShare 放行，实际：$imported", imported is GroupImportResult.Accepted)
         assertEquals(chineseCards, (imported as GroupImportResult.Accepted).payload.cards)
 
+        writeEvidence("c1-qr-bitmap-charset.json", raw, decoded, null, listOf(1024))
         println("C1-QR-CHARSET=utf8-verbatim cjk=$chinese emoji_ok=${decoded.contains("🔥")} equal=${raw == decoded}")
     }
 
