@@ -554,16 +554,43 @@ class C1GroupPagingAndFilterDeviceTest {
     // 分页断言工具
     // ==================================================================
 
+    /**
+     * 按**生产 `Pager` 的页类型**驱动一个 `PagingSource`：
+     * - `key == null`（首屏）→ [PagingSource.LoadParams.Refresh]（生产 `Pager` 的首请求就是 Refresh）；
+     * - `key != null`（续读）→ [PagingSource.LoadParams.Append]（生产 `Pager` 的后续页一律是 Append）。
+     *
+     * ⚠️ 后续页**不能**也用带 key 的 `Refresh`。Room 2.8.5 的 `LimitOffsetPagingSource`
+     * 对 `Refresh` 是「按刷新窗口算 offset」，而 `Append` 才是「从 key 续读」：
+     *
+     * ```
+     * // androidx.room.paging.util.RoomPagingUtil.getOffset(params, key, itemCount)
+     * // （反编译自 room-paging-2.8.5，见报告）
+     * Prepend -> if (key < loadSize) 0 else key - loadSize
+     * Append  -> key
+     * Refresh -> if (key < itemCount - loadSize) key else max(0, itemCount - loadSize)
+     * ```
+     *
+     * 于是 `Refresh(key=40, loadSize=20, itemCount=55)` 的 offset 被夹到 `max(0, 55-20)=35`，
+     * 第二屏从 35 回读 20 行（而非从 40 续读 15 行），造成**重叠/超取**；
+     * `Append(key=40, loadSize=20)` 的 offset 恒为 40，才是真续读。首屏（key=null）走
+     * 一次性 `initialLoad`（先 COUNT 再 `queryDatabase`），语义与 `Pager` 首屏一致。
+     */
     private suspend fun loadPage(
         source: PagingSource<Int, LightConversationEntity>,
         loadSize: Int,
         key: Int? = null,
-    ): PagingSource.LoadResult.Page<Int, LightConversationEntity> =
-        when (val result = source.load(PagingSource.LoadParams.Refresh(key, loadSize, false))) {
+    ): PagingSource.LoadResult.Page<Int, LightConversationEntity> {
+        val params: PagingSource.LoadParams<Int> = if (key == null) {
+            PagingSource.LoadParams.Refresh(key, loadSize, false)
+        } else {
+            PagingSource.LoadParams.Append(key, loadSize, false)
+        }
+        return when (val result = source.load(params)) {
             is PagingSource.LoadResult.Page -> result
             is PagingSource.LoadResult.Error -> throw result.throwable
             is PagingSource.LoadResult.Invalid -> error("PagingSource 在首次加载即失效")
         }
+    }
 
     /** 顺序翻页直到 nextKey == null，返回（全部行, 每页行数）。 */
     private suspend fun loadAllPages(
