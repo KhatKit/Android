@@ -1,9 +1,16 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.provider.Model
@@ -40,6 +47,7 @@ import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
+import heizige.kk.khatkit.app.core.data.model.GroupImportResult
 import heizige.kk.khatkit.app.core.data.model.GroupRole
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.SpeakerStep
@@ -51,6 +59,7 @@ import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.di.appEntryPoint
+import heizige.kk.khatkit.app.core.ui.components.ui.encodeQrBitmap
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.common.android.appTempFolder
 import kotlinx.coroutines.runBlocking
@@ -76,6 +85,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import kotlin.uuid.Uuid
 
 /**
@@ -3423,6 +3433,379 @@ class C1LiveModelSequenceTest {
                     production.close()
                 }
             }
+        }
+    }
+
+    // ==================================================================
+    // 用例 12：真实网关一轮 —— 同一条对话既导出 Tavern JSONL 又编成同群二维码（C1-09）
+    // ==================================================================
+
+    private val realQrExportCaseName = "real-qr-export"
+
+    /**
+     * C1-09 的**同源往返**闭环（真实网关）：
+     *
+     * 1. 建一个三角色 pipeline 群 [realProviderConfig]，用生产 `ChatManager.sendMessage`
+     *    在这个群上**真跑一轮公网网关**（provider = 生产内置「极客猫」，
+     *    `NetworkSetting(enableAutoRetry = false)` 关掉内层重试与 ProviderFailover，
+     *    保证这一轮打的就是显式配置的模型，不被 failover 顶包）；
+     * 2. 用**生产** [TavernChatCodec.exportGroupJsonl] + 生产 IO 助手 `writeExportTempFile`
+     *    把**这同一条真实对话**导出成酒馆群聊 JSONL，记录 `export_sha256` /
+     *    `export_bytes` / `export_line_count`，并复制到 external files dir 供 `adb pull` 复算；
+     * 3. 从**同一个群的 config**（从真库读回）走**生产** [GroupChat.encodeQr] 生成二维码载荷，
+     *    再走生产 `encodeQrBitmap` 画位图，经 MLKit `InputImage.fromBitmap` 解回，
+     *    逐字比较并交给生产 [GroupChat.decodeSharePayload] / [GroupChat.importShare] 逐字段核验。
+     *
+     * ## 为什么三类产物「确属这条流程本身」
+     *
+     * - **实际模型调用序列 / prompt+completion token**：来自第 1 步那一轮的助手消息
+     *   `message.modelId` / `wireModelName` / `message.usage`（真库读回，网关真实返回）；
+     * - **导出 SHA-256**：来自第 2 步对**第 1 步同一会话**的 `exportGroupJsonl` 字节；
+     * - **QR 载荷**：来自第 1 步同一群的 `groupConfig`。并且本用例直接比对
+     *   「QR 解出的 config」与「导出 JSONL 内嵌的 `khatkit_group.config`」——两者同源，
+     *   换成别的群的 config 会当场红。
+     *
+     * ## 契约 8 项
+     *
+     * commit / 命令 / 退出码由 instrumentation 参数传入（设备上跑不了 git、也拿不到
+     * gradle 退出码），未传时如实写 `null`；其余各项由本用例在设备上产出。
+     */
+    @Test
+    fun realRoundIsBothExportedAsTavernJsonlAndEncodedIntoSameGroupQr() = runBlocking {
+        val caseName = realQrExportCaseName
+
+        trace("real-qr-export:preflight-begin")
+        assertRealGatewayProviderPreflight()
+        trace("real-qr-export:preflight-ok baseUrl=${realProvider.baseUrl}")
+
+        // 关掉 autoRetry：SettingsRepository 读回时会把 DEFAULT_PROVIDERS 补回，内置极客猫
+        // enabled + 有 key ⇒ 会经 ProviderFailover 接盘；关掉它同时关掉内层重试与外层 failover。
+        val settings = realProviderSettings().copy(networkSetting = NetworkSetting(enableAutoRetry = false))
+        settingsStore.update(settings)
+        trace("real-qr-export:settings-update-done")
+
+        val config = realProviderConfig(caseName, realProviderBudget)
+        val conversationId = insertGroup(caseName, config)
+        evidenceConversations += conversationId
+        trace("real-qr-export:conversation-inserted id=$conversationId")
+
+        val messages: List<UIMessage>
+        val run: GroupRunEntity
+        var blockFailure: Throwable? = null
+        try {
+            chatManager.sendMessage(
+                conversationId = conversationId,
+                content = listOf(UIMessagePart.Text("请三位依次发言，每位一句话。")),
+                answer = true,
+            )
+            trace("real-qr-export:sendMessage-returned")
+            val stamped = awaitStampedTerminalRound(
+                conversationId = conversationId,
+                expected = 3,
+                expectedStatus = GroupRunEntity.STATUS_COMPLETED,
+                timeoutMillis = realTimeoutMillis,
+            )
+            messages = stamped.messages
+            run = stamped.run
+            trace("real-qr-export:await-stamped-done count=${messages.size}")
+        } catch (t: Throwable) {
+            blockFailure = t
+            throw t
+        } finally {
+            try {
+                writeRealRawDump(
+                    conversationId = conversationId,
+                    blockFailure = blockFailure,
+                    fileName = "c1-real-raw-dump-qr-export.json",
+                    passEvidenceName = "c1-live-evidence-real-qr-export.json",
+                )
+            } catch (dumpError: Throwable) {
+                trace("real-qr-export:raw-dump-write-error ${dumpError.message}")
+                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            }
+        }
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+        val trigger = messages.last { it.role == MessageRole.USER }
+
+        // ---------------- 断言 1：这就是刚跑过的那一轮真实对话 ----------------
+        assertEquals(
+            "本轮应产出 a、b、c 三条助手消息，实际=" + messages.map { "${it.role}/${it.roleId}" },
+            listOf("a", "b", "c"),
+            assistants.map { it.roleId },
+        )
+        assertEquals("三条助手消息必须同属一个 round", setOf(run.roundId), assistants.map { it.roundId }.toSet())
+        assertEquals(
+            "运行日志的 round_id 必须与触发消息派生值一致",
+            GroupChat.roundIdFor(trigger.id.toString()),
+            run.roundId,
+        )
+        assertEquals("本轮应正常完成", GroupRunEntity.STATUS_COMPLETED, run.status)
+        assertEquals("三个角色都必须进 committed 名单", listOf("a", "b", "c"), run.committedRoleIds)
+        assertNotNull("运行日志必须已收尾", run.endedAt)
+
+        // ---------------- 断言 2：真实 usage（prompt+completion token） ----------------
+        val perMessageUsage = assistants.map { message ->
+            val usage = requireNotNull(message.usage) {
+                "角色 ${message.roleId} 没有 usage —— 真实响应没带回 usage，token 证据不成立"
+            }
+            assertTrue(
+                "角色 ${message.roleId} 的 prompt_tokens 必须为正，实际=${usage.promptTokens}",
+                usage.promptTokens > 0,
+            )
+            assertTrue(
+                "角色 ${message.roleId} 的 completion_tokens 必须为正，实际=${usage.completionTokens}",
+                usage.completionTokens > 0,
+            )
+            assertEquals(
+                "角色 ${message.roleId} 的 totalTokens 必须等于 prompt+completion",
+                usage.promptTokens + usage.completionTokens,
+                usage.totalTokens,
+            )
+            usage
+        }
+        val sumPromptCompletion = perMessageUsage.sumOf { it.promptTokens + it.completionTokens }
+        assertEquals(
+            "group_runs.spent_tokens 必须等于三条发言 (prompt+completion) 之和",
+            sumPromptCompletion,
+            run.spentTokens,
+        )
+
+        // ---------------- 断言 3：实际模型调用序列（wire 优先 + uuid 反查回退） ----------------
+        val wireModelNames = assistants.map { resolveWireModelName(it) }
+        val bothMissing = wireModelNames.filter { it.wireModelName == null && it.uuidReverseLookupName == null }
+        assertTrue(
+            "每条发言都必须至少有一个模型名来源（wire 或 uuid 反查），两者皆空=" +
+                assistants.zip(wireModelNames)
+                    .filter { (_, n) -> n.wireModelName == null && n.uuidReverseLookupName == null }
+                    .map { (m, _) -> m.roleId },
+            bothMissing.isEmpty(),
+        )
+        wireModelNames.forEach { name ->
+            assertEquals(
+                "provenance 与是否回退必须自洽：wireModelName=${name.wireModelName}",
+                name.wireModelName == null,
+                name.fallbackTaken,
+            )
+        }
+        assertEquals(
+            "期望的模型调用序列（按发言顺序）应为 deepseek-v4-flash → glm-5.2 → deepseek-v4-flash",
+            listOf("deepseek-v4-flash", "glm-5.2", "deepseek-v4-flash"),
+            wireModelNames.map { it.resolvedModelName },
+        )
+
+        // ---------------- 断言 4：各 viewer 可见消息 ID 台账 ----------------
+        val viewerPlans = planViewerLedgerPlans(config, GroupChat.plan(config, emptyList()))
+        val viewerLedger = viewerVisibilityLedger(messages, config, viewerPlans)
+        assertViewerVisibilityLedger(viewerLedger, messages, config, viewerPlans)
+
+        // ---------------- 断言 5：生产导出（同一条真实对话） ----------------
+        val exportEvidence = exportGroupJsonlEvidence(conversationId, "c1-export-real-qr-export.jsonl")
+        trace("real-qr-export:export-hash=${exportEvidence["export_sha256"]}")
+        val exportPath = exportEvidence.getValue("export_path").jsonPrimitive.content
+        val exportText = File(exportPath).readText()
+        val exportLines = exportText.lines().filter { it.isNotBlank() }
+        assertEquals(
+            "导出 JSONL 行数必须等于 1 表头 + 消息节点数",
+            1 + messages.size,
+            exportLines.size,
+        )
+        // 逐条助手正文与 role_id / round_id 必须出现在导出里 —— 证明导出的是刚跑的那轮，不是夹具。
+        assistants.forEach { message ->
+            assertTrue(
+                "导出不得缺少角色 ${message.roleId} 的真实回复正文：${message.toText()}",
+                exportText.contains(message.toText()),
+            )
+            assertTrue(
+                "导出不得缺少角色 ${message.roleId} 的 role_id",
+                exportText.contains("\"role_id\":\"" + message.roleId + "\""),
+            )
+            assertTrue(
+                "导出不得缺少角色 ${message.roleId} 的 round_id",
+                exportText.contains("\"round_id\":\"" + message.roundId + "\""),
+            )
+        }
+        // 导出 JSONL 表头内嵌的群配置（生产 encodeConfigObject 输出）。
+        val exportedHeader = Json.parseToJsonElement(exportLines.first()).jsonObject
+        val exportedConfig = GroupChat.decodeConfigObject(
+            exportedHeader.getValue(TavernChatCodec.GROUP_FIELD).jsonObject.getValue("config").jsonObject,
+        )
+        assertNotNull("导出表头必须带可解析的 khatkit_group.config", exportedConfig)
+
+        // ---------------- 断言 6：同一个群的 config → 生产 QR → 位图往返 → 逐字段 ----------------
+        val stored = requireNotNull(repository.getConversationById(conversationId)) { "会话必须能从真库读回" }
+        val storedConfig = requireNotNull(stored.groupConfig) { "群会话必须带 groupConfig" }
+        val storedCards = stored.groupCards.orEmpty()
+        val qrRaw = GroupChat.encodeQr(storedConfig, storedCards)
+        assertTrue("QR 载荷不应为空", qrRaw.isNotBlank())
+
+        val bitmap = encodeQrBitmap(qrRaw, 1024, Color.BLACK, Color.WHITE)
+        assertEquals("位图宽必须等于请求 size", 1024, bitmap.width)
+        assertEquals("位图高必须等于请求 size", 1024, bitmap.height)
+        val decoded = decodeQrFromBitmap(bitmap)
+        assertEquals("MLKit 解出的字符串必须逐字等于 encodeQr 输出", qrRaw, decoded)
+
+        val payload = requireNotNull(GroupChat.decodeSharePayload(decoded)) { "生产解码器必须解出自产载荷" }
+        assertEquals(GroupChat.QR_KIND, payload.kind)
+        assertEquals(GroupChat.SCHEMA_VERSION, payload.schemaVersion)
+        // 同源三连：QR 载荷 config == 导出会话 config == 导出 JSONL 内嵌 config。
+        assertEquals("QR 载荷里的群配置必须逐字等于导出会话的群配置", storedConfig, payload.config)
+        assertEquals("QR 载荷里的群配置必须等于导出 JSONL 内嵌的 config 块", storedConfig, exportedConfig)
+        assertEquals("QR 载荷角色卡必须等于会话落库的角色卡", storedCards, payload.cards)
+
+        val imported = GroupChat.importShare(decoded)
+        val importAccepted = imported is GroupImportResult.Accepted
+        assertTrue("自产载荷必须被 importShare 放行，实际=$imported", importAccepted)
+        assertEquals(
+            "importShare 解回的群配置必须等于导出会话的群配置",
+            storedConfig,
+            (imported as GroupImportResult.Accepted).payload.config,
+        )
+        assertEquals(storedCards, imported.payload.cards)
+
+        // ---------------- 断言 7：契约 8 项齐全，写正式证据 ----------------
+        val args = InstrumentationRegistry.getArguments()
+        val commit = args.getString("c1Commit")
+        val testCommand = args.getString("c1TestCommand")
+        val testExitCode = args.getString("c1TestExitCode")
+
+        val report = buildJsonObject {
+            put("evidence_kind", "real-gateway-round-then-production-tavern-export-and-same-group-qr-roundtrip")
+            put("contract", "docs/beyond-operit-client-changes.md:206 / :219 / :232-235")
+            put("generated_at_device", System.currentTimeMillis())
+            put("device", deviceBlock())
+            // ---- 契约 8 项 ----
+            put("commit", commit)
+            put("test_command", testCommand)
+            put("test_command_exit_code", testExitCode)
+            put(
+                "device_android",
+                "${Build.MODEL} / Android ${Build.VERSION.RELEASE} / API ${Build.VERSION.SDK_INT} / " +
+                    Build.SUPPORTED_ABIS.joinToString(","),
+            )
+            putJsonObject("case_input") {
+                put("conversation_id", conversationId.toString())
+                put("trigger_user_message_id", trigger.id.toString())
+                put("trigger_text", trigger.toText())
+                put("mode", config.mode)
+                put("chair_role_id", config.chairRoleId)
+                put("token_budget_per_round", config.tokenBudgetPerRound)
+                putJsonArray("roles") {
+                    config.roles.forEach { role ->
+                        add(
+                            buildJsonObject {
+                                put("role_id", role.id)
+                                put("assistant_id", role.assistantId)
+                                put("chair", role.chair)
+                                put("model_uuid", role.modelId)
+                                put(
+                                    "model_string_sent_on_wire",
+                                    role.modelId?.let { uuid ->
+                                        realProvider.models.firstOrNull { it.id.toString() == uuid }?.modelId
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
+                put("provider_id", realProvider.id.toString())
+                put("provider_base_url", realProvider.baseUrl)
+                put("network_setting_enable_auto_retry", settings.networkSetting.enableAutoRetry)
+                put("round_id", run.roundId)
+            }
+            put("viewer_visibility", viewerLedger)
+            putJsonArray("actual_model_call_sequence") {
+                assistants.forEachIndexed { index, message ->
+                    val name = wireModelNames[index]
+                    add(
+                        buildJsonObject {
+                            put("seq", index + 1)
+                            put("role_id", message.roleId)
+                            put("turn_kind", message.turnKind)
+                            put("model_uuid", message.modelId?.toString())
+                            put("wire_model_name", name.wireModelName)
+                            put("uuid_reverse_lookup_model_string", name.uuidReverseLookupName)
+                            put("resolved_model_name", name.resolvedModelName)
+                            put("wire_model_name_provenance", name.provenance)
+                            put("message_id", message.id.toString())
+                            put("text", message.toText())
+                        },
+                    )
+                }
+            }
+            putJsonArray("prompt_completion_tokens") {
+                assistants.forEachIndexed { index, message ->
+                    val usage = perMessageUsage[index]
+                    add(
+                        buildJsonObject {
+                            put("seq", index + 1)
+                            put("role_id", message.roleId)
+                            put("prompt_tokens", usage.promptTokens)
+                            put("completion_tokens", usage.completionTokens)
+                            put("total_tokens", usage.totalTokens)
+                        },
+                    )
+                }
+            }
+            put("sum_prompt_plus_completion", sumPromptCompletion)
+            put("group_run", runBlock(run))
+            put("export", exportEvidence)
+            putJsonObject("qr_same_group") {
+                put("source", "GroupChat.encodeQr(stored.groupConfig, stored.groupCards)")
+                put("raw_bytes", qrRaw.toByteArray(Charsets.UTF_8).size)
+                putJsonObject("bitmap") {
+                    put("size", 1024)
+                    put("foreground", "BLACK")
+                    put("background", "WHITE")
+                    put("argb_8888", bitmap.config == Bitmap.Config.ARGB_8888)
+                    put("decoder", "MLKit BarcodeScanning FORMAT_QR_CODE via InputImage.fromBitmap")
+                }
+                put("decoded_equals_raw", qrRaw == decoded)
+                put("payload_config_equals_stored_config", payload.config == storedConfig)
+                put("payload_config_equals_exported_config", payload.config == exportedConfig)
+                putJsonObject("decoded_payload_config") {
+                    put("mode", payload.config.mode)
+                    put("chair_role_id", payload.config.chairRoleId)
+                    put("token_budget_per_round", payload.config.tokenBudgetPerRound)
+                    putJsonArray("role_ids") { payload.config.roles.forEach { add(JsonPrimitive(it.id)) } }
+                    putJsonArray("role_model_ids") { payload.config.roles.forEach { add(JsonPrimitive(it.modelId)) } }
+                }
+                put("import_share_accepted", importAccepted)
+            }
+            putJsonObject("export_messages_cross_check") {
+                put("export_line_count", exportLines.size)
+                put("expected_line_count", 1 + messages.size)
+                put("export_contains_every_assistant_text", true)
+                put("export_contains_every_role_id", true)
+                put("export_contains_every_round_id", true)
+            }
+        }
+        writeEvidence("c1-live-evidence-real-qr-export.json", report)
+
+        println("C1-QR-EXPORT-BEGIN")
+        println("export_sha256=${exportEvidence["export_sha256"]}")
+        println("export_bytes=${exportEvidence["export_bytes"]}")
+        println("model_sequence=${wireModelNames.map { it.resolvedModelName }}")
+        println("tokens=${perMessageUsage.map { "${it.promptTokens}+${it.completionTokens}" }}")
+        println("qr_roundtrip=${qrRaw == decoded}")
+        println("C1-QR-EXPORT-END")
+    }
+
+    /** MLKit 从生产位图解码；带超时上限，避免设备上挂死。 */
+    private fun decodeQrFromBitmap(bitmap: Bitmap): String {
+        val scanner = BarcodeScanning.getClient(
+            BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .build(),
+        )
+        try {
+            val image = InputImage.fromBitmap(bitmap, 0)
+            val barcodes = Tasks.await(scanner.process(image), 30, TimeUnit.SECONDS)
+            val decoded = barcodes.firstNotNullOfOrNull { it.rawValue }
+            assertNotNull("MLKit 未能从生产位图解出任何二维码", decoded)
+            return decoded!!
+        } finally {
+            scanner.close()
         }
     }
 
