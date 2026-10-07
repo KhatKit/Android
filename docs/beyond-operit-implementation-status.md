@@ -1328,6 +1328,23 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`ChatDrawer.kt` / `ChatPage.kt` / `SettingAboutPage.kt` / `KedgeMiuixMorphingTitleBar.kt` / `TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 
+### ⚠️ 第二十九批（真机第十九轮，2026-10-07，`2a0610705..1758e2109`）：**C1-10 第 9 条改造为「筛选路径内」真跑一轮 ⇒ C1-10 升 `verified`；台账 51 行 / 531 例不变（本批零 JVM 改动）**
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`；绿日志 `OK (1 test)` / `Time: 19.62`）+ **2 处 androidTest 改动**（`C1GroupPagingAndFilterDeviceTest.kt` 第 9 条：`df4c70f09` 改造 + `1758e2109` 加固），**生产代码 / 工具 / `app/src/test` 一字未动**。开工 / 收尾 HEAD = **`1758e2109`**（`git rev-parse HEAD` 实测 = `1758e2109b6fef396c361c5c87dc923f16c019e0`）。窗口 `2a0610705..1758e2109` 实测 **4 个 commit**（`--merges` = 0；含上一批留到本批补登的登记本体 2 个）。⚠️ **轮次命名**：含真机采集，故「C1 真机证据采集」据序为**第十九轮**；同时按「C1 commit 台账」批次序记为**第二十四批**（本节即实施状态侧的**第二十九批**）。
+
+**① 判定影响（20 格逐格）：2 格改值** —— **C1-10 在「用例矩阵」与「证据登记」两表内的状态格从 `unverified` → `verified`**；其余 9 例维持原判。20 格每格就地追加「第二十四批订正」（保留原文）。逐格依据见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十九轮」①②⑤。
+
+**② C1-10 裁定：升 `verified`（契约逐条）**
+
+| 用例 | 裁定 | 关键依据（契约行号） |
+|---|---|---|
+| C1-10 单聊/群聊共存 | **升 `verified`** | 契约 `:232-235` 判 `unverified` 的三情形是「测试未运行 / 只看截图 / **只看 UI 状态**」；本用例现为「UI 操作（点 chip + 点抽屉行）+ 生产 DAO（PagingSource 同源查询）+ 生产导航状态（`NavViewModel.currentPage` 反射）+ 真网关产物」的混合体，**不再只看 UI 状态**。上一批（第二十三批）「真实网关轮与筛选路径正交」的唯一不升理由被本次改造消掉：第 9 条先点 chip → 生产 DAO 取筛选首屏 → 抽屉点击该行 → 导航断言，**再在这条从筛选结果打开的群上真跑一轮** ⇒ 8 字段由筛选路径打开的群产出。`:206`/`:232-235` 8 字段齐（commit `1758e2109` + `df4c70f09` / 命令 `OK (1 test)` · Time 19.62 / 设备 PKG110·16·36 / 输入 `请三位依次发言，每位一句话。` / viewer a·b·c 台账 / 序列 flash→glm-5.2→flash / `20537=Σusage` / 导出 `66d3b9ce…` 2331 B·5 行）。见「第十九轮」①②⑤ |
+
+**③ 统计口径（登记子代理本机实测）**：`git log --oneline 2a0610705..HEAD` = **4**（`--merges` = 0）；`git log --name-only 2a0610705..HEAD -- 'app/src/test/*'` = **空**（本批只改 androidTest）⇒ 台账声明值**不变：51 行 / 531 例**（锚点 `1b0e04a9` 不重算）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test` / `--only tables` 均 **exit 0**；脚本 sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一字节未改）。⚠️ **仪器 @Test 口径不变**：tracked **22 文件 / 96 例**、含 untracked **23 文件 / 99 例**（只改第 9 条方法体）。基线沿用上一批：`:app:testDebugUnitTest` 118 类 / 961 例；`:ai:test` 30 类 / 220 例；lint app `0/617/6=623`、全模块 `0/650/7=657`。
+
+**④ 设备侧遗留（如实登记）**：设备 `settings.preferences_pb` 仍含历轮测试用的 `realProvider` 与 3 个测试助手（mtime 14:47，早于本轮）——**本轮未清**；第 9 条对「筛选结果首条必须是本案夹具群」有依赖（本轮 = `f3a1`）；本轮测试首次尝试遇「网关流挂死」（非断言失败）。三条均见 `docs/eval/c1-group-chat.md` 遗留 55/56/57。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `ChatDrawer.kt` / `ChatPage.kt` / `SettingAboutPage.kt` / `KedgeMiuixMorphingTitleBar.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
