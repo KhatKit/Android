@@ -38,6 +38,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.android.gms.tasks.Task
+import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -144,6 +146,49 @@ fun shouldAnalyzeFrame(lastAnalyzedTimestamp: Long, frameTimestamp: Long): Boole
     if (frameTimestamp <= 0L) return true
     return frameTimestamp > lastAnalyzedTimestamp
 }
+
+/**
+ * 构造扫码用的 MLKit scanner：只开 `QR_CODE` 一种格式。
+ *
+ * 从 [QrScanSession] 的字段初始化里**原样提取**，只为给 androidTest 一个与生产逐字同款的
+ * scanner 入口 —— 测试必须用这条路径建 scanner，才能断言真实的 `mediaImage -> MLKit` 解码链路，
+ * 而不是另起一套 options。
+ */
+internal fun buildQrScanner(): BarcodeScanner =
+    BarcodeScanning.getClient(
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .build()
+    )
+
+/**
+ * 把一帧 [ImageProxy] 交给 MLKit 解码，返回异步任务。
+ *
+ * 这是相机扫码链路里**唯一**把底层 `android.media.Image`（[ImageProxy.getImage]）转成 MLKit
+ * [InputImage] 的地方：`InputImage.fromMediaImage(mediaImage, imageInfo.rotationDegrees)`。
+ * 抽成 `internal` 顶层函数是为了让 androidTest 能用真实 `ImageProxy`（ImageReader 合成帧）直接
+ * 调用，从而覆盖此前只跑过 `InputImage.fromBitmap`、从未在 `mediaImage` 这一层跑通的路径。
+ *
+ * `proxy.image` 为 null（非 [android.media.Image] 支撑的代理）时返回 `null`，与 [analyzeFrame]
+ * 的早退语义一致。
+ */
+@androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
+internal fun processQrFrame(
+    image: ImageProxy,
+    scanner: BarcodeScanner,
+): Task<List<Barcode>>? {
+    val mediaImage = image.image ?: return null
+    return scanner.process(InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees))
+}
+
+/**
+ * 从一帧解出的全部 barcode 里取**第一个**有 `rawValue` 的字符串。
+ *
+ * 从 [QrScanSession] 的 success 回调里**原样提取**（`firstNotNullOfOrNull { it.rawValue }`）：
+ * 一帧出现多个二维码时生产语义就是「只回调第一个」，抽出来才能在 androidTest 里钉住。
+ */
+internal fun firstQrValue(barcodes: List<Barcode>): String? =
+    barcodes.firstNotNullOfOrNull { it.rawValue }
 
 /**
  * 相机扫码弹层：用 CameraX 取景 + MLKit Barcode Scanning 扫二维码。
@@ -315,11 +360,7 @@ private class QrScanSession(
     // 单线程即可：分析是串行的，多线程只会让 MLKit 任务排队并放大内存占用。
     private val analysisExecutor = Executors.newSingleThreadExecutor()
 
-    private val scanner = BarcodeScanning.getClient(
-        BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-            .build()
-    )
+    private val scanner = buildQrScanner()
 
     private var cameraProvider: ProcessCameraProvider? = null
 
@@ -410,10 +451,10 @@ private class QrScanSession(
             if (!shouldAnalyzeFrame(lastAnalyzedTimestamp, imageInfo.timestamp)) return
             if (imageInfo.timestamp > 0L) lastAnalyzedTimestamp = imageInfo.timestamp
 
-            val image = InputImage.fromMediaImage(mediaImage, imageInfo.rotationDegrees)
-            scanner.process(image)
+            val task = processQrFrame(proxy, scanner) ?: return
+            task
                 .addOnSuccessListener { barcodes ->
-                    val raw = barcodes.firstNotNullOfOrNull { it.rawValue } ?: return@addOnSuccessListener
+                    val raw = firstQrValue(barcodes) ?: return@addOnSuccessListener
                     onBarcode(raw)
                 }
                 .addOnFailureListener {
