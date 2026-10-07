@@ -5337,6 +5337,109 @@ C1-08 用例（`realProviderGroupMemoryIsolationRecordsPerSpaceHits`）缺「模
 - **生产分页缺陷**：`ConversationRepository` 四个 offset 分页 API 的 `LoadParams` 类型**已修**（`5ca9ecbaf`），⚠️ **真机未复跑**。
 - **过期 KDoc（未改）**：`C1GroupRetryResumeDeviceTest.kt:107-110`「UI 没有重试入口」已过期（续跑入口已由 `d6494e49a` 落地）——**本批未改，留待后续**。
 
+### C1 真机证据采集第十六轮（2026-10-07，HEAD `bd88aaff2`：C1-07 续跑幂等 + C1-10 分页筛选修复后重跑，8/8 与 1/1 全绿）
+
+> ⚠️ **轮次命名说明**：本文档「C1 真机证据采集第 X 轮」是**真机采集**序列，上一轮为**真机第十五轮**（HEAD `37630adb4`，见上），本节据序为**第十六轮**。
+
+🚨 **先说性质**：本批 = **一次真机采集窗口**。设备 **OnePlus `PKG110` / Android 16 / API level `36` / `arm64-v8a`**（逐份证据 JSON `device` 字段实测值）。开工 / 收尾 HEAD 均为 **`bd88aaff2`**（`git rev-parse HEAD` 实测 = `bd88aaff2ae00574cc76badb562f05e3bc13a8df`）；**设备轮本身零 commit**（`git log --oneline bd88aaff2..HEAD` 实测为空）。构建 `:app:assembleDebug :app:assembleDebugAndroidTest` **BUILD SUCCESSFUL / exit 0**（15 executed / 383 up-to-date）；两个 APK `install -r -t` 均 `Success`。⚠️ `am instrument` 的 **shell 退出码即使失败也是 0**，判据只用日志正文 `OK (1 test)` / `FAILURES!!!`（遗留第 41 条）。
+
+🚨 **结论**：① **C1-07 续跑幂等用例真机首次通过**（`C1GroupRetryResumeDeviceTest#retrySameRoundSkipsCommittedTurnsAndDoesNotDuplicateMessages`，日志 `OK (1 test)` / Time **13.108**），契约 `:204` + `:206`/`:232-235` **8 项齐备**；② **C1-10 分页筛选 8/8 全绿**（连跑两遍、每遍都 8/8），上一批的 5 条 `pagingSource_*` 失败**全部转绿**；③ **状态判定：C1-07 在「用例矩阵」与「证据登记表」两格升 `verified`（共 2 格）**，C1-10 仍 `unverified`（逐格见 ⑤）。
+
+⚠️ **证据根目录**：`/tmp/opencode/c1-r10/`（仓库外）。本节所有 SHA-256 / 字节数由**登记子代理本机独立复算**（`sha256sum`），凡标「执行者报告」者为转述、登记时未独立复现。
+
+**① C1-07 失败续跑/幂等——逐列 8 项契约字段**
+
+> ⚠️ 8 项 = 契约 `client-changes.md:206` + `:232-235` 逐例要求的「commit、测试命令及退出码、设备/Android 版本、用例输入、各 viewer 的可见消息 ID、实际模型调用序列、prompt+completion token、导出 SHA-256」。
+
+- **commit**：run 时 HEAD `bd88aaff2`（设备轮零 commit）。
+- **命令·退出码**：`:app:assembleDebug :app:assembleDebugAndroidTest` exit 0，两个 APK `install -r -t` Success，`am instrument -w -r -e class 'heizige.kk.khatkit.app.feature.chat.C1GroupRetryResumeDeviceTest#retrySameRoundSkipsCommittedTurnsAndDoesNotDuplicateMessages' heizige.kk.khatkit.debug.test/androidx.test.runner.AndroidJUnitRunner`；shell 退出码不可判（遗留 41），日志判据 **`OK (1 test)` / Time 13.108**。
+- **设备·Android**：OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`（报告 `device` 字段实测）。
+- **用例输入**：`mode=pipeline`，conversation `a0e965f1-52f4-4103-b99e-604fce1710f8`，`round_id=round-832cd2cc-16a2-4ba1-acc8-3aa41b3bc127`，`token_budget_per_round=100000`，USER「请三位依次发言，每位一句话。」；mock provider `http://127.0.0.1:8766/v1`（`mock_openai_slow_cancel.py`，启动行 `fail_role='' empty_role='B' delays={'A':0.02,'B':0.5,'C':0.1}`；`enableAutoRetry=false`），开测前 `POST /__reset` → `{"reset":true,"cleared":[]}`（**只在 phase1 之前调一次，两 phase 之间不重注入**）。
+- **viewer 可见消息 ID**（`viewer_visibility`，源生产 `GroupChat.visibleMessages`）：a=`[832cd2cc-…(USER), 9298d95f-58fd-4d2b-aa07-f7b08548a038]`（count 2）；b=`[832cd2cc-…, 9298d95f-…, b55251a7-1245-45ae-a58a-5ec76cf99d02]`（count 3）；c=`[832cd2cc-…(触发), b55251a7-…, f7d97c05-0079-49d2-a7ae-8f681db1259e]`（count 3）。
+- **实际模型调用序列**（`actual_model_call_sequence`）：seq1 a `mock-retry-a 6186+22`（committed）、seq2 b `mock-retry-b 6217+322`（committed）、seq3 c `mock-retry-c 6517+22`（committed），顺序 **A→B→C**。⚠️ 报告内序列声明为**从落库盖章消息推导**（`scope_note`），但**主机侧 mock `requests.jsonl` 独立记录**：seq1 A（chunks=3 / total 6208）、**seq2 B `injected_empty_output:true`（content chunks=0）**、**seq3 B 正常（chunks=19 / total 6539）⇒ phase2 未重注入**、seq4 C（chunks=3 / total 6539）；两来源一致。
+- **prompt+completion token**：phase1 `FAILED/role_failed/committed=[a]/skipped=[c]/spent=6208/error_message="本轮没有产出内容"`；phase2 `COMPLETED/reason=""/committed=[a,b,c]/skipped=""/spent=19286`；**`spent 19286 == a(6208)+b(6539)+c(6539)`**；`run_token` 两阶段相同 = `ef78e9f6-79fe-4ba2-9a41-4cbf75d02882`（`run_token_reused=true`）；a 消息 id 两阶段不变 = `9298d95f-58fd-4d2b-aa07-f7b08548a038`。
+- **导出 SHA-256**：`c1-retry-export-x.jsonl` **5063 B / 5 行**，`be3709800ca2bcb64648567df415edc82137fa4e54a00422ea371f0ddbd1a2c1`（报告内 `export_sha256`；**本机 `sha256sum` 对 pull 到的文件复算一致**）。
+- **证据文件**（`/tmp/opencode/c1-r10/pull/`，本机复算 SHA-256）：`c1-device-retry-resume-report-x.json` 12998 B `ddd52ad46538c4f59e2f43ad3db9b7bb3a7a2a204e9f8632bf9811e12acc13c7`；`c1-retry-raw-phase1-x.json` 1933 B `720a986e402922bae2625a012a1f0a0bbd16142cd304384dc1882a5128947a82`；`c1-retry-raw-phase2-x.json` 4322 B `46ac7fb9a25db1a22427f5a1ff8a361cc9bf30e4a1225b7734ab948ed43fed30`；`c1-retry-trace-x.txt` 1289 B `1e04e963b33d0d4e935f899380437fd6fb944d356df6bb8eb7aa470b1b65d284`；`c1-retry-export-x.jsonl` 5063 B `be3709800ca2bcb64648567df415edc82137fa4e54a00422ea371f0ddbd1a2c1`。
+- **必须断言核心**（12 行 `assertions` 全部 `expected==actual`）：`P1 status=FAILED`、`P1 reason=role_failed`、`P1 committed=[a]`、`P1 skipped=[c]`、`P1 real speaker count=1`、`P2 status=COMPLETED`、`P2 committed=[a,b,c]`、**`P2 group_runs rows=1`**、`P2 a id stable`、`P2 spent=Σusage（19286）`、`P2 error node retained as branch=true`、`P2 error node superseded by new b (not selected)=true`。`observed`：`phase1_error_node_id=53cd5a6d-43ae-44c2-b236-f9fe65b7e41c`、`old_error_node_in_message_tree=true`、`old_error_node_selected_in_current=false`、`old_error_node_shares_node_with_new_b=true`、`new_b_message_id=b55251a7-1245-45ae-a58a-5ec76cf99d02`。⇒ **同群同一 `round_id` 只有一个运行实例（`group_runs rows=1`）、重试沿用同一 `run_token`、a 的已提交 turn 被跳过且消息 id 不变、不重复消息**——与契约 `:204` 逐字对应。
+- ⚠️ **报告 `scope_note` 末尾那句「Device-side behaviour is NOT verified… (no device)」是报告源码内的历史固定文案，非本次事实**（本次为真机实测；该文件 `device.sdk=36`、`attempt=x` 等均为设备侧落盘）。**登记时不据此改判，也不改测试代码里这句**。
+
+**② C1-10 单聊/群聊共存——`C1GroupPagingAndFilterDeviceTest` 8/8 全绿（两遍都 8/8）**
+
+| # | 方法 | 结果 | Time（第二遍） |
+|---:|---|---|---:|
+| 1 | `typeFilter_allChipsFilterIndividuallyAndRestoreExactly` | `OK (1 test)` | 5.418s |
+| 2 | `typeFilter_chipSwitchNeverLosesData_dbCountsStable` | `OK (1 test)` | 5.374s |
+| 3 | `mixedList_groupBadgeRendersOnlyOnGroupRows` | `OK (1 test)` | 4.477s |
+| 4 | `pagingSource_firstScreenUsesInitialLoadSize_thenPageSize` | `OK (1 test)` | 3.263s |
+| 5 | `pagingSource_allPagesSumToDbCount_withoutDuplicates` | `OK (1 test)` | 3.020s |
+| 6 | `pagingSource_typeFilterNarrowsWithinSql` | `OK (1 test)` | 1.223s |
+| 7 | `pagingSource_filterAllArgumentIsEmpty_equivalentToSqlNoFilter` | `OK (1 test)` | 2.863s |
+| 8 | `pagingSource_searchPathCarriesTypeAndPages` | `OK (1 test)` | 1.283s |
+
+每条实测断言值（设备侧 `c1-round6-*.txt` 原文，`/tmp/opencode/c1-r10/ev-<method>/`）：
+
+- #1 `chips_verified=ALL\|DIRECT\|GROUP\|DIRECT\|ALL`、`restored_equals_initial=true`（本机复算 `9b9ceb02e5d29ad4eccf3ae1965a049cab7efb4f755484f79b7057fd950b0d45`，280 B）。
+- #2 `before=[DIRECT=30, GROUP=25, DIRECT=38, GROUP=31]`、`after=` 同值、`stable=true`（本机复算 `366005ee7e0205915d89ea93ff0be0bf24e5bd30ff4b003bfb392a6fa6ecdf15`，242 B）。
+- #3 `group_a_badged=true, group_b_badged=true, direct_a_badged=false, direct_b_badged=false, badge_node_count=5`（本机复算 `6bb6cb87210e4cd255171ce5be63f04014550d730f477a39d75ae61778e75fa4`，125 B）。
+- #4 `prod_page_size=20, prod_initial_load_size=40, total_rows=55, first_size=40, second_size=15`（**上一批失败点 `expected:<15> but was:<20>` 已消除**；本机复算 `8fbae6c8b614be7adcef21e0cef2a529b09b4ec02def6c666674265826a3a6a9`，110 B）。
+- #5 `page_sizes=[20,20,15], loaded=55, distinct_ids=55, db_unfiled=55`（上次 `55 vs 60` 已消；本机复算 `6c5baf3cf8629f2772f7020d5cf827f15e70fa535b8c0fe5a22f13ba813bfb3b`，84 B）。
+- #6 `group_page_sizes=[20,5], group_rows=25, direct_page_sizes=[20,10], direct_rows=30`（本机复算 `57a9e6edb1b88b96f95d3b6f0765f96a224c636437bc771af72b1d9bf02eee50`，103 B）。
+- #7 `type_arg='', rows=55`（本机复算 `08ad79a460148b323859cfb9bb51e0110b174bb4074765113759edc2dbf02aeb`，41 B）。
+- #8 `group_hits=25, group_page_sizes=[20,5], all_hits=55`（上次 `25 vs 40` 已消；本机复算 `361cd4c38fc6c03017e38b1462fb5cb83492ffbf3752db8bb6a5fba2a9b2e9cd`，73 B）。
+
+⚠️ **上一批（第二十批）的修复由本批真机转绿证实**：`0ae9f570a`（设备侧 `loadPage()` 改首屏 `Refresh` / 后续 `Append`）+ `5ca9ecbaf`（生产 `ConversationRepository` 四个 offset 分页 API 改 `Append`）在 HEAD `bd88aaff2` 上使 5 条 `pagingSource_*` 由「真机失败」变「真机通过」。
+
+**③ mock `requests.jsonl`（主机侧独立记录，本机实测 6 行）**
+
+| seq | speaker | 注入 | content chunks | usage total | 说明 |
+|---:|---|---|---:|---:|---|
+| — | — | `__reset` | — | — | 开测前一次（再前面另有一次 setUp 的） |
+| — | — | `__reset` | — | — | 共 2 次 `__reset` |
+| 1 | A | 无 | 3 | 6208 | phase1 真实发言并提交 |
+| 2 | B | `injected_empty_output:true` | 0 | 6217 | **零产出注入，只此一次** ⇒ 造出 phase1 的 `role_failed` |
+| 3 | B | 无 | 19 | 6539 | phase2 未重注入，正常产出并提交 |
+| 4 | C | 无 | 3 | 6539 | phase2 最后一位 |
+
+mock 本体 `tools/verification/mock_openai_slow_cancel.py` 本机 `sha256sum` 复算 = `0f2af473f94931cf97843fee1d7ea41462b4dc94cfecfe4ab10bfd286d0d3fde`。
+
+**④ 导出哈希复算（登记子代理本机 `sha256sum` 复算 == 报告 `export_sha256`）**
+
+| 文件 | 实测 bytes | 实测行数 | 实测 SHA-256 | 报告 `export_sha256` | 一致 |
+|---|---:|---:|---|---|---|
+| `c1-retry-export-x.jsonl` | 5063 | 5 | `be3709800ca2bcb64648567df415edc82137fa4e54a00422ea371f0ddbd1a2c1` | 同 | 是 |
+
+⚠️ 行数口径同第十四 / 十五轮：文件无尾随换行，`export_line_count` = `\n` 数 + 1（表头 1 行 + 消息数）。
+
+**⑤ 判定影响：20 格逐格判定（2 格升级）**
+
+⚠️ 20 格 = 用例矩阵 10 格 + 证据登记表 10 格；**每一格保留原文 + 就地追加「真机第十六轮订正」块**（不覆写历史）。逐格按契约 `:206` / `:232-235` 核对：
+
+| 用例 | 判定 | 理由（契约行号） |
+|---|---|---|
+| C1-01 三角色显式 @ | 维持 `verified`（本批未碰） | 本批未跑显式 @ 路径；此前 `verified` 结论未被本批触及 |
+| C1-02 无 @ 的 pipeline | 维持 `verified`（本批未碰） | 本批未跑真实网关 pipeline；维持第十五轮 `verified` |
+| C1-03 roundtable | 维持 `verified`（本批未碰） | 本批未跑 roundtable；维持第十五轮 `verified` |
+| C1-04 vote | 维持 `verified`（本批未碰） | 本批未碰 vote；维持第十四轮 `verified` |
+| C1-05 轮次预算 | 维持 `verified`（本批未碰） | 本批未碰；维持第十四轮 `verified` |
+| C1-06 取消与超时 | 不升（仍 `unverified`） | 本批未碰；超时半结构性做不到（`ChatManager.kt:116`/`:1005`、`KhatKitApp.kt:344-352`），契约 `:201` 两半不齐 |
+| C1-07 失败续跑/幂等 | **升 `verified`**（矩阵格 + 证据表格各 1 格） | 契约 `:204`「同一群同一 `round_id` 只允许一个运行实例（持久化 run token + mutex）；重试使用同一 `round_id` 并跳过已提交 turn，避免重复消息」+ `:206`/`:232-235` 8 项齐备（真机 `OK (1 test)` / Time 13.108；`run_token_reused=true`、`group_runs rows=1`、a id 不变、spent==Σusage、导出哈希本机复算一致）；口径与第十五轮 C1-02/C1-03 升级一致（接受「命令日志 `OK (1 test)` + Time」作退出码证据） |
+| C1-08 记忆隔离 | 不升（仍 `unverified`） | 本批未碰；契约 `:206` 仍缺模型序列 / token / 导出哈希三项，评估语义正交 / 不适用、待用户认可 |
+| C1-09 Tavern/QR 往返 | 不升（仍 `unverified`） | 本批未碰；酒馆本体 / `ACTION_SEND` / 相机扫码仍零份 |
+| C1-10 单聊/群聊共存 | 不升（仍 `unverified`） | 契约 `:232-235`「只看截图或**只看 UI 状态**均标记 `unverified`」：本批 #1/#2/#3 断言落在 Compose 语义树可达性与 badge 节点（UI 状态）；#4–#8 虽为 `PagingSource`/SQL/DB 行数（非 UI），但契约 `:206` 逐例点名的「各 viewer 可见消息 ID / 实际模型调用序列 / prompt+completion token / 导出 SHA-256」这条路径**结构性不产出**（语义正交，同 C1-08 处置），缺失不等于满足 ⇒ 维持 `unverified` |
+
+**⑥ 诚实限制**
+
+- **C1-07 只有一次真机全绿**（本批 attempt `x`；trace 里另有 vfy1/vfy2 两次成功记录同形状历史）。⚠️ 升级依据是**契约 8 项齐备 + 必须断言成立**，不是重复稳定性（与第十五轮 C1-02/C1-03 同一口径）。
+- **C1-10 的 8/8 是自动化断言，不是真机 UI 录屏**：#1/#2/#3 走 Compose 语义树（UI 状态），#4–#8 走 `PagingSource`/SQL/DB；**契约 `:206` 的四类产物本例不产出**（不启发模型、不导出群聊文件），故不升级。**若用户认可「该路径四类产物不适用」，可另行审议升格**（文件惯例：未经用户认可不擅自升）。
+- **C1-10 的 `scope_note`**：无。**C1-07 报告 `scope_note` 的历史固定文案不代表本次事实**（见 ① 末条）。
+- 本节所有 SHA-256 / 字节 / 行数为**登记子代理本机独立复算**；设备侧原始文件在仓库外 `/tmp/opencode/c1-r10/`。**未跑 gradle**（数字转述执行者）。
+
+**⑦ 遗留清单同步（本批）**
+
+- **第 49 条**（C1-07 设备侧幂等稳定失败）：**✅ 已修（`5c362851a`）且本批真机重跑通过**——不加新注（就地追加见遗留清单）。
+- **第 50 条**（C1-10 `pagingSource_*` 5 失败）：**✅ 已修（`0ae9f570a` + `5ca9ecbaf`）且本批真机 8/8 全绿**。
+- **第 45 条**（零产出间歇性）：本批未碰，不动。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
