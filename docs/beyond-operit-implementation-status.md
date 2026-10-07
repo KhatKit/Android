@@ -1310,6 +1310,24 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
 
+### ⚠️ 第二十八批（真机第十八轮，2026-10-07，`e2bfce4ad..2a0610705`）：**C1-06 超时半条真机通过 ⇒ C1-06 首次升 `verified`；C1-08 串扰断言结构性化并证判别力 ⇒ C1-08 首次升 `verified`；C1-10 真实网关轮与点名路径正交 ⇒ 维持 `unverified`；台账 50 行 / 524 例 → 51 行 / 531 例（补登 1 类 7 例）**
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`）+ 1 处生产改动（`ChatManager` 步超时可注入，默认值不变）+ 1 处 mock 改动（`MOCK_HANG_ROLE`，默认关闭）+ 2 处测试改动。开工 / 收尾 HEAD = **`2a0610705`**（`git rev-parse HEAD` 实测 = `2a0610705f3f71ff2702d656f340155e60fcfc2d`）。窗口 `e2bfce4ad..2a0610705` 实测 **17 个 commit**（`--merges` = 0）。⚠️ **轮次命名**：含真机采集（C1-06 超时半 + C1-08 记忆隔离真实网关 + C1-10 真实网关轮），故「C1 真机证据采集」据序为**第十八轮**；同时按「C1 commit 台账」批次序记为**第二十三批**（本节即实施状态侧的**第二十八批**）。
+
+**① 判定影响（20 格逐格）：4 格改值** —— **C1-06 首次升 `verified`**、**C1-08 首次升 `verified`**（各自在「用例矩阵」与「证据登记」两表内的状态格，从 `unverified` → `verified`）；**C1-10 维持 `unverified`**；其余 7 例（C1-01/02/03/04/05/07/09）维持原判。20 格每格就地追加「第二十三批订正」（保留原文）。逐格依据见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十八轮」⑤。
+
+**② 三条裁定（契约逐条，登记子代理本机读码 + 复算）**：
+
+| 用例 | 裁定 | 关键依据（契约行号） |
+|---|---|---|
+| C1-06 取消与超时 | **升 `verified`** | 契约 `:201`「取消/超时不得写入未生成的消息」两半均有真机实测（取消半 `empty_bubble_count=0`/a 保留/b 半截保留/错误节点；超时半 `status=TIMEOUT`/`empty_bubble_count=0`/a 保留/b 错误节点、`spent=6212=6190+22`）；`:206`/`:232-235` 8 字段按「用例整体」齐（viewer 台账与导出哈希在取消半）。见「第十八轮」① |
+| C1-08 记忆隔离 | **升 `verified`** | 契约 `:203` 空间键 `group:<conv>:role:<id>` / `role_id` 归因 / `source_message_id` / 无全局·助手回退全满足；旧恒真断言被结构性判据 `memoryIsolationViolations` 替换，JVM 镜像 7 例变异实测 6 failed 证判别力；`:206` 8 字段齐。`389f263d6` 三处放宽（换模型 flash→glm-5.2 / 检索 query 改 fact 文本 / ≤6 次重试）经裁**不构成改弱**（见「第十八轮」②） |
+| C1-10 单聊/群聊共存 | **维持 `unverified`** | 第 9 条真实网关轮跑在既有夹具群上，**与 C1-10 点名的「混排/类型筛选」路径正交**，其 8 字段不能把筛选/混排断言抬成非 UI 级；筛选/混排仍只有 UI / SQL 级证据，契约 `:232-235`「只看 UI 状态 → `unverified`」 |
+
+**③ 统计口径（登记子代理本机实测）**：`git log --oneline e2bfce4ad..HEAD` = **17**（`--merges` = 0）；`git log --name-only e2bfce4ad..HEAD -- 'app/src/test/*'` = **只有 `.../feature/chat/C1MemoryIsolationPredicateTest.kt`**（7 `@Test`）⇒ 台账声明值 **50 行 / 524 例 → 51 行 / 531 例**（`+1 类 / +7 例`）。新基线：`:app:testDebugUnitTest` **118 类 / 961 例 / 0F0E0S**；`:ai:test` **30 类 / 220 例**；lint app `0 / 617 / 6 = 623`、全模块 `0 / 650 / 7 = 657`；仪器 `@Test` tracked **22 文件 / 96 例**、含 untracked **23 文件 / 99 例**。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test` / `--only tables` 均 exit 0。⚠️ `c1_doc_stats.py` sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一字节未改）；锚点 `1b0e04a9` 不重算。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`ChatDrawer.kt` / `ChatPage.kt` / `SettingAboutPage.kt` / `KedgeMiuixMorphingTitleBar.kt` / `TavernMacroExpander.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
