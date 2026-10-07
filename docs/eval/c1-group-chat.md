@@ -6797,6 +6797,57 @@ git rev-parse HEAD                                        # bd88aaff2ae00574cc76
 
 ⚠️ **本批登记本体 = 真机第十六轮证据节 + 20 状态格订正 + 本台账小节 + 遗留 49/50 补注 + 实施状态第二十六批**（分几个 commit 提交，SHA 提交后才知道）——**按惯例留到下一批补登，本表不编造**。
 
+#### ⚠️⚠️ 再往后一批（第二十二批，真机第十七轮 / C1-09 收尾，2026-10-07，`bd88aaff2..e2bfce4ad`，共 15 个 commit）：**真 SillyTavern 应用级导入验证 + 二维码位图真机往返 + 二维码中文有损缺陷修复；C1-09 仍未升；补登第二十一批登记本体 6 个；台账声明值 48 行 / 514 例 → 50 行 / 524 例（补登 2 个新测试类 10 例）**
+
+⚠️ **核验命令（登记子代理本机实测，原文）**：
+
+```
+git rev-parse HEAD                                      # e2bfce4adbf2ca03195c4030b9763a6a71af37aa
+git log --oneline ae08f2525..HEAD | wc -l               # 9（本批主角 9 个）
+git log --oneline --merges ae08f2525..HEAD | wc -l      # 0
+git log --oneline bd88aaff2..e2bfce4ad | wc -l          # 15 = 上一批登记本体 6 + 本批主角 9
+git log --name-only ae08f2525..HEAD -- 'app/src/test/*' # 2 个新文件（见下）
+git log --name-only ae08f2525..HEAD -- 'docs/*'         # 空（本批主角零文档）
+```
+
+⚠️ **窗口记法**：本批窗口用**具体端点** `bd88aaff2..e2bfce4ad`（沿用 `ae08f2525` 那条「避免 HEAD 漂移」的记法），不用 `..HEAD`。
+
+**本批 = 上一批（第二十一批，真机第十六轮）按惯例留到本批补登的登记本体 6 个（`bd88aaff2..ae08f2525`，均只改 `docs/`）+ 本批主角 9 个（`ae08f2525..e2bfce4ad`）。**
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `fa1498718` | `coder: 登记C1真机第十六轮证据节——C1-07续跑幂等真机首次通过(8项齐备)+C1-10分页筛选修复后8/8全绿+20格逐格判定` | 文档（=第二十一批登记本体，本批补登） |
+| `1dcf89dbc` | `coder: C1矩阵/证据表C1-07两格升verified+20格追加真机第十六轮订正(其余维持/不升)` | 文档（=第二十一批登记本体，本批补登） |
+| `d3d558de1` | `coder: c1文档台账追加第二十一批——补登第二十批登记本体3个，声明值48行514例未动，锚点不重算` | 文档（=第二十一批登记本体，本批补登） |
+| `b79b27b8c` | `coder: 遗留49/50就地追加✅已修+真机重跑通过(C1-07 Time13.108、C1-10 8/8)，原文保留` | 文档（=第二十一批登记本体，本批补登） |
+| `dc8af34af` | `coder: 实施状态补第二十六批——真机第十六轮C1-07两格升verified、C1-10修复后8/8仍unverified，台账48行514例未动` | 文档（status，=第二十一批登记本体，本批补登） |
+| `ae08f2525` | `coder: 台账/实施状态窗口记法改具体端点(5c362851a..bd88aaff2)，避免HEAD漂移歧义` | 文档（=第二十一批登记本体，本批补登） |
+| `28c05f2db` | `coder: C1-09③新增QR载荷编解码往返+导出分享ACTION_SEND护栏两测试(仅测试,生产零改动)` | 测试（新增 2 个 JVM 类 10 例） |
+| `5833cbbd9` | `coder: 新增 SillyTavern 应用级导入验证 harness` | 工具/测试（`tools/verification/verify_sillytavern_import.py`） |
+| `c21cc4028` | `coder: harness 野生 jsonl 判定改为成员检测，支持重复运行` | 工具（同上） |
+| `f35c8ccf0` | `coder: QRCode.kt 提取 String->Bitmap 为顶层 internal fun encodeQrBitmap，渲染不变` | **生产**（`QRCode.kt`） |
+| `5f461d9f6` | `coder: 新增 C1-09 二维码位图端到端真机往返测试(encodeQrBitmap+MLKit+FileProvider+Intent)` | 测试（androidTest） |
+| `16d00e9f4` | `coder: 位图往返测试补字符集限制用例、夹具改 Latin-1、修正长度边界` | 测试（androidTest） |
+| `0edc70d67` | `coder: 二维码编码显式传 CHARACTER_SET=UTF-8，修复中文等非 Latin-1 内容被有损替换成 ?` | **生产**（`QRCode.kt`） |
+| `e35f64e39` | `coder: 二维码中文/emoji 往返测试改为正面强断言，容量常数按 ECI 实测 2953->2952` | 测试（androidTest） |
+| `e2bfce4ad` | `coder: 中文二维码用例夹具含 热血解说 并落盘 charset 往返证据` | 测试（androidTest） |
+
+⚠️ **本批对台账声明值的影响：48 行 / 514 例 → 50 行 / 524 例**（`+2 类 / +10 例`）——实测依据：
+
+```
+git log --name-only ae08f2525..HEAD -- 'app/src/test/*'
+# app/src/test/.../core/data/model/C1GroupQrPayloadCodecRoundTripTest.kt      （5 @Test）
+# app/src/test/.../feature/chat/GroupExportShareIntentSourceGuardTest.kt      （5 @Test）
+```
+
+⇒ 补登 2 个新类（各 5 例）。✅ `c1_doc_stats.py --only ledger` 改后实测：`台账行数 50 行 / 台账声明例数合计 524 例 / 逐行核对 50 行全部相等`，**OK 3 / WARN 0 / FAIL 0**。⚠️ **锚点 `1b0e04a9` 不重算**（仍是 `78 / 0 merges`）。
+
+⚠️ **本批对仪器测试口径的影响**：新增 1 个 `androidTest` 文件 `C1GroupQrBitmapRoundTripDeviceTest.kt`（6 `@Test`）⇒ `c1_doc_stats.py` 的「仪器 @Test（仅 tracked）」由 **20 文件 / 82 例 → 21 文件 / 88 例**，「含 untracked」由 **21 文件 / 85 例 → 22 文件 / 91 例**（±6，同一新增类）。
+
+⚠️ **本批对判定的影响：20 格 0 格改值**——**C1-09** 列为本批重点，按契约 `:205` / `:206` / `:232-235` 逐条核对后**仍维持 `unverified`**（虽拿到真 SillyTavern 应用级导入 + 二维码位图真机往返 + 中文有损修复 + 导出 URI 字节 == 生产 JSONL + `ACTION_SEND` 源码护栏；但缺口未消：`·206` 三类产物结构性不产出且未获用户认可、真实相机扫码链路零份、真实系统分享面板 UI 零份、酒馆 `open→save` 丢私有块且重存回 KhatKit 得 `Unsupported`）。其余 19 格维持原判。逐格依据见「C1 真机证据采集第十七轮」⑦。
+
+⚠️ **本批登记本体 = 真机第十七轮 / C1-09 收尾证据节 + 20 状态格订正 + 本台账小节 + 遗留清单同步 + 实施状态第二十七批**（分几个 commit 提交，SHA 提交后才知道）——**按惯例留到下一批补登，本表不编造**。
+
 ## 下一位怎么把 unverified 变成 verified
 
 前置条件只有一件：**一台能装的设备**（`adb devices` 能看到 serial）。以下按用例
