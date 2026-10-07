@@ -253,6 +253,15 @@ class ChatManager(
     private val placeholderTransformer: PlaceholderTransformer,
     private val ocrTransformer: OcrTransformer,
     private val base64ImageToLocalFileTransformer: Base64ImageToLocalFileTransformer,
+    /**
+     * 单个群聊角色发言的墙钟上限（毫秒）。
+     *
+     * 默认值 = [GROUP_ROUND_STEP_TIMEOUT_MS]（15 分钟），与 C1-06 之前 `withTimeout` 里写死的
+     * 那个常量**逐字同值**，所以生产装配（`AppHiltModule.provideChatManager` 用命名实参、
+     * 不传这项）下行为与改前完全一致。存在的唯一理由是给真机测试一个**可注入**的超时，
+     * 让契约「取消/超时不得写入未生成的消息」的超时半条不用等 15 分钟就能被断言。
+     */
+    private val groupRoundStepTimeoutMs: Long = GROUP_ROUND_STEP_TIMEOUT_MS,
 ) {
     /**
      * 群聊轮次运行日志（`group_runs`）读写。
@@ -1002,7 +1011,7 @@ class ChatManager(
             if (step != null) {
                 // 群聊角色发言有墙钟上限：超时抛 TimeoutCancellationException，
                 // 由下面的 onFailure 落成 STATUS_TIMEOUT，轮次不会无限悬挂。
-                withTimeout(GROUP_ROUND_STEP_TIMEOUT_MS) { consume() }
+                withTimeout(groupRoundStepTimeoutMs) { consume() }
             } else {
                 consume()
             }
