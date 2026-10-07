@@ -5227,6 +5227,114 @@ C1-08 用例（`realProviderGroupMemoryIsolationRecordsPerSpaceHits`）缺「模
 - **设备设置已还原**（执行者报告，未独立复现）：`screen_off_timeout=30000`、`stayon=false`。
 - 本节所有 SHA-256 / 字节 / 行数为**登记子代理本机独立复算**；设备侧原始文件在 `/tmp/opencode/c1-verify/`（仓库外）。
 
+### 零设备修复批次（2026-10-07，HEAD `5c362851a`，台账第二十批：C1-10 分页测试驱动缺陷 + `ConversationRepository` offset 分页 API 生产缺陷 + C1-07 续跑错误节点断言；20 状态格全不升）
+
+> ⚠️ **轮次命名说明**：本文档「C1 真机证据采集第 X 轮」是**真机采集**序列（已排到第十五轮），**零设备批次不占该序号**——故本节沿用上一个零设备节（「C1 续跑入口与设备侧测试补齐（零设备，2026-10-07，HEAD `d6494e49a`）」）的命名方式；「台账第二十批」按下方「C1 commit 台账」的批次序。
+
+⚠️⚠️ **先说性质**：本批 = **一次纯零设备窗口**（**零 `adb`、零 `am instrument`、零真机证据**），开工与收尾 HEAD 均为 **`5c362851a`**（`git rev-parse HEAD` 实测 = `5c362851acc1adeb2fceb3b9237d48d063dc6760`）。
+
+⚠️ **本批 = 上一批（第十九批，真机第十五轮）按惯例留到本批补登的登记本体 3 个（均只改 `docs/`）+ 本批主角 3 个**。窗口 `37630adb4..HEAD` **实测共 6 个 commit**（`git log --oneline 37630adb4..HEAD | wc -l` = **6**，`--merges` = **0**；逐笔 `git show --name-only` 核实）：
+
+| SHA | 标题 | 性质 |
+|---|---|---|
+| `c4d015e53` | `coder: 登记C1真机第十五轮证据节——pipeline/roundtable首次通过+C1-06取消补齐8项+零产出探针未复现+C1-07/C1-10现状` | 文档（=第十九批登记本体，本批补登） |
+| `486117ee3` | `coder: C1矩阵/证据表4格升verified(C1-02/C1-03)+14格追加真机第十五轮订正+遗留49/50+第45条改间歇性+台账第十九批` | 文档（=第十九批登记本体） |
+| `ff9c86359` | `coder: 实施状态补第二十四批——真机第十五轮…` | 文档（status，=第十九批登记本体） |
+| `0ae9f570a` | `coder: C1分页设备测试改用生产页类型驱动(首屏Refresh/后续Append)修复5条超取失败` | 测试（`app/src/androidTest/.../C1GroupPagingAndFilterDeviceTest.kt`，**+29 / −2**；**生产代码零改动**） |
+| `5ca9ecbaf` | `fix(app): 修正 ConversationRepository 四个 offset 分页 API 的 LoadParams 类型（Refresh→Append…）` | **功能（生产代码 `app/src/main`，`ConversationRepository.kt` +21 / −6）** + JVM 测试（`app/src/test` 新增 `ConversationPageLoadParamsTest.kt` +135 / −0） |
+| `5c362851a` | `coder: 修正 C1 续跑设备测试的错误节点断言为同节点候选替换语义` | 测试（`app/src/androidTest/.../C1GroupRetryResumeDeviceTest.kt`，**+119 / −40**；`git show --name-only` 里 `src/main` 命中数 = **0**，**生产代码零改动**） |
+
+⚠️ **本批对契约验收证据的影响 = 零**：契约 `:206` / `:232-235` 点名的四类产物（各 viewer 可见消息 ID / 实际模型调用序列 / prompt+completion token / 导出 SHA-256）**一份未增**（无设备）。⇒ **20 个状态格一个判定都没改**：C1-01 / C1-02 / C1-03 / C1-04 / C1-05 各两格仍 `verified`、C1-06 / C1-07 / C1-08 / C1-09 / C1-10 各两格仍 `unverified`（逐格理由见 ⑥）。
+
+**① 新基线（`c1_doc_stats.py` 主命令本机实测，本轮零 gradle 重跑）**
+
+- `:app:testDebugUnitTest` = **115 类 / 944 例 / 0F0E0S**（XML 与源码 `@Test` 两口径一致）；较上一基线的 **+1 类 / +5 例全部来自 `ConversationPageLoadParamsTest`**（`5ca9ecbaf`）。
+- 交叉验证：XML **115 类** / 源码 **115 类**（差 0，容差 5）**一致**。
+- `:ai:test` = **30 类 / 220 例**（本轮未动）。
+- lint app = **error 0 / warning 581 / hint 6 = 587**；全模块 = **error 0 / warning 614 / hint 7 = 621**（本轮未动）。
+- 仪器 `@Test`：**20 文件 / 82 例**（仅 tracked）；含 untracked `C1GroupUiE2EFixtureTest.kt`（1 文件 / 3 例）为 **21 文件 / 85 例**。⚠️ 本批两个设备侧测试改动（`0ae9f570a` / `5c362851a`）都改**既有文件**，仪器 `@Test` 条数不变。
+
+**② 台账声明值：本轮必须变动（47 行 / 509 例 → 48 行 / 514 例）**
+
+- 实测 `git log --name-only 37630adb4..HEAD -- 'app/src/test/*'` = **只有** `ConversationPageLoadParamsTest.kt`（`5ca9ecbaf` 新增）；XML `tests="5"`、源码 `@Test` = **5**（两口径一致）。
+- ✅ **按本文件 `:621-624` 台账口径**（「正文点名引用过、且能在 XML 里对上」），本节把它写进正文后它便够格进表 ⇒ **主动补登**（不是被 FAIL 逼出来）。
+- 改前：**47 行 / 509 例**；改后：**48 行 / 514 例**（`+1 类 / +5 例`）。
+- ✅ 改后 `--only ledger` 实测：`台账行数 48 行 / 台账声明例数合计 514 例 / 逐行核对 48 行全部相等`，**OK 3 / WARN 0 / FAIL 0**。
+- ⚠️ **先纠一处预测偏差**：交接方预期「`c1_doc_stats.py` 的 ledger 会 FAIL（报 `ConversationPageLoadParamsTest` 声明缺失）」。**实测不会 FAIL**——脚本 `ledger` 口径**只逐行核对「表内已列类」的声明例数 vs 源码 `@Test`**，**不检查「源码里有没有未列进表的类」**；所以未补登时它仍报 `47 行全部相等`、OK 3 / FAIL 0。补登是**按台账自身口径**主动做的。
+- ⚠️ **历史笔误照记（不覆写）**：表内既有两处 `合计` 行分别声明 `506`（与逐行求和 `501` 差 `5`）与 `509`，本批**新增一条** `合计` 行按脚本口径写 `514`，旧行原文保留。
+- ⚠️ `tools/verification/c1_doc_stats.py` **一个字节未改**：跑前 `sha256 = 238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`，跑后**同值**。
+
+**③ `5ca9ecbaf` = 生产缺陷修复：`ConversationRepository` 四个 offset 分页 API 的 `LoadParams` 类型（Refresh → Append）**
+
+- **根因（与 ④ 同源，逐条本机读码核实）**：`ConversationRepository` 的四个 offset 分页 API 都构造 `PagingSource.LoadParams.Refresh(key = if (offset == 0) null else offset, loadSize = limit, placeholdersEnabled = false)` 直连 Room 生成的 `LimitOffsetPagingSource`。Room 2.8.5 的 `androidx.room.paging.util.RoomPagingUtil.getOffset(params, key, itemCount)` 对 `Refresh` 做「刷新窗口夹取」、对 `Append` 恒为 `key`：
+  ```
+  Prepend -> if (key < loadSize) 0 else key - loadSize
+  Append  -> key
+  Refresh -> if (key < itemCount - loadSize) key else max(0, itemCount - loadSize)
+  ```
+  于是只要 `offset >= itemCount - limit`，`Refresh` 就把 offset **静默夹到** `max(0, itemCount - limit)`，返回与上一页重叠的行。
+- **改动（本机 `git show 5ca9ecbaf` 逐 hunk 核实）**：`ConversationRepository.kt` **3 个代码块**（`:134-143` `getConversationsOfAssistantPage`、`:174-183` `searchConversationsOfAssistantPage`、`:229-238` 私有 `loadConversationPage`——后者被 `:201-209` `getUnfiledConversationsOfAssistantPage` 与 `:211-219` `getConversationsOfFolderPage` 两个公开方法共用）统一改成 **`PagingSource.LoadParams.Append(key = offset, loadSize = limit, placeholdersEnabled = false)`** + 解释性 KDoc。**3 个代码块对应 4 个公开 offset 分页 API**。
+- 新增 `app/src/test/java/heizige/kk/khatkit/app/core/data/repository/ConversationPageLoadParamsTest.kt`（**5 例**，本机核实 5 个 `@Test`）：① `refreshLoadParams_isClampedIntoLastWindow` ② `appendLoadParams_preservesOffsetEvenPastClampBoundary` ③ `refreshAndAppend_agreeInsideWindowAndDivergePastIt` ④ `repositorySource_usesAppendOnly`（源码护栏：`LoadParams.Append(` 恰 3 处、不含 `LoadParams.Refresh`）⑤ `repositorySource_delegatesNextKeyToRoom`（`nextOffset = result.nextKey` 恰 3 处）。⚠️ 该类用**反射真实调用 Room 静态方法** `RoomPagingUtil.getOffset`，因为 `app` 的 `testImplementation` 只有 junit（room-testing 仅在 `androidTestImplementation`），跑不起真实 Room 运行时。
+- 调用点 `ConversationRoutes.kt`（`GET /api/conversations/paged?offset=&limit=`，默认 `offset=0` / `limit=20`，校验 `offset>=0`、`limit∈1..100`）**未改**；`nextKey` **未改**——Room `queryDatabase` 的 `nextKey = if (data非空 && size>=limit && offset+size<itemCount) offset+size else null`，改 `Append` 后 `getOffset==key` ⇒ `nextKey` 自然正确。
+- **统一 Append 为何安全（转述执行者论证，未独立复现运行时）**：`CommonLimitOffsetImpl.load` 在 `itemCount == -1` 时走 `initialLoad`，**`initialLoad` 不强制 Refresh**；首屏 `offset=0` 时 `Append` 与 `Refresh` 都得 0。
+- ⚠️ **影响面**：只影响 **HTTP 分页 API**，**不影响 `Pager` 驱动的 UI 列表**（`Pager` 首请求 Refresh、后续全 Append）。
+- ⚠️ **未跑真机 / HTTP 集成测试**（本轮零设备）；「生产缺陷已修」由**源码 + JVM 反射语义 + 源码护栏**支撑，**不是设备实证**。
+
+**④ `0ae9f570a` = C1-10 设备侧分页测试驱动缺陷修复（未真机跑）**
+
+- ⚠️ **以下真机失败事实转述自真机第十五轮执行者报告，登记时未独立复现**：`C1GroupPagingAndFilterDeviceTest` 在 HEAD `37630adb4` 上 8 方法 **3 通过 / 5 失败**。通过 3 条 = `typeFilter_allChipsFilterIndividuallyAndRestoreExactly`（6.41s）、`typeFilter_chipSwitchNeverLosesData_dbCountsStable`（6.021s）、`mixedList_groupBadgeRendersOnlyOnGroupRows`（4.547s）；失败 5 条**均 `pagingSource_*`**：`:357` expected 15 but was 20、`:392` expected 55 but was 60、`:435` expected 25 but was 40、`:493` expected 55 but was 60、`:527` expected 25 but was 40。
+- **旁证（转述）**：`setUp` 的 seed 断言（`PAGING_TOTAL == dbUnfiledIds.size`）通过；`run-as` pull 真机 DB 用 sqlite3 实测专属助手未归档 = **55 行**（GROUP=25 / DIRECT=30），全表 69；生产常量 `PAGE_SIZE=20` / `INITIAL_LOAD_SIZE=40`。
+- **根因**：`loadPage()` 原来无论首屏还是续读全构造 `LoadParams.Refresh(key, loadSize, false)`；生产 `Pager` 首请求发 Refresh、后续页全发 Append。`Refresh(key=40, loadSize=20, itemCount=55)`：`40 >= 55-20=35` ⇒ offset 夹到 35，第二屏从 35 回读 20 行 ⇒ 重叠 / 超取（Room 算法同 ③ 引的那段）。
+- **改法**：`loadPage()`（`C1GroupPagingAndFilterDeviceTest.kt` 内）改为 `key == null` → `Refresh`；否则 → `Append(key, loadSize, false)`（paging 3.5.1 的 `Append` 是三参）。**调用点零改动**（本机核实 `git show 0ae9f570a` 只动 `loadPage` 一个函数）；**关键断言一条未放宽**；3 条通过的方法原样未动。
+- **JVM 复算（转述，未独立复现）**：用真实 Room 静态方法反射，5 条失败逐一复现（`pages=[40,20] cumulative=60`、`GROUP OLD pages=[20,20] sum=40` 等）；修正后 `pages=[40,15] cumulative=55`。
+- **非空验证（转述）**：把 test4 第二屏期望改成 16、test6 群聊累计改成 26 → 编译通过；用真实 Room 算法求值得 `actual=15 → fixed PASS / mutated FAIL`、`actual=25 → fixed PASS / mutated FAIL` ⇒ 有判别力。还原后 `sha256sum -c` 通过。
+- ✅ **本机独立复算一处**：修复版测试文件的 `sha256` 实测 = `3c009ee364cb4fc97e67e964918bbf4b560e184337132ed2b30cdef5a52c3df2`（与执行者报告逐字一致），且 `git diff HEAD -- 该文件` 为空（工作区即修复版）。
+- ⚠️ **未跑真机**（无设备）⇒ 真机转绿是 **JVM 复算推断**，**不是设备实证**。
+
+**⑤ `5c362851a` = C1-07 续跑错误节点断言修正（判定：测试期望写错，非生产缺陷）**
+
+- ⚠️ **真机失败原文（2/2 稳定，转述）**：`java.lang.AssertionError: 阶段 1 的 b 错误节点必须原样保留` at `C1GroupRetryResumeDeviceTest.kt:378`。raw 实测（转述）：phase1 b 错误节点 id `8e0f0ff1-70ce-48b4-93c7-9add6fe052d6` 在 phase2 快照里消失，被新 b 真实消息 `b59d894a-8fcb-4024-b80e-07b6423fc3c6` 取代；其余期望全部满足：run1 `FAILED/role_failed/committed=[a]/skipped=[c]/spent=1741`、run2 `COMPLETED/committed=[a,b,c]/skipped=[]/spent=14819`、**同 run_token**（`604b0069-19b8-421f-a5e4-26c561d4f654`）、同 `started_at`、a 消息 id 不变（`cb45d9ef-1e79-4526-961b-fbfda5047a3e`）、b/c 各恰好 1 条、`spent 14819 == Σusage（1741+6539+6539）`。
+- **判定依据（转述执行者的逐行读码结论，未独立复现）**：错误节点 `role=ASSISTANT`，走 `ChatManager.kt:625-638` → `messageRange = 0..<nodeIndex`；`messageRange` **唯一**用途是 `ChatManager.kt:906-912` 的 `subList`（只截喂模型的输入，**不删节点**）。产出经 `updateCurrentMessages`（`Conversation.kt:74-106`）按 index 对齐节点：新消息 id 不在 `node.messages` 里 → `add` + `selectIndex=lastIndex`；因 `messageRange` 排除 `nodeIndex`，新消息恰好落回 **index==nodeIndex 的同一个 `MessageNode`** ⇒ **既不是按 id 替换、也不是新节点，而是同一节点内追加候选分支 + 切 `selectIndex`**；旧错误节点没删（`ConversationRepository.kt:557-567` 存整份 `node.messages`），只是 `currentMessages`（`Conversation.kt:61-64` 只返回 `selectIndex` 那条）看不到。生产 KDoc `GroupRetryEntry.kt:18-23`/`:42-44` 明写这就是设计。契约 `:201` 只要求「单角色失败**记录**错误节点并停止该轮」——阶段 1 已记录；契约**没有**要求续跑成功后继续保留 FAILED 语义；`:204` 只要求同 round_id + 跳过已提交 turn，run2 完全满足。`reason` 被 `reclaimed`（`GroupTurnCoordinator.kt:87-95`）清空是正常设计。
+- **改动（本机核实）**：**只改** `C1GroupRetryResumeDeviceTest.kt`（**+119 / −40**，`git show --name-only` 里 `src/main` 命中 **0**）：阶段 2 读**整棵树**（新增私有 `loadConversation` helper）；修正 P2-C 为正向断言组（`assertNotNull(keptErrorNode)` / `assertNotNull(errorNodeOwningNode)` / `assertTrue(errorSupersededByNewBInSameNode)` / `assertTrue(!errorNodeStillSelected)`）；**其余断言 P1-A..E、P2-A/B/D/F/G/H 与 viewer 台账断言一条未删未弱**；P2-G 新增前置断言（只增强）；**证据 JSON 改为先落盘再断言**（失败也能出报告）。
+- **判别力验证（转述）**：临时 JVM 测试复刻同形状直接打生产 `Conversation.updateCurrentMessages`：修正形状 EXIT 0；反向改回旧形状 `assertTrue(current.any{errorId})` → EXIT 1。
+- ⚠️ **未真机复跑**：本批零设备，修正后 **2/2 是否转绿未知**。
+- ⚠️ **附带的过期 KDoc（未改，照记）**：`C1GroupRetryResumeDeviceTest.kt:107-110` 仍写「UI 没有重试入口」，但群聊**已有**续跑入口（`GroupRetryEntry.canResume` + `ChatList.kt:529-539`）——**KDoc 未随本批更新**。
+
+**⑥ 判定影响：20 格逐格判定（本批全不升）**
+
+⚠️ 20 格 = 用例矩阵 10 格 + 证据登记表 10 格；本轮**每一格都保留原文 + 就地追加「第二十批订正」块**（不覆写历史）。逐格按契约 `:206` / `:232-235` 核对，**0 格升级**：
+
+| 用例 | 判定 | 不升理由（契约行号） |
+|---|---|---|
+| C1-01 三角色显式 @ | 不升（维持 `verified`） | 本批未碰 C1-01 路径；零设备、契约 `:206`/`:232-235` 四类产物零份；第十六轮已建立的 `verified` 未被本批触及 |
+| C1-02 无 @ 的 pipeline | 不升（维持 `verified`） | 本批未跑真实网关 pipeline；`5ca9ecbaf` 改的是抽屉/HTTP 分页 API，与本行「调用序列与日志一致」无关 |
+| C1-03 roundtable | 不升（维持 `verified`） | 本批未跑 roundtable；契约 `:206` 四类产物零份 |
+| C1-04 vote | 不升（维持 `verified`） | 本批未碰 vote；维持第十四轮 `verified` |
+| C1-05 轮次预算 | 不升（维持 `verified`） | 本批未碰；维持第十四轮 `verified` |
+| C1-06 取消与超时 | 不升（仍 `unverified`） | 本批未碰；超时半结构性做不到（`ChatManager.kt:116`/`:1005`、`KhatKitApp.kt:344-352`），契约 `:201` 两半不齐 |
+| C1-07 失败续跑/幂等 | 不升（仍 `unverified`） | `5c362851a` 只把 `:378` 断言改成「同节点候选替换 + 切 `selectIndex`」的**测试侧**形状，**未真机复跑**；契约 `:204` 幂等台账的真机实证仍零份 |
+| C1-08 记忆隔离 | 不升（仍 `unverified`） | 本批未碰；契约 `:206` 仍缺模型序列 / token / 导出哈希三项 |
+| C1-09 Tavern/QR 往返 | 不升（仍 `unverified`） | 本批未碰；酒馆本体 / `ACTION_SEND` / 相机扫码仍零份 |
+| C1-10 单聊/群聊共存 | 不升（仍 `unverified`） | `0ae9f570a`（测试驱动）+ `5ca9ecbaf`（生产分页 API）已修 5 条失败，但**真机未复跑**、生产修复只影响 HTTP 分页 API、契约 `:232-235` 不认仅 UI/逻辑级证据、四类产物零份 |
+
+**⑦ 诚实限制**
+
+- 本批**零设备、零 `adb`、零仪器执行**——全部是「源文件 + JVM/文档」证据。
+- `5ca9ecbaf` 的生产分页修复**未跑真机 / HTTP 集成测试**——「Room `getOffset` 对 `Append` 恒为 `key`」只有**反射语义 + 源码护栏**，真实 `LimitOffsetPagingSource` 的并发失效 / 快照一致性仍未验。
+- `0ae9f570a` / `5c362851a` 两条测试修复**无真机结果**——「5 条转绿」「2/2 转绿」都是 JVM 复算 / 逻辑推断。
+- 本批基线数字**未重跑 gradle**（沿用现有 XML / lint 报告）；`c1_doc_stats.py` 主命令实测见 ①。
+- ⚠️ **明确区分三档**（本节的证据性质）：
+  - **本机实测（登记子代理独立复现）**：`git rev-parse HEAD`、`git log --oneline 37630adb4..HEAD` 计数（6 / 0 merges）、`git show --numstat`（+29/−2、+21/−6、+135/−0、+119/−40）、`git show 5ca9ecbaf` 三处 `Refresh→Append` hunk、四个 API 定义与 `Append` 现状、`ConversationPageLoadParamsTest` 5 个 `@Test`、XML `tests=5`、仪器 `@Test` 计数、台账 48/514 与 doc_stats 三条退出码、修复版测试文件 `sha256` = `3c009ee3…`。
+  - **转述执行者（未独立复现）**：真机第十五轮的 5 条失败原文 / 断言值、真机 DB 55 行、JVM 复算 `pages=[40,15]`、非空验证（改 16/改 26 的 PASS-FAIL）、`5c362851a` 的错误节点 raw 字段与逐行判定、测试文件里的 sha256 链。
+  - **未复现**：真机转绿（无设备）、HTTP 集成、`5ca9ecbaf` 的运行时行为。
+
+**⑧ 遗留清单同步（本批）**
+
+- **第 50 条**（C1-10 `pagingSource_*` 5 失败 + DB 55 vs 累计 60/40）：**已修**（`0ae9f570a` 测试驱动 + `5ca9ecbaf` 生产 API），⚠️ **真机未复跑**——就地追加「已修 / 待真机复跑」注记。
+- **第 49 条**（C1-07 稳定失败待判定）：判定 = **测试期望写错，已修**（`5c362851a`），⚠️ **真机未复跑**——就地追加注记。
+- **生产分页缺陷**：`ConversationRepository` 四个 offset 分页 API 的 `LoadParams` 类型**已修**（`5ca9ecbaf`），⚠️ **真机未复跑**。
+- **过期 KDoc（未改）**：`C1GroupRetryResumeDeviceTest.kt:107-110`「UI 没有重试入口」已过期（续跑入口已由 `d6494e49a` 落地）——**本批未改，留待后续**。
+
 ## 仪器测试状态
 
 ⚠️⚠️ **本节已被 2026-10-05 的真机窗口改写过一次：25 个注解从「一次没跑过」变成
