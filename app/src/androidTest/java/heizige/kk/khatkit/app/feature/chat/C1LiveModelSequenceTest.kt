@@ -3485,45 +3485,73 @@ class C1LiveModelSequenceTest {
         trace("real-qr-export:settings-update-done")
 
         val config = realProviderConfig(caseName, realProviderBudget)
-        val conversationId = insertGroup(caseName, config)
-        evidenceConversations += conversationId
-        trace("real-qr-export:conversation-inserted id=$conversationId")
 
-        val messages: List<UIMessage>
-        val run: GroupRunEntity
+        // ---- 真实网关一轮：偶发空输出（role_failed）时整轮重试，最多 MAX_ROUND_ATTEMPTS 次 ----
+        // 真实推理模型偶发返回空 content，轮次会以 `role_failed` 收尾、只提交前几位（真机实测：
+        // 角色 c 空输出时 committed=[a,b]）。这是网关/模型的瞬态行为，不是被测量对象；与既有
+        // C1-08 真实抽取段同一口径，整轮重跑。
+        // ⚠️ 只采信**首个 COMPLETED** 的那一轮：导出 / 二维码都取自它，绝不拿失败轮的产物凑数。
+        var selectedConversationId: Uuid? = null
+        var stampedRound: StampedRound? = null
         var blockFailure: Throwable? = null
         try {
-            chatManager.sendMessage(
-                conversationId = conversationId,
-                content = listOf(UIMessagePart.Text("请三位依次发言，每位一句话。")),
-                answer = true,
-            )
-            trace("real-qr-export:sendMessage-returned")
-            val stamped = awaitStampedTerminalRound(
-                conversationId = conversationId,
-                expected = 3,
-                expectedStatus = GroupRunEntity.STATUS_COMPLETED,
-                timeoutMillis = realTimeoutMillis,
-            )
-            messages = stamped.messages
-            run = stamped.run
-            trace("real-qr-export:await-stamped-done count=${messages.size}")
+            var attempt = 0
+            while (attempt < MAX_ROUND_ATTEMPTS && stampedRound == null) {
+                attempt++
+                val candidate = insertGroup(caseName, config)
+                evidenceConversations += candidate
+                trace("real-qr-export:attempt=$attempt conversation-inserted id=$candidate")
+                chatManager.sendMessage(
+                    conversationId = candidate,
+                    content = listOf(UIMessagePart.Text("请三位依次发言，每位一句话。")),
+                    answer = true,
+                )
+                val r = awaitStampedAnyTerminalRound(
+                    conversationId = candidate,
+                    expected = 3,
+                    timeoutMillis = realTimeoutMillis,
+                )
+                if (r.run.status == GroupRunEntity.STATUS_COMPLETED) {
+                    stampedRound = r
+                    selectedConversationId = candidate
+                    trace("real-qr-export:attempt=$attempt COMPLETED conv=$candidate")
+                } else {
+                    trace(
+                        "real-qr-export:attempt=$attempt status=${r.run.status} " +
+                            "reason=${r.run.reason} commited=${r.run.committedRoleIds} conv=$candidate",
+                    )
+                }
+            }
         } catch (t: Throwable) {
             blockFailure = t
             throw t
         } finally {
-            try {
-                writeRealRawDump(
-                    conversationId = conversationId,
-                    blockFailure = blockFailure,
-                    fileName = "c1-real-raw-dump-qr-export.json",
-                    passEvidenceName = "c1-live-evidence-real-qr-export.json",
-                )
-            } catch (dumpError: Throwable) {
-                trace("real-qr-export:raw-dump-write-error ${dumpError.message}")
-                if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+            // raw dump：成功轮优先，否则落最后一次尝试的现场（读不到就是事实）。
+            val dumpConversation = selectedConversationId ?: evidenceConversations.lastOrNull()
+            if (dumpConversation != null) {
+                try {
+                    writeRealRawDump(
+                        conversationId = dumpConversation,
+                        blockFailure = blockFailure,
+                        fileName = "c1-real-raw-dump-qr-export.json",
+                        passEvidenceName = "c1-live-evidence-real-qr-export.json",
+                    )
+                } catch (dumpError: Throwable) {
+                    trace("real-qr-export:raw-dump-write-error ${dumpError.message}")
+                    if (blockFailure == null) throw dumpError else blockFailure.addSuppressed(dumpError)
+                }
             }
         }
+
+        val completed = requireNotNull(stampedRound) {
+            "真实网关在 $MAX_ROUND_ATTEMPTS 次尝试内都没跑出 COMPLETED 的一轮（偶发 role_failed）"
+        }
+        val conversationId = requireNotNull(selectedConversationId) {
+            "COMPLETED 轮必须同时记下 conversationId"
+        }
+        val messages = completed.messages
+        val run = completed.run
+        trace("real-qr-export:using conv=$conversationId round=${run.roundId}")
 
         val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
         val trigger = messages.last { it.role == MessageRole.USER }
@@ -3611,18 +3639,28 @@ class C1LiveModelSequenceTest {
             exportLines.size,
         )
         // 逐条助手正文与 role_id / round_id 必须出现在导出里 —— 证明导出的是刚跑的那轮，不是夹具。
+        // ⚠️ 必须比对**解析后的 `mes` 字段**而不是原始 JSONL 文本：真实模型回复常常以换行开头，
+        // JSONL 里换行是被转义的 `\n`，拿 `toText()` 去 `contains` 原始文本必然假红。
+        val exportedMessages = exportLines.drop(1).map { Json.parseToJsonElement(it).jsonObject }
+        val exportedMes = exportedMessages.mapNotNull { (it["mes"] as? JsonPrimitive)?.content }
+        val exportedRoleIds = exportedMessages.mapNotNull {
+            (it[TavernChatCodec.FIELD_ROLE_ID] as? JsonPrimitive)?.content
+        }
+        val exportedRoundIds = exportedMessages.mapNotNull {
+            (it[TavernChatCodec.FIELD_ROUND_ID] as? JsonPrimitive)?.content
+        }
         assistants.forEach { message ->
             assertTrue(
                 "导出不得缺少角色 ${message.roleId} 的真实回复正文：${message.toText()}",
-                exportText.contains(message.toText()),
+                exportedMes.contains(message.toText()),
             )
             assertTrue(
                 "导出不得缺少角色 ${message.roleId} 的 role_id",
-                exportText.contains("\"role_id\":\"" + message.roleId + "\""),
+                message.roleId in exportedRoleIds,
             )
             assertTrue(
                 "导出不得缺少角色 ${message.roleId} 的 round_id",
-                exportText.contains("\"round_id\":\"" + message.roundId + "\""),
+                message.roundId in exportedRoundIds,
             )
         }
         // 导出 JSONL 表头内嵌的群配置（生产 encodeConfigObject 输出）。
@@ -3789,6 +3827,56 @@ class C1LiveModelSequenceTest {
         println("tokens=${perMessageUsage.map { "${it.promptTokens}+${it.completionTokens}" }}")
         println("qr_roundtrip=${qrRaw == decoded}")
         println("C1-QR-EXPORT-END")
+    }
+
+    /**
+     * 等「条数到 + 全部助手消息已盖章 + group_runs 到**任一**终态」。
+     *
+     * 与 [awaitStampedTerminalRound] 同构，唯一差别是不要求某个**特定**终态：真实网关偶发
+     * 返回空内容，轮次会以 `role_failed` 收尾，调用方（[realRoundIsBothExportedAsTavernJsonlAndEncodedIntoSameGroupQr]）
+     * 据此决定是否整轮重试。等 `COMPLETED` 的旧写法在失败轮上会白等到超时。
+     */
+    private suspend fun awaitStampedAnyTerminalRound(
+        conversationId: Uuid,
+        expected: Int,
+        timeoutMillis: Long,
+    ): StampedRound {
+        val liveFlow = chatManager.getConversationFlow(conversationId)
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        var last: List<UIMessage> = emptyList()
+        var lastRun: GroupRunEntity? = null
+        var countObserved = false
+        var stampObserved = false
+        var polls = 0
+        while (System.currentTimeMillis() < deadline) {
+            val live = liveFlow.value.currentMessages
+            last = live
+            val assistants = live.filter { it.role == MessageRole.ASSISTANT }
+            if (assistants.size >= expected) countObserved = true
+            val allStamped = assistants.size >= expected && assistants.all { it.roleId != null }
+            if (allStamped) stampObserved = true
+            val trigger = live.lastOrNull { it.role == MessageRole.USER }
+            val roundId = trigger?.let { GroupChat.roundIdFor(it.id.toString()) }
+            val run = roundId?.let { groupRunDao.findByRound(conversationId.toString(), it) }
+            if (run != null) lastRun = run
+            if (polls % 20 == 0) {
+                trace(
+                    "await-any-terminal:poll=$polls assistants=${assistants.size} " +
+                        "stamped=${assistants.count { it.roleId != null }} run=${run?.status}",
+                )
+            }
+            polls++
+            if (allStamped && run != null && GroupRunEntity.isTerminal(run.status)) {
+                return StampedRound(live, run)
+            }
+            Thread.sleep(250)
+        }
+        throw AssertionError(
+            "等待任一终态超时（${timeoutMillis}ms）：条数=${last.count { it.role == MessageRole.ASSISTANT }}/$expected，" +
+                "已盖章=${last.count { it.role == MessageRole.ASSISTANT && it.roleId != null }}，" +
+                "最后 run=${lastRun?.status}；countObserved=$countObserved stampObserved=$stampObserved；" +
+                "app 错误=${chatManager.errors.value.map { it.title to it.error }}",
+        )
     }
 
     /** MLKit 从生产位图解码；带超时上限，避免设备上挂死。 */
@@ -5529,6 +5617,12 @@ class C1LiveModelSequenceTest {
          * a 单独约 6965 < 9000 ≤ a+b 约 1.37 万，所以 b 提交后必停、c 进 skipped。
          */
         const val DEFAULT_REAL_BUDGET_TRUNCATION = 9_000
+
+        /**
+         * C1-09 真实往返用例的整轮重试上限。真实推理模型偶发空 content（`role_failed`），
+         * 与 C1-08 真实抽取段同一口径：只采信首个 COMPLETED 轮，其余整轮重跑。
+         */
+        const val MAX_ROUND_ATTEMPTS = 6
 
         /** 导出证据 JSONL 里写的「用户名」（导出器必填参数，不是隐私数据）。 */
         const val EXPORT_USER_NAME = "C1 验证用户"
