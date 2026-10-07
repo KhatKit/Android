@@ -1345,6 +1345,27 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 **④ 设备侧遗留（如实登记）**：设备 `settings.preferences_pb` 仍含历轮测试用的 `realProvider` 与 3 个测试助手（mtime 14:47，早于本轮）——**本轮未清**；第 9 条对「筛选结果首条必须是本案夹具群」有依赖（本轮 = `f3a1`）；本轮测试首次尝试遇「网关流挂死」（非断言失败）。三条均见 `docs/eval/c1-group-chat.md` 遗留 55/56/57。
 
 ⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `ChatDrawer.kt` / `ChatPage.kt` / `SettingAboutPage.kt` / `KedgeMiuixMorphingTitleBar.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
+### ⚠️ 第三十批（真机第二十轮，2026-10-07，`1758e2109..83dbf014f`）：**C1-09 同源往返用例首次把真机一轮的三类产物与同群 QR 载荷硬连接（消掉「`:206` 三类产物结构性不适用」）；但真实系统分享面板仍零份 ⇒ C1-09 维持 `unverified`（20 状态格 0 格改值）；台账 51 行 / 531 例不变（本批只改 androidTest）**
+
+⚠️⚠️ **先说性质**：本批 = **一次真机采集窗口**（OnePlus `PKG110` / Android 16 / API 36 / `arm64-v8a`）+ **2 处 androidTest 改动**（`C1LiveModelSequenceTest.kt`：`766c61434` 新增方法 + `83dbf014f` 对偶发 `role_failed` 整轮重试并解析导出 `mes` 字段比对），**生产代码 / 工具 / `app/src/test` 一字未动**。开工 / 收尾 HEAD = **`83dbf014f`**（`git rev-parse HEAD` 实测 = `83dbf014f95c4da58ee136a124149fcf17c94e25`）。窗口 `1758e2109..83dbf014f` 实测 **4 个 commit**（`--merges` = 0；含上一批留到本批补登的登记本体 2 个 `2c304efe3` / `ffc3989e5`）。⚠️ **轮次命名**：含真机采集，故「C1 真机证据采集」据序为**第二十轮**；同时按「C1 commit 台账」批次序记为**第二十五批**（本节即实施状态侧的**第三十批**）。
+
+**① 判定影响（20 格逐格）：0 格改值** —— **C1-09 维持 `unverified`**；其余 9 例维持原判。20 格每格就地追加「第二十五批订正」（保留原文）。逐格依据见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第二十轮」③。
+
+**② C1-09 裁定：维持 `unverified`（契约逐条）**
+
+| 用例 | 裁定 | 关键依据（契约行号） |
+|---|---|---|
+| C1-09 Tavern/QR 往返 | **维持 `unverified`** | 新方法（`realRoundIsBothExportedAsTavernJsonlAndEncodedIntoSameGroupQr`）首次把 `:206` 三类产物（viewer 可见消息 ID / 调用序列 / token）与同群 QR 载荷**硬连接**并消掉「结构性不适用」旧理由（同一真机一轮：导出哈希来自该会话、QR config 强制 == 存储 config == 导出内嵌 config，非空验证真红；相机扫码 + 酒馆应用级亦闭环）。**但真实系统分享面板（`ACTION_SEND` chooser）仍零份**：契约 `:219` 对 C1-U 交付许可的「真机手动记录」缺失、判定规则第九条下源码护栏（`GroupExportShareIntentSourceGuardTest` 5 例）+ 同形 Intent 不能顶替，`:206` 末句「未有真机或自动化证据的条目保持未完成」+ `:232-235` 未整体满足。**升格还差**：一次真机点系统分享面板并取回产物（可用 `:219` 明许的真机手动记录形式），或用户对「同形 Intent + 源码护栏等价」明确认可。⚠️ **反方意见**：C1-09 必须断言与「怎么采」均未点名分享面板；若以其为唯一口径则不阻塞。本批采保守裁定，理由 = 既有口径把分享面板列为 C1-09 未覆盖项，推翻需用户认可。见「第二十轮」③ |
+
+**③ 统计口径（登记子代理本机实测）**：`git rev-parse HEAD` = `83dbf014f95c4da58ee136a124149fcf17c94e25`；`git log --oneline 1758e2109..HEAD` = **4**（`--merges` = 0；含上一批登记本体 2 个）；`git log --name-only 766c61434..HEAD -- 'app/src/test/*'` = **空** ⇒ 台账声明值**不变：51 行 / 531 例**（锚点 `1b0e04a9` 不重算：78 / 0 merges）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test`（0 处失败）/ `--only tables`（171 块 / 1383 行、0 不符）**均 exit 0**；脚本 sha256 **仍为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`（一字节未改）**。⚠️ **仪器 @Test 口径变动**：`C1LiveModelSequenceTest` 新增 1 个 `@Test` ⇒ tracked **22 文件 / 96 → 97 例**、含 untracked **23 文件 / 99 → 100 例**。基线沿用上一批（本批零 JVM 改动）：`:app:testDebugUnitTest` 118 类 / 961 例 / 0F0E0S；`:ai:test` 30 类 / 220 例；lint app `0/617/6=623`、全模块 `0/650/7=657`。四条命令退出码（**转述执行者**）：`compileDebugAndroidTestKotlin` 0；`testDebugUnitTest --rerun :ai:testDebugUnitTest --rerun` 0；`lintDebug` 0；`c1_doc_stats.py` OK 18 / WARN 0 / FAIL 0。
+
+**④ 证据哈希（登记子代理本机复算，与报告值逐字符相同）**：`c1-live-evidence-real-qr-export.json` **8711 B / `51d42e0f…0f22f8d`**；`c1-export-real-qr-export.jsonl` **2314 B / `97f2c2ca…967f87c0`**（无尾随换行，解析 5 行）；`c1-real-raw-dump-qr-export.json` **8240 B / `00b56308…a0a3cc6`**。⚠️ am instrument 日志（`OK (1 test)` / `Time: 11.046`）未随证据目录提供，**未能复算**（转述执行者）。
+
+📍 完整逐字段值、8 项核对、非空验证、反方意见与诚实限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第二十轮」。
+
+⚠️ **本批只提交 `docs/` 两个文件（`c1-group-chat.md` + 本文），未 add / commit / 修改工作区里任何其他未提交改动（`TavernMacroExpander.kt` / `ChatDrawer.kt` / `ChatPage.kt` / `SettingAboutPage.kt` / `KedgeMiuixMorphingTitleBar.kt` / `architecture-map.md` / `docs/upstream-sync-2026-10-03.md` / `docs/uiredesign.md` / `C1GroupUiE2EFixtureTest.kt` 等在途改动未碰）。**
+
 ### ⚠️ 第七批（`8622bf19..db4cdd77`，2026-10-06）：`importGroup` 契约 `:205` 缺口修复
 
 ⚠️ **这一批只动 `TavernChatCodec.importGroup`（导入侧），一行运行时代码路径都没被
