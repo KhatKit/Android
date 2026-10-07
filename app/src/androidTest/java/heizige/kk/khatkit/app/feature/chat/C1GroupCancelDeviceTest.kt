@@ -186,11 +186,23 @@ class C1GroupCancelDeviceTest {
         liveDatabase = AppDatabaseFactory.create(appContext)
         groupRunDao = liveDatabase.groupRunDao()
 
+        chatManager = buildChatManager()
+        trace("setUp:chatManager-constructed")
+    }
+
+    /**
+     * 手工装配一个 [ChatManager]（与 `AppHiltModule.provideChatManager` 同一批依赖）。
+     *
+     * [stepTimeoutMs] 直接注入生产构造函数新加的可注入步超时；省略时用
+     * [DEFAULT_STEP_TIMEOUT_MS]（= 生产私有常量 `GROUP_ROUND_STEP_TIMEOUT_MS` 的值，15 分钟），
+     * 与 C1-06 之前的写死值逐字一致 —— 取消用例因此不受影响。
+     */
+    private fun buildChatManager(stepTimeoutMs: Long = DEFAULT_STEP_TIMEOUT_MS): ChatManager {
+        val entry = appEntryPoint(appContext)
         val providerManager = entry.providerManager()
         val json = JsonInstant
         val memoryRepository = entry.memoryRepository()
-
-        chatManager = ChatManager(
+        return ChatManager(
             context = appContext,
             appScope = AppScope(),
             appEventBus = entry.appEventBus(),
@@ -228,8 +240,8 @@ class C1GroupCancelDeviceTest {
             placeholderTransformer = PlaceholderTransformer(settingsStore),
             ocrTransformer = OcrTransformer(appContext, settingsStore, providerManager),
             base64ImageToLocalFileTransformer = Base64ImageToLocalFileTransformer(entry.filesManager()),
+            groupRoundStepTimeoutMs = stepTimeoutMs,
         )
-        trace("setUp:chatManager-constructed")
     }
 
     @After
@@ -625,6 +637,247 @@ class C1GroupCancelDeviceTest {
         println("attempt=$attemptLabel status=${run2.status} reason=${run2.reason} spent=${run2.spentTokens} a2Tokens=$a2Tokens")
         println("emptyBubbles=${emptyBubbles.size} b2=${b2.size} c2=${finalAssistants.count { it.roundId == round2Id && it.roleId == "c" }} errorNodeKept=$errorNodeStillThere")
         println("C1-CANCEL-DEVICE-END")
+    }
+
+    /**
+     * C1-06「超时」半条的真机证据：注入一个很小的步超时（[TIMEOUT_STEP_MS]），
+     * 让第 2 个角色 **B 挂住不返回**（mock `MOCK_HANG_ROLE=B`：发完 role-only opener
+     * 后一个 content 都不发），断言契约 `docs/beyond-operit-client-changes.md:201`
+     * 的「取消/超时不得写入未生成的消息」在**超时**这条出口上同样成立：
+     *
+     * 1. 轮次落 `TIMEOUT` / `reason=timeout`（生产 `GroupTurnCoordinator.timeoutRound`）；
+     * 2. **空气泡数 = 0**（`UngeneratedMessageFilter` 语义：被超时角色的零内容占位被丢弃）；
+     * 3. 已生成角色 a 的消息保留；
+     * 4. 错误节点形状 `turn_kind=error`、`role_id=b`，正文来自生产 `errorNode` 前缀
+     *    「本轮生成失败」并携带超时 detail；
+     * 5. `spent_tokens` = 已提交角色 a 的 prompt+completion（超时不追加）；
+     * 6. `committed_role_ids=["a"]`、`skipped_role_ids=[]`（`timeoutRound` 与 `cancelRound`
+     *    一样不写 skipped —— 超时角色之后的 c 根本没开始，没有「跳过」可言）。
+     *
+     * 为什么能这样测：生产构造函数新加了可注入的 `groupRoundStepTimeoutMs`（默认仍是 15 分钟），
+     * 本用例把它设成 [TIMEOUT_STEP_MS]，于是不用真的等 15 分钟就能走到 `withTimeout` 分支。
+     */
+    @Test
+    fun stepTimeoutRecordsTimeoutWithoutEmptyBubbleAndKeepsGeneratedRole() = runBlocking {
+        // 只在本用例替换成小超时的 manager；@Before 已按默认 15 分钟建好一个，直接覆盖即可
+        // （JUnit4 每个 @Test 都是新实例，不影响取消用例）。
+        chatManager = buildChatManager(stepTimeoutMs = TIMEOUT_STEP_MS)
+        settingsStore.update(cancelSettings())
+
+        val conversationId = insertGroup()
+        evidenceConversations += conversationId
+
+        val sentAt = System.currentTimeMillis()
+        chatManager.sendMessage(
+            conversationId = conversationId,
+            content = listOf(UIMessagePart.Text("超时用例：请三位依次发言，每位一句话。")),
+            answer = true,
+        )
+        val user = awaitUserMessages(conversationId, expected = 1).last { it.role == MessageRole.USER }
+        val roundId = GroupChat.roundIdFor(user.id.toString())
+        val run = awaitTerminalRun(conversationId, roundId, timeoutMillis = 120_000)
+        val endedAt = System.currentTimeMillis()
+        val elapsed = endedAt - sentAt
+        trace("timeout:terminal status=${run.status} reason=${run.reason} spent=${run.spentTokens} elapsed=${elapsed}ms")
+
+        val messages = loadMessages(conversationId)
+        writeRawDump("c1-timeout-raw-$attemptLabel.json", conversationId, roundId, messages, run)
+
+        // ---------- 断言 1：契约 :201 —— 超时不得写入未生成的消息 ----------
+        val emptyBubbles = messages.filter { it.isUngeneratedAssistantMessage() }
+        assertTrue(
+            "超时后库内不得出现未生成助手消息（空气泡），实际=" +
+                emptyBubbles.map { "${it.id}:${it.roleId}:${it.roundId}" },
+            emptyBubbles.isEmpty(),
+        )
+
+        val assistants = messages.filter { it.role == MessageRole.ASSISTANT }
+
+        // ---------- 断言 2：已生成角色 a 的消息保留 ----------
+        val a = assistants.firstOrNull { it.roundId == roundId && it.roleId == "a" }
+        assertNotNull(
+            "超时轮里已提交角色 a 的已生成消息必须保留，实际=" +
+                assistants.map { "${it.roleId}:${it.turnKind}:${it.toText().take(30)}" },
+            a,
+        )
+        assertTrue("角色 a 的消息不得为空", requireNotNull(a).toText().isNotBlank())
+
+        // ---------- 断言 3：超时角色的错误节点 + 零真实产出 ----------
+        val errorNode = assistants.firstOrNull {
+            it.roundId == roundId && it.roleId == "b" && it.turnKind == GroupChat.TURN_ERROR
+        }
+        assertNotNull(
+            "超时必须由生产失败路径写出 b 的错误节点，实际回合消息=" +
+                assistants.map { "${it.roleId}:${it.turnKind}:${it.toText().take(30)}" },
+            errorNode,
+        )
+        val errorText = requireNotNull(errorNode).toText()
+        assertTrue(
+            "错误节点正文应带生产前缀「本轮生成失败」，实际=$errorText",
+            errorText.contains("本轮生成失败"),
+        )
+        assertTrue(
+            "错误节点正文必须反映超时（detail 来自 errorDetailOf(TimeoutCancellationException)），实际=$errorText",
+            errorText.contains("Timeout") || errorText.contains("Timed out"),
+        )
+        assertTrue(
+            "被超时的 b 不得留下任何非错误正文（挂住没有 content，占位气泡必须被过滤）",
+            assistants.none {
+                it.roundId == roundId && it.roleId == "b" && it.turnKind != GroupChat.TURN_ERROR
+            },
+        )
+        assertTrue(
+            "被超时的 b 不得有 modelId=modelB 的落库消息（零产出占位被丢弃），实际=" +
+                cancelledRolePartials(assistants, modelBId).map { "${it.id}:${it.toText().take(30)}" },
+            cancelledRolePartials(assistants, modelBId).isEmpty(),
+        )
+        assertTrue(
+            "超时发生在 b，本轮的 c 不得有消息",
+            assistants.none { it.roundId == roundId && it.roleId == "c" },
+        )
+        assertTrue(
+            "超时不得伪造 a 的错误节点（a 是成功提交，不是失败）",
+            assistants.none {
+                it.roundId == roundId && it.roleId == "a" && it.turnKind == GroupChat.TURN_ERROR
+            },
+        )
+
+        // ---------- 断言 4：status / reason / 运行日志字段 ----------
+        assertEquals(
+            "本轮必须以 TIMEOUT 收尾",
+            GroupRunEntity.STATUS_TIMEOUT,
+            run.status,
+        )
+        assertEquals("reason 必须是 timeout", GroupRunEntity.REASON_TIMEOUT, run.reason)
+        assertEquals("committed 只应包含已提交的 a", listOf("a"), run.committedRoleIds)
+        assertEquals(
+            "timeoutRound 与 cancelRound 一样不写 skipped（超时角色之后的 c 未开始，没有跳过）",
+            emptyList<String>(),
+            run.skippedRoleIds,
+        )
+        assertNotNull("终态必须有 ended_at", run.endedAt)
+        assertTrue(
+            "error_message 必须是超时 detail，实际=${run.errorMessage}",
+            run.errorMessage.contains("Timeout") || run.errorMessage.contains("Timed out"),
+        )
+        assertEquals("token_limit 必须是配置快照", budget, run.tokenLimit)
+        val aUsage = requireNotNull(requireNotNull(a).usage) {
+            "角色 a 的 usage 必须来自真实响应（mock SSE trailer）"
+        }
+        val aTokens = aUsage.promptTokens + aUsage.completionTokens
+        assertTrue("a 的 prompt+completion 必须为正，实际=$aTokens", aTokens > 0)
+        assertEquals(
+            "超时时 spent_tokens 必须等于已提交角色 a 的 prompt+completion（超时不追加）",
+            aTokens,
+            run.spentTokens,
+        )
+        assertTrue(
+            "总耗时必须 ≥ 注入的步超时（证明确实走到了 withTimeout 分支），实际=${elapsed}ms",
+            elapsed >= TIMEOUT_STEP_MS,
+        )
+        assertTrue(
+            "总耗时不应接近 15 分钟（证明用的是注入值而不是生产默认常量），实际=${elapsed}ms",
+            elapsed < 90_000,
+        )
+
+        // ---------- 证据 ----------
+        writeEvidence(
+            "c1-device-timeout-report-$attemptLabel.json",
+            buildJsonObject {
+                put("case", "C1-06 timeout half")
+                put("attempt", attemptLabel)
+                put("injected_step_timeout_ms", TIMEOUT_STEP_MS)
+                putJsonObject("device") {
+                    put("model", Build.MODEL)
+                    put("sdk", Build.VERSION.SDK_INT)
+                    put("release", Build.VERSION.RELEASE)
+                    put("abi", Build.SUPPORTED_ABIS.joinToString(","))
+                }
+                put("mock_base_url", mockBaseUrl)
+                put(
+                    "mock_server",
+                    "tools/verification/mock_openai_slow_cancel.py with MOCK_HANG_ROLE=B, " +
+                        "MOCK_EMPTY_ROLE=, MOCK_FAIL_ROLE= (B gets a 200 SSE opener then no content); " +
+                        "enableAutoRetry=false so no failover replay to a real gateway",
+                )
+                putJsonObject("conversation") {
+                    put("id", conversationId.toString())
+                    put("group_mode", GroupChat.MODE_PIPELINE)
+                    put("budget", budget)
+                    put("round_id", roundId)
+                }
+                putJsonObject("timing_millis") {
+                    put("sent", sentAt)
+                    put("ended", endedAt)
+                    put("elapsed", elapsed)
+                }
+                putJsonObject("timeout_round") {
+                    put("status", run.status)
+                    put("reason", run.reason)
+                    put("spent_tokens", run.spentTokens)
+                    put("token_limit", run.tokenLimit)
+                    put("committed_role_ids", run.committedRoleIds.joinToString(","))
+                    put("skipped_role_ids", run.skippedRoleIds.joinToString(","))
+                    put("error_message", run.errorMessage)
+                    put("ended_at", run.endedAt)
+                }
+                putJsonObject("assert_expected") {
+                    put("status", GroupRunEntity.STATUS_TIMEOUT)
+                    put("reason", GroupRunEntity.REASON_TIMEOUT)
+                    put("empty_bubbles", 0)
+                    put("committed", "a")
+                    put("skipped", "")
+                }
+                putJsonObject("observed") {
+                    put("empty_bubble_count", emptyBubbles.size)
+                    put("a_present", a != null)
+                    put("a_prompt_completion", aTokens)
+                    put("error_node_role_id", errorNode?.roleId)
+                    put("error_node_turn_kind", errorNode?.turnKind)
+                    put("error_node_text", errorText)
+                    put("b_non_error_messages", assistants.count {
+                        it.roundId == roundId && it.roleId == "b" && it.turnKind != GroupChat.TURN_ERROR
+                    })
+                    put("b_modelB_partials", cancelledRolePartials(assistants, modelBId).size)
+                    put("c_message_count", assistants.count { it.roundId == roundId && it.roleId == "c" })
+                }
+                putJsonArray("messages") {
+                    messages.forEach { message ->
+                        add(
+                            buildJsonObject {
+                                put("id", message.id.toString())
+                                put("role", message.role.name)
+                                put("role_id", message.roleId)
+                                put("round_id", message.roundId)
+                                put("turn_kind", message.turnKind)
+                                put("model_id", message.modelId?.toString())
+                                put("wire_model_name", message.wireModelName)
+                                put("text", message.toText())
+                                put("is_ungenerated_assistant", message.isUngeneratedAssistantMessage())
+                                message.usage?.let { usage ->
+                                    put("usage_prompt", usage.promptTokens)
+                                    put("usage_completion", usage.completionTokens)
+                                }
+                            },
+                        )
+                    }
+                }
+                put(
+                    "note",
+                    "Timeout half of contract :201. Production constructor now takes an injectable " +
+                        "groupRoundStepTimeoutMs (default = the old 15-minute constant, so production " +
+                        "wiring is unchanged). WithTimeout fires -> TimeoutCancellationException -> " +
+                        "failGroupTurn(timedOut=true) -> TIMEOUT/timeout. Role A committed first and is " +
+                        "preserved; role B hangs with zero content so its placeholder is dropped " +
+                        "(empty_bubble_count=0); an error node is written for B.",
+                )
+            },
+        )
+
+        println("C1-TIMEOUT-DEVICE-BEGIN")
+        println("attempt=$attemptLabel status=${run.status} reason=${run.reason} spent=${run.spentTokens} aTokens=$aTokens elapsed=${elapsed}ms")
+        println("emptyBubbles=${emptyBubbles.size} committed=${run.committedRoleIds} skipped=${run.skippedRoleIds} errorNodeText=$errorText")
+        println("C1-TIMEOUT-DEVICE-END")
     }
 
     // ==================================================================
@@ -1090,6 +1343,16 @@ class C1GroupCancelDeviceTest {
 
         /** mock 500 响应体里的注入标记（`tools/verification/mock_openai_slow_cancel.py`）。 */
         const val MOCK_500_MARKER = "c1-cancel mock injected 500"
+
+        /**
+         * 生产私有常量 `ChatManager.GROUP_ROUND_STEP_TIMEOUT_MS` 的值（15 分钟）。
+         * 测试无法引用那个 private 常量，所以这里镜像一份；`buildChatManager()` 的默认参数用它，
+         * 保证取消用例与生产默认行为逐字一致。
+         */
+        const val DEFAULT_STEP_TIMEOUT_MS = 15 * 60 * 1000L
+
+        /** 超时用例注入的小步超时：足够让角色 a 先提交，又远小于 15 分钟默认值。 */
+        const val TIMEOUT_STEP_MS = 5_000L
 
         /** mock SSE 帧自报的 wire 模型名；别的名字 = 真网关顶包。 */
         val MOCK_WIRE_MODEL_NAMES = setOf("mock-cancel-a", "mock-cancel-b", "mock-cancel-c")
