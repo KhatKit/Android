@@ -1284,7 +1284,7 @@ app **未被卸载**，那份 JSON **按理应仍在设备**
 
 **② 判定影响（20 格逐格）：2 格升级**——**C1-07** 在**用例矩阵格** + **证据登记表格**各升 `verified`（共 2 格）；**C1-10 仍 `unverified`**（虽 8/8）：契约 `:232-235`「只看截图或**只看 UI 状态**均标记 `unverified`」（本批 #1/#2/#3 断言落 Compose 语义树可达性与 badge 节点）+ 契约 `:206` 逐例四类产物（viewer 可见消息 ID / 模型调用序列 / token / 导出哈希）本例**结构性不产出**（不启发模型、不导出群文件，同 C1-08 语义正交处置）。C1-01..C1-05 按「已 `verified` 不重开」维持；C1-06 / C1-08 / C1-09 不升。20 格每格就地追加「真机第十六轮订正」（保留原文）。逐格依据见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十六轮」⑤。
 
-**③ 统计口径（登记子代理本机实测）**：`git log --oneline 5c362851a..HEAD` = **3**（第二十批登记本体；设备轮零 commit，`--merges` = **0**）；`git log --name-only 5c362851a..HEAD -- 'app/src/test/*'` = **空** ⇒ 台账声明值仍 **48 行 / 514 例**（锚点 `1b0e04a9` 不重算：78 / 0 merges）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test`（**0 处失败**）/ `--only tables`（**160 块 / 1287 行、0 不符**）/ `--only ledger`（48 行 / 514 例、逐行相等）**均 exit 0**。⚠️ `c1_doc_stats.py` sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一个字节未改）。
+**③ 统计口径（登记子代理本机实测）**：`git log --oneline 5c362851a..bd88aaff2` = **3**（第二十批登记本体；设备轮零 commit，`--merges` = **0**）；`git log --name-only 5c362851a..bd88aaff2 -- 'app/src/test/*'` = **空** ⇒ 台账声明值仍 **48 行 / 514 例**（锚点 `1b0e04a9` 不重算：78 / 0 merges）。`c1_doc_stats.py` 主命令 **18 OK / 0 WARN / 0 FAIL**；`--self-test`（**0 处失败**）/ `--only tables`（**160 块 / 1287 行、0 不符**）/ `--only ledger`（48 行 / 514 例、逐行相等）**均 exit 0**。⚠️ `c1_doc_stats.py` sha256 前后**同为 `238bb45f7035852acf3f27013bd5d3d6372191a4543d3297ef7044e3899f4321`**（一个字节未改）。
 
 📍 完整三档证据区分（**本机实测 / 转述执行者 / 未复现**）与诚实限制见 `docs/eval/c1-group-chat.md`「C1 真机证据采集第十六轮」。⚠️ C1-07 报告内 `scope_note` 末句「Device-side behaviour is NOT verified…（no device）」是该报告源码内的**历史固定文案**，非本次事实（本次为真机实测）。
 
