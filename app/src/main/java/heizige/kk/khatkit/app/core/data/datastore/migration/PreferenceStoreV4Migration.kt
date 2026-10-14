@@ -51,14 +51,7 @@ class PreferenceStoreV4Migration : DataMigration<Preferences> {
     override suspend fun cleanUp() {}
 
     companion object {
-        val ALL_LOCAL_TOOLS = listOf(
-            LocalToolOption.JavascriptEngine,
-            LocalToolOption.TimeInfo,
-            LocalToolOption.Clipboard,
-            LocalToolOption.Tts,
-            LocalToolOption.AskUser,
-            LocalToolOption.ScreenTime,
-            LocalToolOption.Calendar,
-        )
+        /** 全部本地工具：以 [LocalToolOption.ALL] 为唯一来源，新增工具时不必改两处。 */
+        val ALL_LOCAL_TOOLS: List<LocalToolOption> = LocalToolOption.ALL
     }
 }

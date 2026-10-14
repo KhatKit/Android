@@ -36,4 +36,21 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("chart_display")
     data object ChartDisplay : LocalToolOption()
+
+    companion object {
+        /**
+         * 全部本地工具（默认助手与新建助手的出厂状态：全开）。
+         * 顺序与 `AssistantLocalToolPage` 的开关列表一致，改这里不用再改第二处。
+         */
+        val ALL: List<LocalToolOption> = listOf(
+            JavascriptEngine,
+            TimeInfo,
+            Clipboard,
+            Tts,
+            AskUser,
+            ScreenTime,
+            Calendar,
+            ChartDisplay,
+        )
+    }
 }

@@ -39,7 +39,8 @@ data class Assistant(
     val customHeaders: List<CustomHeader> = emptyList(),
     val customBodies: List<CustomBody> = emptyList(),
     val mcpServers: Set<Uuid> = emptySet(),
-    val localTools: List<LocalToolOption> = listOf(LocalToolOption.TimeInfo),
+    // 出厂默认全开：本地工具是纯本机能力，不该让用户先到设置里逐个点亮才有工具用。
+    val localTools: List<LocalToolOption> = LocalToolOption.ALL,
     val enableWebSearch: Boolean = true, // 网络搜索开关(每个助手独立)，默认开启
     val workspaceId: Uuid? = null,
     val background: String? = null, // 聊天页背景图地址(本地文件 URI 或网络 URL), 为 null 时无背景
