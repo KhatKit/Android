@@ -29,6 +29,25 @@ operator fun PaddingValues.plus(other: PaddingValues): PaddingValues {
     )
 }
 
+/**
+ * [plus] 的反向操作：把已经加进去的边距再扣回来。和 [plus] 一样按 start/end 语义处理横向
+ * （PaddingValues 的 `minus` 只在 foundation 里、且不做 RTL 归一），逐边夹到 ≥ 0 ——
+ * `PaddingValues(top = 负)` 会在构造时直接抛 "Padding must be non-negative"。
+ */
+@Composable
+operator fun PaddingValues.minus(other: PaddingValues): PaddingValues {
+    val layoutDirection = LocalLayoutDirection.current
+    return PaddingValues(
+        start = (this.calculateStartPadding(layoutDirection) - other.calculateStartPadding(
+            layoutDirection
+        )).coerceAtLeast(0.dp),
+        top = (this.calculateTopPadding() - other.calculateTopPadding()).coerceAtLeast(0.dp),
+        end = (this.calculateEndPadding(layoutDirection) - other.calculateEndPadding(layoutDirection))
+            .coerceAtLeast(0.dp),
+        bottom = (this.calculateBottomPadding() - other.calculateBottomPadding()).coerceAtLeast(0.dp)
+    )
+}
+
 fun Color.toCssHex(): String {
     val alpha = (alpha * 255).toInt()
     val red = (red * 255).toInt()

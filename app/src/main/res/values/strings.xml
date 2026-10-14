@@ -15,9 +15,6 @@
   <string name="explore_market_title">Explore Market</string>
   <string name="explore_market_subtitle">External cards · Tools · Skills · MCP · Model capabilities</string>
   <string name="explore_market_external_cards">External Script Cards</string>
-  <string name="explore_market_source_badge">REMOTE CATALOG</string>
-  <string name="explore_market_overview">Discover and install tools maintained outside the APK.</string>
-  <string name="explore_market_card_count">%1$d available · %2$d installed</string>
   <string name="asr_button_content_description">Speech Recognition</string>
   <string name="asr_button_stop">Stop</string>
   <string name="assistant_detail_basic_desc">Configure name, avatar, model, and parameters</string>

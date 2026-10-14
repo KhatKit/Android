@@ -15,9 +15,6 @@
   <string name="explore_market_title">探索市场</string>
   <string name="explore_market_subtitle">外部卡片 · 工具 · 技能 · MCP · 模型能力</string>
   <string name="explore_market_external_cards">外部脚本卡片</string>
-  <string name="explore_market_source_badge">云端目录</string>
-  <string name="explore_market_overview">发现并安装独立于 APK 维护的工具卡片。</string>
-  <string name="explore_market_card_count">可用 %1$d 张 · 已安装 %2$d 张</string>
   <string name="asr_button_content_description">语音识别</string>
   <string name="asr_button_stop">停止</string>
   <string name="assistant_detail_basic_desc">配置名称、头像、模型和参数</string>

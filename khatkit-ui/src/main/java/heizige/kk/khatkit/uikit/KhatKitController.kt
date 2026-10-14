@@ -4,6 +4,8 @@ import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubAccountStatus
 import heizige.kk.khatkit.hub.HubActionResult
 import heizige.kk.khatkit.hub.HubCardMarketInfo
+import heizige.kk.khatkit.hub.HubResourceEntry
+import heizige.kk.khatkit.hub.HubResourcePackage
 import heizige.kk.khatkit.ui.MediaPickRequest
 import heizige.kk.khatkit.ui.UiRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,6 +86,15 @@ interface KhatKitController {
 
     /** 市场卡片详情（GET /api/cards：价格 / 协议 / 优选 / 票数），失败返回空表。 */
     suspend fun hubMarketCards(): List<HubCardMarketInfo> = emptyList()
+
+    /**
+     * 资源市场目录（GET /api/khatkit/resources/index.json）：技能合集 / MCP 服务 / 合集包。
+     * [kind] 留空拉全部；后端没这个接口时返回空表，探索页只少两块内容。
+     */
+    suspend fun hubResources(kind: String? = null): List<HubResourceEntry> = emptyList()
+
+    /** 下载资源内容包（技能正文 + MCP 端点）；失败返回 null。 */
+    suspend fun downloadHubResource(slug: String): HubResourcePackage? = null
 
     /** 发布已安装卡片到 Hub（需确认开源协议与每次调用价格）。 */
     suspend fun publishCard(

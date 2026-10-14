@@ -57,6 +57,8 @@ import heizige.kk.khatkit.hub.HubCardPublishRequest
 import heizige.kk.khatkit.hub.HubClient
 import heizige.kk.khatkit.hub.HubFilters
 import heizige.kk.khatkit.hub.HubLibProvider
+import heizige.kk.khatkit.hub.HubResourceEntry
+import heizige.kk.khatkit.hub.HubResourcePackage
 import heizige.kk.khatkit.hub.HubToolReportRequest
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
@@ -1812,6 +1814,16 @@ class KhatKitToolProvider(
     override suspend fun hubMarketCards(): List<HubCardMarketInfo> = withContext(Dispatchers.IO) {
         runCatching { hub().listCards(accountStore.token()) }.getOrNull()
             ?.takeIf { it.ok }?.cards.orEmpty()
+    }
+
+    /** 资源市场目录（技能合集 / MCP 服务 / 合集包）；老 Hub 没有该接口时返回空表。 */
+    override suspend fun hubResources(kind: String?): List<HubResourceEntry> = withContext(Dispatchers.IO) {
+        runCatching { hub().fetchResourceIndex(kind) }.getOrNull()?.resources.orEmpty()
+    }
+
+    /** 下载资源内容包；失败（含 404）返回 null，由调用方给用户提示。 */
+    override suspend fun downloadHubResource(slug: String): HubResourcePackage? = withContext(Dispatchers.IO) {
+        runCatching { hub().downloadResource(slug) }.getOrNull()
     }
 
     /** 发布已安装卡片到 Hub（价格入参为元，上传时转成分）。 */

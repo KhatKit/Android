@@ -30,6 +30,11 @@ data class CardIndexEntry(
     val hash: String = "",
     val sizeBytes: Long = 0,
     val updatedAt: Long = 0,
+    /**
+     * 下载量：服务端索引里的计数（下载接口每次 +1）。0 = 未知或确实没人下载，客户端不展示。
+     * 旧 Hub 不给这个字段时保持 0，不会因为缺字段让整条索引反序列化失败。
+     */
+    val downloads: Long = 0,
     /** AI 摘要（给用户看，也用于语义召回） */
     val summary: String = "",
     /** 标准 JSON Schema：未下载时也能把卡片暴露给 AI（使用时再拉包） */

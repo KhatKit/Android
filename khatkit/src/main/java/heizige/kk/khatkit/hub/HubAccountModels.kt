@@ -125,6 +125,8 @@ data class HubCardMarketInfo(
     val license: String = "",
     val preferred: Boolean = false,
     val votes: Int = 0,
+    /** 下载量：后端有 downloads/installs 就取它，只有 usage_reports 时退化成使用次数。0 = 未知，客户端不展示。 */
+    val downloads: Long = 0,
     val score: Long = 0,
 )
 

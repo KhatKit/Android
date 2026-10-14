@@ -8,6 +8,7 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -84,6 +85,33 @@ class HubClient(
 
     suspend fun fetchLibIndex(): LibIndex =
         client.get(resolve("/api/khatkit/libs/index.json")).body()
+
+    // ===== 资源市场：技能合集 / MCP 服务 / 合集包（v1）=====
+
+    /**
+     * 资源目录。`kind` 留空拉全部（服务端已按 featured + downloads 排序），
+     * 失败一律返回空索引 —— 老服务端没有这个接口时，探索页只是少两块内容，
+     * 不该把整页的加载状态拖成错误。
+     */
+    suspend fun fetchResourceIndex(kind: String? = null, limit: Int = 100): HubResourceIndex =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val response = client.get(resolve("/api/khatkit/resources/index.json")) {
+                    kind?.takeIf { it.isNotBlank() }?.let { parameter("kind", it) }
+                    parameter("limit", limit)
+                }
+                response.body<HubResourceIndex>()
+            }.getOrDefault(HubResourceIndex())
+        }
+
+    /** 下载资源的完整内容包（技能正文 / MCP 端点配置）。不存在或断网时返回 null。 */
+    suspend fun downloadResource(slug: String): HubResourcePackage? = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = client.get(resolve("/api/khatkit/resources/$slug/download"))
+            if (!response.status.isSuccess()) return@runCatching null
+            response.body<HubResourcePackage>()
+        }.getOrNull()
+    }
 
     /** 下载卡片包到 destDir，校验 sha256。 */
     suspend fun downloadCard(entry: CardIndexEntry, destDir: File): File =
@@ -319,6 +347,18 @@ class HubClient(
             license = obj.strAny("license", "license_name") ?: "",
             preferred = obj.boolAny("has_preferred", "preferred", "featured", "recommended", "is_preferred") == true,
             votes = (obj.longAny("upvotes", "votes", "vote_count", "likes") ?: 0L).toInt(),
+            // 后端目前只在 /api/cards 里给 usage_reports（每次使用上报 +1），没有独立下载计数：
+            // 有 downloads/installs 就优先用它，否则退回 usage_reports，两者都没有就保持 0（不展示）。
+            downloads = obj.longAny(
+                "downloads",
+                "download_count",
+                "download_total",
+                "installs",
+                "install_count",
+                "install_total",
+                "usage_reports",
+                "usage_count",
+            ) ?: 0L,
             score = obj.longAny("score") ?: 0L,
         )
     }

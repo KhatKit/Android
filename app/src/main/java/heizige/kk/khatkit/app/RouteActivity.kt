@@ -59,6 +59,8 @@ import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.ui.activity.SafeModeActivity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
+import heizige.kk.khatkit.app.feature.explore.ExploreCardsPage
+import heizige.kk.khatkit.app.feature.explore.ExploreLocalPage
 import heizige.kk.khatkit.app.feature.explore.ExploreMarketPage
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
@@ -536,6 +538,14 @@ class RouteActivity : ComponentActivity() {
                                 ExploreMarketPage()
                             }
 
+                            entry<Screen.ExploreCards> { key ->
+                                ExploreCardsPage(initialQuery = key.initialQuery)
+                            }
+
+                            entry<Screen.ExploreLocal> {
+                                ExploreLocalPage()
+                            }
+
                             entry<Screen.SettingDonate> {
                                 SettingDonatePage()
                             }
@@ -787,6 +797,14 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object ExploreMarket : Screen
+
+    /** 卡片市场二级页：[initialQuery] 从一级页带过来，保住已经输入的关键词。 */
+    @Serializable
+    data class ExploreCards(val initialQuery: String = "") : Screen
+
+    /** 本地二级页：本机内容与已安装内容（不走远端市场索引）。 */
+    @Serializable
+    data object ExploreLocal : Screen
 
     @Serializable
     data object SettingDonate : Screen
