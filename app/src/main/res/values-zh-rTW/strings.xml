@@ -815,6 +815,8 @@
   <string name="setting_page_tts_service">語音服務</string>
   <string name="setting_page_tts_service_desc">語音合成與語音辨識</string>
   <string name="setting_page_tts_settings">TTS設定</string>
+  <string name="setting_page_trace_audit">軌跡審計</string>
+  <string name="setting_page_trace_audit_desc">逐步查看裝置動作的截圖、目標和結果</string>
   <string name="setting_page_web_server">Web伺服器</string>
   <string name="setting_page_web_server_address_note">位址備註</string>
   <string name="setting_page_web_server_address_note_desc">區域網：WiFi IP，僅同網可存取。\n本機：localhost，僅本裝置。\nmDNS：.local 主機名，不需 IP。</string>

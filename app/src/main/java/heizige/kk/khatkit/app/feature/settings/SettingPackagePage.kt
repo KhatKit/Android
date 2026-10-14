@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,6 +45,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.openInNew
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -148,11 +150,23 @@ fun SettingPackagePage(
                             )
                         },
                         supportingContent = {
+                            // #9 设备名 / 设备 ID：与 Miuix `SettingPackagePageMiuix.kt:89-102`
+                            // 同源 —— 同一个 `status`（provider.hubAccountStatus）、同一组资源键
+                            // （setting_package_page_device / _device_id / _loading），不再自己
+                            // 拼硬编码中文标签。
                             Text(
                                 buildString {
-                                    append("设备：${current?.deviceName ?: "读取中"}")
+                                    append(
+                                        stringResource(
+                                            R.string.setting_package_page_device,
+                                            current?.deviceName
+                                                ?: stringResource(R.string.setting_package_page_loading),
+                                        )
+                                    )
                                     current?.deviceId?.takeIf { it.isNotBlank() }?.let {
-                                        append("\n设备标识：").append(it)
+                                        append('\n').append(
+                                            stringResource(R.string.setting_package_page_device_id, it)
+                                        )
                                     }
                                     current?.message?.takeIf { it.isNotBlank() }?.let {
                                         append("\n").append(it)

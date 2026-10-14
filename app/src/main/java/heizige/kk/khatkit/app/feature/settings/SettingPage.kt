@@ -77,6 +77,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.campaign
 import heizige.kk.khatkit.app.core.ui.icons.celebration
+import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
@@ -163,6 +164,15 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_color_mode)) },
                         supportingContent = { Text(selectedColorModeText) },
                     )
+                    // #4「主题」hub：与 Miuix 主页同一个目标（Screen.SettingThemes）与同一组
+                    // 资源键（setting_page_themes / _desc），图标同 dashboard。与上面的外观三选
+                    // 并存（用户裁定「并集补齐」，不是二选一）。
+                    item(
+                        onClick = { navController.navigate(Screen.SettingThemes) },
+                        leadingContent = { Icon(dashboard, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_themes_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_themes)) },
+                    )
                 }
             }
 
@@ -227,8 +237,8 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     item(
                         onClick = { navController.navigate(Screen.TraceAudit) },
                         leadingContent = { Icon(bolt, null) },
-                        supportingContent = { Text("逐步查看设备动作的截图、目标和结果") },
-                        headlineContent = { Text("轨迹审计") },
+                        supportingContent = { Text(stringResource(R.string.setting_page_trace_audit_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_trace_audit)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.ExploreMarket) },

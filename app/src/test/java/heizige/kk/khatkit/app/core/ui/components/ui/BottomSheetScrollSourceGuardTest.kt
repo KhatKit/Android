@@ -287,6 +287,14 @@ class BottomSheetScrollSourceGuardTest {
      * 顺带钉一条**反向**事实——必须真的存在「自己滚」的调用点，否则说明
      * `SELF_SCROLL_REGEX` 写坏了（比如漏转义导致永远匹配不上），
      * 主断言就会因为「谁都不违规」而恒绿。
+     *
+     * ## 65 → 68（2026-10-14，设置页 Miuix 变体补齐批次）
+     *
+     * 三处新增调用点（行号为落地时的位置），都在 `SOURCE_ROOTS` 覆盖范围内，且同 suite 的
+     * `noCallSite_nestsItsOwnVerticalScrollInsideAScrollableSheet` 仍然全绿：
+     * - `feature/settings/SettingThemePageMiuix.kt:387`
+     * - `feature/settings/SettingProviderPageMiuix.kt:371`
+     * - `feature/settings/SettingModelPromptPageMiuix.kt:123`
      */
     @Test
     fun scan_stillFindsSelfScrollingCallSites() {
@@ -294,7 +302,7 @@ class BottomSheetScrollSourceGuardTest {
         assertEquals(
             "扫描到的 PrimaryBottomSheet 调用点数量变了：" +
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
-            65,
+            68,
             sites.size,
         )
         val selfScrolling = sites.filter { it.selfScrolls }

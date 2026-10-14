@@ -130,7 +130,7 @@ fun SettingPreferencesNotificationPageMiuix(vm: SettingViewModel = hiltViewModel
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(stringResource(R.string.confirm))
+                            Text(stringResource(R.string.setting_update_reminder_resume_now))
                         }
                     }
                 }
@@ -145,7 +145,12 @@ fun SettingPreferencesNotificationPageMiuix(vm: SettingViewModel = hiltViewModel
                     )
                     showUpdatePauseDialog = false
                 }) {
-                    Text(stringResource(R.string.common_confirm))
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                KedgeTextButton(onClick = { showUpdatePauseDialog = false }) {
+                    Text(stringResource(R.string.cancel))
                 }
             },
         )

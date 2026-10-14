@@ -37,7 +37,9 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
+import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues) {
@@ -60,6 +62,14 @@ internal fun PromptSettingsContent(
     settings: Settings,
     onUpdate: (Settings) -> Unit,
 ) {
+    // 分流放在这个「两份页面共用的唯一漏斗」里，而不是 PromptSettingsPage：
+    // Miuix 侧的提示词页签由 SettingModelPageMiuix 直接调本函数（SettingModelPage.kt:58 已早退），
+    // 早退只加在上层页面函数里的话，Miuix 下仍然会走到下面的 MD3 CardGroup 实现。
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        PromptSettingsContentMiuix(settings = settings, onUpdate = onUpdate)
+        return
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PromptSettingItem(
             title = stringResource(R.string.setting_model_page_prompt_translation),

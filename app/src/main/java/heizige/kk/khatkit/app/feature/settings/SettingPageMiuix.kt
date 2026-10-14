@@ -16,6 +16,7 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceDropdown
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
@@ -29,6 +30,7 @@ import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.inventory2
+import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
@@ -38,6 +40,8 @@ import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
+import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
+import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,9 +79,24 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         }
 
         miuixGroup {
-            // 原来这里是「颜色模式」三选下拉。现在换成主题 hub 的入口：主题模式
-            // （跟随系统/浅色/深色）连同动态取色、主题配色、AMOLED 一起收进
-            // 「设置 → 主题 → 主题偏好设置」，颜色模式本身没有丢，只是多一跳。
+            // #3 外观三选（跟随系统/浅色/深色）：与 MD3 主页的外观三选卡片
+            // （`SettingPage.kt` 的 selectedColorModeText / Select.optionToString）引用同一组
+            // 资源键（setting_page_color_mode / _system / _light / _dark）、同一持久化字段
+            // （rememberColorMode 读写的就是 SharedPreferences 的 "colorMode"，缺省
+            // ColorMode.SYSTEM ⇒ 「跟随系统」）。MD3 用 Select，Miuix 用自家的
+            // OverlayDropdownPreference，条目顺序与默认值逐字相同。
+            val colorMode = rememberColorMode()
+            PreferenceDropdown(
+                title = stringResource(R.string.setting_page_color_mode),
+                summary = colorModeText(colorMode.value),
+                items = ColorMode.entries.map { colorModeText(it) },
+                selectedIndex = ColorMode.entries.indexOf(colorMode.value),
+                onSelectedIndexChange = { colorMode.value = ColorMode.entries[it] },
+                icon = lightMode,
+            )
+            // 「主题」hub 与上面的外观三选并存（用户裁定「并集补齐，两侧条目完全一致」，
+            // 不是二选一）：主题模式（跟随系统/浅色/深色）连同动态取色、主题配色、AMOLED
+            // 一起收进「设置 → 主题 → 主题偏好设置」。
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_themes),
                 summary = stringResource(R.string.setting_page_themes_desc),
@@ -134,6 +153,14 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 title = stringResource(R.string.setting_page_mcp),
                 icon = dns,
                 onClick = { navController.navigate(Screen.SettingMcp) },
+            )
+            // #5 轨迹审计：目标与 MD3 `SettingPage.kt:237-242` 完全一致（Screen.TraceAudit），
+            // 文案改用同一组新资源键（原 MD3 侧是硬编码中文）。
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_trace_audit),
+                summary = stringResource(R.string.setting_page_trace_audit_desc),
+                icon = bolt,
+                onClick = { navController.navigate(Screen.TraceAudit) },
             )
             PreferenceArrow(
                 title = "探索市场",
@@ -239,3 +266,15 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         QQGroupBottomSheet(onDismiss = { showQQGroupSheet = false })
     }
 }
+
+/**
+ * 外观三选（#3）的条目文案 —— 与 MD3 `SettingPage.kt` 的外观三选引用的是同一组资源键。
+ */
+@Composable
+private fun colorModeText(mode: ColorMode): String = stringResource(
+    when (mode) {
+        ColorMode.SYSTEM -> R.string.setting_page_color_mode_system
+        ColorMode.LIGHT -> R.string.setting_page_color_mode_light
+        ColorMode.DARK -> R.string.setting_page_color_mode_dark
+    }
+)

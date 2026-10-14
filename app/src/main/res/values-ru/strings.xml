@@ -806,6 +806,8 @@
   <string name="setting_page_tts_service">Служба преобразования текста в речь</string>
   <string name="setting_page_tts_service_desc">Синтез и распознавание речи</string>
   <string name="setting_page_tts_settings">Настройки TTS</string>
+  <string name="setting_page_trace_audit">Аудит трассировки</string>
+  <string name="setting_page_trace_audit_desc">Пошаговый просмотр снимков, целей и результатов действий устройства</string>
   <string name="setting_page_web_server">Веб-сервер</string>
   <string name="setting_page_web_server_address_note">Примечания к адресу</string>
   <string name="setting_page_web_server_address_note_desc">LAN: IP Wi-Fi устройства, только в той же сети.\nЛокальный: localhost, только это устройство.\nmDNS: имя .local, IP не нужен.</string>

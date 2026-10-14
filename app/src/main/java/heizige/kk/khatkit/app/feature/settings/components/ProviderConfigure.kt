@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -199,6 +200,33 @@ private val OFFICIAL_PROVIDER_HOSTS = setOf(
     CLAUDE_OFFICIAL_HOST
 )
 
+/**
+ * 离开编辑面（输入框失焦）时把提供商 `name` 规范化成 `trim()` 后的值并落库**一次**。
+ *
+ * 背景：保存按钮删掉之后，`name` 只剩下 `onValueChange` 一条落库路径，而同文件里
+ * apiKey / baseUrl 都是逐键 `.trim()` —— 于是同一个字段在列表页会被 trim、在详情页不会。
+ * 这里把 `name` 的规范化补回来，但**不能**照抄 apiKey 的逐键 trim：
+ *
+ * - **不逐键 trim**：`name` 是人类可读名字（「Open AI」），在 `onValueChange` 里 trim 会让
+ *   空格一敲下就被剥掉，词间空格根本打不进去；apiKey/baseUrl 不含词间空格才无所谓。
+ * - **看 `hasFocus` 而不是 `isFocused`**：MD3 分支下调用方的 modifier 挂在输入框自身，
+ *   事件节点是焦点目标的祖先，聚焦时会收到 `Active`（`isFocused == true`）；Miuix 分支下
+ *   `KedgeOutlinedTextFieldWithSlots` 把 modifier 挂到**外层 Column**，若中间还隔着别的焦点
+ *   目标，Compose 只派发 `ActiveParent`（`isFocused == false`，`hasFocus == true`，
+ *   见 `FocusOwnerImpl` / `FocusInvalidationManager.invalidateNodes`）。用 `hasFocus`
+ *   两条分支语义一致：为 true 表示「这个编辑面（含输入框）还握着焦点」，失焦才为 false。
+ * - **无差异不提交**：失焦、重组都会派发焦点事件，`trim()` 结果与当前值相同就直接返回，
+ *   不产生无意义的落库 / 重组。
+ */
+private fun Modifier.normalizeNameOnBlur(
+    name: String,
+    onCommit: (String) -> Unit,
+): Modifier = onFocusChanged { focusState ->
+    if (focusState.hasFocus) return@onFocusChanged
+    val trimmed = name.trim()
+    if (trimmed != name) onCommit(trimmed)
+}
+
 @Composable
 private fun ProviderConfigureOpenAI(
     provider: ProviderSetting.OpenAI,
@@ -212,7 +240,9 @@ private fun ProviderConfigureOpenAI(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .normalizeNameOnBlur(provider.name) { onEdit(provider.copy(name = it)) },
         shape = RoundedCornerShape(16.dp)
     )
 
@@ -294,7 +324,9 @@ private fun ProviderConfigureClaude(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .normalizeNameOnBlur(provider.name) { onEdit(provider.copy(name = it)) },
         maxLines = 3,
         shape = RoundedCornerShape(16.dp)
     )
@@ -389,7 +421,9 @@ private fun ProviderConfigureGoogle(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .normalizeNameOnBlur(provider.name) { onEdit(provider.copy(name = it)) },
         shape = RoundedCornerShape(16.dp)
     )
 

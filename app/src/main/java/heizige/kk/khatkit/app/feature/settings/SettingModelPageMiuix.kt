@@ -17,11 +17,14 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -102,12 +105,14 @@ fun SettingModelPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                                 Column {
                     ModelSettingRow(
                         title = stringResource(R.string.setting_model_page_chat_model),
+                        description = stringResource(R.string.setting_model_page_chat_model_desc),
                         modelId = settings.chatModelId,
                         providers = settings.providers,
                         onSelect = { vm.updateSettings(settings.copy(chatModelId = it.id)) },
                     )
                     ModelSettingRow(
                         title = stringResource(R.string.setting_model_page_fast_model),
+                        description = stringResource(R.string.setting_model_page_fast_model_desc),
                         modelId = settings.fastModelId,
                         providers = settings.providers,
                         onSelect = { vm.updateSettings(settings.copy(fastModelId = it.id)) },
@@ -124,12 +129,14 @@ fun SettingModelPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                     )
                     ModelSettingRow(
                         title = stringResource(R.string.setting_model_page_ocr_model),
+                        description = stringResource(R.string.setting_model_page_ocr_model_desc),
                         modelId = settings.ocrModelId,
                         providers = settings.providers,
                         onSelect = { vm.updateSettings(settings.copy(ocrModelId = it.id)) },
                     )
                     ModelSettingRow(
                         title = stringResource(R.string.setting_model_page_compress_model),
+                        description = stringResource(R.string.setting_model_page_compress_model_desc),
                         modelId = settings.compressModelId,
                         providers = settings.providers,
                         onSelect = { vm.updateSettings(settings.copy(compressModelId = it.id)) },
@@ -155,13 +162,15 @@ fun SettingModelPageMiuix(vm: SettingViewModel = hiltViewModel()) {
     }
 }
 
-/** 单个模型选择行：标题 + 描述 + 当前模型名 + 箭头，点击弹出模型列表。 */
+/** 单个模型选择行：标题 + 说明文案（副行）+ 当前模型名（行尾）+ 箭头，点击弹出模型列表。 */
 @Composable
 private fun ModelSettingRow(
     title: String,
     modelId: Uuid?,
     providers: List<ProviderSetting>,
     onSelect: (Model) -> Unit,
+    /** 与 MD3 `SettingModelPage.kt:119/128/149/158` 同键的说明文案；为 null 时不显示副行（MD3 同款）。 */
+    description: String? = null,
     reasoningLevel: ReasoningLevel? = null,
     onUpdateReasoningLevel: ((ReasoningLevel) -> Unit)? = null,
 ) {
@@ -173,9 +182,20 @@ private fun ModelSettingRow(
 
     PreferenceArrow(
         title = title,
-        summary = state.currentModel?.displayName
-            ?: stringResource(R.string.model_list_select_model),
+        // 副行统一为「说明文案」（与 MD3 同键同义）；当前模型名挪到行尾，对齐 MD3 的
+        // `trailingContent`（此前 Miuix 把模型名放在副行、且完全没有说明文案）。
+        summary = description,
         onClick = { state.open() },
+        endAction = {
+            Text(
+                text = state.currentModel?.displayName
+                    ?: stringResource(R.string.model_list_select_model),
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
     )
 
     ModelListSheet(state = state, onSelect = onSelect)

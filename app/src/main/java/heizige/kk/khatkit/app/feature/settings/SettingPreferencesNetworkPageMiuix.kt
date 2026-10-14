@@ -81,6 +81,15 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                         label = stringResource(R.string.setting_page_preferences_network_proxy),
                         placeholder = "http://127.0.0.1:7890",
                         isError = proxy.draftUrl.isNotBlank() && proxy.draftUrl.toProxyOrNull() == null,
+                        // 地址非法时给明确文案（与 MD3 SettingPreferencesNetworkPage.kt:195-205 同键同义，
+                        // 合法时仍显示那一行说明），不再只有 isError 红框。
+                        supportingText = stringResource(
+                            if (proxy.draftUrl.isNotBlank() && proxy.draftUrl.toProxyOrNull() == null) {
+                                R.string.setting_page_preferences_network_proxy_invalid
+                            } else {
+                                R.string.setting_page_preferences_network_proxy_desc
+                            }
+                        ),
                         singleLine = true,
                     )
                     KedgeTextField(

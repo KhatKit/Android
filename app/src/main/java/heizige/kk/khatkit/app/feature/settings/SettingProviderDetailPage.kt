@@ -50,10 +50,11 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -72,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.BuiltInTools
@@ -243,15 +245,16 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
                 0 -> {
                     SettingProviderConfigPage(
                         provider = provider,
-                        onEdit = {
-                            onEdit(it)
+                        // 即改即存：编辑器里已经没有任何保存按钮，每次编辑都直接写进 Settings。
+                        onEdit = onEdit,
+                        onDelete = {
+                            onDelete()
+                        },
+                        onCommitted = {
                             Toast.show(
                                 settingProviderPageSaveSuccess,
                                 isError = false
                             )
-                        },
-                        onDelete = {
-                            onDelete()
                         }
                     )
                 }
@@ -288,14 +291,43 @@ private fun SettingProviderAdvancedPage(
     }
 }
 
+/**
+ * 「已保存」提示的去抖窗口（毫秒）：即改即存下每次按键都会落库，提示要等输入停顿后
+ * 才出现一次，避免变成「每敲一个字弹一次 toast」。
+ */
+private const val SAVE_FEEDBACK_DEBOUNCE_MS = 800L
+
 @Composable
 internal fun SettingProviderConfigPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    /**
+     * 「已保存」提示（即改即存）。逐次回调会变成每敲一个字弹一次，所以本页在
+     * [SAVE_FEEDBACK_DEBOUNCE_MS] 的输入停顿后只回调一次。
+     */
+    onCommitted: (() -> Unit)? = null,
 ) {
     var internalProvider by remember(provider) { mutableStateOf(provider) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // 每次编辑都立刻落库（见 [commit]）；这里只把「已落库」去抖成一次用户可见反馈。
+    var commitCount by remember(provider.id) { mutableIntStateOf(0) }
+    LaunchedEffect(commitCount) {
+        if (commitCount == 0) return@LaunchedEffect
+        delay(SAVE_FEEDBACK_DEBOUNCE_MS)
+        onCommitted?.invoke()
+    }
+
+    /**
+     * 即改即存：本地草稿与外部 Settings 一起更新。页面里**没有**「只有点保存才落库」的字段，
+     * 也不存在「返回即丢」的字段（原来的显式保存按钮已删）。
+     */
+    fun commit(updated: ProviderSetting) {
+        internalProvider = updated
+        onEdit(updated)
+        commitCount++
+    }
 
     Column(
         modifier = Modifier
@@ -307,16 +339,16 @@ internal fun SettingProviderConfigPage(
     ) {
         ProviderConfigure(
             provider = internalProvider,
-            onEdit = {
-                internalProvider = it
-            }
+            // 即改即存：文本字段（name / apiKey / baseUrl / chatCompletionsPath / responsesPath）
+            // 每敲一次就落库；开关、分段选择、以及「更换提供商类型」都走同一个入口。
+            onEdit = { commit(it) }
         )
 
         if (internalProvider is ProviderSetting.OpenAI) {
             SettingProviderBalanceOption(
                 provider = internalProvider,
                 balanceOption = internalProvider.balanceOption,
-                onEdit = { internalProvider = internalProvider.copyProvider(balanceOption = it) }
+                onEdit = { commit(internalProvider.copyProvider(balanceOption = it)) }
             )
             ProviderBalanceText(providerSetting = provider, style = KedgeTextStyles.footnoteSmall())
         }
@@ -345,7 +377,8 @@ internal fun SettingProviderConfigPage(
 
             KedgeIconButton(
                 onClick = {
-                    internalProvider = internalProvider.resetBaseUrlToDefault()
+                    // 立即落库：不再是「只改本地草稿」
+                    commit(internalProvider.resetBaseUrlToDefault())
                 },
                 enabled = !internalProvider.isUsingDefaultBaseUrl(),
                 shapes = IconButtonDefaults.shapes(),
@@ -354,16 +387,6 @@ internal fun SettingProviderConfigPage(
                     imageVector = sync,
                     contentDescription = stringResource(R.string.setting_model_page_reset_to_default)
                 )
-            }
-
-            KedgeButton(
-                onClick = {
-                    val providerToSave: ProviderSetting = internalProvider
-                    onEdit(providerToSave.copyProvider(name = providerToSave.name.trim()))
-                },
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(stringResource(R.string.setting_provider_page_save))
             }
         }
 

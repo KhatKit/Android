@@ -91,6 +91,8 @@ import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 private val themeJson = Json {
     ignoreUnknownKeys = true
@@ -100,6 +102,10 @@ private val themeJson = Json {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingThemePage(vm: SettingViewModel = hiltViewModel()) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingThemePageMiuix(vm)
+        return
+    }
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val clipboardManager = LocalClipboard.current

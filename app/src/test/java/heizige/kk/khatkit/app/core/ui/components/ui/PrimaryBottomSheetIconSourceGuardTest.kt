@@ -251,6 +251,15 @@ class PrimaryBottomSheetIconSourceGuardTest {
      * 以后**新增**调用点时这条会红 —— 那不是要求回改历史数字，而是提醒把新的
      * 调用点也纳入 `SOURCE_ROOTS` 的覆盖审查（正常情况下新增调用点会先撞上一条断言，
      * 改完带齐图标后调高这个数字并写清新增在哪即可）。
+     *
+     * ## 65 → 68（2026-10-14，设置页 Miuix 变体补齐批次）
+     *
+     * 三处新增调用点（行号为落地时的位置），都已在 `SOURCE_ROOTS` 覆盖范围内，且同 suite 的
+     * `everyPrimaryBottomSheetCallSite_passesAnIcon` 全绿（即三处都写齐了 `painter =` /
+     * `imageVector =`）：
+     * - `feature/settings/SettingThemePageMiuix.kt:387`（`imageVector = palette`）
+     * - `feature/settings/SettingProviderPageMiuix.kt:371`
+     * - `feature/settings/SettingModelPromptPageMiuix.kt:123`
      */
     @Test
     fun callSiteScan_stillCoversTheWholeRepo() {
@@ -258,7 +267,7 @@ class PrimaryBottomSheetIconSourceGuardTest {
         assertEquals(
             "扫描到的 PrimaryBottomSheet 调用点数量变了：" +
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
-            65,
+            68,
             sites.size,
         )
         assertTrue(

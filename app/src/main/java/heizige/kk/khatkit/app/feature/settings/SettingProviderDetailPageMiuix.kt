@@ -112,14 +112,16 @@ fun SettingProviderDetailPageMiuix(
                 Box(modifier = Modifier.fillParentMaxHeight(0.9f)) {
                     SettingProviderConfigPage(
                         provider = provider,
-                        onEdit = {
-                            onEdit(it)
+                        // 即改即存：每次编辑立刻落库；「已保存」提示改由 onCommitted 在输入停顿后
+                        // 回调一次（此前是把提示挂在 onEdit 上，现在 onEdit 会是逐字触发）。
+                        onEdit = onEdit,
+                        onDelete = onDelete,
+                        onCommitted = {
                             Toast.show(
                                 message = settingProviderPageSaveSuccess,
                                 isError = false,
                             )
                         },
-                        onDelete = onDelete,
                     )
                 }
             }

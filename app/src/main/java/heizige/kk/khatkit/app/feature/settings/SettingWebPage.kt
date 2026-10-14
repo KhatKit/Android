@@ -71,9 +71,15 @@ import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.kedge.components.KedgeExtendedFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun SettingWebPage() {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        SettingWebPageMiuix()
+        return
+    }
     val webServerManager: WebServerManager = rememberAppEntryPoint().webServerManager()
     val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
     val settings = LocalSettings.current

@@ -810,6 +810,8 @@
   <string name="setting_page_tts_service">音声サービス</string>
   <string name="setting_page_tts_service_desc">音声合成と音声認識</string>
   <string name="setting_page_tts_settings">TTS設定</string>
+  <string name="setting_page_trace_audit">トレース監査</string>
+  <string name="setting_page_trace_audit_desc">デバイス操作のスクリーンショット・対象・結果を順に確認</string>
   <string name="setting_page_web_server">Webサーバー</string>
   <string name="setting_page_web_server_address_note">アドレスメモ</string>
   <string name="setting_page_web_server_address_note_desc">LAN：端末の WiFi IP、同一ネットワークのみ。\nローカル：localhost、この端末のみ。\nmDNS：.local 名、IP 不要。</string>

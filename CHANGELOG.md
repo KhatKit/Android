@@ -70,6 +70,24 @@
 - 应用更新改为**按 ABI + 包名**分发：客户端上报 `abi=Build.SUPPORTED_ABIS.firstOrNull()` 与 `applicationId=BuildConfig.APPLICATION_ID`，两者为空串时**不追加参数** ⇒ 未上报时请求 URL 与旧实现逐字节相同（`core/util/UpdateChecker.kt` 抽出 `buildUpdateUrl` + `UpdateCheckerUrlTest` 7 例）。服务端（KodeHeapServer `325f2ed`，契约见本仓 `README.md`「应用更新接口」）按 `downloadUrls[<同名 ABI>]` → `universal` → 该版本原有 `downloadUrl` 选产物，**绝不把别的 ABI 发出去**；声明了 `applicationId` 的版本只对**同包名**客户端下发，否则 `packageMismatch=true`、`hasUpdate=false`、`downloadUrl=""`（`force_min` 也不强制），debug 包不会再被推 release 包。发布侧 fail-closed：`downloadUrls` 出现非法 key、缺 `universal` 兜底或任一地址为空即整次发布 400 拒收、写库前抛出（`c8e73ab5c`，3 文件）。
 - AI 提供商图标统一为**中性单色**：底色 `MaterialTheme.colorScheme.secondaryContainer`、图形 `onSecondaryContainer`（`AIIcon.kt:37` / `:41`），并在渲染层对**每个**资产无条件做 `ColorFilter.tint(…, SrcIn)`（`AIIcon.kt:64`）——SrcIn 只保留形状 alpha、把全部 RGB 换成图形色，所以资产内部的逐元素 `fill`、内联 `style=`、`<style>` 块与 `stroke` 都漏不出第二色（这不是「资产碰巧单色」，老写法 `svg { fill: … }` 只命中根元素、会被子元素反超）。资产仍用 lobe-icons 单色版，署名与许可见 `app/src/main/assets/icons/LICENSES.md`。此前「按提供商取品牌色 + 推导对比色」的机制已**整段删除**（`AIIconMatcher.kt` 147 → 127 行），不是未接线。回归护栏：`AIIconAssetsTest` 目录全量扫单色（XML 解析覆盖 `fill` / `stroke` / `style=` / `<style>`，放行 `currentColor` / `none` / `inherit`）+ 一条渲染层源码护栏（必须无条件 tint）。⚠️ 图标观感由用户实机确认（`53c1187d7`，83 文件）。
 
+### 🎛️ 设置项两风格统一（2026-10-14 收口）
+
+> 用户裁定「并集补齐、两侧条目完全一致」，本批把 MD3 与 Miuix 的设置项对齐；逐条裁定与落地分工见
+> [docs/settings-parity-gaps.md](docs/settings-parity-gaps.md) 顶部的「用户裁定（2026-10-14）」。
+> ⚠️ **真机观感未验证**：以下各条的视觉 / 交互观感留给用户实机确认。
+
+- **外观三选**（跟随系统 / 浅色 / 深色）在 Miuix 主页补齐：此前 MD3 有、Miuix 没有；两侧用同一 `ColorMode` 枚举与同一默认值。
+- **主题入口**：MD3 主页补上直达「主题」设置页的入口（此前只有 Miuix 主页有），两侧同一导航目标、并存而非互相替代。
+- **轨迹审计**：两侧入口对齐；MD3 侧由硬编码中文改为字符串资源，Miuix 侧补上入口。新增 2 个键 `setting_page_trace_audit` / `setting_page_trace_audit_desc`，写入 7 个 `res/values*/strings.xml`（每目录 2 行、删除 0 行）。
+- **字体族 + 自定义字体**进 Miuix：与 MD3 同键、同持久化字段（`DisplaySetting.chatFontFamily`）、同落盘路径与校验。
+- **模型条目副行**两侧统一取**说明文案**。
+- **提供商保存改为「即改即存」**（MD3 与 Miuix 详情页同时改）；随后补回 **name 离开编辑面时的一次性 `trim()` 规范化**，三处 name 输入框全覆盖，打字期间不 trim（避免「边打边规范化」）。
+- **代理非法文案**两侧统一；**设备行**两侧同源、同键、同参数序（不是复制重算）。
+- **通知页按钮语义**补齐：取消只置 false **不写设置**，确认才写 `updateCheckDisabledUntilEpochMillis`。
+- **4 个 Miuix 变体页**（此前 Miuix 风格下直接套用 MD3 实现、观感是 MD3）：**主题页** `SettingThemePageMiuix.kt`、**Web 页** `SettingWebPageMiuix.kt`、**提供商页** `SettingProviderPageMiuix.kt`、**模型提示词页** `SettingModelPromptPageMiuix.kt`；配合两个 MD3 页的 `isMiuix` 早退块，Miuix 下不再走 MD3 实现。选项集合经双向差集核对与 MD3 **一致**（提示词页早退放在两页共用的漏斗，否则 Miuix 的提示词页签会漏分流）。
+- **sheet 内搜索不再外溢**（上一批，已推送、此处补记）：底部弹层里的搜索框展开时不再铺满全屏 —— MD3 不再走页面级全屏 Dialog、Miuix 不再把展开层挂到根部 overlay，两者都在 sheet 子树内展开、受 sheet 圆角与高度上限约束（Kedge `KedgeSearch.kt` / `KedgeSearchOverlay.kt` 提交 `7881c3b0c`；KhatKit `PrimaryBottomSheet.kt` 提交 `d974cc572`）。⚠️ 观感由用户实机确认。
+- **已知项与遗留**（本批**只记账、不改源码**，逐条带 `file:line`）：见 [docs/settings-parity-gaps.md](docs/settings-parity-gaps.md) §22「遗留与已知项」——含 `SettingWebPageMiuix.kt:81`（与 MD3 `SettingWebPage.kt:90` 同一条）的 `LocalClipboardManager` 弃用告警（⚠️ 该批自述「零 warning」不准：实测 `feature/settings/` 下有 2 条）、主题页镜像约 380 行私有 helper（**技术债**，将来提升到 `core/` 后删除镜像）、顶栏「导入 / 新建」可及状态为超集（选项没少）、`PermissionRationaleDialog → Khromia AnimatedAlertDialog` 不做风格分流（**跨仓既有缺口**）、`values-ar` 缺既有 package 键、「探索市场 / 套餐激活」仍硬编码等。
+
 ## 2.5.2（2026-09-18）
 
 > 应用内更新走 KodeHeadServer 的 KhatKit 独立更新通道（stable / beta / force_min）。

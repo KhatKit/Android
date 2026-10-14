@@ -978,6 +978,8 @@
   <string name="setting_page_tts_service">خدمات الكلام</string>
   <string name="setting_page_tts_service_desc">تحويل النص إلى كلام والتعرّف على الصوت</string>
   <string name="setting_page_tts_settings">إعدادات TTS</string>
+  <string name="setting_page_trace_audit">تدقيق التتبّع</string>
+  <string name="setting_page_trace_audit_desc">استعراض لقطات الشاشة والأهداف والنتائج لإجراءات الجهاز خطوة بخطوة</string>
   <string name="setting_page_web_server">خادم الويب</string>
   <string name="setting_page_web_server_address_note">ملاحظات العنوان</string>
   <string name="setting_page_web_server_address_note_desc">LAN: IP شبكة Wi-Fi للجهاز، داخل نفس الشبكة فقط.\nمحلي: localhost، هذا الجهاز فقط.\nmDNS: اسم ‎.local، بدون IP.</string>
