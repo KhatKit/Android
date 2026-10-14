@@ -853,13 +853,63 @@ private fun TopBar(
 
     // 顶栏副标题只显示当前模型名（助手名 + 提供商名在顶栏里太挤，已去掉）。
     val topBarModel = settings.getCurrentChatModel()
+
+    // 长按标题改名的前置条件提示（没有消息时不允许改标题）。MD3 与 Miuix 两条
+    // 分支共用同一条文案，所以提到分支外，避免两处各写一份。
+    val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
+
+    // 重命名标题弹窗必须排在下面 `if (isMiuix) { ... return }` **之前**：
+    // 早退会让这条 EditStateContent 在 Miuix 下永远不参与组合，Miuix 的长按改名
+    // 只会改掉 state 而弹窗不出现。AppAlertDialog 自己按风格分流
+    // （KedgeAlertDialogSlots），两种风格下都能正常渲染。
+    titleState.EditStateContent { title, onUpdate ->
+        AppAlertDialog(
+            onDismissRequest = {
+                titleState.dismiss()
+            },
+            title = {
+                Text(stringResource(R.string.chat_page_edit_title))
+            },
+            text = {
+                KedgeOutlinedTextField(
+                    value = title,
+                    onValueChange = onUpdate,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
+                )
+            },
+            confirmButton = {
+                KedgeTextButton(
+                    onClick = {
+                        titleState.confirm()
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.chat_page_save))
+                }
+            },
+            dismissButton = {
+                KedgeTextButton(
+                    onClick = {
+                        titleState.dismiss()
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.chat_page_cancel))
+                }
+            }
+        )
+    }
+
     if (isMiuix) {
         // Miuix：照搬 KernelSU HomeMiuix 的顶栏 —— 原版 TopAppBar 默认
         // largeTitle = title，即真正的大标题栏，滚动时折叠成小标题。
         // 搜索态由 KedgeMiuixMorphingTitleBar 负责 morph：标题（大标题 + 副标题 +
         // 小标题）随同一进度淡出，输入框落在**大标题的位置**、同一字阶同一颜色。
         KedgeMiuixMorphingTitleBar(
-            // 标题 morph 成搜索输入框，与 MD3 版行为一致（点标题/点搜索图标进入）。
+            // 标题 morph 成搜索输入框，与 MD3 版行为一致；进入搜索是 actions 里那个
+            // 搜索图标（onClickMenu），标题本身不参与搜索（见下面的点击语义）。
             title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
             expanded = previewMode,
             keyword = searchQuery,
@@ -873,6 +923,19 @@ private fun TopBar(
             subtitle = topBarModel?.displayName,
             // 不传的话 Miuix 侧没有可聚焦的节点，点开后要手动点输入框才弹键盘。
             focusRequester = searchFocus,
+            // 标题点击语义与 MD3 严格对齐（MD3 见下面 titleContent 里的
+            // combinedClickable）：
+            // - 点标题 → onModelClick → modelListState.open() → ModelListSheet；
+            // - 长按标题 → 有消息才改名，没消息只弹提示。
+            // 组件内部把这块几何画成透明覆盖层，只在非搜索态存在。
+            onTitleClick = onModelClick,
+            onTitleLongClick = {
+                if (conversation.messageNodes.isNotEmpty()) {
+                    titleState.open(conversation.title)
+                } else {
+                    Toast.show(editTitleWarning, isError = false)
+                }
+            },
             navigationIcon = {
                 // 一个按钮槽内做「菜单 ↔ 返回」交叉淡化：返回箭头**替换**菜单图标，
                 // 手法照侧边栏（只 alpha + 横移，不叠 scale）。大屏常驻返回箭头，
@@ -1024,7 +1087,6 @@ private fun TopBar(
                 MaterialTheme.typography.titleLarge.fontSize
             Box {
                 if (titleVisible) {
-                    val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
                     KedgeSurface(
                         modifier = Modifier
                             .graphicsLayer {
@@ -1153,43 +1215,4 @@ private fun TopBar(
             }
         },
     )
-    titleState.EditStateContent { title, onUpdate ->
-        AppAlertDialog(
-            onDismissRequest = {
-                titleState.dismiss()
-            },
-            title = {
-                Text(stringResource(R.string.chat_page_edit_title))
-            },
-            text = {
-                KedgeOutlinedTextField(
-                    value = title,
-                    onValueChange = onUpdate,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
-                )
-            },
-            confirmButton = {
-                KedgeTextButton(
-                    onClick = {
-                        titleState.confirm()
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.chat_page_save))
-                }
-            },
-            dismissButton = {
-                KedgeTextButton(
-                    onClick = {
-                        titleState.dismiss()
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.chat_page_cancel))
-                }
-            }
-        )
-    }
 }

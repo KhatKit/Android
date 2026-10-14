@@ -1,20 +1,25 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import android.os.Build
+import android.view.RoundedCorner
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.activity.compose.PredictiveBackHandler
-import androidx.activity.compose.BackHandler
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
@@ -22,8 +27,7 @@ import heizige.kk.khatkit.app.core.ui.icons.image
 import heizige.kk.khatkit.app.core.ui.icons.mic
 import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.AnimatedVisibility
@@ -37,9 +41,9 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.content.MediaType
@@ -58,11 +62,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -73,7 +78,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
@@ -86,6 +90,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -102,11 +107,16 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -120,7 +130,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -138,11 +147,13 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
+import heizige.kk.khromia.layout.FullscreenPopup
 import heizige.kk.khatkit.ai.provider.ModelAbility
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.PageBackInterceptor
 import heizige.kk.khatkit.app.core.data.datastore.BackgroundEffectType
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
@@ -199,6 +210,8 @@ import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeFloatingActionButton
+import kotlin.math.abs
+import kotlin.math.hypot
 
 @Composable
 fun ChatInput(
@@ -245,39 +258,71 @@ fun ChatInput(
         val raw = progress.value
         return 1f - (1f - raw) * (1f - raw) * (1f - raw)
     }
-    // 面板全开后继续上滑 → 进入全屏编辑
-    var fullScreenEditor by remember { mutableStateOf(false) }
-    var fullScreenRevealProgress by remember { mutableFloatStateOf(0f) }
-    var fullScreenRevealFromGesture by remember { mutableStateOf(false) }
+    // KodeHeap 帖子详情页 FLB 的落定曲线：tween + CubicBezierEasing(0.16, 0.82, 0.18, 1)，
+    // 时长按距离在 760ms..90ms 之间缩放（不再是 spring(NoBouncy, StiffnessMediumLow)）。
+    // 见文件末尾的 flbSettleSpec。
     var permissionSheetVisible by remember { mutableStateOf(false) }
-    var overscrollPx by remember { mutableFloatStateOf(0f) }
-    val fullscreenThresholdPx = with(LocalDensity.current) { 110.dp.toPx() }
 
-    // 预测返回：展开时返回手势跟手收起面板（KodeHead 同款）
-    PredictiveBackHandler(enabled = progress.value > 0.01f && !fullScreenEditor) { backEvents ->
+    // —— FLB（浮动输入胶囊）实测窗口坐标 ——
+    // genie 的 collapsedBounds 直接取输入胶囊的真实 bounds（对齐 KodeHeap Post.kt:3925
+    // 的 onGloballyPositioned { it.boundsInRoot() }），不再硬编码 60×56dp 矩形。
+    var flbBounds by remember { mutableStateOf(Rect.Zero) }
+    // —— 全屏编辑器：同 window 的页内浮层，进度单一来源 ——
+    var editorOpen by remember { mutableStateOf(false) }
+    var editorReveal by remember { mutableFloatStateOf(0f) }
+    val editorRevealDistancePx = with(LocalDensity.current) { 160.dp.toPx() }
+    val editorJobRef = remember { object { var job: Job? = null } }
+
+    fun settleEditor(open: Boolean) {
+        editorJobRef.job?.cancel()
+        editorJobRef.job = scope.launch {
+            val target = if (open) 1f else 0f
+            animate(
+                initialValue = editorReveal,
+                targetValue = target,
+                animationSpec = flbSettleSpec(editorReveal, target),
+            ) { value, _ -> editorReveal = value }
+            editorReveal = target
+            if (!open) {
+                editorOpen = false
+            }
+        }
+    }
+
+    // 返回兜底：编辑器是页内浮层，它的 PredictiveBackHandler 与 NavDisplay 注册在同一个
+    // 页面 dispatcher 上（后注册者优先）。这里再登记一层，保证即便顺序假设不成立，
+    // 返回也只会关掉编辑器，不会把 ChatPage pop 掉（见 RouteActivity.PageBackInterceptor）。
+    val editorBackToken = remember { Any() }
+    DisposableEffect(editorBackToken) {
+        PageBackInterceptor.push(editorBackToken) {
+            if (editorOpen) {
+                settleEditor(open = false)
+                true
+            } else {
+                false
+            }
+        }
+        onDispose { PageBackInterceptor.pop(editorBackToken) }
+    }
+
+    // 预测返回：手风琴展开时返回手势跟手收起面板（KodeHead 同款）
+    PredictiveBackHandler(enabled = progress.value > 0.01f && !editorOpen) { backEvents ->
         try {
             backEvents.collect { event ->
                 progress.snapTo((1f - event.progress).coerceIn(0f, 1f))
             }
             progress.animateTo(
                 targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow,
-                ),
+                animationSpec = flbSettleSpec(progress.value, 0f),
             )
         } catch (e: CancellationException) {
             progress.animateTo(
                 targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow,
-                ),
+                animationSpec = flbSettleSpec(progress.value, 1f),
             )
         }
     }
 
-    val expanded = progress.value > 0.5f
     val genieLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     var panelSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     var inputRowSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
@@ -363,53 +408,99 @@ fun ChatInput(
             KedgeSurface(
                 modifier = Modifier
                     .weight(1f)
-                    .draggable(
-                        orientation = Orientation.Vertical,
-                        state = rememberDraggableState { delta ->
-                            if (progress.value >= 0.999f && delta < 0f) {
-                                // 已全开还继续上滑：累计到阈值进入全屏
-                                overscrollPx += -delta
-                                val revealStartPx = fullscreenThresholdPx * (20f / 110f)
-                                if (overscrollPx > revealStartPx) {
-                                    fullScreenRevealProgress =
-                                        ((overscrollPx - revealStartPx) /
-                                            (fullscreenThresholdPx - revealStartPx))
-                                            .coerceIn(0f, 0.86f)
-                                    fullScreenRevealFromGesture = true
-                                    fullScreenEditor = true
-                                }
-                            } else if (panelHeightPx > 0) {
-                                overscrollPx = 0f
-                                val next = (progress.value - delta / panelHeightPx).coerceIn(0f, 1f)
-                                scope.launch { progress.snapTo(next) }
-                            }
-                        },
-                        onDragStopped = { velocity ->
-                            scope.launch {
-                                val flbSpec = spring<Float>(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessMediumLow,
-                                )
-                                if (fullScreenEditor) {
-                                    animate(
-                                        initialValue = fullScreenRevealProgress,
-                                        targetValue = 1f,
-                                        animationSpec = flbSpec,
-                                    ) { value, _ -> fullScreenRevealProgress = value }
-                                    fullScreenRevealProgress = 1f
-                                    overscrollPx = 0f
-                                } else {
-                                    val target = when {
-                                        velocity < -1200f -> 1f
-                                        velocity > 1200f -> 0f
-                                        progress.value > 0.5f -> 1f
-                                        else -> 0f
+                    // 收起态「一次上滑」＝ 拉起编辑器（KodeHeap 帖子详情页 FLB 手势模型）。
+                    // Initial pass 抢在按钮/文本框之前处理并 consume，保证在它们之上也能稳定拖动。
+                    .pointerInput(editorRevealDistancePx) {
+                        val touchSlop = viewConfiguration.touchSlop
+                        awaitEachGesture {
+                            val down = awaitFirstDown(
+                                requireUnconsumed = false,
+                                pass = PointerEventPass.Initial,
+                            )
+                            var totalX = 0f
+                            var totalY = 0f
+                            var passedSlop = false
+                            var vertical = false
+                            var drivingEditor = false
+                            var accordionDriving = false
+                            var lastReveal = editorReveal.coerceIn(0f, 1f)
+                            try {
+                                while (true) {
+                                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    val delta = change.positionChange()
+                                    if (!passedSlop) {
+                                        totalX += delta.x
+                                        totalY += delta.y
+                                        if (hypot(totalX, totalY) > touchSlop) {
+                                            // 锁轴：竖向留给 FLB，横向全部丢弃
+                                            vertical = abs(totalY) >= abs(totalX)
+                                            if (vertical) totalX = 0f else totalY = 0f
+                                            passedSlop = true
+                                            editorJobRef.job?.cancel()
+                                            editorJobRef.job = null
+                                        }
+                                    } else {
+                                        if (vertical) totalY += delta.y else totalX += delta.x
                                     }
-                                    progress.animateTo(targetValue = target, animationSpec = flbSpec)
+
+                                    if (passedSlop) {
+                                        change.consume()
+                                        if (vertical) {
+                                            if (totalY < 0f || drivingEditor) {
+                                                // 上滑：直接用 KodeHeap 的揭示进度映射
+                                                // （160dp 线性到 1，之后 rubber-band 到 1.12）
+                                                drivingEditor = true
+                                                lastReveal = composerAiRevealProgressFromDrag(
+                                                    rawY = totalY,
+                                                    commitDistance = editorRevealDistancePx,
+                                                )
+                                                editorReveal = lastReveal.coerceAtLeast(0f)
+                                                if (!editorOpen && lastReveal > 0.001f) {
+                                                    editorOpen = true
+                                                }
+                                            } else if (panelHeightPx > 0 && progress.value > 0f) {
+                                                // 手风琴已展开时下滑：跟手收起面板（保留原行为）
+                                                accordionDriving = true
+                                                val next = (progress.value - totalY / panelHeightPx)
+                                                    .coerceIn(0f, 1f)
+                                                scope.launch { progress.snapTo(next) }
+                                            }
+                                        }
+                                    }
+
+                                    if (!change.pressed) break
+                                }
+                            } catch (cancelled: CancellationException) {
+                                if (passedSlop && drivingEditor) {
+                                    settleEditor(
+                                        composerAiRevealCommitOnRelease(lastReveal.coerceIn(0f, 1f))
+                                    )
+                                }
+                                throw cancelled
+                            }
+
+                            if (!passedSlop) return@awaitEachGesture
+
+                            if (drivingEditor) {
+                                // 松手提交阈值 0.35（KodeHeap composerAiRevealCommitOnRelease）
+                                settleEditor(
+                                    composerAiRevealCommitOnRelease(lastReveal.coerceIn(0f, 1f))
+                                )
+                                return@awaitEachGesture
+                            }
+                            if (accordionDriving) {
+                                val target = if (progress.value > 0.5f) 1f else 0f
+                                val start = progress.value
+                                scope.launch {
+                                    progress.animateTo(
+                                        targetValue = target,
+                                        animationSpec = flbSettleSpec(start, target),
+                                    )
                                 }
                             }
-                        },
-                    )
+                        }
+                    }
                     .clip(containerShape)
                     .then(
                         if (easedProgress() > 0.05f && settings.displaySetting.enableBlurEffect) {
@@ -561,7 +652,17 @@ fun ChatInput(
                         color = hazeTintColor,
                         modifier = Modifier
                             .height(56.dp)
-                            .onSizeChanged { inputRowSize = it },
+                            .onSizeChanged { inputRowSize = it }
+                            // FLB 实测 bounds（窗口坐标）：编辑器 genie 的 collapsedBounds 来源
+                            .onGloballyPositioned { coords ->
+                                val topLeft = coords.localToWindow(Offset.Zero)
+                                flbBounds = Rect(
+                                    left = topLeft.x,
+                                    top = topLeft.y,
+                                    right = topLeft.x + coords.size.width,
+                                    bottom = topLeft.y + coords.size.height,
+                                )
+                            },
                     ) {
                     Row(
                         modifier = Modifier
@@ -572,13 +673,12 @@ fun ChatInput(
                     ) {
                         ActionIconButton(
                             onClick = {
+                                val start = progress.value
+                                val target = if (start > 0.5f) 0f else 1f
                                 scope.launch {
                                     progress.animateTo(
-                                        targetValue = if (progress.value > 0.5f) 0f else 1f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessMediumLow,
-                                        ),
+                                        targetValue = target,
+                                        animationSpec = flbSettleSpec(start, target),
                                     )
                                 }
                             }
@@ -595,16 +695,25 @@ fun ChatInput(
                             state = state,
                             completionProviders = completionProviders,
                             onSendMessage = { sendMessage() },
-                            isFullScreen = fullScreenEditor,
-                            fullScreenRevealProgress = fullScreenRevealProgress,
-                            fullScreenRevealFromGesture = fullScreenRevealFromGesture,
-                            onFullScreenRevealProgress = { fullScreenRevealProgress = it },
+                            isFullScreen = editorOpen,
+                            editorRevealProgress = editorReveal,
+                            onEditorRevealProgress = { editorReveal = it },
+                            flbBounds = flbBounds,
                             attachmentActions = attachmentActions,
-                            onFullScreenChange = {
-                                fullScreenEditor = it
-                                if (!it) {
-                                    fullScreenRevealProgress = 0f
-                                    fullScreenRevealFromGesture = false
+                            onFullScreenChange = { open ->
+                                if (open) {
+                                    editorOpen = true
+                                    editorJobRef.job?.cancel()
+                                    editorJobRef.job = scope.launch {
+                                        animate(
+                                            initialValue = editorReveal,
+                                            targetValue = 1f,
+                                            animationSpec = flbSettleSpec(editorReveal, 1f),
+                                        ) { value, _ -> editorReveal = value }
+                                        editorReveal = 1f
+                                    }
+                                } else {
+                                    settleEditor(open = false)
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -794,9 +903,9 @@ private fun TextInputRow(
     completionProviders: List<ChatCompletionProvider>,
     onSendMessage: () -> Unit,
     isFullScreen: Boolean,
-    fullScreenRevealProgress: Float = 0f,
-    fullScreenRevealFromGesture: Boolean = false,
-    onFullScreenRevealProgress: (Float) -> Unit = {},
+    editorRevealProgress: Float = 0f,
+    onEditorRevealProgress: (Float) -> Unit = {},
+    flbBounds: Rect = Rect.Zero,
     attachmentActions: ChatAttachmentPickerActions? = null,
     onFullScreenChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -961,15 +1070,13 @@ private fun TextInputRow(
         if (isFullScreen) {
             FullScreenEditor(
                 state = state,
-                initialRevealProgress = fullScreenRevealProgress,
-                revealProgress = fullScreenRevealProgress,
-                revealFromGesture = fullScreenRevealFromGesture,
-                onRevealProgress = onFullScreenRevealProgress,
+                flbBounds = flbBounds,
+                revealProgress = editorRevealProgress,
+                onRevealProgress = onEditorRevealProgress,
                 attachmentActions = attachmentActions,
                 onSend = { onSendMessage(); onFullScreenChange(false) },
-            ) {
-                onFullScreenChange(false)
-            }
+                onDone = { onFullScreenChange(false) },
+            )
         }
     }
 }
@@ -1002,8 +1109,13 @@ private fun ChatInputTextField(
             colors = MiuixTextFieldDefaults.textFieldColors(
                 backgroundColor = Color.Transparent,
                 labelColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                // borderColor 同时驱动聚焦描边与「光标默认 brush」：
+                // Miuix 的 cursorBrush 默认值是 SolidColor(colors.borderColor)（miuix-ui
+                // basic/TextField.kt:101），所以这里必须显式给 cursorBrush，否则光标解析成
+                // Transparent，聚焦后字面不可见（#3 的根因）。
                 borderColor = Color.Transparent,
             ),
+            cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
             cornerRadius = 16.dp,
             label = placeholder,
             useLabelAsPlaceholder = true,
@@ -1170,115 +1282,152 @@ private fun QuickMessageButton(
 @Composable
 private fun FullScreenEditor(
     state: ChatInputState,
-    initialRevealProgress: Float = 0f,
-    revealProgress: Float = initialRevealProgress,
-    revealFromGesture: Boolean = false,
+    flbBounds: Rect = Rect.Zero,
+    revealProgress: Float = 0f,
     onRevealProgress: (Float) -> Unit = {},
     attachmentActions: ChatAttachmentPickerActions? = null,
     onSend: () -> Unit,
     onDone: () -> Unit,
 ) {
-    BasicAlertDialog(
-        onDismissRequest = {
+    val reveal = revealProgress.coerceIn(0f, 1f)
+    // 屏幕物理圆角（末段 morph 的终点；取不到时为 0，与 KodeHeap 默认值一致）
+    val screenCornerRadiusPx = rememberScreenCornerRadiusPx()
+    val windowMorphProgress = aiWindowMorphProgress(reveal)
+    val windowBorderWidth = 2.dp * (1f - windowMorphProgress)
+    val windowSurfaceAlpha = 0.94f - 0.16f * reveal
+    val density = LocalDensity.current
+    // 系统栏 / IME 内边距直接在**父组合**里取值再传进浮层，而不是在浮层子组合里用
+    // safeDrawingPadding()/imePadding()：后者依赖「挂到 decorView 的浮层 view 也会被派发到
+    // IME insets」这个隐式前提。父组合的 insets holder 就是输入框自己用的那个
+    // （ChatInput 的 Column 已经 .imePadding()），取值必然有效。
+    val safeDrawingInsets = WindowInsets.safeDrawing
+    val imeInsets = WindowInsets.ime
+    val popupPadTop = with(density) { safeDrawingInsets.getTop(density).toDp() }
+    val layoutDirection = LocalLayoutDirection.current
+    val popupPadStart = with(density) {
+        safeDrawingInsets.getLeft(density, layoutDirection).toDp()
+    }
+    val popupPadEnd = with(density) {
+        safeDrawingInsets.getRight(density, layoutDirection).toDp()
+    }
+    val popupPadBottom = with(density) {
+        maxOf(safeDrawingInsets.getBottom(density), imeInsets.getBottom(density)).toDp()
+    }
+
+    // 单一预测性返回实现（原 BackHandler + PredictiveBackHandler 合并为一条）：
+    // 编辑器现在是**同一 window 内的页内浮层**，这里的 handler 与 NavDisplay 注册在同一个
+    // 页面 dispatcher 上、且注册更晚 ⇒ 返回先跟手收起编辑器，不会 pop 掉 ChatPage。
+    PredictiveBackHandler(enabled = reveal > 0.01f) { events ->
+        try {
+            events.collect { event ->
+                onRevealProgress((1f - event.progress).coerceIn(0f, 1f))
+            }
+            val from = reveal
+            animate(from, 0f, animationSpec = flbSettleSpec(from, 0f)) { value, _ ->
+                onRevealProgress(value)
+            }
+            onRevealProgress(0f)
             onDone()
-        },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false, decorFitsSystemWindows = false
-        ),
-    ) {
-        BackHandler(enabled = true) {
-            onDone()
+        } catch (_: CancellationException) {
+            val from = reveal
+            animate(from, 1f, animationSpec = flbSettleSpec(from, 1f)) { value, _ ->
+                onRevealProgress(value)
+            }
+            onRevealProgress(1f)
         }
-        val richState = remember { RichTextState() }
-        LaunchedEffect(Unit) {
-            richState.setMarkdown(state.textContent.text.toString())
+    }
+
+    val richState = remember { RichTextState() }
+    LaunchedEffect(Unit) {
+        richState.setMarkdown(state.textContent.text.toString())
+    }
+    fun commitRichText() {
+        state.setMessageText(richState.toMarkdown())
+    }
+    val editorLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+    var previewMode by rememberSaveable { mutableStateOf(false) }
+    // 页内浮层：MATCH_PARENT 的 AbstractComposeView 直接挂 Activity decorView（同一 window、
+    // 无独立 dialog window），内容以子组合继承 CompositionLocals。
+    FullscreenPopup(modifier = Modifier.fillMaxSize()) {
+        // 浮层 view 在窗口里的原点：FLB 的窗口坐标要减掉它才是浮层内的绘制坐标。
+        // 浮层子组合里 LocalView 就是挂在 decorView 上的那个 AbstractComposeView。
+        val popupView = LocalView.current
+        var popupOrigin by remember(popupView) { mutableStateOf(Offset.Zero) }
+        LaunchedEffect(popupView) {
+            // 等这次 addView 的布局跑完再读，避免拿到 (0,0) 的初始值
+            popupView.post {
+                val location = IntArray(2)
+                popupView.getLocationInWindow(location)
+                popupOrigin = Offset(location[0].toFloat(), location[1].toFloat())
+            }
         }
-        fun commitRichText() {
-            state.setMessageText(richState.toMarkdown())
-        }
-        // 复用 KodeHeap 帖子 Composer 的 FLB 曲线：三次 ease-out 先快后慢，
-        // 再用同一组无回弹 spring 落位，避免全屏编辑器出现另一套手感。
-        val appear = remember {
-            androidx.compose.animation.core.Animatable(
-                initialRevealProgress.coerceIn(0f, 1f)
+        // genie 的起点 = FLB 的实测 bounds（窗口坐标）换算到浮层本地坐标；
+        // 揭示目标是整窗，圆角从 FLB 的 CircleShape 半径 morph 到屏幕圆角
+        // （KodeHeap Post.kt:2849-2863）。
+        val collapsedBounds = flbBounds.translate(-popupOrigin.x, -popupOrigin.y)
+        val windowCornerRadiusPx = with(density) {
+            aiWindowCornerRadiusPx(
+                toolbarWidthPx = collapsedBounds.width,
+                toolbarHeightPx = collapsedBounds.height,
+                revealProgress = reveal,
+                screenCornerRadiusPx = screenCornerRadiusPx,
             )
         }
-        LaunchedEffect(revealProgress, revealFromGesture) {
-            if (revealFromGesture) {
-                appear.snapTo(revealProgress.coerceIn(0f, 1f))
-            } else {
-                appear.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMediumLow,
-                    ),
-                )
-            }
+        // FLB 尚未测量到（空 Rect）时退化成普通圆角矩形：`aiChatGenieEffect` 对空
+        // collapsedBounds 会直接返回、连内容都不画，不能把空矩形喂给它。
+        val flbMeasured = collapsedBounds.width > 0f && collapsedBounds.height > 0f
+        val windowShape: androidx.compose.ui.graphics.Shape = if (flbMeasured) {
+            aiChatGenieWindowShape(
+                progress = reveal,
+                collapsedBounds = collapsedBounds,
+                destinationCornerRadiusPx = windowCornerRadiusPx,
+            )
+        } else {
+            RoundedCornerShape(with(density) { screenCornerRadiusPx.toDp() })
         }
-        PredictiveBackHandler(enabled = appear.value > 0.01f) { events ->
-            try {
-                events.collect { event ->
-                    val value = (1f - event.progress).coerceIn(0f, 1f)
-                    appear.snapTo(value)
-                    if (revealFromGesture) onRevealProgress(value)
-                }
-                appear.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMediumLow,
-                    ),
-                )
-                if (revealFromGesture) onRevealProgress(0f)
-                onDone()
-            } catch (_: CancellationException) {
-                appear.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMediumLow,
-                    ),
-                )
-                if (revealFromGesture) onRevealProgress(1f)
-            }
-        }
-        val appearEased = 1f - (1f - appear.value) * (1f - appear.value) * (1f - appear.value)
-        val editorShape = RoundedCornerShape((24f * (1f - appearEased)).dp)
-        val editorLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
-        var editorSize by remember { mutableStateOf(IntSize.Zero) }
-        val editorDensity = LocalDensity.current
-        val collapsedBounds = Rect(
-            left = editorSize.width / 2f - with(editorDensity) { 30.dp.toPx() },
-            top = editorSize.height - with(editorDensity) { 58.dp.toPx() },
-            right = editorSize.width / 2f + with(editorDensity) { 30.dp.toPx() },
-            bottom = editorSize.height - with(editorDensity) { 2.dp.toPx() },
-        )
-        var previewMode by rememberSaveable { mutableStateOf(false) }
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .safeDrawingPadding()
-                .imePadding()
-            .graphicsLayer {
-                    alpha = appearEased
-                    translationY = (1f - appearEased) * 96f
-                    scaleX = 0.94f + 0.06f * appearEased
-                    scaleY = 0.94f + 0.06f * appearEased
-                },
-            verticalArrangement = Arrangement.Bottom
+                // 揭示窗口只做 genie 形变 + 圆角/透明/边框 morph；
+                // 不再叠加 alpha / translationY / scale 三重额外变换（KodeHeap Post.kt:2844-2911）。
+                .then(
+                    if (flbMeasured) {
+                        Modifier.aiChatGenieEffect(
+                            progress = reveal,
+                            collapsedBounds = collapsedBounds,
+                            contentLayer = editorLayer,
+                            maxBandCount = 36,
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+                .clip(windowShape)
+                .background(
+                    // surface alpha 0.94 → 0.78（KodeHeap Post.kt:2864 同式）
+                    KedgeColors.surface.copy(alpha = windowSurfaceAlpha)
+                )
+                .then(
+                    if (windowBorderWidth > 0.001.dp) {
+                        Modifier.border(
+                            width = windowBorderWidth,
+                            color = KedgeColors.outline,
+                            shape = windowShape,
+                        )
+                    } else {
+                        Modifier
+                    }
+                ),
         ) {
-            KedgeSurface(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .onSizeChanged { editorSize = it }
-                    .aiChatGenieEffect(
-                        progress = appearEased,
-                        collapsedBounds = collapsedBounds,
-                        contentLayer = editorLayer,
-                        maxBandCount = 36,
+                    .padding(
+                        start = popupPadStart,
+                        top = popupPadTop,
+                        end = popupPadEnd,
+                        bottom = popupPadBottom,
                     ),
-                shape = editorShape,
             ) {
                 Box(
                     modifier = Modifier
@@ -1507,3 +1656,36 @@ private fun PanelAction(
 }
 
 private enum class FabState { Mic, Send, Recording }
+
+/**
+ * FLB（手风琴面板 + 全屏编辑器）共用的落定曲线：
+ * `tween(aiWindowSettleDurationMillis(start, target), CubicBezierEasing(0.16, 0.82, 0.18, 1))`。
+ * 满行程 760ms、按距离缩放、下限 90ms（KodeHeap Post.kt:2042-2048）。
+ */
+private fun flbSettleSpec(start: Float, target: Float) = tween<Float>(
+    durationMillis = aiWindowSettleDurationMillis(start, target),
+    easing = CubicBezierEasing(0.16f, 0.82f, 0.18f, 1f),
+)
+
+/**
+ * 屏幕物理圆角（px）。取不到就返回 0，等价于 KodeHeap `AndroidHelper().getCornerRadius()`
+ * 的默认值（Post.kt:2035）。只在 API 31+ 且窗口 insets 带圆角时有值。
+ */
+@Composable
+private fun rememberScreenCornerRadiusPx(): Float {
+    val view = LocalView.current
+    val density = LocalDensity.current
+    var cornerRadiusPx by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val insets = view.rootWindowInsets
+            val radius = insets?.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT)?.radius
+                ?: insets?.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT)?.radius
+            if (radius != null && radius > 0) {
+                cornerRadiusPx = with(density) { radius.toDp().toPx() }
+            }
+        }
+    }
+    return cornerRadiusPx
+}
+

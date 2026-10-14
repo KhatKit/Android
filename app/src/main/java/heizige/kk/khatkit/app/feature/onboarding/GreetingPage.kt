@@ -1063,6 +1063,11 @@ private fun GreetingAiSetupScreen() {
                 show = true,
                 title = sheetTitle,
                 onDismissRequest = closeSheet,
+                // 本处的 MD3 分支（下面的 PrimaryBottomSheet）走的是 Khromia
+                // PrimaryBottomSheet，其内容容器横向零内缩；Miuix 的
+                // WindowBottomSheet 缺省会缩 16dp。这里显式归零，两侧贴边就都等于
+                // sheetBody 自己的 16dp（0+16 = 0+16），不会因切风格而跳一下。
+                miuixInsideMarginWidth = 0.dp,
             ) { sheetBody(true) }
         } else {
             PrimaryBottomSheet(

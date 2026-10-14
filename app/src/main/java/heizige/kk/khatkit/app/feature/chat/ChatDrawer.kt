@@ -529,6 +529,24 @@ fun ChatDrawerContent(
                         // 都没有，也要渲染出那一行「新建文件夹」。组底留 8dp 断开与
                         // 会话列表的间距（header 是列表里的单个 item，内部的
                         // spacedBy 管不到这里）。
+                        //
+                        // 组顶也留 8dp：顶栏是**覆盖式**（KedgeOverlayScaffold 的
+                        // contentInsetTop = 0，列表用 topSpacer 顶开栏高），常态下
+                        // UpdateCard 不渲染、BackupReminderCard 早退，文件夹组就是
+                        // header 里第一个可见子项，直接贴着顶栏最后一个像素。这 8dp
+                        // 与抽屉既有节奏（外层 Column 的 spacedBy(8.dp)、组底那条
+                        // bottom = 8.dp）对齐。
+                        //
+                        // ⚠️ 不能用放大 ConversationList 的 topSpacerHeight 来做这件事：
+                        // 那是列表内首部 Spacer，加高会把 header 里**所有**子项（更新
+                        // 卡片 / 备份提醒）一起往下推并改变列表滚动几何。这里的 padding
+                        // 只作用于文件夹组自身，两种风格共用同一条 modifier。
+                        //
+                        // ⇒ **Miuix 风格抽屉同样多出这 8dp**（同一条 modifier）：抽屉顶栏
+                        // 两风格走的是同一个裸 MD3 TopAppBar（只有颜色分流，:274），栏高都
+                        // 是 DrawerTopBarHeight(64dp) + statusBarTop，所以两风格间距一致；
+                        // Miuix 的「文件夹组内零间距」只约束组**内**，组顶这 8dp 在组外，
+                        // 不破坏首项上圆角。若将来只想改 MD3，把 top 拆到 MD3 分支即可。
                         FolderSection(
                             folders = folders,
                             onClickFolder = { folder ->
@@ -540,14 +558,22 @@ fun ChatDrawerContent(
                             onRename = { folderToRename = it },
                             onDelete = { folderToDelete = it },
                             onCreateFolder = { showCreateFolderDialog = true },
-                            modifier = Modifier.padding(bottom = 8.dp),
+                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                        )
+                        // 筛选 chip 行：「群聊」由 [ShowGroupChatEntry] 门控（缺省不渲染，
+                        // 也不占位 —— Row 的 spacedBy(6.dp) 只作用于实际存在的 chip，
+                        // 「全部」「单聊」两枚的位置与门控前完全一致）。
+                        val typeFilterChips: List<Pair<String, String>> = listOfNotNull(
+                            heizige.kk.khatkit.app.core.data.model.GroupChat.FILTER_ALL to "全部",
+                            heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_DIRECT to "单聊",
+                            if (ShowGroupChatEntry) {
+                                heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_GROUP to "群聊"
+                            } else {
+                                null
+                            },
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 8.dp)) {
-                            listOf(
-                                heizige.kk.khatkit.app.core.data.model.GroupChat.FILTER_ALL to "全部",
-                                heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_DIRECT to "单聊",
-                                heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_GROUP to "群聊",
-                            ).forEach { (value, label) ->
+                            typeFilterChips.forEach { (value, label) ->
                                 heizige.kk.kedge.components.KedgeFilterChip(
                                     selected = typeFilter == value,
                                     onClick = { drawerVm.updateTypeFilter(value) },
@@ -555,13 +581,17 @@ fun ChatDrawerContent(
                                 )
                             }
                         }
-                        heizige.kk.kedge.components.KedgeTextButton(
-                            onClick = {
-                                drawerVm.createGroup { created ->
-                                    navController.navigate(Screen.Chat(created.toString()))
-                                }
-                            },
-                        ) { Text("新建群聊") }
+                        // 群聊创建入口：同样由 [ShowGroupChatEntry] 门控（缺省不渲染、不留空位）。
+                        // 业务代码与导航目标原样保留，把常量改回 true 即可放出。
+                        if (ShowGroupChatEntry) {
+                            heizige.kk.kedge.components.KedgeTextButton(
+                                onClick = {
+                                    drawerVm.createGroup { created ->
+                                        navController.navigate(Screen.Chat(created.toString()))
+                                    }
+                                },
+                            ) { Text("新建群聊") }
+                        }
                     },
                     modifier = Modifier
                         .fillMaxSize()
@@ -901,6 +931,23 @@ private fun DrawerAction(
     }
 }
 
+/**
+ * 群聊入口开关：**false = 隐藏（缺省）**，true = 放出。
+ *
+ * 原因：群聊（GroupChat）完成度不足 —— 用户真机验收七项 UI 修复时提出先把入口藏起来，
+ * 等成熟后再放出。入口只有两处，都在 [ChatDrawerContent] 的「新建会话」区：
+ * - ①「群聊」筛选 chip：下面 `typeFilterChips` 里的 `GroupChat.TYPE_GROUP to "群聊"` 一项
+ *   （`Row(horizontalArrangement = Arrangement.spacedBy(6.dp))` 那一排）；
+ * - ②「新建群聊」按钮：`drawerVm.createGroup { … }` 那个 `KedgeTextButton`
+ *   （全仓唯一的群聊创建入口）。
+ *
+ * 恢复方式：把这里改成 `true` 即可，两处同时放出 —— 业务代码一行没删、语义没改。
+ * 只隐藏「入口」：已存在的群聊会话仍照常在会话列表里显示并可打开
+ * （ConversationList 与 ConversationDAO 的类型谓词都没动）；`typeFilter` 又是内存态、
+ * 缺省 FILTER_ALL，所以藏掉 chip 不会让用户停在「只看群聊」。
+ */
+private const val ShowGroupChatEntry = false
+
 // 抽屉底栏高度：KedgeIconButton 48.dp + 上下各 8.dp 内边距
 // 抽屉顶栏高度：MD3 TopAppBar 内容高 64.dp（不含状态栏 inset）
 private val DrawerTopBarHeight = 64.dp
@@ -939,6 +986,9 @@ private fun folderGroupShape(index: Int, count: Int): RoundedCornerShape = Round
  * 抽屉本身可滚，文件夹多的时候跟着抽屉一起滚即可。
  *
  * MD3 保持原来的观感：文件夹行各自圆角、行间 6dp，新建文件夹是独立的整宽按钮。
+ *
+ * 调用方通过 [modifier] 在组顶/组底各留 8dp：顶栏是覆盖式的，组顶那 8dp 是它与
+ * 顶栏之间的呼吸间距（组内零间距只约束组**内**，不影响组外）。
  */
 @Composable
 private fun FolderSection(

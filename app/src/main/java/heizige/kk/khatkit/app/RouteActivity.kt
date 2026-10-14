@@ -346,7 +346,13 @@ class RouteActivity : ComponentActivity() {
                             rememberViewModelStoreNavEntryDecorator(),
                         ),
                         modifier = Modifier.fillMaxSize(),
-                        onBack = { navViewModel.popBackStack() },
+                        // 页内浮层（如 ChatInput 的全屏编辑器）登记的返回拦截先跑：
+                        // 浮层自己消费掉返回时，不再 pop 导航栈。见 PageBackInterceptor。
+                        onBack = {
+                            if (!PageBackInterceptor.intercept()) {
+                                navViewModel.popBackStack()
+                            }
+                        },
                         transitionSpec = {
                             if (backStack.size == 1) fadeIn() togetherWith fadeOut()
                             else {
@@ -839,4 +845,38 @@ sealed interface Screen : NavKey {
     @Serializable
     data object DownloadCenter : Screen
 
+}
+
+/**
+ * 页内浮层的返回拦截登记处（结构性地保证浮层打开时返回不会穿透到导航栈）。
+ *
+ * 背景：ChatInput 的全屏编辑器是**同一 window 内的页内浮层**（Khromia `FullscreenPopup`
+ * 挂在 decorView 上），它自己的 `PredictiveBackHandler` 与 `NavDisplay` 的返回处理注册在
+ * 同一个页面 dispatcher 上。「后注册者优先」是 androidx 文档写明的规则，但为了让返回
+ * 结果不依赖这个顺序假设，这里再兜一层：浮层登记后，`NavDisplay.onBack` 先问拦截器。
+ *
+ * 这是普通可变状态而不是 Compose state：`onBack` 与浮层回调都在事件里同步读写它，
+ * 不需要参与重组；浮层的显示/隐藏由各自的 Compose 状态驱动。
+ */
+internal object PageBackInterceptor {
+    private val handlers = linkedMapOf<Any, () -> Boolean>()
+
+    /** 用 [token] 登记一个「返回先给我」的回调；返回 true 表示已消费。后登记者优先。 */
+    fun push(token: Any, handler: () -> Boolean) {
+        handlers.remove(token)
+        handlers[token] = handler
+    }
+
+    fun pop(token: Any) {
+        handlers.remove(token)
+    }
+
+    /** 从最新登记的往回问，任一消费即返回 true（未登记任何回调时返回 false）。 */
+    fun intercept(): Boolean {
+        val pending = handlers.values.toList()
+        for (index in pending.indices.reversed()) {
+            if (pending[index].invoke()) return true
+        }
+        return false
+    }
 }

@@ -33,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -53,7 +52,6 @@ import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstHost
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.kedge.adaptive.KedgeSmallTopBar
-import heizige.kk.khatkit.app.core.ui.effect.BgEffectBackground
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.public
@@ -70,11 +68,13 @@ import heizige.kk.kedge.theme.KedgeTextStyles
  * 关于页（Kedge MD3Exp）。
  *
  * 结构对齐 Miuix 版与 KernelSU `ui/screen/about/AboutMiuix.kt`：顶部大 logo 头图，
- * 滚动时按「版本号 → 应用名 → logo」的顺序分三段淡出、缩小并上移，头图背后叠一层
- * 词幕（Kifranei/lyricon）的流光着色器背景并随滚动淡出。两者共用同一套区间映射，
- * 切换风格时观感一致。
+ * 滚动时按「版本号 → 应用名 → logo」的顺序分三段淡出、缩小并上移。两者共用同一套
+ * 区间映射与顶栏淡入曲线。
  *
- * 与 Miuix 版的差异仅在彩蛋：这里保留点击 logo 撒 emoji 的 [EmojiBurstHost]。
+ * 与 Miuix 版（[SettingAboutPageMiuix]）**有意的差异**：
+ * - 本页**不**铺流光着色器背景：动态流光只属于 Miuix 风格的观感，MD3 下页面底色
+ *   用不透明的 `MaterialTheme.colorScheme.background`。
+ * - 彩蛋：这里保留点击 logo 撒 emoji 的 [EmojiBurstHost]。
  */
 @Composable
 fun SettingAboutPage() {
@@ -129,7 +129,7 @@ fun SettingAboutPage() {
     val nameProgress = stage(0.18f, 0.78f)
     val versionProgress = stage(0.38f, 1.00f)
     // 顶栏标题延后淡入：起始全透明（只剩返回按钮），滚过 35% 后才开始显现
-    // （与 Miuix 版同一曲线，保持两种风格一致）。
+    // （与 Miuix 版同一曲线：都用 animatedProgress 的 0.35~1.0 区间）。
     val titleAlpha = ((animatedProgress - 0.35f) / 0.65f).coerceIn(0f, 1f)
 
     val websiteUrl = stringResource(R.string.about_page_url_website)
@@ -137,15 +137,11 @@ fun SettingAboutPage() {
     val licenseUrl = stringResource(R.string.about_page_url_license)
 
     var logoCenterPx by remember { mutableStateOf(Offset.Zero) }
-    // 流光放在 Scaffold **外层**：Scaffold 的 containerColor 不透明，
-    // 放在 content 槽里会被它整块盖住（KSU / 词幕都是把效果背景放在最外层）。
-    BgEffectBackground(
-        dynamicBackground = true,
-        modifier = Modifier.fillMaxSize(),
-        alpha = { 1f - animatedProgress },
-    ) {
     Scaffold(
-        containerColor = Color.Transparent,
+        // MD3 风格不该有流光背景（流光只属于 Miuix 分支的观感），所以这里用
+        // 不透明的 MD3 页面底色。原先是 Color.Transparent，靠外层的
+        // BgEffectBackground 兜底；留透明会直接露出下一层（NavDisplay / Activity 根）。
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             // 小标题栏（KSU AboutMiuix 用 SmallTopAppBar）：没有折叠大标题，
             // 标题不会同时出现在两个位置。
@@ -161,139 +157,138 @@ fun SettingAboutPage() {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
         EmojiBurstHost(
+            modifier = Modifier.fillMaxSize(),
+            emojiOptions = emojiOptions,
+            burstCount = 12
+        ) { onBurst ->
+            LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
-                emojiOptions = emojiOptions,
-                burstCount = 12
-            ) { onBurst ->
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = innerPadding + PaddingValues(
-                start = 8.dp,
-                top = 8.dp,
-                end = 8.dp,
-                bottom = 8.dp + PageMetrics.BottomContentPadding,
-            ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    item(key = "about_hero") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(heroHeight),
-                            contentAlignment = Alignment.Center,
+                contentPadding = innerPadding + PaddingValues(
+                    start = 8.dp,
+                    top = 8.dp,
+                    end = 8.dp,
+                    bottom = 8.dp + PageMetrics.BottomContentPadding,
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item(key = "about_hero") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(heroHeight),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                            ) {
-                                AsyncImage(
-                                    model = R.mipmap.ic_launcher,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier
-                                        .size(112.dp)
-                                        .clip(CircleShape)
-                                        .graphicsLayer {
-                                            translationY = -logoProgress * 56.dp.toPx()
-                                            val shrink = 1f - logoProgress * 0.05f
-                                            scaleX = shrink
-                                            scaleY = shrink
-                                            alpha = 1f - logoProgress
+                            AsyncImage(
+                                model = R.mipmap.ic_launcher,
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .size(112.dp)
+                                    .clip(CircleShape)
+                                    .graphicsLayer {
+                                        translationY = -logoProgress * 56.dp.toPx()
+                                        val shrink = 1f - logoProgress * 0.05f
+                                        scaleX = shrink
+                                        scaleY = shrink
+                                        alpha = 1f - logoProgress
+                                    }
+                                    .onGloballyPositioned { coordinates ->
+                                        val position = coordinates.positionInParent()
+                                        val size = coordinates.size
+                                        logoCenterPx = Offset(
+                                            position.x + size.width / 2f,
+                                            position.y + size.height / 2f
+                                        )
+                                    }
+                                    .pointerInput(soundEffectPlayer) {
+                                        detectTapGestures {
+                                            onBurst(logoCenterPx)
+                                            soundEffectPlayer.play(soundOptions.random())
                                         }
-                                        .onGloballyPositioned { coordinates ->
-                                            val position = coordinates.positionInParent()
-                                            val size = coordinates.size
-                                            logoCenterPx = Offset(
-                                                position.x + size.width / 2f,
-                                                position.y + size.height / 2f
-                                            )
-                                        }
-                                        .pointerInput(soundEffectPlayer) {
-                                            detectTapGestures {
-                                                onBurst(logoCenterPx)
-                                                soundEffectPlayer.play(soundOptions.random())
-                                            }
-                                        },
-                                )
-                                Text(
-                                    text = stringResource(R.string.app_name),
-                                    style = KedgeTextStyles.displayTitle(),
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier
-                                        .padding(top = 12.dp)
-                                        .graphicsLayer {
-                                            translationY = -nameProgress * 36.dp.toPx()
-                                            val shrink = 1f - nameProgress * 0.05f
-                                            scaleX = shrink
-                                            scaleY = shrink
-                                            alpha = 1f - nameProgress
-                                        },
-                                )
-                                Text(
-                                    text = stringResource(
-                                        R.string.about_page_version_format,
-                                        BuildConfig.VERSION_NAME,
-                                        BuildConfig.VERSION_CODE,
-                                    ),
-                                    style = KedgeTextStyles.body(),
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier
-                                        .padding(top = 4.dp)
-                                        .graphicsLayer {
-                                            translationY = -versionProgress * 20.dp.toPx()
-                                            val shrink = 1f - versionProgress * 0.05f
-                                            scaleX = shrink
-                                            scaleY = shrink
-                                            alpha = 1f - versionProgress
-                                        },
-                                )
-                            }
-                        }
-                    }
-
-                    item(key = "about_links") {
-                        CardGroup(
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                        ) {
-                            item(
-                                onClick = { context.openUrl("${websiteUrl}/") },
-                                leadingContent = { Icon(public, null) },
-                                supportingContent = { Text(websiteUrl) },
-                                headlineContent = { Text(stringResource(R.string.about_page_website)) },
+                                    },
                             )
-                            item(
-                                onClick = { context.openUrl(githubUrl) },
-                                leadingContent = { Icon(code, null) },
-                                supportingContent = { Text(githubUrl) },
-                                headlineContent = { Text(stringResource(R.string.about_page_github)) },
+                            Text(
+                                text = stringResource(R.string.app_name),
+                                style = KedgeTextStyles.displayTitle(),
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier
+                                    .padding(top = 12.dp)
+                                    .graphicsLayer {
+                                        translationY = -nameProgress * 36.dp.toPx()
+                                        val shrink = 1f - nameProgress * 0.05f
+                                        scaleX = shrink
+                                        scaleY = shrink
+                                        alpha = 1f - nameProgress
+                                    },
                             )
-                            item(
-                                onClick = { context.openUrl(licenseUrl) },
-                                leadingContent = { Icon(insertDriveFile, null) },
-                                supportingContent = {
-                                    Text(licenseUrl)
-                                },
-                                headlineContent = { Text(stringResource(R.string.about_page_license)) },
+                            Text(
+                                text = stringResource(
+                                    R.string.about_page_version_format,
+                                    BuildConfig.VERSION_NAME,
+                                    BuildConfig.VERSION_CODE,
+                                ),
+                                style = KedgeTextStyles.body(),
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .graphicsLayer {
+                                        translationY = -versionProgress * 20.dp.toPx()
+                                        val shrink = 1f - versionProgress * 0.05f
+                                        scaleX = shrink
+                                        scaleY = shrink
+                                        alpha = 1f - versionProgress
+                                    },
                             )
                         }
                     }
+                }
 
-                    // 列表末尾留白，保证内容再少也能滑够、头图能完整收起。
-                    // 没有它时本页内容不足一屏，滚动偏移恒为 0，顶栏与流光
-                    // 永远不会淡入。与 Miuix 版同源（lyricon AboutScreen.kt）。
-                    item(key = "about_bottom_space") {
-                        Spacer(
-                            Modifier
-                                .fillParentMaxHeight(0.72f)
-                                .heightIn(min = 160.dp)
-                                .navigationBarsPadding()
+                item(key = "about_links") {
+                    CardGroup(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    ) {
+                        item(
+                            onClick = { context.openUrl("${websiteUrl}/") },
+                            leadingContent = { Icon(public, null) },
+                            supportingContent = { Text(websiteUrl) },
+                            headlineContent = { Text(stringResource(R.string.about_page_website)) },
+                        )
+                        item(
+                            onClick = { context.openUrl(githubUrl) },
+                            leadingContent = { Icon(code, null) },
+                            supportingContent = { Text(githubUrl) },
+                            headlineContent = { Text(stringResource(R.string.about_page_github)) },
+                        )
+                        item(
+                            onClick = { context.openUrl(licenseUrl) },
+                            leadingContent = { Icon(insertDriveFile, null) },
+                            supportingContent = {
+                                Text(licenseUrl)
+                            },
+                            headlineContent = { Text(stringResource(R.string.about_page_license)) },
                         )
                     }
                 }
+
+                // 列表末尾留白，保证内容再少也能滑够、头图能完整收起。
+                // 没有它时本页内容不足一屏，滚动偏移恒为 0，顶栏永远不会淡入。
+                // 与 Miuix 版同源（lyricon AboutScreen.kt）。
+                item(key = "about_bottom_space") {
+                    Spacer(
+                        Modifier
+                            .fillParentMaxHeight(0.72f)
+                            .heightIn(min = 160.dp)
+                            .navigationBarsPadding()
+                    )
+                }
             }
-    }
+        }
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.abs
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
  * Kumo/macOS-style Genie deformation from the measured floating toolbar bounds.
@@ -267,3 +268,77 @@ private fun aiSmootherStep(value: Float): Float {
 
 private fun aiLerp(start: Float, end: Float, fraction: Float): Float =
     start + (end - start) * fraction
+
+/**
+ * FLB 落定时长：满行程固定 760ms，按实际距离线性缩放，下限 90ms。
+ * 与 KodeHeap 帖子详情页 FLB 同一规格（Post.kt:3181-3193 `aiWindowSettleDurationMillis`）。
+ */
+internal fun aiWindowSettleDurationMillis(
+    start: Float,
+    target: Float,
+    fullDurationMillis: Int = 760,
+    minimumDurationMillis: Int = 90,
+): Int {
+    val distance = abs(
+        target.coerceIn(0f, 1f) - start.coerceIn(0f, 1f)
+    ).coerceIn(0f, 1f)
+    if (distance <= 0.001f) return 0
+    return (fullDurationMillis * distance).roundToInt()
+        .coerceIn(minimumDurationMillis, fullDurationMillis)
+}
+
+/**
+ * 屏幕圆角与 2dp 边框共用的末段曲线：揭示进度过 [morphStartProgress]（默认 0.88）后才开始形变。
+ * 与 KodeHeap `aiWindowMorphProgress`（Post.kt:3209-3217）逐式相同。
+ */
+internal fun aiWindowMorphProgress(
+    revealProgress: Float,
+    morphStartProgress: Float = 0.88f,
+): Float {
+    val start = morphStartProgress.coerceIn(0f, 0.999f)
+    val linearMorph = ((revealProgress.coerceIn(0f, 1f) - start) / (1f - start))
+        .coerceIn(0f, 1f)
+    return linearMorph * linearMorph * (3f - 2f * linearMorph)
+}
+
+/**
+ * 揭示窗口的窗口圆角：起始 = FLB 的 CircleShape 解析半径（较短边一半），
+ * 末段 morph 到屏幕物理圆角（KodeHeap `aiWindowCornerRadiusPx`，Post.kt:3196-3206）。
+ */
+internal fun aiWindowCornerRadiusPx(
+    toolbarWidthPx: Float,
+    toolbarHeightPx: Float,
+    revealProgress: Float,
+    screenCornerRadiusPx: Float = 0f,
+    morphStartProgress: Float = 0.88f,
+): Float {
+    val toolbarRadius = minOf(toolbarWidthPx, toolbarHeightPx).coerceAtLeast(0f) / 2f
+    val smoothMorph = aiWindowMorphProgress(revealProgress, morphStartProgress)
+    return toolbarRadius + (screenCornerRadiusPx.coerceAtLeast(0f) - toolbarRadius) * smoothMorph
+}
+
+/**
+ * 上滑位移 → AI 页揭示进度。线性到 1 后橡皮筋过冲，最高 [maxOvershoot]。
+ * 与 KodeHeap `composerAiRevealProgressFromDrag`（Post.kt:3132-3143）逐式相同。
+ */
+internal fun composerAiRevealProgressFromDrag(
+    rawY: Float,
+    commitDistance: Float,
+    maxOvershoot: Float = 1.12f,
+): Float {
+    if (commitDistance <= 0f) return 0f
+    val up = (-rawY).coerceAtLeast(0f)
+    val linear = up / commitDistance
+    if (linear <= 1f) return linear
+    val over = linear - 1f
+    return (1f + (over / (1f + over * 3f)) * (maxOvershoot - 1f)).coerceAtMost(maxOvershoot)
+}
+
+/**
+ * 松手是否提交打开编辑器：进度达到阈值（默认 0.35）即播完，否则收回。
+ * 过冲（>1）视为已提交（KodeHeap `composerAiRevealCommitOnRelease`，Post.kt:3223-3226）。
+ */
+internal fun composerAiRevealCommitOnRelease(
+    progress: Float,
+    commitThreshold: Float = 0.35f,
+): Boolean = progress >= commitThreshold
