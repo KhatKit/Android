@@ -22,6 +22,44 @@
 - 修正文档三处返回类型标错：`accessibility.findImage` / `findColor` 与 `web.openLogin` 实际返回 **JSON 字符串**（此前标成 table），`tool.ocrBoxes` / `tool.listFiles` 也补上「需 `json.decode`」标注，示例改用 `json.decode` 取字段。
 - 文档对齐实际实现：事件触发按 `CardManifest.ALL_EVENT_TYPES` 的 18 种对齐（补 notification_click / notification_reply / app_exit / app_install / app_uninstall / shortcut / tile），依赖包文档补「现状与边界」（撤销后不自动清理、依赖不能声明依赖与权限、非 imageToolbox 依赖只有通用调用面）。
 
+### 🔄 同步上游 RikkaHub 2.5.6（2026-10-03 批次，此前漏记账）
+
+> 该批对照上游 43 个提交：23 条此前已逐字移植、1 条（mediagen 模块）判定不适用，其余为接线与碎 fix。
+> 下面只列用户可感知的部分。
+
+- 图表工具 `chart_display` 真正可用：工具定义与图表组件早已在仓库里，但从未注册进助手的可用工具表，模型永远调不到；现补上工具项、`getTools()` 分支与助手设置页开关。
+- 内置技能接线：随 APK 发布的 `skill-creator` 此前是死代码（`extractIfNeeded()` 无人调用）。现启动时解压到应用私有目录并挂载到工作区 `/builtin_skills`（**只读**，同名用户技能优先），工作区提示词同步补上只读说明。
+- 复制助手时可一并复制它的记忆（助手页新增勾选项；使用全局记忆的助手不受影响）。
+- 技能页支持按**名称或描述**搜索。
+- 提供商设置新增「高级设置」页与**自定义请求头**（OpenAI / Google / Claude 三家生效），Miuix 风格的提供商详情页同步支持。
+- 设置读取更健壮：DataStore 文件损坏时自动备份损坏文件并重置（不再启动即崩），原有本地迁移链（V1–V5）完整保留。
+- 新增 Google Gemini Interactions API 支持（可在提供商设置里切换）。
+- 调试页新增「聊天记录引用的助手」检查与「恢复缺失的助手」：可从历史会话里找回被删掉的助手。
+- 技能文件保存改为临时文件 + 原子替换（此前裸写失败会直接崩溃）；GitHub 技能下载改为按字节下载（修复大文件与限流场景）。
+- 修复 MCP 请求头留空导致 OkHttp 抛 `name is empty`；OpenAI 图片生成 `size=auto` 不再下发，`x.ai` 判定改为 host 精确匹配（`xxx-max.ai` 之类中转域名不再被误判）。
+- 修复文件编辑器把全文塞进 saved state、大文件切后台触发 `TransactionTooLargeException`。
+- 更新混元 baseUrl 为 `tokenhub.tencentmaas.com/v1`，图标匹配覆盖 `hy` 前缀。
+- 输入框玻璃效果 tint 透明度 0.72 → 0.3；会话列表方向箭头按 RTL 镜像。
+
+### 🐛 界面缺陷修复（KhatKit / Kedge / Khromia）
+
+- 修复 Miuix 风格聊天页顶栏标题点击无响应：`KedgeMiuixMorphingTitleBar` 新增标题点击 / 长按命中层（含**折叠态小标题那一行**），并把重命名弹窗提到 Miuix 早退分支**之前**（此前 Miuix 下该弹窗永不参与组合）；两风格行为对齐 —— 点标题开模型选择 sheet、长按改标题，空会话只弹提示。
+- 修复侧边栏「新建文件夹」组与顶栏零间距：文件夹组顶部补 8dp，与抽屉既有 8dp 节奏一致（两种风格共用同一条 modifier）。
+- 修复 Miuix 风格聊天底部输入框无光标：显式给 Miuix 文本框 `cursorBrush`（它的默认值取 `colors.borderColor`，而该处边框被设为透明 ⇒ 光标解析成 Transparent）。
+- 对齐 KodeHeap 帖子详情页 FLB：输入框上滑拉起全屏编辑器的落定改为 `tween(760ms × 行程, CubicBezierEasing(0.16, 0.82, 0.18, 1))`（原为弹簧），松手提交阈值 0.35、过冲上限 1.12、圆角从胶囊圆角 morph 到屏幕物理圆角；编辑器改为挂 decorView 的同 window 页内浮层，并新增 `PageBackInterceptor` 保证**系统返回只关编辑器、不退出聊天页**。
+- 修复自动化提示被裁切：软件内看板从自建 `Popup`（WRAP_CONTENT 窗口硬裁入场动画）改为挂 decorView 的全屏宿主；软件外悬浮窗（不能做成全屏，否则 Android 12+ 触摸遮挡）把入场 / 退场滑位移 clamp 到卡片下方的窗口内留白；两条路径统一走 Khromia 新增的 `ToastCardContainer` / `ToastDefaults`，不再各自硬编码卡片规格。
+- Khromia toast 按上游 ImageToolbox 规格补齐：普通 toast 时长改为 `Short 3500ms` / `Medium 5000ms` / `Long 6500ms`（**此前是 1200ms**，且全仓无调用点显式传时长 ⇒ 属**全局行为变化**）；图标改为 `IconShapeContainer` 底片（squircle + 4dp 内边距 + 24dp 图标 + 0.65dp 阴影）之后再 8dp 间距；新增 `Color.blend` 复用上游混色链。
+- 修复 Miuix 底部弹层内容左右内缩过大：Miuix `WindowBottomSheet` 的横向 `insideMargin` 库默认是 24dp，现改为与各自 MD3 容器对齐 —— `KedgeModalBottomSheet` 缺省 16dp（= MD3 `KedgeCard` 默认内边距）并支持按调用点覆盖，`KedgePrimaryBottomSheet` 恒 0（= Khromia `PrimaryBottomSheet`），`GreetingPage` 显式传 0 与 MD3 齐平；纵向链与拖拽把手 / 标题居中不受影响。
+- 移除 MD3 关于页的动态流光背景（流光是 Miuix 风格的观感，MD3 页底色改为不透明的 `colorScheme.background`），Miuix 关于页仍保留流光。
+- ⚠️ 以上 7 项的**视觉 / 功能验证由用户本人完成**（本次集成未做真机测试：未安装 APK、未截图、未在设备上走查）。逐条的改动 `file:line`、关键规格数值、用户自查路径、残余与未跟进项见 [docs/uiredesign.md](docs/uiredesign.md) 的「修复记账」一节。
+
+### 🔧 技能安装与调试页（2026-10-14 收口）
+
+- 技能安装改为**按字节下载**：此前每个附属文件都按 UTF-8 解码成文本再保存，图片等二进制文件会被破坏（从 GitHub 装带图的技能，装完就是坏的）；现在 `SKILL.md` 与其余附属文件都走字节通道，`SkillManager` 只保留字节版原子写入（旧的文本版 `saveSkillFilesAtomically` 已删）。
+- GitHub 技能下载遇到限流会给出明确提示：未登录的 GitHub API 每小时只有 60 次配额，返回 403 / 429 且 `X-RateLimit-Remaining: 0` 时提示「GitHub API 请求次数已达上限，请稍后再试」，不再笼统报「读取失败」。
+- 调试页删掉空白第 4 个 tab：原先 4 个 tab 中的「Logging」页体是空的（上游 2.5.6 起就是空实现，日志查看器已被移除），现只剩 **Main / Colors / Recovery** 三个，页数与标题数一致；本地日志入口（设置里的日志页）不受影响。⚠️ **限定**：当前 UI 精简后调试页**没有入口**（全仓零 `navigate(Screen.Debug)` 调用，入口随 commit `48c2c0915` 摘掉），这条改动目前**只在代码层生效**、无用户可达路径，待入口恢复后自然对用户可见；本条的验收口径是代码级 + 评审级（`t26 verdict=pass`），**未做实机验证**。
+- 搜索弹层补回系统返回语义：在搜索弹层里点进**供应商子页**后按系统返回，先退回列表、再按一次才关闭弹层；此前该子页不拦返回，手感与预期不符。⚠️ **限定**：搜索弹层的唯一公开入口 `SearchPickerButton` 当前**零调用者**（同一提交摘掉），这条改动同样**只在代码层生效**、无用户可达路径，待入口恢复后自然对用户可见；本条的验收口径是代码级 + 评审级（`t26 verdict=pass`），**未做实机验证**。
+
 ## 2.5.2（2026-09-18）
 
 > 应用内更新走 KodeHeadServer 的 KhatKit 独立更新通道（stable / beta / force_min）。

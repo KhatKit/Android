@@ -17,6 +17,11 @@ README 的功能描述不作为本项目验收证据；复制或改编源码前�
 | C3 | [demystify-voice](https://pypi.org/project/demystify-voice/)，搜索结果发布方为 demystify-systems/ai-services-tools；完整源码与许可证待读取 | 打断、已播前缀、附和识别；须与本地 VAD/ASR/TTS 生命周期核对。 |
 | C4 | [eykicuihb/KuroBlob-AI](https://github.com/eykicuihb/KuroBlob-AI)，README 标注 MIT | 表情/口型状态与动画时间线；Web 渲染示例不能证明 Android glTF 与目标设备 60fps。 |
 
+> ⚠️ **指针：不要把 Operit 与 Operit2 的许可混为一谈。** 上表 C1 行里的 `Operit dbf71916` **LGPL-3.0** 只指
+> **Operit v1**；同作者另有 **Operit2**（`AAswordman/Operit2 @ 9ae1e558a66f96d81ff95a499bd39bda7da6c122`），
+> 其**根 `LICENSE` 是 AGPL-3.0**（只有 `plugins/types-v1/LICENSE` 是 LGPL-3.0）。两者是不同仓库、不同许可、
+> 不同 SHA，处置口径也不同：对 Operit2 的结论见文末 `## A6 Operit2（AGPL-3.0）许可更正与处置口径` 一节。
+
 后续实施记录应填写“上游提交/文件 → 本地改动 → 对照测试”。没有读过源码的项目
 仅列为候选；本地已实现的功能也不能追认成上游移植。
 
@@ -1593,3 +1598,65 @@ release 也干净的证据。
 的判定规则，**JVM 纯函数测试不能替代真机 UI 证据、备份恢复证据、Tavern 本体互操作
 证据**；C1-01…C1-10 十例目前仍全部 `unverified`。构建绿、单测绿、lint 绿只说明
 「没把别的东西改坏」，不构成 C1 的验收证据。
+
+> **⚠️ 状态更正（2026-10-14 追加，captain 直接改）**：上一句「十例目前仍全部 `unverified`」
+> **已过期**。`docs/beyond-operit-implementation-status.md:36-41`（更新于 2026-10-07）记
+> 「C1 验收现状：**10/10 `verified`**（真机第二十一轮后）」，最后一格 **C1-09** 由 HEAD
+> `4f4c19565` 的真机自动化证据（生产 `shareFile` 真拉起系统分享 chooser，
+> `launchedFromPackage=heizige.kk.khatkit.debug`）升格，用例矩阵表与证据登记表两侧状态格一致。
+> 本段其余口径——**JVM 纯函数测试不能替代真机 UI / 备份恢复 / Tavern 互操作证据**、
+> 构建绿不等于验收通过——**仍然有效**，只是「unverified」这个计数已不成立。
+> 两份文档就 C1 状态冲突时**以台账为准**（台账更晚、且带证据登记表；台账同时注明
+> A1 浏览器真实站点、B1 工作流可视化、A5 酒馆本体「打开并回导」闭环等旁支**仍未验收**，别混入十例）。
+
+---
+
+## A6 Operit2（AGPL-3.0）许可更正与处置口径（2026-10-07 追加）
+
+> 本节是**追加**内容，不改动上文任何既有段落。上文（A1–C4 表、C1 节、兼容矩阵）里出现的
+> `Operit dbf71916` **只指 Operit v1**；本节登记的是**另一个仓库 Operit2**。
+
+### 1. 钉死的对象与许可事实
+
+| 项 | 值 | 证据 |
+|---|---|---|
+| 仓库 | `AAswordman/Operit2` | `git ls-remote --heads https://github.com/AAswordman/Operit2`（`main`） |
+| 钉死 SHA | `9ae1e558a66f96d81ff95a499bd39bda7da6c122` | 只读工作副本 `/tmp/operit2`：`git rev-parse HEAD`；`git log -1` = `2026-10-14 11:09:13 +0800` |
+| 根许可 | **AGPL-3.0** | `/tmp/operit2/LICENSE:1` = `GNU AFFERO GENERAL PUBLIC LICENSE` / `Version 3, 19 November 2007` |
+| 子目录许可 | `plugins/types-v1/LICENSE:1` = LGPL-3.0 | 同仓库多许可 ⇒ **必须逐目录读 LICENSE**（与 autogen 的 `LICENSE-CODE` 是同一类坑，见上文「读**代码**的 LICENSE，不要只读根 LICENSE」） |
+| 与 Operit v1 的关系 | v1 = `dbf71916` **LGPL-3.0**；Operit2 = `9ae1e558` **AGPL-3.0** | 上文 C1 行 + 「AGPL-3.0 主协议下的兼容矩阵」里的 `Operit LGPL-3.0` 条目 |
+
+### 2. AGPL-3.0 的网络 copyleft 对本项目意味着什么
+
+- AGPL-3.0 相对 GPL-3.0 的关键增量是 **§13 Remote Network Interaction**：把程序作为网络服务提供给
+  用户时，必须向这些用户提供 Corresponding Source（源码）。GPL-3.0 只管分发二进制，AGPL 把
+  「通过网络提供」也算作触发条件。
+- 本项目有**两个交付面**：Android App（本仓 `app/` 等模块）与**服务端**（`heizige.top`，由本仓
+  `:web` 等模块承载）。把 Operit2 的代码并入任一面，AGPL 的义务面就跟着扩展到那一面 ——
+  App 侧并入则 App 交付物按 AGPL 处理；服务端并入则服务端也要按 AGPL 向其网络使用者提供源码。
+  此外还有 §5（衍生作品整体按 AGPL 许可）与 §11（专利授权）随之生效。
+- 结论（本项目口径）：**对 Operit2 不存在「可移植并保留声明」的条目**。允许的只有两件事：
+  ① 读它的**契约与行为**（例如 Space/Binding 的概念、插件包 manifest 的字段集合、记忆检索评分表的
+  表头这类**事实**）并把结论写进文档；② 用本项目自己的架构与命名**独立重写**。
+  不得复制：源码片段、资源文件、DSL/脚本文本、生成产物（含 `dist/*.js` 这类构建输出）。
+
+### 3. 与既有兼容矩阵的关系（两条结论不要读成互相矛盾）
+
+- 上文「AGPL-3.0 主协议下的兼容矩阵」是按**许可证兼容性**给出的判断，其中
+  `Operit | LGPL-3.0 | LGPLv3 可借 GPLv3 条款并入 AGPLv3` 这条**只适用于 Operit v1**，描述的是
+  「许可层面允许并入」。
+- 本节对 Operit2 的结论是**项目自定的更严处置政策**（不引入 Operit2 代码、不扩大 AGPL 代码面，
+  尤其是服务端义务面），**不是**「AGPL 与 AGPL 不兼容」。本仓自身根 `LICENSE` 也是 AGPL-3.0
+  （见上文兼容矩阵开头），这一点不与本节结论冲突。
+- 因此落地时按对象分流：**Operit v1（LGPL-3.0）**仍按既有矩阵执行「可移植并保留声明」；
+  **Operit2（AGPL-3.0）**一律按「仅供机制借鉴、独立重写」。后来者若只记得住一条，请记住
+  「看仓库 + 看 SHA + 逐目录读 LICENSE」。
+
+### 4. 本次登记
+
+- 上游：`AAswordman/Operit2 @ 9ae1e558a66f96d81ff95a499bd39bda7da6c122`（根 AGPL-3.0；
+  `plugins/types-v1` 子目录 LGPL-3.0）。
+- 读过的文件与行号：`docs/beyond-operit2-source-gap-analysis.md`（结构证据、G1–G14 逐项 file:line、
+  §4 多设备轴、§5 优先级表、§7 覆盖度与不确定性）。
+- 本地对应：**无任何代码移植**；矩阵侧回灌见 `docs/beyond-operit-upgrade.md` §2（含新增 G15）。
+- 许可结论：**不可移植**（AGPL-3.0 网络 copyleft + 本项目处置政策）；只能机制借鉴 + 独立重写。

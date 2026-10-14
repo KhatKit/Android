@@ -115,6 +115,48 @@ AdminRouting 测试依赖、外部 `/app/cards` 种子/发布资源与 ImageTool
 
   （脱离进程组：`setsid nohup … < /dev/null & disown`；**不要**用 `connectedAndroidTest`），确认 EXIT=0 且无模块 FAILED。预期无风险（两处改动都只影响 `:app`，且各自之后 `:app` 级全绿）。
 - 另外提醒：**不要用 `--tests` 过滤跑 `:app:testDebugUnitTest`**，否则会把 `app/build/test-results/testDebugUnitTest/*.xml` 打成子集，导致 `c1_doc_stats.py` 报「单测 XML 类数/例数不符」——历史上踩过。若踩了，跑一次不带过滤的 `:app:testDebugUnitTest --rerun :ai:testDebugUnitTest --rerun` 即可恢复。
+- **✅ 本次实测（2026-10-14 14:15:54 → 14:21:13）：已在含本轮全部未提交改动的树上通过。**
+  - 命令（**全项目一条命令**，无 `--tests`，即上面那条请求 + 本机长期约定的串行/离线参数）：
+    `nice -n 19 flock /tmp/kk-gradle.lock ./gradlew --offline --max-workers=1 -Dorg.gradle.daemon.idletimeout=120000 assembleDebug test lint`
+    以 `setsid nohup … < /dev/null & disown` 脱离进程组执行；跑前 `pgrep -af gradle` 确认**无其他 gradle 在跑**（全程仅 1 个），跑后 `./gradlew --stop` ⇒ `No Gradle daemons are running.`
+  - 树状态：HEAD **`2505cf7a1`**（**未 commit / push**）+ 本轮全部未提交改动（7 项 UI 修复 + 2.5.6 同步尾项）；
+    `git status --porcelain` **24 行，跑前跑后逐行相同**。日志 `/tmp/t30-gate.log`（56,116 B）
+    sha256 **`7a165e38d971c826eb2b8a4b6952841717b444378bf8529dcffebf4a529c006d`**。
+  - **EXIT = 0**，实测耗时 **5m 18s**。逐字结论行：`BUILD SUCCESSFUL in 5m 18s` /
+    `839 actionable tasks: 101 executed, 738 up-to-date`；**全日志 `FAILED` 命中 0**（无任何模块 FAILED）。
+  - **① `assembleDebug`**：`:app:packageDebug UP-TO-DATE` ⇒ 三个 APK **未被本次重写**，仍是 t28 那批
+    `2026-10-14 13:45:35.653` / `13:45:35.892` / `13:45:36.167`（110,880,336 / 94,073,173 / 94,833,434 B），
+    与 `docs/uiredesign.md`「本次收口实测（t28）」的读数**逐字一致**（本次没有产生新的一批）。
+  - **② `test`**：全模块聚合 **219 suites / 1618 tests / 0 failures / 0 errors / 12 skipped**。
+    `:app` **118 类 / 961 例 / 0F0E0S**、`:ai` **31 类 / 224 例 / 0F** —— 与上文基线**逐位相同，零退化**；
+    其余模块：`:khatkit` 33/198（+7S）、`:speech` 12/43、`:highlight` 5/53、`:card-validator` 4/77、
+    `:common` 2/6（+5S）、`:workspace` 3/20、`:search` 3/12、`:khatkit-ui` 2/10、`:oauth` 2/2、
+    `:document` 1/1、`:material3` 1/1、`:mediapicker` 1/9、`:web` 1/1，**全部 0F0E**。
+    ⚠️ 口径如实说明：`:app:testDebugUnitTest` 与 `:ai:testDebugUnitTest` 本次是 **UP-TO-DATE**
+    （输入自 t28 的 `--rerun` 强制跑之后未变，结果 XML mtime 仍为 `13:45:20` / `13:45:23`，
+    内容即上文那两组数）；`:khatkit` / `:khatkit-ui` / `:mediapicker` 是本次**真实执行**。
+    app 侧结果 XML **118 个文件全量**，**未被 `--tests` 打成子集**（命令行里 0 处 `--tests`）⇒ c1 统计口径未受污染。
+  - **③ `lint`**：15 个模块**全部 0 error**。app = **0 errors / 580 warnings / 6 hints = 586**；
+    全模块 = **0 / 613 W / 7 H = 620**。
+    与本节基线 `0/617/6 = 623`、`0/650/7 = 657` 的差异**全部落在 app 的 warnings（−37）**——
+    `app` 之外 14 个模块仍是**恰好 33 W + 1 H**（与本文 `:181` 的逐项复算完全一致，**一个数没动**）。
+    ⚠️ **这 −37 不是回归，主要是 `--offline` 的产物**：本文 `:1397` 已登记过那 `+36` 的来源是
+    `gradle/libs.versions.toml` 的**依赖版本检查**（`NewerVersionAvailable` 29 + `AndroidGradlePluginVersion` 4
+    + `GradleDependency` 3），并注明「属环境 / 联网相关」。本次 `--offline` 下实测
+    `NewerVersionAvailable` = **0**、`AndroidGradlePluginVersion` = **0**、`GradleDependency` = **1**
+    ⇒ 617 − (36 − 1) = 582，实测 580，**残差 −2** 才是本轮真实代码改动的影响。
+    结论：**error 维度零变化（0 → 0）**；**warning 维度不可与联网跑批直接比数**，比数前先看当次是否 `--offline`。
+  - 内存：`used` 峰值 **9,672 MB**、`available` 最低 **6,230 MB**（16 GB 机器，全程串行无并行 gradle）。
+  - **源码零改动**：t22/t23 的六个源文件 md5 跑前跑后**逐一相等**（`DebugPage.kt 6aebbfe67e8c33720c5b97f2c3923818`、
+    `SearchPicker.kt eae999ef3804ae02a15d24cd0ac244c0`、`RequestHeadersTest.kt 21b136a37da58547b03555cf2f3f5e50`、
+    `SkillsViewModel.kt d21c5e3a3bdb9d027e059b5666ddc053`、`SkillManager.kt 0f66f2166f4cb1bfcb4346233b4c87b8`、
+    `SkillsPage.kt f619758cc004c9c2b038f011991c60b0`）；HEAD 仍 `2505cf7a1`。
+    ⇒ **无任何 task 自动改写工作区文件**（`git status --porcelain` 跑前跑后相同，无新增/消失条目）。
+  - **明确结论**：`assembleDebug test lint`（全项目一条命令）**已在含本轮未提交改动的树上通过**
+    （EXIT=0、无模块 FAILED、app/ai 测试与 lint error 双基线未破）。⇒ 本节开头那条
+    「全项目闸门未在最新 HEAD 重跑」的未验证项，**对当前这棵树已消除**。
+    **仍未覆盖的只有「提交」本身**：本次**未** `git add` / `commit` / `push`，HEAD 仍是 `2505cf7a1`；
+    一旦真正提交，严格按 C1 那条标准应在新 commit 上再跑一次（预期无风险，本轮全部改动都已在本次闸门覆盖内）。
 
 
 ## C1 交给下一位（2026-10-05）

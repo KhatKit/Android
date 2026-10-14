@@ -137,9 +137,17 @@ git ls-tree -r --name-only main | grep '\.kt$' | xargs -n1 basename \
 
 **合规率 = (19 + 17 + 1 + 0) / (29+19+9+11+4+17+1+0) = 37 / 90 = 41.1%。**
 
+> ⚠️ **`*Service.kt` 32 → 30**：`core/service/` 删空（commit `86da59fa0`）带走了
+> `ChatService.kt` 与 `ChatGenerationForegroundService.kt`。
+> **`*Manager.kt` 19 → 18**：同一次清理带走的 `ConversationSessionManager.kt`。
+> ⚠️ **`*Utils.kt` = 11 这个数依赖上面那条命令**：`material3/material-color-utilities`
+> 是 **git submodule**，`git ls-tree -r` **不递归进 submodule**，所以那 3 个
+> vendored `*Utils.kt` 不计入 ⇒ 11。改用 `find .` 会得 **14**。
+> 历史上 11 / 13 / 14 三个数就是这么来的，**以本节 `git ls-tree` 口径为准**。
+>
 > ⚠️ **2026-10-06 改名后（A 类 8 个，全部无上游对应物；逐文件判定见 §2.4）**：
-> `*Service.kt` 32 → **29**（`core/service/` 删空 −2 + 本轮改名 −1）、
-> `*Manager.kt` 19 → **19**（删空 −1 + 改名 +1）、`*Store.kt` 11 → **4**、
+> `*Service.kt` 30 → **29**（`AILiveNotificationService` → `AILiveNotificationManager`）、
+> `*Manager.kt` 18 → **19**、`*Store.kt` 11 → **4**（7 个改 `Repository`/`Helper`）、
 > `*Repository.kt` 11 → **17**、`*Helper.kt` 0 → **1**。非合规 **61 → 53**。
 
 ⚠️ **与调研基线的出入**：任务书给的 `Utils=14` 我复算不出。同一条命令给的是 **11**；
@@ -166,7 +174,7 @@ git ls-tree -r --name-only main | grep '\.kt$' | xargs -n1 basename \
 | `app/…/feature/automation/AutomationOverlayService.kt` | `AndroidManifest.xml:200` |
 | `app/…/feature/automation/KhatKitNotificationListenerService.kt` | `AndroidManifest.xml:208` |
 | `app/…/feature/automation/KhatKitAccessibilityService.kt` | `AndroidManifest.xml:262` |
-| `app/…/core/service/ChatGenerationForegroundService.kt` | **无声明**，见 §4.1 |
+| `app/…/core/service/ChatGenerationForegroundService.kt` | **无声明**（⚠️ 原写「见 §4.1」，但 §4 下**没有** 4.1 小节 —— 正确去处是 §2.3.1；该文件已随 D1 删除，见 §9.4） |
 
 这些类继承 `android.app.Service` / `TileService` / `AccessibilityService` /
 `NotificationListenerService`。Android 里 `Service` 就是组件名，改类名要同时改
@@ -996,11 +1004,21 @@ vendor merge 复活」。** 复活后只有 `ChatService.kt` 继续被改（`git
 `groupTurnTitle_followsTheSpeakerNotTheConversation`，加上保留下来的
 `senderNameFormula_isImplementedExactlyOnce_inAllMainSources`。
 
-⚠️ **本轮遗留的孤儿（有意未删，等主人决定）**：`suggestionPrompt` / `SUGGESTION_PROMPT`
-（`SettingsRepository.kt` 4 处）、字符串 `setting_model_page_suggestion_model` /
-`_desc` / `_prompt_vars`、`setting_model_page_prompt_suggestion`。⚠️ 本轮**只**被授权删
-`enableSuggestion` 这一个 flag 与 `setting_model_page_enable_suggestion` 一个字符串，
-**不擅自扩大**。
+✅ **聊天建议的剩余孤儿已于本轮清完**：`suggestionPrompt` / `SUGGESTION_PROMPT`
+（`SettingsRepository.kt` 4 处：key 声明 + getter + setter + `Settings` 默认值）、
+字符串 `setting_model_page_suggestion_model` / `_desc` / `setting_model_page_prompt_suggestion`
+（各 7 个 locale，共 21 行）全部删除，`.kt` / `.xml` 代码引用实测为 0。
+
+⚠️ **`setting_model_page_suggestion_prompt_vars` 不是孤儿，别删**：名字里带
+`suggestion`，但它实际是 **title prompt** 的变量说明 —— 活引用在
+`SettingModelPromptPage.kt:75`（配的是 `settings.titlePrompt`）。
+⚠️ **`suggestion_prompt` 是持久化偏好 key**：删掉后老用户存的值变成孤儿数据
+（读不出来，但不会崩）。功能已废弃，**可接受**。
+
+⚠️ **`chatSuggestions` 仍然存在，未删**（9 处：DB 列 `@ColumnInfo("suggestions")`、
+`Conversation` 模型、`ConversationRepository` 存取、`WebDto` 线上字段、
+`ConversationDiff`、`ChatManager` 两处）。删它是 **schema + web API 契约变更**，
+超出本轮授权，**留给主人拍板**。
 
 ⚠️ **本任务零设备、零 androidTest 运行** ⇒ 验收状态**零变化**，
 `docs/eval/c1-group-chat.md` 状态列 **20 个 `unverified` 一个都没动**。
