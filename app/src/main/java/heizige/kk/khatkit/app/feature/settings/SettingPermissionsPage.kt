@@ -53,7 +53,7 @@ fun SettingPermissionsPage() {
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding + PaddingValues(
                 start = 8.dp,
-                top = 8.dp,
+                top = PageMetrics.TopContentPadding,
                 end = 8.dp,
                 bottom = 8.dp + PageMetrics.BottomContentPadding,
             ),

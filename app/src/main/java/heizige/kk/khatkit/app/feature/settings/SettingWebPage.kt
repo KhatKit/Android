@@ -190,10 +190,12 @@ fun SettingWebPage() {
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(
                 start = 8.dp,
-                top = 8.dp,
+                top = PageMetrics.TopContentPadding,
                 end = 8.dp,
                 // 本页有 FAB（KedgeExtendedFloatingActionButton），底部按 FAB 的
                 // 高度让位，否则滚到底时末项被按钮压住。
+                // ⚠️ 这里的底部加码（80dp）是给 FAB 让位，**不参与上下对称** ——
+                // 顶部仍然只是 TopContentPadding（24dp），别跟着改成 80。
                 bottom = 8.dp + PageMetrics.BottomContentPaddingWithFab,
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
