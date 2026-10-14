@@ -53,6 +53,10 @@
 - 移除 MD3 关于页的动态流光背景（流光是 Miuix 风格的观感，MD3 页底色改为不透明的 `colorScheme.background`），Miuix 关于页仍保留流光。
 - ⚠️ 以上 7 项的**视觉 / 功能验证由用户本人完成**（本次集成未做真机测试：未安装 APK、未截图、未在设备上走查）。逐条的改动 `file:line`、关键规格数值、用户自查路径、残余与未跟进项见 [docs/uiredesign.md](docs/uiredesign.md) 的「修复记账」一节。
 
+### 🖐 MD3 overscroll 回弹恢复（2026-10-14 收口）
+
+- 恢复 MD3 风格的默认 overscroll 回弹：`KhatKitTheme` 原先全局 `LocalOverscrollFactory provides null`（由提交 `d257ef842` 引入）会把整棵子树的回弹效果一并关掉；现改为**只在 Miuix 风格下提供 `null`**，MD3 侧交回 `LocalOverscrollFactory.current`，即平台默认（Android 12+ 拉伸回弹、更低版本 glow）。Miuix 行为逐字不变（仍由 Kedge `MiuixMaterialBridge.kt:137` 与调用点自己的 `overScrollVertical()` 负责）。⚠️ 本条的视觉验证由用户完成。
+
 ### 🔧 技能安装与调试页（2026-10-14 收口）
 
 - 技能安装改为**按字节下载**：此前每个附属文件都按 UTF-8 解码成文本再保存，图片等二进制文件会被破坏（从 GitHub 装带图的技能，装完就是坏的）；现在 `SKILL.md` 与其余附属文件都走字节通道，`SkillManager` 只保留字节版原子写入（旧的文本版 `saveSkillFilesAtomically` 已删）。

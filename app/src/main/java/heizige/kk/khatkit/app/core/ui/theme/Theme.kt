@@ -120,10 +120,33 @@ fun KhatKitTheme(
         }
     }
 
+    // 回弹（overscroll）：MD3 要**平台默认**（Android 12+ 拉伸回弹、以下 glow），
+    // 只有 Miuix 才继续屏蔽。
+    //
+    // Miuix 侧的效果不由这里负责：`KedgeMiuixTheme` → `MiuixMaterialThemeBridge`
+    // （Kedge/…/theme/MiuixMaterialBridge.kt:137）会在**更内层** provide
+    // `MiuixOverscrollFactory`（内层覆盖外层），页面再用 `Modifier.overScrollVertical()`
+    // （见 `core/ui/components/ui/miuix/MiuixSettingsPage.kt:152` 并配 `:158 overscrollEffect = null`）
+    // 自己画 Miuix 风格的回弹。两条都不要抢，所以 Miuix 分支保持今天的 `null` 不变。
+    //
+    // 为什么不能再写死 `provides null`（foundation 1.12.0 源码逐条）：
+    //  · `Overscroll.kt:343-347` `rememberOverscrollEffect()` 第一行就是
+    //    `val overscrollFactory = LocalOverscrollFactory.current ?: return null`
+    //    ⇒ 只要本层 provide null，**全 app 的滚动容器都拿不到 overscroll**（用户报的没回弹）。
+    //  · `Overscroll.kt:390-393` `LocalOverscrollFactory` 的默认值是计算出来的
+    //    `compositionLocalWithComputedDefaultOf { defaultOverscrollFactory() }`。
+    //  · `AndroidOverscroll.android.kt:93-101` Android 实现：读 `LocalOverscrollConfiguration`，
+    //    非空 ⇒ 返回 `AndroidEdgeEffectOverscrollFactory`（:100，:125-133 造
+    //    `AndroidEdgeEffectOverscrollEffect`）。
+    //  · `OverscrollConfiguration.android.kt:76-77` `LocalOverscrollConfiguration` 的默认值
+    //    就是**非空**的 `OverscrollConfiguration()`（本仓没有任何地方 provide 它，已 grep 证实）。
+    //  ⇒ 所以「把当前值原样转发下去」就等于本层不 provide，取的正是平台默认工厂。
+    val overscrollFactory = LocalOverscrollFactory.current
+
     CompositionLocalProvider(
         LocalDarkMode provides darkTheme,
         LocalExtendColors provides extendColors,
-        LocalOverscrollFactory provides null,
+        LocalOverscrollFactory provides if (isMiuix) null else overscrollFactory,
         LocalListCardStyle provides listCardStyle,
         LocalOptionSwitchScale provides 1f,
         LocalOptionSwitchExpressiveEnabled provides false,
