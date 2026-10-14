@@ -69,11 +69,16 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val state = rememberPagerState { 4 }
+    // Tab 数 = titles.size：原先第 3 个 tab「Logging」的页体是 `2 -> Box {}`（空页），
+    // 已按上游判定删除 —— 上游 2.5.6（447bb7e89）本身就是 `2 -> Box {}`，没有任何页体内容，
+    // 且 f8141eeb7 的提交信息明写「移除原 DebugPage 中的废弃日志查看代码」并把日志查看器
+    // 挪到设置页（本地 feature/log/LogPage.kt 仍在 RouteActivity 里注册，入口不受影响）。
+    // 删 tab 时同步删 titles 项并把后续页索引前移，保持 pager 数与 titles 一致。
+    val state = rememberPagerState { 3 }
     // Tab 页统一骨架：MD3 下保持 SecondaryTabRow，Miuix 下换原生 TabRow。
     KedgeTabPageScaffold(
         title = "Debug Mode",
-        titles = listOf("Main", "Colors", "Logging", "Recovery"),
+        titles = listOf("Main", "Colors", "Recovery"),
         selectedTabIndex = state.currentPage,
         onTabSelected = { scope.launch { state.animateScrollToPage(it) } },
     ) { pagerModifier ->
@@ -84,8 +89,7 @@ fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
             when (page) {
                 0 -> MainPage(vm)
                 1 -> ColorsPage()
-                2 -> Box {}
-                3 -> RecoveryPage(vm)
+                2 -> RecoveryPage(vm)
             }
         }
     }

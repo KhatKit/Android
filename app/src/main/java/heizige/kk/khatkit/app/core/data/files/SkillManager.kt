@@ -163,13 +163,6 @@ class SkillManager(
         }
     }
 
-    fun saveSkillFilesAtomically(skillName: String, files: Map<String, String>): Boolean {
-        return saveSkillFileBytesAtomically(
-            skillName = skillName,
-            files = files.mapValues { it.value.toByteArray() },
-        )
-    }
-
     fun saveSkillFileBytesAtomically(skillName: String, files: Map<String, ByteArray>): Boolean {
         val skillsDir = getSkillsDir()
         val targetDir = resolveSkillDir(skillName) ?: return false

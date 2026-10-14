@@ -15,7 +15,7 @@ fun expandTavernMacros(
         (1..count).sumOf { Random.nextInt(1, sides + 1) }
     },
 ): String {
-    val pattern = Regex("\\{\\{\\s*([^{}]+?)\\s*}}")
+    val pattern = Regex("\\{\\{\\s*([^{}]+?)\\s*\\}\\}")
     return pattern.replace(template) { match ->
         val expression = match.groupValues[1].trim()
         when {

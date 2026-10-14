@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -170,6 +171,18 @@ fun SearchPickerButton(
             scrollable = false,
         ) { _ ->
             var selectingProvider by remember { mutableStateOf(false) }
+            // 系统返回：在「服务商选择」子页时先退回选择器列表，而不是把整个搜索弹层关掉
+            // （照上游 db1ce811 的 BackHandler 部分；该提交同时把列表改成 MD3 分段列表，
+            // 那部分与本地 KSU 式全屏搜索互斥，**未采用**）。
+            //
+            // enabled = selectingProvider ⇒ 只在子页接管返回：列表态不拦截，返回交给弹层自身
+            // （Miuix 侧 `WindowBottomSheet` 用 platform `Dialog(onDismissRequest = …)`；
+            // MD3 侧 Khromia `BasicBottomSheet` 注册了 PredictiveBackHandler/BackHandler，
+            // 两者都把返回变成「关闭弹层」而不是退出页面）。BackHandler 只在本 `if
+            // (showSearchPicker)` 分支里组合，弹层收起后整个不注册 ⇒ 不会全 App 吞返回。
+            BackHandler(enabled = selectingProvider) {
+                selectingProvider = false
+            }
             AnimatedContent(
                 targetState = selectingProvider,
                 transitionSpec = {
