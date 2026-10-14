@@ -55,6 +55,17 @@ GET https://heizige.top/api/khatkit/app/update?currentVersionCode=186&currentVer
 
 包名校验：已发布版本声明了 `applicationId` 时，只有**同包名**的客户端才会拿到更新；包名不符则返回 `hasUpdate=false`、`downloadUrl=""`、`packageMismatch=true`（`latestVersion` 仍是渠道版本号），`force_min` 通道同样不会强制下发。这样 debug 客户端不会把 release 包当成「新版」装上，导致两个 App 并存。
 
+⚠️ **包名不符是本通道最难察觉的失败模式**：不符时返回的是「没有更新」而**不是错误** —— `hasUpdate=false`、`downloadUrl=""`、UI 上没有任何提示，表现与「新版本就是还没发布」完全一样，`force_min` 也不会强制下发。首次给版本填 `applicationId` 时尤其容易踩：开发机上日常安装的往往是 debug 包（`heizige.kk.khatkit.debug`），只要按直觉填成 release 包名 `heizige.kk.khatkit`，结果就是**你自己这台设备静默收不到更新**（本节的发布示例此前正是这么写的，现已改为留空）。
+
+✅ **按 ABI 分发与包名绑定是相互独立的**：服务端选产物只看 `downloadUrls` + `abi`（见上文规则），`applicationId` 只参与那道包名守卫。所以**过渡期把 `applicationId` 留空，ABI 分发照常生效**，debug 客户端也照常收到更新；等确实需要「防止 debug 客户端把 release 包当新版装上」时再填。
+
+**发布前自检**：
+
+1. **先确认你自己设备上实际安装的包名**：`adb shell pm list packages | grep khatkit`（看装了哪些），再用 `adb shell dumpsys package <包名> | grep -E 'versionCode|versionName'` 核对版本。debug 变体是 `heizige.kk.khatkit.debug`，release 是 `heizige.kk.khatkit` —— 两者是不同的 App，数据也不互通。
+2. **只想按 ABI 分发** ⇒ `applicationId` **留空**（等价于老的发布方式，行为与以前完全一致）。
+3. **一旦填写**，必须与服务目标设备上**实际安装的包名逐字一致**；填错不会报错，只会对该客户端静默不下发。
+4. **推荐顺序**：**先把设备换成 release 包，再开始绑定 `applicationId`** —— 这样两侧包名天然一致，顺带拿到 release 包更小的体积（见 [docs/apk-size-reduction.md](docs/apk-size-reduction.md)）。
+
 发布新版本（管理端需 admin / developer JWT）：
 
 ```bash
@@ -65,7 +76,10 @@ curl -X POST https://heizige.top/admin/khatkit/releases/upload \
 
 # 2. 发布到通道（version 必须是递增的 Android versionCode）
 #    downloadUrls 可选：key 只能是 arm64-v8a / armeabi-v7a / x86 / x86_64 / universal，非法 key 返回 400
-#    applicationId 可选：非空时只对该包名的客户端下发
+#    applicationId 可选：**留空 = 不做包名绑定**（按 ABI 分发照常生效，推荐先用这个）
+#      ⚠️ JSON 里写不了注释，所以这里就是唯一的提醒：填写前**必须**先确认自己设备上
+#         实际安装的包名（debug 包 = heizige.kk.khatkit.debug，release = heizige.kk.khatkit）。
+#         填错不报错，而是该客户端**静默收不到更新** —— 详见上面的「发布前自检」。
 curl -X PUT https://heizige.top/admin/khatkit/versions/stable \
   -H "Authorization: Bearer <JWT>" \
   -H "Content-Type: application/json" \
@@ -76,7 +90,7 @@ curl -X PUT https://heizige.top/admin/khatkit/versions/stable \
           "arm64-v8a": "/media/khatkit-app-updates/KhatKit-187-arm64-v8a.apk",
           "universal": "/media/khatkit-app-updates/KhatKit-187-universal.apk"
         },
-        "applicationId": "heizige.kk.khatkit",
+        "applicationId": "",
         "description": "更新说明"
       }'
 ```
@@ -84,11 +98,11 @@ curl -X PUT https://heizige.top/admin/khatkit/versions/stable \
 | 发布字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `downloadUrls` | 否 | 按 ABI 的产物地址表，key ∈ `arm64-v8a` / `armeabi-v7a` / `x86` / `x86_64` / `universal`；出现非法 key 时整次发布返回 400 并点明是哪个 key |
-| `applicationId` | 否 | 该产物所属包名；非空时只对该包名的客户端下发 |
+| `applicationId` | 否 | 该产物所属包名；非空时**只对**该包名的客户端下发，**留空则不做包名绑定**（推荐先用留空）。⚠️ 填错不报错，而是该客户端静默收不到更新 —— 填之前先看上面的「发布前自检」 |
 
 | 响应字段 | 说明 |
 | --- | --- |
-| `packageMismatch` | 发布产物包名与本机包名不符 ⇒ `true`，同时 `hasUpdate=false`、`downloadUrl=""`；老客户端会忽略该字段 |
+| `packageMismatch` | 发布产物包名与本机包名不符 ⇒ `true`，同时 `hasUpdate=false`、`downloadUrl=""`；老客户端会忽略该字段。⚠️ 客户端当前**不展示**这个字段 ⇒ 从用户视角看就是「没有更新」，排查时请直接看这里的响应体 |
 
 ## 🧱 模块结构
 
