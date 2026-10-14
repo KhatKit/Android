@@ -64,6 +64,12 @@
 - 调试页删掉空白第 4 个 tab：原先 4 个 tab 中的「Logging」页体是空的（上游 2.5.6 起就是空实现，日志查看器已被移除），现只剩 **Main / Colors / Recovery** 三个，页数与标题数一致；本地日志入口（设置里的日志页）不受影响。⚠️ **限定**：当前 UI 精简后调试页**没有入口**（全仓零 `navigate(Screen.Debug)` 调用，入口随 commit `48c2c0915` 摘掉），这条改动目前**只在代码层生效**、无用户可达路径，待入口恢复后自然对用户可见；本条的验收口径是代码级 + 评审级（`t26 verdict=pass`），**未做实机验证**。
 - 搜索弹层补回系统返回语义：在搜索弹层里点进**供应商子页**后按系统返回，先退回列表、再按一次才关闭弹层；此前该子页不拦返回，手感与预期不符。⚠️ **限定**：搜索弹层的唯一公开入口 `SearchPickerButton` 当前**零调用者**（同一提交摘掉），这条改动同样**只在代码层生效**、无用户可达路径，待入口恢复后自然对用户可见；本条的验收口径是代码级 + 评审级（`t26 verdict=pass`），**未做实机验证**。
 
+### ⚙️ 设置页留白 / 更新通道按 ABI 分发 / 图标中性单色（2026-10-14 收口）
+
+- MD3 设置页列表顶部留白 8dp → **24dp**（与底部同值）：14 个设置页改用共享常量 `PageMetrics.TopContentPadding`（= `8.dp + BottomContentPadding`，且必须在 `BottomContentPadding` 之后声明，否则读到 `0.dp`）。此前顶部只写 `top = 8.dp`、底部却叠了 16dp 加码，列表首项明显比末项紧。Miuix 页面**一处未动**（`fff12c26b`，15 文件 / +36 −15）。⚠️ 留白观感由用户实机确认。
+- 应用更新改为**按 ABI + 包名**分发：客户端上报 `abi=Build.SUPPORTED_ABIS.firstOrNull()` 与 `applicationId=BuildConfig.APPLICATION_ID`，两者为空串时**不追加参数** ⇒ 未上报时请求 URL 与旧实现逐字节相同（`core/util/UpdateChecker.kt` 抽出 `buildUpdateUrl` + `UpdateCheckerUrlTest` 7 例）。服务端（KodeHeapServer `325f2ed`，契约见本仓 `README.md`「应用更新接口」）按 `downloadUrls[<同名 ABI>]` → `universal` → 该版本原有 `downloadUrl` 选产物，**绝不把别的 ABI 发出去**；声明了 `applicationId` 的版本只对**同包名**客户端下发，否则 `packageMismatch=true`、`hasUpdate=false`、`downloadUrl=""`（`force_min` 也不强制），debug 包不会再被推 release 包。发布侧 fail-closed：`downloadUrls` 出现非法 key、缺 `universal` 兜底或任一地址为空即整次发布 400 拒收、写库前抛出（`c8e73ab5c`，3 文件）。
+- AI 提供商图标统一为**中性单色**：底色 `MaterialTheme.colorScheme.secondaryContainer`、图形 `onSecondaryContainer`（`AIIcon.kt:37` / `:41`），并在渲染层对**每个**资产无条件做 `ColorFilter.tint(…, SrcIn)`（`AIIcon.kt:64`）——SrcIn 只保留形状 alpha、把全部 RGB 换成图形色，所以资产内部的逐元素 `fill`、内联 `style=`、`<style>` 块与 `stroke` 都漏不出第二色（这不是「资产碰巧单色」，老写法 `svg { fill: … }` 只命中根元素、会被子元素反超）。资产仍用 lobe-icons 单色版，署名与许可见 `app/src/main/assets/icons/LICENSES.md`。此前「按提供商取品牌色 + 推导对比色」的机制已**整段删除**（`AIIconMatcher.kt` 147 → 127 行），不是未接线。回归护栏：`AIIconAssetsTest` 目录全量扫单色（XML 解析覆盖 `fill` / `stroke` / `style=` / `<style>`，放行 `currentColor` / `none` / `inherit`）+ 一条渲染层源码护栏（必须无条件 tint）。⚠️ 图标观感由用户实机确认（`53c1187d7`，83 文件）。
+
 ## 2.5.2（2026-09-18）
 
 > 应用内更新走 KodeHeadServer 的 KhatKit 独立更新通道（stable / beta / force_min）。
