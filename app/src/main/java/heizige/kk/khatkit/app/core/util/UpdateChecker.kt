@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.core.util
 
 import android.app.DownloadManager
 import android.content.Context
+import android.os.Build
 import android.os.Environment
 import android.widget.Toast
 import androidx.core.net.toUri
@@ -53,15 +54,13 @@ class UpdateChecker(
     private suspend fun fetchUpdateInfo(): UpdateCheckResponse {
         val currentVersionCode = BuildConfig.VERSION_CODE.toString()
         val channel = if (controller.receiveBeta) "beta" else "stable"
-        val url = buildString {
-            append(controller.hubBaseUrl.trim().trimEnd('/'))
-            append("/api/khatkit/app/update?currentVersionCode=")
-            append(currentVersionCode)
-            append("&currentVersion=")
-            append(currentVersionCode)
-            append("&channel=")
-            append(channel)
-        }
+        val url = buildUpdateUrl(
+            hubBaseUrl = controller.hubBaseUrl,
+            versionCode = currentVersionCode,
+            channel = channel,
+            abi = Build.SUPPORTED_ABIS.firstOrNull().orEmpty(),
+            applicationId = BuildConfig.APPLICATION_ID,
+        )
         val response = client.newCall(
             Request.Builder()
                 .url(url)
@@ -93,6 +92,41 @@ class UpdateChecker(
     private fun resolveUrl(raw: String): String = when {
         raw.startsWith("http://") || raw.startsWith("https://") -> raw
         else -> controller.hubBaseUrl.trim().trimEnd('/') + "/" + raw.trimStart('/')
+    }
+}
+
+/**
+ * 拼接更新检查 URL（纯函数，便于 JVM 单测，见 `UpdateCheckerUrlTest`）。
+ *
+ * 与历史实现逐字兼容的部分：前缀 = `hubBaseUrl.trim().trimEnd('/')`，`currentVersionCode` 与
+ * `currentVersion` 都取客户端 versionCode，`channel` = `stable` | `beta`。
+ *
+ * 新增两个可选查询参数（服务端据此按 ABI 选产物、并拒绝跨包名下发）：
+ * - [abi]：本机首选 ABI（`Build.SUPPORTED_ABIS.firstOrNull()`）。**为空字符串时不追加 `abi=` 参数**。
+ * - [applicationId]：本机包名（`BuildConfig.APPLICATION_ID`，debug 包带 `.debug` 后缀）。
+ *   为空字符串时不追加 `applicationId=` 参数。
+ */
+internal fun buildUpdateUrl(
+    hubBaseUrl: String,
+    versionCode: String,
+    channel: String,
+    abi: String,
+    applicationId: String,
+): String = buildString {
+    append(hubBaseUrl.trim().trimEnd('/'))
+    append("/api/khatkit/app/update?currentVersionCode=")
+    append(versionCode)
+    append("&currentVersion=")
+    append(versionCode)
+    append("&channel=")
+    append(channel)
+    if (abi.isNotBlank()) {
+        append("&abi=")
+        append(abi.trim())
+    }
+    if (applicationId.isNotBlank()) {
+        append("&applicationId=")
+        append(applicationId.trim())
     }
 }
 

@@ -30,27 +30,65 @@ GET https://heizige.top/api/khatkit/app/update?currentVersionCode=186&currentVer
   "hasUpdate": true,
   "forceUpdate": false,
   "latestVersion": "187",
-  "downloadUrl": "/media/khatkit-app-updates/KhatKit-xxx.apk",
-  "description": "更新说明（Markdown）"
+  "downloadUrl": "/media/khatkit-app-updates/KhatKit-xxx-arm64-v8a.apk",
+  "description": "更新说明（Markdown）",
+  "packageMismatch": false
 }
 ```
 
 `channel` 支持 `stable` / `beta`，`force_min` 通道满足时返回强制更新。客户端 Hub 地址可在设置里修改（默认 `https://heizige.top`）。
 
+### 按 ABI 分发 + 同包名校验
+
+客户端会上报本机首选 ABI 与自身包名（老客户端不传这两个参数，行为与以前完全一致）：
+
+```http
+GET https://heizige.top/api/khatkit/app/update?currentVersionCode=186&currentVersion=186&channel=stable&abi=arm64-v8a&applicationId=heizige.kk.khatkit.debug
+```
+
+| 查询参数 | 必填 | 说明 |
+| --- | --- | --- |
+| `abi` | 否 | 本机首选 ABI（`Build.SUPPORTED_ABIS.first()`）。为空则不发送该参数 |
+| `applicationId` | 否 | 本机包名（debug 包为 `heizige.kk.khatkit.debug`，release 为 `heizige.kk.khatkit`） |
+
+服务端选产物规则：`downloadUrls` 命中同名 ABI → 用它；否则有 `universal` → 用它；否则回落该版本原有的 `downloadUrl`。**绝不会把别的 ABI 的产物发出去**（宁可不下发）。
+
+包名校验：已发布版本声明了 `applicationId` 时，只有**同包名**的客户端才会拿到更新；包名不符则返回 `hasUpdate=false`、`downloadUrl=""`、`packageMismatch=true`（`latestVersion` 仍是渠道版本号），`force_min` 通道同样不会强制下发。这样 debug 客户端不会把 release 包当成「新版」装上，导致两个 App 并存。
+
 发布新版本（管理端需 admin / developer JWT）：
 
 ```bash
-# 1. 上传 APK，返回 downloadUrl
+# 1. 上传 APK，返回 downloadUrl（每个 ABI 各传一次）
 curl -X POST https://heizige.top/admin/khatkit/releases/upload \
   -H "Authorization: Bearer <JWT>" \
-  -F "file=@app-universal-release.apk"
+  -F "file=@app-arm64-v8a-release.apk"
 
 # 2. 发布到通道（version 必须是递增的 Android versionCode）
+#    downloadUrls 可选：key 只能是 arm64-v8a / armeabi-v7a / x86 / x86_64 / universal，非法 key 返回 400
+#    applicationId 可选：非空时只对该包名的客户端下发
 curl -X PUT https://heizige.top/admin/khatkit/versions/stable \
   -H "Authorization: Bearer <JWT>" \
   -H "Content-Type: application/json" \
-  -d '{"version":"187","downloadUrl":"/media/khatkit-app-updates/xxx.apk","description":"更新说明"}'
+  -d '{
+        "version": "187",
+        "downloadUrl": "/media/khatkit-app-updates/KhatKit-187-universal.apk",
+        "downloadUrls": {
+          "arm64-v8a": "/media/khatkit-app-updates/KhatKit-187-arm64-v8a.apk",
+          "universal": "/media/khatkit-app-updates/KhatKit-187-universal.apk"
+        },
+        "applicationId": "heizige.kk.khatkit",
+        "description": "更新说明"
+      }'
 ```
+
+| 发布字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `downloadUrls` | 否 | 按 ABI 的产物地址表，key ∈ `arm64-v8a` / `armeabi-v7a` / `x86` / `x86_64` / `universal`；出现非法 key 时整次发布返回 400 并点明是哪个 key |
+| `applicationId` | 否 | 该产物所属包名；非空时只对该包名的客户端下发 |
+
+| 响应字段 | 说明 |
+| --- | --- |
+| `packageMismatch` | 发布产物包名与本机包名不符 ⇒ `true`，同时 `hasUpdate=false`、`downloadUrl=""`；老客户端会忽略该字段 |
 
 ## 🧱 模块结构
 
