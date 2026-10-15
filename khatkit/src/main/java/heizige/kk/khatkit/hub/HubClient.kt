@@ -86,6 +86,39 @@ class HubClient(
     suspend fun fetchLibIndex(): LibIndex =
         client.get(resolve("/api/khatkit/libs/index.json")).body()
 
+    // ===== 统一市场目录（§7.1，`GET /api/items`）=====
+
+    /**
+     * 统一市场条目列表：`GET /api/items`（`kind` / `q` / `limit`，返回 `{"items":[…]}`）。
+     *
+     * 与 [fetchResourceIndex] 同策略：老服务端没有该接口、或断网 / 非 2xx 时返回空列表，
+     * 由调用方回退到旧资源索引（§7.4 的三条兼容路径），不把探索页拖成错误态。
+     */
+    suspend fun fetchItems(
+        kind: String? = null,
+        query: String? = null,
+        limit: Int = 50,
+    ): List<HubItemSummary> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = client.get(resolve("/api/items")) {
+                kind?.takeIf { it.isNotBlank() }?.let { parameter("kind", it) }
+                query?.takeIf { it.isNotBlank() }?.let { parameter("q", it) }
+                parameter("limit", limit)
+            }
+            if (!response.status.isSuccess()) return@runCatching emptyList()
+            response.body<HubItemList>().items
+        }.getOrDefault(emptyList())
+    }
+
+    /** 单个条目详情：`GET /api/items/{id}`。不存在（404，含已撤销条目，P0-2）或解析失败返回 null。 */
+    suspend fun fetchItem(id: String): HubItemSummary? = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = client.get(resolve("/api/items/${encodeSegment(id)}"))
+            if (!response.status.isSuccess()) return@runCatching null
+            response.body<HubItemSummary>()
+        }.getOrNull()
+    }
+
     // ===== 资源市场：技能合集 / MCP 服务 / 合集包（v1）=====
 
     /**
