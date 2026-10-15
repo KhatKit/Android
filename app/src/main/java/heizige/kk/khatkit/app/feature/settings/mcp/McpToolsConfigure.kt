@@ -41,13 +41,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeIconButton

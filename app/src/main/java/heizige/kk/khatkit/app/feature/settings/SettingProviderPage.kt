@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
@@ -47,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +75,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.ImageUtils
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -82,7 +86,6 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.dragIndicator
 import heizige.kk.khatkit.app.core.ui.icons.image
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -105,10 +108,14 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
     var searchExpanded by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        val newProviders = settings.providers.toMutableList().apply {
-            add(to.index, removeAt(from.index))
+        // 只有在没按搜索词过滤时才允许改顺序：过滤态下的 index 是过滤后列表的，
+        // 拿它去索引 settings.providers 会把顺序搅乱。
+        if (searchQuery.isBlank()) {
+            val newProviders = settings.providers.toMutableList().apply {
+                add(to.index, removeAt(from.index))
+            }
+            vm.updateSettings(settings.copy(providers = newProviders))
         }
-        vm.updateSettings(settings.copy(providers = newProviders))
     }
 
     val filteredProviders = remember(settings.providers, searchQuery) {
@@ -174,6 +181,7 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                             modifier = Modifier.fillMaxSize(),
                             listState = lazyListState,
                             reorderableState = reorderableState,
+                            dragEnabled = false,
                             bottomPadding = innerPadding.calculateBottomPadding() +
                                 PageMetrics.BottomContentPadding,
                             onClick = { provider ->
@@ -193,6 +201,8 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
                         .imePadding(),
                     listState = lazyListState,
                     reorderableState = reorderableState,
+                    // 与助手列表同款：长按整行直接拖动，不用先按住拖柄。
+                    dragEnabled = searchQuery.isBlank(),
                     bottomPadding = innerPadding.calculateBottomPadding() +
                         PageMetrics.BottomContentPadding,
                     onClick = { provider ->
@@ -215,16 +225,24 @@ private fun ProviderList(
     modifier: Modifier = Modifier,
     listState: LazyListState,
     reorderableState: ReorderableLazyListState,
+    dragEnabled: Boolean,
     bottomPadding: Dp,
 ) {
+    // 与助手列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
+    // （首项只圆上边、末项只圆下边、中间项直角），项间距取全局列表卡片样式。
+    // 不能换成 CardGroup —— 那会把所有项收进一个 Column，ReorderableItem
+    // 需要的「每项一个 lazy item」就没了，长按拖拽排序会失效。
+    val cards = listCardStyle()
+    val haptic = LocalHapticFeedback.current
+
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) +
             PaddingValues(bottom = bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(cards.gap),
         state = listState,
     ) {
-        items(providers, key = { it.id }) { provider ->
+        lazyItemsIndexed(providers, key = { _, provider -> provider.id }) { index, provider ->
             ReorderableItem(
                 state = reorderableState,
                 key = provider.id
@@ -232,29 +250,25 @@ private fun ProviderList(
                 ProviderItem(
                     modifier = Modifier
                         .scale(if (isDragging) 0.95f else 1f)
-                        .fillMaxWidth(),
-                    provider = provider,
-                    dragHandle = {
-                        val haptic = LocalHapticFeedback.current
-                        KedgeIconButton(
-                            onClick = {},
-                            modifier = Modifier
-                                .longPressDraggableHandle(
+                        .fillMaxWidth()
+                        // 和助手列表一致：长按**整行**就能拖，不需要先精准按住右侧拖柄。
+                        // 过滤态（搜索中）不开拖拽 —— 那时列表是子集，重排会写坏顺序。
+                        .then(
+                            if (dragEnabled) {
+                                Modifier.longPressDraggableHandle(
                                     onDragStarted = {
                                         haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                                     },
                                     onDragStopped = {
                                         haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
                                     }
-                                ),
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(
-                                imageVector = dragIndicator,
-                                contentDescription = null
-                            )
-                        }
-                    },
+                                )
+                            } else {
+                                Modifier
+                            }
+                        ),
+                    provider = provider,
+                    shape = cards.indexedShape(index, providers.size),
                     onClick = { onClick(provider) },
                 )
             }
@@ -542,40 +556,37 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
 @Composable
 private fun ProviderItem(
     provider: ProviderSetting,
+    shape: Shape,
     modifier: Modifier = Modifier,
-    dragHandle: @Composable () -> Unit,
     onClick: () -> Unit
 ) {
-    KedgeCard(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = if (provider.enabled) {
-                CustomColors.listItemColors.containerColor
-            } else MaterialTheme.colorScheme.errorContainer,
-        ),
-        onClick = {
-            onClick()
-        }
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    KedgeOptionItem(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = shape,
+        // 停用的供应商保留红底 —— 这是整行唯一需要一眼看出来的状态；启用的走组件
+        // 默认底色，不再自己上 listItemColors（与助手列表同一套口径）。
+        backgroundColor = if (provider.enabled) {
+            Color.Unspecified
+        } else {
+            MaterialTheme.colorScheme.errorContainer
+        },
+        leadingContent = {
             AutoAIIcon(
                 name = provider.name,
                 modifier = Modifier.size(40.dp)
             )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = provider.name,
-                    style = KedgeTextStyles.title(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+        },
+        titleContent = {
+            Text(
+                text = provider.name,
+                style = KedgeTextStyles.title(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        supportingContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 ProvideTextStyle(KedgeTextStyles.footnote()) {
                     CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
                         provider.shortDescription()
@@ -603,7 +614,8 @@ private fun ProviderItem(
                     }
                 }
             }
-            dragHandle()
-        }
-    }
+        },
+        // 没有 trailingContent：拖拽手势挂在整行上（见 ProviderList），
+        // 再摆一个拖柄图标只会让人以为「必须按住那里才能拖」。
+    )
 }

@@ -25,10 +25,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
+import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -378,7 +378,7 @@ private fun ConversationItem(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var pinTriggered by remember { mutableStateOf(false) }
     val shape = conversationRowShape(isSectionStart = isSectionStart, isSectionEnd = isSectionEnd)
-    val dismissState = rememberSwipeToDismissBoxState(
+    val dismissState = rememberKedgeSwipeToDismissState(
         confirmValueChange = { false },
     )
 
@@ -449,7 +449,7 @@ private fun ConversationItem(
         )
     }
 
-    SwipeToDismissBox(
+    KedgeSwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = onPin != null,
         enableDismissFromEndToStart = onDelete != null,

@@ -56,6 +56,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialShapes
@@ -82,6 +83,7 @@ import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeBadgedBox
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -924,6 +926,20 @@ fun ExploreMarketPage() {
                                     hubInfo = hubInfo[entry.name],
                                     busy = busyCard == entry.name,
                                     onClick = { selectedCard = entry },
+                                    onInstall = {
+                                        vm.install(entry) { ok ->
+                                            scope.launch {
+                                                Toast.show(if (ok) toastInstalledNamed.format(entry.name) else toastInstallFailed, !ok)
+                                            }
+                                        }
+                                    },
+                                    onUpdate = {
+                                        vm.update(entry) { ok ->
+                                            scope.launch {
+                                                Toast.show(if (ok) toastUpdatedNamed.format(entry.name) else toastUpdateFailed, !ok)
+                                            }
+                                        }
+                                    },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = shape,
                                 )
@@ -1524,6 +1540,13 @@ fun ExploreCardsPage(initialQuery: String = "") {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val density = LocalDensity.current
 
+    // 行尾下载/更新 icon button 的 Toast：模板串在组合期取出，协程里只 format。
+    val scope = rememberCoroutineScope()
+    val toastInstalledNamed = stringResource(R.string.explore_market_toast_installed_named)
+    val toastInstallFailed = stringResource(R.string.explore_market_toast_install_failed)
+    val toastUpdatedNamed = stringResource(R.string.explore_market_toast_updated_named)
+    val toastUpdateFailed = stringResource(R.string.explore_market_toast_update_failed)
+
     var query by rememberSaveable { mutableStateOf(initialQuery) }
     var cardFilter by rememberSaveable { mutableStateOf(CardFilter.ALL.name) }
     val selectedCardFilter = remember(cardFilter) { CardFilter.valueOf(cardFilter) }
@@ -1637,6 +1660,20 @@ fun ExploreCardsPage(initialQuery: String = "") {
             selectedCardFilter = selectedCardFilter,
             cardStyle = cardStyle,
             onSelectCard = { selectedCard = it },
+            onInstallCard = { entry ->
+                vm.install(entry) { ok ->
+                    scope.launch {
+                        Toast.show(if (ok) toastInstalledNamed.format(entry.name) else toastInstallFailed, !ok)
+                    }
+                }
+            },
+            onUpdateCard = { entry ->
+                vm.update(entry) { ok ->
+                    scope.launch {
+                        Toast.show(if (ok) toastUpdatedNamed.format(entry.name) else toastUpdateFailed, !ok)
+                    }
+                }
+            },
             onClearQuery = { query = "" },
             onReload = { vm.refresh("") },
             listState = listState,
@@ -1698,6 +1735,8 @@ private fun cardsList(
     selectedCardFilter: CardFilter,
     cardStyle: ListCardStyle,
     onSelectCard: (CardIndexEntry) -> Unit,
+    onInstallCard: (CardIndexEntry) -> Unit,
+    onUpdateCard: (CardIndexEntry) -> Unit,
     onClearQuery: () -> Unit,
     onReload: () -> Unit,
     listState: LazyListState,
@@ -1801,6 +1840,8 @@ private fun cardsList(
                         hubInfo = hubInfo[entry.name],
                         busy = busyCard == entry.name,
                         onClick = { onSelectCard(entry) },
+                        onInstall = { onInstallCard(entry) },
+                        onUpdate = { onUpdateCard(entry) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = cardStyle.indexedShape(index, matched.size),
                     )
@@ -2485,13 +2526,15 @@ private fun McpRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
-                    CircleActionButton(
-                        icon = heizige.kk.khatkit.app.core.ui.icons.settings,
-                        contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
+                    KedgeIconButton(
                         onClick = onConfigure,
-                        size = 34.dp,
-                        iconSize = 18.dp,
-                    )
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = heizige.kk.khatkit.app.core.ui.icons.settings,
+                            contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
+                        )
+                    }
                 }
                 when (cardStatus) {
                     // 缺必填优先：这时底下就算报了「连上」也不认，不能显示已连接。
@@ -2610,88 +2653,51 @@ private fun ResourceRow(
         trailingContent = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 if (needsConfig) {
                     MetaChip(text = stringResource(R.string.explore_market_mcp_needs_config))
                 }
                 if (!busy && onConfigure != null) {
-                    CircleActionButton(
-                        icon = heizige.kk.khatkit.app.core.ui.icons.settings,
-                        contentDescription = stringResource(R.string.explore_market_mcp_configure_named, entry.name),
+                    KedgeIconButton(
                         onClick = onConfigure,
-                        size = 34.dp,
-                        iconSize = 18.dp,
-                    )
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = heizige.kk.khatkit.app.core.ui.icons.settings,
+                            contentDescription = stringResource(R.string.explore_market_mcp_configure_named, entry.name),
+                        )
+                    }
                 }
                 when {
                     busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    installed -> CircleActionButton(
-                        icon = check,
-                        contentDescription = stringResource(R.string.explore_market_state_installed),
-                        onClick = null,
-                        size = 34.dp,
-                        iconSize = 18.dp,
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    )
-                    else -> CircleActionButton(
-                        icon = downloadForOffline,
-                        contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
+                    // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
+                    // （`onClick` 只是组件签名要求，不会被调到）。
+                    installed -> KedgeIconButton(
+                        onClick = {},
+                        enabled = false,
+                        variant = KedgeIconButtonVariant.Tonal,
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = check,
+                            contentDescription = stringResource(R.string.explore_market_state_installed),
+                        )
+                    }
+                    else -> KedgeIconButton(
                         onClick = onInstall,
-                        size = 34.dp,
-                        iconSize = 18.dp,
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
+                        variant = KedgeIconButtonVariant.Filled,
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = downloadForOffline,
+                            contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
+                        )
+                    }
                 }
             }
         },
     )
-}
-
-/**
- * 行尾圆形动作按钮（参考稿里卡片行尾那个圆）：默认中性容器底，给了底色就是实心动作。
- * `onClick = null` 表示这是纯状态位（已安装 / 已连接），不可点也不再吃无障碍焦点。
- * 形状是满圆，按压反馈用整页统一的 [pressBounce]。
- */
-@Composable
-private fun CircleActionButton(
-    icon: ImageVector,
-    contentDescription: String?,
-    onClick: (() -> Unit)?,
-    size: androidx.compose.ui.unit.Dp = 40.dp,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    iconSize: androidx.compose.ui.unit.Dp = 20.dp,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(containerColor)
-            .then(if (onClick != null) Modifier.pressBounce(interactionSource) else Modifier)
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = onClick,
-                    )
-                } else {
-                    Modifier
-                }
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            modifier = Modifier.size(iconSize),
-            tint = contentColor,
-        )
-    }
 }
 
 /** 资源详情：先看清包里有什么（技能 / MCP 端点），再决定装不装。 */
@@ -2968,13 +2974,15 @@ private fun DependencyRow(
         },
         trailingContent = {
             if (cached != null) {
-                CircleActionButton(
-                    icon = deleteForever,
-                    contentDescription = stringResource(R.string.explore_market_cd_delete_dependency),
+                KedgeIconButton(
                     onClick = onDelete,
-                    size = 34.dp,
-                    iconSize = 18.dp,
-                )
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    Icon(
+                        imageVector = deleteForever,
+                        contentDescription = stringResource(R.string.explore_market_cd_delete_dependency),
+                    )
+                }
             }
         },
     )
@@ -3317,11 +3325,15 @@ private fun CompactCard(
     hubInfo: HubCardMarketInfo?,
     busy: Boolean,
     onClick: () -> Unit,
+    // 行尾动作与技能 / MCP 行（[ResourceRow]）同一套：没装 = 下载，装了但不是最新 = 更新，
+    // 已是最新 = 不可点的对勾。行内不再有「已安装」文字药丸，也不再给下一级箭头。
+    onInstall: () -> Unit,
+    onUpdate: () -> Unit,
     modifier: Modifier = Modifier,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
     // 状态判定与轮播药丸同一套。
-    val stateLabel = installedVersion?.let { cardInstallState(it, entry.version).label() }
+    val installState = installedVersion?.let { cardInstallState(it, entry.version) }
     KedgeOptionItem(
         onClick = onClick,
         modifier = modifier,
@@ -3360,15 +3372,41 @@ private fun CompactCard(
             }
         },
         trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                when {
-                    busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    stateLabel != null -> MetaChip(stateLabel, accent = true)
+            when {
+                busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
+                // （`onClick` 只是组件签名要求，不会被调到）。卸载入口在详情抽屉里。
+                installState == CardInstallState.INSTALLED -> KedgeIconButton(
+                    onClick = {},
+                    enabled = false,
+                    variant = KedgeIconButtonVariant.Tonal,
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    Icon(
+                        imageVector = check,
+                        contentDescription = stringResource(R.string.explore_market_state_installed),
+                    )
                 }
-                RowChevron()
+                installState == CardInstallState.UPDATE -> KedgeIconButton(
+                    onClick = onUpdate,
+                    variant = KedgeIconButtonVariant.Filled,
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    Icon(
+                        imageVector = downloadForOffline,
+                        contentDescription = stringResource(R.string.explore_market_state_update),
+                    )
+                }
+                else -> KedgeIconButton(
+                    onClick = onInstall,
+                    variant = KedgeIconButtonVariant.Filled,
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    Icon(
+                        imageVector = downloadForOffline,
+                        contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
+                    )
+                }
             }
         },
     )
@@ -3902,6 +3940,16 @@ fun ExploreLocalPage() {
                             shape = shape,
                         )
                     }
+                }
+            }
+
+            item(key = "tasks") {
+                GroupContainer(count = 1) { _, shape ->
+                    GroupActionRow(
+                        label = stringResource(R.string.card_runs_title),
+                        onClick = { navController.navigate(Screen.CardRuns) },
+                        shape = shape,
+                    )
                 }
             }
 

@@ -47,6 +47,7 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.TagsInput
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
@@ -192,8 +193,6 @@ internal fun AssistantBasicContent(
                 )
             }
 
-            KedgeFormDivider()
-
             KedgeFormRow(
                 label = {
                     Text(stringResource(R.string.assistant_page_tags))
@@ -208,8 +207,6 @@ internal fun AssistantBasicContent(
                     },
                 )
             }
-
-            KedgeFormDivider()
 
             KedgeFormRow(
                 label = {
@@ -237,24 +234,34 @@ internal fun AssistantBasicContent(
                     },
                 )
             }
+        }
 
-            KedgeFormDivider()
-
-            KedgeSwitchFormRow(
-                checked = assistant.useAssistantAvatar,
-                onCheckedChange = {
+        CardGroup {
+            item(
+                onClick = {
                     onUpdate(
                         assistant.copy(
-                            useAssistantAvatar = it
+                            useAssistantAvatar = !assistant.useAssistantAvatar
                         )
                     )
                 },
-                modifier = Modifier.padding(8.dp),
-                label = {
+                headlineContent = {
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar))
                 },
-                description = {
+                supportingContent = {
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.useAssistantAvatar,
+                        onCheckedChange = {
+                            onUpdate(
+                                assistant.copy(
+                                    useAssistantAvatar = it
+                                )
+                            )
+                        }
+                    )
                 },
             )
         }
@@ -283,7 +290,6 @@ internal fun AssistantBasicContent(
                     )
                 }
             )
-            KedgeFormDivider()
             KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
@@ -337,7 +343,6 @@ internal fun AssistantBasicContent(
                     )
                 }
             }
-            KedgeFormDivider()
             KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
@@ -391,7 +396,6 @@ internal fun AssistantBasicContent(
                     )
                 }
             }
-            KedgeFormDivider()
             KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
@@ -471,25 +475,39 @@ internal fun AssistantBasicContent(
                     )
                 }
             }
-            KedgeFormDivider()
-            KedgeSwitchFormRow(
-                checked = assistant.streamOutput,
-                onCheckedChange = {
+        }
+
+        CardGroup {
+            item(
+                onClick = {
                     onUpdate(
                         assistant.copy(
-                            streamOutput = it
+                            streamOutput = !assistant.streamOutput
                         )
                     )
                 },
-                modifier = Modifier.padding(8.dp),
-                label = {
+                headlineContent = {
                     Text(stringResource(R.string.assistant_page_stream_output))
                 },
-                description = {
+                supportingContent = {
                     Text(stringResource(R.string.assistant_page_stream_output_desc))
                 },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.streamOutput,
+                        onCheckedChange = {
+                            onUpdate(
+                                assistant.copy(
+                                    streamOutput = it
+                                )
+                            )
+                        }
+                    )
+                },
             )
-            KedgeFormDivider()
+        }
+
+        KedgeFormCard {
             KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {
@@ -503,7 +521,6 @@ internal fun AssistantBasicContent(
                     }
                 )
             }
-            KedgeFormDivider()
             KedgeFormRow(
                 modifier = Modifier.padding(8.dp),
                 label = {

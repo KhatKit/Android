@@ -1,17 +1,15 @@
 package heizige.kk.khatkit.app.feature.workspace
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -25,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
@@ -37,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,7 +47,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -78,10 +77,15 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
             }
         },
     ) { innerPadding ->
+        // 与助手/提供商列表同一套分组：整列看着是一张卡片，圆角按 index/count 逐项算
+        // （首项只圆上边、末项只圆下边、中间项直角），项间距取全局列表卡片样式。
+        // 不用 CardGroup —— 那会把所有项收进一个 Column，丢掉「每项一个 lazy item」
+        // 与稳定 key。
+        val cards = listCardStyle()
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             if (workspaces.isEmpty()) {
                 item {
@@ -89,9 +93,10 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
                 }
             }
 
-            items(workspaces, key = { it.id }) { workspace ->
-                WorkspaceCard(
+            lazyItemsIndexed(workspaces, key = { _, workspace -> workspace.id }) { index, workspace ->
+                WorkspaceItem(
                     workspace = workspace,
+                    shape = cards.indexedShape(index, workspaces.size),
                     onRename = { editTarget = workspace },
                     onDelete = { deleteTarget = workspace },
                     onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
@@ -170,90 +175,81 @@ private fun EmptyWorkspaceState() {
 }
 
 @Composable
-private fun WorkspaceCard(
+private fun WorkspaceItem(
     workspace: WorkspaceEntity,
+    shape: Shape,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onOpen: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    KedgeCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen),
-        colors = CustomColors.cardColorsOnSurfaceContainer,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = insertDriveFile,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = workspace.name,
-                        style = KedgeTextStyles.title(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = workspace.shellStatus.toShellStatusLabel(),
-                        style = KedgeTextStyles.body(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+    // 行内容全部走 KedgeOptionItem 槽位，双风格分流在组件内部（见 KedgeOptionItem.kt），
+    // 调用点不再写风格分支、也不再自己上 cardColors。
+    KedgeOptionItem(
+        onClick = onOpen,
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        leadingContent = {
+            Icon(
+                imageVector = insertDriveFile,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        },
+        titleContent = {
+            Text(
+                text = workspace.name,
+                style = KedgeTextStyles.title(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = {
+            Text(
+                text = workspace.shellStatus.toShellStatusLabel(),
+                style = KedgeTextStyles.body(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        trailingContent = {
+            Box {
+                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                    Icon(moreVert, contentDescription = null)
                 }
-                Box {
-                    KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(moreVert, contentDescription = null)
-                    }
-                    KedgeDropdownMenuSlots(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    ) {
-                        KedgeDropdownItemSlot(
-                            text = { Text(stringResource(R.string.common_rename)) },
-                            leadingIcon = { Icon(edit, contentDescription = null) },
-                            onClick = {
-                                menuExpanded = false
-                                onRename()
-                            },
-                        )
-                        KedgeDropdownItemSlot(
-                            text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onDelete()
-                            },
-                        )
-                    }
+                KedgeDropdownMenuSlots(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    KedgeDropdownItemSlot(
+                        text = { Text(stringResource(R.string.common_rename)) },
+                        leadingIcon = { Icon(edit, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onRename()
+                        },
+                    )
+                    KedgeDropdownItemSlot(
+                        text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        },
+                    )
                 }
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable

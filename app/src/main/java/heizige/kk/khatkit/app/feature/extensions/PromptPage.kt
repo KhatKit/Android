@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -28,7 +28,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
@@ -41,10 +40,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
+import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
@@ -61,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -87,7 +88,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
@@ -195,6 +196,11 @@ private fun ModeInjectionTab(
         }
     }
 
+    // 与助手/提供商列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
+    // （首项只圆上边、末项只圆下边），项间距取全局列表卡片样式。不能换成 CardGroup ——
+    // 那会把所有项收进一个 Column，ReorderableItem 需要的「每项一个 lazy item」就没了。
+    val cards = listCardStyle()
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -205,7 +211,7 @@ private fun ModeInjectionTab(
                     onCollapse = { expanded = false }
                 ),
             contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 128.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
             state = lazyListState
         ) {
             if (modeInjections.isEmpty()) {
@@ -230,13 +236,14 @@ private fun ModeInjectionTab(
                     }
                 }
             } else {
-                items(modeInjections, key = { it.id }) { injection ->
+                lazyItemsIndexed(modeInjections, key = { _, injection -> injection.id }) { index, injection ->
                     ReorderableItem(
                         state = reorderableState,
                         key = injection.id
                     ) { isDragging ->
                         ModeInjectionCard(
                             injection = injection,
+                            shape = cards.indexedShape(index, modeInjections.size),
                             modifier = Modifier
                                 .longPressDraggableHandle()
                                 .graphicsLayer {
@@ -296,16 +303,17 @@ private fun ModeInjectionTab(
 @Composable
 private fun ModeInjectionCard(
     injection: PromptInjection.ModeInjection,
+    shape: Shape,
     modifier: Modifier = Modifier,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val swipeState = rememberSwipeToDismissBoxState()
+    val swipeState = rememberKedgeSwipeToDismissState()
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
     val exporter = rememberExporter(injection, ModeInjectionSerializer)
 
-    SwipeToDismissBox(
+    KedgeSwipeToDismissBox(
         state = swipeState,
         backgroundContent = {
             Row(
@@ -334,52 +342,50 @@ private fun ModeInjectionCard(
         enableDismissFromStartToEnd = false,
         modifier = modifier
     ) {
-        KedgeCard(
-            colors = CardDefaults.cardColors(
-                containerColor = CustomColors.listItemColors.containerColor
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+        KedgeOptionItem(
+            // 原实现整行不可点（动作只在行尾的导出/编辑按钮上），保持纯信息行，不新增点击行为。
+            onClick = null,
+            modifier = Modifier.fillMaxWidth(),
+            shape = shape,
+            titleContent = {
+                Text(
+                    text = injection.name.ifEmpty { stringResource(R.string.prompt_page_unnamed) },
+                    style = KedgeTextStyles.title(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            supportingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = injection.name.ifEmpty { stringResource(R.string.prompt_page_unnamed) },
-                        style = KedgeTextStyles.title(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Tag(type = TagType.INFO) {
-                            Text(getPositionLabel(injection.position))
-                        }
-                        Tag(type = TagType.DEFAULT) {
-                            Text(stringResource(R.string.prompt_page_priority_format, injection.priority))
-                        }
-                        if (!injection.enabled) {
-                            Tag(type = TagType.WARNING) {
-                                Text(stringResource(R.string.prompt_page_disabled))
-                            }
+                    Tag(type = TagType.INFO) {
+                        Text(getPositionLabel(injection.position))
+                    }
+                    Tag(type = TagType.DEFAULT) {
+                        Text(stringResource(R.string.prompt_page_priority_format, injection.priority))
+                    }
+                    if (!injection.enabled) {
+                        Tag(type = TagType.WARNING) {
+                            Text(stringResource(R.string.prompt_page_disabled))
                         }
                     }
                 }
-                KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(iosShare, stringResource(R.string.export_title))
+            },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(iosShare, stringResource(R.string.export_title))
+                    }
+                    KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                        Icon(build, stringResource(R.string.prompt_page_edit))
+                    }
                 }
-                KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
-                    Icon(build, stringResource(R.string.prompt_page_edit))
-                }
-            }
-        }
+            },
+        )
     }
 
     if (showExportDialog) {
@@ -583,6 +589,11 @@ private fun LorebookTab(
         }
     }
 
+    // 与助手/提供商列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
+    // （首项只圆上边、末项只圆下边），项间距取全局列表卡片样式。不能换成 CardGroup ——
+    // 那会把所有项收进一个 Column，ReorderableItem 需要的「每项一个 lazy item」就没了。
+    val cards = listCardStyle()
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -593,7 +604,7 @@ private fun LorebookTab(
                     onCollapse = { expanded = false }
                 ),
             contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 128.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
             state = lazyListState
         ) {
             if (lorebooks.isEmpty()) {
@@ -618,13 +629,14 @@ private fun LorebookTab(
                     }
                 }
             } else {
-                items(lorebooks, key = { it.id }) { book ->
+                lazyItemsIndexed(lorebooks, key = { _, book -> book.id }) { index, book ->
                     ReorderableItem(
                         state = reorderableState,
                         key = book.id
                     ) { isDragging ->
                         LorebookCard(
                             book = book,
+                            shape = cards.indexedShape(index, lorebooks.size),
                             modifier = Modifier
                                 .longPressDraggableHandle()
                                 .graphicsLayer {
@@ -684,16 +696,17 @@ private fun LorebookTab(
 @Composable
 private fun LorebookCard(
     book: Lorebook,
+    shape: Shape,
     modifier: Modifier = Modifier,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val swipeState = rememberSwipeToDismissBoxState()
+    val swipeState = rememberKedgeSwipeToDismissState()
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
     val exporter = rememberExporter(book, LorebookSerializer)
 
-    SwipeToDismissBox(
+    KedgeSwipeToDismissBox(
         state = swipeState,
         backgroundContent = {
             Row(
@@ -722,28 +735,21 @@ private fun LorebookCard(
         enableDismissFromStartToEnd = false,
         modifier = modifier
     ) {
-        KedgeCard(
-            colors = CardDefaults.cardColors(
-                containerColor = CustomColors.listItemColors.containerColor
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = book.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_lorebook) },
-                        style = KedgeTextStyles.title(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+        KedgeOptionItem(
+            // 原实现整行不可点（动作只在行尾的导出/编辑按钮上），保持纯信息行，不新增点击行为。
+            onClick = null,
+            modifier = Modifier.fillMaxWidth(),
+            shape = shape,
+            titleContent = {
+                Text(
+                    text = book.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_lorebook) },
+                    style = KedgeTextStyles.title(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            supportingContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (book.description.isNotEmpty()) {
                         Text(
                             text = book.description,
@@ -771,14 +777,21 @@ private fun LorebookCard(
                         }
                     }
                 }
-                KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(iosShare, stringResource(R.string.export_title))
+            },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(iosShare, stringResource(R.string.export_title))
+                    }
+                    KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                        Icon(build, stringResource(R.string.prompt_page_edit))
+                    }
                 }
-                KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
-                    Icon(build, stringResource(R.string.prompt_page_edit))
-                }
-            }
-        }
+            },
+        )
     }
 
     if (showExportDialog) {

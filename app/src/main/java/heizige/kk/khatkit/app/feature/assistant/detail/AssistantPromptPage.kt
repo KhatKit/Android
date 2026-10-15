@@ -83,6 +83,7 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TextArea
@@ -106,7 +107,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
@@ -234,42 +234,54 @@ private fun AssistantPromptContent(
             }
         }
 
-        KedgeFormCard {
-            KedgeSwitchFormRow(
-                checked = assistant.allowConversationSystemPrompt,
-                onCheckedChange = {
-                    onUpdate(
-                        assistant.copy(
-                            allowConversationSystemPrompt = it
-                        )
+        CardGroup {
+            val checked = assistant.allowConversationSystemPrompt
+            val onCheckedChange: (Boolean) -> Unit = { value ->
+                onUpdate(
+                    assistant.copy(
+                        allowConversationSystemPrompt = value
                     )
-                },
-                modifier = Modifier.padding(8.dp),
-                label = {
+                )
+            }
+            item(
+                onClick = { onCheckedChange(!checked) },
+                headlineContent = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt))
                 },
-                description = {
+                supportingContent = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = checked,
+                        onCheckedChange = onCheckedChange,
+                    )
                 },
             )
         }
 
-        KedgeFormCard {
-            KedgeSwitchFormRow(
-                checked = assistant.allowConversationPromptInjection,
-                onCheckedChange = {
-                    onUpdate(
-                        assistant.copy(
-                            allowConversationPromptInjection = it
-                        )
+        CardGroup {
+            val checked = assistant.allowConversationPromptInjection
+            val onCheckedChange: (Boolean) -> Unit = { value ->
+                onUpdate(
+                    assistant.copy(
+                        allowConversationPromptInjection = value
                     )
-                },
-                modifier = Modifier.padding(8.dp),
-                label = {
+                )
+            }
+            item(
+                onClick = { onCheckedChange(!checked) },
+                headlineContent = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection))
                 },
-                description = {
+                supportingContent = {
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = checked,
+                        onCheckedChange = onCheckedChange,
+                    )
                 },
             )
         }

@@ -41,18 +41,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
+import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -258,7 +258,7 @@ internal fun McpServerItem(
 ) {
     val mcpManager = rememberAppEntryPoint().mcpManager()
     val status by mcpManager.getStatus(item).collectAsStateWithLifecycle(McpStatus.Idle)
-    val dismissBoxState = rememberSwipeToDismissBoxState()
+    val dismissBoxState = rememberKedgeSwipeToDismissState()
     val scope = rememberCoroutineScope()
     var errorDetail by remember { mutableStateOf<McpStatus.Error?>(null) }
 
@@ -297,7 +297,7 @@ internal fun McpServerItem(
             },
         )
     }
-    SwipeToDismissBox(
+    KedgeSwipeToDismissBox(
         state = dismissBoxState,
         backgroundContent = {
             Row(

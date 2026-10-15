@@ -21,11 +21,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -52,6 +49,11 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.kedge.overlays.rememberKedgeSnackbarHostState
 import heizige.kk.kedge.overlays.KedgeSnackbarHost
 import heizige.kk.kedge.overlays.KedgeSnackbarResult
+import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
+import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
+import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
+import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -128,26 +130,26 @@ private fun SwipeableFavoriteCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        initialValue = SwipeToDismissBoxValue.Settled,
+    val dismissState = rememberKedgeSwipeToDismissState(
+        initialValue = KedgeSwipeToDismissValue.Settled,
     )
 
     // Key on settledValue: currentValue flips to the closest anchor mid-animation,
     // which would restart this effect and cancel it before onDelete() runs.
     LaunchedEffect(dismissState.settledValue) {
-        if (dismissState.settledValue == SwipeToDismissBoxValue.EndToStart) {
+        if (dismissState.settledValue == KedgeSwipeToDismissValue.EndToStart) {
             onDelete()
         }
     }
 
-    SwipeToDismissBox(
+    KedgeSwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        MaterialTheme.colorScheme.errorContainer,
+                        KedgeSwipeToDismissDefaults.containerColor,
                         RoundedCornerShape(12.dp)
                     )
                     .padding(horizontal = 20.dp),
@@ -156,7 +158,7 @@ private fun SwipeableFavoriteCard(
                 Icon(
                     imageVector = delete,
                     contentDescription = stringResource(R.string.assistant_page_remove),
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    tint = KedgeSwipeToDismissDefaults.onContainerColor,
                 )
             }
         },

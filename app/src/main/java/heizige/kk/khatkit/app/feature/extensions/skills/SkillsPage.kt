@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -30,7 +30,7 @@ import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.components.KedgeListItem
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -62,7 +63,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -72,7 +73,9 @@ import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.components.KedgeSearchBar
 
 @Composable
@@ -112,17 +115,23 @@ fun SkillsPage() {
 
     // 技能列表：折叠态挂在页面里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
     val skillsList: @Composable (Modifier) -> Unit = { listModifier ->
+        // 与助手/提供商列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
+        // （首项只圆上边、末项只圆下边、中间项直角），项间距取全局列表卡片样式。
+        // 不能换成 CardGroup —— 那会把所有项收进一个 Column，就没了「每项一个 lazy item」
+        // 和稳定 key。横向留白一律由调用点给（折叠态走 listPadding，展开态自己补 16dp）；
+        // LazyColumn 自己不再给 contentPadding，否则会和 listPadding 叠成 32dp。
+        val cards = listCardStyle()
         LazyColumn(
             modifier = listModifier,
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             if (visibleSkills.isEmpty()) {
                 item { SkillsEmptyState() }
             } else {
-                items(visibleSkills, key = { it.skillDir.absolutePath }) { skill ->
+                lazyItemsIndexed(visibleSkills, key = { _, skill -> skill.skillDir.absolutePath }) { index, skill ->
                     SkillCard(
                         skill = skill,
+                        shape = cards.indexedShape(index, visibleSkills.size),
                         onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
                         onDelete = { deleteTarget = skill },
                     )
@@ -135,6 +144,7 @@ fun SkillsPage() {
         title = stringResource(R.string.skills_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
+        val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
         val listPadding = Modifier.padding(
             innerPadding + PaddingValues(
                 start = 16.dp,
@@ -152,13 +162,22 @@ fun SkillsPage() {
                 active = searchExpanded,
                 onActiveChange = { searchExpanded = it },
                 cancelLabel = stringResource(R.string.cancel),
+                // MD3 侧留白由组件自己给（跟助手/提供商页同款 16dp），Miuix 侧才要调用点补。
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = if (isMiuix) 16.dp else 0.dp),
                 // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出技能列表。
                 expandedContent = {
-                    // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
-                    NoHeroTransition { skillsList(Modifier.fillMaxSize()) }
+                    // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩。
+                    // 全屏槽不吃折叠态的 listPadding，横向 16dp 得在这里自己补，
+                    // 否则展开态列表会贴到屏幕边上（和折叠态的 16dp 对不齐）。
+                    NoHeroTransition {
+                        skillsList(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                        )
+                    }
                 },
             )
 
@@ -275,38 +294,34 @@ private fun SkillsEmptyState() {
 @Composable
 private fun SkillCard(
     skill: SkillMetadata,
+    shape: Shape,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    KedgeCard(
+    // 与助手/提供商列表同一套口径：底色、内边距、按压反馈全交给 KedgeOptionItem，
+    // 行内容只走插槽（leading 图标 / 标题 / 摘要 / 尾部徽标或更多菜单）。
+    KedgeOptionItem(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CustomColors.cardColorsOnSurfaceContainer,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = if (skill.builtin) 16.dp else 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        shape = shape,
+        leadingContent = {
             Icon(
                 imageVector = extension,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = skill.name,
-                    style = KedgeTextStyles.title(),
-                )
+        },
+        titleContent = {
+            Text(
+                text = skill.name,
+                style = KedgeTextStyles.title(),
+            )
+        },
+        supportingContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = skill.description,
                     style = KedgeTextStyles.body(),
@@ -321,15 +336,16 @@ private fun SkillCard(
                     )
                 }
             }
+        },
+        trailingContent = {
             if (skill.builtin) {
                 Text(
                     text = stringResource(R.string.skills_page_builtin_badge),
                     style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.secondary,
                 )
-            }
-            // 内置技能只读，不提供删除
-            if (!skill.builtin) {
+            } else {
+                // 内置技能只读，不提供删除
                 Box {
                     KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
@@ -358,8 +374,8 @@ private fun SkillCard(
                     }
                 }
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable

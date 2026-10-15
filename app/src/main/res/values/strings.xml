@@ -63,6 +63,9 @@
   <string name="explore_market_clear_search">Clear search</string>
   <string name="explore_market_search_cards_hint">Search card name or summary</string>
   <string name="explore_market_local_page_title">Local</string>
+  <string name="card_runs_title">Tasks</string>
+  <string name="card_runs_empty">No card runs yet</string>
+  <string name="card_runs_rerun">Run again</string>
   <string name="explore_market_footer_syncing">Syncing explore feed…</string>
   <string name="explore_market_footer_end">That is everything</string>
   <string name="explore_market_empty_title">Nothing here yet</string>

@@ -30,7 +30,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.kedge.components.KedgeHorizontalDivider
 
 @Composable
 fun AssistantRequestPage(id: String) {
@@ -113,8 +112,6 @@ internal fun AssistantRequestContent(
                 )
             }
         )
-
-        KedgeHorizontalDivider()
 
         CustomBodies(
             customBodies = assistant.customBodies,

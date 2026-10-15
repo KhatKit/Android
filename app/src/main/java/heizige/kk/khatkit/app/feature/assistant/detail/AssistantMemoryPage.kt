@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -64,9 +65,6 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -266,61 +264,130 @@ private fun AssistantMemoryContent(
             .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        KedgeFormCard {
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_memory),
-                summary = stringResource(R.string.assistant_page_memory_desc),
-                checked = assistant.enableMemory,
-                onCheckedChange = {
-                    onUpdateAssistant(assistant.copy(enableMemory = it))
+        CardGroup {
+            item(
+                onClick = {
+                    onUpdateAssistant(assistant.copy(enableMemory = !assistant.enableMemory))
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_memory))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_memory_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.enableMemory,
+                        onCheckedChange = {
+                            onUpdateAssistant(assistant.copy(enableMemory = it))
+                        },
+                    )
                 },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_global_memory),
-                summary = stringResource(R.string.assistant_page_global_memory_desc),
-                checked = assistant.useGlobalMemory,
-                onCheckedChange = {
-                    onUpdateAssistant(assistant.copy(useGlobalMemory = it))
+            item(
+                onClick = if (assistant.enableMemory) {
+                    {
+                        onUpdateAssistant(assistant.copy(useGlobalMemory = !assistant.useGlobalMemory))
+                    }
+                } else {
+                    null
                 },
-                enabled = assistant.enableMemory,
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_auto_extract_memory),
-                summary = stringResource(R.string.assistant_page_auto_extract_memory_desc),
-                checked = assistant.autoExtractMemory,
-                onCheckedChange = {
-                    onUpdateAssistant(assistant.copy(autoExtractMemory = it))
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_global_memory))
                 },
-                enabled = assistant.enableMemory,
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_global_memory_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.useGlobalMemory,
+                        onCheckedChange = {
+                            onUpdateAssistant(assistant.copy(useGlobalMemory = it))
+                        },
+                        enabled = assistant.enableMemory,
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_recent_chats),
-                summary = stringResource(R.string.assistant_page_recent_chats_desc),
-                checked = assistant.enableRecentChatsReference,
-                onCheckedChange = {
-                    onUpdateAssistant(assistant.copy(enableRecentChatsReference = it))
+            item(
+                onClick = if (assistant.enableMemory) {
+                    {
+                        onUpdateAssistant(assistant.copy(autoExtractMemory = !assistant.autoExtractMemory))
+                    }
+                } else {
+                    null
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_auto_extract_memory))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_auto_extract_memory_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.autoExtractMemory,
+                        onCheckedChange = {
+                            onUpdateAssistant(assistant.copy(autoExtractMemory = it))
+                        },
+                        enabled = assistant.enableMemory,
+                    )
+                },
+            )
+            item(
+                onClick = {
+                    onUpdateAssistant(
+                        assistant.copy(enableRecentChatsReference = !assistant.enableRecentChatsReference)
+                    )
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_recent_chats))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_recent_chats_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.enableRecentChatsReference,
+                        onCheckedChange = {
+                            onUpdateAssistant(assistant.copy(enableRecentChatsReference = it))
+                        },
+                    )
                 },
             )
         }
 
-        KedgeFormCard {
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_time_reminder),
-                summary = stringResource(R.string.assistant_page_time_reminder_desc),
-                checked = assistant.enableTimeReminder,
-                onCheckedChange = {
-                    onUpdateAssistant(assistant.copy(enableTimeReminder = it))
+        CardGroup {
+            item(
+                onClick = {
+                    onUpdateAssistant(assistant.copy(enableTimeReminder = !assistant.enableTimeReminder))
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_time_reminder))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_time_reminder_desc))
+                },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.enableTimeReminder,
+                        onCheckedChange = {
+                            onUpdateAssistant(assistant.copy(enableTimeReminder = it))
+                        },
+                    )
                 },
             )
             if (assistant.enableTimeReminder) {
-                PreferenceArrow(
-                    title = stringResource(R.string.assistant_page_time_reminder_interval),
-                    summary = stringResource(R.string.assistant_page_time_reminder_interval_desc),
+                item(
                     onClick = {
                         timeReminderIntervalInput = assistant.timeReminderIntervalMinutes.toString()
                         showTimeReminderIntervalDialog = true
                     },
-                    endAction = {
+                    headlineContent = {
+                        Text(stringResource(R.string.assistant_page_time_reminder_interval))
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.assistant_page_time_reminder_interval_desc))
+                    },
+                    trailingContent = {
                         Text(stringResource(
                             R.string.assistant_page_time_reminder_interval_value,
                             assistant.timeReminderIntervalMinutes,

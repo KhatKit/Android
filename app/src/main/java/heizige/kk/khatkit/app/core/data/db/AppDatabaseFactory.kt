@@ -14,6 +14,7 @@ import heizige.kk.khatkit.app.core.data.db.migrations.Migration_25_26
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_27_28
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_30_31
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_31_32
+import heizige.kk.khatkit.app.core.data.db.migrations.Migration_32_33
 
 /** Shared schema, migrations and extensions for the app and staged backup validation. */
 internal object AppDatabaseFactory {
@@ -27,6 +28,7 @@ internal object AppDatabaseFactory {
                 Migration_30_31,
                 // C1-P 31→32：ConversationEntity 增 group_cards（导入的角色卡元数据，见 Migration_31_32.kt）
                 Migration_31_32,
+                Migration_32_33,
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {

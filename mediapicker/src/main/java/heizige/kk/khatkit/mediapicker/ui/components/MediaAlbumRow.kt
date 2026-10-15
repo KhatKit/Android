@@ -46,8 +46,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.Composable
@@ -75,6 +73,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
@@ -175,23 +175,23 @@ private fun MediaAlbumChip(
     // 未选中带 outlineVariant 描边），不是 MD3 的 FilterChip —— FilterChip 自带描边
     // 和更大的内边距，视觉上明显不是一个东西。这里用 Surface 复刻它的形态。
     val containerColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer
-        else MaterialTheme.colorScheme.surfaceContainerHigh,
+        targetValue = if (selected) KedgeColors.secondaryContainer
+        else KedgeColors.surfaceContainerHigh,
         label = "albumChipContainer",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-        else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (selected) KedgeColors.onSecondaryContainer
+        else KedgeColors.onSurfaceVariant,
         label = "albumChipContent",
     )
     // 上游 `ColorScheme.outlineVariant()` = onSecondaryContainer @30% 叠在 surfaceContainer 上。
     // 直接用配色里的 outlineVariant 不可靠：有些主题（含 Miuix 桥接）给的是接近透明的
     // 值，chip 就完全看不出边界 —— 这里按上游的算法自己算。
-    val borderColor = MaterialTheme.colorScheme.onSecondaryContainer
+    val borderColor = KedgeColors.onSecondaryContainer
         .copy(alpha = 0.3f)
-        .compositeOver(MaterialTheme.colorScheme.surfaceContainer)
+        .compositeOver(KedgeColors.surfaceContainer)
 
-    Surface(
+    KedgeSurface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
@@ -253,13 +253,13 @@ private fun MediaAlbumChip(
                             .height(100.dp)
                             .width(textWidth)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainer.copy(0.6f)),
+                            .background(KedgeColors.surfaceContainer.copy(0.6f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = album.count.toString(),
                             style = KedgeTextStyles.title().copy(
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = KedgeColors.onSurface,
                                 fontWeight = FontWeight.Bold,
                             ),
                         )

@@ -19,8 +19,6 @@ import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
@@ -34,7 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeListItem
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.kedge.components.KedgeCheckbox
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeSearchBar
@@ -49,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -82,6 +82,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
 import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
@@ -90,8 +91,8 @@ import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.adaptive.KedgePageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.components.KedgeTextField
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -164,11 +165,16 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
     
         md3ScrollBehavior = scrollBehavior,
     ) { it ->
+        // KedgeSearchBar 的 16dp 外边距**只在 MD3 分支自带**（Miuix 分支为 0，由调用点给，
+        // 见组件里 horizontalPadding / topPadding 的注释）。所以这一页的补白必须按风格给：
+        // MD3 再补一层就是 32dp —— 比其它页宽一圈，也和本页 16dp 的列表卡片对不齐。
+        val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(it)
-                .padding(top = 16.dp)
+                .padding(top = if (isMiuix) 16.dp else 0.dp)
                 .consumeWindowInsets(it),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -186,13 +192,18 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
 
             // 助手列表：折叠态挂在页面里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
             val assistantList: @Composable (Modifier) -> Unit = { listModifier ->
+                val cards = listCardStyle()
                 LazyColumn(
                     modifier = listModifier,
                     contentPadding = PaddingValues(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    // 项间距取全局列表卡片样式：整列看起来是一张分组卡片，
+                    // 圆角按 index/count 逐项算（首项只圆上边、末项只圆下边）。
+                    // 这里刻意没用 CardGroup：那一版是一次性把所有项收进 Column，
+                    // 会丢掉 ReorderableItem 需要的「每项一个 lazy item」，长按拖拽排序就没了。
+                    verticalArrangement = Arrangement.spacedBy(cards.gap),
                     state = lazyListState,
                 ) {
-                    lazyItems(filteredAssistants, key = { assistant -> assistant.id }) { assistant ->
+                    lazyItemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->
                         ReorderableItem(
                             state = reorderableState,
                             key = assistant.id,
@@ -204,6 +215,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                 assistant = assistant,
                                 settings = settings,
                                 memories = memories,
+                                shape = cards.indexedShape(index, filteredAssistants.size),
                                 onEdit = {
                                     navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
                                 },
@@ -233,36 +245,23 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     }
 
                     item(key = "new_assistant") {
-                        // 双风格：Miuix 走 PreferenceArrow（miuix-preference 原生行），
-                        // MD3 保持原 Surface。
-                        if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                            PreferenceArrow(
-                                title = stringResource(R.string.assistant_page_new),
-                                icon = add,
-                                onClick = { createState.open(Assistant()) },
-                            )
-                        } else {
-                        KedgeSurface(
+                        // 独立成组：与上面助手组之间留 16dp，圆角自己走全局列表卡片样式。
+                        // 双风格都交给 KedgeOptionItem 内部分流（MD3Exp / Miuix），
+                        // 不再在这里手写 PreferenceArrow 分支。
+                        KedgeOptionItem(
                             onClick = { createState.open(Assistant()) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.large,
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Icon(add, contentDescription = null)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            shape = cards.indexedShape(0, 1),
+                            leadingContent = { Icon(add, contentDescription = null) },
+                            titleContent = {
                                 Text(
                                     text = stringResource(R.string.assistant_page_new),
                                     style = KedgeTextStyles.title(),
                                 )
-                            }
-                        }
-                        }
+                            },
+                        )
                     }
                 }
             }
@@ -277,9 +276,10 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 active = searchExpanded,
                 onActiveChange = { searchExpanded = it },
                 cancelLabel = stringResource(R.string.cancel),
+                // MD3 侧留白由组件自己给（跟提供商/搜索页同款 16dp），Miuix 侧才要调用点补。
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = if (isMiuix) 16.dp else 0.dp),
                 expandedContent = { NoHeroTransition { NoHeroTransition { assistantList(Modifier.fillMaxSize()) } } },
                 // 不传 showResultsWhenEmpty，用默认的 false：点开搜索后先是一片空白，
                 // 输入才把助手列表淡入（"不输入就不展示"）。收起后列表回到页面里，
@@ -353,7 +353,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(checked = cloneWithMemories, onCheckedChange = null)
+            KedgeCheckbox(checked = cloneWithMemories, onCheckedChange = null)
             Text(stringResource(R.string.assistant_page_clone_with_memories))
         }
     }
@@ -487,50 +487,38 @@ private fun AssistantItem(
     assistant: Assistant,
     settings: Settings,
     modifier: Modifier = Modifier,
+    shape: Shape,
     memories: List<AssistantMemory>,
     onEdit: () -> Unit,
     onShowActions: () -> Unit,
 ) {
-    KedgeCard(
+    val displayName = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
+    // 支持行只在真有记忆角标/标签时才占位，空 Row 会在标题下留一道死间距。
+    val hasSupporting = assistant.enableMemory || assistant.tags.isNotEmpty()
+
+    KedgeOptionItem(
         modifier = modifier.fillMaxWidth(),
         onClick = onEdit,
-        shape = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-            // Miuix 列表卡统一 20dp 圆角（对齐 KSU SettingsMiuix 的卡片）
-            RoundedCornerShape(20.dp)
-        } else {
-            CardDefaults.shape
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = CustomColors.listItemColors.containerColor
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        shape = shape,
+        leadingContent = {
             UIAvatar(
-                name = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
+                name = displayName,
                 value = assistant.avatar,
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(40.dp)
                     .heroAnimation("assistant_${assistant.id}")
             )
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-
-                Text(
-                    text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    style = KedgeTextStyles.title(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
+        },
+        titleContent = {
+            Text(
+                text = displayName,
+                style = KedgeTextStyles.title(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        supportingContent = if (hasSupporting) {
+            {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -566,7 +554,10 @@ private fun AssistantItem(
                     }
                 }
             }
-
+        } else {
+            null
+        },
+        trailingContent = {
             KedgeIconButton(
                 onClick = onShowActions,
                 shapes = IconButtonDefaults.shapes(),
@@ -576,8 +567,8 @@ private fun AssistantItem(
                     contentDescription = stringResource(R.string.assistant_page_actions)
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable

@@ -80,6 +80,7 @@ import heizige.kk.khatkit.app.core.ui.hooks.rememberCustomAsrState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCustomTtsState
 import heizige.kk.khatkit.app.feature.assistant.AssistantPage
 import heizige.kk.khatkit.app.feature.download.DownloadCenterPage
+import heizige.kk.khatkit.app.feature.tasks.CardRunsPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantBasicPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantDetailPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantExtensionsPage
@@ -546,6 +547,10 @@ class RouteActivity : ComponentActivity() {
                                 ExploreLocalPage()
                             }
 
+                            entry<Screen.CardRuns> {
+                                CardRunsPage()
+                            }
+
                             entry<Screen.SettingDonate> {
                                 SettingDonatePage()
                             }
@@ -805,6 +810,9 @@ sealed interface Screen : NavKey {
     /** 本地二级页：本机内容与已安装内容（不走远端市场索引）。 */
     @Serializable
     data object ExploreLocal : Screen
+
+    @Serializable
+    data object CardRuns : Screen
 
     @Serializable
     data object SettingDonate : Screen

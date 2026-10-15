@@ -28,6 +28,8 @@ import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
+import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
+import heizige.kk.khatkit.app.core.data.db.entity.CardRunEntity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitSchemaFormSpec
 import heizige.kk.khatkit.app.core.ui.components.khatkit.fillSchemaArgs
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
@@ -103,6 +105,7 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import java.io.File
 import java.io.FileOutputStream
+import java.util.UUID
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
@@ -166,6 +169,7 @@ class KhatKitToolProvider(
     private val json: Json,
     private val providerManager: ProviderManager,
     private val settingsRepository: SettingsRepository,
+    private val cardRunDao: CardRunDAO,
 ) : KhatKitController {
     private val appContext = context.applicationContext
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
@@ -429,14 +433,54 @@ class KhatKitToolProvider(
         trigger: String = "AI",
         uiSchema: JsonObject? = null,
     ): EngineResult {
+        val runId = UUID.randomUUID().toString()
+        val queuedAt = System.currentTimeMillis()
+        val argsSummary = args.keys.sorted().joinToString(", ")
+        runCatching {
+            cardRunDao.insert(
+                CardRunEntity(
+                    id = runId,
+                    cardName = card.manifest.name,
+                    cardVersion = card.manifest.version,
+                    trigger = trigger,
+                    status = CardRunEntity.QUEUED,
+                    startedAt = queuedAt,
+                    updatedAt = queuedAt,
+                    argsSummary = argsSummary,
+                ),
+            )
+        }
         // §8 P0-6：缺必填 UI 参数时先用宿主 schema 表单补齐，再走下面同一条执行/审批/计量链路
         val arguments = fillCardArgs(card, args, trigger, uiSchema)
+        runCatching { cardRunDao.updateStatus(runId, CardRunEntity.PREPARING, System.currentTimeMillis()) }
         if (AutomationBus.isCancelRequested()) {
+            runCatching {
+                cardRunDao.finish(
+                    runId,
+                    CardRunEntity.CANCELLED,
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis(),
+                    "",
+                    "CARD_CANCELLED",
+                    "用户已停止自动化",
+                )
+            }
             AutomationBus.finish()
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
         // 兜底闸门：vFlow 未配置时即使 AI 拿到了卡片名也不运行，避免脚本 pop ui.form 配置表单
         if (trigger == "AI" && isVflowCard(card.manifest.name) && !vflowConfigured()) {
+            runCatching {
+                cardRunDao.finish(
+                    runId,
+                    CardRunEntity.FAILED,
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis(),
+                    "",
+                    "VFLOW_NOT_CONFIGURED",
+                    VFLOW_NOT_CONFIGURED_HINT,
+                )
+            }
             return EngineResult.Err("VFLOW_NOT_CONFIGURED", VFLOW_NOT_CONFIGURED_HINT)
         }
         AutomationBus.begin()
@@ -454,10 +498,12 @@ class KhatKitToolProvider(
                 when (decision) {
                     is HubAuthorizeOutcome.Denied -> {
                         Log.w(TAG, "Hub 拒绝工具调用：${manifest.name}（${decision.message}）")
-                        return EngineResult.Err(
+                        val denied = EngineResult.Err(
                             "CARD_QUOTA",
                             "套餐工具次数不足/令牌无效：${decision.message}（卡片：${manifest.name}）",
                         )
+                        recordCardRunFinished(runId, denied)
+                        return denied
                     }
 
                     is HubAuthorizeOutcome.Unavailable ->
@@ -468,18 +514,47 @@ class KhatKitToolProvider(
             }
 
             AutomationBus.update("正在运行卡片：${card.manifest.name}")
+            runCatching { cardRunDao.updateStatus(runId, CardRunEntity.RUNNING, System.currentTimeMillis()) }
             val category = cardApprovalCategory(card)
             if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger", category)) {
-                return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
+                val denied = EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
+                recordCardRunFinished(runId, denied)
+                return denied
             }
             val startedAt = System.currentTimeMillis()
             val result = runManager.run(card, arguments)
+            recordCardRunFinished(runId, result)
             if (!hubToken.isNullOrBlank()) {
                 reportToolCallAsync(hubToken, manifest, price, trigger, startedAt, result)
             }
             return result
         } finally {
             AutomationBus.finish()
+        }
+    }
+
+    private suspend fun recordCardRunFinished(runId: String, result: EngineResult) {
+        val now = System.currentTimeMillis()
+        when (result) {
+            is EngineResult.Ok -> cardRunDao.finish(
+                runId,
+                CardRunEntity.SUCCEEDED,
+                now,
+                now,
+                result.value.keys.joinToString(", "),
+                null,
+                null,
+            )
+
+            is EngineResult.Err -> cardRunDao.finish(
+                runId,
+                if (result.code == "CARD_CANCELLED") CardRunEntity.CANCELLED else CardRunEntity.FAILED,
+                now,
+                now,
+                "",
+                result.code,
+                result.message,
+            )
         }
     }
 

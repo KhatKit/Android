@@ -4,13 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -24,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
@@ -36,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.QuickMessage
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -74,10 +74,14 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
             }
         },
     ) { innerPadding ->
+        // 与助手列表/提供商列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
+        // （首项只圆上边、末项只圆下边、中间项直角），项间距取全局列表卡片样式。
+        // 刻意不用 CardGroup —— 那会把所有项收进一个 Column，丢掉「每项一个 lazy item」。
+        val cards = listCardStyle()
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             if (settings.quickMessages.isEmpty()) {
                 item {
@@ -108,9 +112,10 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
                 }
             }
 
-            items(settings.quickMessages, key = { it.id }) { quickMessage ->
-                QuickMessageCard(
+            lazyItemsIndexed(settings.quickMessages, key = { _, quickMessage -> quickMessage.id }) { index, quickMessage ->
+                QuickMessageItem(
                     quickMessage = quickMessage,
+                    shape = cards.indexedShape(index, settings.quickMessages.size),
                     onEdit = { editTarget = quickMessage },
                     onDelete = { deleteTarget = quickMessage },
                 )
@@ -163,49 +168,47 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun QuickMessageCard(
+private fun QuickMessageItem(
     quickMessage: QuickMessage,
+    shape: Shape,
+    modifier: Modifier = Modifier,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    KedgeCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CustomColors.cardColorsOnSurfaceContainer,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    KedgeOptionItem(
+        // 整行原本就不可点（编辑/删除都走右侧「更多」菜单），所以传 null：
+        // 两种风格下都是纯信息行，没有按压回弹。底色走组件默认，不再自己上 cardColors。
+        onClick = null,
+        modifier = modifier.fillMaxWidth(),
+        shape = shape,
+        leadingContent = {
             Icon(
                 imageVector = bolt,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = quickMessage.title.ifBlank { stringResource(R.string.quick_messages_page_untitled) },
-                    style = KedgeTextStyles.title(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = quickMessage.content.ifBlank { stringResource(R.string.quick_messages_page_empty_content) },
-                    style = KedgeTextStyles.body(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+        },
+        titleContent = {
+            Text(
+                text = quickMessage.title.ifBlank { stringResource(R.string.quick_messages_page_untitled) },
+                style = KedgeTextStyles.title(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = {
+            Text(
+                text = quickMessage.content.ifBlank { stringResource(R.string.quick_messages_page_empty_content) },
+                style = KedgeTextStyles.body(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        trailingContent = {
             Box {
                 KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
@@ -246,8 +249,8 @@ private fun QuickMessageCard(
                     )
                 }
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable

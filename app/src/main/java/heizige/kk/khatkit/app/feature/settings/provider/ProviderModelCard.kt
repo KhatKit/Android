@@ -17,14 +17,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.SwipeToDismissBox
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
+import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,7 +73,7 @@ internal fun ModelCard(
     val dialogState = useEditState<Model> {
         onEdit(it.copy(displayName = it.displayName.trim()))
     }
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
+    val swipeToDismissBoxState = rememberKedgeSwipeToDismissState()
     val scope = rememberCoroutineScope()
 
     if (dialogState.isEditing) {
@@ -120,7 +121,7 @@ internal fun ModelCard(
         }
     }
 
-    SwipeToDismissBox(
+    KedgeSwipeToDismissBox(
         state = swipeToDismissBoxState,
         backgroundContent = {
             Row(
@@ -164,7 +165,7 @@ internal fun ModelCard(
         // OutlinedCard 在 Miuix 下不画（Miuix 的 Card 没有描边变体），
         // 统一走 KedgeCard + BorderStroke，MD3 侧观感与原来一致。
         KedgeCard(
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            border = BorderStroke(1.dp, KedgeColors.outlineVariant),
         ) {
             Row(
                 modifier = Modifier
@@ -174,7 +175,7 @@ internal fun ModelCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 KedgeSurface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    color = KedgeColors.secondaryContainer,
                     shape = MaterialTheme.shapes.small,
                 ) {
                     AutoAIIcon(
@@ -244,7 +245,7 @@ internal fun BuiltInToolsSettings(
         Text(
             text = stringResource(R.string.setting_page_built_in_tools_desc),
             style = KedgeTextStyles.body(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = KedgeColors.onSurfaceVariant
         )
 
         val availableTools = listOf(
@@ -305,7 +306,7 @@ internal fun ProviderOverrideSettings(
         Text(
             text = stringResource(R.string.setting_provider_page_provider_override_desc),
             style = KedgeTextStyles.body(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = KedgeColors.onSurfaceVariant
         )
 
         if (providerOverride != null) {

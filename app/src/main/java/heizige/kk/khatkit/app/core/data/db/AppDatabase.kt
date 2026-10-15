@@ -7,6 +7,7 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
+import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
 import heizige.kk.khatkit.app.core.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GenMediaDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GroupRunDAO
@@ -18,6 +19,7 @@ import heizige.kk.khatkit.app.core.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.core.data.db.dao.WorkflowDao
 import heizige.kk.khatkit.app.core.data.db.dao.WorkspaceDAO
 import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
+import heizige.kk.khatkit.app.core.data.db.entity.CardRunEntity
 import heizige.kk.khatkit.app.core.data.db.entity.FolderEntity
 import heizige.kk.khatkit.app.core.data.db.entity.GenMediaEntity
 import heizige.kk.khatkit.app.core.data.db.entity.GroupRunEntity
@@ -57,8 +59,9 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         WorkflowRunEntity::class,
         WorkflowRunStepEntity::class,
         GroupRunEntity::class,
+        CardRunEntity::class,
     ],
-    version = 32,
+    version = 33,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -117,6 +120,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workflowDao(): WorkflowDao
 
     abstract fun groupRunDao(): GroupRunDAO
+
+    abstract fun cardRunDao(): CardRunDAO
 }
 
 object TokenUsageConverter {

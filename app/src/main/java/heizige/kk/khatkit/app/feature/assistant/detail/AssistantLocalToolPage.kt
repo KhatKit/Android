@@ -36,9 +36,8 @@ import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.app.core.util.openUsageAccessSettings
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -146,54 +145,134 @@ private fun AssistantLocalToolContent(
             .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        KedgeFormCard {
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_javascript_engine_title),
-                summary = stringResource(R.string.assistant_page_local_tools_javascript_engine_desc),
-                checked = assistant.localTools.contains(LocalToolOption.JavascriptEngine),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.JavascriptEngine, it) },
+        CardGroup {
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.JavascriptEngine),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.JavascriptEngine, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.JavascriptEngine,
+                        !assistant.localTools.contains(LocalToolOption.JavascriptEngine),
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_time_info_title),
-                summary = stringResource(R.string.assistant_page_local_tools_time_info_desc),
-                checked = assistant.localTools.contains(LocalToolOption.TimeInfo),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.TimeInfo, it) },
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_time_info_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_time_info_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.TimeInfo),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.TimeInfo, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.TimeInfo,
+                        !assistant.localTools.contains(LocalToolOption.TimeInfo),
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_clipboard_title),
-                summary = stringResource(R.string.assistant_page_local_tools_clipboard_desc),
-                checked = assistant.localTools.contains(LocalToolOption.Clipboard),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.Clipboard, it) },
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_clipboard_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_clipboard_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.Clipboard),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Clipboard, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.Clipboard,
+                        !assistant.localTools.contains(LocalToolOption.Clipboard),
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_tts_title),
-                summary = stringResource(R.string.assistant_page_local_tools_tts_desc),
-                checked = assistant.localTools.contains(LocalToolOption.Tts),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.Tts, it) },
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_tts_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_tts_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.Tts),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Tts, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.Tts,
+                        !assistant.localTools.contains(LocalToolOption.Tts),
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_ask_user_title),
-                summary = stringResource(R.string.assistant_page_local_tools_ask_user_desc),
-                checked = assistant.localTools.contains(LocalToolOption.AskUser),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.AskUser, it) },
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_ask_user_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_ask_user_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.AskUser),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.AskUser, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.AskUser,
+                        !assistant.localTools.contains(LocalToolOption.AskUser),
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_screen_time_title),
-                summary = stringResource(R.string.assistant_page_local_tools_screen_time_desc),
-                checked = assistant.localTools.contains(LocalToolOption.ScreenTime),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.ScreenTime, it) },
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_screen_time_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_screen_time_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.ScreenTime),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.ScreenTime, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.ScreenTime,
+                        !assistant.localTools.contains(LocalToolOption.ScreenTime),
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_calendar_title),
-                summary = stringResource(R.string.assistant_page_local_tools_calendar_desc),
-                checked = assistant.localTools.contains(LocalToolOption.Calendar),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.Calendar, it) },
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_calendar_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_calendar_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.Calendar),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Calendar, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.Calendar,
+                        !assistant.localTools.contains(LocalToolOption.Calendar),
+                    )
+                },
             )
-            PreferenceSwitch(
-                title = stringResource(R.string.assistant_page_local_tools_chart_display_title),
-                summary = stringResource(R.string.assistant_page_local_tools_chart_display_desc),
-                checked = assistant.localTools.contains(LocalToolOption.ChartDisplay),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.ChartDisplay, it) },
+            item(
+                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_chart_display_title)) },
+                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_chart_display_desc)) },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.localTools.contains(LocalToolOption.ChartDisplay),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.ChartDisplay, it) },
+                    )
+                },
+                onClick = {
+                    toggleLocalTool(
+                        LocalToolOption.ChartDisplay,
+                        !assistant.localTools.contains(LocalToolOption.ChartDisplay),
+                    )
+                },
             )
         }
     }

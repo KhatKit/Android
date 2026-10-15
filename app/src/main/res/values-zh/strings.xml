@@ -63,6 +63,9 @@
   <string name="explore_market_clear_search">清空搜索</string>
   <string name="explore_market_search_cards_hint">搜索卡片名称、摘要</string>
   <string name="explore_market_local_page_title">本地</string>
+  <string name="card_runs_title">任务</string>
+  <string name="card_runs_empty">还没有运行记录</string>
+  <string name="card_runs_rerun">再次运行</string>
   <string name="explore_market_footer_syncing">正在同步探索流…</string>
   <string name="explore_market_footer_end">已经到底了</string>
   <string name="explore_market_empty_title">这里还是空的</string>

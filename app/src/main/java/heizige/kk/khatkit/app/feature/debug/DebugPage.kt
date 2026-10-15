@@ -63,7 +63,10 @@ import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
@@ -282,44 +285,51 @@ private fun MainPage(vm: DebugViewModel) {
 
 @Composable
 private fun ColorsPage() {
-    val colorScheme = MaterialTheme.colorScheme
-    val colorTokens = remember(colorScheme) {
-        listOf(
-            "primary" to colorScheme.primary,
-            "onPrimary" to colorScheme.onPrimary,
-            "primaryContainer" to colorScheme.primaryContainer,
-            "onPrimaryContainer" to colorScheme.onPrimaryContainer,
+    // 必须走 KedgeColors：Miuix 模式下 KedgeTheme 只包了 MiuixTheme，直读
+    // MaterialTheme.colorScheme 拿到的是 Compose 兜底的亮色方案，暗色主题下
+    // 这一页会白得发光。
+    val coreTokens = listOf(
+        "primary" to KedgeColors.primary,
+        "onPrimary" to KedgeColors.onPrimary,
+        "primaryContainer" to KedgeColors.primaryContainer,
+        "onPrimaryContainer" to KedgeColors.onPrimaryContainer,
+        "secondary" to KedgeColors.secondary,
+        "onSecondary" to KedgeColors.onSecondary,
+        "secondaryContainer" to KedgeColors.secondaryContainer,
+        "onSecondaryContainer" to KedgeColors.onSecondaryContainer,
+        "tertiary" to KedgeColors.tertiary,
+        "onTertiary" to KedgeColors.onTertiary,
+        "tertiaryContainer" to KedgeColors.tertiaryContainer,
+        "onTertiaryContainer" to KedgeColors.onTertiaryContainer,
+        "background" to KedgeColors.background,
+        "onBackground" to KedgeColors.onBackground,
+        "surface" to KedgeColors.surface,
+        "onSurface" to KedgeColors.onSurface,
+        "surfaceVariant" to KedgeColors.surfaceVariant,
+        "onSurfaceVariant" to KedgeColors.onSurfaceVariant,
+        "surfaceContainer" to KedgeColors.surfaceContainer,
+        "surfaceContainerHigh" to KedgeColors.surfaceContainerHigh,
+        "surfaceContainerHighest" to KedgeColors.surfaceContainerHighest,
+        "error" to KedgeColors.error,
+        "onError" to KedgeColors.onError,
+        "errorContainer" to KedgeColors.errorContainer,
+        "onErrorContainer" to KedgeColors.onErrorContainer,
+        "outline" to KedgeColors.outline,
+        "outlineVariant" to KedgeColors.outlineVariant,
+    )
+    // MD3 专有 token（inverse/surfaceTint/Fixed* 等）没有 Miuix 对应项，
+    // 只在 MD3Exp 列出，免得在 Miuix 下展示兜底的假色。
+    val colorTokens = if (LocalKedgeStyle.current == KedgeStyle.MD3Exp) {
+        val colorScheme = MaterialTheme.colorScheme
+        coreTokens + listOf(
             "inversePrimary" to colorScheme.inversePrimary,
-            "secondary" to colorScheme.secondary,
-            "onSecondary" to colorScheme.onSecondary,
-            "secondaryContainer" to colorScheme.secondaryContainer,
-            "onSecondaryContainer" to colorScheme.onSecondaryContainer,
-            "tertiary" to colorScheme.tertiary,
-            "onTertiary" to colorScheme.onTertiary,
-            "tertiaryContainer" to colorScheme.tertiaryContainer,
-            "onTertiaryContainer" to colorScheme.onTertiaryContainer,
-            "background" to colorScheme.background,
-            "onBackground" to colorScheme.onBackground,
-            "surface" to colorScheme.surface,
-            "onSurface" to colorScheme.onSurface,
-            "surfaceVariant" to colorScheme.surfaceVariant,
-            "onSurfaceVariant" to colorScheme.onSurfaceVariant,
             "surfaceTint" to colorScheme.surfaceTint,
             "inverseSurface" to colorScheme.inverseSurface,
             "inverseOnSurface" to colorScheme.inverseOnSurface,
             "surfaceBright" to colorScheme.surfaceBright,
             "surfaceDim" to colorScheme.surfaceDim,
-            "surfaceContainer" to colorScheme.surfaceContainer,
-            "surfaceContainerHigh" to colorScheme.surfaceContainerHigh,
-            "surfaceContainerHighest" to colorScheme.surfaceContainerHighest,
             "surfaceContainerLow" to colorScheme.surfaceContainerLow,
             "surfaceContainerLowest" to colorScheme.surfaceContainerLowest,
-            "error" to colorScheme.error,
-            "onError" to colorScheme.onError,
-            "errorContainer" to colorScheme.errorContainer,
-            "onErrorContainer" to colorScheme.onErrorContainer,
-            "outline" to colorScheme.outline,
-            "outlineVariant" to colorScheme.outlineVariant,
             "scrim" to colorScheme.scrim,
             "primaryFixed" to colorScheme.primaryFixed,
             "primaryFixedDim" to colorScheme.primaryFixedDim,
@@ -334,6 +344,8 @@ private fun ColorsPage() {
             "onTertiaryFixed" to colorScheme.onTertiaryFixed,
             "onTertiaryFixedVariant" to colorScheme.onTertiaryFixedVariant,
         )
+    } else {
+        coreTokens
     }
     LazyColumn(
         contentPadding = PaddingValues(8.dp),
@@ -351,7 +363,7 @@ private fun ColorTokenItem(name: String, color: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .border(1.dp, KedgeColors.outlineVariant, shape)
             .clip(shape)
             .padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -363,7 +375,7 @@ private fun ColorTokenItem(name: String, color: Color) {
                 .weight(1f)
                 .clip(RoundedCornerShape(4.dp))
                 .background(color)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
+                .border(1.dp, KedgeColors.outlineVariant, RoundedCornerShape(4.dp))
         )
         Column(modifier = Modifier.weight(2f)) {
             Text(name, style = KedgeTextStyles.body())
@@ -371,7 +383,7 @@ private fun ColorTokenItem(name: String, color: Color) {
                 color.toHexString(),
                 style = KedgeTextStyles.body(),
                 fontFamily = JetbrainsMono,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = KedgeColors.onSurfaceVariant,
             )
         }
     }

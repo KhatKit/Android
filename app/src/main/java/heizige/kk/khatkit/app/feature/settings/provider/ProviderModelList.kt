@@ -42,13 +42,11 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable

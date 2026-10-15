@@ -28,6 +28,7 @@ import heizige.kk.khatkit.app.core.data.sync.BackupManager
 import heizige.kk.khatkit.app.core.data.db.AppDatabaseFactory
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
 import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
+import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
 import heizige.kk.khatkit.app.core.data.db.dao.FolderDAO
 import heizige.kk.khatkit.app.core.data.db.dao.GenMediaDAO
 import heizige.kk.khatkit.app.core.data.db.dao.ManagedFileDAO
@@ -86,6 +87,10 @@ object DataSourceHiltModule {
     @Provides
     @Singleton
     fun provideConversationDao(database: AppDatabase): ConversationDAO = database.conversationDao()
+
+    @Provides
+    @Singleton
+    fun provideCardRunDao(database: AppDatabase): CardRunDAO = database.cardRunDao()
 
     @Provides
     @Singleton

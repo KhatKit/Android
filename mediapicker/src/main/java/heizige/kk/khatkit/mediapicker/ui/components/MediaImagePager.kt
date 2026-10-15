@@ -30,8 +30,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -59,6 +57,8 @@ import com.jvziyaoyao.scale.zoomable.pager.PagerGestureScope
 import com.jvziyaoyao.scale.zoomable.pager.rememberZoomablePagerState
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.Media
+import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 上滑关闭的阈值（px）。 */
@@ -231,14 +231,15 @@ private fun MediaImagePagerContent(
                     )
                     if (item.fileSize > 0) {
                         Spacer(Modifier.width(8.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                        KedgeSurface(
+                            color = KedgeColors.primaryContainer,
+                            contentColor = KedgeColors.onPrimaryContainer,
                             shape = CircleShape,
                         ) {
                             Text(
                                 text = item.humanFileSize,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = KedgeColors.onPrimaryContainer,
                                 style = KedgeTextStyles.footnoteSmall(),
                             )
                         }

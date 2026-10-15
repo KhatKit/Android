@@ -74,8 +74,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -168,7 +168,7 @@ fun SettingTriggersPage() {
     }
 
     if (showAiDialog) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { showAiDialog = false },
             title = { Text("AI 介入点") },
             text = {
