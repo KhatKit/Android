@@ -1264,7 +1264,7 @@
   <string name="setting_page_permissions">权限</string>
   <string name="setting_page_permissions_desc">通知、定位、无障碍</string>
   <string name="setting_page_preferences_theme">主题</string>
-  <string name="setting_page_preferences_theme_desc">动态配色、主题、AMOLED</string>
+  <string name="setting_page_preferences_theme_desc">颜色模式、动态配色、主题、界面风格、卡片样式</string>
   <string name="setting_page_preferences_notification">通知</string>
   <string name="setting_page_preferences_notification_desc">更新提醒、消息通知</string>
   <string name="setting_page_preferences_general">常规</string>

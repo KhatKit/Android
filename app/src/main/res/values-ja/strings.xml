@@ -1043,7 +1043,7 @@
   <string name="setting_page_permissions">権限</string>
   <string name="setting_page_permissions_desc">通知、位置、無障害</string>
   <string name="setting_page_preferences_theme">テーマ</string>
-  <string name="setting_page_preferences_theme_desc">ダイナミックカラー、テーマ、AMOLED</string>
+  <string name="setting_page_preferences_theme_desc">カラーモード、ダイナミックカラー、テーマ、スタイル、カード</string>
   <string name="setting_page_preferences_notification">通知</string>
   <string name="setting_page_preferences_notification_desc">更新通知、応答通知</string>
   <string name="setting_page_preferences_general">一般</string>

@@ -1,7 +1,9 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khromia.components.AnimatedRadioButton
 import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.components.ExpandableOptionItem
+import heizige.kk.khromia.components.FancySlider
 import heizige.kk.khromia.text.OptionsText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
@@ -47,10 +51,13 @@ import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
@@ -62,6 +69,11 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var amoledDarkMode by rememberAmoledDarkMode()
     val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()
+    // 界面风格 / 毛玻璃两项的落点是同一个 provider（`KhatKitToolProvider.uiStyle` /
+    // `enableBlur`）。这里直接读它的 state，不做 remember 缓存，否则别处切风格后本页不同步。
+    val khatKitProvider: heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider =
+        rememberAppEntryPoint().khatKitToolProvider()
+    val uiStyle = khatKitProvider.uiStyle
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showCustomColor by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf(PresetThemes.first().standardLight.primary) }
@@ -146,6 +158,132 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                                 checked = amoledDarkMode,
                                 onCheckedChange = { amoledDarkMode = it }
                             )
+                        },
+                    )
+                }
+            }
+
+            // 下面三组原先在「设置 → 偏好设置 → 界面」（`SettingPreferencesUIPage.kt`），
+            // 按外观归属迁进主题偏好页：界面风格、毛玻璃、列表卡片样式。控件与持久化字段
+            // 逐字未改 —— 风格/毛玻璃仍写 `KhatKitToolProvider`，卡片样式仍写
+            // `Settings.listCardLargeCorner/listCardSmallCorner/listCardGap`。
+            item {
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    title = { Text(stringResource(R.string.greeting_settings_ui_style)) },
+                ) {
+                    KhatKitUiStyle.entries.forEach { style ->
+                        item(
+                            headlineContent = {
+                                Text(if (style == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix")
+                            },
+                            trailingContent = {
+                                AnimatedRadioButton(
+                                    selected = uiStyle == style,
+                                    onClick = null,
+                                )
+                            },
+                            onClick = { khatKitProvider.uiStyle = style },
+                        )
+                    }
+                }
+            }
+
+            item {
+                // 毛玻璃开关：MD3 顶栏不做模糊，但该设置对 Miuix 生效，保留可改。
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) {
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_page_blur_title)) },
+                        trailingContent = {
+                            OptionSwitch(
+                                checked = khatKitProvider.enableBlur,
+                                onCheckedChange = { khatKitProvider.enableBlur = it },
+                            )
+                        },
+                    )
+                }
+            }
+
+            item {
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    title = { Text(stringResource(R.string.setting_page_list_card_settings)) },
+                ) {
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_corner_large)) },
+                        supportingContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                FancySlider(
+                                    value = settings.listCardLargeCorner,
+                                    onValueChange = {
+                                        val large = it.roundToInt().toFloat()
+                                        vm.updateSettings(
+                                            settings.copy(
+                                                listCardLargeCorner = large,
+                                                listCardSmallCorner = settings.listCardSmallCorner
+                                                    .coerceAtMost(large),
+                                            )
+                                        )
+                                    },
+                                    valueRange = 8f..40f,
+                                    steps = 31,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(text = "${settings.listCardLargeCorner.roundToInt()}dp")
+                            }
+                        },
+                    )
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_corner_small)) },
+                        supportingContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                FancySlider(
+                                    value = settings.listCardSmallCorner,
+                                    onValueChange = {
+                                        vm.updateSettings(
+                                            settings.copy(listCardSmallCorner = it.roundToInt().toFloat())
+                                        )
+                                    },
+                                    valueRange = 0f..settings.listCardLargeCorner.coerceAtLeast(1f),
+                                    steps = (settings.listCardLargeCorner.roundToInt().coerceAtLeast(1) - 1)
+                                        .coerceAtLeast(0),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(text = "${settings.listCardSmallCorner.roundToInt()}dp")
+                            }
+                        },
+                    )
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_gap)) },
+                        supportingContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                FancySlider(
+                                    value = settings.listCardGap,
+                                    onValueChange = {
+                                        vm.updateSettings(
+                                            settings.copy(listCardGap = it.roundToInt().toFloat())
+                                        )
+                                    },
+                                    valueRange = 0f..16f,
+                                    steps = 15,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(text = "${settings.listCardGap.roundToInt()}dp")
+                            }
                         },
                     )
                 }

@@ -1039,7 +1039,7 @@
   <string name="setting_page_permissions">Разрешения</string>
   <string name="setting_page_permissions_desc">Уведомления, местоположение, доступность</string>
   <string name="setting_page_preferences_theme">Тема</string>
-  <string name="setting_page_preferences_theme_desc">Динамический цвет, тема, AMOLED</string>
+  <string name="setting_page_preferences_theme_desc">Цветовой режим, динамический цвет, тема, стиль, карточки</string>
   <string name="setting_page_preferences_notification">Уведомления</string>
   <string name="setting_page_preferences_notification_desc">Оповещения об обновлениях и ответах</string>
   <string name="setting_page_preferences_general">Общие</string>

@@ -16,6 +16,9 @@ import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
 import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
 import heizige.kk.khatkit.app.feature.settings.components.ThemeColorSettingGroupMiuix
+import heizige.kk.khatkit.app.feature.settings.components.BlurToggleGroupMiuix
+import heizige.kk.khatkit.app.feature.settings.components.ListCardStyleGroupMiuix
+import heizige.kk.khatkit.app.feature.settings.components.UiStyleGroupMiuix
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode as UiColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
@@ -64,6 +67,37 @@ fun SettingPreferencesThemePageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 summary = stringResource(R.string.setting_display_page_amoled_dark_mode_desc),
                 checked = amoledDarkMode,
                 onCheckedChange = { amoledDarkMode = it },
+            )
+        }
+        // 下面三组原先在「设置 → 偏好设置 → 界面」（`SettingPreferencesUIPageMiuix.kt`），
+        // 按外观归属迁进主题偏好页：界面风格、毛玻璃、列表卡片样式。三个组件本身没动，
+        // 仍是 `SettingPreferencesUIComponentsMiuix.kt` 里那一份（风格/毛玻璃写
+        // `KhatKitToolProvider`，卡片样式写 `Settings.listCard*`）。
+        miuixGroup {
+            UiStyleGroupMiuix()
+        }
+        miuixGroup {
+            BlurToggleGroupMiuix()
+        }
+        miuixGroup {
+            ListCardStyleGroupMiuix(
+                largeCorner = settings.listCardLargeCorner,
+                smallCorner = settings.listCardSmallCorner,
+                gap = settings.listCardGap,
+                onUpdateLargeCorner = { large ->
+                    vm.updateSettings(
+                        settings.copy(
+                            listCardLargeCorner = large,
+                            listCardSmallCorner = settings.listCardSmallCorner.coerceAtMost(large),
+                        )
+                    )
+                },
+                onUpdateSmallCorner = { small ->
+                    vm.updateSettings(settings.copy(listCardSmallCorner = small))
+                },
+                onUpdateGap = { gap ->
+                    vm.updateSettings(settings.copy(listCardGap = gap))
+                },
             )
         }
     }

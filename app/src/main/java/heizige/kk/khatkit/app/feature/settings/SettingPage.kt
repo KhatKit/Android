@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -53,14 +52,11 @@ import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.icons.DiscordIcon
 import heizige.kk.khatkit.app.core.ui.icons.TencentQQIcon
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.Navigator
-import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.joinQQGroup
 import heizige.kk.khatkit.app.core.util.openUrl
@@ -82,7 +78,6 @@ import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.groups
-import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
@@ -135,38 +130,13 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
             }
 
             item("themeMode") {
-                val colorMode = rememberColorMode()
-                val selectedColorModeText = when (colorMode.value) {
-                    ColorMode.SYSTEM -> stringResource(R.string.setting_page_color_mode_system)
-                    ColorMode.LIGHT -> stringResource(R.string.setting_page_color_mode_light)
-                    ColorMode.DARK -> stringResource(R.string.setting_page_color_mode_dark)
-                }
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    item(
-                        leadingContent = { Icon(lightMode, null) },
-                        trailingContent = {
-                            Select(
-                                options = ColorMode.entries,
-                                selectedOption = colorMode.value,
-                                onOptionSelected = { colorMode.value = it },
-                                optionToString = {
-                                    when (it) {
-                                        ColorMode.SYSTEM -> stringResource(R.string.setting_page_color_mode_system)
-                                        ColorMode.LIGHT -> stringResource(R.string.setting_page_color_mode_light)
-                                        ColorMode.DARK -> stringResource(R.string.setting_page_color_mode_dark)
-                                    }
-                                },
-                                modifier = Modifier.width(150.dp)
-                            )
-                        },
-                        headlineContent = { Text(stringResource(R.string.setting_page_color_mode)) },
-                        supportingContent = { Text(selectedColorModeText) },
-                    )
+                    // 颜色模式原先在这一格（Select 三选），按外观归属迁进「设置 → 主题 →
+                    // 主题偏好设置」（`SettingPreferencesThemePage.kt` 首组），主页只留主题 hub 入口。
                     // #4「主题」hub：与 Miuix 主页同一个目标（Screen.SettingThemes）与同一组
-                    // 资源键（setting_page_themes / _desc），图标同 dashboard。与上面的外观三选
-                    // 并存（用户裁定「并集补齐」，不是二选一）。
+                    // 资源键（setting_page_themes / _desc），图标同 dashboard。
                     item(
                         onClick = { navController.navigate(Screen.SettingThemes) },
                         leadingContent = { Icon(dashboard, null) },

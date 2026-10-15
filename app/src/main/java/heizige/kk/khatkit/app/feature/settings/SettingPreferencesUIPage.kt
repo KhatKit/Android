@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import heizige.kk.khromia.components.AnimatedRadioButton
 import android.content.Context
 import android.graphics.Typeface
 import android.net.Uri
@@ -20,7 +19,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.FancySlider
-import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
@@ -65,7 +63,6 @@ import java.io.File
 import kotlin.math.roundToInt
 import heizige.kk.khatkit.app.core.ui.icons.deleteForever
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 @Composable
 fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
@@ -79,10 +76,6 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val chatFontFamily = rememberChatFontFamily(displaySetting)
-    val khatKitProvider: heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider =
-        rememberAppEntryPoint().khatKitToolProvider()
-    // 直接观察 provider 的 state，不要 remember 缓存，否则别处切换风格后这里不同步。
-    val uiStyle = khatKitProvider.uiStyle
 
     fun updateDisplaySetting(setting: DisplaySetting) {
         displaySetting = setting
@@ -376,128 +369,6 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                             checked = displaySetting.showLineNumbers,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showLineNumbers = it)) },
                         )
-                    )
-                }
-            }
-
-            item {
-                // 毛玻璃开关：与 Miuix 版共用 provider，MD3 风格下也可见可改
-                // （MD3 顶栏不做模糊，但保留该设置便于切到 Miuix 时直接生效）。
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_page_blur_title,
-                            null,
-                            checked = khatKitProvider.enableBlur,
-                            onCheckedChange = { khatKitProvider.enableBlur = it },
-                        )
-                    )
-                }
-            }
-
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text(stringResource(R.string.greeting_settings_ui_style)) },
-                ) {
-                    heizige.kk.khatkit.uikit.KhatKitUiStyle.entries.forEach { style ->
-                        item(
-                            headlineContent = {
-                                Text(if (style == heizige.kk.khatkit.uikit.KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix")
-                            },
-                            trailingContent = {
-                                AnimatedRadioButton(
-                                    selected = uiStyle == style,
-                                    onClick = null,
-                                )
-                            },
-                            onClick = { khatKitProvider.uiStyle = style },
-                        )
-                    }
-                }
-            }
-
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text(stringResource(R.string.setting_page_list_card_settings)) },
-                ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_corner_large)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                FancySlider(
-                                    value = settings.listCardLargeCorner,
-                                    onValueChange = {
-                                        val large = it.roundToInt().toFloat()
-                                        vm.updateSettings(
-                                            settings.copy(
-                                                listCardLargeCorner = large,
-                                                listCardSmallCorner = settings.listCardSmallCorner
-                                                    .coerceAtMost(large),
-                                            )
-                                        )
-                                    },
-                                    valueRange = 8f..40f,
-                                    steps = 31,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(text = "${settings.listCardLargeCorner.roundToInt()}dp")
-                            }
-                        },
-                    )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_corner_small)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                FancySlider(
-                                    value = settings.listCardSmallCorner,
-                                    onValueChange = {
-                                        vm.updateSettings(
-                                            settings.copy(listCardSmallCorner = it.roundToInt().toFloat())
-                                        )
-                                    },
-                                    valueRange = 0f..settings.listCardLargeCorner.coerceAtLeast(1f),
-                                    steps = (settings.listCardLargeCorner.roundToInt().coerceAtLeast(1) - 1)
-                                        .coerceAtLeast(0),
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(text = "${settings.listCardSmallCorner.roundToInt()}dp")
-                            }
-                        },
-                    )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_gap)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                FancySlider(
-                                    value = settings.listCardGap,
-                                    onValueChange = {
-                                        vm.updateSettings(
-                                            settings.copy(listCardGap = it.roundToInt().toFloat())
-                                        )
-                                    },
-                                    valueRange = 0f..16f,
-                                    steps = 15,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(text = "${settings.listCardGap.roundToInt()}dp")
-                            }
-                        },
                     )
                 }
             }

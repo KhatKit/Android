@@ -23,10 +23,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
-import heizige.kk.khatkit.app.feature.settings.components.BlurToggleGroupMiuix
 import heizige.kk.khatkit.app.feature.settings.components.CodeDisplaySettingsGroupMiuix
-import heizige.kk.khatkit.app.feature.settings.components.ListCardStyleGroupMiuix
-import heizige.kk.khatkit.app.feature.settings.components.UiStyleGroupMiuix
 import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import androidx.compose.material3.LocalTextStyle
@@ -70,7 +67,7 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         vm.updateSettings(settings.copy(displaySetting = setting))
     }
 
-    // 自定义字体（#2）：与 MD3 `SettingPreferencesUIPage.kt:94-116` 同一套做法 —— 同一个
+    // 自定义字体（#2）：与 MD3 `SettingPreferencesUIPage.kt:87-109` 同一套做法 —— 同一个
     // `ActivityResultContracts.OpenDocument` 选择器、同一批落库字段、同一个 `updateDisplaySetting`
     // （→ `SettingViewModel.updateSettings` → SettingsRepository）。落盘位置/命名见文件末尾
     // [importCustomChatFontMiuix] 的说明：仍是 `filesDir/<FileFolders.FONTS>/chat_font.<时间戳>.<扩展名>`，
@@ -266,40 +263,10 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 },
             )
         }
-
-        miuixGroup {
-            UiStyleGroupMiuix()
-        }
-
-        miuixGroup {
-            BlurToggleGroupMiuix()
-        }
-
-        miuixGroup {
-            ListCardStyleGroupMiuix(
-                largeCorner = settings.listCardLargeCorner,
-                smallCorner = settings.listCardSmallCorner,
-                gap = settings.listCardGap,
-                onUpdateLargeCorner = { large ->
-                    vm.updateSettings(
-                        settings.copy(
-                            listCardLargeCorner = large,
-                            listCardSmallCorner = settings.listCardSmallCorner.coerceAtMost(large),
-                        )
-                    )
-                },
-                onUpdateSmallCorner = { small ->
-                    vm.updateSettings(settings.copy(listCardSmallCorner = small))
-                },
-                onUpdateGap = { gap ->
-                    vm.updateSettings(settings.copy(listCardGap = gap))
-                },
-            )
-        }
     }
 }
 
-/** 字体族标签：与 MD3 `SettingPreferencesUIPage.kt:525-530` 同键同义（默认/衬线/等宽/自定义）。 */
+/** 字体族标签：与 MD3 `SettingPreferencesUIPage.kt:396-401` 同键同义（默认/衬线/等宽/自定义）。 */
 @Composable
 private fun ChatFontFamily.labelMiuix(): String = when (this) {
     ChatFontFamily.DEFAULT -> stringResource(R.string.setting_display_page_chat_font_family_default)
@@ -308,7 +275,7 @@ private fun ChatFontFamily.labelMiuix(): String = when (this) {
     ChatFontFamily.CUSTOM -> stringResource(R.string.setting_display_page_chat_font_family_custom)
 }
 
-/** 与 MD3 `SettingPreferencesUIPage.kt:508-515` 同一个 MIME 过滤表。 */
+/** 与 MD3 `SettingPreferencesUIPage.kt:379-386` 同一个 MIME 过滤表。 */
 private val CustomFontMimeTypesMiuix = arrayOf(
     "font/*",
     "application/x-font-ttf",
@@ -318,7 +285,7 @@ private val CustomFontMimeTypesMiuix = arrayOf(
     "*/*",
 )
 
-/** 与 MD3 `SettingPreferencesUIPage.kt:517` 同一批扩展名。 */
+/** 与 MD3 `SettingPreferencesUIPage.kt:388` 同一批扩展名。 */
 private val CustomFontExtensionsMiuix = setOf("ttf", "otf", "ttc")
 
 private data class ImportedChatFontMiuix(
@@ -334,7 +301,7 @@ private data class ImportedChatFontMiuix(
  * `DisplaySetting.chatCustomFontPath/chatCustomFontName` 并经 `SettingViewModel.updateSettings`
  * 落库（因此 [heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily] 的读取链路两风格共用）。
  *
- * 为什么要镜像：MD3 那份实现（`SettingPreferencesUIPage.kt:508-605` 的
+ * 为什么要镜像：MD3 那份实现（`SettingPreferencesUIPage.kt:379-476` 的
  * `CustomFontMimeTypesUI` / `importCustomChatFontInternal` / `deleteCustomChatFontInternal`）
  * 是**文件级 private**，本任务 inScope 不含那个文件，所以只能在此照抄同一套契约。
  * 若后续把这三个符号提到 core（或把 MD3 文件纳入范围），应删掉这里的镜像、两风格共用一份。
