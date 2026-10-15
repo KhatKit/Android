@@ -73,17 +73,23 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.campaign
 import heizige.kk.khatkit.app.core.ui.icons.celebration
+import heizige.kk.khatkit.app.core.ui.icons.chatBubble
+import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.groups
+import heizige.kk.khatkit.app.core.ui.icons.language
+import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.share as shareIcon
 import heizige.kk.khatkit.app.core.ui.icons.shelves
+import heizige.kk.khatkit.app.core.ui.icons.title
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.ui.icons.inventory2
@@ -132,16 +138,70 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
             item("themeMode") {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
+                    title = { Text(stringResource(R.string.setting_page_preferences_ui)) },
                 ) {
-                    // 颜色模式原先在这一格（Select 三选），按外观归属迁进「设置 → 主题 →
-                    // 主题偏好设置」（`SettingPreferencesThemePage.kt` 首组），主页只留主题 hub 入口。
-                    // #4「主题」hub：与 Miuix 主页同一个目标（Screen.SettingThemes）与同一组
-                    // 资源键（setting_page_themes / _desc），图标同 dashboard。
+                    // 颜色模式原先在这一格（Select 三选），按外观归属迁进「设置 → 主题」
+                    // （`SettingPreferencesThemePage.kt` 首组）。原先主题还分「主题管理 / 主题偏好
+                    // 设置」两个子页，两页前两组逐字重复，已合并成一页（自定义主题管理并入
+                    // 主题偏好设置页），这里直达该页，不再有 hub。
                     item(
-                        onClick = { navController.navigate(Screen.SettingThemes) },
+                        onClick = { navController.navigate(Screen.SettingPreferencesTheme) },
                         leadingContent = { Icon(dashboard, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_themes_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_themes)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPreferencesUIMessage) },
+                        leadingContent = { Icon(chatBubble, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_message_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_message)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPreferencesUIFont) },
+                        leadingContent = { Icon(title, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_font_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_font)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPreferencesUICode) },
+                        leadingContent = { Icon(code, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_code_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_code)) },
+                    )
+                }
+            }
+
+            item("preferences") {
+                CardGroup(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    title = { Text(stringResource(R.string.setting_page_preferences)) },
+                ) {
+                    // 「偏好设置」hub 页已取消：原 hub 的子项平铺到这里，点击直达各自二级页。
+                    // 其中「界面偏好设置」已升为上面的首组（主题 / 消息显示 / 字体 / 代码块），
+                    // 故本组只剩 通知 / 常规 / 网络 / 权限。
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPreferencesNotification) },
+                        leadingContent = { Icon(notifications, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_notification_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_notification)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPreferencesGeneral) },
+                        leadingContent = { Icon(settingsIcon, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_general_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_general)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPreferencesNetwork) },
+                        leadingContent = { Icon(language, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_network_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_network)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingPermissions) },
+                        leadingContent = { Icon(verifiedUser, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_permissions_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_permissions)) },
                     )
                 }
             }
@@ -151,12 +211,6 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     modifier = Modifier.padding(horizontal = 8.dp),
                     title = { Text(stringResource(R.string.setting_page_general_settings)) },
                 ) {
-                    item(
-                        onClick = { navController.navigate(Screen.SettingPreferences) },
-                        leadingContent = { Icon(settingsIcon, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_page_preferences)) },
-                    )
                     item(
                         onClick = { navController.navigate(Screen.Assistant) },
                         leadingContent = { Icon(search, null) },

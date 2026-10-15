@@ -257,7 +257,7 @@ class PrimaryBottomSheetIconSourceGuardTest {
      * 三处新增调用点（行号为落地时的位置），都已在 `SOURCE_ROOTS` 覆盖范围内，且同 suite 的
      * `everyPrimaryBottomSheetCallSite_passesAnIcon` 全绿（即三处都写齐了 `painter =` /
      * `imageVector =`）：
-     * - `feature/settings/SettingThemePageMiuix.kt:387`（`imageVector = palette`）
+     * - `feature/settings/SettingPreferencesThemePageMiuix.kt:427`（`imageVector = palette`）
      * - `feature/settings/SettingProviderPageMiuix.kt:371`
      * - `feature/settings/SettingModelPromptPageMiuix.kt:123`
      */

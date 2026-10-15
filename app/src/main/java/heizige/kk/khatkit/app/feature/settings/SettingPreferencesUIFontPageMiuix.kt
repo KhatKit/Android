@@ -1,63 +1,55 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
-import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSlider
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
-import heizige.kk.khatkit.app.feature.settings.components.CodeDisplaySettingsGroupMiuix
-import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
-import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import androidx.compose.material3.LocalTextStyle
 import android.content.Context
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
-import heizige.kk.khatkit.app.core.data.files.FileFolders
-import heizige.kk.khatkit.app.core.data.files.FileUtils
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceDropdown
-import heizige.kk.khatkit.app.core.ui.icons.deleteForever
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
+import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
+import heizige.kk.khatkit.app.core.data.files.FileFolders
+import heizige.kk.khatkit.app.core.data.files.FileUtils
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceDropdown
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSlider
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
+import heizige.kk.khatkit.app.core.ui.icons.deleteForever
+import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
+import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Icon
 import java.io.File
-import kotlin.math.roundToInt
 
 /**
- * 界面偏好页的 Miuix 风格版。
+ * 「字体」二级页的 Miuix 风格版。
  *
- * 字体/代码块/列表卡片样式三组的开关与滑块全部走 [PreferenceSwitch] / [PreferenceSlider]；
- * 依赖 ChatFontFamily、MarkdownBlock 等 MD3 专属组件的部分保留在各自子组件里。
+ * 由原「界面偏好设置」页（`SettingPreferencesUIPageMiuix.kt`）的第二个 miuixGroup 拆出：
+ * 聊天字体四选、自定义字体导入/移除、字体大小与预览；依赖 ChatFontFamily、MarkdownBlock
+ * 等 MD3 专属组件的部分保留在各自子组件里，字体相关私有 helper 随本文件迁移。
  */
 @Composable
-fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
+fun SettingPreferencesUIFontPageMiuix(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     val chatFontFamily = rememberChatFontFamily(displaySetting)
@@ -67,7 +59,7 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         vm.updateSettings(settings.copy(displaySetting = setting))
     }
 
-    // 自定义字体（#2）：与 MD3 `SettingPreferencesUIPage.kt:87-109` 同一套做法 —— 同一个
+    // 自定义字体：与 MD3 `SettingPreferencesUIPage.kt:87-109` 同一套做法 —— 同一个
     // `ActivityResultContracts.OpenDocument` 选择器、同一批落库字段、同一个 `updateDisplaySetting`
     // （→ `SettingViewModel.updateSettings` → SettingsRepository）。落盘位置/命名见文件末尾
     // [importCustomChatFontMiuix] 的说明：仍是 `filesDir/<FileFolders.FONTS>/chat_font.<时间戳>.<扩展名>`，
@@ -101,70 +93,10 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
     }
 
     MiuixSettingsPage(
-        title = stringResource(R.string.setting_page_preferences_ui),
+        title = stringResource(R.string.setting_page_preferences_ui_font),
         bottomInnerPadding = PageMetrics.BottomContentPadding,
         navigationIcon = { BackButton() },
     ) {
-        miuixGroup {
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_show_user_avatar_title),
-                checked = displaySetting.showUserAvatar,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_show_assistant_bubble_title),
-                checked = displaySetting.showAssistantBubble,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
-            )
-            PreferenceSlider(
-                title = stringResource(R.string.setting_display_page_bubble_opacity_title),
-                value = displaySetting.bubbleOpacity,
-                valueRange = 0.1f..1.0f,
-                steps = 8,
-                valueText = "${(displaySetting.bubbleOpacity * 100).roundToInt()}%",
-                onValueChange = { updateDisplaySetting(displaySetting.copy(bubbleOpacity = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_chat_list_model_icon_title),
-                checked = displaySetting.showModelIcon,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_show_model_name_title),
-                checked = displaySetting.showModelName,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelName = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_show_datetime_in_message_title),
-                checked = displaySetting.showDateTimeInMessage,
-                onCheckedChange = {
-                    updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it))
-                },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_show_token_usage_title),
-                checked = displaySetting.showTokenUsage,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_show_thinking_content_title),
-                checked = displaySetting.showThinkingContent,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_auto_collapse_thinking_title),
-                checked = displaySetting.autoCloseThinking,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_enable_latex_rendering_title),
-                checked = displaySetting.enableLatexRendering,
-                onCheckedChange = {
-                    updateDisplaySetting(displaySetting.copy(enableLatexRendering = it))
-                },
-            )
-        }
-
         miuixGroup {
             // #1 字体族四选：可选值、默认值与持久化字段都与 MD3 完全一致
             // （同一个 `ChatFontFamily` 枚举 + `DisplaySetting.chatFontFamily`）；
@@ -245,23 +177,6 @@ fun SettingPreferencesUIPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                     ),
                 )
             }
-        }
-
-        miuixGroup {
-            CodeDisplaySettingsGroupMiuix(
-                codeBlockAutoWrap = displaySetting.codeBlockAutoWrap,
-                codeBlockAutoCollapse = displaySetting.codeBlockAutoCollapse,
-                showLineNumbers = displaySetting.showLineNumbers,
-                onUpdateCodeBlockAutoWrap = {
-                    updateDisplaySetting(displaySetting.copy(codeBlockAutoWrap = it))
-                },
-                onUpdateCodeBlockAutoCollapse = {
-                    updateDisplaySetting(displaySetting.copy(codeBlockAutoCollapse = it))
-                },
-                onUpdateShowLineNumbers = {
-                    updateDisplaySetting(displaySetting.copy(showLineNumbers = it))
-                },
-            )
         }
     }
 }

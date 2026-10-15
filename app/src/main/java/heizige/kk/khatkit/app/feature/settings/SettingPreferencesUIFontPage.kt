@@ -14,16 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
-import heizige.kk.khromia.components.FancySlider
-import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
-import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,10 +32,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khromia.components.FancySlider
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
@@ -50,30 +47,28 @@ import heizige.kk.khatkit.app.core.data.files.FileUtils
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
-import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
-import heizige.kk.khatkit.app.core.util.plus
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
-import java.io.File
-import kotlin.math.roundToInt
 import heizige.kk.khatkit.app.core.ui.icons.deleteForever
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
+import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
+import heizige.kk.khatkit.app.core.util.plus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 @Composable
-fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
+fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesUIPageMiuix(vm)
+        SettingPreferencesUIFontPageMiuix(vm)
         return
     }
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     val context = LocalContext.current
-    val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val chatFontFamily = rememberChatFontFamily(displaySetting)
 
@@ -113,7 +108,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
     Scaffold(
         topBar = {
             KedgePageLargeTopBar(
-                title = stringResource(R.string.setting_page_preferences_ui),
+                title = stringResource(R.string.setting_page_preferences_ui_font),
                 navigationIcon = {
                     BackButton()
                 },
@@ -137,101 +132,7 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
             item {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text(stringResource(R.string.setting_page_message_display_settings)) },
                 ) {
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_user_avatar_title,
-                            null,
-                            checked = displaySetting.showUserAvatar,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_assistant_bubble_title,
-                            null,
-                            checked = displaySetting.showAssistantBubble,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
-                        )
-                    )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_bubble_opacity_title)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                FancySlider(
-                                    value = displaySetting.bubbleOpacity,
-                                    onValueChange = {
-                                        updateDisplaySetting(displaySetting.copy(bubbleOpacity = it))
-                                    },
-                                    valueRange = 0.1f..1.0f,
-                                    steps = 8,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(text = "${(displaySetting.bubbleOpacity * 100).roundToInt()}%")
-                            }
-                        }
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_chat_list_model_icon_title,
-                            null,
-                            checked = displaySetting.showModelIcon,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_model_name_title,
-                            null,
-                            checked = displaySetting.showModelName,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelName = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_datetime_in_message_title,
-                            null,
-                            checked = displaySetting.showDateTimeInMessage,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_token_usage_title,
-                            null,
-                            checked = displaySetting.showTokenUsage,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_thinking_content_title,
-                            null,
-                            checked = displaySetting.showThinkingContent,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_auto_collapse_thinking_title,
-                            null,
-                            checked = displaySetting.autoCloseThinking,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_enable_latex_rendering_title,
-                            null,
-                            checked = displaySetting.enableLatexRendering,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLatexRendering = it)) },
-                        )
-                    )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_chat_font_family_title)) },
                         supportingContent = {
@@ -337,38 +238,6 @@ fun SettingPreferencesUIPage(vm: SettingViewModel = hiltViewModel()) {
                                 )
                             }
                         }
-                    )
-                }
-            }
-
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text(stringResource(R.string.setting_page_code_display_settings)) },
-                ) {
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_code_block_auto_wrap_title,
-                            null,
-                            checked = displaySetting.codeBlockAutoWrap,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoWrap = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_code_block_auto_collapse_title,
-                            null,
-                            checked = displaySetting.codeBlockAutoCollapse,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoCollapse = it)) },
-                        )
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_line_numbers_title,
-                            null,
-                            checked = displaySetting.showLineNumbers,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showLineNumbers = it)) },
-                        )
                     )
                 }
             }

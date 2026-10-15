@@ -24,17 +24,23 @@ import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.campaign
 import heizige.kk.khatkit.app.core.ui.icons.celebration
+import heizige.kk.khatkit.app.core.ui.icons.chatBubble
+import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.inventory2
+import heizige.kk.khatkit.app.core.ui.icons.language
+import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.share as shareIcon
 import heizige.kk.khatkit.app.core.ui.icons.shelves
+import heizige.kk.khatkit.app.core.ui.icons.title
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
@@ -76,26 +82,73 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         }
 
         miuixGroup {
-            // 颜色模式（跟随系统/浅色/深色）原先在这一格，按外观归属迁进「设置 → 主题 →
-            // 主题偏好设置」（`SettingPreferencesThemePageMiuix.kt` 首组：与 MD3 用同一组资源键
+            // 颜色模式（跟随系统/浅色/深色）原先在这一格，按外观归属迁进「设置 → 主题」
+            // （`SettingPreferencesThemePageMiuix.kt` 首组：与 MD3 用同一组资源键
             // setting_page_color_mode / _system / _light / _dark，同一持久化字段 "colorMode"）。
-            // 主页这里只留主题 hub 入口：主题模式连同动态取色、主题配色、AMOLED、界面风格、
-            // 毛玻璃、列表卡片样式都收在「设置 → 主题 → 主题偏好设置」。
+            // 主题模式连同动态取色、主题配色、自定义主题、AMOLED、界面风格、毛玻璃、列表卡片样式
+            // 都收在同一页；原先的「主题管理 / 主题偏好设置」双子页已合并，故这里直达该页。
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_themes),
                 summary = stringResource(R.string.setting_page_themes_desc),
                 icon = dashboard,
-                onClick = { navController.navigate(Screen.SettingThemes) },
+                onClick = { navController.navigate(Screen.SettingPreferencesTheme) },
+            )
+            // 原「界面偏好设置」hub 页拆成三个二级页后，按外观组的四项顺序平铺到这里：
+            // 消息显示 / 字体 / 代码块（各自内容见 `SettingPreferencesUIMessage|Font|CodePageMiuix.kt`）。
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_preferences_ui_message),
+                summary = stringResource(R.string.setting_page_preferences_ui_message_desc),
+                icon = chatBubble,
+                onClick = { navController.navigate(Screen.SettingPreferencesUIMessage) },
+            )
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_preferences_ui_font),
+                summary = stringResource(R.string.setting_page_preferences_ui_font_desc),
+                icon = title,
+                onClick = { navController.navigate(Screen.SettingPreferencesUIFont) },
+            )
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_preferences_ui_code),
+                summary = stringResource(R.string.setting_page_preferences_ui_code_desc),
+                icon = code,
+                onClick = { navController.navigate(Screen.SettingPreferencesUICode) },
+            )
+        }
+
+        // 「偏好设置」hub 页已取消：原 hub 的 5 个子项平铺到设置主页——「界面偏好设置」那项已升为
+        // 上面的首组（主题 / 消息显示 / 字体 / 代码块四项），这里余下 通知 / 常规 / 网络 三项，
+        // 权限单独一组，均点击直达各自二级页。
+        miuixGroup {
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_preferences_notification),
+                summary = stringResource(R.string.setting_page_preferences_notification_desc),
+                icon = notifications,
+                onClick = { navController.navigate(Screen.SettingPreferencesNotification) },
+            )
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_preferences_general),
+                summary = stringResource(R.string.setting_page_preferences_general_desc),
+                icon = settingsIcon,
+                onClick = { navController.navigate(Screen.SettingPreferencesGeneral) },
+            )
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_preferences_network),
+                summary = stringResource(R.string.setting_page_preferences_network_desc),
+                icon = language,
+                onClick = { navController.navigate(Screen.SettingPreferencesNetwork) },
             )
         }
 
         miuixGroup {
             PreferenceArrow(
-                title = stringResource(R.string.setting_page_preferences),
-                summary = stringResource(R.string.setting_page_preferences_desc),
-                icon = settingsIcon,
-                onClick = { navController.navigate(Screen.SettingPreferences) },
+                title = stringResource(R.string.setting_page_permissions),
+                summary = stringResource(R.string.setting_page_permissions_desc),
+                icon = verifiedUser,
+                onClick = { navController.navigate(Screen.SettingPermissions) },
             )
+        }
+
+        miuixGroup {
             PreferenceArrow(
                 title = stringResource(R.string.setting_page_assistant),
                 summary = stringResource(R.string.setting_page_assistant_desc),

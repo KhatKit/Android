@@ -950,9 +950,13 @@
   <string name="setting_page_preferences_notification">الإشعارات</string>
   <string name="setting_page_preferences_notification_desc">تنبيهات التحديث وإشعارات الردود</string>
   <string name="setting_page_preferences_theme">المظهر</string>
-  <string name="setting_page_preferences_theme_desc">وضع اللون، اللون الديناميكي، السمة، النمط، البطاقات</string>
   <string name="setting_page_preferences_ui">تفضيلات واجهة المستخدم</string>
-  <string name="setting_page_preferences_ui_desc">الرسائل والخطوط وكتل التعليمات</string>
+  <string name="setting_page_preferences_ui_message">عرض الرسائل</string>
+  <string name="setting_page_preferences_ui_message_desc">الصور الرمزية والفقاعات وأسماء الطرازات</string>
+  <string name="setting_page_preferences_ui_font">الخط</string>
+  <string name="setting_page_preferences_ui_font_desc">خط المحادثة والحجم</string>
+  <string name="setting_page_preferences_ui_code">كتل التعليمات البرمجية</string>
+  <string name="setting_page_preferences_ui_code_desc">الالتفاف والطي وأرقام الأسطر</string>
   <string name="setting_page_providers">المزوّدون</string>
   <string name="setting_page_request_logs">سجلات الطلبات</string>
   <string name="setting_page_request_logs_desc">سجلات طلبات HTTP</string>
@@ -973,8 +977,6 @@
   <string name="setting_page_sponsor_alert_desc">أكثر من 100 تشغيل. فكّر في دعم المطوّر.</string>
   <string name="setting_page_sponsor_alert_dismiss">ليس الآن</string>
   <string name="setting_page_sponsor_alert_title">دعم المطوّر</string>
-  <string name="setting_page_theme_setting">السمة</string>
-  <string name="setting_page_theme_setting_desc">نظام ألوان مخصص</string>
   <string name="setting_page_tts_service">خدمات الكلام</string>
   <string name="setting_page_tts_service_desc">تحويل النص إلى كلام والتعرّف على الصوت</string>
   <string name="setting_page_tts_settings">إعدادات TTS</string>

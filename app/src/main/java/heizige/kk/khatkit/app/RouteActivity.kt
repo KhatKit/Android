@@ -108,15 +108,14 @@ import heizige.kk.khatkit.app.feature.imggen.ImageGenPage
 import heizige.kk.khatkit.app.feature.log.LogPage
 import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
-import heizige.kk.khatkit.app.feature.settings.SettingPreferencesPage
-import heizige.kk.khatkit.app.feature.settings.SettingThemesPage
 import heizige.kk.khatkit.app.feature.settings.SettingPermissionsPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesThemePage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNotificationPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesGeneralPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNetworkPage
-import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUIPage
-import heizige.kk.khatkit.app.feature.settings.SettingThemePage
+import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUIMessagePage
+import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUIFontPage
+import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUICodePage
 import heizige.kk.khatkit.app.feature.settings.SettingDonatePage
 import heizige.kk.khatkit.app.feature.settings.SettingFilesPage
 import heizige.kk.khatkit.app.feature.settings.SettingMcpPage
@@ -461,18 +460,6 @@ class RouteActivity : ComponentActivity() {
                                 WebViewPage(key.url, key.contentId)
                             }
 
-                            entry<Screen.SettingTheme> {
-                                SettingThemePage()
-                            }
-
-                            entry<Screen.SettingThemes> {
-                                SettingThemesPage()
-                            }
-
-                            entry<Screen.SettingPreferences> {
-                                SettingPreferencesPage()
-                            }
-
                             entry<Screen.SettingPreferencesTheme> {
                                 SettingPreferencesThemePage()
                             }
@@ -489,8 +476,16 @@ class RouteActivity : ComponentActivity() {
                                 SettingPermissionsPage()
                             }
 
-                            entry<Screen.SettingPreferencesUI> {
-                                SettingPreferencesUIPage()
+                            entry<Screen.SettingPreferencesUIMessage> {
+                                SettingPreferencesUIMessagePage()
+                            }
+
+                            entry<Screen.SettingPreferencesUIFont> {
+                                SettingPreferencesUIFontPage()
+                            }
+
+                            entry<Screen.SettingPreferencesUICode> {
+                                SettingPreferencesUICodePage()
                             }
 
                             entry<Screen.SettingPreferencesNetwork> {
@@ -750,15 +745,6 @@ sealed interface Screen : NavKey {
     data class WebView(val url: String = "", val contentId: String = "") : Screen
 
     @Serializable
-    data object SettingTheme : Screen
-
-    @Serializable
-    data object SettingThemes : Screen
-
-    @Serializable
-    data object SettingPreferences : Screen
-
-    @Serializable
     data object SettingPreferencesTheme : Screen
 
     @Serializable
@@ -768,7 +754,13 @@ sealed interface Screen : NavKey {
     data object SettingPreferencesGeneral : Screen
 
     @Serializable
-    data object SettingPreferencesUI : Screen
+    data object SettingPreferencesUIMessage : Screen
+
+    @Serializable
+    data object SettingPreferencesUIFont : Screen
+
+    @Serializable
+    data object SettingPreferencesUICode : Screen
 
     @Serializable
     data object SettingPermissions : Screen

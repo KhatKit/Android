@@ -292,7 +292,7 @@ class BottomSheetScrollSourceGuardTest {
      *
      * 三处新增调用点（行号为落地时的位置），都在 `SOURCE_ROOTS` 覆盖范围内，且同 suite 的
      * `noCallSite_nestsItsOwnVerticalScrollInsideAScrollableSheet` 仍然全绿：
-     * - `feature/settings/SettingThemePageMiuix.kt:387`
+     * - `feature/settings/SettingPreferencesThemePageMiuix.kt:427`
      * - `feature/settings/SettingProviderPageMiuix.kt:371`
      * - `feature/settings/SettingModelPromptPageMiuix.kt:123`
      */
