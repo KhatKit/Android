@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.feature.explore
 
 import android.icu.text.CompactDecimalFormat
+import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -19,6 +20,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.InteractionSource
@@ -36,7 +38,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -185,11 +186,14 @@ import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior
 import heizige.kk.kedge.adaptive.miuixScrollBehavior
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
+import heizige.kk.khatkit.app.core.ui.effect.BgEffectPainter
+import heizige.kk.khatkit.app.core.ui.effect.rememberFrameTimeSeconds
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.hooks.SearchExpandState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeStyle
+import top.yukonga.miuix.kmp.shader.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.overlays.KedgePullToRefreshBox
@@ -2981,13 +2985,14 @@ private fun DependencyRow(
 /**
  * 精选卡（轮播唯一单元）：MD3 品牌海报卡。
  *
- * 版面自上而下三档，和参考图一致：扇形徽标 + 右上角版本号 → 大标题 + 一行副标题 → 安装药丸。
+ * 版面自上而下三档：圆形徽标 + 右上角版本号 → 大标题 + 一行副标题 → 安装药丸。
  * 底部按钮走 [KedgeButton]（两套风格各自的配色都在这里给全），不再是手写的 Row 药丸：
  * 一是形状/按压反馈跟全站按钮统一，二是要按需求去掉箭头图标后没必要再自己画一个。
  *
- * **配色与形状都由包名哈希生成**（见 [extensionPalette] / [extensionShapes]）：
- * 卡片底色是该卡身份色压暗后的「海报色」，徽标轮廓就是该卡在网格里用的那个身份形 ——
- * 同一张卡在一级页、二级页、轮播里是同一个色、同一个轮廓，不需要第二套视觉身份。
+ * **配色由包名哈希生成**（见 [extensionPalette] / [posterTone]）：卡片底色是该卡身份色压暗后的
+ * 「海报色」，同一张卡在一级页、二级页、轮播里是同一个色，不需要第二套视觉身份。
+ * 徽标轮廓不再跟着身份形走（全站统一圆形），背景也不再是右上角一整块有机形，
+ * 而是与关于页同款的动态流光（见 [CardFlowingLight]），颜色仍由上面那套身份色算法给出。
  * 因此这里不碰 `colorScheme.primary`：轮播是首屏唯一的满色块，但它不应该抢主题色的话语权。
  *
  * 高度是写死的：标题 / 副标题都锁 1 行，[Arrangement.SpaceBetween] 才不会因为
@@ -3017,15 +3022,11 @@ private fun FeaturedCard(
     )
     // 药丸的三种语义：没装 = 安装；装了但不是最新 = 更新；装的就是市场这一版 = 已安装（点了走卸载）。
     val installState = cardInstallState(installedVersion, entry.version)
-    // 身份色 / 身份形都由包名哈希决定，与卡片行的类型图标是两套东西：
-    // 同一张卡在网格里是哪个颜色、哪个轮廓，进了轮播还是它，不需要第二套视觉身份。
+    // 身份色由包名哈希决定，与卡片行的类型图标是两套东西：
+    // 同一张卡在网格里是哪个颜色，进了轮播还是它，不需要第二套视觉身份（背景流光也吃这个色）。
     val identityIndex = abs(entry.name.hashCode()) % extensionPalette.size
     val identity = extensionPalette[identityIndex]
     val poster = posterTone(identity)
-    val badgeShape = extensionShapes[identityIndex].toShape()
-    // 右上角那一块用同一张表里错开半个周期的形，避免和徽标撞成同一个轮廓。
-    val blobShape = extensionShapes[(identityIndex + extensionShapes.size / 2) % extensionShapes.size]
-        .toShape(startAngle = 18)
     val onPoster = Color.White
     Box(
         modifier = Modifier
@@ -3034,16 +3035,12 @@ private fun FeaturedCard(
             .background(poster)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
     ) {
-        // 右上角的有机形：纯平色块看着像没画完，这一块负责体积感。
-        // 在暗底上叠低透明度白（而不是另取一个颜色）：色相永远跟着海报底色走，
-        // 换主题也不会出现第二种品牌色。
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 54.dp, y = (-40).dp)
-                .size(188.dp)
-                .clip(blobShape)
-                .background(Color.White.copy(alpha = 0.08f)),
+        // 底色仍是算法给出的海报色（上面那层 background），再叠一层卡片尺寸的流光：
+        // 与关于页同一个 OS3 着色器，只是配色换成这张卡自己的身份色。
+        // 低版本 / 无 RuntimeShader 时这一层直接不画，退化成原来的纯色海报卡。
+        CardFlowingLight(
+            identity = identity,
+            modifier = Modifier.matchParentSize(),
         )
         Column(
             modifier = Modifier
@@ -3055,7 +3052,7 @@ private fun FeaturedCard(
                 Box(
                     modifier = Modifier
                         .size(46.dp)
-                        .clip(badgeShape)
+                        .clip(CircleShape)
                         .background(onPoster),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -3141,6 +3138,76 @@ private fun posterTone(identity: Color, factor: Float = 0.58f): Color = Color(
     red = identity.red * factor,
     green = identity.green * factor,
     blue = identity.blue * factor,
+    alpha = 1f,
+)
+
+/**
+ * 卡片尺寸的流光底：与关于页 [heizige.kk.khatkit.app.core.ui.effect.BgEffectBackground]
+ * 共用同一个 OS3 着色器与同一套光点参数（半径、漂移、噪声全部走 `BgEffectConfig` 预设），
+ * 只有 `uColors` 换成这张卡自己的身份色 —— 于是「卡片是什么颜色」这件身份信息不变，
+ * 观感从「一块平色」变成和关于页一样的缓慢流动。
+ *
+ * 传给 painter 的 `bound` 用整张卡的高度（`logoHeight = size.height`），
+ * 让四个光点铺满卡片而不是像关于页那样只占上方 78%；横向比高时由 painter 内部的
+ * aspect 归一化兜住，光点不会被拉成椭圆。
+ *
+ * 只负责「画在底色之上」：调用方已经用 [posterTone] 铺了一层不透明海报色，
+ * 所以这里的半透明光点叠上去即可，低版本不画也不影响可读性。
+ */
+@Composable
+private fun CardFlowingLight(
+    identity: Color,
+    modifier: Modifier = Modifier,
+) {
+    // Android 13 以下没有 RuntimeShader：直接不画，露出下面那层海报色。
+    // 与 BgEffectBackground 一样必须是显式版本比较 + 提前 return，lint 的 NewApi 才认。
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !isRuntimeShaderSupported()) return
+
+    val painter = remember { BgEffectPainter() }
+    val animTime = rememberFrameTimeSeconds()
+    val colors = remember(identity) { cardFlowingColors(identity) }
+    Canvas(modifier = modifier) {
+        painter.updateResolution(size.width, size.height)
+        // 固定吃深色预设：海报底本身就是深色，深色预设的 `lightOffset = 0` 不会在整张卡上
+        // 再抬一层亮度（浅色预设那个 +0.1 会把白字压到 2:1，见下面 [cardFlowingColors]）。
+        painter.updatePresetIfNeeded(size.height, size.height, size.width, isDark = true)
+        painter.updateColors(colors)
+        painter.updateAnimTime(animTime())
+        drawRect(painter.brush)
+    }
+}
+
+/**
+ * 流光配色：仍然由身份色算出来（[posterTone] 那套算法），不引入第二套品牌色。
+ *
+ * 四个光点取身份色的四档压暗（0.24 / 0.18 / 0.14 / 0.09），比 [posterTone] 的 0.58 亮，
+ * 于是叠在海报底上就是四团同色系的柔光；alpha 收在 0.3，光点再亮也压不过卡片上的白字。
+ *
+ * 参数是离线复刻这份着色器跑出来的：8 个身份色 × 多个时刻，标题/副标题/药丸所在区域
+ * 白字最低对比度 4.5:1（浅色预设同参数只有 2:1，所以上面固定用深色预设）。
+ */
+private fun cardFlowingColors(identity: Color): FloatArray {
+    val lights = listOf(
+        identity.darken(0.18f),
+        identity.darken(0.09f),
+        identity.darken(0.24f),
+        identity.darken(0.14f),
+    )
+    return FloatArray(16) { i ->
+        when (i % 4) {
+            0 -> lights[i / 4].red
+            1 -> lights[i / 4].green
+            2 -> lights[i / 4].blue
+            else -> 0.3f
+        }
+    }
+}
+
+/** 同比例压暗三通道：等价于只压 HSV 的 V，色相与饱和度不动。 */
+private fun Color.darken(fraction: Float): Color = Color(
+    red = red * (1f - fraction),
+    green = green * (1f - fraction),
+    blue = blue * (1f - fraction),
     alpha = 1f,
 )
 
