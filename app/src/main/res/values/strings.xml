@@ -13,7 +13,7 @@
   <string name="add">Add</string>
   <string name="app_name">KhatKit</string>
   <string name="explore_market_title">Explore Market</string>
-  <string name="explore_market_subtitle">External cards · Tools · Skills · MCP · Model capabilities</string>
+  <string name="explore_market_subtitle">Tools · Skills · MCP · Model capabilities</string>
   <string name="explore_market_external_cards">External Script Cards</string>
   <string name="asr_button_content_description">Speech Recognition</string>
   <string name="asr_button_stop">Stop</string>

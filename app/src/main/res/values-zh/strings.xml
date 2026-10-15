@@ -13,7 +13,7 @@
   <string name="add">添加</string>
   <string name="app_name">KhatKit</string>
   <string name="explore_market_title">探索市场</string>
-  <string name="explore_market_subtitle">外部卡片 · 工具 · 技能 · MCP · 模型能力</string>
+  <string name="explore_market_subtitle">工具 · 技能 · MCP · 模型能力</string>
   <string name="explore_market_external_cards">外部脚本卡片</string>
   <string name="asr_button_content_description">语音识别</string>
   <string name="asr_button_stop">停止</string>
