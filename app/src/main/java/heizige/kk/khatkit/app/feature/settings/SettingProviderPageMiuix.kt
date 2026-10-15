@@ -300,12 +300,8 @@ private fun ProviderRowMiuix(
         R.string.setting_provider_page_model_count,
         provider.models.size
     )
-    // MD3 行里这三条是三个 Tag（启用状态 / 模型数量 / AiHubMix 优惠），Miuix 侧收进 summary 一行。
-    val summaryText = if (provider.name == "AiHubMix") {
-        "$statusText · $modelCountText · 10% 优惠"
-    } else {
-        "$statusText · $modelCountText"
-    }
+    // MD3 行里这两条是两个 Tag（启用状态 / 模型数量），Miuix 侧收进 summary 一行。
+    val summaryText = "$statusText · $modelCountText"
 
     KedgeCard(
         modifier = modifier
