@@ -75,6 +75,10 @@ class ExploreMarketViewModel @Inject constructor(
     private val _dependencies = MutableStateFlow<List<DependencyCacheEntry>>(emptyList())
     val dependencies: StateFlow<List<DependencyCacheEntry>> = _dependencies.asStateFlow()
 
+    /** 已安装卡片声明的依赖包（name -> 声明的版本），含尚未下载的。 */
+    private val _declaredDependencies = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+    val declaredDependencies: StateFlow<Map<String, List<String>>> = _declaredDependencies.asStateFlow()
+
     /** 资源市场目录：技能合集 / MCP 服务 / 合集包。 */
     private val _resources = MutableStateFlow<List<HubResourceEntry>>(emptyList())
     val resources: StateFlow<List<HubResourceEntry>> = _resources.asStateFlow()
@@ -114,6 +118,7 @@ class ExploreMarketViewModel @Inject constructor(
 
     private suspend fun reloadDependencies() {
         _dependencies.value = runCatching { provider.dependencyCacheEntries() }.getOrDefault(emptyList())
+        _declaredDependencies.value = runCatching { provider.installedCardDependencies() }.getOrDefault(emptyMap())
     }
 
     fun deleteDependency(entry: DependencyCacheEntry, onResult: (Boolean) -> Unit = {}) = viewModelScope.launch {
@@ -133,7 +138,11 @@ class ExploreMarketViewModel @Inject constructor(
             _busyCard.value = name
             runCatching { action() }
             _busyCard.value = null
-            withContext(Dispatchers.IO) { reloadInstalled() }
+            // 安装/卸载会改变「哪张卡存在」，声明的依赖清单跟着一起刷，否则本地页会留着已卸载卡片的依赖。
+            withContext(Dispatchers.IO) {
+                reloadInstalled()
+                reloadDependencies()
+            }
         }
     }
 

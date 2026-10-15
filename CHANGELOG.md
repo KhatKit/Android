@@ -2,6 +2,8 @@
 
 ## 未发布（自动化 Toast 与图片选择器迁移）
 
+- Miuix 筛选 chip 收敛成「只有选中那枚带勾」：`KedgeFilterChip` 的 Miuix 分支此前**每枚**都挂一个 `MiuixCheckbox`（未选中的画空框），现在只在 `selected` 时组合它；未选中退化成「素胶囊 + 文本」，与 MD3 侧 `FilterChip`（本来就只有选中才画勾 / 才变色）行为对齐。同时选中底色从 `primaryContainer` 改成 **`primary`**（= `CheckboxDefaults` 里 `checkedBackgroundColor` 的值，勾用 `onPrimary`），文字色同步用 `onPrimary` —— 勾与胶囊同一块蓝，不再出现「勾一个蓝、胶囊另一个蓝」两档色（Kedge `components/KedgeBadges.kt:161` 选中色 / `:185` 勾选框挂载条件）。影响面是全库调用点（聊天抽屉 / 探索市场 / 助手与技能筛选 / 触发器编辑等 20+ 处 Miuix chip），MD3Exp 分支一处未动。✅ 实机验证：探索市场 chip 轨道「全部 / 卡片 / 技能合集 / MCP 服务」与聊天抽屉「全部 / 单聊 / 群聊」中，选中项为蓝色胶囊 + 白勾、其余为无勾深色胶囊；切换筛选后勾随选中项迁移（`app-arm64-v8a-debug.apk`，PKG110）。
+- 「本地」页的原生依赖包分区改为列出**已安装卡片声明的依赖 ∪ 本机已缓存的 jar**：此前只报已缓存的产物，而依赖包要到运行卡片时才下载，刚装完卡片缓存为空 ⇒ 整个分区都不显示，用户在本机页看不到任何依赖痕迹。未下载的行标注「未下载 · 运行卡片时自动获取」且不给删除入口；已缓存的行照旧报大小 / SHA-256，可单条删除、可清空。市场页维持「只报本机已缓存了什么」。
 - 新增受卡片 `network.allow` 白名单约束的 `net` bridge；旧 `tool.http*` 接口保留兼容并标记废弃。
 - `fs.zip` / `fs.unzip` 落地（原实现直接抛「尚未迁移」，与 `tool.zip/unzip` 标废弃矛盾）：入参与输出都过沙箱，`unzip` 逐条校验条目不越出目标目录（防 zip slip）。
 - `tool.*` 的 12 个文件方法（`readText` / `writeText` / `listFiles` / `copyPath` / `deletePath` / `mkdir` / `renamePath` / `zip` / `unzip` / `readBase64` / `saveBase64` / `openDir`）标记废弃，请改用 `fs`。**旧方法行为不变**：仍按传入绝对路径操作、只受「所有文件访问」约束；因此 `tool.deletePath` 不向用户确认、`fs.delete` 每次确认，新卡片请直接用 `fs`。
@@ -51,7 +53,7 @@
 - Khromia toast 按上游 ImageToolbox 规格补齐：普通 toast 时长改为 `Short 3500ms` / `Medium 5000ms` / `Long 6500ms`（**此前是 1200ms**，且全仓无调用点显式传时长 ⇒ 属**全局行为变化**）；图标改为 `IconShapeContainer` 底片（squircle + 4dp 内边距 + 24dp 图标 + 0.65dp 阴影）之后再 8dp 间距；新增 `Color.blend` 复用上游混色链。
 - 修复 Miuix 底部弹层内容左右内缩过大：Miuix `WindowBottomSheet` 的横向 `insideMargin` 库默认是 24dp，现改为与各自 MD3 容器对齐 —— `KedgeModalBottomSheet` 缺省 16dp（= MD3 `KedgeCard` 默认内边距）并支持按调用点覆盖，`KedgePrimaryBottomSheet` 恒 0（= Khromia `PrimaryBottomSheet`），`GreetingPage` 显式传 0 与 MD3 齐平；纵向链与拖拽把手 / 标题居中不受影响。
 - 移除 MD3 关于页的动态流光背景（流光是 Miuix 风格的观感，MD3 页底色改为不透明的 `colorScheme.background`），Miuix 关于页仍保留流光。
-- ⚠️ 以上 7 项的**视觉 / 功能验证由用户本人完成**（本次集成未做真机测试：未安装 APK、未截图、未在设备上走查）。逐条的改动 `file:line`、关键规格数值、用户自查路径、残余与未跟进项见 [docs/uiredesign.md](docs/uiredesign.md) 的「修复记账」一节。
+- ⚠️ 以上 7 项的**视觉 / 功能验证仍待用户实机确认**（原集成未做真机测试）。已实现施工图已清理，检查路径、命中边界风险及历史证据追溯见 [UI 验收与观察记录](docs/ui-verification-followups.md#1-七项-ui-修复的实机检查)。
 
 ### 🖐 MD3 overscroll 回弹恢复（2026-10-14 收口）
 
@@ -72,8 +74,8 @@
 
 ### 🎛️ 设置项两风格统一（2026-10-14 收口）
 
-> 用户裁定「并集补齐、两侧条目完全一致」，本批把 MD3 与 Miuix 的设置项对齐；逐条裁定与落地分工见
-> [docs/settings-parity-gaps.md](docs/settings-parity-gaps.md) 顶部的「用户裁定（2026-10-14）」。
+> 用户裁定「并集补齐、两侧条目完全一致」，本批把 MD3 与 Miuix 的设置项对齐；验收规则、遗留与历史追溯见
+> [UI 验收与观察记录](docs/ui-verification-followups.md#2-设置两风格对齐后的检查)。
 > ⚠️ **真机观感未验证**：以下各条的视觉 / 交互观感留给用户实机确认。
 
 - **外观三选**（跟随系统 / 浅色 / 深色）在 Miuix 主页补齐：此前 MD3 有、Miuix 没有；两侧用同一 `ColorMode` 枚举与同一默认值。
@@ -86,7 +88,7 @@
 - **通知页按钮语义**补齐：取消只置 false **不写设置**，确认才写 `updateCheckDisabledUntilEpochMillis`。
 - **4 个 Miuix 变体页**（此前 Miuix 风格下直接套用 MD3 实现、观感是 MD3）：**主题页** `SettingThemePageMiuix.kt`、**Web 页** `SettingWebPageMiuix.kt`、**提供商页** `SettingProviderPageMiuix.kt`、**模型提示词页** `SettingModelPromptPageMiuix.kt`；配合两个 MD3 页的 `isMiuix` 早退块，Miuix 下不再走 MD3 实现。选项集合经双向差集核对与 MD3 **一致**（提示词页早退放在两页共用的漏斗，否则 Miuix 的提示词页签会漏分流）。
 - **sheet 内搜索不再外溢**（上一批，已推送、此处补记）：底部弹层里的搜索框展开时不再铺满全屏 —— MD3 不再走页面级全屏 Dialog、Miuix 不再把展开层挂到根部 overlay，两者都在 sheet 子树内展开、受 sheet 圆角与高度上限约束（Kedge `KedgeSearch.kt` / `KedgeSearchOverlay.kt` 提交 `7881c3b0c`；KhatKit `PrimaryBottomSheet.kt` 提交 `d974cc572`）。⚠️ 观感由用户实机确认。
-- **已知项与遗留**（本批**只记账、不改源码**，逐条带 `file:line`）：见 [docs/settings-parity-gaps.md](docs/settings-parity-gaps.md) §22「遗留与已知项」——含 `SettingWebPageMiuix.kt:81`（与 MD3 `SettingWebPage.kt:90` 同一条）的 `LocalClipboardManager` 弃用告警（⚠️ 该批自述「零 warning」不准：实测 `feature/settings/` 下有 2 条）、主题页镜像约 380 行私有 helper（**技术债**，将来提升到 `core/` 后删除镜像）、顶栏「导入 / 新建」可及状态为超集（选项没少）、`PermissionRationaleDialog → Khromia AnimatedAlertDialog` 不做风格分流（**跨仓既有缺口**）、`values-ar` 缺既有 package 键、「探索市场 / 套餐激活」仍硬编码等。
+- **已知项与遗留**（本批**只记账、不改源码**，逐条带 `file:line`）：见 [UI 验收与观察记录](docs/ui-verification-followups.md#2-设置两风格对齐后的检查)——含 `SettingWebPageMiuix.kt:81`（与 MD3 `SettingWebPage.kt:90` 同一条）的 `LocalClipboardManager` 弃用告警（⚠️ 该批自述「零 warning」不准：实测 `feature/settings/` 下有 2 条）、主题页镜像约 380 行私有 helper（**技术债**，将来提升到 `core/` 后删除镜像）、顶栏「导入 / 新建」可及状态为超集（选项没少）、`PermissionRationaleDialog → Khromia AnimatedAlertDialog` 不做风格分流（**跨仓既有缺口**）、`values-ar` 缺既有 package 键、「探索市场 / 套餐激活」仍硬编码等。
 
 ## 2.5.2（2026-09-18）
 

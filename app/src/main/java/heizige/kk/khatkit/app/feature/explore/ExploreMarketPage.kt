@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.feature.explore
 
 import android.icu.text.CompactDecimalFormat
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -13,11 +14,13 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -39,8 +42,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
@@ -64,15 +69,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeFilterChip
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.kedge.components.KedgeBadge
 import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.kedge.components.KedgeBadgedBox
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -125,8 +133,6 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.serverUrl
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalToolOption
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.calendarMonth
@@ -136,11 +142,12 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.contentPaste
 import heizige.kk.khatkit.app.core.ui.icons.dashboard
+import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
 import heizige.kk.khatkit.app.core.ui.icons.deleteForever
 import heizige.kk.khatkit.app.core.ui.icons.extension
-import heizige.kk.khatkit.app.core.ui.icons.folderOpen
+import heizige.kk.khatkit.app.core.ui.icons.folderManaged
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.package2
 import heizige.kk.khatkit.app.core.ui.icons.payments
@@ -148,12 +155,15 @@ import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.questionAnswer
 import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
 import heizige.kk.khatkit.app.core.ui.icons.schedule
+import heizige.kk.khatkit.app.core.ui.icons.school
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.timer
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.ListCardStyle
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.minus
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
@@ -176,6 +186,7 @@ import heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior
 import heizige.kk.kedge.adaptive.miuixScrollBehavior
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.hooks.SearchExpandState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeStyle
@@ -193,12 +204,15 @@ private enum class ExploreFilter {
     MODELS,
 }
 
-private enum class CardFilter(@StringRes val labelRes: Int) {
-    ALL(R.string.explore_market_card_filter_all),
-    INSTALLED(R.string.explore_market_card_filter_installed),
-    FREE(R.string.explore_market_card_filter_free),
-    PREFERRED(R.string.explore_market_card_filter_preferred),
-    AI(R.string.explore_market_card_filter_ai),
+private enum class CardFilter(
+    @StringRes val labelRes: Int,
+    val icon: ImageVector,
+) {
+    ALL(R.string.explore_market_card_filter_all, dashboard),
+    INSTALLED(R.string.explore_market_card_filter_installed, downloadForOffline),
+    FREE(R.string.explore_market_card_filter_free, payments),
+    PREFERRED(R.string.explore_market_card_filter_preferred, rocketLaunch),
+    AI(R.string.explore_market_card_filter_ai, bolt),
 }
 
 /**
@@ -216,7 +230,7 @@ private enum class MarketChip(
 ) {
     ALL(R.string.explore_market_chip_all, ExploreFilter.ALL, CardFilter.ALL, dashboard),
     CARDS(R.string.explore_market_chip_cards, ExploreFilter.CARDS, CardFilter.ALL, extension),
-    SKILLS(R.string.explore_market_chip_skills, ExploreFilter.SKILLS, CardFilter.ALL, autoAwesome),
+    SKILLS(R.string.explore_market_chip_skills, ExploreFilter.SKILLS, CardFilter.ALL, school),
     MCP(R.string.explore_market_chip_mcp, ExploreFilter.MCP, CardFilter.ALL, dns),
     BUNDLES(R.string.explore_market_chip_bundles, ExploreFilter.BUNDLES, CardFilter.ALL, package2),
     MODELS(R.string.explore_market_chip_models, ExploreFilter.MODELS, CardFilter.ALL, memory),
@@ -272,9 +286,6 @@ private val extensionShapes = listOf(
     MaterialShapes.SoftBurst,
 )
 
-private fun extensionColor(seed: String): Color =
-    extensionPalette[abs(seed.hashCode()) % extensionPalette.size]
-
 @Composable
 private fun ExtensionBadge(seed: String, label: String, icon: ImageVector) {
     val index = abs(seed.hashCode()) % extensionPalette.size
@@ -292,30 +303,212 @@ private fun ExtensionBadge(seed: String, label: String, icon: ImageVector) {
     }
 }
 
+
+/**
+ * 探索市场两页共用的搜索顶栏（一级探索页 / 二级卡片市场）。
+ *
+ * 形态照 ChatPage：折叠态是一行大标题（+ 可选副标题），右上角一枚 search↔close 图标；
+ * 点开后**标题槽位** morph 成输入框，字号字色与标题逐项相等 —— 输入框是**替换**标题，
+ * 两者不同字阶时展开会看到「标题跳了一下」。展开进度由 [rememberSearchExpandState] 提供
+ * （含预测性返回跟手收起）。
+ *
+ * 抽成一份的原因：两页的手感必须逐帧同形。此前二级页用的是常驻搜索药丸（KedgeSearchBar），
+ * 一级页是顶栏 morph，同一个市场两种搜索形态。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExtensionIcon(
-    seed: String,
-    icon: ImageVector,
-    size: androidx.compose.ui.unit.Dp = 44.dp,
+private fun ExploreSearchTopBar(
+    title: String,
+    subtitle: String?,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    expanded: Boolean,
+    onToggleSearch: () -> Unit,
+    onExitSearch: () -> Unit,
+    searchExpand: SearchExpandState,
+    scrollBehavior: TopAppBarScrollBehavior,
+    /** 搜索图标左边多出来的一枚动作（一级页是「本地」入口；二级页没有，传 null）。 */
+    extraAction: (@Composable () -> Unit)? = null,
 ) {
-    val index = abs(seed.hashCode()) % extensionPalette.size
-    val color = extensionPalette[index]
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(extensionShapes[index].toShape())
-            .background(color.copy(alpha = 0.20f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(size * 0.52f),
-            tint = color,
+    val navController = LocalNavController.current
+    val searchProgress = searchExpand.progress
+    val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
+    val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
+    // 与侧边栏一致：展开后自动聚焦，delay(100) 等动画起手再抢焦点，
+    // 直接 requestFocus() 会把入场动画顶掉。
+    val searchFocus = remember { FocusRequester() }
+    // MD3 的 LargeFlexibleTopAppBar 内部是 TwoRowsTopAppBar，同一个 title lambda
+    // 会被渲染两遍（收起态小标题行 + 展开态大标题行），两行按折叠进度交叉淡化，
+    // 任何时刻只有一行可见。FocusRequester 只能挂一份（挂两份时 requestFocus()
+    // 落在先注册的那份 = 收起态小标题行 = 看不见的那行），所以打开搜索时记下当时
+    // 可见的是哪一行，只把 requester 挂到那一行，光标才不会落进隐藏副本。
+    var focusLargeTitleRow by remember { mutableStateOf(true) }
+    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+    LaunchedEffect(expanded) {
+        if (expanded) {
+            if (!isMiuix) {
+                focusLargeTitleRow = scrollBehavior.state.collapsedFraction < 0.5f
+            }
+            delay(100)
+            searchFocus.requestFocus()
+        }
+    }
+
+    // 右上角 search↔close 图标：同一槽内交叉淡化，判定照 ChatPage ——
+    // !searching → search；searching && 有关键字 → close；搜索态但还没输入时
+    // 两边都不命中（槽留空）。
+    val searching = searchProgress.value >= 0.5f
+    val hasQuery = searching && query.isNotEmpty()
+    val searchAction: @Composable () -> Unit = {
+        KedgeIconButton(
+            onClick = {
+                when {
+                    !searching -> onToggleSearch()
+                    hasQuery -> onQueryChange("")
+                    else -> onExitSearch()
+                }
+            },
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                if (!searching) {
+                    Icon(
+                        imageVector = search,
+                        contentDescription = stringResource(R.string.explore_market_search),
+                        modifier = Modifier.graphicsLayer {
+                            alpha = 1f - searchProgress.value
+                        },
+                    )
+                }
+                if (hasQuery) {
+                    Icon(
+                        imageVector = close,
+                        contentDescription = stringResource(R.string.explore_market_clear_search),
+                        modifier = Modifier.graphicsLayer {
+                            alpha = searchProgress.value
+                        },
+                    )
+                }
+            }
+        }
+    }
+    // 返回箭头：搜索态点它先退出搜索，否则才退出页面
+    val navigationIcon: @Composable () -> Unit = {
+        BackButton(
+            onClick = {
+                if (searchProgress.value >= 0.5f) onExitSearch() else navController.popBackStack()
+            },
+        )
+    }
+
+    if (isMiuix) {
+        // Miuix：交给现成的 morphing 顶栏（ChatPage 用的同一个），标题/副标题
+        // 与输入框按同一进度 morph。
+        KedgeMiuixMorphingTitleBar(
+            title = title,
+            subtitle = subtitle,
+            expanded = expanded,
+            keyword = query,
+            onKeywordChange = onQueryChange,
+            dragProgress = searchProgress.value,
+            // 不传 dragging，组件内部的 snapTo 会被门控掉（只剩 tween），
+            // 返回手势拖动就没有跟手反馈。
+            dragging = searchExpand.dragging.value,
+            onExitSearch = onExitSearch,
+            placeholder = stringResource(R.string.history_page_search),
+            navigationIcon = navigationIcon,
+            actions = {
+                extraAction?.invoke()
+                searchAction()
+            },
+            focusRequester = searchFocus,
+        )
+    } else {
+        KedgePageLargeTopBar(
+            title = title,
+            subtitle = subtitle,
+            navigationIcon = navigationIcon,
+            actions = {
+                extraAction?.invoke()
+                searchAction()
+            },
+            scrollBehavior = scrollBehavior,
+            colors = CustomColors.topBarColors,
+            titleContent = {
+                // 标题与输入框共用同一个字阶 token
+                val titleStyle = KedgeTextStyles.displayTitle()
+                // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行
+                val isLargeTitleRow = LocalTextStyle.current.fontSize >
+                    MaterialTheme.typography.titleLarge.fontSize
+                Box {
+                    if (titleVisible) {
+                        Column(
+                            modifier = Modifier.graphicsLayer {
+                                alpha = 1f - searchProgress.value
+                                translationX = -searchProgress.value * 24.dp.toPx()
+                            },
+                        ) {
+                            Text(
+                                text = title,
+                                style = titleStyle,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (subtitle != null) {
+                                Text(
+                                    text = subtitle,
+                                    style = KedgeTextStyles.body(),
+                                    color = LocalContentColor.current.copy(0.65f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                    if (searchVisible) {
+                        // 用 searchVisible 而不是 expanded：布尔先变 false、
+                        // 进度还在补间时若已卸载输入框，退场动画会被腰斩。
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
+                                .graphicsLayer {
+                                    alpha = searchProgress.value
+                                    translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                                },
+                        ) {
+                            if (query.isBlank()) {
+                                Text(
+                                    text = stringResource(R.string.history_page_search),
+                                    style = titleStyle,
+                                    maxLines = 1,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                )
+                            }
+                            BasicTextField(
+                                value = query,
+                                onValueChange = onQueryChange,
+                                singleLine = true,
+                                textStyle = titleStyle.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                ),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    // 只挂到打开搜索那一刻可见的那一行
+                                    .then(
+                                        if (isLargeTitleRow == focusLargeTitleRow) {
+                                            Modifier.focusRequester(searchFocus)
+                                        } else {
+                                            Modifier
+                                        }
+                                    ),
+                            )
+                        }
+                    }
+                }
+            },
         )
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExploreMarketPage() {
@@ -331,8 +524,6 @@ fun ExploreMarketPage() {
     val toastUpdateFailed = stringResource(R.string.explore_market_toast_update_failed)
     val toastUninstalledNamed = stringResource(R.string.explore_market_toast_uninstalled_named)
     val toastUninstallFailed = stringResource(R.string.explore_market_toast_uninstall_failed)
-    val toastClearedDependencies = stringResource(R.string.explore_market_toast_cleared_dependencies)
-    val toastNothingToClear = stringResource(R.string.explore_market_toast_nothing_to_clear)
     val toastDependencyDeleted = stringResource(R.string.explore_market_toast_dependency_deleted)
     val toastDeleteFailed = stringResource(R.string.explore_market_toast_delete_failed)
     val toastMcpNothingToConfigure = stringResource(R.string.explore_market_mcp_nothing_to_configure)
@@ -396,16 +587,6 @@ fun ExploreMarketPage() {
             }
         },
     )
-    val searchProgress = searchExpand.progress
-    val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
-    val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
-    val searchFocus = remember { FocusRequester() }
-    // MD3 的 LargeFlexibleTopAppBar 内部是 TwoRowsTopAppBar，titleContent 同一份 lambda
-    // 会被渲染两遍（收起态小标题行 + 展开态大标题行），FocusRequester 只能挂一份：
-    // 挂错那份 = 光标落进看不见的副本。这里记下打开搜索那一刻可见的是哪一行。
-    var focusLargeTitleRow by remember { mutableStateOf(true) }
-    // 组合局部量必须先在这里读出来：LaunchedEffect 的 lambda 不是 @Composable 上下文
-    val isMiuixStyle = LocalKedgeStyle.current == KedgeStyle.Miuix
     // 页面底色 = surface（Miuix / MD3Exp 由 [CustomColors.pageContainerColor] 统一给）。
     // 不能取 [CustomColors.topBarColors]：那是 surfaceContainer，比 surface 深一档，
     // 页面底色会比正文暗、还跟顶栏同色，整页糊成一块。
@@ -416,16 +597,6 @@ fun ExploreMarketPage() {
     // containerColor：钉住就代表页面处于滚动中，要跟的正是顶栏此刻显示的那一档。
     // 两个色都不透明，正文从下面滚过去始终被实色盖住。
     val chipDockedSurface = CustomColors.topBarColors.scrolledContainerColor
-    LaunchedEffect(searchExpanded) {
-        if (searchExpanded) {
-            if (!isMiuixStyle) {
-                focusLargeTitleRow = scrollBehavior.state.collapsedFraction < 0.5f
-            }
-            // 等展开动画起手再抢焦点，直接 requestFocus() 会把入场动画顶掉
-            delay(100)
-            searchFocus.requestFocus()
-        }
-    }
 
     var secretCard by remember { mutableStateOf<String?>(null) }
     var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
@@ -537,7 +708,6 @@ fun ExploreMarketPage() {
         // 搜索关键词必须在 LazyColumn 之前取出来：LazyColumn 的 content lambda 不是
         // @Composable 上下文，里面只有 item {} 的 lambda 里才能调 stringResource。
         val featuredKeywords = stringResource(R.string.explore_market_featured_search_keywords)
-        val localEntryKeywords = stringResource(R.string.explore_market_local_entry_search_keywords)
         val showFeatured = cardsVisible && matches(featuredKeywords) &&
             (featuredCards.isNotEmpty() || featuredPending)
         // 悬浮筛选栏的位号：它前面只有「精选轮播」这一项；没有轮播时它自己就是首项。
@@ -710,67 +880,41 @@ fun ExploreMarketPage() {
                 }
             }
 
-            // 2b. 「本地」入口：本机内容与已安装内容有自己的二级页，这里只放一行入口。
-            // 排在悬浮筛选栏之后 —— 它随正文一起滚走，不会像筛选栏那样钉在顶栏下面；
-            // 轮播仍在首屏，入口只是它上面一条细带。
-            if (matches(localEntryKeywords)) {
-                item(key = "local_entry") {
-                    Box(modifier = swapIn(sectionPad)) {
-                        GroupContainer {
-                            LocalEntryRow(
-                                installedCount = installed.size,
-                                localCount = localOnly.size,
-                                toolCount = localToolCatalog.size,
-                                toolEnabledCount = localToolCatalog.count {
-                                    it.option in currentAssistantLocalTools
-                                },
-                                skillCount = skills.size,
-                                mcpCount = mcpServers.size,
-                                onClick = { navController.navigate(Screen.ExploreLocal) },
-                            )
-                        }
-                    }
-                }
-            }
+            // 2b. 「本地」入口已挪到顶栏（见 topBar 的 localAction）：一级页只负责发现与下载，
+            // 本机内容不再占一整行版面。原先那一行报的账（已安装 / 仅本机 / 本地工具 / 技能 /
+            // MCP）在「本地」二级页逐块列出，这里只留一枚图标按钮 + 本机卡片计数角标。
 
-            // 3b. 卡片列表骨架：与「SectionHeader + 单列全宽卡」同形，只在这块还没到货时占位。
+            // 3b. 卡片列表骨架：与「一组条目行」同形，只在这块还没到货时占位。
             // 已有缓存时刷新不铺骨架，交给上面的下拉指示器，避免每次刷新都把列表整块抽掉。
             if (cardsVisible && cardsPending) {
                 item(key = "cards_skeleton") {
-                    Column(modifier = swapIn(sectionPad)) {
-                        SkeletonBlock(
-                            Modifier.width(190.dp).height(20.dp),
-                            AutoCornersShape(ExploreShape.tile),
-                        )
-                        Spacer(Modifier.height(14.dp))
-                        CardGridSkeleton()
-                    }
+                    Box(modifier = swapIn(sectionPad)) { SectionSkeleton(rows = 3) }
                 }
             }
 
+            // 一级页只铺 preview 张，全量列表按需进二级页（卡片市场）。
+            //
+            // 单列：此前是「1 张全宽主推 + 两栏窄卡」的 1 + N 网格，一屏里两套卡面尺寸，
+            // 视线要在大小卡之间来回换。现在整区一行一张、全宽到底。
+            // 主推位由上面的轮播承担，这里不再需要一张放大的卡。
+            //
+            // 不再有「外部脚本卡片」这类分区标题：内容类型由每行前置图标自报
+            // （卡片 extension / 技能 school / MCP dns / 合集包 package2 / 模型 memory /
+            // 依赖 deployed_code），整页只留「发现」本身，管理入口在顶栏的「本地」。
             if (cardsVisible && cardsMatched.isNotEmpty()) {
                 item(key = "cards") {
-                    Column(modifier = swapIn(sectionPad)) {
-                        SectionHeader(
-                            title = stringResource(R.string.explore_market_external_cards),
-                            icon = package2,
-                            // 不再带「共 N 张 · 已安装 M」：这一行里标题是 displayTitle 字阶，
-                            // 再挤一个计数加文字按钮后标题只剩 ~90dp，实测被截成「外部…」。
-                            // 计数在二级页顶部原样有一条（同一份数），这里让标题占满、不再截断。
-                            actionLabel = stringResource(R.string.explore_market_view_all),
-                            onAction = { navController.navigate(Screen.ExploreCards(query)) },
-                        )
-                        Spacer(Modifier.height(14.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // 一级页只铺 preview 张，全量列表按需进二级页（卡片市场）。
-                            //
-                            // 单列：此前是「1 张全宽主推 + 两栏窄卡」的 1 + N 网格，一屏里两套
-                            // 卡面尺寸，视线要在大小卡之间来回换，窄卡里的摘要还被挤成两行。
-                            // 现在整区一行一张、全宽到底（同 ImageToolbox 首页那份工具列表的做法，
-                            // 也与本页二级页的列表同款），只从下往上读一列，摘要不再被宽度压扁。
-                            // 主推位由上面的轮播承担，这里不再需要一张放大的卡。
-                            val preview = cardsMatched.take(CARD_PREVIEW_COUNT)
-                            preview.forEach { entry ->
+                    val preview = cardsMatched.take(CARD_PREVIEW_COUNT)
+                    // 还有剩的才给入口：卡不多时点进去是个和这页一样的列表。
+                    val remaining = cardsMatched.size - preview.size
+                    MarketContentSwap(
+                        key = preview.joinToString(",") { it.name } + "|" + remaining,
+                        modifier = swapIn(sectionPad),
+                    ) {
+                        GroupContainer(
+                            count = preview.size + if (remaining > 0) 1 else 0,
+                        ) { index, shape ->
+                            if (index < preview.size) {
+                                val entry = preview[index]
                                 CompactCard(
                                     entry = entry,
                                     installedVersion = installed[entry.name],
@@ -779,14 +923,13 @@ fun ExploreMarketPage() {
                                     busy = busyCard == entry.name,
                                     onClick = { selectedCard = entry },
                                     modifier = Modifier.fillMaxWidth(),
+                                    shape = shape,
                                 )
-                            }
-                            // 还有剩的才给入口：卡不多时点进去是个和这页一样的列表。
-                            val remaining = cardsMatched.size - preview.size
-                            if (remaining > 0) {
+                            } else {
                                 MarketMoreRow(
                                     label = stringResource(R.string.explore_market_view_all_cards_count, cardsMatched.size),
                                     onClick = { navController.navigate(Screen.ExploreCards(query)) },
+                                    shape = shape,
                                 )
                             }
                         }
@@ -803,24 +946,22 @@ fun ExploreMarketPage() {
 
             if (skillsVisible && visibleSkillPacks.isNotEmpty()) {
                 item(key = "skill_packs") {
-                    Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_skill_packs),
-                            icon = autoAwesome,
-                            supporting = stringResource(R.string.explore_market_skill_packs_available, visibleSkillPacks.size),
-                            actionLabel = stringResource(R.string.explore_market_installed_skills),
-                            onAction = { navController.navigate(Screen.Skills) },
-                        )
-                        GroupContainer {
-                            visibleSkillPacks.forEach { entry ->
-                                ResourceRow(
-                                    entry = entry,
-                                    installed = resourceInstalled(entry),
-                                    busy = busyResource == entry.slug,
-                                    onInstall = { installResource(entry) },
-                                    onClick = { resourceTarget = entry },
-                                )
-                            }
+                    MarketContentSwap(
+                        key = visibleSkillPacks.joinToString(",") { it.slug },
+                        modifier = swapIn(sectionPad),
+                    ) {
+                        GroupContainer(
+                            count = visibleSkillPacks.size,
+                        ) { index, shape ->
+                            val entry = visibleSkillPacks[index]
+                            ResourceRow(
+                                entry = entry,
+                                installed = resourceInstalled(entry),
+                                busy = busyResource == entry.slug,
+                                onInstall = { installResource(entry) },
+                                onClick = { resourceTarget = entry },
+                                shape = shape,
+                            )
                         }
                     }
                 }
@@ -835,26 +976,24 @@ fun ExploreMarketPage() {
 
             if (mcpVisible && visibleMcpServers.isNotEmpty()) {
                 item(key = "mcp_market") {
-                    Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_mcp_services),
-                            icon = dns,
-                            supporting = stringResource(R.string.explore_market_mcp_servers_available, visibleMcpServers.size),
-                            actionLabel = stringResource(R.string.explore_market_added),
-                            onAction = { navController.navigate(Screen.SettingMcp) },
-                        )
-                        GroupContainer {
-                            visibleMcpServers.forEach { entry ->
-                                ResourceRow(
-                                    entry = entry,
-                                    installed = resourceInstalled(entry),
-                                    busy = busyResource == entry.slug,
-                                    needsConfig = resourceNeedsConfig(entry),
-                                    onInstall = { installResource(entry) },
-                                    onConfigure = { configureMcp(entry) },
-                                    onClick = { resourceTarget = entry },
-                                )
-                            }
+                    MarketContentSwap(
+                        key = visibleMcpServers.joinToString(",") { it.slug },
+                        modifier = swapIn(sectionPad),
+                    ) {
+                        GroupContainer(
+                            count = visibleMcpServers.size,
+                        ) { index, shape ->
+                            val entry = visibleMcpServers[index]
+                            ResourceRow(
+                                entry = entry,
+                                installed = resourceInstalled(entry),
+                                busy = busyResource == entry.slug,
+                                needsConfig = resourceNeedsConfig(entry),
+                                onInstall = { installResource(entry) },
+                                onConfigure = { configureMcp(entry) },
+                                onClick = { resourceTarget = entry },
+                                shape = shape,
+                            )
                         }
                     }
                 }
@@ -869,22 +1008,22 @@ fun ExploreMarketPage() {
 
             if (bundlesVisible && visibleBundles.isNotEmpty()) {
                 item(key = "bundles") {
-                    Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_bundles),
-                            icon = package2,
-                            supporting = stringResource(R.string.explore_market_bundles_supporting, visibleBundles.size),
-                        )
-                        GroupContainer {
-                            visibleBundles.forEach { entry ->
-                                ResourceRow(
-                                    entry = entry,
-                                    installed = resourceInstalled(entry),
-                                    busy = busyResource == entry.slug,
-                                    onInstall = { installResource(entry) },
-                                    onClick = { resourceTarget = entry },
-                                )
-                            }
+                    MarketContentSwap(
+                        key = visibleBundles.joinToString(",") { it.slug },
+                        modifier = swapIn(sectionPad),
+                    ) {
+                        GroupContainer(
+                            count = visibleBundles.size,
+                        ) { index, shape ->
+                            val entry = visibleBundles[index]
+                            ResourceRow(
+                                entry = entry,
+                                installed = resourceInstalled(entry),
+                                busy = busyResource == entry.slug,
+                                onInstall = { installResource(entry) },
+                                onClick = { resourceTarget = entry },
+                                shape = shape,
+                            )
                         }
                     }
                 }
@@ -898,34 +1037,21 @@ fun ExploreMarketPage() {
 
             if (modelsVisible && visibleModels.isNotEmpty()) {
                 item(key = "models") {
-                    Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_models),
-                            icon = autoAwesome,
-                            supporting = if (visibleModels.size > 8) {
-                                stringResource(
-                                    R.string.explore_market_models_supporting_truncated,
-                                    visibleModels.size,
-                                    enabledProviders.size,
-                                )
-                            } else {
-                                stringResource(
-                                    R.string.explore_market_models_supporting,
-                                    visibleModels.size,
-                                    enabledProviders.size,
-                                )
-                            },
-                            actionLabel = stringResource(R.string.explore_market_manage),
-                            onAction = { navController.navigate(Screen.SettingModels) },
-                        )
-                        GroupContainer {
-                            visibleModels.take(8).forEach { (providerName, model) ->
-                                ModelRow(
-                                    providerName = providerName,
-                                    model = model,
-                                    onClick = { navController.navigate(Screen.SettingModels) },
-                                )
-                            }
+                    val preview = visibleModels.take(8)
+                    MarketContentSwap(
+                        key = preview.joinToString(",") { it.first + "/" + it.second.modelId },
+                        modifier = swapIn(sectionPad),
+                    ) {
+                        GroupContainer(
+                            count = preview.size,
+                        ) { index, shape ->
+                            val (providerName, model) = preview[index]
+                            ModelRow(
+                                providerName = providerName,
+                                model = model,
+                                onClick = { navController.navigate(Screen.SettingModels) },
+                                shape = shape,
+                            )
                         }
                     }
                 }
@@ -937,46 +1063,42 @@ fun ExploreMarketPage() {
                 }
             }
 
+            // 原生依赖包：维护型信息，排在所有发现型内容之后。这里只报「本机已缓存了什么」，
+            // 清理入口在「本地」二级页的同一分区（一级页不再有分区标题与清空按钮）。
             if (cardsVisible && dependencies.isNotEmpty()) {
                 item(key = "dependency_cache") {
-                    Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_dependencies),
-                            icon = heizige.kk.khatkit.app.core.ui.icons.extension,
-                            supporting = stringResource(R.string.explore_market_dependencies_cached, dependencies.size),
-                            actionLabel = stringResource(R.string.explore_market_clear),
-                            onAction = {
-                                vm.clearDependencyCache { count ->
-                                    scope.launch {
-                                        Toast.show(if (count > 0) toastClearedDependencies.format(count) else toastNothingToClear)
-                                    }
-                                }
-                            },
-                        )
-                        GroupContainer {
-                            dependencies.forEach { dependency ->
-                                DependencyRow(
-                                    dependency = dependency,
-                                    onDelete = {
-                                        vm.deleteDependency(dependency) { ok ->
-                                            scope.launch {
-                                                Toast.show(
-                                                    if (ok) {
-                                                        toastDependencyDeleted.format(dependency.name, dependency.version)
-
-
-
-
-                                                    } else {
-                                                        toastDeleteFailed
-                                                    },
-                                                    !ok,
-                                                )
-                                            }
+                    MarketContentSwap(
+                        key = dependencies.joinToString(",") { it.name + it.version },
+                        modifier = swapIn(sectionPad),
+                    ) {
+                        GroupContainer(
+                            count = dependencies.size,
+                        ) { index, shape ->
+                            val dependency = dependencies[index]
+                            DependencyRow(
+                                name = dependency.name,
+                                version = dependency.version,
+                                cached = dependency,
+                                shape = shape,
+                                onDelete = {
+                                    vm.deleteDependency(dependency) { ok ->
+                                        scope.launch {
+                                            Toast.show(
+                                                if (ok) {
+                                                    toastDependencyDeleted.format(dependency.name, dependency.version)
+                                                    
+                                                    
+                                                    
+                                                    
+                                                } else {
+                                                    toastDeleteFailed
+                                                },
+                                                !ok,
+                                            )
                                         }
-                                    },
-                                )
-                            }
+                                    }
+                                },
+                            )
                         }
                     }
                 }
@@ -1020,164 +1142,45 @@ fun ExploreMarketPage() {
         // 顶栏不再常驻搜索药丸：入口是右上角那个搜索图标，点开后才在**标题槽位**里
         // morph 出输入框（逻辑照 ChatPage）。所以这里只有一行大标题栏。
         topBar = {
-            // 右上角 search↔close 图标：同一槽内交叉淡化，判定照 ChatPage ——
-            // !searching → search；searching && 有关键字 → close；搜索态但还没输入时
-            // 两边都不命中（槽留空）。
-            val searching = searchProgress.value >= 0.5f
-            val hasQuery = searching && query.isNotEmpty()
-            val searchAction: @Composable () -> Unit = {
-                KedgeIconButton(
-                    onClick = {
-                        when {
-                            !searching -> searchExpanded = true
-                            hasQuery -> {
-                                query = ""
-                                vm.refresh("")
+            // 「本地」入口：一级页唯一一条本机内容入口，形态是一枚图标按钮（原先是一整行
+            // 卡片列表项）。角标报本机卡片数（市场装的 + 仅本机的，与「本地」页顶部分法一致），
+            // 0 张时不挂角标 —— 写法照 McpPickerButton。
+            val localAction: @Composable () -> Unit = {
+                KedgeBadgedBox(
+                    badge = {
+                        if (installed.isNotEmpty()) {
+                            KedgeBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
+                                Text(text = installed.size.toString())
                             }
-                            else -> searchExpanded = false
                         }
                     },
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (!searching) {
-                            Icon(
-                                imageVector = search,
-                                contentDescription = stringResource(R.string.explore_market_search),
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = 1f - searchProgress.value
-                                },
-                            )
-                        }
-                        if (hasQuery) {
-                            Icon(
-                                imageVector = close,
-                                contentDescription = stringResource(R.string.explore_market_clear_search),
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = searchProgress.value
-                                },
-                            )
-                        }
+                    KedgeIconButton(onClick = { navController.navigate(Screen.ExploreLocal) }) {
+                        Icon(
+                            imageVector = folderManaged,
+                            contentDescription = stringResource(R.string.explore_market_local_page_title),
+                        )
                     }
                 }
             }
-            val onExitSearch: () -> Unit = { searchExpanded = false }
-            // 返回箭头：搜索态点它先退出搜索，否则才退出页面
-            val navigationIcon: @Composable () -> Unit = {
-                BackButton(
-                    onClick = {
-                        if (searchProgress.value >= 0.5f) onExitSearch() else navController.popBackStack()
-                    },
-                )
-            }
-
-            if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                // Miuix：交给现成的 morphing 顶栏（ChatPage 用的同一个），标题/副标题
-                // 与输入框按同一进度 morph。
-                KedgeMiuixMorphingTitleBar(
-                    title = stringResource(R.string.explore_market_title),
-                    subtitle = stringResource(R.string.explore_market_subtitle),
-                    expanded = searchExpanded,
-                    keyword = query,
-                    onKeywordChange = { new ->
-                        // 清空时把远端结果集刷回全量，与原来的清除按钮一致
-                        if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
-                        query = new
-                    },
-                    dragProgress = searchProgress.value,
-                    // 不传 dragging，组件内部的 snapTo 会被门控掉（只剩 tween），
-                    // 返回手势拖动就没有跟手反馈。
-                    dragging = searchExpand.dragging.value,
-                    onExitSearch = onExitSearch,
-                    placeholder = stringResource(R.string.history_page_search),
-                    navigationIcon = navigationIcon,
-                    actions = { searchAction() },
-                    focusRequester = searchFocus,
-                )
-            } else {
-                KedgePageLargeTopBar(
-                    title = stringResource(R.string.explore_market_title),
-                    subtitle = stringResource(R.string.explore_market_subtitle),
-                    navigationIcon = navigationIcon,
-                    actions = { searchAction() },
-                    scrollBehavior = scrollBehavior,
-                    colors = CustomColors.topBarColors,
-                    titleContent = {
-                        // 标题与输入框共用同一个字阶 token：输入框是**替换**标题，
-                        // 字号字色必须严格相等，否则展开时会看到「标题跳了一下」。
-                        val titleStyle = KedgeTextStyles.displayTitle()
-                        // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行
-                        val isLargeTitleRow = LocalTextStyle.current.fontSize >
-                            MaterialTheme.typography.titleLarge.fontSize
-                        Box {
-                            if (titleVisible) {
-                                Column(
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = 1f - searchProgress.value
-                                        translationX = -searchProgress.value * 24.dp.toPx()
-                                    },
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.explore_market_title),
-                                        style = titleStyle,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.explore_market_subtitle),
-                                        style = KedgeTextStyles.body(),
-                                        color = LocalContentColor.current.copy(0.65f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
-                            if (searchVisible) {
-                                // 用 searchVisible 而不是 searchExpanded：布尔先变 false、
-                                // 进度还在补间时若已卸载输入框，退场动画会被腰斩。
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
-                                        .graphicsLayer {
-                                            alpha = searchProgress.value
-                                            translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                                        },
-                                ) {
-                                    if (query.isBlank()) {
-                                        Text(
-                                            text = stringResource(R.string.history_page_search),
-                                            style = titleStyle,
-                                            maxLines = 1,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        )
-                                    }
-                                    BasicTextField(
-                                        value = query,
-                                        onValueChange = { new ->
-                                            if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
-                                            query = new
-                                        },
-                                        singleLine = true,
-                                        textStyle = titleStyle.copy(
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                        ),
-                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            // 只挂到打开搜索那一刻可见的那一行
-                                            .then(
-                                                if (isLargeTitleRow == focusLargeTitleRow) {
-                                                    Modifier.focusRequester(searchFocus)
-                                                } else {
-                                                    Modifier
-                                                }
-                                            ),
-                                    )
-                                }
-                            }
-                        }
-                    },
-                )
-            }
+            // 顶栏不再常驻搜索药丸：入口是右上角那个搜索图标，点开后才在**标题槽位**里
+            // morph 出输入框（逻辑照 ChatPage，两页共用同一个 [ExploreSearchTopBar]）。
+            ExploreSearchTopBar(
+                title = stringResource(R.string.explore_market_title),
+                subtitle = stringResource(R.string.explore_market_subtitle),
+                query = query,
+                onQueryChange = { new ->
+                    // 清空时把远端结果集刷回全量，与原来的清除按钮一致
+                    if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
+                    query = new
+                },
+                expanded = searchExpanded,
+                onToggleSearch = { searchExpanded = true },
+                onExitSearch = { searchExpanded = false },
+                searchExpand = searchExpand,
+                scrollBehavior = scrollBehavior,
+                extraAction = localAction,
+            )
         },
         // Miuix 下 KedgePageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
         // 滚动增量（整页滑不动），所以按风格取。
@@ -1490,6 +1493,10 @@ private fun formatBytes(bytes: Long): String = when {
     else -> "$bytes B"
 }
 
+/** 卡片命中搜索词的口径（名称 + 摘要 + 描述），一级页与卡片市场共用一份。 */
+private fun CardIndexEntry.matchesQuery(query: String): Boolean =
+    query.isBlank() || (name + summary + description).contains(query, ignoreCase = true)
+
 /**
  * 二级页面：卡片市场全量列表。
  *
@@ -1513,6 +1520,7 @@ fun ExploreCardsPage(initialQuery: String = "") {
     val busyCard by vm.busyCard.collectAsStateWithLifecycle()
     val uiStyle = vm.uiStyle
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val density = LocalDensity.current
 
     var query by rememberSaveable { mutableStateOf(initialQuery) }
     var cardFilter by rememberSaveable { mutableStateOf(CardFilter.ALL.name) }
@@ -1534,77 +1542,108 @@ fun ExploreCardsPage(initialQuery: String = "") {
                 CardFilter.PREFERRED -> info?.preferred == true
                 CardFilter.AI -> CardManifest.TRIGGER_AI in (triggers[entry.name] ?: entry.triggers)
             }
-            inFilter && (query.isBlank() ||
-                (entry.name + entry.summary + entry.description).contains(query, ignoreCase = true))
+            inFilter && entry.matchesQuery(query)
         }
     }
+    // 「全部 N」里的 N 是**当前搜索词下的总数**，不跟着卡片筛选走：选中「已安装」后
+    // 它不该从 47 掉成 12（读起来是「全部只有 12 张」），那一格的语义是分母。
+    val totalCount = remember(cards, query) { cards.count { it.matchesQuery(query) } }
+    // 列表卡片形状与设置页同一份口径（见 [listCardStyle]）。
+    val cardStyle = listCardStyle()
 
-    KedgeSettingsPageScaffold(
-        title = stringResource(R.string.explore_market_cards_page_title),
-        scrollBehavior = scrollBehavior,
+    // 搜索态：与一级页 / ChatPage 同一套 —— 入口是顶栏右上角那枚搜索图标，点开后
+    // **标题槽位** morph 成输入框（原先这一页是常驻搜索药丸，已去掉）。
+    // 一级页带词进来（[initialQuery]）时直接以展开态入场，否则词躺在看不见的输入框里、
+    // 列表却停在过滤态，看着像丢词。
+    var searchExpanded by rememberSaveable { mutableStateOf(initialQuery.isNotBlank()) }
+    val searchExpand = rememberSearchExpandState(
+        expanded = searchExpanded,
+        onCollapse = {
+            searchExpanded = false
+            // 收起时清空关键字，否则列表留在过滤态却没有可见输入框
+            if (query.isNotBlank()) {
+                query = ""
+                vm.refresh("")
+            }
+        },
+    )
+    // 悬浮筛选栏的钉线（px→dp = 折叠态顶栏下沿）。算法与一级页逐字相同，那边有完整推导；
+    // 两页的 chip 轨道必须钉在同一条线上，否则二级页看着就是「chip 一滚就没了」。
+    var filterPinLine by remember { mutableStateOf(0.dp) }
+    // 列表滚动状态提到页面这一层：sticky 的 chip 栏钉没钉住，要看列表滚到哪了。
+    val listState = rememberLazyListState()
+    // 页面底色 / 钉住后的底色：与一级页同源（悬浮栏与正文必须同色，只能有一份来源）。
+    val pageSurface = CustomColors.pageContainerColor
+    val chipDockedSurface = CustomColors.topBarColors.scrolledContainerColor
+
+    KedgePageScaffold(
+        topBar = {
+            ExploreSearchTopBar(
+                title = stringResource(R.string.explore_market_cards_page_title),
+                subtitle = null,
+                query = query,
+                onQueryChange = { new ->
+                    // 清空时把远端结果集刷回全量，与一级页一致
+                    if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
+                    query = new
+                },
+                expanded = searchExpanded,
+                onToggleSearch = { searchExpanded = true },
+                onExitSearch = { searchExpanded = false },
+                searchExpand = searchExpand,
+                scrollBehavior = scrollBehavior,
+            )
+        },
+        modifier = activeNestedScroll(scrollBehavior),
+        containerColor = pageSurface,
+        md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding +
-                PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item(key = "search") {
-                KedgeOutlinedTextFieldWithSlots(
-                    value = query,
-                    onValueChange = { query = it },
-                    placeholder = { Text(stringResource(R.string.explore_market_search_cards_hint)) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(ExploreShape.tile),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            item(key = "filters") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(CardFilter.entries) { option ->
-                            KedgeFilterChip(
-                                selected = selectedCardFilter == option,
-                                onClick = { cardFilter = option.name },
-                                label = { Text(stringResource(option.labelRes)) },
-                            )
-                        }
-                    }
-                    Text(
-                        text = stringResource(R.string.explore_market_cards_count_summary, matched.size, installed.size),
-                        style = KedgeTextStyles.footnoteSmall().tabular(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            if (loading && matched.isEmpty()) {
-                item(key = "loading") { CardGridSkeleton() }
-            } else if (matched.isEmpty()) {
-                item(key = "empty") {
-                    ExploreEmptyState(
-                        query = query,
-                        scopeLabel = stringResource(R.string.explore_market_cards_page_title),
-                        onClearQuery = { query = "" },
-                        onReload = { vm.refresh("") },
-                    )
-                }
+        // 钉线 = 折叠态顶栏下沿：stickyHeader 只钉在 LazyColumn 自己的顶边上，
+        // 不下移就钉在屏幕顶端（正好在顶栏背后）。推导见一级页同名那段注释。
+        val miuixBarState = LocalKedgePageScrollBehavior.current?.miuixScrollBehavior?.state
+        LaunchedEffect(innerPadding) {
+            val offset: Float
+            val limit: Float
+            if (miuixBarState != null) {
+                offset = miuixBarState.heightOffset
+                limit = miuixBarState.heightOffsetLimit
             } else {
-                // 关键：一张卡一个 item，滑到哪组合到哪。
-                items(matched, key = { it.name }) { entry ->
-                    CompactCard(
-                        entry = entry,
-                        installedVersion = installed[entry.name],
-                        triggers = triggers[entry.name] ?: entry.triggers,
-                        hubInfo = hubInfo[entry.name],
-                        busy = busyCard == entry.name,
-                        onClick = { selectedCard = entry },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                offset = scrollBehavior.state.heightOffset
+                limit = scrollBehavior.state.heightOffsetLimit
             }
+            val pinPx = if (limit.isFinite() && limit < 0f && limit > -10_000f) {
+                (with(density) { innerPadding.calculateTopPadding().toPx() } - offset + limit)
+                    .coerceAtLeast(0f)
+            } else {
+                0f
+            }
+            val pin = with(density) { pinPx.toDp() }
+            if (pin != filterPinLine) filterPinLine = pin
         }
+
+        cardsList(
+            matched = matched,
+            totalCount = totalCount,
+            installed = installed,
+            triggers = triggers,
+            hubInfo = hubInfo,
+            busyCard = busyCard,
+            loading = loading,
+            query = query,
+            cardFilter = cardFilter,
+            onCardFilter = { cardFilter = it },
+            selectedCardFilter = selectedCardFilter,
+            cardStyle = cardStyle,
+            onSelectCard = { selectedCard = it },
+            onClearQuery = { query = "" },
+            onReload = { vm.refresh("") },
+            listState = listState,
+            pinLine = filterPinLine,
+            pageSurface = pageSurface,
+            dockedSurface = chipDockedSurface,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = innerPadding + PaddingValues(top = 8.dp, bottom = 32.dp),
+        )
     }
 
     CardMarketOverlays(
@@ -1627,102 +1666,179 @@ fun ExploreCardsPage(initialQuery: String = "") {
     )
 }
 
-/** 「查看全部」入口：一级页铺满 [CARD_PREVIEW_COUNT] 张后，去二级页看剩下的。 */
+/**
+ * 二级「卡片市场」的正文：悬浮筛选轨道 + 卡片列表。
+ *
+ * 形态与一级页的卡片区一致 —— 一行一张全宽卡、每行前置 extension 图标自报类型，
+ * 筛选轨道用带图标的 [MarketFilterChip]，卡片总数并进「全部 N」那一格，
+ * 页面里不再有分区标题或「共 N 张 · 已安装 N」这类说明行。
+ *
+ * chip 栏是 [stickyHeader]：滚过它的自然位置后就钉在 [pinLine]（折叠态顶栏下沿）上，
+ * 正文从它下面滚过去，底色跟着「钉没钉住」在两档之间渐变 —— 与一级页同一条钉线。
+ *
+ * 卡片逐项挂 [swapIn]（= `Modifier.animateItem`，上游 ImageToolbox 列表同款，
+ * 见其 `ScreenPreferenceSelection.kt` / `HelpListContent.kt` 的逐项 `animateItem()`）：
+ * 搜索词或筛选一变，出列表的卡淡出、进列表的卡淡入（延后 40ms）、留下来的卡用弹簧
+ * 滑到新位置，而不是整块列表硬切。
+ */
 @Composable
-private fun MarketMoreRow(label: String, onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .pressBounce(interactionSource)
-            .clip(AutoCornersShape(ExploreShape.surface))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(vertical = 16.dp),
-        contentAlignment = Alignment.Center,
+private fun cardsList(
+    matched: List<CardIndexEntry>,
+    totalCount: Int,
+    installed: Map<String, String>,
+    triggers: Map<String, List<String>>,
+    hubInfo: Map<String, HubCardMarketInfo>,
+    busyCard: String?,
+    loading: Boolean,
+    query: String,
+    cardFilter: String,
+    onCardFilter: (String) -> Unit,
+    selectedCardFilter: CardFilter,
+    cardStyle: ListCardStyle,
+    onSelectCard: (CardIndexEntry) -> Unit,
+    onClearQuery: () -> Unit,
+    onReload: () -> Unit,
+    listState: LazyListState,
+    pinLine: Dp,
+    pageSurface: Color,
+    dockedSurface: Color,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
+) {
+    // 「钉住了」= 列表已滚过 chip 栏的自然位置。chip 栏在这一页是首项，所以位号恒为 0：
+    // 它自己只要滚过 0 就说明已经顶在钉线上。不写死任何高度，字体缩放/风格切换都不影响。
+    val chipsDocked by remember(listState) {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
+        }
+    }
+    // 整页只剩「卡片连成一条」这一种分组：形状按卡在**结果集**里的位号算（首项圆上边、
+    // 末项圆下边、中间四角小圆），项间距取 [ListCardStyle.gap] —— 与一级页 [GroupContainer]
+    // 的卡片栈逐像素同款。二级页此前一张卡一格、每格整张圆角 + 12dp 间距，同一批卡在两个
+    // 页面是两种卡面，现在两边共用一份口径。
+    val swapKey = remember(matched) { matched.joinToString(",") { it.name } }
+    LazyColumn(
+        state = listState,
+        // 列表整体下移一个「折叠态顶栏高度」：sticky 只钉在 LazyColumn 自己的顶边上，
+        // 不下移就钉在屏幕顶端（顶栏背后）。正文位置 = 下移量 + contentPadding.top，
+        // 两者之和不变，所以版面不动，变的只有钉线。
+        modifier = modifier.padding(top = pinLine),
+        contentPadding = contentPadding - PaddingValues(top = pinLine),
+        verticalArrangement = Arrangement.spacedBy(cardStyle.gap),
     ) {
-        Text(
-            text = label,
-            style = KedgeTextStyles.title().copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.primary,
-        )
+        stickyHeader(key = "card_filters") {
+            val chipBarSurface by animateColorAsState(
+                targetValue = if (chipsDocked) dockedSurface else pageSurface,
+                animationSpec = tween(durationMillis = 200),
+                label = "card_filter_chip_bar_surface",
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(chipBarSurface)
+                    // 卡与卡的间距已收到 [ListCardStyle.gap]，chip 栏与第一张卡之间留回
+                    // 一段呼吸位（底色跟着 [chipBarSurface]，钉住时下半截是这个实色）。
+                    .padding(top = 4.dp, bottom = 14.dp),
+            ) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    // 边距用 contentPadding 而不是外层 padding：chip 能像卡片一样滑到
+                    // 屏幕边缘，不被盒子夹断。
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(CardFilter.entries) { option ->
+                        MarketFilterChip(
+                            selected = selectedCardFilter == option,
+                            label = when (option) {
+                                CardFilter.ALL -> stringResource(
+                                    R.string.explore_market_card_filter_all_count,
+                                    totalCount,
+                                )
+                                else -> stringResource(option.labelRes)
+                            },
+                            icon = option.icon,
+                            onClick = { onCardFilter(option.name) },
+                        )
+                    }
+                }
+            }
+        }
+
+        // 正文的左右 16dp：chip 栏自己带 contentPadding，列表这一层不再带横向内边距，
+        // 钉住的实色底才能铺满整屏（与一级页同一手法）。
+        val rowPad = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+        if (loading && matched.isEmpty()) {
+            item(key = "loading") { Box(modifier = swapIn(rowPad)) { CardGridSkeleton() } }
+        } else if (matched.isEmpty()) {
+            item(key = "empty") {
+                Box(modifier = swapIn(rowPad)) {
+                    ExploreEmptyState(
+                        query = query,
+                        scopeLabel = stringResource(R.string.explore_market_cards_page_title),
+                        onClearQuery = onClearQuery,
+                        onReload = onReload,
+                    )
+                }
+            }
+        } else {
+            // 关键：一张卡一个 item，滑到哪组合到哪；形状按它在结果集里的位号算，
+            // 与一级页那条卡片栈同一份口径（[ListCardStyle.indexedShape]）。
+            itemsIndexed(matched, key = { _, entry -> entry.name }) { index, entry ->
+                // 搜索换场：`animateItem` 只管「项自己进出 + 邻项挪位」，项号（key = 卡名）
+                // 没变时**管不到**「同一格里的内容换了」。所以每格再套一层内容换场，
+                // 键取整个结果集的签名 —— 命中集合一变，屏上这几张卡一起走一遍
+                // `AnimatedContent` 的默认换场（淡出 → 延迟 90ms 淡入并 0.92→1 放大）。
+                MarketContentSwap(key = swapKey, modifier = swapIn(rowPad)) {
+                    CompactCard(
+                        entry = entry,
+                        installedVersion = installed[entry.name],
+                        triggers = triggers[entry.name] ?: entry.triggers,
+                        hubInfo = hubInfo[entry.name],
+                        busy = busyCard == entry.name,
+                        onClick = { onSelectCard(entry) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = cardStyle.indexedShape(index, matched.size),
+                    )
+                }
+            }
+        }
     }
 }
 
 /**
- * 「本地」入口行：市场页顶部的唯一一条本机内容入口。
- *
- * 图标瓦片走 MD3 音调角色（`primaryContainer` / `onPrimaryContainer`），
- * 与筛选 chip 同一套「不写死色相」的规则；右侧 chevron 表示这一行是跳转而不是开关。
- * 副标题把本机内容的账目一次报清：已安装卡片 / 其中仅本机 / 本地工具已启用数 / 技能 / MCP。
+ * 「查看全部」入口：一级页铺满 [CARD_PREVIEW_COUNT] 张后，去二级页看剩下的。
+ * 组内最后一行（形状由调用点按组内位号给出），沿用 option item 的度量，只把文字居中。
  */
 @Composable
-private fun LocalEntryRow(
-    installedCount: Int,
-    localCount: Int,
-    toolCount: Int,
-    toolEnabledCount: Int,
-    skillCount: Int,
-    mcpCount: Int,
+private fun MarketMoreRow(
+    label: String,
     onClick: () -> Unit,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    val installedPart = stringResource(R.string.explore_market_local_entry_installed, installedCount)
-    val localOnlyPart = stringResource(R.string.explore_market_local_entry_local_only, localCount)
-    val toolsPart = stringResource(R.string.explore_market_local_entry_tools, toolEnabledCount, toolCount)
-    val skillsPart = stringResource(R.string.explore_market_local_entry_skills, skillCount)
-    val mcpPart = stringResource(R.string.explore_market_local_entry_mcp, mcpCount)
-    val parts = buildList {
-        add(installedPart)
-        if (localCount > 0) add(localOnlyPart)
-        add(toolsPart)
-        if (skillCount > 0) add(skillsPart)
-        if (mcpCount > 0) add(mcpPart)
-    }
-    PressableRow(onClick = onClick) {
-        Box(
-            modifier = Modifier
-                .size(ExploreShape.listTileSize)
-                .clip(AutoCornersShape(ExploreShape.listTile))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = folderOpen,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        titleContent = {
             Text(
-                text = stringResource(R.string.explore_market_local_page_title),
-                style = KedgeTextStyles.title().copy(fontWeight = FontWeight.SemiBold),
+                text = label,
+                style = KedgeTextStyles.title().copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
             )
-            Text(
-                text = parts.joinToString(" · "),
-                style = KedgeTextStyles.body(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Icon(
-            imageVector = chevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+        },
+    )
 }
 
 /**
  * 形状一致性锁：整页只用这一套圆角。
- * 轮播 item 26（这一处按需求保持原样）/ 卡片 32 / 列表图标瓦片 16 / 网格图标瓦片 12 /
- * 筛选 chip 12（按下收到 8）；实心药丸按钮交给 Kedge 组件自己的形状。
+ * 轮播 item 26 / 卡片 32 / 图标瓦片 12 / 筛选 chip 12（按下收到 8）；
+ * 列表条目行（option item）的形状不在这里 —— 它跟设置页共用 [listCardStyle]，
+ * 由用户可配的「列表卡片样式」决定。实心药丸按钮交给 Kedge 组件自己的形状。
  * 新加组件时不要再写魔法数字，从这里取。
  */
 private object ExploreShape {
@@ -1731,16 +1847,12 @@ private object ExploreShape {
     val carouselPressed = 22.dp
     /** 卡片：网格卡与列表条目统一 32dp 一档（参考稿的 `rounded-lg` = 2rem），按住收 4dp。 */
     val surface = 32.dp
-    val surfacePressed = 28.dp
     /** 列表条目卡片：与 [surface] 同档 —— 两处共用一个数，卡片语言只有一个来源。 */
     val card = 32.dp
-    val cardPressed = 28.dp
     /** 旧的分组底板档位：分组容器已改成一叠卡片，这一档只剩骨架条在用。 */
     val group = 18.dp
-    /** 图标瓦片：网格卡 40dp 配 12dp 圆角，列表卡 48dp 配 16dp 圆角。 */
+    /** 图标瓦片：网格卡 40dp 配 12dp 圆角。 */
     val tile = 12.dp
-    val listTile = 16.dp
-    val listTileSize = 48.dp
     /** 筛选 chip：44dp 高的满圆角药丸；选中后收到 12dp，按下在各自档位上再收一档。 */
     val chip = 22.dp
     val chipSelected = 12.dp
@@ -1778,119 +1890,85 @@ private fun rememberPressedCorner(
 private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 
 /**
- * 分区标题条：标题 + 右侧计数 + 右侧文字动作（参考稿的 `headline-sm` 行）。
- * 一级页与二级页共用同一条 —— 整页的分区标题只有一个字阶、一种排布。
- * 不再带发丝分隔线：条目各自成卡之后，标题只负责分组，不需要「切割线」。
+ * 组尾的「管理」行：分区标题去掉之后，本地页每个分组末尾用一行 option item 承接
+ * 原来标题条上的动作（管理本地工具 / 管理技能 / 管理 MCP / 清空依赖缓存）。
+ *
+ * 形态与组内条目同一套度量（[KedgeOptionItem] + 组内位号给的形状），文字居中，
+ * 行里不再出现「已安装卡片 / 本地工具」这类分区标题字样。
  */
 @Composable
-private fun SectionLabel(
-    title: String,
-    icon: ImageVector,
-    supporting: String? = null,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
+private fun GroupActionRow(
+    label: String,
+    onClick: () -> Unit,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = title,
-            style = KedgeTextStyles.displayTitle(),
-            fontWeight = FontWeight.Medium,
-            letterSpacing = (-0.3).sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        if (supporting != null) {
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        titleContent = {
             Text(
-                text = supporting,
-                style = KedgeTextStyles.footnoteSmall().tabular(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = label,
+                style = KedgeTextStyles.title().copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
-        }
-        if (actionLabel != null && onAction != null) {
-            val interactionSource = remember { MutableInteractionSource() }
-            KedgeTextButton(
-                onClick = onAction,
-                shapes = ButtonDefaults.shapes(),
-                modifier = Modifier.pressBounce(interactionSource),
-            ) { Text(actionLabel) }
+        },
+    )
+}
+
+/**
+ * 条目组：**一组条目合成一张卡**（首项圆上边、末项圆下边、项间 [ListCardStyle.gap] 间距），
+ * 圆角与间距全部走 [listCardStyle] —— 与设置页的列表卡片同一份口径，
+ * 于是「设置 → 界面 → 列表卡片样式」里改一次，市场页与设置页一起变。
+ *
+ * 形状按组内位号算好传给条目：条目自己不猜自己在组里的位置（同 `CardGroup`
+ * 把 `indexedShape` 算好再交给 `KedgeOptionItem` 的做法）。
+ */
+@Composable
+private fun GroupContainer(
+    count: Int,
+    modifier: Modifier = Modifier,
+    content: @Composable (index: Int, shape: Shape) -> Unit,
+) {
+    if (count <= 0) return
+    val cards = listCardStyle()
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(cards.gap),
+    ) {
+        for (index in 0 until count) {
+            content(index, cards.indexedShape(index, count))
         }
     }
 }
 
 /**
- * 一级分区标题：与 [SectionLabel] 同一条（整页只此一种标题排布）。
- * 保留这个入口是因为「卡片市场」是页面级首块，语义上仍按一级对待。
+ * 行尾「下一级」箭头：导航型条目的统一收尾，与设置页的 `PreferenceArrow` 同一语义。
+ * 只做指示，不接受点击（点击归整行）。
  */
 @Composable
-private fun SectionHeader(
-    title: String,
-    icon: ImageVector,
-    supporting: String? = null,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
-) = SectionLabel(
-    title = title,
-    icon = icon,
-    supporting = supporting,
-    actionLabel = actionLabel,
-    onAction = onAction,
-)
-
-/**
- * 分区容器：**一叠独立卡片**，条目之间 8dp 间距 —— 不再是一整块底板 + 发丝分隔线。
- * 卡片自己负责底色 / 圆角 / 按压反馈（见 [PressableRow]），所以这里只剩排布。
- * 名字保留是因为两级页的每个分区都叫它；语义已经从「底板」变成「卡片栈」。
- */
-@Composable
-private fun GroupContainer(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        content = content,
+private fun RowChevron() {
+    Icon(
+        imageVector = chevronRight,
+        contentDescription = null,
+        modifier = Modifier.size(20.dp),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
     )
 }
 
 /**
- * 列表条目的卡片：一条目一张卡 —— 32dp 圆角 [ExploreShape.card]、`surfaceContainer` 底、
- * 20dp 内边距；整卡命中区可点，按住时圆角收一档（与网格卡、筛选 chip 同一套按压语言）。
- * 一级页的分区与二级页的列表都走这里，整页的条目形状因此只有一个来源。
+ * 行首图标：设置页 option item 的图标槽尺寸（图标 24dp，外层圆形淡底由
+ * [KedgeOptionItem] 自己铺）。内容类型就靠这一枚图标区分，行里不再写「技能合集」这类字样。
  */
 @Composable
-private fun PressableRow(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val corner = rememberPressedCorner(
-        interactionSource = interactionSource,
-        rest = ExploreShape.card,
-        pressed = ExploreShape.cardPressed,
-    )
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(AutoCornersShape(corner))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .pressBounce(interactionSource)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        content = content,
+private fun RowIcon(icon: ImageVector) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = Modifier.size(24.dp),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -1923,6 +2001,9 @@ private fun MetaChip(text: String, accent: Boolean = false) {
  * 选中是「形状 + 颜色」两件事一起变：圆角 22dp → 12dp，底色中性容器色 → secondaryContainer，
  * 颜色走 tween 渐变、圆角走 spring 回弹 —— 形状的弹性不该被颜色的线性时长拖慢。
  * 按下时在各自档位上再收一档（未选中 → 14dp / 选中 → 8dp）再弹回，与整页其它按压反馈同一套语言。
+ *
+ * Miuix 风格不走这套：整段改由 [KedgeFilterChip] 的 Miuix 分支接管（勾选框 + 文本，
+ * 见函数体开头），MD3 那套图标块/形状回弹只在 MD3Exp 下生效。
  */
 @Composable
 private fun MarketFilterChip(
@@ -1931,6 +2012,18 @@ private fun MarketFilterChip(
     icon: ImageVector,
     onClick: () -> Unit,
 ) {
+    // Miuix 风格下换成 Kedge 的 Miuix chip（Miuix 0.9.3 没有 chip 组件，
+    // KedgeFilterChip 的 Miuix 分支用「Checkbox + 文本」自己拼）。
+    // 这里不再画图标块：一整排 chip 各带一块彩色图标砖本来就是 MD3 卡片的语言，
+    // Miuix 的筛选语言是勾选框 + 文字，混在一起两边都不像。
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        KedgeFilterChip(
+            selected = selected,
+            onClick = onClick,
+            label = { Text(label) },
+        )
+        return
+    }
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val colors = MaterialTheme.colorScheme
@@ -2005,14 +2098,48 @@ private fun MarketFilterChip(
 }
 
 /**
- * 骨架 → 真实内容的换场：出栈的 160ms 内淡出，入栈的延后 40ms 淡入，
- * 邻项位置交给弹簧补。`animateItem` 是 [LazyItemScope] 的成员，只能挂在 lazy item 根节点上。
+ * 骨架 → 真实内容的换场：进出场与邻项挪位全用 `animateItem` 的默认 spec
+ * （fadeIn/fadeOut/placementSpec 都是 `spring(StiffnessMediumLow)`）。
+ *
+ * 不自己调 spec：上游 ImageToolbox 的列表逐项就是裸 `Modifier.animateItem()`
+ * （`ScreenPreferenceSelection.kt:222` / `HelpListContent.kt:81` / `TutorialCategoryContent.kt:79`），
+ * 手写 tween 只会让「市场的手感」和参照物又分家。`animateItem` 是 [LazyItemScope] 的成员，
+ * 只能挂在 lazy item 根节点上。
  */
-private fun LazyItemScope.swapIn(base: Modifier): Modifier = base.animateItem(
-    fadeInSpec = tween(durationMillis = 260, delayMillis = 40, easing = LinearOutSlowInEasing),
-    fadeOutSpec = tween(durationMillis = 160, easing = FastOutLinearInEasing),
-    placementSpec = spring(stiffness = Spring.StiffnessMediumLow),
-)
+private fun LazyItemScope.swapIn(base: Modifier): Modifier = base.animateItem()
+
+/**
+ * 搜索换场：**同一格**里装的内容换了一批时（搜索词变了 → 命中集合变了），
+ * 旧内容淡出微缩、新内容淡入微放，而不是硬切一下。
+ *
+ * 与 [swapIn] 的分工：`animateItem` 管的是「惰性项**自己**进出 + 邻项挪位」，
+ * 而一级页每个分区是**一个**惰性项（[GroupContainer] 把这些行组在一格里），
+ * 项号没变 → `animateItem` 什么都不会做，命中行只会硬换。所以格里这一层要单独换场。
+ *
+ * 换场形状**不写自定义 spec**，用的就是 `AnimatedContent` 的默认 spec
+ * （`fadeIn(tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, tween(220, 90))`
+ * `togetherWith fadeOut(tween(90))`，外加默认的 `SizeTransform`）：上游 ImageToolbox 的
+ * 搜索换场正是这个默认值 —— `HelpListContent.kt` 的整块列表换场
+ * （`AnimatedContent(searchKeyword.isBlank() to filteredTips.isNotEmpty())`）与
+ * `ScreenPreferenceSelection.kt:123` 都只传 `transitionSpec = { fadeIn() togetherWith fadeOut() }`
+ * 或干脆不传。缩放要的就是这个 0.92 的可见幅度：手写 0.97 那一档在屏幕上看不出内容换过。
+ *
+ * [key] 传「真的变了才该动」的东西：调用点传的是命中集合的签名（`joinToString` 出来的名字串）。
+ * 签名一变，`AnimatedContent` 会把上一帧那份 content lambda（闭包捕获的是旧数据）留作离场内容，
+ * 于是拿到的是真·新旧两批内容，而不是同一批内容叠两次。
+ */
+@Composable
+private fun MarketContentSwap(
+    key: Any?,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    AnimatedContent(
+        targetState = key,
+        modifier = modifier,
+        label = "explore_market_content_swap",
+    ) { content() }
+}
 
 /**
  * 骨架呼吸值（0f→1f 往返）。整块骨架共用一个时钟：灰块一多，每个 `rememberInfiniteTransition`
@@ -2064,65 +2191,15 @@ private fun SkeletonBar(
 }
 
 /**
- * 卡片列表骨架：卡面沿用 [CompactCard] 的真实底色与真实内边距，卡里按它的四段结构
- * （图标瓦片 + 标题 / 摘要 / 元信息）摆灰条。
- *
- * 高度**不写死** —— 摘要区照抄真实卡的固定高度（34dp），于是骨架卡与真卡等高：
- * 数据到货时卡面原地换内容，列表不发生任何位移。形状也照抄真卡列表：一行一张全宽。
+ * 卡片列表骨架：一行一条，与 [CompactCard] 同形（[SkeletonRow] 那张 option item 骨架）。
+ * 二级页「卡片市场」还在拉数据时铺三条。
  */
 @Composable
 private fun CardGridSkeleton() {
-    val pulse = rememberSkeletonPulse()
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        repeat(3) {
-            CardShellSkeleton(pulse = pulse, modifier = Modifier.fillMaxWidth())
-        }
-    }
-}
-
-/** 单张骨架卡：底色 / 圆角 / 内边距 / 行距与 [CompactCard] 逐项对齐。 */
-@Composable
-private fun CardShellSkeleton(pulse: Float, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .clip(AutoCornersShape(ExploreShape.surface))
-            .background(MaterialTheme.colorScheme.surfaceContainer),
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(9.dp),
-            ) {
-                SkeletonBlock(
-                    Modifier.size(32.dp),
-                    AutoCornersShape(ExploreShape.tile),
-                    pulse,
-                )
-                SkeletonBlock(
-                    Modifier.weight(1f).height(15.dp),
-                    AutoCornersShape(ExploreShape.tile),
-                    pulse,
-                )
-            }
-            Column(
-                modifier = Modifier.height(34.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                SkeletonBlock(Modifier.fillMaxWidth().height(12.dp), AutoCornersShape(ExploreShape.tile), pulse)
-                SkeletonBlock(
-                    Modifier.fillMaxWidth(0.70f).height(12.dp),
-                    AutoCornersShape(ExploreShape.tile),
-                    pulse,
-                )
-            }
-            SkeletonBlock(
-                Modifier.fillMaxWidth(0.68f).height(11.dp),
-                AutoCornersShape(ExploreShape.tile),
-                pulse,
-            )
+    val cards = listCardStyle()
+    Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
+        repeat(3) { index ->
+            SkeletonRow(shape = cards.indexedShape(index, 3))
         }
     }
 }
@@ -2207,19 +2284,23 @@ private fun FeaturedCarouselSkeleton() {
     }
 }
 
-/** 条目卡骨架：与 [ToolRow] / [SkillRow] / [McpRow] / [ModelRow] / [ResourceRow] 同形。 */
+/**
+ * 条目骨架行：底色 / 圆角 / 内边距 / 图标槽与 [KedgeOptionItem] 的 option item 逐项对齐
+ * （12dp 内边距、24dp 图标 + 8dp 圆形垫、标题 / 摘要两条灰块）。
+ * 形状由调用点按组内位号给出，到货时是「原地填充」而不是整页重排。
+ */
 @Composable
-private fun SkeletonRow() {
+private fun SkeletonRow(shape: Shape = AutoCornersShape(ExploreShape.card)) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(AutoCornersShape(ExploreShape.card))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f))
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SkeletonBlock(Modifier.size(ExploreShape.listTileSize), AutoCornersShape(ExploreShape.listTile))
+        SkeletonBlock(Modifier.size(40.dp), CircleShape)
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             SkeletonBlock(Modifier.fillMaxWidth(0.55f).height(14.dp), AutoCornersShape(ExploreShape.tile))
             SkeletonBlock(Modifier.fillMaxWidth(0.32f).height(11.dp), AutoCornersShape(ExploreShape.tile))
@@ -2228,18 +2309,12 @@ private fun SkeletonRow() {
 }
 
 /**
- * 二级分区骨架：与 `SectionLabel + GroupContainer` 同构 —— 一条标题条 + 一叠同形行，
- * 连分组容器的底色都照原样，到货时是「原地填充」而不是整页重排。
+ * 分区骨架：与「一条目一行的 [GroupContainer]」同构 —— 一组同形行，到货时原地填充。
+ * 一级页已无分区标题，所以这里也不再铺标题条。
  */
 @Composable
 private fun SectionSkeleton(rows: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SkeletonBlock(Modifier.width(140.dp).height(18.dp), AutoCornersShape(ExploreShape.tile))
-        // 与真实的一叠卡片同构：卡片栈 + 每行自己的卡面，到货时原地填充、不重排。
-        GroupContainer {
-            repeat(rows) { SkeletonRow() }
-        }
-    }
+    GroupContainer(count = rows) { _, shape -> SkeletonRow(shape = shape) }
 }
 
 /** 页脚同步条：还在拉数据时转圈 + 文案；已经到底了就只剩一行灰字。 */
@@ -2322,44 +2397,55 @@ private fun ToolRow(
     tool: LocalToolInfo,
     enabled: Boolean,
     onClick: () -> Unit,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    PressableRow(onClick = onClick) {
-        ExtensionIcon(tool.seed, tool.icon, ExploreShape.listTileSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        leadingContent = { RowIcon(tool.icon) },
+        titleContent = {
             Text(text = stringResource(tool.titleRes), style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
             Text(
                 text = stringResource(tool.descRes),
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-        MetaChip(text = if (enabled) stringResource(R.string.explore_market_enabled) else stringResource(R.string.explore_market_disabled), accent = enabled)
-    }
+        },
+        trailingContent = {
+            MetaChip(text = if (enabled) stringResource(R.string.explore_market_enabled) else stringResource(R.string.explore_market_disabled), accent = enabled)
+        },
+    )
 }
 
 @Composable
-private fun SkillRow(name: String, description: String, onClick: () -> Unit) {
-    PressableRow(onClick = onClick) {
-        ExtensionIcon(name, extension, ExploreShape.listTileSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+private fun SkillRow(
+    name: String,
+    description: String,
+    onClick: () -> Unit,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
+) {
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        leadingContent = { RowIcon(school) },
+        titleContent = {
             Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
             Text(
                 text = description,
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-    }
+        },
+        trailingContent = { RowChevron() },
+    )
 }
 
 @Composable
@@ -2369,18 +2455,20 @@ private fun McpRow(
     onClick: () -> Unit,
     // P0-5：装完但缺必填时，行上直接给「配置」入口。
     onConfigure: (() -> Unit)? = null,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
     // 展示用 URL 一律过掩码：`?token=` / `&api_key=` 这类 query 不能出现在列表上。
     val displayUrl = maskMcpUrl(server.serverUrl)
     val name = server.commonOptions.name.ifBlank { displayUrl }
     val cardStatus = mcpCardStatus(server, status)
-    PressableRow(onClick = onClick) {
-        ExtensionIcon(name, dns, ExploreShape.listTileSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        leadingContent = { RowIcon(dns) },
+        titleContent = {
             Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
             Text(
                 text = displayUrl,
                 style = KedgeTextStyles.body(),
@@ -2388,35 +2476,42 @@ private fun McpRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-        if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
-            CircleActionButton(
-                icon = heizige.kk.khatkit.app.core.ui.icons.settings,
-                contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
-                onClick = onConfigure,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        when (cardStatus) {
-            // 缺必填优先：这时底下就算报了「连上」也不认，不能显示已连接。
-            McpCardStatus.NEEDS_CONFIG -> MetaChip(stringResource(R.string.explore_market_mcp_needs_config))
-            McpCardStatus.CONNECT_FAILED -> MetaChip(stringResource(R.string.explore_market_mcp_error))
-            McpCardStatus.CONFIGURED -> when (status) {
-                McpStatus.Connected -> MetaChip(stringResource(R.string.explore_market_mcp_connected), accent = true)
-                McpStatus.Connecting, is McpStatus.Reconnecting -> MetaChip(stringResource(R.string.explore_market_mcp_connecting))
-                is McpStatus.Error -> MetaChip(stringResource(R.string.explore_market_mcp_error))
-                McpStatus.NeedsAuthorization, McpStatus.Authorizing -> MetaChip(stringResource(R.string.explore_market_mcp_needs_auth))
-                else -> MetaChip(
-                    if (server.commonOptions.enable) {
-                        stringResource(R.string.explore_market_mcp_disconnected)
-                    } else {
-                        stringResource(R.string.explore_market_mcp_stopped)
+        },
+        trailingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
+                    CircleActionButton(
+                        icon = heizige.kk.khatkit.app.core.ui.icons.settings,
+                        contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
+                        onClick = onConfigure,
+                        size = 34.dp,
+                        iconSize = 18.dp,
+                    )
+                }
+                when (cardStatus) {
+                    // 缺必填优先：这时底下就算报了「连上」也不认，不能显示已连接。
+                    McpCardStatus.NEEDS_CONFIG -> MetaChip(stringResource(R.string.explore_market_mcp_needs_config))
+                    McpCardStatus.CONNECT_FAILED -> MetaChip(stringResource(R.string.explore_market_mcp_error))
+                    McpCardStatus.CONFIGURED -> when (status) {
+                        McpStatus.Connected -> MetaChip(stringResource(R.string.explore_market_mcp_connected), accent = true)
+                        McpStatus.Connecting, is McpStatus.Reconnecting -> MetaChip(stringResource(R.string.explore_market_mcp_connecting))
+                        is McpStatus.Error -> MetaChip(stringResource(R.string.explore_market_mcp_error))
+                        McpStatus.NeedsAuthorization, McpStatus.Authorizing -> MetaChip(stringResource(R.string.explore_market_mcp_needs_auth))
+                        else -> MetaChip(
+                            if (server.commonOptions.enable) {
+                                stringResource(R.string.explore_market_mcp_disconnected)
+                            } else {
+                                stringResource(R.string.explore_market_mcp_stopped)
+                            }
+                        )
                     }
-                )
+                }
             }
-        }
-    }
+        },
+    )
 }
 
 /** 服务端给的图标语义名 -> 本机图标；认不出就退回该 kind 的默认图标。 */
@@ -2432,7 +2527,7 @@ private fun resourceIcon(name: String, kind: String): ImageVector = when (name) 
     else -> when (kind) {
         HubResourceEntry.KIND_MCP -> dns
         HubResourceEntry.KIND_BUNDLE -> package2
-        else -> autoAwesome
+        else -> school
     }
 }
 
@@ -2471,76 +2566,86 @@ private fun ResourceRow(
     onClick: () -> Unit,
     // P0-5：MCP 服务条目多一个「配置」入口；技能合集 / 合集包传 null 不显示。
     onConfigure: (() -> Unit)? = null,
-    // P0-5：装过但缺必填的 MCP 条目，卡上直接标「需要配置」。
+    // P0-5：装过但缺必填的 MCP 条目，行上直接标「需要配置」。
     needsConfig: Boolean = false,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    PressableRow(onClick = onClick) {
-        ExtensionIcon(entry.slug, resourceIcon(entry.icon, entry.kind), ExploreShape.listTileSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = entry.name,
-                    style = KedgeTextStyles.title(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                MetaChip(text = resourceKindLabel(entry))
-                if (needsConfig) {
-                    MetaChip(text = stringResource(R.string.explore_market_mcp_needs_config))
-                }
-            }
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        // 行里不再有「技能合集 / MCP 服务 / 合集包」徽标：类型由这枚图标区分
+        // （技能 school / MCP dns / 合集包 package2），行首图标就是分类的唯一出处。
+        leadingContent = { RowIcon(resourceIcon(entry.icon, entry.kind)) },
+        titleContent = {
             Text(
-                text = entry.description.ifBlank { entry.items.take(3).joinToString(" · ") },
-                style = KedgeTextStyles.body(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = entry.name,
+                style = KedgeTextStyles.title(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            val meta = resourceMetaLine(entry)
-            if (meta.isNotBlank()) {
+        },
+        supportingContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = meta,
-                    style = KedgeTextStyles.footnoteSmall().tabular(),
+                    text = entry.description.ifBlank { entry.items.take(3).joinToString(" · ") },
+                    style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val meta = resourceMetaLine(entry)
+                if (meta.isNotBlank()) {
+                    Text(
+                        text = meta,
+                        style = KedgeTextStyles.footnoteSmall().tabular(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
-        if (!busy && onConfigure != null) {
-            CircleActionButton(
-                icon = heizige.kk.khatkit.app.core.ui.icons.settings,
-                contentDescription = stringResource(R.string.explore_market_mcp_configure_named, entry.name),
-                onClick = onConfigure,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        when {
-            busy -> KedgeProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
-            installed -> CircleActionButton(
-                icon = check,
-                contentDescription = stringResource(R.string.explore_market_state_installed),
-                onClick = null,
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                contentColor = MaterialTheme.colorScheme.primary,
-            )
-            else -> CircleActionButton(
-                icon = downloadForOffline,
-                contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
-                onClick = onInstall,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
-        }
-    }
+        },
+        trailingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (needsConfig) {
+                    MetaChip(text = stringResource(R.string.explore_market_mcp_needs_config))
+                }
+                if (!busy && onConfigure != null) {
+                    CircleActionButton(
+                        icon = heizige.kk.khatkit.app.core.ui.icons.settings,
+                        contentDescription = stringResource(R.string.explore_market_mcp_configure_named, entry.name),
+                        onClick = onConfigure,
+                        size = 34.dp,
+                        iconSize = 18.dp,
+                    )
+                }
+                when {
+                    busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    installed -> CircleActionButton(
+                        icon = check,
+                        contentDescription = stringResource(R.string.explore_market_state_installed),
+                        onClick = null,
+                        size = 34.dp,
+                        iconSize = 18.dp,
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    )
+                    else -> CircleActionButton(
+                        icon = downloadForOffline,
+                        contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
+                        onClick = onInstall,
+                        size = 34.dp,
+                        iconSize = 18.dp,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+        },
+    )
 }
 
 /**
@@ -2737,43 +2842,37 @@ private fun ModelRow(
     providerName: String,
     model: Model,
     onClick: () -> Unit,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    PressableRow(onClick = onClick) {
-        ExtensionIcon(model.modelId, psychology, ExploreShape.listTileSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        leadingContent = { RowIcon(memory) },
+        titleContent = {
             Text(
                 text = model.displayName.ifBlank { model.modelId },
                 style = KedgeTextStyles.title(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = providerName,
-                    style = KedgeTextStyles.footnoteSmall(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val badges = model.abilityBadges()
-                if (badges.isNotEmpty()) {
-                    Text(
-                        text = badges.joinToString(" · "),
-                        style = KedgeTextStyles.footnoteSmall(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-    }
+        },
+        supportingContent = {
+            // 提供方 + 能力标签压成一行：设置页的 option item 摘要只有一行，
+            // 这里不再单独排一排胶囊。
+            val badges = model.abilityBadges()
+            Text(
+                text = listOfNotNull(
+                    providerName.takeIf { it.isNotBlank() },
+                    badges.takeIf { it.isNotEmpty() }?.joinToString(" · "),
+                ).joinToString(" · "),
+                style = KedgeTextStyles.footnoteSmall(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        trailingContent = { RowChevron() },
+    )
 }
 
 /** 能力标签只做文案，不再一人一种饱和色（配色一致性锁）。 */
@@ -2795,61 +2894,88 @@ private fun LocalCardRow(
     version: String,
     triggers: List<String>,
     onClick: () -> Unit,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    PressableRow(onClick = onClick) {
-        ExtensionIcon(name, package2, ExploreShape.listTileSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+    KedgeOptionItem(
+        onClick = onClick,
+        shape = shape,
+        leadingContent = { RowIcon(extension) },
+        titleContent = {
             Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
             Text(
                 text = stringResource(R.string.explore_market_local_card_meta, version),
                 style = KedgeTextStyles.body().tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-        }
-        MetaChip(text = triggers.joinToString("/").ifBlank { "local" })
-    }
+        },
+        trailingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MetaChip(text = triggers.joinToString("/").ifBlank { "local" })
+                RowChevron()
+            }
+        },
+    )
 }
 
+/**
+ * 依赖包一行。
+ *
+ * [cached] 非空 = 本机已下载（报大小与 sha256，行尾可删）；为空 = 已安装卡片声明了但还没下载
+ * （下载发生在运行卡片时，见 `dependency-system.md`），此时只报状态、不给删除入口。
+ */
 @Composable
 private fun DependencyRow(
-    dependency: DependencyCacheEntry,
+    name: String,
+    version: String,
+    cached: DependencyCacheEntry?,
     onDelete: () -> Unit,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(AutoCornersShape(ExploreShape.card))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(horizontal = 20.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        ExtensionIcon(dependency.name, extension, ExploreShape.listTileSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+    // 整行不可点（`onClick = null`）：这一行只报「本机缓存了什么」，唯一的动作是行尾删除。
+    KedgeOptionItem(
+        onClick = null,
+        shape = shape,
+        leadingContent = { RowIcon(deployedCode) },
+        titleContent = {
             Text(
-                text = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
+                text = stringResource(R.string.explore_market_name_version, name, version),
                 style = KedgeTextStyles.title(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        },
+        supportingContent = {
             Text(
-                text = "${formatBytes(dependency.sizeBytes)} · SHA-256 ${dependency.sha256.take(12)}…",
+                text = if (cached != null) {
+                    "${formatBytes(cached.sizeBytes)} · SHA-256 ${cached.sha256.take(12)}…"
+                } else {
+                    stringResource(R.string.explore_market_dependency_pending)
+                },
                 style = KedgeTextStyles.footnoteSmall().tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-        }
-        CircleActionButton(
-            icon = deleteForever,
-            contentDescription = stringResource(R.string.explore_market_cd_delete_dependency),
-            onClick = onDelete,
-        )
-    }
+        },
+        trailingContent = {
+            if (cached != null) {
+                CircleActionButton(
+                    icon = deleteForever,
+                    contentDescription = stringResource(R.string.explore_market_cd_delete_dependency),
+                    onClick = onDelete,
+                    size = 34.dp,
+                    iconSize = 18.dp,
+                )
+            }
+        },
+    )
 }
 
 /**
@@ -2891,7 +3017,7 @@ private fun FeaturedCard(
     )
     // 药丸的三种语义：没装 = 安装；装了但不是最新 = 更新；装的就是市场这一版 = 已安装（点了走卸载）。
     val installState = cardInstallState(installedVersion, entry.version)
-    // 身份色 / 身份形都由包名哈希决定，和本页 [ExtensionIcon] 用的是同一个种子、同一张表：
+    // 身份色 / 身份形都由包名哈希决定，与卡片行的类型图标是两套东西：
     // 同一张卡在网格里是哪个颜色、哪个轮廓，进了轮播还是它，不需要第二套视觉身份。
     val identityIndex = abs(entry.name.hashCode()) % extensionPalette.size
     val identity = extensionPalette[identityIndex]
@@ -2934,7 +3060,7 @@ private fun FeaturedCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = package2,
+                        imageVector = extension,
                         contentDescription = null,
                         modifier = Modifier.size(22.dp),
                         tint = poster,
@@ -3168,7 +3294,9 @@ private fun cardMetaLine(
 }
 
 /**
- * 卡片列表单元：一行一张，全宽。
+ * 卡片列表单元：设置页 option item 的一行 —— 行首图标（[extension]）+ 名称 + 摘要与元信息
+ * + 行尾「安装状态 / 下一级箭头」。一级页把它放进 [GroupContainer]（组内位号决定圆角），
+ * 二级页一张卡一个 item（整张圆角）。
  *
  * 以前有 `wide` 变体（更大的图标 / 三行摘要 / 一层主色环境光）给 1 + N 网格的首张
  * 主推位用；改成单列后每张都是全宽，两套度量只会让同一列里出现两种卡高，故删掉变体。
@@ -3182,37 +3310,16 @@ private fun CompactCard(
     busy: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressedCorner = rememberPressedCorner(
-        interactionSource = interactionSource,
-        rest = ExploreShape.surface,
-        pressed = ExploreShape.surfacePressed,
-    )
-    Box(
-        modifier = modifier
-            .clip(AutoCornersShape(pressedCorner))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                ExtensionIcon(entry.name, package2, 40.dp)
-                Spacer(Modifier.weight(1f))
-                when {
-                    busy -> KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    // 状态徽标挪到卡面右上角（参考稿的胶囊位）：标题要占满一行，
-                    // 状态不该再挤进元信息行。判定与轮播药丸同一套。
-                    installedVersion != null ->
-                        MetaChip(cardInstallState(installedVersion, entry.version).label(), accent = true)
-                }
-            }
+    // 状态判定与轮播药丸同一套。
+    val stateLabel = installedVersion?.let { cardInstallState(it, entry.version).label() }
+    KedgeOptionItem(
+        onClick = onClick,
+        modifier = modifier,
+        shape = shape,
+        leadingContent = { RowIcon(extension) },
+        titleContent = {
             Text(
                 text = entry.name,
                 style = KedgeTextStyles.title(),
@@ -3220,19 +3327,16 @@ private fun CompactCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = entry.summary.ifBlank { entry.description },
-                style = KedgeTextStyles.body(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.height(34.dp),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+        },
+        supportingContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = entry.summary.ifBlank { entry.description },
+                    style = KedgeTextStyles.body(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     text = cardMetaLine(
                         entry = entry,
@@ -3244,18 +3348,22 @@ private fun CompactCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                CircleActionButton(
-                    icon = add,
-                    contentDescription = stringResource(R.string.explore_market_cd_view_named, entry.name),
-                    onClick = onClick,
-                    size = 32.dp,
-                    iconSize = 18.dp,
                 )
             }
-        }
-    }
+        },
+        trailingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                when {
+                    busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    stateLabel != null -> MetaChip(stateLabel, accent = true)
+                }
+                RowChevron()
+            }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -3329,7 +3437,7 @@ private fun CardDetailSheet(
                     ExtensionBadge(bridge, bridge, bolt)
                 }
                 entry.dependencies.forEach { dependency ->
-                    ExtensionBadge(dependency.name, stringResource(R.string.explore_market_name_version, dependency.name, dependency.version), extension)
+                    ExtensionBadge(dependency.name, stringResource(R.string.explore_market_name_version, dependency.name, dependency.version), deployedCode)
                 }
                 displayTriggers.forEach { trigger ->
                     KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
@@ -3373,7 +3481,7 @@ private fun CardDetailSheet(
                         ExtensionBadge(
                             seed = dependency.name,
                             label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
-                            icon = extension,
+                            icon = deployedCode,
                         )
                     }
                 }
@@ -3620,12 +3728,23 @@ private fun formatYuan(cents: Long): String {
 }
 
 /**
+ * 本地页的一行依赖包。
+ *
+ * [cached] 非空 = 本机已有这个 jar；为空 = 已安装卡片声明了该依赖但还没下载到本机。
+ */
+private data class LocalDependencyView(
+    val name: String,
+    val version: String,
+    val cached: DependencyCacheEntry?,
+)
+
+/**
  * 二级页面：本地。
  *
  * 一级探索页把本机内容混在几十张远端卡片里（还受筛选 chip 影响），这一页把「本机 / 已安装」
  * 单独收成一处，进得来就一眼看全：
  *  已安装卡片（市场来源，可更新/卸载）→ 本机卡片（仅存在于本机）→ 本地工具 → 代理技能 →
- *  MCP 服务器 → 原生依赖包。
+ *  MCP 服务器 → 原生依赖包（卡片声明的 + 本机已缓存的）。
  *
  * 数据与一级页完全同源（同一个 [ExploreMarketViewModel]，各自持有一个实例），
  * 卡片的详情 / 运行 / 卸载 / 发布继续复用 [CardMarketOverlays]；
@@ -3654,6 +3773,8 @@ fun ExploreLocalPage() {
     val loading by vm.loading.collectAsStateWithLifecycle()
     val mcpStatus by vm.mcpStatus.collectAsStateWithLifecycle()
     val dependencies by vm.dependencies.collectAsStateWithLifecycle()
+    // 已安装卡片声明的依赖包：本地页要连「还没下载的」一起列出来。
+    val declaredDependencies by vm.declaredDependencies.collectAsStateWithLifecycle()
     val uiStyle = vm.uiStyle
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -3675,6 +3796,25 @@ fun ExploreLocalPage() {
     val localOnly = remember(installed, cards) {
         installed.keys.filterNot { name -> cards.any { it.name == name } }.sorted()
     }
+    // 依赖清单 = 卡片声明的 ∪ 本机已缓存的：
+    // 声明的依赖必须先露出来（下载发生在运行卡片时，刚装完卡片缓存是空的），
+    // 缓存的 jar 即使没有卡片再声明它（卡片被卸载/降级）也要留着让用户删掉。
+    val dependencyViews = remember(dependencies, declaredDependencies) {
+        val cachedByKey = dependencies.associateBy { it.name to it.version }
+        val declaredKeys = declaredDependencies.entries
+            .flatMap { (name, versions) -> versions.map { name to it } }
+            .distinct()
+        buildList {
+            declaredKeys.forEach { (name, version) ->
+                add(LocalDependencyView(name, version, cachedByKey[name to version]))
+            }
+            dependencies.forEach { entry ->
+                if (declaredKeys.none { it.first == entry.name && it.second == entry.version }) {
+                    add(LocalDependencyView(entry.name, entry.version, entry))
+                }
+            }
+        }
+    }
 
     // 本机卡片没有市场条目，就地合成一个只含名称/版本/空 url 的索引项，
     // 让详情抽屉（运行、卸载、密钥）对它同样可用 —— 一级页的「本机卡片」也是这么做的。
@@ -3686,111 +3826,94 @@ fun ExploreLocalPage() {
         title = stringResource(R.string.explore_market_local_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
+        // 与一级页 / 卡片市场页同一口径：页面里没有分区标题，一行一张全宽条目，
+        // 类型由每行的前置图标自报（卡片 extension / 工具 build / 技能 school /
+        // MCP dns / 依赖 deployedCode）。分组之间只靠间距分块。
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding +
                 PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
-            if (loading && installed.isEmpty() && skills.isEmpty() && dependencies.isEmpty()) {
+            if (loading && installed.isEmpty() && skills.isEmpty() && dependencyViews.isEmpty()) {
                 item(key = "loading") { SectionSkeleton(rows = 3) }
             }
 
             if (installedFromMarket.isNotEmpty()) {
                 item(key = "installed_market") {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_installed_cards),
-                            icon = downloadForOffline,
-                            supporting = stringResource(R.string.explore_market_installed_from_market, installedFromMarket.size),
+                    GroupContainer(count = installedFromMarket.size) { index, shape ->
+                        val name = installedFromMarket[index]
+                        LocalCardRow(
+                            name = name,
+                            version = installed[name].orEmpty(),
+                            triggers = triggers[name].orEmpty(),
+                            onClick = { selectedCard = installedEntry(name) },
+                            shape = shape,
                         )
-                        GroupContainer {
-                            installedFromMarket.forEach { name ->
-                                LocalCardRow(
-                                    name = name,
-                                    version = installed[name].orEmpty(),
-                                    triggers = triggers[name].orEmpty(),
-                                    onClick = { selectedCard = installedEntry(name) },
-                                )
-                            }
-                        }
                     }
                 }
             }
 
             if (localOnly.isNotEmpty()) {
                 item(key = "local_only") {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_local_cards),
-                            icon = bolt,
-                            supporting = stringResource(R.string.explore_market_local_only_count, localOnly.size),
+                    GroupContainer(count = localOnly.size) { index, shape ->
+                        val name = localOnly[index]
+                        LocalCardRow(
+                            name = name,
+                            version = installed[name].orEmpty(),
+                            triggers = triggers[name].orEmpty(),
+                            onClick = { selectedCard = installedEntry(name) },
+                            shape = shape,
                         )
-                        GroupContainer {
-                            localOnly.forEach { name ->
-                                LocalCardRow(
-                                    name = name,
-                                    version = installed[name].orEmpty(),
-                                    triggers = triggers[name].orEmpty(),
-                                    onClick = { selectedCard = installedEntry(name) },
-                                )
-                            }
-                        }
                     }
                 }
             }
 
             item(key = "tools") {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    SectionLabel(
-                        title = stringResource(R.string.explore_market_section_local_tools),
-                        icon = build,
-                        supporting = stringResource(
-                            R.string.explore_market_local_tools_supporting,
-                            localToolCatalog.size,
-                            localToolCatalog.count { it.option in currentAssistantLocalTools },
-                        ),
-                        actionLabel = stringResource(R.string.explore_market_manage),
-                        onAction = {
-                            navController.navigate(
-                                Screen.AssistantLocalTool(settings.assistantId.toString())
-                            )
-                        },
-                    )
-                    GroupContainer {
-                        localToolCatalog.forEach { tool ->
-                            ToolRow(
-                                tool = tool,
-                                enabled = tool.option in currentAssistantLocalTools,
-                                onClick = {
-                                    navController.navigate(
-                                        Screen.AssistantLocalTool(settings.assistantId.toString())
-                                    )
-                                },
-                            )
-                        }
+                GroupContainer(count = localToolCatalog.size + 1) { index, shape ->
+                    if (index < localToolCatalog.size) {
+                        val tool = localToolCatalog[index]
+                        ToolRow(
+                            tool = tool,
+                            enabled = tool.option in currentAssistantLocalTools,
+                            onClick = {
+                                navController.navigate(
+                                    Screen.AssistantLocalTool(settings.assistantId.toString())
+                                )
+                            },
+                            shape = shape,
+                        )
+                    } else {
+                        GroupActionRow(
+                            label = stringResource(R.string.explore_market_manage_local_tools),
+                            onClick = {
+                                navController.navigate(
+                                    Screen.AssistantLocalTool(settings.assistantId.toString())
+                                )
+                            },
+                            shape = shape,
+                        )
                     }
                 }
             }
 
             if (skills.isNotEmpty()) {
                 item(key = "skills") {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_agent_skills),
-                            icon = autoAwesome,
-                            supporting = stringResource(R.string.explore_market_skill_packs_count, skills.size),
-                            actionLabel = stringResource(R.string.explore_market_manage),
-                            onAction = { navController.navigate(Screen.Skills) },
-                        )
-                        GroupContainer {
-                            skills.forEach { skill ->
-                                SkillRow(
-                                    name = skill.name,
-                                    description = skill.description,
-                                    onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
-                                )
-                            }
+                    GroupContainer(count = skills.size + 1) { index, shape ->
+                        if (index < skills.size) {
+                            val skill = skills[index]
+                            SkillRow(
+                                name = skill.name,
+                                description = skill.description,
+                                onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
+                                shape = shape,
+                            )
+                        } else {
+                            GroupActionRow(
+                                label = stringResource(R.string.explore_market_manage_skills),
+                                onClick = { navController.navigate(Screen.Skills) },
+                                shape = shape,
+                            )
                         }
                     }
                 }
@@ -3798,64 +3921,45 @@ fun ExploreLocalPage() {
 
             if (mcpServers.isNotEmpty()) {
                 item(key = "mcp") {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_mcp_servers),
-                            icon = dns,
-                            supporting = stringResource(R.string.explore_market_mcp_servers_count, mcpServers.size),
-                            actionLabel = stringResource(R.string.explore_market_manage),
-                            onAction = { navController.navigate(Screen.SettingMcp) },
-                        )
-                        GroupContainer {
-                            mcpServers.forEach { server ->
-                                McpRow(
-                                    server = server,
-                                    status = mcpStatus[server.id],
-                                    onClick = { navController.navigate(Screen.SettingMcp) },
-                                    onConfigure = { mcpConfigTarget = rePlanMcpInstall(server) },
-                                )
-                            }
+                    GroupContainer(count = mcpServers.size + 1) { index, shape ->
+                        if (index < mcpServers.size) {
+                            val server = mcpServers[index]
+                            McpRow(
+                                server = server,
+                                status = mcpStatus[server.id],
+                                onClick = { navController.navigate(Screen.SettingMcp) },
+                                onConfigure = { mcpConfigTarget = rePlanMcpInstall(server) },
+                                shape = shape,
+                            )
+                        } else {
+                            GroupActionRow(
+                                label = stringResource(R.string.explore_market_manage_mcp),
+                                onClick = { navController.navigate(Screen.SettingMcp) },
+                                shape = shape,
+                            )
                         }
                     }
                 }
             }
 
-            if (dependencies.isNotEmpty()) {
+            if (dependencyViews.isNotEmpty()) {
                 item(key = "dependency_cache") {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SectionLabel(
-                            title = stringResource(R.string.explore_market_section_dependencies),
-                            icon = heizige.kk.khatkit.app.core.ui.icons.extension,
-                            supporting = stringResource(R.string.explore_market_dependencies_cached, dependencies.size),
-                            actionLabel = stringResource(R.string.explore_market_clear),
-                            onAction = {
-                                vm.clearDependencyCache { count ->
-                                    scope.launch {
-                                        Toast.show(
-                                            if (count > 0) {
-                                                toastClearedDependencies.format(count)
-                                            } else {
-                                                toastNothingToClear
-                                            }
-                                        )
-                                    }
-                                }
-                            },
-                        )
-                        GroupContainer {
-                            dependencies.forEach { dependency ->
-                                DependencyRow(
-                                    dependency = dependency,
-                                    onDelete = {
-                                        vm.deleteDependency(dependency) { ok ->
+                    GroupContainer(count = dependencyViews.size + if (dependencies.isEmpty()) 0 else 1) { index, shape ->
+                        if (index < dependencyViews.size) {
+                            val view = dependencyViews[index]
+                            DependencyRow(
+                                name = view.name,
+                                version = view.version,
+                                cached = view.cached,
+                                shape = shape,
+                                onDelete = {
+                                    val cached = view.cached
+                                    if (cached != null) {
+                                        vm.deleteDependency(cached) { ok ->
                                             scope.launch {
                                                 Toast.show(
                                                     if (ok) {
-                                                        toastDependencyDeleted.format(dependency.name, dependency.version)
-
-
-
-
+                                                        toastDependencyDeleted.format(cached.name, cached.version)
                                                     } else {
                                                         toastDeleteFailed
                                                     },
@@ -3863,9 +3967,27 @@ fun ExploreLocalPage() {
                                                 )
                                             }
                                         }
-                                    },
-                                )
-                            }
+                                    }
+                                },
+                            )
+                        } else {
+                            GroupActionRow(
+                                label = stringResource(R.string.explore_market_clear),
+                                onClick = {
+                                    vm.clearDependencyCache { count ->
+                                        scope.launch {
+                                            Toast.show(
+                                                if (count > 0) {
+                                                    toastClearedDependencies.format(count)
+                                                } else {
+                                                    toastNothingToClear
+                                                }
+                                            )
+                                        }
+                                    }
+                                },
+                                shape = shape,
+                            )
                         }
                     }
                 }
