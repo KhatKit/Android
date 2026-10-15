@@ -20,24 +20,6 @@ interface ToolBridge {
     fun readText(path: String): String
 @Deprecated("请改用 fs.write")
     fun writeText(path: String, content: String)
-    fun httpGet(url: String, headers: Map<String, String> = emptyMap()): String
-    fun httpPost(url: String, body: String, headers: Map<String, String> = emptyMap()): String
-
-    /**
-     * multipart/form-data POST（极客猫等表单接口）。
-     *
-     * fileField 与 filePath 都非空时附带单个文件段；saveBinary=true 且响应
-     * Content-Type 为图片时，二进制写入共享存储并返回路径，否则返回响应文本。
-     */
-    fun httpMultipart(
-        url: String,
-        fields: Map<String, String>,
-        fileField: String? = null,
-        filePath: String? = null,
-        headers: Map<String, String> = emptyMap(),
-        saveBinary: Boolean = true,
-    ): String
-
     /** 读取本地文件为 data URL（base64），供 JSON 接口上传图片用。 */
 @Deprecated("请改用 fs.readBase64")
     fun readBase64(path: String): String

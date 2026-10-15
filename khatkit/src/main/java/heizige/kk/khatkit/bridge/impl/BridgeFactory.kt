@@ -69,7 +69,7 @@ object BridgeFactory {
         lateinit var registry: BridgeRegistry
         val host = HostBridgeImpl(appContext, { registry })
         registry = BridgeRegistry(
-            tool = AndroidToolBridge(appContext, http),
+            tool = AndroidToolBridge(appContext),
             net = AndroidNetBridge(http),
             fs = ScopedFsBridgeImpl(appContext, "", emptySet()),
             json = JsonBridgeImpl(),

@@ -14,28 +14,12 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import heizige.kk.khatkit.bridge.ToolBridge
-import heizige.kk.khatkit.bridge.NetBridge
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
-import io.ktor.client.HttpClient
-import io.ktor.client.request.get
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.request.forms.MultiPartFormDataContent
-import io.ktor.client.request.forms.formData
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.readRawBytes
-import io.ktor.http.ContentType
-import io.ktor.http.Headers
-import io.ktor.http.HttpHeaders
-import io.ktor.http.contentType
-import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsText
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -47,10 +31,7 @@ import java.io.FileOutputStream
  */
 class AndroidToolBridge(
     private val context: Context,
-    private val httpClient: HttpClient,
 ) : ToolBridge {
-    private val legacyNet = AndroidNetBridge(httpClient)
-
 @Deprecated("请改用 fs.read")
     override fun readText(path: String): String {
         requireSharedStorageAccess(path)
@@ -75,49 +56,6 @@ class AndroidToolBridge(
         }
     }
 
-    @Deprecated("请改用 net.get")
-    override fun httpGet(url: String, headers: Map<String, String>): String =
-        legacyNet.get(url, headers.mapValues { it.value })
-
-    @Deprecated("请改用 net.post")
-    override fun httpPost(url: String, body: String, headers: Map<String, String>): String =
-        legacyNet.post(url, body, headers.mapValues { it.value })
-
-    @Deprecated("请改用 net.multipart")
-    override fun httpMultipart(
-        url: String,
-        fields: Map<String, String>,
-        fileField: String?,
-        filePath: String?,
-        headers: Map<String, String>,
-        saveBinary: Boolean,
-    ): String = runBlocking {
-        if (!filePath.isNullOrBlank()) requireSharedStorageAccess(filePath)
-        val response = httpClient.post(url) {
-            headers.forEach { (key, value) -> header(key, value) }
-            setBody(
-                MultiPartFormDataContent(
-                    formData {
-                        fields.forEach { (name, value) -> append(name, value) }
-                        if (!fileField.isNullOrBlank() && !filePath.isNullOrBlank()) {
-                            val file = File(filePath)
-                            require(file.exists()) { "文件不存在：$filePath" }
-                            append(
-                                fileField,
-                                file.readBytes(),
-                                Headers.build {
-                                    append(HttpHeaders.ContentType, mimeFor(file.name))
-                                    append(HttpHeaders.ContentDisposition, "filename=\"${file.name}\"")
-                                },
-                            )
-                        }
-                    }
-                )
-            )
-        }
-        saveImageOrText(url, response, saveBinary)
-    }
-
 @Deprecated("请改用 fs.readBase64")
     override fun readBase64(path: String): String {
         requireSharedStorageAccess(path)
@@ -136,31 +74,6 @@ class AndroidToolBridge(
         file.parentFile?.mkdirs()
         file.writeBytes(bytes)
         return file.absolutePath
-    }
-
-    /** 图片响应落盘；其余一律按文本返回。 */
-    private suspend fun saveImageOrText(url: String, response: HttpResponse, saveBinary: Boolean): String {
-        val contentType = response.contentType()
-        val isImage = contentType?.contentType?.equals("image", ignoreCase = true) == true
-        if (!saveBinary || !isImage) return response.bodyAsText()
-
-        val bytes = response.readRawBytes()
-        val subtype = contentType?.contentSubtype.orEmpty().lowercase()
-        val extension = when (subtype) {
-            "jpeg", "jpg" -> "jpg"
-            "png", "webp", "gif", "bmp", "svg" -> subtype
-            else -> subtype.ifBlank { "png" }.replace(Regex("[^a-z0-9]"), "").ifBlank { "png" }
-        }
-        val output = File("/sdcard/Download", "zenneko_${apiName(url)}_${System.currentTimeMillis()}.$extension")
-        requireSharedStorageAccess(output.absolutePath)
-        output.parentFile?.mkdirs()
-        output.writeBytes(bytes)
-        return output.absolutePath
-    }
-
-    private fun apiName(url: String): String {
-        val name = url.substringAfterLast('/').substringBefore('?').removeSuffix(".php")
-        return name.replace(Regex("[^A-Za-z0-9_]+"), "_").ifBlank { "api" }
     }
 
     private fun mimeFor(fileName: String): String = when (fileName.substringAfterLast('.', "").lowercase()) {

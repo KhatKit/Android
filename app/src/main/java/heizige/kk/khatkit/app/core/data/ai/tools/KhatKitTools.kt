@@ -8,8 +8,6 @@ import android.net.Uri
 import android.os.PowerManager
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import heizige.kk.khatkit.bridge.AccessibilityBridge
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
@@ -211,7 +209,7 @@ class KhatKitToolProvider(
     private val accountStore by lazy { HubAccountRepository(appContext) }
 
     /** OCR 走 tool bridge；只有 device_screen 需要时才懒加载，避免多养一个 HttpClient。 */
-    private val ocrBridge by lazy { AndroidToolBridge(appContext, HttpClient(CIO.create())) }
+    private val ocrBridge by lazy { AndroidToolBridge(appContext) }
 
     /** A4 轨迹落盘：每次 device_act 记录截图帧 + 动作 + 目标 + 结果，可回放审计。 */
     private val automationTracer by lazy {
@@ -1688,6 +1686,20 @@ class KhatKitToolProvider(
 
     suspend fun dependencyCacheEntries(): List<DependencyCacheEntry> = withContext(Dispatchers.IO) {
         DependencyCache.list(appContext)
+    }
+
+    /**
+     * 已安装卡片声明的原生依赖包：`name -> 清单里声明的版本`（按卡片顺序去重）。
+     *
+     * 依赖包只在**运行卡片时**才下载（`CardExecutor.ensureDependencies`），所以刚装完卡片时
+     * 本机缓存是空的。[DependencyCache.list] 只报「已下载了什么」，这一条报「卡片要求了什么」，
+     * 「本地」页据此把还没下载的依赖也列出来，否则用户在本机页看不到任何依赖痕迹。
+     */
+    suspend fun installedCardDependencies(): Map<String, List<String>> = withContext(Dispatchers.IO) {
+        loadInstalledCards()
+            .flatMap { it.manifest.requiredDependencies }
+            .groupBy({ it.name }, { it.version })
+            .mapValues { (_, versions) -> versions.distinct() }
     }
 
     suspend fun deleteDependency(name: String, version: String): Boolean = withContext(Dispatchers.IO) {

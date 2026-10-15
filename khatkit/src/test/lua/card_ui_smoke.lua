@@ -72,7 +72,7 @@ assert(dofile(cards.."a11y-click-text/main.lua").clicked)
 print("a11y-click-text: submit/cancel passed")
 
 local index='{"packages":{"org.example.app":{"metadata":{"name":"Example","summary":"demo","description":"details","license":"MIT"},"versions":{"1":{"manifest":{"versionName":"1.0"},"file":{"name":"example.apk"}}}}}}'
-tool={httpGet=function() return index end}
+net={get=function() return index end}
 download={start=function(request) assert(request.url:find("example.apk",1,true)); return "fixture-task" end}
 for _,action in ipairs({"popular","search","details","download"}) do
   args={action=action,query="Example",package_id="org.example.app"}

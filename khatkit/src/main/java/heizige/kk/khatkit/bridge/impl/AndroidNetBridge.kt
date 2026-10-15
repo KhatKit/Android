@@ -87,7 +87,34 @@ class AndroidNetBridge(
             )
         }
         if (!saveBinary) return@runBlocking response.bodyAsText()
-        response.bodyAsText()
+        val contentType = response.contentType()
+        val isImage = contentType?.contentType?.equals("image", ignoreCase = true) == true
+        if (!isImage) return@runBlocking response.bodyAsText()
+
+        val bytes = response.readRawBytes()
+        val extension = contentType.contentSubtype
+            .lowercase()
+            .let { subtype ->
+                when (subtype) {
+                    "jpeg", "jpg" -> "jpg"
+                    "png", "webp", "gif", "bmp", "svg" -> subtype
+                    else -> subtype.replace(Regex("[^a-z0-9]"), "").ifBlank { "bin" }
+                }
+            }
+        val output = File(
+            "/sdcard/Download",
+            "khatkit_net_${safeEndpointName(url)}_${System.currentTimeMillis()}.$extension",
+        )
+        try {
+            output.parentFile?.mkdirs()
+            output.writeBytes(bytes)
+        } catch (e: SecurityException) {
+            throw SecurityException(
+                "图片响应无法保存到共享存储：${output.absolutePath}；请授予「所有文件访问」后重试",
+                e,
+            )
+        }
+        output.absolutePath
     }
 
     override fun streamText(
@@ -142,5 +169,10 @@ class AndroidNetBridge(
         "gif" -> "image/gif"
         "pdf" -> "application/pdf"
         else -> "application/octet-stream"
+    }
+
+    private fun safeEndpointName(url: String): String {
+        val name = url.substringAfterLast('/').substringBefore('?').removeSuffix(".php")
+        return name.replace(Regex("[^A-Za-z0-9_]+"), "_").ifBlank { "api" }
     }
 }

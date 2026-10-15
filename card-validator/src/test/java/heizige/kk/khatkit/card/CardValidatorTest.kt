@@ -96,7 +96,7 @@ class CardValidatorTest {
     @Test
     fun undeclaredBridgeInScriptRejected() {
         val issues = CardValidator.validate(
-            manifest(),
+            manifest(bridges = listOf("net")),
             scripts = mapOf("main.lua" to "root.shell('id')"),
         )
         assertTrue(issues.any { it.code == "BRIDGE_UNDECLARED" })
@@ -176,7 +176,7 @@ class CardValidatorTest {
     fun undeclaredDomainInScriptRejected() {
         val issues = CardValidator.validate(
             manifest(),
-            scripts = mapOf("main.lua" to "tool.httpGet('https://evil.example.com/x')"),
+            scripts = mapOf("main.lua" to "net.get('https://evil.example.com/x', {})"),
         )
         assertTrue(issues.any { it.code == "NETWORK_UNDECLARED" })
     }
@@ -184,8 +184,8 @@ class CardValidatorTest {
     @Test
     fun declaredDomainAllowed() {
         val issues = CardValidator.validate(
-            manifest(network = listOf("example.com")),
-            scripts = mapOf("main.lua" to "tool.httpGet('https://api.example.com/x')"),
+            manifest(bridges = listOf("net"), network = listOf("example.com")),
+            scripts = mapOf("main.lua" to "net.get('https://api.example.com/x', {})"),
         )
         assertFalse(issues.any { it.code == "NETWORK_UNDECLARED" })
     }
