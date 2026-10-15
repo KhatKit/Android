@@ -394,19 +394,21 @@ ui_schema_json, function_json
 
 每条任务都可独立派工、独立验收：`objective`（做什么）＋ `acceptance`（判据）＋ `验证`（自动命令优先，UI 类给人工步骤）。命令中 `服务端根` = `/home/heizige/文档/IDEA/Project/KodeHeapServer`，`客户端根` = `/home/heizige/文档/Android/Project/KhatKit`。行号仅作定位，改后以 grep 关键词为准。
 
+**服务端测试基线留档（2026-10-15 实测，本清单所有服务端验证共用）**：服务端干净工作树（HEAD `b1b6d4c`）执行 `./kotlin test` 退出码为 **1**：70 个用例中 61 通过、9 失败。基线失败集（6 个测试类，逐类计数 1+2+1+1+2+2 = 9 例）：`AdminRoutingTest` 1、`BuiltinCardsSeedTest` 2、`ImageToolboxLuaTest` 1、`ImageToolboxReleaseTest` 1、`ImageToolboxSeedTest` 2、`KhatKitDependencyRoutingTest` 2（逐类分布仅供定位参考，测试重命名后不构成误判依据；判据以总量 9 为准）。复现：`cd /home/heizige/文档/IDEA/Project/KodeHeapServer && ./kotlin test`。故下文所有服务端验证判据统一为「**失败集不得超出基线 9 个，且本任务新增/更新的契约测试必须全绿**」，不再以「整套测试全绿」作为服务端判据。约束：**禁止改动与本任务无关的既有测试（跳过、删除或放宽断言）来让套件变绿**；基线失败集若要收敛，须单独立项登记。
+
 ### P0：契约与可用性（不依赖 §10 决策，可立即开工）
 
 #### P0-1 服务端 `/api/items` 契约扩展与去重键
 - objective：按 §7.1 给 `KhatKitHubItemSummary`/`KhatKitHubItemDetail` 补齐 `icon_*`、`config_schema`、`ui_schema`、`function`、`compatibility`、`source`、`slug`，`description` 类型改 `JsonElement`，新增 `tags_json`、`compatibility_json`、`config_schema_json`、`ui_schema_json`、`function_json`、`icon_*`、`slug` 列；`/api/items` 合并时按 `(kind, slug)` 去重（hub 优先）。
 - acceptance：新字段全部可缺省（空对象/空数组），旧客户端解析不受影响；`install_state` 不出现在任何响应；同一 `(kind, slug)` 在 `/api/items` 只出现一次；`/api/cards` 与 `/api/khatkit/resources/index.json` 响应字段零变化。
 - 落点：`src/model/KhatKitHubDto.kt:274-338`、`src/table/KhatKitHubTables.kt:112-142`、`src/service/KhatKitCommerceService.kt:1643`、`:1671`、`:887-889`、`src/routing/KhatKitHubRouting.kt:600-624`、`src/model/KhatKitResourceDto.kt:15-33`。
-- 验证：`服务端根 && ./kotlin test`（退出码 0）；新增 `test/KhatKitHubItemsContractTest.kt` 断言字段缺省与去重；`grep -n "icon_url\|config_schema_json\|slug" src/model/KhatKitHubDto.kt src/table/KhatKitHubTables.kt`；`grep -n "install_state" -r src/ | wc -l` 应为 0。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，且本任务新增契约测试必须全绿，见 §8 开头基线留档）；新增 `test/KhatKitHubItemsContractTest.kt` 断言字段缺省与去重；`grep -n "icon_url\|config_schema_json\|slug" src/model/KhatKitHubDto.kt src/table/KhatKitHubTables.kt`；`grep -n "install_state" -r src/ | wc -l` 应为 0。
 
 #### P0-2 服务端条目撤销态
 - objective：`khatkit_hub_items.status` 增加 `revoked`（注释同步更新），撤销后台条目在 `/api/items`、`/api/items/{id}`、`/api/items/{id}/download` 全部不可见；保留管理端查询撤销项的只读入口。
 - acceptance：撤销后三处均 404/不出现在列表；未撤销条目行为不变；撤销原因可回显（管理端）。
 - 落点：`src/table/KhatKitHubTables.kt:133-134`、`src/service/KhatKitCommerceService.kt:887-889`、`src/routing/KhatKitHubRouting.kt:600-643`；管理端路由 `src/routing/KhatKitHubRouting.kt:994-1010`（`/items/pending` 一类）。
-- 验证：`服务端根 && ./kotlin test`；新增用例覆盖 approved → revoked 后列表/详情/下载三处断言；`grep -n "revoked" src/table/KhatKitHubTables.kt src/service/KhatKitCommerceService.kt`。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；新增用例覆盖 approved → revoked 后列表/详情/下载三处断言；`grep -n "revoked" src/table/KhatKitHubTables.kt src/service/KhatKitCommerceService.kt`。
 
 #### P0-3 客户端 Hub 模型与 `/api/items` 解析
 - objective：`CardIndexEntry`/条目模型补 `display_name`、`description`(LocaleMap)、`tags`、`icon_*`、`config_schema`、`ui_schema`、`function`、`source`、`compatibility`、`slug`；`HubClient` 新增 `/api/items` 拉取与解析；`LocaleMapResolver` 实现 §3.3 的四级选择顺序。
@@ -426,6 +428,8 @@ ui_schema_json, function_json
 - 落点：`app/src/main/java/heizige/kk/khatkit/app/feature/explore/ExploreMarketPage.kt:791`、`:2310-2365`、`app/src/main/java/heizige/kk/khatkit/app/feature/explore/ExploreMarketViewModel.kt:236-293`、`app/src/main/java/heizige/kk/khatkit/app/feature/settings/mcp/McpConfigModal.kt`、`new: app/src/main/java/heizige/kk/khatkit/app/feature/explore/McpInstallConfigSheet.kt`。
 - 验证：`客户端根 && ./gradlew :app:test`；新增 VM 单测断言“缺必填 → enable=false 且助手 mcpServers 不变”；人工核对：安装一个带必填 key 的 MCP 条目 → 卡片显示“需要配置”→ 点配置 → 表单已预填 URL/传输 → 不填 key 保存后状态非“已连接”。
 
+- 端到端可声明性缺口（归服务端 P1 **与客户端 `planMcpInstall` 调用点两侧**；本注记不新增任务、不改编号）：资源市场的「必填」目前只能靠资源包 `headers` 的**值约定**识别（占位值 `${API_KEY}` / `<your-key>` / `YOUR_XXX` 等，见 `app/src/main/java/heizige/kk/khatkit/app/feature/explore/McpInstallPlan.kt:22-23`、`:54-62`）：服务端 `IDEA/Project/KodeHeapServer/src/model/KhatKitResourceDto.kt:50-56` 的 `KhatKitResourceMcpServer`（`name`/`transport`/`url`/`headers`）与客户端 `khatkit/src/main/java/heizige/kk/khatkit/hub/HubResourceModels.kt:63-70` 的 `HubResourceMcpServer` 都没有 `config_schema`/`required` 字段，且 `src/service/BuiltinResources.kt` 现无任何资源声明 `headers`（全文仅 `:207` 一处遍历）。**第二个前置条件在客户端**：`planMcpInstall` 的 `schema` 参数默认空（`app/src/main/java/heizige/kk/khatkit/app/feature/explore/McpInstallPlan.kt:109-113` 的 `schema: JsonObject = JsonObject(emptyMap())`），而两个调用点都只传 `server`、从不传导条目自身的 `config_schema`（t23 核验值 `app/src/main/java/heizige/kk/khatkit/app/feature/explore/ExploreMarketViewModel.kt:244` 与 `ExploreMarketViewModel.kt:309`；当前工作树因未提交改动漂移到 `ExploreMarketViewModel.kt:252`、`ExploreMarketViewModel.kt:339`，以 `grep -n 'planMcpInstall'` 为准）。故 resource 侧 `headers` 空 + item 侧 `schema` 恒空，**两侧合起来才使线上暂无「需要配置」条目**。要端到端声明「必填」需两侧并列：①服务端给资源包 MCP 服务补 `config_schema` 字段（并让种子/内置资源真正声明 `headers` 或 schema）；②客户端在 `planMcpInstall` 调用点把条目 `config_schema` 传导进 `schema` 参数——只做①不做②仍不可达。
+
 #### P0-6 宿主侧 schema 驱动表单
 - objective：宿主按 `ui_schema`/`input_schema` 渲染声明式表单，AI 已提供字段不重复询问；`ui.form` 退化为展示与补参渠道。
 - acceptance：缺参时宿主表单出现且参数回灌进同一 `runCardWithStatus` 调用；AI 全参数调用不弹表单；表单渲染失败不影响卡片执行。
@@ -438,7 +442,7 @@ ui_schema_json, function_json
 - objective：图标上传 → SVG 清理（去 `<script>`、事件属性、外链、动画）→ 服务端重算 `icon_sha256` → 按版本不可变 URL + 长期缓存；域名白名单；`icon_alt_json` 只作无障碍。
 - acceptance：恶意 SVGPayload（script/onload/外链/动画）清理后不含危险节点；请求里的 `icon_sha256` 一律被服务端重算覆盖；同版本第二次上传被拒；URL 含 `<name>/<version>`。
 - 落点：`new: src/helper/SvgSanitizer.kt`、`new: src/service/KhatKitIconService.kt`、`new: src/routing/KhatKitIconRouting.kt`、`src/table/KhatKitHubTables.kt:112-142`（4 列）、`src/service/KhatKitCommerceService.kt:218`。
-- 验证：`服务端根 && ./kotlin test`；新增 `test/SvgSanitizerTest.kt`（至少 6 类危险样本 + 哈希重算 + 白名单拒绝）。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；新增 `test/SvgSanitizerTest.kt`（至少 6 类危险样本 + 哈希重算 + 白名单拒绝）。
 
 #### P1-2 客户端图标缓存键与哈希校验回退
 - objective：Coil 用 `icon_url + icon_sha256` 作缓存键；下载后校验哈希再落盘；限制最大字节数与并发；失败回退本地类型图标。
@@ -464,37 +468,37 @@ ui_schema_json, function_json
 - objective：新增 `KhatKitHubItemSourceTable("khatkit_hub_item_sources")` 与 §7.3 全部 `source_*` 列；`khatkit_hub_items` 补 `slug`/`tags_json` 等 P0-1 未含列；建表进 `SchemaUtils.createMissingTablesAndColumns`。
 - acceptance：全新库与已有库都能启动（加列不删列）；一个条目多条来源变更记录可追溯，版本表不被覆盖写。
 - 落点：`src/table/KhatKitHubTables.kt:112-156`、`src/service/KhatKitCommerceService.kt:212-220`、`src/model/KhatKitHubDto.kt`。
-- 验证：`服务端根 && ./kotlin test`；`grep -n "khatkit_hub_item_sources" src/table/KhatKitHubTables.kt`；人工核对：`./kotlin run` 启动日志无建表错误。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；`grep -n "khatkit_hub_item_sources" src/table/KhatKitHubTables.kt`；人工核对：`./kotlin run` 启动日志无建表错误。
 
 #### P2-2 五条来源接口
 - objective：实现 §7.2 的 import/source/sync/PATCH/webhook 五条路由；导入返回任务 ID + `pending`，不在 HTTP 请求内同步完成。
 - acceptance：导入接口 <1s 返回任务 ID；未登录返回 401；`PATCH` 改 `auto_publish` 时非管理员被拒（§10 决策 3）；响应/字段名与 `src/model/KhatKitHubDto.kt` 现有 snake_case 风格一致。
 - 落点：`new: src/routing/KhatKitHubSourceRouting.kt`、`new: src/service/KhatKitGithubImportService.kt`、`src/model/KhatKitHubDto.kt`。
-- 验证：`服务端根 && ./kotlin test`；新增 `test/KhatKitHubSourceRoutingTest.kt`（鉴权、任务 ID、pending 状态、非管理员 PATCH 拒绝）。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；新增 `test/KhatKitHubSourceRoutingTest.kt`（鉴权、任务 ID、pending 状态、非管理员 PATCH 拒绝）。
 
 #### P2-3 四类来源识别器
 - objective：`skill`（`SKILL.md` 必需）、`mcp`（优先 `server.json`，不猜 README）、`card`（`card.json` + 现有校验）、`toolpkg/provider_plugin`（根 `manifest.json` + 现有归档规则）。
 - acceptance：四类正样本各生成标准 manifest；缺 manifest 的仓库返回可读拒绝理由且不创建版本；README 里的安装命令/shell 不进市场能力。
 - 落点：`new: src/service/KhatKitSourceDetector.kt`，复用 `src/service/KhatKitCardValidator.kt`、`src/service/KhatKitMarketValidation.kt`。
-- 验证：`服务端根 && ./kotlin test`；新增 `test/KhatKitSourceDetectorTest.kt`（4 类正样本 + 3 类负样本：无 manifest、README-only、路径穿越）。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；新增 `test/KhatKitSourceDetectorTest.kt`（4 类正样本 + 3 类负样本：无 manifest、README-only、路径穿越）。
 
 #### P2-4 webhook 验签与入队
 - objective：实现 `POST /api/webhooks/github/{binding}`，校验 `X-Hub-Signature-256`，事件只入队不在请求内构建。
 - acceptance：签名错/缺失返回 401/403 且不产生任务；正确签名在 <200ms 内返回并入队；请求体与 token 不进日志。
 - 落点：`new: src/routing/KhatKitHubSourceRouting.kt`、`new: src/service/KhatKitHubSyncService.kt`。
-- 验证：`服务端根 && ./kotlin test`；新增 `test/KhatKitGithubWebhookTest.kt`（正确签名/错误签名/缺头/超大请求体）；`grep -rn "X-Hub-Signature-256" src/` 命中且日志无明文 body。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；新增 `test/KhatKitGithubWebhookTest.kt`（正确签名/错误签名/缺头/超大请求体）；`grep -rn "X-Hub-Signature-256" src/` 命中且日志无明文 body。
 
 #### P2-5 轮询与失败暂停
 - objective：ETag + 最后 commit SHA + 指数退避轮询；内容未变化不建版本；每 commit 独立候选（非默认模式）；连续失败/许可证变化/权限扩大/archived → 暂停同步并记录 `sync_status`、`last_sync_error`。
 - acceptance：相同 commit 不重复发布；连续 N 次失败后 `next_sync_at` 递增退避且 `sync_status=paused`；恢复后可从上次 commit 继续。
 - 落点：`new: src/service/KhatKitHubSyncService.kt`、`src/table/KhatKitHubTables.kt`（`sync_status`/`last_sync_at`/`next_sync_at`/`last_sync_error`）。
-- 验证：`服务端根 && ./kotlin test`；新增 `test/KhatKitHubSyncScheduleTest.kt`（重复 commit 抑制、退避序列、暂停条件）。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；新增 `test/KhatKitHubSyncScheduleTest.kt`（重复 commit 抑制、退避序列、暂停条件）。
 
 #### P2-6 抓取侧安全
 - objective：抓取禁止跟随内网地址（DNS 解析后校验，含重定向）；GitHub Token 仅 `Contents: read`；webhook secret 只存服务端密钥存储。
 - acceptance：指向 `127.0.0.1`/`10.`/`169.254.`/`::1` 与重定向到内网的 URL 被拒；拒绝日志不打印 token；secret 不出现在任何 API 响应。
 - 落点：`new: src/service/KhatKitGithubFetchGuard.kt`（纯函数 + 解析校验）、`new: src/service/KhatKitGithubImportService.kt`。
-- 验证：`服务端根 && ./kotlin test`；新增 `test/KhatKitGithubFetchGuardTest.kt`（不少于 8 个 SSRF 样本 + 重定向绕过样本）。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；新增 `test/KhatKitGithubFetchGuardTest.kt`（不少于 8 个 SSRF 样本 + 重定向绕过样本）。
 
 #### P2-7 客户端同步状态 UI
 - objective：市场页显示“导入中/待审核/可安装/同步失败”、可用更新、更新说明、回滚版本。
@@ -504,9 +508,9 @@ ui_schema_json, function_json
 
 #### P2-8 导入侧测试与审计闭环
 - objective：补 §9 工程项要求服务端覆盖的 URL 解析、manifest 识别、重复 commit、webhook 验签、ETag 轮询、审计失败与回滚测试；`auto_publish` 审批复用既有审计表并记录规则版本与操作者（`src/table/PlatformDashboardTables.kt:67-72` 的 `actor_id`/`action`/`detail`，`detail` 上限 300 字；写入走 `src/routing/KhatKitHubRouting.kt:1143-1145` 的 `auditCall` → `principalUserId()`）。
-- acceptance：上述 7 类用例各有断言且全绿；每次自动批准落一条含规则版本 + 操作者的记录；管理员可全局关闭自动发布。
+- acceptance：上述 7 类新增用例各有断言且全绿（按 §8 开头基线口径：新增用例必须全绿，既有失败集不得超出基线 9 个）；每次自动批准落一条含规则版本 + 操作者的记录；管理员可全局关闭自动发布。
 - 落点：`test/`（新增 5 个测试文件）、`src/service/KhatKitHubRules.kt`、`src/table/KhatKitHubTables.kt`（复用 `PlatformAuditLogTable`，不新建审批表；来源表补操作者列）。
-- 验证：`服务端根 && ./kotlin test`；`ls test/ | grep -c "KhatKit.*Source\|KhatKitGithub\|KhatKitHubSync"`；人工核对管理端关闭自动发布后新候选只入 `pending`。
+- 验证：`服务端根 && ./kotlin test`（失败集不得超出基线 9 个，见 §8 开头基线留档）；`ls test/ | grep -c "KhatKit.*Source\|KhatKitGithub\|KhatKitHubSync"`；人工核对管理端关闭自动发布后新候选只入 `pending`。
 
 ## 9. 验收标准
 
