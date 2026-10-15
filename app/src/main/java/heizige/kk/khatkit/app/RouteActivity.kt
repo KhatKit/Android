@@ -116,6 +116,7 @@ import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNetworkPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUIMessagePage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUIFontPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUICodePage
+import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUIPage
 import heizige.kk.khatkit.app.feature.settings.SettingDonatePage
 import heizige.kk.khatkit.app.feature.settings.SettingFilesPage
 import heizige.kk.khatkit.app.feature.settings.SettingMcpPage
@@ -476,6 +477,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingPermissionsPage()
                             }
 
+                            entry<Screen.SettingPreferencesUI> {
+                                SettingPreferencesUIPage()
+                            }
+
                             entry<Screen.SettingPreferencesUIMessage> {
                                 SettingPreferencesUIMessagePage()
                             }
@@ -752,6 +757,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingPreferencesGeneral : Screen
+
+    @Serializable
+    data object SettingPreferencesUI : Screen
 
     @Serializable
     data object SettingPreferencesUIMessage : Screen

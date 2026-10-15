@@ -1049,6 +1049,7 @@
   <string name="setting_page_preferences_general">一般</string>
   <string name="setting_page_preferences_general_desc">互動、捲動、輸入</string>
   <string name="setting_page_preferences_ui">UI 偏好設定</string>
+  <string name="setting_page_preferences_ui_desc">主題、訊息顯示、字體、程式碼區塊</string>
   <string name="setting_page_preferences_ui_message">訊息顯示</string>
   <string name="setting_page_preferences_ui_message_desc">頭像、氣泡、模型名稱</string>
   <string name="setting_page_preferences_ui_font">字體</string>

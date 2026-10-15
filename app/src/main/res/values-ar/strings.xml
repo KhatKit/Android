@@ -951,6 +951,7 @@
   <string name="setting_page_preferences_notification_desc">تنبيهات التحديث وإشعارات الردود</string>
   <string name="setting_page_preferences_theme">المظهر</string>
   <string name="setting_page_preferences_ui">تفضيلات واجهة المستخدم</string>
+  <string name="setting_page_preferences_ui_desc">السمة والرسائل والخطوط وكتل التعليمات</string>
   <string name="setting_page_preferences_ui_message">عرض الرسائل</string>
   <string name="setting_page_preferences_ui_message_desc">الصور الرمزية والفقاعات وأسماء الطرازات</string>
   <string name="setting_page_preferences_ui_font">الخط</string>

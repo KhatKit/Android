@@ -1265,6 +1265,7 @@
   <string name="setting_page_preferences_general">常规</string>
   <string name="setting_page_preferences_general_desc">交互、滚动、输入</string>
   <string name="setting_page_preferences_ui">界面偏好设置</string>
+  <string name="setting_page_preferences_ui_desc">主题、消息显示、字体、代码块</string>
   <string name="setting_page_preferences_ui_message">消息显示</string>
   <string name="setting_page_preferences_ui_message_desc">头像、气泡、模型名称</string>
   <string name="setting_page_preferences_ui_font">字体</string>

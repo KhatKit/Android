@@ -24,21 +24,18 @@ import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.campaign
 import heizige.kk.khatkit.app.core.ui.icons.celebration
-import heizige.kk.khatkit.app.core.ui.icons.chatBubble
-import heizige.kk.khatkit.app.core.ui.icons.code
-import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.inventory2
 import heizige.kk.khatkit.app.core.ui.icons.language
 import heizige.kk.khatkit.app.core.ui.icons.notifications
+import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.share as shareIcon
 import heizige.kk.khatkit.app.core.ui.icons.shelves
-import heizige.kk.khatkit.app.core.ui.icons.title
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.util.openUrl
@@ -87,31 +84,13 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             // setting_page_color_mode / _system / _light / _dark，同一持久化字段 "colorMode"）。
             // 主题模式连同动态取色、主题配色、自定义主题、AMOLED、界面风格、毛玻璃、列表卡片样式
             // 都收在同一页；原先的「主题管理 / 主题偏好设置」双子页已合并，故这里直达该页。
+            // 原「界面偏好设置」拆出的 主题 / 消息显示 / 字体 / 代码块 四项又收成一行，
+            // 子项移进二级页 `SettingPreferencesUIPageMiuix.kt`（与 MD3 侧同序同键）。
             PreferenceArrow(
-                title = stringResource(R.string.setting_page_themes),
-                summary = stringResource(R.string.setting_page_themes_desc),
-                icon = dashboard,
-                onClick = { navController.navigate(Screen.SettingPreferencesTheme) },
-            )
-            // 原「界面偏好设置」hub 页拆成三个二级页后，按外观组的四项顺序平铺到这里：
-            // 消息显示 / 字体 / 代码块（各自内容见 `SettingPreferencesUIMessage|Font|CodePageMiuix.kt`）。
-            PreferenceArrow(
-                title = stringResource(R.string.setting_page_preferences_ui_message),
-                summary = stringResource(R.string.setting_page_preferences_ui_message_desc),
-                icon = chatBubble,
-                onClick = { navController.navigate(Screen.SettingPreferencesUIMessage) },
-            )
-            PreferenceArrow(
-                title = stringResource(R.string.setting_page_preferences_ui_font),
-                summary = stringResource(R.string.setting_page_preferences_ui_font_desc),
-                icon = title,
-                onClick = { navController.navigate(Screen.SettingPreferencesUIFont) },
-            )
-            PreferenceArrow(
-                title = stringResource(R.string.setting_page_preferences_ui_code),
-                summary = stringResource(R.string.setting_page_preferences_ui_code_desc),
-                icon = code,
-                onClick = { navController.navigate(Screen.SettingPreferencesUICode) },
+                title = stringResource(R.string.setting_page_preferences_ui),
+                summary = stringResource(R.string.setting_page_preferences_ui_desc),
+                icon = palette,
+                onClick = { navController.navigate(Screen.SettingPreferencesUI) },
             )
         }
 

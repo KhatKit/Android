@@ -1042,6 +1042,7 @@
   <string name="setting_page_preferences_general">일반</string>
   <string name="setting_page_preferences_general_desc">상호작용, 스크롤, 입력</string>
   <string name="setting_page_preferences_ui">UI 환경설정</string>
+  <string name="setting_page_preferences_ui_desc">테마, 메시지, 글꼴, 코드 블록</string>
   <string name="setting_page_preferences_ui_message">메시지 표시</string>
   <string name="setting_page_preferences_ui_message_desc">아이콘, 말풍선, 모델 이름</string>
   <string name="setting_page_preferences_ui_font">글꼴</string>

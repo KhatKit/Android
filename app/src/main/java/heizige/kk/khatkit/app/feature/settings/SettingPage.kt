@@ -73,21 +73,18 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.campaign
 import heizige.kk.khatkit.app.core.ui.icons.celebration
-import heizige.kk.khatkit.app.core.ui.icons.chatBubble
-import heizige.kk.khatkit.app.core.ui.icons.code
-import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.app.core.ui.icons.language
 import heizige.kk.khatkit.app.core.ui.icons.notifications
+import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.share as shareIcon
 import heizige.kk.khatkit.app.core.ui.icons.shelves
-import heizige.kk.khatkit.app.core.ui.icons.title
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.warning
@@ -144,29 +141,15 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     // （`SettingPreferencesThemePage.kt` 首组）。原先主题还分「主题管理 / 主题偏好
                     // 设置」两个子页，两页前两组逐字重复，已合并成一页（自定义主题管理并入
                     // 主题偏好设置页），这里直达该页，不再有 hub。
+                    // 「界面偏好设置」对外收成一行，四个子项（主题 / 消息显示 / 字体 / 代码块）
+                    // 移进二级页 `SettingPreferencesUIPage.kt`。组标题保留（与其余各组的灰色
+                    // 小标题对齐），行内 headline 仍用同名键 —— 组标签与行标题同名是有意的：
+                    // 少一行标题会让这一组在列表里没有归属标签，与其它组不齐。
                     item(
-                        onClick = { navController.navigate(Screen.SettingPreferencesTheme) },
-                        leadingContent = { Icon(dashboard, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_themes_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_page_themes)) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.SettingPreferencesUIMessage) },
-                        leadingContent = { Icon(chatBubble, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_message_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_message)) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.SettingPreferencesUIFont) },
-                        leadingContent = { Icon(title, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_font_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_font)) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.SettingPreferencesUICode) },
-                        leadingContent = { Icon(code, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_code_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_code)) },
+                        onClick = { navController.navigate(Screen.SettingPreferencesUI) },
+                        leadingContent = { Icon(palette, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui)) },
                     )
                 }
             }

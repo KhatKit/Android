@@ -1044,6 +1044,7 @@
   <string name="setting_page_preferences_general">一般</string>
   <string name="setting_page_preferences_general_desc">操作、スクロール、入力</string>
   <string name="setting_page_preferences_ui">UI設定</string>
+  <string name="setting_page_preferences_ui_desc">テーマ、メッセージ、フォント、コードブロック</string>
   <string name="setting_page_preferences_ui_message">メッセージ表示</string>
   <string name="setting_page_preferences_ui_message_desc">アイコン、吹き出し、モデル名</string>
   <string name="setting_page_preferences_ui_font">フォント</string>

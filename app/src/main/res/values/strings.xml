@@ -1012,6 +1012,7 @@
   <string name="setting_page_preferences_general">General</string>
   <string name="setting_page_preferences_general_desc">Interaction, scrolling, input</string>
   <string name="setting_page_preferences_ui">UI Preferences</string>
+  <string name="setting_page_preferences_ui_desc">Theme, messages, fonts, code blocks</string>
   <string name="setting_page_preferences_ui_message">Message Display</string>
   <string name="setting_page_preferences_ui_message_desc">Avatars, bubbles, model names</string>
   <string name="setting_page_preferences_ui_font">Font</string>

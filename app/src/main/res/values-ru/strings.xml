@@ -1042,6 +1042,7 @@
   <string name="setting_page_preferences_general">Общие</string>
   <string name="setting_page_preferences_general_desc">Взаимодействие, прокрутка, ввод</string>
   <string name="setting_page_preferences_ui">Настройки интерфейса</string>
+  <string name="setting_page_preferences_ui_desc">Тема, сообщения, шрифты, блоки кода</string>
   <string name="setting_page_preferences_ui_message">Отображение сообщений</string>
   <string name="setting_page_preferences_ui_message_desc">Аватары, пузыри, названия моделей</string>
   <string name="setting_page_preferences_ui_font">Шрифт</string>
