@@ -4,7 +4,7 @@
 > [卡片脚本开发文档](lua-card-development.md) 为准，本文只列出极客猫接口清单。
 
 本仓库内置了一组调用 [极客猫开放平台](https://platform.zenneko.top) 的 Lua 卡片，接口全部为中文场景，宿主侧通过
-`tool.httpMultipart` / `tool.readBase64` / `tool.saveBase64` 等 bridge 完成 multipart 上传与图片落盘。
+`net.multipart` / `tool.readBase64` / `tool.saveBase64` 等 bridge 完成 multipart 上传与图片落盘。
 
 ## 卡片清单
 
@@ -48,6 +48,6 @@
 ## 实现备注
 
 - `zenneko_pan` 暂不支持 doc 中的 `headers` 自定义请求头对象参数。
-- `zenneko_translate` 的 SSE 响应由 `tool.httpPost` 整体读回后拼接 `text`/`content` 片段，非真流式展示。
+- `zenneko_translate` 的 SSE 响应由 `net.post` 整体读回后拼接 `text`/`content` 片段，非真流式展示。
 - `zenneko_upscale` 只返回 CDN 图片链接（接口不返回 base64），如需落盘可自行打开链接下载。
 - 文档与实际服务的差异（2026-09 实测）：视频接口文档写 `video_search.php`，线上实际为 `video_aggregate.php`（卡片已按线上调整）；`face_gender.php` 线上返回 404，卡片保留文档地址并在 404 时给出中文提示。

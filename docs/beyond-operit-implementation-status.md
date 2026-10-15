@@ -1,5 +1,7 @@
 # beyond-operit 实施与验收状态
 
+> 文档清理说明：已实现的 Bridge、前端、UI 修复及设置对齐施工图已移除；下文旧路径为历史快照。有效遗留和旧文件追溯见 [UI 验收与观察记录](ui-verification-followups.md)，新增工具箱方向见 [易用性规划](toolbox-agent-usability-plan.md)。
+
 更新：2026-10-04。目标仍为 `beyond-operit-client-changes.md` 与
 `beyond-operit-server-changes.md` 的完整范围；本文件不替代总路线规格。
 “已有代码”不等于验收通过，未有直接证据的项目都保持未完成。

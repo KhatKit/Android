@@ -500,7 +500,7 @@ end
 通用规则：
 
 - 脚本里按接口名点号调用：`tool.readText(...)`、`accessibility.click({...})`。只有 `requires.bridges` 声明过的桥会被注入，未声明的全局名不存在。
-- 方法通过反射按名字调用；参数类型自动转换：JSON 对象 → `Map`，数组 → `List`，数字 → `Int/Long/Double/Float`，布尔 → `Boolean`，字符串 → `String`，缺省对象参数 → `null`，缺省原始类型参数 → `0/false`。**Kotlin 的默认参数值在脚本调用时不会生效**（拿不到默认值），所有可选参数请显式传参，例如 `tool.httpGet(url, {})`、`accessibility.findColor("#FF0000", 16, "")`、`tool.httpMultipart(url, fields, nil, nil, {}, true)`。
+- 方法通过反射按名字调用；参数类型自动转换：JSON 对象 → `Map`，数组 → `List`，数字 → `Int/Long/Double/Float`，布尔 → `Boolean`，字符串 → `String`，缺省对象参数 → `null`，缺省原始类型参数 → `0/false`。**Kotlin 的默认参数值在脚本调用时不会生效**（拿不到默认值），所有可选参数请显式传参，例如 `net.get(url, {})`、`accessibility.findColor("#FF0000", 16, "")`、`net.multipart(url, fields, nil, nil, {}, true)`。
 - 参数个数不足会补 `null/0/false`；多传的参数被忽略。
 - 非空返回（Map/List/JSON 字符串）跨引擎会 JSON 化；Kotlin 对象（如 `DownloadHandle`）只会变成无意义的字符串，脚本不要使用返回这类对象的方法。
 
@@ -516,9 +516,6 @@ end
 |---|---|---|---|
 | `readText(path)` | path: string | string | 读文本文件。文件不存在或无权限时返回 `{__error}` 对象。共享存储路径需要「所有文件访问」。 |
 | `writeText(path, content)` | path/content: string | 无 | 写文本，自动建父目录；返回值为 null。 |
-| `httpGet(url, headers)` | url: string；headers: map（可传 `{}`） | string | GET，返回响应体文本。域名必须在 `network.allow`。 |
-| `httpPost(url, body, headers)` | url/body: string；headers: map | string | POST，默认 `Content-Type: application/json`；自定义请求头（如 Authorization）通过 headers 传入。 |
-| `httpMultipart(url, fields, fileField, filePath, headers, saveBinary)` | fields: map（表单字段）；fileField/filePath: string 或 nil；headers: map；saveBinary: boolean | string | `multipart/form-data` POST。`fileField` 与 `filePath` 都非空时附一个文件段。`saveBinary=true` 且响应是图片时，落盘到 `/sdcard/Download/zenneko_<api>_<时间戳>.<ext>` 并返回路径（需要「所有文件访问」）；否则返回响应文本。**布尔默认值不会自动生效，需要保存图片请显式传 `true`。** |
 | `readBase64(path)` | path: string | string | 读本地文件为 `data:<mime>;base64,...`，供 JSON 接口上传图片。 |
 | `saveBase64(data, outputPath)` | data: data URL / 裸 base64；outputPath: string | string | 解码写入 `outputPath`，返回文件路径。 |
 | `compressImage(path, quality)` | path: string；quality: 1–100 | string | 压缩为同目录 `<名字>_compressed.jpg`，返回新路径。 |
@@ -543,7 +540,7 @@ end
 Lua 片段：
 
 ```lua
-local body = tool.httpGet("https://api.example.com/ping", {})
+local body = net.get("https://api.example.com/ping", {})
 local text = tool.ocrText("/sdcard/Download/shot.png")
 
 -- listFiles 返回 JSON 字符串，可整体回传或自行解析
@@ -1220,7 +1217,7 @@ schedule.cancel(job)
 
 ### 6.2 网络白名单
 
-- 所有网络访问（`httpGet` / `httpPost` / `httpMultipart`）的域名必须写入 `network.allow`；CI 扫描脚本正文，子域规则见 2.4。
+- 所有网络访问（`net.get` / `net.post` / `net.multipart`）的域名必须写入 `network.allow`；CI 扫描脚本正文，子域规则见 2.4。
 - 运行时宿主不逐请求拦截，白名单是发布约定，请勿从参数拼接任意域名去请求未声明的主机。
 - 敏感数据（API Key、Token）不要写进脚本或日志：用 `store.secretSet` / `store.secretGet`（Keystore 加密）或跨卡片共享区（明文但应用私有，参考内置极客猫卡片的 `store.sharedRead("zenneko_key")` 模式）。
 - 代码中禁止硬编码私钥/令牌；内置卡片默认 Key 只是计次演示，应让用户替换。
@@ -1600,7 +1597,7 @@ return {
 |---|---|---|
 | 共享存储读写 | 所有文件访问 | `tool.readText`、`captureScreen`、`ocrText` |
 | 卡片私有存储 | 无（`store.quota_mb` 限额） | `store.kvGet/kvSet`、`store.sql` |
-| 网络 | `network.allow` 白名单（运行时逐请求校验） | `net.get/net.post/net.multipart`（旧 `tool.http*` 已废弃） |
+| 网络 | `network.allow` 白名单（运行时逐请求校验） | `net.get/net.post/net.multipart` |
 | 剪贴板 | 应用前台时可用 | `tool.setClipboard/getClipboard`、`accessibility.paste` |
 | 点亮屏幕 | `WAKE_LOCK`（部分 ROM 拦截） | `tool.wakeScreen` |
 | 无障碍 | 系统设置开启服务 | `accessibility.*` |

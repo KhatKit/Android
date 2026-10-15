@@ -13,7 +13,7 @@
 ```
 
 - 改接口的规矩：先改 `Bridges.kt`，再改本文件，最后跑上面那条命令；两者不一致时不允许提交。
-- 脚本调用是**反射按名字**调用，Kotlin 默认参数值在脚本侧不生效，缺参会被补成 `null` / `0` / `false` / 空集合，所以可选参数要显式传（如 `tool.httpGet(url, {})`）。
+- 脚本调用是**反射按名字**调用，Kotlin 默认参数值在脚本侧不生效，缺参会被补成 `null` / `0` / `false` / 空集合，所以可选参数要显式传（如 `net.get(url, {})`）。
 
 ## 1. 运行时全局
 
@@ -89,8 +89,8 @@ WebView 未回调的重定向资源等仍需进一步隔离；不要据此执行
 
 ## 3. tool（L0）
 
-其中 `tool.httpGet`、`tool.httpPost`、`tool.httpMultipart` 已废弃，新卡片请使用 `net`；
-文件类方法（`tool.readText` / `writeText` / `listFiles` / `copyPath` / `deletePath` / `mkdir` /
+网络方法已从 `tool` bridge 移至独立的 `net` bridge，新卡片请使用 `net.get` /
+`net.post` / `net.multipart`；文件类方法（`tool.readText` / `writeText` / `listFiles` / `copyPath` / `deletePath` / `mkdir` /
 `renamePath` / `zip` / `unzip` / `readBase64` / `saveBase64` / `openDir`）已废弃，新卡片请使用 `fs`。
 
 **旧方法与 `fs` 的差异（迁移时注意）**：`tool.*` 文件方法保持历史行为——按传入的绝对路径操作，
@@ -102,9 +102,6 @@ WebView 未回调的重定向资源等仍需进一步隔离；不要据此执行
 |---|---|---|
 | `tool.readText(path)` | string | 读文本文件（UTF-8）。 |
 | `tool.writeText(path, content)` | 无 | 写文本文件，自动建父目录。 |
-| `tool.httpGet(url, headers)` | string | GET，返回响应体。`headers` 可传 `{}`。 |
-| `tool.httpPost(url, body, headers)` | string | POST 文本，返回响应体。 |
-| `tool.httpMultipart(url, fields, fileField, filePath, headers, saveBinary)` | string | multipart/form-data POST。`fileField` + `filePath` 都非空时附带单个文件段；`saveBinary` 为真且响应是图片时把二进制写入共享存储返回路径，否则返回响应文本。 |
 | `tool.readBase64(path)` | string | 读文件为 data URL（base64），用于 JSON 接口上传图片。 |
 | `tool.saveBase64(data, outputPath)` | string | data URL / 裸 base64 解码写入 `outputPath`，返回路径。 |
 | `tool.compressImage(path, quality)` | string | 压成 JPEG（`quality` 1–100），输出 `<name>_compressed.jpg`，返回路径。 |
@@ -131,7 +128,7 @@ WebView 未回调的重定向资源等仍需进一步隔离；不要据此执行
 | `net.post(url, body, headers)` | string | JSON POST。 |
 | `net.put(url, body, headers)` | string | JSON PUT。 |
 | `net.delete(url, headers)` | string | DELETE。 |
-| `net.multipart(url, fields, fileField, filePath, headers, saveBinary)` | string | multipart；当前宿主未启用时返回错误。 |
+| `net.multipart(url, fields, fileField, filePath, headers, saveBinary)` | string | multipart；host 必须命中 `network.allow`。`saveBinary` 为真且响应是图片时写入共享存储并返回路径，否则返回响应文本。 |
 | `net.streamText(url, method, body, headers, timeoutSeconds)` | string | 缓冲完整响应后一次性返回，不提供增量结果。 |
 | `net.toFile(url, outputPath, headers)` | string | 下载二进制并返回输出路径。 |
 | `net.head(url, headers)` | table | 返回 `{status, headers, contentType, length}`。 |
@@ -245,7 +242,7 @@ WebView 未回调的重定向资源等仍需进一步隔离；不要据此执行
 
 凭据与审批：
 
-- **卡片不能自带 key**：只能调用用户已配置的供应商（决策记录见 docs/bridge-expansion-spec.md §7.3）。
+- **卡片不能自带 key**：只能调用用户已配置的供应商。
 - **默认每次都要用户点允许**（审批类别 `ai_invoke`）；卡片在 `card.json` 里声明
   `"permissions": { "methods": { "ai.chat": "allow" } }` 后不再询问，写 `"deny"` 直接拒绝
   （在调用前就失败，不会进入模型）。`ai.complete` 可单独声明，未声明时沿用 `ai.chat`。

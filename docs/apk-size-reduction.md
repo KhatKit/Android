@@ -417,7 +417,7 @@ R8 + 资源收缩会让 release 与 debug **不等价**。本轮实测发现了�
     unzip -l "$f" | grep -q 'libmlkit_google_ocr_pipeline' && echo "HIT $f"; done
   ```
 - 服务/仓库层：`khatkit/src/main/java/heizige/kk/khatkit/bridge/impl/AndroidToolBridge.kt:316 override fun ocrText(path)`、`:333 override fun ocrBoxes(path)`，客户端在 `:366-367 private val ocrRecognizer by lazy { TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()) }`。
-- DI/装配层：`:app` 侧 `app/.../core/data/ai/tools/KhatKitTools.kt:210 private val ocrBridge by lazy { AndroidToolBridge(...) }`；卡片侧 `khatkit/.../bridge/impl/BridgeFactory.kt:72 tool = AndroidToolBridge(appContext, http)`。
+- DI/装配层：`:app` 侧 `app/.../core/data/ai/tools/KhatKitTools.kt:210 private val ocrBridge by lazy { AndroidToolBridge(...) }`；卡片侧 `khatkit/.../bridge/impl/BridgeFactory.kt:72 tool = AndroidToolBridge(appContext)`。
 - 用户面：`docs/script-api-reference.md:123-124`（`tool.ocrText` / `tool.ocrBoxes`）、`docs/lua-card-development.md:547 / 897 / 1290`。
 - ⇒ **卡片脚本能力，删掉会破坏 `tool.ocr*`。**
 

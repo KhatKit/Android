@@ -2,11 +2,14 @@
 
 这里保留开发期示例；正式维护位置已迁移到
 `/home/heizige/文档/Android/KhatKitCards/browser_checkin` 与
-`browser_compare_prices`。不随 APK 内置，也没有发布到 Hub。
+`browser_compare_prices`（这两张正式卡片已发布到 Hub）。本目录的示例本身
+不随 APK 内置，也不发布到 Hub。
 每个子目录为标准 `card.json` + `main.js`，打包该目录内容后通过本地卡片导入使用。
 
-两张卡片默认只允许测试域 `browser-fixture.test`。实际使用前，把
-`network.allow` 改成用户目标站点及必需资源域名；不要为了省事默认改成 `*`。
+这两份开发期示例仍只允许测试域 `browser-fixture.test`，本地导入前把
+`network.allow` 改成你实际要访问的站点域名。而正式维护位置里那两张已发布到
+Hub 的卡片（1.0.0）访问目标由调用者在运行时用参数给出，因此 `network.allow`
+取 `["*"]`，安全边界交给 `browser.open` / `browser.act` 的逐次审批。
 浏览器方法保持逐次审批。示例未在真实站点验收。
 
 ## 网页签到
