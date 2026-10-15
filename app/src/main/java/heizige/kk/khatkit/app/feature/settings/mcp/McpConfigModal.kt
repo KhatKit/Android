@@ -109,8 +109,15 @@ import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.app.feature.settings.mcp.McpCommonOptionsConfigure
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 
+/**
+ * @param header 表单顶部的可选提示条（市场条目配置入口用它显示「需要配置」与脱敏预填摘要）。
+ *   默认 null，设置页原有调用点行为不变。
+ */
 @Composable
-internal fun McpServerConfigModal(state: EditState<McpServerConfig>) {
+internal fun McpServerConfigModal(
+    state: EditState<McpServerConfig>,
+    header: (@Composable () -> Unit)? = null,
+) {
     state.EditStateContent { config, updateValue ->
         val pagerState = rememberPagerState { 2 }
         val scope = rememberCoroutineScope()
@@ -139,6 +146,7 @@ internal fun McpServerConfigModal(state: EditState<McpServerConfig>) {
                 // 之前是 MD3 SecondaryTabRow，Miuix 下会漏出 MD3 页签。
                 // KedgeTabRow 在 Miuix 分支走原生 TabRow / WithContour，
                 // MD3Exp 分支保持 SecondaryTabRow，行为不变。
+                header?.invoke()
                 KedgeTabRow(
                     titles = listOf(
                         stringResource(R.string.setting_mcp_page_basic_settings),

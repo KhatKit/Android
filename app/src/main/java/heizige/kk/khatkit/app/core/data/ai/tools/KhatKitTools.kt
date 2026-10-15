@@ -30,6 +30,8 @@ import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
+import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitSchemaFormSpec
+import heizige.kk.khatkit.app.core.ui.components.khatkit.fillSchemaArgs
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
 import heizige.kk.khatkit.app.feature.automation.CardScheduleRepository
 import heizige.kk.khatkit.app.feature.automation.ScheduleBridgeImpl
@@ -427,7 +429,10 @@ class KhatKitToolProvider(
         card: LoadedCard,
         args: Map<String, Any?>,
         trigger: String = "AI",
+        uiSchema: JsonObject? = null,
     ): EngineResult {
+        // §8 P0-6：缺必填 UI 参数时先用宿主 schema 表单补齐，再走下面同一条执行/审批/计量链路
+        val arguments = fillCardArgs(card, args, trigger, uiSchema)
         if (AutomationBus.isCancelRequested()) {
             AutomationBus.finish()
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
@@ -470,13 +475,45 @@ class KhatKitToolProvider(
                 return EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
             }
             val startedAt = System.currentTimeMillis()
-            val result = runManager.run(card, args)
+            val result = runManager.run(card, arguments)
             if (!hubToken.isNullOrBlank()) {
                 reportToolCallAsync(hubToken, manifest, price, trigger, startedAt, result)
             }
             return result
         } finally {
             AutomationBus.finish()
+        }
+    }
+
+    /**
+     * §8 P0-6：缺参时弹宿主 schema 表单，把用户补的参数并回本参数表。
+     *
+     * - 只对「有人看着」的触发（AI 调用 / 用户手动运行）生效；定时任务、事件触发与流
+     *   无人值守，弹表单会卡住自动化，一律直接用原参数执行；
+     * - AI 已提供全部必填 / `source="ui"` 字段时 `shouldAsk=false`，一次 UI 请求都不发；
+     * - 表单渲染失败、用户取消、宿主没接线都退回原参数（[fillSchemaArgs] 内 runCatching），
+     *   卡片照常带着原参数执行，只是缺参字段由脚本自己兜底。
+     */
+    private suspend fun fillCardArgs(
+        card: LoadedCard,
+        args: Map<String, Any?>,
+        trigger: String,
+        uiSchema: JsonObject?,
+    ): Map<String, Any?> {
+        if (trigger != "AI" && trigger != "用户") return args
+        val manifest = card.manifest
+        val plan = runCatching {
+            KhatKitSchemaFormSpec.plan(
+                name = manifest.name,
+                parameters = manifest.parameters,
+                uiSchema = uiSchema,
+                ui = manifest.ui,
+                provided = args,
+            )
+        }.getOrNull() ?: return args
+        return fillSchemaArgs(plan, args) { items, _ ->
+            // uiHost 阻塞等宿主 Compose 层回传，必须在 IO 线程上等（与脚本 ui.form 同一机制）
+            withContext(Dispatchers.IO) { uiHost.form(plan.name, items, null) }
         }
     }
 
@@ -686,7 +723,13 @@ class KhatKitToolProvider(
                             EngineResult.Err("CARD_UNAVAILABLE", "卡片未下载且 Hub 不可达：$name")
                         !card.manifest.supportsAi() ->
                             EngineResult.Err("TRIGGER_DENIED", "卡片未启用 ai 触发：$name")
-                        else -> runCardWithStatus(card, arguments, trigger = "AI")
+                        else -> runCardWithStatus(
+                            card,
+                            arguments,
+                            trigger = "AI",
+                            // P0-6：Hub 索引里的 ui_schema 只作展示控件提示，缺参判断仍以 input_schema 为准
+                            uiSchema = entry?.uiSchema,
+                        )
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -785,7 +828,7 @@ class KhatKitToolProvider(
                                     runCatching { jsonToMap(json.parseToJsonElement(raw)) }.getOrNull()
                                 }.orEmpty()
                                 val result = try {
-                                    runCardWithStatus(card, runArgs, trigger = "AI")
+                                    runCardWithStatus(card, runArgs, trigger = "AI", uiSchema = entry.uiSchema)
                                 } catch (e: CancellationException) {
                                     throw e
                                 } catch (e: Throwable) {

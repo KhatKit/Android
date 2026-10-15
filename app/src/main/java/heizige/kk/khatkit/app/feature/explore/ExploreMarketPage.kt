@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.explore
 
+import android.icu.text.CompactDecimalFormat
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -95,6 +96,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -103,7 +105,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import java.text.NumberFormat
+import java.util.Locale
 import heizige.kk.khatkit.app.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -178,21 +184,21 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.overlays.KedgePullToRefreshBox
 import kotlin.math.abs
 
-private enum class ExploreFilter(val label: String) {
-    ALL("全部"),
-    CARDS("卡片"),
-    SKILLS("技能"),
-    MCP("MCP"),
-    BUNDLES("合集"),
-    MODELS("模型能力"),
+private enum class ExploreFilter {
+    ALL,
+    CARDS,
+    SKILLS,
+    MCP,
+    BUNDLES,
+    MODELS,
 }
 
-private enum class CardFilter(val label: String) {
-    ALL("全部"),
-    INSTALLED("已安装"),
-    FREE("免费"),
-    PREFERRED("推荐"),
-    AI("AI 触发"),
+private enum class CardFilter(@StringRes val labelRes: Int) {
+    ALL(R.string.explore_market_card_filter_all),
+    INSTALLED(R.string.explore_market_card_filter_installed),
+    FREE(R.string.explore_market_card_filter_free),
+    PREFERRED(R.string.explore_market_card_filter_preferred),
+    AI(R.string.explore_market_card_filter_ai),
 }
 
 /**
@@ -203,21 +209,21 @@ private enum class CardFilter(val label: String) {
  * 半生效状态不再存在，一行里任何时刻恰好一个 chip 是选中的。
  */
 private enum class MarketChip(
-    val label: String,
+    @StringRes val labelRes: Int,
     val filter: ExploreFilter,
     val cardFilter: CardFilter,
     val icon: ImageVector,
 ) {
-    ALL("全部", ExploreFilter.ALL, CardFilter.ALL, dashboard),
-    CARDS("卡片", ExploreFilter.CARDS, CardFilter.ALL, extension),
-    SKILLS("技能合集", ExploreFilter.SKILLS, CardFilter.ALL, autoAwesome),
-    MCP("MCP 服务", ExploreFilter.MCP, CardFilter.ALL, dns),
-    BUNDLES("合集包", ExploreFilter.BUNDLES, CardFilter.ALL, package2),
-    MODELS("模型能力", ExploreFilter.MODELS, CardFilter.ALL, memory),
-    INSTALLED("已安装", ExploreFilter.CARDS, CardFilter.INSTALLED, downloadForOffline),
-    FREE("免费", ExploreFilter.CARDS, CardFilter.FREE, payments),
-    PREFERRED("推荐", ExploreFilter.CARDS, CardFilter.PREFERRED, rocketLaunch),
-    AI("AI 触发", ExploreFilter.CARDS, CardFilter.AI, bolt),
+    ALL(R.string.explore_market_chip_all, ExploreFilter.ALL, CardFilter.ALL, dashboard),
+    CARDS(R.string.explore_market_chip_cards, ExploreFilter.CARDS, CardFilter.ALL, extension),
+    SKILLS(R.string.explore_market_chip_skills, ExploreFilter.SKILLS, CardFilter.ALL, autoAwesome),
+    MCP(R.string.explore_market_chip_mcp, ExploreFilter.MCP, CardFilter.ALL, dns),
+    BUNDLES(R.string.explore_market_chip_bundles, ExploreFilter.BUNDLES, CardFilter.ALL, package2),
+    MODELS(R.string.explore_market_chip_models, ExploreFilter.MODELS, CardFilter.ALL, memory),
+    INSTALLED(R.string.explore_market_chip_installed, ExploreFilter.CARDS, CardFilter.INSTALLED, downloadForOffline),
+    FREE(R.string.explore_market_chip_free, ExploreFilter.CARDS, CardFilter.FREE, payments),
+    PREFERRED(R.string.explore_market_chip_preferred, ExploreFilter.CARDS, CardFilter.PREFERRED, rocketLaunch),
+    AI(R.string.explore_market_chip_ai, ExploreFilter.CARDS, CardFilter.AI, bolt),
 }
 
 /**
@@ -230,19 +236,19 @@ private const val CARD_PREVIEW_COUNT = 5
 private data class LocalToolInfo(
     val option: LocalToolOption,
     val seed: String,
-    val title: String,
-    val desc: String,
+    @StringRes val titleRes: Int,
+    @StringRes val descRes: Int,
     val icon: ImageVector,
 )
 
 private val localToolCatalog = listOf(
-    LocalToolInfo(LocalToolOption.JavascriptEngine, "javascript_engine", "JavaScript 引擎", "QuickJS 执行代码，计算与脚本处理", code),
-    LocalToolInfo(LocalToolOption.TimeInfo, "time_info", "时间信息", "获取日期、星期、时间与时区", schedule),
-    LocalToolInfo(LocalToolOption.Clipboard, "clipboard", "剪贴板", "读写设备剪贴板中的纯文本", contentPaste),
-    LocalToolInfo(LocalToolOption.Tts, "tts", "文字转语音", "用所选 TTS 服务朗读文本", volumeUp),
-    LocalToolInfo(LocalToolOption.AskUser, "ask_user", "询问用户", "AI 向你提问以获取更多信息", questionAnswer),
-    LocalToolInfo(LocalToolOption.ScreenTime, "screen_time", "屏幕时间", "读取应用屏幕使用时间", timer),
-    LocalToolInfo(LocalToolOption.Calendar, "calendar", "日历", "查询和创建日历事件", calendarMonth),
+    LocalToolInfo(LocalToolOption.JavascriptEngine, "javascript_engine", R.string.explore_market_tool_javascript_engine_title, R.string.explore_market_tool_javascript_engine_desc, code),
+    LocalToolInfo(LocalToolOption.TimeInfo, "time_info", R.string.explore_market_tool_time_info_title, R.string.explore_market_tool_time_info_desc, schedule),
+    LocalToolInfo(LocalToolOption.Clipboard, "clipboard", R.string.explore_market_tool_clipboard_title, R.string.explore_market_tool_clipboard_desc, contentPaste),
+    LocalToolInfo(LocalToolOption.Tts, "tts", R.string.explore_market_tool_tts_title, R.string.explore_market_tool_tts_desc, volumeUp),
+    LocalToolInfo(LocalToolOption.AskUser, "ask_user", R.string.explore_market_tool_ask_user_title, R.string.explore_market_tool_ask_user_desc, questionAnswer),
+    LocalToolInfo(LocalToolOption.ScreenTime, "screen_time", R.string.explore_market_tool_screen_time_title, R.string.explore_market_tool_screen_time_desc, timer),
+    LocalToolInfo(LocalToolOption.Calendar, "calendar", R.string.explore_market_tool_calendar_title, R.string.explore_market_tool_calendar_desc, calendarMonth),
 )
 
 // Stable extension identity: this mirrors KodeHeap's avatar palette hashing.
@@ -316,6 +322,20 @@ fun ExploreMarketPage() {
     val navController = LocalNavController.current
     val vm = hiltViewModel<ExploreMarketViewModel>()
     val scope = rememberCoroutineScope()
+    // 协程里的 Toast 不在 @Composable 上下文，取不到 stringResource：
+    // 模板串在组合期取出，调用点只用 format 填参，不再拼字符串。
+    val downloadFailedPrefix = stringResource(R.string.explore_market_download_failed_prefix)
+    val toastInstalledNamed = stringResource(R.string.explore_market_toast_installed_named)
+    val toastInstallFailed = stringResource(R.string.explore_market_toast_install_failed)
+    val toastUpdatedNamed = stringResource(R.string.explore_market_toast_updated_named)
+    val toastUpdateFailed = stringResource(R.string.explore_market_toast_update_failed)
+    val toastUninstalledNamed = stringResource(R.string.explore_market_toast_uninstalled_named)
+    val toastUninstallFailed = stringResource(R.string.explore_market_toast_uninstall_failed)
+    val toastClearedDependencies = stringResource(R.string.explore_market_toast_cleared_dependencies)
+    val toastNothingToClear = stringResource(R.string.explore_market_toast_nothing_to_clear)
+    val toastDependencyDeleted = stringResource(R.string.explore_market_toast_dependency_deleted)
+    val toastDeleteFailed = stringResource(R.string.explore_market_toast_delete_failed)
+    val toastMcpNothingToConfigure = stringResource(R.string.explore_market_mcp_nothing_to_configure)
 
     val settings by vm.settings.collectAsStateWithLifecycle()
     val skills by vm.skills.collectAsStateWithLifecycle()
@@ -415,6 +435,8 @@ fun ExploreMarketPage() {
     var forkTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
     // 资源市场里被点开看详情的合集（技能合集 / MCP 服务 / 合集包）。
     var resourceTarget by remember { mutableStateOf<HubResourceEntry?>(null) }
+    // P0-5 条目级「配置」：非空时弹复用设置页 MCP 表单的配置抽屉（含缺必填提示）。
+    var mcpConfigTarget by remember { mutableStateOf<McpInstallPlan?>(null) }
     var uiStyle by remember { mutableStateOf(vm.uiStyle) }
 
     val enabledProviders = remember(settings) { settings.providers.filter { it.enabled } }
@@ -438,9 +460,36 @@ fun ExploreMarketPage() {
     fun resourceInstalled(entry: HubResourceEntry): Boolean =
         entry.items.isNotEmpty() && entry.items.all { it in installedSkillNames || it in installedMcpNames }
 
+    /**
+     * P0-5：条目卡上的「需要配置」。索引不带 headers，所以按名字回查本机已保存的
+     * MCP 配置，缺必填就标出来 —— 与详情/本机列表用的是同一个 [mcpCardStatus]。
+     */
+    fun resourceNeedsConfig(entry: HubResourceEntry): Boolean =
+        mcpServers.any { server ->
+            val name = server.commonOptions.name
+            name.isNotBlank() &&
+                (name == entry.name || name in entry.items) &&
+                mcpCardStatus(server, null) == McpCardStatus.NEEDS_CONFIG
+        }
+
     fun installResource(entry: HubResourceEntry) {
         vm.installResource(entry) { message ->
-            scope.launch { Toast.show(message, message.startsWith("下载失败")) }
+            scope.launch { Toast.show(message, message.startsWith(downloadFailedPrefix)) }
+        }
+    }
+
+    /**
+     * P0-5：条目级「配置」。先按 slug 取包（与安装同一条下载路径），拿到预填的
+     * 名称 / 传输 / URL / 头再弹表单；条目里没有 MCP 端点时只提示一下。
+     */
+    fun configureMcp(entry: HubResourceEntry) {
+        resourceTarget = null
+        vm.prepareMcpConfig(entry) { plan ->
+            if (plan == null) {
+                scope.launch { Toast.show(toastMcpNothingToConfigure) }
+            } else {
+                mcpConfigTarget = plan
+            }
         }
     }
 
@@ -485,7 +534,11 @@ fun ExploreMarketPage() {
         // LazyColumn 之前先算出来。
         val cardsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.CARDS
         val featuredPending = loading && featuredCards.isEmpty()
-        val showFeatured = cardsVisible && matches("卡片 精选 推荐") &&
+        // 搜索关键词必须在 LazyColumn 之前取出来：LazyColumn 的 content lambda 不是
+        // @Composable 上下文，里面只有 item {} 的 lambda 里才能调 stringResource。
+        val featuredKeywords = stringResource(R.string.explore_market_featured_search_keywords)
+        val localEntryKeywords = stringResource(R.string.explore_market_local_entry_search_keywords)
+        val showFeatured = cardsVisible && matches(featuredKeywords) &&
             (featuredCards.isNotEmpty() || featuredPending)
         // 悬浮筛选栏的位号：它前面只有「精选轮播」这一项；没有轮播时它自己就是首项。
         val chipItemIndex = if (showFeatured) 1 else 0
@@ -590,13 +643,13 @@ fun ExploreMarketPage() {
                                         if (installed[target.name] == null) {
                                             vm.install(target) { ok ->
                                                 scope.launch {
-                                                    Toast.show(if (ok) "已安装 ${target.name}" else "安装失败", !ok)
+                                                    Toast.show(if (ok) toastInstalledNamed.format(target.name) else toastInstallFailed, !ok)
                                                 }
                                             }
                                         } else {
                                             vm.update(target) { ok ->
                                                 scope.launch {
-                                                    Toast.show(if (ok) "已更新 ${target.name}" else "更新失败", !ok)
+                                                    Toast.show(if (ok) toastUpdatedNamed.format(target.name) else toastUpdateFailed, !ok)
                                                 }
                                             }
                                         }
@@ -645,7 +698,7 @@ fun ExploreMarketPage() {
                         items(MarketChip.entries, key = { it.name }) { chip ->
                             MarketFilterChip(
                                 selected = chip == selectedChip,
-                                label = chip.label,
+                                label = stringResource(chip.labelRes),
                                 icon = chip.icon,
                                 onClick = {
                                     filter = chip.filter.name
@@ -660,7 +713,7 @@ fun ExploreMarketPage() {
             // 2b. 「本地」入口：本机内容与已安装内容有自己的二级页，这里只放一行入口。
             // 排在悬浮筛选栏之后 —— 它随正文一起滚走，不会像筛选栏那样钉在顶栏下面；
             // 轮播仍在首屏，入口只是它上面一条细带。
-            if (matches("本地 本机 local 已安装 离线")) {
+            if (matches(localEntryKeywords)) {
                 item(key = "local_entry") {
                     Box(modifier = swapIn(sectionPad)) {
                         GroupContainer {
@@ -704,7 +757,7 @@ fun ExploreMarketPage() {
                             // 不再带「共 N 张 · 已安装 M」：这一行里标题是 displayTitle 字阶，
                             // 再挤一个计数加文字按钮后标题只剩 ~90dp，实测被截成「外部…」。
                             // 计数在二级页顶部原样有一条（同一份数），这里让标题占满、不再截断。
-                            actionLabel = "查看全部",
+                            actionLabel = stringResource(R.string.explore_market_view_all),
                             onAction = { navController.navigate(Screen.ExploreCards(query)) },
                         )
                         Spacer(Modifier.height(14.dp))
@@ -732,7 +785,7 @@ fun ExploreMarketPage() {
                             val remaining = cardsMatched.size - preview.size
                             if (remaining > 0) {
                                 MarketMoreRow(
-                                    label = "查看全部 ${cardsMatched.size} 张卡片",
+                                    label = stringResource(R.string.explore_market_view_all_cards_count, cardsMatched.size),
                                     onClick = { navController.navigate(Screen.ExploreCards(query)) },
                                 )
                             }
@@ -752,10 +805,10 @@ fun ExploreMarketPage() {
                 item(key = "skill_packs") {
                     Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "技能合集",
+                            title = stringResource(R.string.explore_market_section_skill_packs),
                             icon = autoAwesome,
-                            supporting = "${visibleSkillPacks.size} 个合集可下载",
-                            actionLabel = "已装技能",
+                            supporting = stringResource(R.string.explore_market_skill_packs_available, visibleSkillPacks.size),
+                            actionLabel = stringResource(R.string.explore_market_installed_skills),
                             onAction = { navController.navigate(Screen.Skills) },
                         )
                         GroupContainer {
@@ -784,10 +837,10 @@ fun ExploreMarketPage() {
                 item(key = "mcp_market") {
                     Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "MCP 服务",
+                            title = stringResource(R.string.explore_market_section_mcp_services),
                             icon = dns,
-                            supporting = "${visibleMcpServers.size} 个服务可添加",
-                            actionLabel = "已添加",
+                            supporting = stringResource(R.string.explore_market_mcp_servers_available, visibleMcpServers.size),
+                            actionLabel = stringResource(R.string.explore_market_added),
                             onAction = { navController.navigate(Screen.SettingMcp) },
                         )
                         GroupContainer {
@@ -796,7 +849,9 @@ fun ExploreMarketPage() {
                                     entry = entry,
                                     installed = resourceInstalled(entry),
                                     busy = busyResource == entry.slug,
+                                    needsConfig = resourceNeedsConfig(entry),
                                     onInstall = { installResource(entry) },
+                                    onConfigure = { configureMcp(entry) },
                                     onClick = { resourceTarget = entry },
                                 )
                             }
@@ -816,9 +871,9 @@ fun ExploreMarketPage() {
                 item(key = "bundles") {
                     Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "合集包",
+                            title = stringResource(R.string.explore_market_section_bundles),
                             icon = package2,
-                            supporting = "${visibleBundles.size} 个合集 · 技能与 MCP 一次装齐",
+                            supporting = stringResource(R.string.explore_market_bundles_supporting, visibleBundles.size),
                         )
                         GroupContainer {
                             visibleBundles.forEach { entry ->
@@ -845,14 +900,22 @@ fun ExploreMarketPage() {
                 item(key = "models") {
                     Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "模型能力",
+                            title = stringResource(R.string.explore_market_section_models),
                             icon = autoAwesome,
                             supporting = if (visibleModels.size > 8) {
-                                "${visibleModels.size} 个 · 显示前 8 个 · ${enabledProviders.size} 个供应商"
+                                stringResource(
+                                    R.string.explore_market_models_supporting_truncated,
+                                    visibleModels.size,
+                                    enabledProviders.size,
+                                )
                             } else {
-                                "${visibleModels.size} 个模型 · ${enabledProviders.size} 个供应商"
+                                stringResource(
+                                    R.string.explore_market_models_supporting,
+                                    visibleModels.size,
+                                    enabledProviders.size,
+                                )
                             },
-                            actionLabel = "管理",
+                            actionLabel = stringResource(R.string.explore_market_manage),
                             onAction = { navController.navigate(Screen.SettingModels) },
                         )
                         GroupContainer {
@@ -878,14 +941,14 @@ fun ExploreMarketPage() {
                 item(key = "dependency_cache") {
                     Column(modifier = swapIn(sectionPad), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "原生依赖包",
+                            title = stringResource(R.string.explore_market_section_dependencies),
                             icon = heizige.kk.khatkit.app.core.ui.icons.extension,
-                            supporting = "已缓存 ${dependencies.size} 个版本",
-                            actionLabel = "清空",
+                            supporting = stringResource(R.string.explore_market_dependencies_cached, dependencies.size),
+                            actionLabel = stringResource(R.string.explore_market_clear),
                             onAction = {
                                 vm.clearDependencyCache { count ->
                                     scope.launch {
-                                        Toast.show(if (count > 0) "已清理 $count 个依赖包" else "没有可清理的依赖包")
+                                        Toast.show(if (count > 0) toastClearedDependencies.format(count) else toastNothingToClear)
                                     }
                                 }
                             },
@@ -898,7 +961,15 @@ fun ExploreMarketPage() {
                                         vm.deleteDependency(dependency) { ok ->
                                             scope.launch {
                                                 Toast.show(
-                                                    if (ok) "已删除 ${dependency.name} ${dependency.version}" else "删除失败",
+                                                    if (ok) {
+                                                        toastDependencyDeleted.format(dependency.name, dependency.version)
+
+
+
+
+                                                    } else {
+                                                        toastDeleteFailed
+                                                    },
                                                     !ok,
                                                 )
                                             }
@@ -926,12 +997,12 @@ fun ExploreMarketPage() {
                         ExploreEmptyState(
                             query = query,
                             scopeLabel = when (selectedFilter) {
-                                ExploreFilter.ALL -> "市场"
-                                ExploreFilter.SKILLS -> "技能合集"
-                                ExploreFilter.MCP -> "MCP 服务"
-                                ExploreFilter.BUNDLES -> "合集包"
-                                ExploreFilter.MODELS -> "模型能力"
-                                ExploreFilter.CARDS -> "卡片市场"
+                                ExploreFilter.ALL -> stringResource(R.string.explore_market_scope_market)
+                                ExploreFilter.SKILLS -> stringResource(R.string.explore_market_section_skill_packs)
+                                ExploreFilter.MCP -> stringResource(R.string.explore_market_section_mcp_services)
+                                ExploreFilter.BUNDLES -> stringResource(R.string.explore_market_section_bundles)
+                                ExploreFilter.MODELS -> stringResource(R.string.explore_market_section_models)
+                                ExploreFilter.CARDS -> stringResource(R.string.explore_market_cards_page_title)
                             },
                             onClearQuery = {
                                 query = ""
@@ -971,7 +1042,7 @@ fun ExploreMarketPage() {
                         if (!searching) {
                             Icon(
                                 imageVector = search,
-                                contentDescription = "搜索",
+                                contentDescription = stringResource(R.string.explore_market_search),
                                 modifier = Modifier.graphicsLayer {
                                     alpha = 1f - searchProgress.value
                                 },
@@ -980,7 +1051,7 @@ fun ExploreMarketPage() {
                         if (hasQuery) {
                             Icon(
                                 imageVector = close,
-                                contentDescription = "清空搜索",
+                                contentDescription = stringResource(R.string.explore_market_clear_search),
                                 modifier = Modifier.graphicsLayer {
                                     alpha = searchProgress.value
                                 },
@@ -1205,6 +1276,27 @@ fun ExploreMarketPage() {
                 resourceTarget = null
                 installResource(entry)
             },
+            onConfigure = if (entry.isMcp) {
+                { configureMcp(entry) }
+            } else {
+                null
+            },
+            needsConfig = entry.isMcp && resourceNeedsConfig(entry),
+        )
+    }
+
+    // P0-5：条目级配置抽屉（复用设置页 MCP 表单），预填名称 / 传输 / URL / 头。
+    mcpConfigTarget?.let { plan ->
+        McpInstallConfigSheet(
+            initial = plan.config,
+            missingRequired = plan.missingRequired,
+            onDismiss = { mcpConfigTarget = null },
+            onConfirm = { config ->
+                mcpConfigTarget = null
+                vm.saveMcpServerConfig(config) { message ->
+                    scope.launch { Toast.show(message) }
+                }
+            },
         )
     }
 
@@ -1213,20 +1305,23 @@ fun ExploreMarketPage() {
     uninstallTarget?.let { target ->
         RikkaConfirmDialog(
             show = true,
-            title = "卸载 ${target.name}",
-            confirmText = "卸载",
-            dismissText = "取消",
+            title = stringResource(R.string.explore_market_uninstall_title, target.name),
+            confirmText = stringResource(R.string.explore_market_uninstall),
+            dismissText = stringResource(R.string.explore_market_cancel),
             onConfirm = {
                 uninstallTarget = null
                 vm.uninstall(target.name) { ok ->
-                    scope.launch { Toast.show(if (ok) "已卸载 ${target.name}" else "卸载失败", !ok) }
+                    scope.launch { Toast.show(if (ok) toastUninstalledNamed.format(target.name) else toastUninstallFailed, !ok) }
                 }
             },
             onDismiss = { uninstallTarget = null },
         ) {
             Text(
-                "将从本机删除 ${target.name} v${installed[target.name] ?: target.version} 及其本地文件，" +
-                    "之后需要重新安装才能使用。",
+                stringResource(
+                    R.string.explore_market_uninstall_message,
+                    target.name,
+                    installed[target.name] ?: target.version,
+                ),
             )
         }
     }
@@ -1258,6 +1353,22 @@ private fun CardMarketOverlays(
     onForkTarget: (CardIndexEntry?) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    // 同上：浮层宿主里的 Toast 也在协程里，模板串在组合期取出。
+    val toastUninstalledNamed = stringResource(R.string.explore_market_toast_uninstalled_named)
+    val toastUninstallFailed = stringResource(R.string.explore_market_toast_uninstall_failed)
+    val toastInstalledNamed = stringResource(R.string.explore_market_toast_installed_named)
+    val toastInstallFailed = stringResource(R.string.explore_market_toast_install_failed)
+    val toastUpdatedNamed = stringResource(R.string.explore_market_toast_updated_named)
+    val toastUpdateFailed = stringResource(R.string.explore_market_toast_update_failed)
+    val toastPublishSubmitted = stringResource(R.string.explore_market_toast_publish_submitted)
+    val toastPublishFailed = stringResource(R.string.explore_market_toast_publish_failed)
+    val toastForkSubmitted = stringResource(R.string.explore_market_toast_fork_submitted)
+    val toastForkFailed = stringResource(R.string.explore_market_toast_fork_failed)
+    val toastRanNamed = stringResource(R.string.explore_market_toast_ran_named)
+    val toastRunFailed = stringResource(R.string.explore_market_toast_run_failed)
+    val toastVotedNamed = stringResource(R.string.explore_market_toast_voted_named)
+    val toastVoteFailed = stringResource(R.string.explore_market_toast_vote_failed)
+    val toastAccountRequired = stringResource(R.string.explore_market_toast_account_required)
     val provider = rememberAppEntryPoint().khatKitToolProvider()
 
     KhatKitTheme(
@@ -1283,7 +1394,13 @@ private fun CardMarketOverlays(
                 vm.publish(entry.name, license, price, changelog) { result ->
                     scope.launch {
                         Toast.show(
-                            result.message.ifBlank { if (result.ok) "已提交发布审核" else "发布失败" },
+                            result.message.ifBlank {
+                                if (result.ok) {
+                                    toastPublishSubmitted
+                                } else {
+                                    toastPublishFailed
+                                }
+                            },
                             !result.ok,
                         )
                         vm.refresh(refreshQuery)
@@ -1303,7 +1420,13 @@ private fun CardMarketOverlays(
                 vm.fork(entry.name, parent, changelog, newVersion) { result ->
                     scope.launch {
                         Toast.show(
-                            result.message.ifBlank { if (result.ok) "已提交改进" else "提交失败" },
+                            result.message.ifBlank {
+                                if (result.ok) {
+                                    toastForkSubmitted
+                                } else {
+                                    toastForkFailed
+                                }
+                            },
                             !result.ok,
                         )
                         vm.refresh(refreshQuery)
@@ -1335,24 +1458,24 @@ private fun CardMarketOverlays(
                 onForkTarget(entry)
                 onSelectCard(null)
             },
-            onRun = { vm.run(entry.name) { r -> scope.launch { Toast.show(r.message.ifBlank { if (r.ok) "已运行 ${entry.name}" else "运行失败" }, !r.ok) } } },
-            onInstall = { vm.install(entry) { ok -> scope.launch { Toast.show(if (ok) "已安装 ${entry.name}" else "安装失败", !ok) } } },
-            onUpdate = { vm.update(entry) { ok -> scope.launch { Toast.show(if (ok) "已更新 ${entry.name}" else "更新失败", !ok) } } },
+            onRun = { vm.run(entry.name) { r -> scope.launch { Toast.show(r.message.ifBlank { if (r.ok) toastRanNamed.format(entry.name) else toastRunFailed }, !r.ok) } } },
+            onInstall = { vm.install(entry) { ok -> scope.launch { Toast.show(if (ok) toastInstalledNamed.format(entry.name) else toastInstallFailed, !ok) } } },
+            onUpdate = { vm.update(entry) { ok -> scope.launch { Toast.show(if (ok) toastUpdatedNamed.format(entry.name) else toastUpdateFailed, !ok) } } },
             onUninstall = {
                 vm.uninstall(entry.name) { ok ->
                     scope.launch {
-                        Toast.show(if (ok) "已卸载 ${entry.name}" else "卸载失败", !ok)
+                        Toast.show(if (ok) toastUninstalledNamed.format(entry.name) else toastUninstallFailed, !ok)
                         if (ok) onSelectCard(null)
                     }
                 }
             },
             onVote = {
                 if (!activated) {
-                    Toast.show("需要先激活账户", true)
+                    Toast.show(toastAccountRequired, true)
                 } else {
                     vm.vote(entry.name) { r ->
                         scope.launch {
-                            Toast.show(r.message.ifBlank { if (r.ok) "已投票 ${entry.name}" else "投票失败" }, !r.ok)
+                            Toast.show(r.message.ifBlank { if (r.ok) toastVotedNamed.format(entry.name) else toastVoteFailed }, !r.ok)
                         }
                     }
                 }
@@ -1417,7 +1540,7 @@ fun ExploreCardsPage(initialQuery: String = "") {
     }
 
     KedgeSettingsPageScaffold(
-        title = "卡片市场",
+        title = stringResource(R.string.explore_market_cards_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         LazyColumn(
@@ -1430,7 +1553,7 @@ fun ExploreCardsPage(initialQuery: String = "") {
                 KedgeOutlinedTextFieldWithSlots(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("搜索卡片名称、摘要") },
+                    placeholder = { Text(stringResource(R.string.explore_market_search_cards_hint)) },
                     singleLine = true,
                     shape = RoundedCornerShape(ExploreShape.tile),
                     modifier = Modifier.fillMaxWidth(),
@@ -1444,12 +1567,12 @@ fun ExploreCardsPage(initialQuery: String = "") {
                             KedgeFilterChip(
                                 selected = selectedCardFilter == option,
                                 onClick = { cardFilter = option.name },
-                                label = { Text(option.label) },
+                                label = { Text(stringResource(option.labelRes)) },
                             )
                         }
                     }
                     Text(
-                        text = "共 ${matched.size} 张 · 已安装 ${installed.size}",
+                        text = stringResource(R.string.explore_market_cards_count_summary, matched.size, installed.size),
                         style = KedgeTextStyles.footnoteSmall().tabular(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1462,7 +1585,7 @@ fun ExploreCardsPage(initialQuery: String = "") {
                 item(key = "empty") {
                     ExploreEmptyState(
                         query = query,
-                        scopeLabel = "卡片市场",
+                        scopeLabel = stringResource(R.string.explore_market_cards_page_title),
                         onClearQuery = { query = "" },
                         onReload = { vm.refresh("") },
                     )
@@ -1543,12 +1666,17 @@ private fun LocalEntryRow(
     mcpCount: Int,
     onClick: () -> Unit,
 ) {
+    val installedPart = stringResource(R.string.explore_market_local_entry_installed, installedCount)
+    val localOnlyPart = stringResource(R.string.explore_market_local_entry_local_only, localCount)
+    val toolsPart = stringResource(R.string.explore_market_local_entry_tools, toolEnabledCount, toolCount)
+    val skillsPart = stringResource(R.string.explore_market_local_entry_skills, skillCount)
+    val mcpPart = stringResource(R.string.explore_market_local_entry_mcp, mcpCount)
     val parts = buildList {
-        add("已安装卡片 $installedCount")
-        if (localCount > 0) add("其中仅本机 $localCount")
-        add("本地工具 $toolEnabledCount/$toolCount")
-        if (skillCount > 0) add("技能 $skillCount")
-        if (mcpCount > 0) add("MCP $mcpCount")
+        add(installedPart)
+        if (localCount > 0) add(localOnlyPart)
+        add(toolsPart)
+        if (skillCount > 0) add(skillsPart)
+        if (mcpCount > 0) add(mcpPart)
     }
     PressableRow(onClick = onClick) {
         Box(
@@ -1570,7 +1698,7 @@ private fun LocalEntryRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "本地",
+                text = stringResource(R.string.explore_market_local_page_title),
                 style = KedgeTextStyles.title().copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
             )
@@ -2128,7 +2256,7 @@ private fun ExploreFooterSync(loading: Boolean, modifier: Modifier = Modifier) {
             KedgeProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
         }
         Text(
-            text = if (loading) "正在同步探索流…" else "已经到底了",
+            text = if (loading) stringResource(R.string.explore_market_footer_syncing) else stringResource(R.string.explore_market_footer_end),
             style = KedgeTextStyles.footnoteSmall(),
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
         )
@@ -2165,13 +2293,16 @@ private fun ExploreEmptyState(
             )
         }
         Text(
-            text = if (query.isBlank()) "这里还是空的" else "没有匹配「$query」的结果",
+            text = if (query.isBlank()) stringResource(R.string.explore_market_empty_title) else stringResource(R.string.explore_market_empty_no_match_title, query),
             style = KedgeTextStyles.title().copy(fontWeight = FontWeight.SemiBold),
             textAlign = TextAlign.Center,
         )
         Text(
-            text = if (query.isBlank()) "$scopeLabel 里暂时没有可展示的内容，下拉或点下面重新加载。"
-            else "换个关键词，或者清除搜索看全部内容。",
+            text = if (query.isBlank()) {
+                stringResource(R.string.explore_market_empty_hint, scopeLabel)
+            } else {
+                stringResource(R.string.explore_market_empty_search_hint)
+            },
             style = KedgeTextStyles.body(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -2181,7 +2312,7 @@ private fun ExploreEmptyState(
             onClick = if (query.isBlank()) onReload else onClearQuery,
             shapes = ButtonDefaults.shapes(),
         ) {
-            Text(if (query.isBlank()) "重新加载" else "清除搜索")
+            Text(if (query.isBlank()) stringResource(R.string.explore_market_reload) else stringResource(R.string.explore_market_clear_search))
         }
     }
 }
@@ -2198,16 +2329,16 @@ private fun ToolRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(text = tool.title, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = stringResource(tool.titleRes), style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                text = tool.desc,
+                text = stringResource(tool.descRes),
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        MetaChip(text = if (enabled) "已启用" else "未启用", accent = enabled)
+        MetaChip(text = if (enabled) stringResource(R.string.explore_market_enabled) else stringResource(R.string.explore_market_disabled), accent = enabled)
     }
 }
 
@@ -2236,8 +2367,13 @@ private fun McpRow(
     server: McpServerConfig,
     status: McpStatus?,
     onClick: () -> Unit,
+    // P0-5：装完但缺必填时，行上直接给「配置」入口。
+    onConfigure: (() -> Unit)? = null,
 ) {
-    val name = server.commonOptions.name.ifBlank { server.serverUrl }
+    // 展示用 URL 一律过掩码：`?token=` / `&api_key=` 这类 query 不能出现在列表上。
+    val displayUrl = maskMcpUrl(server.serverUrl)
+    val name = server.commonOptions.name.ifBlank { displayUrl }
+    val cardStatus = mcpCardStatus(server, status)
     PressableRow(onClick = onClick) {
         ExtensionIcon(name, dns, ExploreShape.listTileSize)
         Column(
@@ -2246,19 +2382,39 @@ private fun McpRow(
         ) {
             Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                text = server.serverUrl,
+                text = displayUrl,
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        when (status) {
-            McpStatus.Connected -> MetaChip("已连接", accent = true)
-            McpStatus.Connecting, is McpStatus.Reconnecting -> MetaChip("连接中")
-            is McpStatus.Error -> MetaChip("错误")
-            McpStatus.NeedsAuthorization, McpStatus.Authorizing -> MetaChip("需授权")
-            else -> MetaChip(if (server.commonOptions.enable) "未连接" else "已停用")
+        if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
+            CircleActionButton(
+                icon = heizige.kk.khatkit.app.core.ui.icons.settings,
+                contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
+                onClick = onConfigure,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        when (cardStatus) {
+            // 缺必填优先：这时底下就算报了「连上」也不认，不能显示已连接。
+            McpCardStatus.NEEDS_CONFIG -> MetaChip(stringResource(R.string.explore_market_mcp_needs_config))
+            McpCardStatus.CONNECT_FAILED -> MetaChip(stringResource(R.string.explore_market_mcp_error))
+            McpCardStatus.CONFIGURED -> when (status) {
+                McpStatus.Connected -> MetaChip(stringResource(R.string.explore_market_mcp_connected), accent = true)
+                McpStatus.Connecting, is McpStatus.Reconnecting -> MetaChip(stringResource(R.string.explore_market_mcp_connecting))
+                is McpStatus.Error -> MetaChip(stringResource(R.string.explore_market_mcp_error))
+                McpStatus.NeedsAuthorization, McpStatus.Authorizing -> MetaChip(stringResource(R.string.explore_market_mcp_needs_auth))
+                else -> MetaChip(
+                    if (server.commonOptions.enable) {
+                        stringResource(R.string.explore_market_mcp_disconnected)
+                    } else {
+                        stringResource(R.string.explore_market_mcp_stopped)
+                    }
+                )
+            }
         }
     }
 }
@@ -2280,21 +2436,25 @@ private fun resourceIcon(name: String, kind: String): ImageVector = when (name) 
     }
 }
 
+@Composable
 private fun resourceKindLabel(entry: HubResourceEntry): String = when {
-    entry.isSkillPack -> "技能合集"
-    entry.isMcp -> "MCP 服务"
-    entry.isBundle -> "合集包"
-    else -> "资源"
+    entry.isSkillPack -> stringResource(R.string.explore_market_section_skill_packs)
+    entry.isMcp -> stringResource(R.string.explore_market_section_mcp_services)
+    entry.isBundle -> stringResource(R.string.explore_market_section_bundles)
+    else -> stringResource(R.string.explore_market_resource)
 }
 
 /** 行内元信息：条目数 + 下载量 + 体积，压成一行，避免窄行里堆一排胶囊。 */
+@Composable
 private fun resourceMetaLine(entry: HubResourceEntry): String {
-    val parts = buildList {
-        if (entry.itemCount > 0) add("${entry.itemCount} 项")
-        if (entry.downloads > 0) add(downloadsLabel(entry.downloads))
-        if (entry.sizeBytes > 0) add(formatBytes(entry.sizeBytes))
+    val itemCountPart = if (entry.itemCount > 0) {
+        stringResource(R.string.explore_market_resource_items_count, entry.itemCount)
+    } else {
+        null
     }
-    return parts.joinToString(" · ")
+    val downloadsPart = if (entry.downloads > 0) downloadsLabel(entry.downloads) else null
+    val sizePart = if (entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null
+    return listOfNotNull(itemCountPart, downloadsPart, sizePart).joinToString(" · ")
 }
 
 /**
@@ -2309,6 +2469,10 @@ private fun ResourceRow(
     busy: Boolean,
     onInstall: () -> Unit,
     onClick: () -> Unit,
+    // P0-5：MCP 服务条目多一个「配置」入口；技能合集 / 合集包传 null 不显示。
+    onConfigure: (() -> Unit)? = null,
+    // P0-5：装过但缺必填的 MCP 条目，卡上直接标「需要配置」。
+    needsConfig: Boolean = false,
 ) {
     PressableRow(onClick = onClick) {
         ExtensionIcon(entry.slug, resourceIcon(entry.icon, entry.kind), ExploreShape.listTileSize)
@@ -2328,6 +2492,9 @@ private fun ResourceRow(
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 MetaChip(text = resourceKindLabel(entry))
+                if (needsConfig) {
+                    MetaChip(text = stringResource(R.string.explore_market_mcp_needs_config))
+                }
             }
             Text(
                 text = entry.description.ifBlank { entry.items.take(3).joinToString(" · ") },
@@ -2347,18 +2514,27 @@ private fun ResourceRow(
                 )
             }
         }
+        if (!busy && onConfigure != null) {
+            CircleActionButton(
+                icon = heizige.kk.khatkit.app.core.ui.icons.settings,
+                contentDescription = stringResource(R.string.explore_market_mcp_configure_named, entry.name),
+                onClick = onConfigure,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         when {
             busy -> KedgeProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
             installed -> CircleActionButton(
                 icon = check,
-                contentDescription = "已安装",
+                contentDescription = stringResource(R.string.explore_market_state_installed),
                 onClick = null,
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                 contentColor = MaterialTheme.colorScheme.primary,
             )
             else -> CircleActionButton(
                 icon = downloadForOffline,
-                contentDescription = "下载 ${entry.name}",
+                contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
                 onClick = onInstall,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -2420,6 +2596,10 @@ private fun ResourceDetailSheet(
     busy: Boolean,
     onDismiss: () -> Unit,
     onInstall: () -> Unit,
+    /** P0-5：MCP 服务条目给「配置」入口；其它条目为 null。 */
+    onConfigure: (() -> Unit)? = null,
+    /** P0-5：已装但缺必填，详情里也标「需要配置」，与卡片/本机列表同一判定。 */
+    needsConfig: Boolean = false,
 ) {
     KedgeModalBottomSheet(
         show = true,
@@ -2438,7 +2618,7 @@ private fun ResourceDetailSheet(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "v${entry.version}",
+                    text = stringResource(R.string.explore_market_version_prefix, entry.version),
                     style = KedgeTextStyles.title(),
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -2452,7 +2632,12 @@ private fun ResourceDetailSheet(
                     Text(resourceKindLabel(entry))
                 }
                 if (installed) {
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) { Text("已安装") }
+                    KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) { Text(stringResource(R.string.explore_market_state_installed)) }
+                }
+                if (needsConfig) {
+                    KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                        Text(stringResource(R.string.explore_market_mcp_needs_config))
+                    }
                 }
                 entry.tags.take(4).forEach { tag ->
                     KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) { Text(tag) }
@@ -2474,7 +2659,7 @@ private fun ResourceDetailSheet(
             if (entry.items.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "包含",
+                        text = stringResource(R.string.explore_market_includes),
                         style = KedgeTextStyles.footnote().copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -2502,30 +2687,46 @@ private fun ResourceDetailSheet(
 
             if (entry.author.isNotBlank()) {
                 Text(
-                    text = "由 ${entry.author} 提供",
+                    text = stringResource(R.string.explore_market_provided_by, entry.author),
                     style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            BigActionButton(
-                text = when {
-                    busy -> "正在安装…"
-                    installed -> "重新安装"
-                    else -> "下载并启用"
-                },
-                onClick = { if (!busy) onInstall() },
-                container = if (busy) {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                } else {
-                    MaterialTheme.colorScheme.primary
-                },
-                contentColor = if (busy) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onPrimary
-                },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                BigActionButton(
+                    text = when {
+                        busy -> stringResource(R.string.explore_market_action_installing)
+                        installed -> stringResource(R.string.explore_market_action_reinstall)
+                        else -> stringResource(R.string.explore_market_action_download_enable)
+                    },
+                    onClick = { if (!busy) onInstall() },
+                    container = if (busy) {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                    contentColor = if (busy) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                // P0-5：先配置再安装 —— 缺必填的 MCP 条目也能在这里进表单预填。
+                if (onConfigure != null) {
+                    BigActionButton(
+                        text = stringResource(R.string.explore_market_mcp_configure),
+                        onClick = { if (!busy) onConfigure() },
+                        container = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }
@@ -2576,14 +2777,15 @@ private fun ModelRow(
 }
 
 /** 能力标签只做文案，不再一人一种饱和色（配色一致性锁）。 */
+@Composable
 private fun Model.abilityBadges(): List<String> {
     val badges = mutableListOf<String>()
-    if (ModelAbility.TOOL in abilities) badges.add("工具调用")
-    if (ModelAbility.REASONING in abilities) badges.add("推理")
-    if (Modality.IMAGE in inputModalities) badges.add("视觉输入")
-    if (Modality.IMAGE in outputModalities || type == ModelType.IMAGE) badges.add("图像输出")
-    if (BuiltInTools.Search in tools) badges.add("内置搜索")
-    if (BuiltInTools.ImageGeneration in tools) badges.add("图像生成")
+    if (ModelAbility.TOOL in abilities) badges.add(stringResource(R.string.explore_market_badge_tool_call))
+    if (ModelAbility.REASONING in abilities) badges.add(stringResource(R.string.explore_market_badge_reasoning))
+    if (Modality.IMAGE in inputModalities) badges.add(stringResource(R.string.explore_market_badge_vision_input))
+    if (Modality.IMAGE in outputModalities || type == ModelType.IMAGE) badges.add(stringResource(R.string.explore_market_badge_image_output))
+    if (BuiltInTools.Search in tools) badges.add(stringResource(R.string.explore_market_badge_builtin_search))
+    if (BuiltInTools.ImageGeneration in tools) badges.add(stringResource(R.string.explore_market_badge_image_generation))
     return badges.take(4)
 }
 
@@ -2602,7 +2804,7 @@ private fun LocalCardRow(
         ) {
             Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                text = "v$version · 未在市场索引中",
+                text = stringResource(R.string.explore_market_local_card_meta, version),
                 style = KedgeTextStyles.body().tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -2631,7 +2833,7 @@ private fun DependencyRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = "${dependency.name} ${dependency.version}",
+                text = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
                 style = KedgeTextStyles.title(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2644,7 +2846,7 @@ private fun DependencyRow(
         }
         CircleActionButton(
             icon = deleteForever,
-            contentDescription = "删除依赖包",
+            contentDescription = stringResource(R.string.explore_market_cd_delete_dependency),
             onClick = onDelete,
         )
     }
@@ -2838,16 +3040,18 @@ private fun posterButtonMiuixColors(
  */
 private enum class CardInstallState { INSTALL, UPDATE, INSTALLED }
 
+@Composable
 private fun CardInstallState.label(): String = when (this) {
-    CardInstallState.INSTALL -> "安装"
-    CardInstallState.UPDATE -> "更新"
-    CardInstallState.INSTALLED -> "已安装"
+    CardInstallState.INSTALL -> stringResource(R.string.explore_market_state_install)
+    CardInstallState.UPDATE -> stringResource(R.string.explore_market_state_update)
+    CardInstallState.INSTALLED -> stringResource(R.string.explore_market_state_installed)
 }
 
+@Composable
 private fun CardInstallState.busyLabel(): String = when (this) {
-    CardInstallState.INSTALL -> "安装中…"
-    CardInstallState.UPDATE -> "更新中…"
-    CardInstallState.INSTALLED -> "卸载中…"
+    CardInstallState.INSTALL -> stringResource(R.string.explore_market_state_installing)
+    CardInstallState.UPDATE -> stringResource(R.string.explore_market_state_updating)
+    CardInstallState.INSTALLED -> stringResource(R.string.explore_market_state_uninstalling)
 }
 
 /**
@@ -2874,32 +3078,73 @@ private fun cardInstallState(installedVersion: String?, marketVersion: String): 
 /**
  * 轮播卡底部元信息（右下角一行）：下载量 + 全部桥接名 + 原生依赖数。
  *
- * 此前只回退到 `bridges.first()`，于是整行只剩一个 "tool"，`ui` 和依赖全被吃掉 ——
+ * 此前只回退到 `bridges.first()`，于是整行只剩一个 `tool`，`ui` 和依赖全被吃掉 ——
  * 这里把该卡用到的能力一次列全。下载量优先取 Hub 市场数（usage_reports），
  * 没有就退回索引里的真实下载计数；两者都没有时这一项直接不占位。
  */
+@Composable
 private fun featuredMetaLine(entry: CardIndexEntry, hubInfo: HubCardMarketInfo?): String {
     val parts = mutableListOf<String>()
     val downloads = hubInfo?.downloads?.takeIf { it > 0L } ?: entry.downloads.takeIf { it > 0L }
     downloads?.let { parts += downloadsLabel(it) }
     entry.bridges.distinct().forEach { parts += it }
-    if (entry.dependencies.isNotEmpty()) parts += "依赖 ${entry.dependencies.size}"
+    if (entry.dependencies.isNotEmpty()) {
+        parts += stringResource(R.string.explore_market_meta_dependencies, entry.dependencies.size)
+    }
     return parts.joinToString(" · ")
 }
 
+/** 紧凑下限：与迁资源前口径一致——1 万以内照常分组显示，1 万以上才折成紧凑写法。 */
+private const val COMPACT_DOWNLOAD_MIN = 10_000L
+
 /**
  * 下载量文本：0 表示后端没给这个数（或确实没人下载），一律不展示，避免满屏「下载 0」。
- * 万以上折成「1.2 万」，卡片元信息只有一行的宽度。
+ * 1 万以上折成紧凑写法，卡片元信息只有一行的宽度：zh 显示「1.2 万」，en 显示「12K」。
+ * 首选 ICU 短紧凑格式；ICU 紧凑数据被裁剪的 ROM 上它只会吐出普通分组数字，
+ * 此时退回 strings.xml 里的量级表（zh 万 / 亿，en K / M），Kotlin 侧不拼任何文案。
  */
-private fun downloadsLabel(downloads: Long): String = when {
-    downloads >= 10_000L -> "下载 %.1f 万".format(downloads / 10_000f)
-    else -> "下载 $downloads"
+@Composable
+private fun downloadsLabel(downloads: Long): String {
+    // LocalConfiguration 是可观察的：语言切换后会重组（Locale.getDefault() 不会）
+    val locale = LocalConfiguration.current.locales[0]
+    if (downloads < COMPACT_DOWNLOAD_MIN) {
+        return stringResource(
+            R.string.explore_market_downloads,
+            NumberFormat.getIntegerInstance(locale).format(downloads),
+        )
+    }
+    val compact = compactDownloadCount(downloads, locale)
+    if (compact != null) return stringResource(R.string.explore_market_downloads, compact)
+    val hiScale = integerResource(R.integer.explore_market_downloads_scale_hi)
+    val loScale = integerResource(R.integer.explore_market_downloads_scale_lo)
+    return if (downloads >= hiScale) {
+        stringResource(R.string.explore_market_downloads_compact_hi, scaledDownloadCount(downloads, hiScale, locale))
+    } else {
+        stringResource(R.string.explore_market_downloads_compact_lo, scaledDownloadCount(downloads, loScale, locale))
+    }
 }
 
+/** ICU 短紧凑格式（android.icu，API 24+，本项目 minSdk 26）；紧凑数据缺失退化成普通数字时返回 null 交兜底分支。 */
+private fun compactDownloadCount(downloads: Long, locale: Locale): String? = runCatching {
+    CompactDecimalFormat.getInstance(locale, CompactDecimalFormat.CompactStyle.SHORT).format(downloads)
+}.getOrNull()?.takeIf { it != NumberFormat.getIntegerInstance(locale).format(downloads) }
+
+/** 按资源量级折算：小数点随语言交给 NumberFormat，量级数字与单位都在资源里。 */
+private fun scaledDownloadCount(downloads: Long, scale: Int, locale: Locale): String {
+    val scaled = downloads.toDouble() / scale
+    return NumberFormat.getNumberInstance(locale).apply {
+        isGroupingUsed = false
+        maximumFractionDigits = if (scaled >= 100) 0 else 1
+        minimumFractionDigits = 0
+    }.format(scaled)
+}
+
+@Composable
 private fun HubCardMarketInfo.downloadsText(): String? =
-    downloads.takeIf { it > 0L }?.let(::downloadsLabel)
+    downloads.takeIf { it > 0L }?.let { downloadsLabel(it) }
 
 /** 卡片元信息压成一行文本，取代一排小胶囊（原来 2 栏窄卡里胶囊墙会挤成三行）。 */
+@Composable
 private fun cardMetaLine(
     entry: CardIndexEntry,
     triggers: List<String>,
@@ -2911,10 +3156,14 @@ private fun cardMetaLine(
     // 下载量优先取 Hub 市场数；Hub 市场表没有这张卡（CDN 索引卡）时退回索引自带的真实计数。
     val downloads = hubInfo?.downloads?.takeIf { it > 0L } ?: entry.downloads.takeIf { it > 0L }
     downloads?.let { parts += downloadsLabel(it) }
-    parts += "v${entry.version}"
+    parts += stringResource(R.string.explore_market_version_prefix, entry.version)
     entry.bridges.distinct().take(1).forEach { parts += it }
-    if (entry.dependencies.isNotEmpty()) parts += "依赖 ${entry.dependencies.size}"
-    if (triggers.any { it == CardManifest.TRIGGER_AI }) parts += "AI 触发"
+    if (entry.dependencies.isNotEmpty()) {
+        parts += stringResource(R.string.explore_market_meta_dependencies, entry.dependencies.size)
+    }
+    if (triggers.any { it == CardManifest.TRIGGER_AI }) {
+        parts += stringResource(R.string.explore_market_card_filter_ai)
+    }
     return parts.joinToString(" · ")
 }
 
@@ -2999,7 +3248,7 @@ private fun CompactCard(
                 )
                 CircleActionButton(
                     icon = add,
-                    contentDescription = "查看 ${entry.name}",
+                    contentDescription = stringResource(R.string.explore_market_cd_view_named, entry.name),
                     onClick = onClick,
                     size = 32.dp,
                     iconSize = 18.dp,
@@ -3051,7 +3300,7 @@ private fun CardDetailSheet(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "v${entry.version}",
+                    text = stringResource(R.string.explore_market_version_prefix, entry.version),
                     style = KedgeTextStyles.title(),
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -3059,7 +3308,7 @@ private fun CardDetailSheet(
 
             if (installedVersion != null) {
                 KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-                    Text("已安装 v$installedVersion")
+                    Text(stringResource(R.string.explore_market_installed_version_badge, installedVersion))
                 }
             }
 
@@ -3080,11 +3329,11 @@ private fun CardDetailSheet(
                     ExtensionBadge(bridge, bridge, bolt)
                 }
                 entry.dependencies.forEach { dependency ->
-                    ExtensionBadge(dependency.name, "${dependency.name} ${dependency.version}", extension)
+                    ExtensionBadge(dependency.name, stringResource(R.string.explore_market_name_version, dependency.name, dependency.version), extension)
                 }
                 displayTriggers.forEach { trigger ->
                     KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                        Text(if (trigger == CardManifest.TRIGGER_AI) "AI 触发" else "用户触发")
+                        Text(if (trigger == CardManifest.TRIGGER_AI) stringResource(R.string.explore_market_card_filter_ai) else stringResource(R.string.explore_market_trigger_user))
                     }
                 }
                 hubInfo?.let { info ->
@@ -3092,7 +3341,7 @@ private fun CardDetailSheet(
                     // 收费卡片的价格仍然必须露出，否则用户看不到计费方式。
                     if (info.priceCents > 0L) {
                         KedgeBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                            Text("¥${formatYuan(info.priceCents)}/次")
+                            Text(stringResource(R.string.explore_market_price_per_call, formatYuan(info.priceCents)))
                         }
                     }
                     info.downloadsText()?.let { text ->
@@ -3115,7 +3364,7 @@ private fun CardDetailSheet(
             )
 
             if (entry.dependencies.isNotEmpty()) {
-                Text("原生依赖", style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.explore_market_section_dependencies), style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -3123,7 +3372,7 @@ private fun CardDetailSheet(
                     entry.dependencies.forEach { dependency ->
                         ExtensionBadge(
                             seed = dependency.name,
-                            label = "${dependency.name} ${dependency.version}",
+                            label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
                             icon = extension,
                         )
                     }
@@ -3136,7 +3385,7 @@ private fun CardDetailSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text("处理中…", style = KedgeTextStyles.body())
+                    Text(stringResource(R.string.explore_market_processing), style = KedgeTextStyles.body())
                 }
             }
 
@@ -3144,7 +3393,7 @@ private fun CardDetailSheet(
                 if (installedVersion != null) {
                     if (CardManifest.TRIGGER_USER in triggers) {
                         BigActionButton(
-                            text = "运行卡片",
+                            text = stringResource(R.string.explore_market_run_card),
                             onClick = onRun,
                             container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
                             contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -3152,25 +3401,25 @@ private fun CardDetailSheet(
                     }
                     if (installedVersion != entry.version && entry.url.isNotBlank()) {
                         BigActionButton(
-                            text = "更新到 v${entry.version}",
+                            text = stringResource(R.string.explore_market_update_to_version, entry.version),
                             onClick = onUpdate,
                             container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButtonLike(text = "密钥", onClick = onSecretsClick, modifier = Modifier.weight(1f))
-                        OutlinedButtonLike(text = "卸载", onClick = onUninstall, modifier = Modifier.weight(1f))
+                        OutlinedButtonLike(text = stringResource(R.string.explore_market_secrets), onClick = onSecretsClick, modifier = Modifier.weight(1f))
+                        OutlinedButtonLike(text = stringResource(R.string.explore_market_uninstall), onClick = onUninstall, modifier = Modifier.weight(1f))
                     }
                     if (activated) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButtonLike(text = "发布到 Hub", onClick = onPublishClick, modifier = Modifier.weight(1f))
-                            OutlinedButtonLike(text = "提交改进", onClick = onForkClick, modifier = Modifier.weight(1f))
+                            OutlinedButtonLike(text = stringResource(R.string.explore_market_publish_to_hub), onClick = onPublishClick, modifier = Modifier.weight(1f))
+                            OutlinedButtonLike(text = stringResource(R.string.explore_market_submit_revision), onClick = onForkClick, modifier = Modifier.weight(1f))
                         }
                     }
                 } else if (entry.url.isNotBlank()) {
                     BigActionButton(
-                        text = "安装卡片",
+                        text = stringResource(R.string.explore_market_install_card),
                         onClick = onInstall,
                         container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -3179,7 +3428,7 @@ private fun CardDetailSheet(
 
                 if (hubInfo != null) {
                     OutlinedButtonLike(
-                        text = if (activated) "投票 ▲" else "投票（需激活）",
+                        text = if (activated) stringResource(R.string.explore_market_vote) else stringResource(R.string.explore_market_vote_needs_activation),
                         onClick = onVote,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -3253,13 +3502,13 @@ private fun PublishCardDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("发布 ${entry.name} 到 Hub") },
+        title = { Text(stringResource(R.string.explore_market_publish_dialog_title, entry.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 KedgeOutlinedTextFieldWithSlots(
                     value = license,
                     onValueChange = { license = it },
-                    label = { Text("开源协议（MIT / Apache-2.0 / GPL-3.0…）") },
+                    label = { Text(stringResource(R.string.explore_market_license_label)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -3267,7 +3516,7 @@ private fun PublishCardDialog(
                 KedgeOutlinedTextFieldWithSlots(
                     value = priceText,
                     onValueChange = { priceText = it },
-                    label = { Text("每次调用价格（元，0 = 免费）") },
+                    label = { Text(stringResource(R.string.explore_market_price_label)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -3275,12 +3524,12 @@ private fun PublishCardDialog(
                 KedgeOutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
-                    label = { Text("更新说明") },
+                    label = { Text(stringResource(R.string.explore_market_changelog_label)) },
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    text = "提交后进入审核，通过后可能成为首选版本。",
+                    text = stringResource(R.string.explore_market_publish_note),
                     style = KedgeTextStyles.footnoteSmall(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -3292,11 +3541,11 @@ private fun PublishCardDialog(
                 enabled = license.isNotBlank() && price >= 0,
                 shapes = ButtonDefaults.shapes(),
             ) {
-                Text("提交发布")
+                Text(stringResource(R.string.explore_market_publish_submit))
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text("取消") }
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
         },
     )
 }
@@ -3321,13 +3570,13 @@ private fun ForkCardDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("提交改进 ${entry.name}") },
+        title = { Text(stringResource(R.string.explore_market_fork_dialog_title, entry.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 KedgeOutlinedTextFieldWithSlots(
                     value = parent,
                     onValueChange = { parent = it },
-                    label = { Text("父版本号") },
+                    label = { Text(stringResource(R.string.explore_market_parent_version)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -3335,7 +3584,7 @@ private fun ForkCardDialog(
                 KedgeOutlinedTextFieldWithSlots(
                     value = newVersion,
                     onValueChange = { newVersion = it },
-                    label = { Text("新版本号（默认补丁位 +1）") },
+                    label = { Text(stringResource(R.string.explore_market_new_version)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -3343,7 +3592,7 @@ private fun ForkCardDialog(
                 KedgeOutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
-                    label = { Text("更新说明（必填）") },
+                    label = { Text(stringResource(R.string.explore_market_changelog_required)) },
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -3355,11 +3604,11 @@ private fun ForkCardDialog(
                 enabled = changelog.isNotBlank() && newVersion.isNotBlank(),
                 shapes = ButtonDefaults.shapes(),
             ) {
-                Text("提交")
+                Text(stringResource(R.string.explore_market_submit))
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text("取消") }
+            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
         },
     )
 }
@@ -3388,6 +3637,11 @@ fun ExploreLocalPage() {
     val navController = LocalNavController.current
     val vm = hiltViewModel<ExploreMarketViewModel>()
     val scope = rememberCoroutineScope()
+    // 同上：本机页里的 Toast 也在协程里，模板串在组合期取出。
+    val toastClearedDependencies = stringResource(R.string.explore_market_toast_cleared_dependencies)
+    val toastNothingToClear = stringResource(R.string.explore_market_toast_nothing_to_clear)
+    val toastDependencyDeleted = stringResource(R.string.explore_market_toast_dependency_deleted)
+    val toastDeleteFailed = stringResource(R.string.explore_market_toast_delete_failed)
 
     val settings by vm.settings.collectAsStateWithLifecycle()
     val skills by vm.skills.collectAsStateWithLifecycle()
@@ -3407,6 +3661,8 @@ fun ExploreLocalPage() {
     var secretCard by remember { mutableStateOf<String?>(null) }
     var publishTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
     var forkTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
+    // P0-5：本机 MCP 行的「配置」抽屉（缺必填的状态由 mcpCardStatus 现算）。
+    var mcpConfigTarget by remember { mutableStateOf<McpInstallPlan?>(null) }
 
     val mcpServers = remember(settings) { settings.mcpServers }
     val currentAssistantLocalTools = remember(settings) {
@@ -3427,7 +3683,7 @@ fun ExploreLocalPage() {
             ?: CardIndexEntry(name = name, version = installed[name].orEmpty(), url = "")
 
     KedgeSettingsPageScaffold(
-        title = "本地",
+        title = stringResource(R.string.explore_market_local_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         LazyColumn(
@@ -3444,9 +3700,9 @@ fun ExploreLocalPage() {
                 item(key = "installed_market") {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "已安装卡片",
+                            title = stringResource(R.string.explore_market_section_installed_cards),
                             icon = downloadForOffline,
-                            supporting = "${installedFromMarket.size} 张来自市场",
+                            supporting = stringResource(R.string.explore_market_installed_from_market, installedFromMarket.size),
                         )
                         GroupContainer {
                             installedFromMarket.forEach { name ->
@@ -3466,9 +3722,9 @@ fun ExploreLocalPage() {
                 item(key = "local_only") {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "本机卡片",
+                            title = stringResource(R.string.explore_market_section_local_cards),
                             icon = bolt,
-                            supporting = "${localOnly.size} 张仅存在于本机",
+                            supporting = stringResource(R.string.explore_market_local_only_count, localOnly.size),
                         )
                         GroupContainer {
                             localOnly.forEach { name ->
@@ -3487,11 +3743,14 @@ fun ExploreLocalPage() {
             item(key = "tools") {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SectionLabel(
-                        title = "本地工具",
+                        title = stringResource(R.string.explore_market_section_local_tools),
                         icon = build,
-                        supporting = "${localToolCatalog.size} 项 · 已启用 " +
-                            "${localToolCatalog.count { it.option in currentAssistantLocalTools }} 项",
-                        actionLabel = "管理",
+                        supporting = stringResource(
+                            R.string.explore_market_local_tools_supporting,
+                            localToolCatalog.size,
+                            localToolCatalog.count { it.option in currentAssistantLocalTools },
+                        ),
+                        actionLabel = stringResource(R.string.explore_market_manage),
                         onAction = {
                             navController.navigate(
                                 Screen.AssistantLocalTool(settings.assistantId.toString())
@@ -3518,10 +3777,10 @@ fun ExploreLocalPage() {
                 item(key = "skills") {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "代理技能",
+                            title = stringResource(R.string.explore_market_section_agent_skills),
                             icon = autoAwesome,
-                            supporting = "${skills.size} 个技能包",
-                            actionLabel = "管理",
+                            supporting = stringResource(R.string.explore_market_skill_packs_count, skills.size),
+                            actionLabel = stringResource(R.string.explore_market_manage),
                             onAction = { navController.navigate(Screen.Skills) },
                         )
                         GroupContainer {
@@ -3541,10 +3800,10 @@ fun ExploreLocalPage() {
                 item(key = "mcp") {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "MCP 服务器",
+                            title = stringResource(R.string.explore_market_section_mcp_servers),
                             icon = dns,
-                            supporting = "${mcpServers.size} 个服务器",
-                            actionLabel = "管理",
+                            supporting = stringResource(R.string.explore_market_mcp_servers_count, mcpServers.size),
+                            actionLabel = stringResource(R.string.explore_market_manage),
                             onAction = { navController.navigate(Screen.SettingMcp) },
                         )
                         GroupContainer {
@@ -3553,6 +3812,7 @@ fun ExploreLocalPage() {
                                     server = server,
                                     status = mcpStatus[server.id],
                                     onClick = { navController.navigate(Screen.SettingMcp) },
+                                    onConfigure = { mcpConfigTarget = rePlanMcpInstall(server) },
                                 )
                             }
                         }
@@ -3564,15 +3824,19 @@ fun ExploreLocalPage() {
                 item(key = "dependency_cache") {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         SectionLabel(
-                            title = "原生依赖包",
+                            title = stringResource(R.string.explore_market_section_dependencies),
                             icon = heizige.kk.khatkit.app.core.ui.icons.extension,
-                            supporting = "已缓存 ${dependencies.size} 个版本",
-                            actionLabel = "清空",
+                            supporting = stringResource(R.string.explore_market_dependencies_cached, dependencies.size),
+                            actionLabel = stringResource(R.string.explore_market_clear),
                             onAction = {
                                 vm.clearDependencyCache { count ->
                                     scope.launch {
                                         Toast.show(
-                                            if (count > 0) "已清理 $count 个依赖包" else "没有可清理的依赖包"
+                                            if (count > 0) {
+                                                toastClearedDependencies.format(count)
+                                            } else {
+                                                toastNothingToClear
+                                            }
                                         )
                                     }
                                 }
@@ -3586,8 +3850,15 @@ fun ExploreLocalPage() {
                                         vm.deleteDependency(dependency) { ok ->
                                             scope.launch {
                                                 Toast.show(
-                                                    if (ok) "已删除 ${dependency.name} ${dependency.version}"
-                                                    else "删除失败",
+                                                    if (ok) {
+                                                        toastDependencyDeleted.format(dependency.name, dependency.version)
+
+
+
+
+                                                    } else {
+                                                        toastDeleteFailed
+                                                    },
                                                     !ok,
                                                 )
                                             }
@@ -3600,6 +3871,21 @@ fun ExploreLocalPage() {
                 }
             }
         }
+    }
+
+    // P0-5：本机 MCP 行的配置抽屉 —— 预填当前值，缺必填则保存后仍是「需要配置」。
+    mcpConfigTarget?.let { plan ->
+        McpInstallConfigSheet(
+            initial = plan.config,
+            missingRequired = plan.missingRequired,
+            onDismiss = { mcpConfigTarget = null },
+            onConfirm = { config ->
+                mcpConfigTarget = null
+                vm.saveMcpServerConfig(config) { message ->
+                    scope.launch { Toast.show(message) }
+                }
+            },
+        )
     }
 
     CardMarketOverlays(

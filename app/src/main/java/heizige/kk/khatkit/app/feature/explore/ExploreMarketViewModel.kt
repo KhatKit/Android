@@ -1,21 +1,22 @@
 package heizige.kk.khatkit.app.feature.explore
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import heizige.kk.khatkit.app.core.data.ai.mcp.McpCommonOptions
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
 import heizige.kk.khatkit.app.core.data.ai.mcp.serverUrl
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.files.SkillMetadata
 import heizige.kk.khatkit.hub.HubActionResult
 import heizige.kk.khatkit.hub.HubCardMarketInfo
 import heizige.kk.khatkit.hub.HubResourceEntry
-import heizige.kk.khatkit.hub.HubResourceMcpServer
 import heizige.kk.khatkit.hub.HubResourcePackage
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.uikit.CardRunResult
@@ -35,6 +36,8 @@ import kotlin.uuid.Uuid
  */
 @HiltViewModel
 class ExploreMarketViewModel @Inject constructor(
+    /** 结果文案一律走资源：VM 不持有任何中文字面量（doc §9）。 */
+    private val appContext: Application,
     private val settingsStore: SettingsRepository,
     private val skillManager: SkillManager,
     private val mcpManager: McpManager,
@@ -212,7 +215,11 @@ class ExploreMarketViewModel @Inject constructor(
         _busyResource.value = entry.slug
         val message = withContext(Dispatchers.IO) {
             val pkg = provider.downloadHubResource(entry.slug)
-            if (pkg == null) "下载失败：${entry.name}" else applyResourcePackage(pkg)
+            if (pkg == null) {
+                appContext.getString(R.string.explore_market_resource_download_failed, entry.name)
+            } else {
+                applyResourcePackage(pkg)
+            }
         }
         _busyResource.value = null
         withContext(Dispatchers.IO) {
@@ -233,29 +240,32 @@ class ExploreMarketViewModel @Inject constructor(
         }
 
         val addedServers = mutableListOf<McpServerConfig>()
+        val pendingServers = mutableListOf<McpServerConfig>()
         if (pkg.mcpServers.isNotEmpty()) {
             settingsStore.update { settings ->
-                val known = settings.mcpServers.mapNotNull { it.serverUrl }.toSet()
-                addedServers += pkg.mcpServers
-                    .filter { it.url.isNotBlank() && it.url !in known }
-                    .map { it.toMcpConfig() }
-                settings.copy(mcpServers = settings.mcpServers + addedServers)
+                var next = settings
+                for (server in pkg.mcpServers) {
+                    if (server.url.isBlank()) continue
+                    // 同 URL 已在设置里就不重复落一份（也不改用户已填的值）
+                    if (next.mcpServers.any { it.serverUrl == server.url }) continue
+                    // P0-5：缺必填时只保存候选配置（enable=false），不写入当前助手
+                    val plan = planMcpInstall(server)
+                    if (plan.enable) addedServers += plan.config else pendingServers += plan.config
+                    next = applyMcpInstallDecision(next, plan)
+                }
+                next
             }
         }
 
-        if (installedSkills.isNotEmpty() || addedServers.isNotEmpty()) {
+        if (installedSkills.isNotEmpty()) {
             val assistantId = settingsStore.settingsFlow.value.assistantId
-            val serverIds = addedServers.map { it.id }.toSet()
             settingsStore.update { settings ->
                 settings.copy(
                     assistants = settings.assistants.map { assistant ->
                         if (assistant.id != assistantId) {
                             assistant
                         } else {
-                            assistant.copy(
-                                enabledSkills = assistant.enabledSkills + installedSkills,
-                                mcpServers = assistant.mcpServers + serverIds,
-                            )
+                            assistant.copy(enabledSkills = assistant.enabledSkills + installedSkills)
                         }
                     }
                 )
@@ -268,28 +278,129 @@ class ExploreMarketViewModel @Inject constructor(
             if (provider.installCard(card)) installedCards++
         }
 
+        val listSeparator = appContext.getString(R.string.explore_market_resource_list_separator)
         val parts = buildList {
-            if (installedSkills.isNotEmpty()) add("${installedSkills.size} 个技能")
-            if (addedServers.isNotEmpty()) add("${addedServers.size} 个 MCP 服务")
-            if (installedCards > 0) add("$installedCards 张卡片")
+            if (installedSkills.isNotEmpty()) {
+                add(appContext.getString(R.string.explore_market_resource_summary_skills, installedSkills.size))
+            }
+            if (addedServers.isNotEmpty()) {
+                add(appContext.getString(R.string.explore_market_resource_summary_mcp_servers, addedServers.size))
+            }
+            if (installedCards > 0) {
+                add(appContext.getString(R.string.explore_market_resource_summary_cards, installedCards))
+            }
+        }
+        // 缺必填的 MCP 只落了候选配置：提示里点名缺哪些 key，且摘要一律脱敏
+        if (pendingServers.isNotEmpty()) {
+            val missing = pendingServers.flatMap { mcpMissingRequiredKeys(it) }.distinct()
+            val masked = pendingServers.first().let { maskedMcpSummary(it) }
+            return if (parts.isEmpty()) {
+                appContext.getString(
+                    R.string.explore_market_resource_saved_needs_config,
+                    pkg.resource.name,
+                    missing.joinToString(listSeparator),
+                    masked,
+                )
+            } else {
+                appContext.getString(
+                    R.string.explore_market_resource_installed_needs_config,
+                    pkg.resource.name,
+                    parts.joinToString(listSeparator),
+                    pendingServers.size,
+                    missing.joinToString(listSeparator),
+                    masked,
+                )
+            }
         }
         return if (parts.isEmpty()) {
-            "已安装 ${pkg.resource.name}"
+            appContext.getString(R.string.explore_market_resource_installed, pkg.resource.name)
         } else {
-            "已安装 ${pkg.resource.name}：${parts.joinToString("、")}"
+            appContext.getString(
+                R.string.explore_market_resource_installed_parts,
+                pkg.resource.name,
+                parts.joinToString(listSeparator),
+            )
         }
     }
 
-    private fun HubResourceMcpServer.toMcpConfig(): McpServerConfig {
-        val options = McpCommonOptions(
-            enable = true,
-            name = name.ifBlank { url },
-            headers = headers.mapNotNull { row -> row.takeIf { it.size >= 2 }?.let { it[0] to it[1] } },
-        )
-        return if (transport.equals("sse", ignoreCase = true)) {
-            McpServerConfig.SseTransportServer(commonOptions = options, url = url)
-        } else {
-            McpServerConfig.StreamableHTTPServer(commonOptions = options, url = url)
+    // ===== P0-5：条目级「配置」入口 =====
+
+    /**
+     * 拉取条目对应的资源包（与安装同一条下载路径），给出预填的 MCP 配置与缺失必填项。
+     * 返回 null 表示条目里没有可配置的 MCP 端点（技能合集 / 下载失败）。
+     */
+    fun prepareMcpConfig(entry: HubResourceEntry, onResult: (McpInstallPlan?) -> Unit = {}) =
+        viewModelScope.launch {
+            _busyResource.value = entry.slug
+            val plan = withContext(Dispatchers.IO) {
+                provider.downloadHubResource(entry.slug)
+                    ?.mcpServers
+                    ?.firstOrNull { it.url.isNotBlank() }
+                    ?.let { planMcpInstall(it) }
+            }
+            _busyResource.value = null
+            onResult(plan)
+        }
+
+    /**
+     * 保存条目级配置：缺必填则强制 `enable = false` 且**不写入当前助手**，返回提示文案。
+     * 与安装路径共用 [applyMcpInstallDecision]，行为一致。
+     */
+    fun saveMcpServerConfig(config: McpServerConfig, onResult: (String) -> Unit = {}) =
+        viewModelScope.launch {
+            val plan = rePlanMcpInstall(config)
+            withContext(Dispatchers.IO) {
+                settingsStore.update { applyMcpInstallDecision(it, plan) }
+                provider.applySettings()
+            }
+            onResult(
+                if (plan.needsConfig) {
+                    appContext.getString(
+                        R.string.explore_market_mcp_config_candidate_saved,
+                        plan.missingRequired.joinToString(
+                            appContext.getString(R.string.explore_market_resource_list_separator),
+                        ),
+                    )
+                } else {
+                    appContext.getString(
+                        R.string.explore_market_mcp_config_saved,
+                        maskedMcpSummary(plan.config),
+                    )
+                }
+            )
+        }
+
+    companion object {
+        /**
+         * 安装 / 保存 MCP 配置的唯一落盘入口（纯函数，单测直接调用）。
+         *
+         * - 配置按 `id` 或同一 `serverUrl` 覆盖，不重复追加；
+         * - `plan.enable == true` 才把该 server 挂到当前助手；
+         * - 缺必填（`plan.needsConfig`）时只保存候选配置，**助手 mcpServers 原样不动**。
+         */
+        internal fun applyMcpInstallDecision(settings: Settings, plan: McpInstallPlan): Settings {
+            val incoming = plan.config
+            val index = settings.mcpServers.indexOfFirst { existing ->
+                existing.id == incoming.id ||
+                    (incoming.serverUrl.isNotBlank() && existing.serverUrl == incoming.serverUrl)
+            }
+            val servers = if (index >= 0) {
+                settings.mcpServers.toMutableList().also { it[index] = incoming }
+            } else {
+                settings.mcpServers + incoming
+            }
+            val assistants = if (plan.enable) {
+                settings.assistants.map { assistant ->
+                    if (assistant.id != settings.assistantId) {
+                        assistant
+                    } else {
+                        assistant.copy(mcpServers = assistant.mcpServers + incoming.id)
+                    }
+                }
+            } else {
+                settings.assistants
+            }
+            return settings.copy(mcpServers = servers, assistants = assistants)
         }
     }
 

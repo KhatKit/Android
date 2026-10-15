@@ -140,14 +140,26 @@ fun KhatKitUiHost() {
                 onAction = { event, values -> provider.selectSheetAction(event, values) },
                 onDismiss = { provider.dismissUi() },
             )
-            is UiRequest.Form -> KhatKitForm(
-                title = current.title,
-                items = current.items,
-                options = current.options,
-                onSubmit = { values -> provider.submitForm(values) },
-                onCancel = { provider.dismissUi() },
-                pickerHost = provider.formPickerHost,
-            )
+            is UiRequest.Form -> if (KhatKitSchemaFormSpec.isSchemaDriven(current.items)) {
+                // §8 P0-6：宿主按 input_schema/ui_schema 生成的参数表单（脚本自弹的 ui.form 走下面分支）
+                KhatKitSchemaForm(
+                    title = current.title,
+                    items = current.items,
+                    options = current.options,
+                    onSubmit = { values -> provider.submitForm(values) },
+                    onCancel = { provider.dismissUi() },
+                    pickerHost = provider.formPickerHost,
+                )
+            } else {
+                KhatKitForm(
+                    title = current.title,
+                    items = current.items,
+                    options = current.options,
+                    onSubmit = { values -> provider.submitForm(values) },
+                    onCancel = { provider.dismissUi() },
+                    pickerHost = provider.formPickerHost,
+                )
+            }
 
             is UiRequest.FormTree -> key(current) {
                 TreeSheet(current.title, current.root, current.options, provider, form = true)
