@@ -302,6 +302,81 @@ internal fun aiWindowMorphProgress(
 }
 
 /**
+ * 上滑 morph 的淡入/淡出行程：reveal 从 0 走到 [AI_FLB_TOOLBAR_FADE_RANGE] 时，
+ * 输入胶囊（含 FAB）淡到 0、编辑器底部工具栏同期淡到 1。
+ * 两条曲线严格互补 ⇒ 任一时刻屏幕底部只有一条底栏可见。
+ */
+internal const val AI_FLB_TOOLBAR_FADE_RANGE = 0.25f
+
+/**
+ * Scaffold 里输入胶囊那一行（ActionIconButton + TextInputRow）与右侧 FAB 的 alpha：
+ * `1 - smoothstep(reveal / 0.25)`，reveal ≤ 0 时为 1（静止态原样），reveal ≥ 0.25 时为 0。
+ */
+internal fun aiFlbCapsuleAlpha(revealProgress: Float): Float {
+    val t = (revealProgress.coerceIn(0f, 1f) / AI_FLB_TOOLBAR_FADE_RANGE).coerceIn(0f, 1f)
+    return 1f - t * t * (3f - 2f * t)
+}
+
+/**
+ * 编辑器底部工具栏的 alpha：`smoothstep(reveal / 0.25)`，与 [aiFlbCapsuleAlpha] 互补
+ * （两者和为 1，且都 >0.5 的 reveal 区间互不相交）。reveal = 0 时为 0 ⇒ 收起态无工具栏残留。
+ */
+internal fun aiFlbToolbarAlpha(revealProgress: Float): Float =
+    1f - aiFlbCapsuleAlpha(revealProgress)
+
+/**
+ * 工具栏 morph 的几何与底色：[collapsedBounds]（输入胶囊 pill）→ [targetBounds]（编辑器最终
+ * 工具栏矩形）。位置、宽高、圆角、底色 alpha 全部由同一个 [fraction] 线性插值。
+ *
+ * [fraction] 是**唯一的插值参数**：随 reveal 单调非降、被 clamp 在 [0, 1]，因此每个分量都随
+ * reveal 单调（端点值更大则非降，更小则非增），不会有中段回摆。
+ */
+internal data class AiFlbToolbarMorph(
+    val fraction: Float,
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+    val cornerRadiusPx: Float,
+    val containerAlpha: Float,
+)
+
+/**
+ * 上滑时编辑器底部工具栏的几何：reveal = 0 精确等于 [collapsedBounds]（胶囊 pill 矩形，
+ * 圆角 = pill = 较短边一半），reveal = 1 精确等于 [targetBounds]（改动前的最终工具栏矩形，
+ * 圆角 = 18dp 对应 px，底色 alpha = 0.96）。中间段与窗口形变共用同一条末段曲线
+ * （[aiWindowMorphProgress]），所以工具栏在窗口铺满前一直贴在窗口底边、不会悬空多出一条底栏。
+ *
+ * [revealProgress] 在 [0, 1] 外先 clamp；[AiFlbToolbarMorph.fraction] 单调非降。
+ */
+internal fun aiFlbToolbarMorph(
+    revealProgress: Float,
+    collapsedBounds: Rect,
+    targetBounds: Rect,
+    collapsedCornerRadiusPx: Float,
+    targetCornerRadiusPx: Float,
+    collapsedContainerAlpha: Float = 1f,
+    targetContainerAlpha: Float = 0.96f,
+): AiFlbToolbarMorph {
+    val fraction = aiWindowMorphProgress(revealProgress)
+    // 端点直接返回端点值（不做 lerp），保证 t=0/t=1 逐位精确、无浮点残差。
+    fun morph(start: Float, end: Float): Float = when {
+        fraction <= 0f -> start
+        fraction >= 1f -> end
+        else -> aiLerp(start, end, fraction)
+    }
+    return AiFlbToolbarMorph(
+        fraction = fraction,
+        left = morph(collapsedBounds.left, targetBounds.left),
+        top = morph(collapsedBounds.top, targetBounds.top),
+        width = morph(collapsedBounds.width, targetBounds.width),
+        height = morph(collapsedBounds.height, targetBounds.height),
+        cornerRadiusPx = morph(collapsedCornerRadiusPx, targetCornerRadiusPx),
+        containerAlpha = morph(collapsedContainerAlpha, targetContainerAlpha),
+    )
+}
+
+/**
  * 揭示窗口的窗口圆角：起始 = FLB 的 CircleShape 解析半径（较短边一半），
  * 末段 morph 到屏幕物理圆角（KodeHeap `aiWindowCornerRadiusPx`，Post.kt:3196-3206）。
  */

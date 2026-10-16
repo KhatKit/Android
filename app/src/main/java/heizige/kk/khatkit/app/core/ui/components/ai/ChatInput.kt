@@ -106,6 +106,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -288,6 +289,17 @@ fun ChatInput(
             }
         }
     }
+
+    // 上滑拉起编辑器时输入胶囊那一行（ActionIconButton + TextInputRow）与右侧 FAB 淡出：
+    // alpha = 1 - smoothstep(reveal / 0.25)，与编辑器工具栏的 smoothstep(reveal / 0.25) 严格互补
+    // ⇒ 任一时刻屏幕底部只有一条底栏 >0.5 可见。reveal = 0（静止态）不挂任何额外节点，
+    // 渲染与改动前逐帧一致。
+    fun Modifier.flbFadeOnEditorReveal(): Modifier =
+        if (editorReveal > 0.001f) {
+            graphicsLayer { alpha = aiFlbCapsuleAlpha(editorReveal) }
+        } else {
+            this
+        }
 
     // 返回兜底：编辑器是页内浮层，它的 PredictiveBackHandler 与 NavDisplay 注册在同一个
     // 页面 dispatcher 上（后注册者优先）。这里再登记一层，保证即便顺序假设不成立，
@@ -662,7 +674,9 @@ fun ChatInput(
                                     right = topLeft.x + coords.size.width,
                                     bottom = topLeft.y + coords.size.height,
                                 )
-                            },
+                            }
+                            // 上滑拉起编辑器时胶囊淡出（与编辑器工具栏 alpha 互补，见 aiFlbCapsuleAlpha）
+                            .flbFadeOnEditorReveal(),
                     ) {
                     Row(
                         modifier = Modifier
@@ -748,6 +762,8 @@ fun ChatInput(
                         placeable.place(0, 0)
                     }
                 }
+                    // 右侧 FAB 与胶囊同一曲线淡出（见 flbFadeOnEditorReveal 注释）
+                    .flbFadeOnEditorReveal()
             ) {
             KedgeFloatingActionButton(
                 onClick = {
@@ -1346,6 +1362,11 @@ private fun FullScreenEditor(
     }
     val editorLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     var previewMode by rememberSaveable { mutableStateOf(false) }
+    // —— 底部工具栏 morph 的两端（都在**窗口坐标**里量，与 flbBounds 同一坐标系）——
+    // toolbarLayerBounds：浮层里工具栏所在的可绘制区域（浮层去掉系统栏/IME 内边距后的矩形）
+    // toolbarHeightPx：工具栏自身高度（onSizeChanged 实测，只影响绘制、不影响布局，无测量回环）
+    var toolbarLayerBounds by remember { mutableStateOf(Rect.Zero) }
+    var toolbarHeightPx by remember { mutableIntStateOf(0) }
     // 页内浮层：MATCH_PARENT 的 AbstractComposeView 直接挂 Activity decorView（同一 window、
     // 无独立 dialog window），内容以子组合继承 CompositionLocals。
     FullscreenPopup(modifier = Modifier.fillMaxSize()) {
@@ -1385,6 +1406,23 @@ private fun FullScreenEditor(
         } else {
             RoundedCornerShape(with(density) { screenCornerRadiusPx.toDp() })
         }
+        // 工具栏 morph：起点 = FLB（输入胶囊）窗口坐标，终点 = 工具栏在浮层里的最终布局矩形。
+        // 两端同一个坐标系 ⇒ 差值就是 graphicsLayer 需要的平移/缩放增量（与坐标系无关）。
+        val toolbarTargetBounds = Rect(
+            left = toolbarLayerBounds.left,
+            top = toolbarLayerBounds.bottom - toolbarHeightPx,
+            right = toolbarLayerBounds.right,
+            bottom = toolbarLayerBounds.bottom,
+        )
+        val toolbarTargetCornerRadiusPx = with(density) { 18.dp.toPx() }
+        val toolbarMorph = aiFlbToolbarMorph(
+            revealProgress = reveal,
+            collapsedBounds = flbBounds,
+            targetBounds = toolbarTargetBounds,
+            // 胶囊是 pill：圆角 = 较短边一半
+            collapsedCornerRadiusPx = minOf(flbBounds.width, flbBounds.height) / 2f,
+            targetCornerRadiusPx = toolbarTargetCornerRadiusPx,
+        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1458,76 +1496,122 @@ private fun FullScreenEditor(
                             )
                         }
                     }
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .background(
-                                KedgeColors.surfaceContainerHigh.copy(alpha = 0.96f),
-                                RoundedCornerShape(18.dp),
-                            )
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                }
+            }
+        }
+
+        // —— 底部工具栏图层（窗口图层的兄弟层）——
+        // 必须画在窗口图层（genie 形变 + clip(windowShape)）**之外**：窗口形状在揭示中段
+        // 仍然只有胶囊大小，留在窗口图层里会被裁成胶囊、看不到 morph。本层只加「几何 morph +
+        // 淡入」两个 graphicsLayer 参数，其余 modifier 链 / 颜色 / 圆角 / 内边距 / 子项顺序与
+        // 回调全部保持原样；reveal = 1 时 graphicsLayer 是恒等变换、圆角 = 18dp。
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    start = popupPadStart,
+                    top = popupPadTop,
+                    end = popupPadEnd,
+                    bottom = popupPadBottom,
+                ),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coords ->
+                        val topLeft = coords.localToWindow(Offset.Zero)
+                        toolbarLayerBounds = Rect(
+                            left = topLeft.x,
+                            top = topLeft.y,
+                            right = topLeft.x + coords.size.width,
+                            bottom = topLeft.y + coords.size.height,
+                        )
+                    },
+            ) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .onSizeChanged { toolbarHeightPx = it.height }
+                        // 几何 morph：transformOrigin 取左上角 ⇒ scale + translate 精确映射两个
+                        // 矩形的四角；reveal = 1 时 morph 矩形 == 最终工具栏矩形 ⇒ 恒等变换。
+                        .graphicsLayer {
+                            alpha = aiFlbToolbarAlpha(reveal)
+                            if (toolbarTargetBounds.width > 0f && toolbarTargetBounds.height > 0f) {
+                                transformOrigin = TransformOrigin(0f, 0f)
+                                scaleX = toolbarMorph.width / toolbarTargetBounds.width
+                                scaleY = toolbarMorph.height / toolbarTargetBounds.height
+                                translationX = toolbarMorph.left - toolbarTargetBounds.left
+                                translationY = toolbarMorph.top - toolbarTargetBounds.top
+                            }
+                        }
+                        .background(
+                            KedgeColors.surfaceContainerHigh.copy(alpha = toolbarMorph.containerAlpha),
+                            // reveal = 1 时 cornerRadiusPx == 18.dp.toPx()，与改动前的
+                            // RoundedCornerShape(18.dp) 像素级相同
+                            RoundedCornerShape(toolbarMorph.cornerRadiusPx),
+                        )
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Toolbar is anchored to the editor bottom, like KodeHeap's FLB.
+                    RichMarkdownButton(richState, title, "标题") { "# " to "" }
+                    RichStyleButton(richState, "B", "粗体", SpanStyle(fontWeight = FontWeight.Bold))
+                    RichStyleButton(richState, "I", "斜体", SpanStyle(fontStyle = FontStyle.Italic))
+                    RichMarkdownButton(richState, formatListBulleted, "列表") { "- " to "" }
+                    RichMarkdownButton(richState, code, "代码") { "`" to "`" }
+                    RichMarkdownButton(richState, link, "链接") { "[" to "](url)" }
+                    KedgeIconButton(
+                        onClick = { previewMode = !previewMode },
+                        shapes = IconButtonDefaults.shapes(),
                     ) {
-                        // Toolbar is anchored to the editor bottom, like KodeHeap's FLB.
-                        RichMarkdownButton(richState, title, "标题") { "# " to "" }
-                        RichStyleButton(richState, "B", "粗体", SpanStyle(fontWeight = FontWeight.Bold))
-                        RichStyleButton(richState, "I", "斜体", SpanStyle(fontStyle = FontStyle.Italic))
-                        RichMarkdownButton(richState, formatListBulleted, "列表") { "- " to "" }
-                        RichMarkdownButton(richState, code, "代码") { "`" to "`" }
-                        RichMarkdownButton(richState, link, "链接") { "[" to "](url)" }
+                        Icon(
+                            imageVector = if (previewMode) edit else preview,
+                            contentDescription = if (previewMode) "编辑" else "预览",
+                        )
+                    }
+                    attachmentActions?.let { actions ->
                         KedgeIconButton(
-                            onClick = { previewMode = !previewMode },
+                            onClick = actions.onPickImage,
                             shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(
-                                imageVector = if (previewMode) edit else preview,
-                                contentDescription = if (previewMode) "编辑" else "预览",
-                            )
-                        }
-                        attachmentActions?.let { actions ->
-                            KedgeIconButton(
-                                onClick = actions.onPickImage,
-                                shapes = IconButtonDefaults.shapes(),
-                            ) { Icon(image, contentDescription = "图片") }
-                            KedgeIconButton(
-                                onClick = actions.onPickVideo,
-                                shapes = IconButtonDefaults.shapes(),
-                            ) { Icon(videocam, contentDescription = "视频") }
-                            KedgeIconButton(
-                                onClick = actions.onPickFile,
-                                shapes = IconButtonDefaults.shapes(),
-                            ) { Icon(insertDriveFile, contentDescription = "文件") }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        KedgeTextButton(
-                            onClick = {
-                                commitRichText()
-                                onDone()
-                            },
-                                 shapes = ButtonDefaults.shapes(),) {
-                            Text(stringResource(R.string.chat_page_save))
-                        }
+                        ) { Icon(image, contentDescription = "图片") }
                         KedgeIconButton(
-                            onClick = {
-                                commitRichText()
-                                onSend()
-                            },
+                            onClick = actions.onPickVideo,
                             shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(arrowUpward, contentDescription = stringResource(R.string.send))
-                        }
+                        ) { Icon(videocam, contentDescription = "视频") }
                         KedgeIconButton(
-                            onClick = onDone,
+                            onClick = actions.onPickFile,
                             shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(
-                                imageVector = close,
-                                contentDescription = stringResource(R.string.cancel),
-                            )
-                        }
+                        ) { Icon(insertDriveFile, contentDescription = "文件") }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    KedgeTextButton(
+                        onClick = {
+                            commitRichText()
+                            onDone()
+                        },
+                             shapes = ButtonDefaults.shapes(),) {
+                        Text(stringResource(R.string.chat_page_save))
+                    }
+                    KedgeIconButton(
+                        onClick = {
+                            commitRichText()
+                            onSend()
+                        },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(arrowUpward, contentDescription = stringResource(R.string.send))
+                    }
+                    KedgeIconButton(
+                        onClick = onDone,
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = close,
+                            contentDescription = stringResource(R.string.cancel),
+                        )
                     }
                 }
             }
