@@ -25,7 +25,7 @@ class CardRunManager(
     /** 提交并等待结果（AI tool / MCP 调用走这里）。 */
     suspend fun run(card: LoadedCard, args: Map<String, Any?>): EngineResult {
         val completion = CompletableDeferred<EngineResult>()
-        scope.launch(Dispatchers.Default) {
+        val job = scope.launch(Dispatchers.Default) {
             try {
                 semaphore.withPermit {
                     val result = try {
@@ -42,6 +42,12 @@ class CardRunManager(
                 throw e
             }
         }
-        return completion.await()
+        try {
+            return completion.await()
+        } finally {
+            // A caller may leave while queued or during execution; do not keep
+            // running a card whose result no longer has an owner.
+            job.cancel()
+        }
     }
 }

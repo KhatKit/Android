@@ -62,6 +62,9 @@ const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 @HiltAndroidApp
 class KhatKitApp : Application(), SingletonImageLoader.Factory {
     @Inject
+    lateinit var cardRunDao: heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
+
+    @Inject
     lateinit var appScope: AppScope
 
     @Inject
@@ -103,6 +106,11 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
             Log.e(TAG, "Backup restore rolled back", e)
             Toast.makeText(this, "备份恢复失败，已保留原数据。请重新导入备份。", Toast.LENGTH_LONG).show()
         }
+        runCatching {
+            runBlocking(Dispatchers.IO) {
+                cardRunDao.markInFlightInterrupted(System.currentTimeMillis())
+            }
+        }.onFailure { Log.e(TAG, "Could not recover interrupted card runs", it) }
         chatNotificationManager.get()
         this.createNotificationChannel()
 

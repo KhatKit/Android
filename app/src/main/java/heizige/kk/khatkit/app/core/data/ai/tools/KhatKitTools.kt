@@ -29,7 +29,9 @@ import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
+import heizige.kk.khatkit.app.core.data.db.dao.CardArtifactDAO
 import heizige.kk.khatkit.app.core.data.db.entity.CardRunEntity
+import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitSchemaFormSpec
 import heizige.kk.khatkit.app.core.ui.components.khatkit.fillSchemaArgs
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
@@ -73,6 +75,7 @@ import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -106,6 +109,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
@@ -170,6 +174,7 @@ class KhatKitToolProvider(
     private val providerManager: ProviderManager,
     private val settingsRepository: SettingsRepository,
     private val cardRunDao: CardRunDAO,
+    private val cardArtifactDao: CardArtifactDAO,
 ) : KhatKitController {
     private val appContext = context.applicationContext
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
@@ -235,6 +240,7 @@ class KhatKitToolProvider(
     @Volatile
     private var indexFetchedAt: Long = 0L
     private val indexMutex = Mutex()
+    private val activeUserCards = ConcurrentHashMap.newKeySet<String>()
 
     override val uiRequest = uiHost.request
     override val uiProgress = uiHost.progress
@@ -432,6 +438,25 @@ class KhatKitToolProvider(
         args: Map<String, Any?>,
         trigger: String = "AI",
         uiSchema: JsonObject? = null,
+        parentRunId: String? = null,
+    ): EngineResult {
+        val userRun = trigger == "用户"
+        if (userRun && !activeUserCards.add(card.manifest.name)) {
+            return EngineResult.Err("CARD_ALREADY_RUNNING", "卡片正在运行：${card.manifest.name}")
+        }
+        try {
+            return runCardTracked(card, args, trigger, uiSchema, parentRunId)
+        } finally {
+            if (userRun) activeUserCards.remove(card.manifest.name)
+        }
+    }
+
+    private suspend fun runCardTracked(
+        card: LoadedCard,
+        args: Map<String, Any?>,
+        trigger: String,
+        uiSchema: JsonObject?,
+        parentRunId: String?,
     ): EngineResult {
         val runId = UUID.randomUUID().toString()
         val queuedAt = System.currentTimeMillis()
@@ -442,16 +467,27 @@ class KhatKitToolProvider(
                     id = runId,
                     cardName = card.manifest.name,
                     cardVersion = card.manifest.version,
+                    parentRunId = parentRunId,
                     trigger = trigger,
                     status = CardRunEntity.QUEUED,
                     startedAt = queuedAt,
                     updatedAt = queuedAt,
                     argsSummary = argsSummary,
+                    argsTemplate = "{}",
                 ),
             )
         }
         // §8 P0-6：缺必填 UI 参数时先用宿主 schema 表单补齐，再走下面同一条执行/审批/计量链路
-        val arguments = fillCardArgs(card, args, trigger, uiSchema)
+        val arguments = try {
+            fillCardArgs(card, args, trigger, uiSchema)
+        } catch (e: Exception) {
+            recordCardRunException(runId, e)
+            throw e
+        }
+        if (trigger == "用户") {
+            runCatching { cardRunDao.updateArgsTemplate(runId, encode(reusableCardArgs(arguments))) }
+                .onFailure { Log.w(TAG, "任务参数模板写入失败：$runId", it) }
+        }
         runCatching { cardRunDao.updateStatus(runId, CardRunEntity.PREPARING, System.currentTimeMillis()) }
         if (AutomationBus.isCancelRequested()) {
             runCatching {
@@ -528,8 +564,29 @@ class KhatKitToolProvider(
                 reportToolCallAsync(hubToken, manifest, price, trigger, startedAt, result)
             }
             return result
+        } catch (e: Exception) {
+            recordCardRunException(runId, e)
+            throw e
         } finally {
             AutomationBus.finish()
+        }
+    }
+
+    private suspend fun recordCardRunException(runId: String, error: Exception) {
+        val cancelled = error is CancellationException
+        val now = System.currentTimeMillis()
+        withContext(NonCancellable) {
+            runCatching {
+                cardRunDao.finish(
+                    runId,
+                    if (cancelled) CardRunEntity.CANCELLED else CardRunEntity.FAILED,
+                    now,
+                    now,
+                    "",
+                    if (cancelled) "CARD_CANCELLED" else "CARD_EXCEPTION",
+                    if (cancelled) "任务已取消" else error.message?.take(300) ?: "卡片执行异常",
+                )
+            }.onFailure { Log.w(TAG, "任务状态落库失败：$runId", it) }
         }
     }
 
@@ -548,13 +605,85 @@ class KhatKitToolProvider(
 
             is EngineResult.Err -> cardRunDao.finish(
                 runId,
-                if (result.code == "CARD_CANCELLED") CardRunEntity.CANCELLED else CardRunEntity.FAILED,
+                if (result.code == "CARD_CANCELLED" || result.code == "CARD_DENIED") {
+                    CardRunEntity.CANCELLED
+                } else {
+                    CardRunEntity.FAILED
+                },
                 now,
                 now,
                 "",
                 result.code,
                 result.message,
             )
+        }
+        persistCardArtifacts(runId, result, now)
+    }
+
+    /** Index user-addressable outputs without persisting the full tool response. */
+    private suspend fun persistCardArtifacts(runId: String, result: EngineResult, createdAt: Long) {
+        val values = (result as? EngineResult.Ok)?.value ?: return
+        val artifacts = collectCardTextArtifacts(values).map { (name, text) ->
+            CardArtifactEntity(
+                id = UUID.randomUUID().toString(),
+                runId = runId,
+                kind = CardArtifactEntity.TEXT,
+                uri = "",
+                mimeType = "text/plain",
+                displayName = name,
+                sizeBytes = text.toByteArray(Charsets.UTF_8).size.toLong(),
+                available = true,
+                createdAt = createdAt,
+                textContent = text,
+            )
+        } + collectArtifactStrings(values)
+            .distinct()
+            .mapNotNull { raw ->
+                when {
+                    raw.startsWith("http://") || raw.startsWith("https://") -> CardArtifactEntity(
+                        id = UUID.randomUUID().toString(),
+                        runId = runId,
+                        kind = CardArtifactEntity.LINK,
+                        uri = raw,
+                        mimeType = "text/uri-list",
+                        displayName = raw.take(160),
+                        sizeBytes = null,
+                        available = true,
+                        createdAt = createdAt,
+                    )
+
+                    else -> {
+                        val file = File(raw)
+                        if (!file.isFile) return@mapNotNull null
+                        CardArtifactEntity(
+                            id = UUID.randomUUID().toString(),
+                            runId = runId,
+                            kind = CardArtifactEntity.FILE,
+                            uri = Uri.fromFile(file).toString(),
+                            mimeType = java.net.URLConnection.guessContentTypeFromName(file.name),
+                            displayName = file.name,
+                            sizeBytes = file.length(),
+                            available = file.canRead(),
+                            createdAt = createdAt,
+                        )
+                    }
+                }
+            }
+        if (artifacts.isNotEmpty()) {
+            runCatching { cardArtifactDao.insertAll(artifacts) }
+                .onFailure { Log.w(TAG, "卡片产物索引写入失败：$runId", it) }
+        }
+    }
+
+    private fun collectArtifactStrings(value: Any?): List<String> = buildList {
+        when (value) {
+            is String -> if (value.startsWith("http://") || value.startsWith("https://") || File(value).isFile) {
+                add(value)
+            }
+            is Map<*, *> -> value.values.forEach { addAll(collectArtifactStrings(it)) }
+            is Iterable<*> -> value.forEach { addAll(collectArtifactStrings(it)) }
+            is Array<*> -> value.forEach { addAll(collectArtifactStrings(it)) }
+            is JsonPrimitive -> value.contentOrNull?.let { addAll(collectArtifactStrings(it)) }
         }
     }
 
@@ -1791,13 +1920,29 @@ class KhatKitToolProvider(
     }
 
     /** 用户手动运行已安装卡片：不带参数，需要输入时由脚本自己弹 ui.form。 */
-    override suspend fun runCard(name: String): CardRunResult = withContext(Dispatchers.IO) {
+    override suspend fun runCard(name: String): CardRunResult =
+        runCard(name, emptyMap(), parentRunId = null)
+
+    override suspend fun runCard(name: String, args: Map<String, Any?>): CardRunResult =
+        runCard(name, args, parentRunId = null)
+
+    override fun startCard(name: String, onResult: (CardRunResult) -> Unit) {
+        scope.launch {
+            onResult(runCard(name))
+        }
+    }
+
+    suspend fun runCard(
+        name: String,
+        args: Map<String, Any?>,
+        parentRunId: String?,
+    ): CardRunResult = withContext(Dispatchers.IO) {
         val card = loadInstalledCards().firstOrNull { it.manifest.name == name }
             ?: return@withContext CardRunResult(false, "卡片未安装：$name")
         if (!card.manifest.supportsUser()) {
             return@withContext CardRunResult(false, "卡片未启用用户触发：$name")
         }
-        when (val result = runCardWithStatus(card, emptyMap(), trigger = "用户")) {
+        when (val result = runCardWithStatus(card, args, trigger = "用户", parentRunId = parentRunId)) {
             is EngineResult.Ok -> {
                 // 脚本约定 return { error = "..." } 表示失败，宿主侧转成错误提示
                 val error = result.value["error"]?.toString()
@@ -2479,6 +2624,66 @@ internal fun renderFlowValue(value: Any?): String = when (value) {
 
 private fun encode(value: Any?): String =
     Json.encodeToString(JsonElement.serializer(), toElement(value))
+
+/** Only explicit top-level display fields are retained; logs and structured payloads are excluded. */
+internal fun collectCardTextArtifacts(values: Map<String, Any?>): List<Pair<String, String>> =
+    values.entries.asSequence()
+        .filter { (key, _) -> key.lowercase() in CARD_TEXT_FIELDS }
+        .mapNotNull { (key, value) ->
+            val text = (value as? String)?.trim() ?: return@mapNotNull null
+            if (text.isEmpty() || text.length > 8192 ||
+                text.startsWith("http://") || text.startsWith("https://") ||
+                text.startsWith("file://") || text.startsWith("/") ||
+                text.contains('\u0000')
+            ) null else key to text
+        }
+        .take(3)
+        .toList()
+
+private val CARD_TEXT_FIELDS = setOf("text", "output", "result", "summary", "content")
+
+/**
+ * Retain bounded scalar settings, not arbitrary user content or temporary grants.
+ * This is intentionally conservative: unrecognized strings must be re-entered.
+ */
+internal fun reusableCardArgs(args: Map<String, Any?>): Map<String, Any?> {
+    val safe = args.entries.take(32).mapNotNull { (key, value) ->
+        if (key.length > 80 || key.startsWith("__") || isSensitiveArgKey(key)) return@mapNotNull null
+        reusableCardArgValue(value, key)?.let { key to it }
+    }.toMap()
+    return safe.takeIf { encode(it).length <= 4096 } ?: emptyMap()
+}
+
+private fun reusableCardArgValue(value: Any?, key: String, depth: Int = 0): Any? {
+    if (depth > 3) return null
+    return when (value) {
+        is String -> value.takeIf {
+            key.lowercase() in REUSABLE_STRING_KEYS && it.length <= 100 &&
+                !it.contains("://") && !it.contains('/') && !it.contains('\\') &&
+                !it.contains('?') && !it.contains('=')
+        }
+        is Number, is Boolean -> value
+        is Map<*, *> -> value.entries.take(32).mapNotNull { (nestedKey, item) ->
+            val name = nestedKey as? String ?: return@mapNotNull null
+            if (name.length > 80 || name.startsWith("__") || isSensitiveArgKey(name)) return@mapNotNull null
+            reusableCardArgValue(item, name, depth + 1)?.let { name to it }
+        }.toMap().takeIf { it.isNotEmpty() }
+        is Iterable<*> -> value.take(32).mapNotNull { reusableCardArgValue(it, key, depth + 1) }
+            .takeIf { it.isNotEmpty() }
+        else -> null
+    }
+}
+
+private fun isSensitiveArgKey(key: String): Boolean = SENSITIVE_ARG_KEY.containsMatchIn(
+    key.lowercase().replace(Regex("[^a-z0-9]"), ""),
+)
+
+private val SENSITIVE_ARG_KEY = Regex(
+    """apikey|token|secret|password|passwd|auth|cookie|credential|privatekey|otp|session|signature|signed|uri|path|file|phone|email""",
+)
+private val REUSABLE_STRING_KEYS = setOf(
+    "format", "mode", "language", "operation", "direction", "orientation", "unit", "output_type",
+)
 
 private fun toElement(value: Any?, depth: Int = 0): JsonElement = when (value) {
     null -> JsonNull

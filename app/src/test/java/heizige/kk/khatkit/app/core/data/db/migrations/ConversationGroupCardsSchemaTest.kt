@@ -149,7 +149,16 @@ class ConversationGroupCardsSchemaTest {
             "卡片运行记录那版必须注册 Migration_32_33（C1-R 新增 group_runs 等表）",
             importBlock.contains("Migration_32_33"),
         )
-        assertTrue("AppDatabase 版本必须是 33", database.contains("version = 33"))
+        assertTrue(
+            "卡片产物索引必须注册 Migration_33_34",
+            importBlock.contains("Migration_33_34"),
+        )
+        assertTrue(
+            "任务参数模板必须注册 Migration_34_35",
+            importBlock.contains("Migration_34_35"),
+        )
+        assertTrue("文本产物迁移必须注册 Migration_35_36", importBlock.contains("Migration_35_36"))
+        assertTrue("AppDatabase 版本必须是 36", database.contains("version = 36"))
         assertFalse(
             "31→32 **刻意不用 AutoMigration**：Room 的 DROP TABLE 会删掉三个 FTS5 触发器",
             Regex("AutoMigration\\(from = 31").containsMatchIn(database),

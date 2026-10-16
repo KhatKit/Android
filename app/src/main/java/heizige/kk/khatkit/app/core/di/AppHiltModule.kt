@@ -134,6 +134,7 @@ object AppHiltModule {
         providerManager: ProviderManager,
         settingsStore: SettingsRepository,
         cardRunDao: heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO,
+        cardArtifactDao: heizige.kk.khatkit.app.core.data.db.dao.CardArtifactDAO,
     ): KhatKitToolProvider = KhatKitToolProvider(
         context = context,
         scope = appScope,
@@ -141,6 +142,7 @@ object AppHiltModule {
         providerManager = providerManager,
         settingsRepository = settingsStore,
         cardRunDao = cardRunDao,
+        cardArtifactDao = cardArtifactDao,
     )
 
     // 事件触发器：卡片在定时/通知/应用启动/充电时自动运行

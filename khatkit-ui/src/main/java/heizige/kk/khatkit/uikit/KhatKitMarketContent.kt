@@ -791,8 +791,7 @@ private fun CardDetailDialog(
                     if (CardManifest.TRIGGER_USER in triggers) {
                         KedgeButton(
                             onClick = {
-                                scope.launch {
-                                    val result = controller.runCard(entry.name)
+                                controller.startCard(entry.name) { result ->
                                     onToast(
                                         result.message.ifBlank {
                                             if (result.ok) "已运行 ${entry.name}" else "运行失败"

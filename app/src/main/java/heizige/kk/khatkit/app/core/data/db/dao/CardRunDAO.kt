@@ -15,6 +15,22 @@ interface CardRunDAO {
     @Query("UPDATE card_runs SET status = :status, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateStatus(id: String, status: String, updatedAt: Long)
 
+    @Query("UPDATE card_runs SET args_template = :template WHERE id = :id")
+    suspend fun updateArgsTemplate(id: String, template: String)
+
+    @Query(
+        """
+        UPDATE card_runs
+        SET status = 'interrupted',
+            updated_at = :now,
+            ended_at = :now,
+            error_code = 'PROCESS_RESTARTED',
+            error_message = '应用重启时任务未完成'
+        WHERE status IN ('queued', 'preparing', 'running', 'waiting_user')
+        """
+    )
+    suspend fun markInFlightInterrupted(now: Long): Int
+
     @Query(
         """
         UPDATE card_runs SET status = :status, updated_at = :updatedAt, ended_at = :endedAt,

@@ -5,12 +5,15 @@ import heizige.kk.khatkit.engine.EngineKind
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.hub.LoadedCard
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -73,5 +76,47 @@ class CardRunManagerTest {
         jobs.joinAll()
 
         assertTrue("并发上限失效：max=$maxSeen", maxSeen.get() <= 2)
+    }
+
+    @Test
+    fun cancellingCallerStopsRunningCard() = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val stopped = CompletableDeferred<Unit>()
+        val manager = CardRunManager(scope()) { _, _ ->
+            try {
+                started.complete(Unit)
+                delay(Long.MAX_VALUE)
+                EngineResult.Ok(emptyMap())
+            } finally {
+                stopped.complete(Unit)
+            }
+        }
+        val caller = launch { manager.run(card("running"), emptyMap()) }
+        withTimeout(5_000) { started.await() }
+        caller.cancelAndJoin()
+        withTimeout(5_000) { stopped.await() }
+    }
+
+    @Test
+    fun cancellingQueuedCallerNeverExecutesItsCard() = runBlocking {
+        val firstStarted = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val executed = AtomicInteger(0)
+        val manager = CardRunManager(scope(), maxConcurrent = 1) { loaded, _ ->
+            if (loaded.manifest.name == "first") {
+                firstStarted.complete(Unit)
+                releaseFirst.await()
+            } else {
+                executed.incrementAndGet()
+            }
+            EngineResult.Ok(emptyMap())
+        }
+        val first = launch { manager.run(card("first"), emptyMap()) }
+        withTimeout(5_000) { firstStarted.await() }
+        val queued = launch { manager.run(card("queued"), emptyMap()) }
+        queued.cancelAndJoin()
+        releaseFirst.complete(Unit)
+        withTimeout(5_000) { first.join() }
+        assertEquals(0, executed.get())
     }
 }

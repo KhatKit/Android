@@ -41,6 +41,8 @@ data class CardRunEntity(
     val endedAt: Long? = null,
     @ColumnInfo(name = "args_summary")
     val argsSummary: String = "",
+    @ColumnInfo(name = "args_template", defaultValue = "{}")
+    val argsTemplate: String = "{}",
     @ColumnInfo(name = "output_summary")
     val outputSummary: String = "",
     @ColumnInfo(name = "error_code")

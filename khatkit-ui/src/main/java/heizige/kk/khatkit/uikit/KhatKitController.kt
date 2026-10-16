@@ -51,6 +51,12 @@ interface KhatKitController {
     /** 用户手动运行已安装卡片；ok=false 时 message 为错误原因。 */
     suspend fun runCard(name: String): CardRunResult
 
+    /** Re-run with a previously saved, sanitized parameter template. */
+    suspend fun runCard(name: String, args: Map<String, Any?>): CardRunResult = runCard(name)
+
+    /** User-initiated run outlives the screen; the host owns the execution scope. */
+    fun startCard(name: String, onResult: (CardRunResult) -> Unit)
+
     fun listCardSecrets(cardName: String): List<String>
     fun removeCardSecret(cardName: String, key: String)
 

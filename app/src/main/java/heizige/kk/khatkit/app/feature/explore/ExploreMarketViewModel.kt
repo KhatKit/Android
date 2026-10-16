@@ -155,8 +155,21 @@ class ExploreMarketViewModel @Inject constructor(
     fun uninstall(name: String, onResult: (Boolean) -> Unit = {}) =
         cardAction(name) { onResult(provider.uninstallCard(name)) }
 
-    fun run(name: String, onResult: (CardRunResult) -> Unit = {}) =
-        cardAction(name) { onResult(provider.runCard(name)) }
+    fun run(name: String, onResult: (CardRunResult) -> Unit = {}) {
+        _busyCard.value = name
+        provider.startCard(name) { result ->
+            _busyCard.value = null
+            onResult(result)
+            // Refresh only the view model's derived lists; the actual run is
+            // owned by AppScope and continues after this page is closed.
+            viewModelScope.launch {
+                withContext(Dispatchers.IO) {
+                    reloadInstalled()
+                    reloadDependencies()
+                }
+            }
+        }
+    }
 
     fun vote(name: String, onResult: (HubActionResult) -> Unit = {}) =
         cardAction(name) { onResult(provider.voteCard(name)) }
