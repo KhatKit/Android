@@ -34,7 +34,6 @@ import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVertica
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.InputChip
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -50,6 +49,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeInputChip
 import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -1031,7 +1031,7 @@ private fun RegexInjectionEditDialog(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     entry.keywords.forEach { keyword ->
-                        InputChip(
+                        KedgeInputChip(
                             selected = false,
                             onClick = {},
                             label = { Text(keyword) },

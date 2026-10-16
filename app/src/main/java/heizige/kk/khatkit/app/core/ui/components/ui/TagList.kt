@@ -14,9 +14,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import heizige.kk.kedge.components.KedgeInputChip
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
@@ -59,9 +59,9 @@ fun TagsInput(
     ) {
         // 显示已选择的tags
         selectedTags.fastForEach { tag ->
-            InputChip(onClick = {}, label = {
+            KedgeInputChip(selected = false, onClick = {}, label = {
                 Text(tag.name)
-            }, selected = false, trailingIcon = {
+            }, trailingIcon = {
                 Icon(
                     imageVector = close,
                     contentDescription = null,
@@ -127,13 +127,14 @@ fun TagsInput(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         unselectedTags.forEach { tag ->
-                            InputChip(
+                            KedgeInputChip(
+                                selected = false,
                                 onClick = {
                                     onValueChange(value + tag.id, tags)
                                     showAddDialog = false
                                     tagName = ""
                                     showError = false
-                                }, label = { Text(tag.name) }, selected = false
+                                }, label = { Text(tag.name) }
                             )
                         }
                     }

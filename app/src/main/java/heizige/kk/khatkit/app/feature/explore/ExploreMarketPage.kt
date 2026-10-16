@@ -1896,16 +1896,19 @@ private object ExploreShape {
     val group = 18.dp
     /** 图标瓦片：网格卡 40dp 配 12dp 圆角。 */
     val tile = 12.dp
-    /** 筛选 chip：44dp 高的满圆角药丸；选中后收到 12dp，按下在各自档位上再收一档。 */
+    /**
+     * 筛选 chip：44dp 高的满圆角药丸；选中后收到 12dp。
+     *
+     * 按下态那两档（14dp / 8dp）自 t20 起由 `:kedge` 的 `KedgeFilterChip` 内部按统一公式
+     * `max(静止 − 8dp, 8dp)` 算出，本页不再持有这两个常量 —— 这里只留静止两档。
+     */
     val chip = 22.dp
     val chipSelected = 12.dp
-    val chipPressed = 14.dp
-    val chipPressedSelected = 8.dp
     val chipHeight = 44.dp
-    /** chip 左侧那枚身份色块：30dp 见方、11dp 圆角，距药丸左沿 6dp。 */
+    /** chip 左侧那枚身份色块：30dp 见方、11dp 圆角（距药丸左沿的 6dp 内边距自 t20 起是
+     *  [KedgeFilterChip] 的默认 contentPadding，本页不再单独传）。 */
     val chipTileSize = 30.dp
     val chipTile = 11.dp
-    val chipTileInset = 6.dp
 }
 
 /**
@@ -2041,12 +2044,27 @@ private fun MetaChip(text: String, accent: Boolean = false) {
  *  · 未选中：药丸 `surfaceContainerHigh`，图标块 `onSurfaceVariant` 12% 淡洗，内容 `onSurfaceVariant`；
  *  · 选中：药丸 `secondaryContainer`，图标块反过来吃满 `onSecondaryContainer`（图标再用
  *    `secondaryContainer` 压回去），内容 `onSecondaryContainer`。
- * 选中是「形状 + 颜色」两件事一起变：圆角 22dp → 12dp，底色中性容器色 → secondaryContainer，
- * 颜色走 tween 渐变、圆角走 spring 回弹 —— 形状的弹性不该被颜色的线性时长拖慢。
- * 按下时在各自档位上再收一档（未选中 → 14dp / 选中 → 8dp）再弹回，与整页其它按压反馈同一套语言。
+ * 选中是「形状 + 颜色」两件事一起变：圆角 22dp → 12dp（走 spring 回弹），底色中性容器色 →
+ * secondaryContainer（走 tween）—— 形状的弹性不该被颜色的线性时长拖慢。
  *
- * Miuix 风格不走这套：整段改由 [KedgeFilterChip] 的 Miuix 分支接管（勾选框 + 文本，
- * 见函数体开头），MD3 那套图标块/形状回弹只在 MD3Exp 下生效。
+ * 两种风格都只调 [KedgeFilterChip]：MD3 侧把上面这套动画结果分别喂进它的 `shape` /
+ * `containerColor`+`selectedContainerColor` / `labelColor`+`selectedLabelColor` /
+ * `iconColor`+`selectedIconColor` / `leadingIcon` 槽（动画仍由这里驱动，见下面的注释）；
+ * Miuix 侧这些槽一律传 null，维持它自己那套「勾 + 文本」胶囊（该风格此前就是这么渲染的）。
+ *
+ * t20 起，原来手绘的那几处细节已升级成 [KedgeFilterChip] 的**默认行为**（用户裁定：三个 chip
+ * 组件统一，实现落在组件内部），本页不再各写一份：
+ *  · 未选中不画描边（此前 MD3 `FilterChip` 未选中会给 1dp `outlineVariant`）；
+ *  · 内容内边距默认左 6dp / 右 16dp（此前是固定的 horizontal 8dp）；
+ *  · 图标块与文字间距 10dp（此前是固定的 8dp）；
+ *  · 按压圆角收缩：`pressedCorner = max(静止 − 8dp, 8dp)`，这里只传静止圆角（22dp ↔ 12dp 的
+ *    动画值）⇒ 按下自动复现 22→14、12→8。
+ * 仍存在的差异（属 MD3 组件自身度量 / 状态层，本轮未动也不打算 fork）：
+ *  ① 高度：MD3 `FilterChip` 自带 `Height = 32dp` 下限，clickable `Surface` 还会叠一层
+ *     `minimumInteractiveComponentSize()`（≥48dp）。这里继续传 `Modifier.height(chipHeight)`
+ *     顶 44dp，但最终话语权只能在真机上量。
+ *  ② 按压/悬停的容器色 state layer：`FilterChip` 有，原手绘没有（MD3 规范内，接受）。
+ *  ③ 涟漪：`FilterChip` 自持 indication，原手绘是 `indication = null`（本轮未开槽，接受）。
  */
 @Composable
 private fun MarketFilterChip(
@@ -2055,20 +2073,10 @@ private fun MarketFilterChip(
     icon: ImageVector,
     onClick: () -> Unit,
 ) {
-    // Miuix 风格下换成 Kedge 的 Miuix chip（Miuix 0.9.3 没有 chip 组件，
-    // KedgeFilterChip 的 Miuix 分支用「Checkbox + 文本」自己拼）。
-    // 这里不再画图标块：一整排 chip 各带一块彩色图标砖本来就是 MD3 卡片的语言，
-    // Miuix 的筛选语言是勾选框 + 文字，混在一起两边都不像。
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        KedgeFilterChip(
-            selected = selected,
-            onClick = onClick,
-            label = { Text(label) },
-        )
-        return
-    }
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
+    // Miuix 风格下 [KedgeFilterChip] 自己会切成「勾选框 + 文本」的胶囊，且**不画图标块** ——
+    // 一整排 chip 各带一块彩色图标砖本来就是 MD3 卡片的语言，Miuix 的筛选语言是勾 + 文字，
+    // 混在一起两边都不像。所以下面所有 MD3 专用槽位在 Miuix 下都传 null（含 leadingIcon）。
+    val isMd3 = LocalKedgeStyle.current == KedgeStyle.MD3Exp
     val colors = MaterialTheme.colorScheme
     val container = colors.surfaceContainerHigh
     val selectedContainer = colors.secondaryContainer
@@ -2080,12 +2088,7 @@ private fun MarketFilterChip(
         label = "market_chip_container",
     )
     val corner by animateDpAsState(
-        targetValue = when {
-            pressed && selected -> ExploreShape.chipPressedSelected
-            pressed -> ExploreShape.chipPressed
-            selected -> ExploreShape.chipSelected
-            else -> ExploreShape.chip
-        },
+        targetValue = if (selected) ExploreShape.chipSelected else ExploreShape.chip,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "market_chip_corner",
     )
@@ -2105,39 +2108,61 @@ private fun MarketFilterChip(
         animationSpec = tween(durationMillis = 220),
         label = "market_chip_label",
     )
-    val shape = AutoCornersShape(corner)
-    Row(
-        modifier = Modifier
-            .clip(shape)
-            .background(background)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .height(ExploreShape.chipHeight)
-            .padding(start = ExploreShape.chipTileInset, end = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(ExploreShape.chipTileSize)
-                .clip(AutoCornersShape(ExploreShape.chipTile))
-                .background(tile),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tileContent,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Text(
-            text = label,
-            style = KedgeTextStyles.body(),
-            color = labelColor,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-        )
-    }
+
+    KedgeFilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            if (isMd3) {
+                // 标签色不写在 Text 上：交给 colors 的 labelColor / selectedLabelColor 注入
+                // 的 LocalContentColor，色值与容器色同源（同一个动画值）。
+                Text(
+                    text = label,
+                    style = KedgeTextStyles.body(),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+            } else {
+                // Miuix：保持它自己的 body2 与内容色，一个字面参数都不多传。
+                Text(label)
+            }
+        },
+        // 高度只在 MD3 侧顶到 44dp；Miuix 侧不传，免得把它那枚胶囊也撑成 44dp。
+        modifier = if (isMd3) Modifier.height(ExploreShape.chipHeight) else Modifier,
+        leadingIcon = if (isMd3) {
+            {
+                Box(
+                    modifier = Modifier
+                        .size(ExploreShape.chipTileSize)
+                        .clip(AutoCornersShape(ExploreShape.chipTile))
+                        .background(tile),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        // 由 KedgeFilterChip 的 iconColor / selectedIconColor 槽注入。
+                        tint = LocalContentColor.current,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        } else {
+            null
+        },
+        // t20：圆角收缩改由 KedgeFilterChip 内部实现（统一公式 max(静止−8dp, 8dp)），
+        // 这里只把静止圆角这一个数传下去 ⇒ 按下仍是 22→14、12→8，默认值/内边距/间距/描边
+        // 也不再各站一份显式传参（组件默认已是手绘那套）。
+        cornerRadius = if (isMd3) corner else null,
+        // KedgeFilterChip 的容器色是「一个状态一个 Color」：把同一个动画值喂给两个槽，
+        // tween 就仍由上面那个 animation 驱动，而不是交给 MD3 硬切。
+        containerColor = if (isMd3) background else null,
+        selectedContainerColor = if (isMd3) background else null,
+        labelColor = if (isMd3) labelColor else null,
+        selectedLabelColor = if (isMd3) labelColor else null,
+        iconColor = if (isMd3) tileContent else null,
+        selectedIconColor = if (isMd3) tileContent else null,
+    )
 }
 
 /**
