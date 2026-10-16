@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceRadio
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceDropdown
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -42,7 +42,7 @@ fun CodeDisplaySettingsGroupMiuix(
 }
 
 /**
- * 界面风格切换的 Miuix 版：单选，用 [KhatKitUiStyle] 两个枚举值。
+ * 界面风格切换的 Miuix 版：下拉，用 [KhatKitUiStyle] 两个枚举值。
  * 切换后整棵 composition 会换主题，因此这里只更新 provider。
  */
 @Composable
@@ -51,14 +51,18 @@ fun UiStyleGroupMiuix() {
     // 直接读 provider 的 state，不要 remember 缓存：否则别处切换风格后这里显示不同步。
     val uiStyle = khatKitProvider.uiStyle
 
-    KhatKitUiStyle.entries.forEach { style ->
-        PreferenceRadio(
-            title = if (style == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix",
-            selected = uiStyle == style,
-            onClick = { khatKitProvider.uiStyle = style },
-        )
-    }
+    PreferenceDropdown(
+        title = stringResource(R.string.greeting_settings_ui_style),
+        summary = uiStyleLabel(uiStyle),
+        items = KhatKitUiStyle.entries.map { uiStyleLabel(it) },
+        selectedIndex = KhatKitUiStyle.entries.indexOf(uiStyle),
+        onSelectedIndexChange = { khatKitProvider.uiStyle = KhatKitUiStyle.entries[it] },
+    )
 }
+
+/** 界面风格标签：与 MD3 页逐字一致（"Material 3" / "Miuix"）。 */
+private fun uiStyleLabel(style: KhatKitUiStyle): String =
+    if (style == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix"
 
 /**
  * 毛玻璃开关的 Miuix 版：写入 provider 即刻生效（根部会重建 backdrop）。

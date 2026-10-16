@@ -24,11 +24,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.AnimatedRadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeFilterChip
@@ -44,7 +43,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
@@ -58,7 +56,6 @@ import heizige.kk.khatkit.app.core.data.db.entity.ManagedFileEntity
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.files.FilesManager
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -157,29 +154,21 @@ fun SettingFilesPage() {
         }
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.setting_files_page_title),
-                navigationIcon = { BackButton() },
-                actions = {
-                    KedgeIconButton(
-                        onClick = { showCleanSheet = true },
-                        enabled = files.isNotEmpty(),
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = cleaningServices,
-                            contentDescription = stringResource(R.string.setting_files_page_clean_content_description),
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.setting_files_page_title),
+        scrollBehavior = scrollBehavior,
+        actions = {
+            KedgeIconButton(
+                onClick = { showCleanSheet = true },
+                enabled = files.isNotEmpty(),
+                shapes = IconButtonDefaults.shapes(),
+            ) {
+                Icon(
+                    imageVector = cleaningServices,
+                    contentDescription = stringResource(R.string.setting_files_page_clean_content_description),
+                )
+            }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
         Column(

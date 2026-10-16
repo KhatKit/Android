@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import heizige.kk.khromia.components.AnimatedRadioButton
 import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.components.ExpandableOptionItem
 import heizige.kk.khromia.components.FancySlider
@@ -31,10 +30,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.kedge.components.KedgeSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
@@ -58,7 +56,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
@@ -70,7 +67,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
@@ -131,19 +127,9 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     var showImportDialog by remember { mutableStateOf(false) }
     var deletingTheme by remember { mutableStateOf<CustomTheme?>(null) }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.setting_page_preferences_theme),
-                navigationIcon = {
-                    BackButton()
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.setting_page_preferences_theme),
+        scrollBehavior = scrollBehavior,
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -303,22 +289,24 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
             item {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text(stringResource(R.string.greeting_settings_ui_style)) },
                 ) {
-                    KhatKitUiStyle.entries.forEach { style ->
-                        item(
-                            headlineContent = {
-                                Text(if (style == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix")
-                            },
-                            trailingContent = {
-                                AnimatedRadioButton(
-                                    selected = uiStyle == style,
-                                    onClick = null,
-                                )
-                            },
-                            onClick = { khatKitProvider.uiStyle = style },
-                        )
-                    }
+                    item(
+                        headlineContent = { Text(stringResource(R.string.greeting_settings_ui_style)) },
+                        supportingContent = {
+                            Text(if (uiStyle == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix")
+                        },
+                        trailingContent = {
+                            Select(
+                                options = KhatKitUiStyle.entries,
+                                selectedOption = uiStyle,
+                                onOptionSelected = { khatKitProvider.uiStyle = it },
+                                optionToString = { style ->
+                                    if (style == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix"
+                                },
+                                modifier = Modifier.width(150.dp),
+                            )
+                        },
+                    )
                 }
             }
 

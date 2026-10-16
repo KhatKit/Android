@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +27,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import heizige.kk.khromia.components.AnimatedRadioButton
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
@@ -47,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -56,7 +54,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_SYSTEM_TTS_ID
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
@@ -100,36 +97,28 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
     val selectedPage by remember { derivedStateOf { pagerState.currentPage } }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.speech_page_title),
-                navigationIcon = {
-                    BackButton()
-                },
-                actions = {
-                    if (selectedPage == 0) {
-                        AddTTSProviderButton {
-                            vm.updateSettings(
-                                settings.copy(
-                                    ttsProviders = listOf(it) + settings.ttsProviders
-                                )
-                            )
-                        }
-                    } else {
-                        AddASRProviderButton {
-                            vm.updateSettings(
-                                settings.copy(
-                                    asrProviders = listOf(it) + settings.asrProviders,
-                                    selectedASRProviderId = settings.selectedASRProviderId ?: it.id
-                                )
-                            )
-                        }
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.speech_page_title),
+        scrollBehavior = scrollBehavior,
+        actions = {
+            if (selectedPage == 0) {
+                AddTTSProviderButton {
+                    vm.updateSettings(
+                        settings.copy(
+                            ttsProviders = listOf(it) + settings.ttsProviders
+                        )
+                    )
+                }
+            } else {
+                AddASRProviderButton {
+                    vm.updateSettings(
+                        settings.copy(
+                            asrProviders = listOf(it) + settings.asrProviders,
+                            selectedASRProviderId = settings.selectedASRProviderId ?: it.id
+                        )
+                    )
+                }
+            }
         },
         bottomBar = {
             KedgeBottomBar(
@@ -149,8 +138,6 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
                 ),
             )
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor,
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,

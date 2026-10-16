@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CardDefaults
@@ -74,7 +73,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import androidx.compose.material3.TextButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.Screen
@@ -198,7 +196,7 @@ fun SettingTriggersPage() {
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showAiDialog = false }) { Text("知道了") }
+                KedgeTextButton(onClick = { showAiDialog = false }) { Text("知道了") }
             },
         )
     }

@@ -31,17 +31,11 @@ import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -51,6 +45,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeIconButtonVariant
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import androidx.compose.runtime.Composable
@@ -64,7 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -85,7 +79,7 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpTool
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
@@ -143,37 +137,27 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
     }
     var showImportDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.setting_mcp_page_title),
-                navigationIcon = {
-                    BackButton()
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.setting_mcp_page_title),
+        scrollBehavior = scrollBehavior,
+        actions = {
+            KedgeIconButton(
+                onClick = {
+                    showImportDialog = true
                 },
-                actions = {
-                    KedgeIconButton(
-                        onClick = {
-                            showImportDialog = true
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(uploadFile, null)
-                    }
-                    KedgeIconButton(
-                        onClick = {
-                            creationState.open(McpServerConfig.StreamableHTTPServer())
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(add, null)
-                    }
+                shapes = IconButtonDefaults.shapes(),
+            ) {
+                Icon(uploadFile, null)
+            }
+            KedgeIconButton(
+                onClick = {
+                    creationState.open(McpServerConfig.StreamableHTTPServer())
                 },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
+                shapes = IconButtonDefaults.shapes(),
+            ) {
+                Icon(add, null)
+            }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor
     ) { innerPadding ->
         val mcpManager = rememberAppEntryPoint().mcpManager()
         val status by mcpManager.syncingStatus.collectAsStateWithLifecycle()
@@ -305,18 +289,20 @@ internal fun McpServerItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                FilledTonalIconButton(
+                KedgeIconButton(
                     onClick = {
                         scope.launch { dismissBoxState.reset() }
                     },
+                    variant = KedgeIconButtonVariant.Tonal,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(close, null)
                 }
-                FilledTonalIconButton(
+                KedgeIconButton(
                     onClick = {
                         onDelete()
                     },
+                    variant = KedgeIconButtonVariant.Tonal,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(delete, null)

@@ -14,11 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import heizige.kk.khromia.components.OptionSwitch
@@ -36,7 +35,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -46,7 +44,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import heizige.kk.khatkit.highlight.LocalCodeHighlighter
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.richtext.HighlightCodeVisualTransformation
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
@@ -109,37 +106,27 @@ fun SettingSearchDetailPage(
         vm.updateSettings(settings.copy(searchServices = newServices))
     }
 
-    Scaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = options.displayName,
-                navigationIcon = {
-                    BackButton()
-                },
-                actions = {
-                    if (settings.searchServices.size > 1) {
-                        KedgeIconButton(
-                            onClick = {
-                                val newServices = settings.searchServices.toMutableList()
-                                newServices.removeAt(serviceIndex)
-                                vm.updateSettings(settings.copy(searchServices = newServices))
-                                nav.popBackStack()
-                            },
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(
-                                imageVector = delete,
-                                contentDescription = stringResource(R.string.delete)
-                            )
-                        }
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors
-            )
+    KedgeSettingsPageScaffold(
+        title = options.displayName,
+        scrollBehavior = scrollBehavior,
+        actions = {
+            if (settings.searchServices.size > 1) {
+                KedgeIconButton(
+                    onClick = {
+                        val newServices = settings.searchServices.toMutableList()
+                        newServices.removeAt(serviceIndex)
+                        vm.updateSettings(settings.copy(searchServices = newServices))
+                        nav.popBackStack()
+                    },
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    Icon(
+                        imageVector = delete,
+                        contentDescription = stringResource(R.string.delete)
+                    )
+                }
+            }
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor
     ) { padding ->
         LazyColumn(
             modifier = Modifier
