@@ -212,10 +212,13 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
         onExpandedChange = { state.onExpandedChange(it, loading) },
         wrapContent = true,
         icon = {
+            // 20dp 与工具调用行（ChatMessageTools.kt:81 的 `size(20.dp)`）对齐：两条行
+            // 都走 KedgeOptionItem 的 leading 槽，且图标底衬按内容包裹，这里写 16dp 会
+            // 连带把底衬缩一圈，同一块链里两种图标大小并存。
             Icon(
                 imageVector = emojiObjects,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
                 tint = KedgeColors.secondary,
             )
         },
