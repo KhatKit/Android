@@ -270,10 +270,15 @@ fun ChatMessage(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (showUserAvatarLine) {
+                    // 与助手侧的名字槽同一套字：脚注 + 半粗。两边名字都压在气泡上方，
+                    // 风格不统一的话一眼就能看出「用户这行更大」。
                     Text(
                         text = settings.userNickname.ifEmpty { stringResource(R.string.user_default_name) },
-                        style = KedgeTextStyles.body(),
+                        style = KedgeTextStyles.footnoteSmall(),
+                        fontWeight = FontWeight.SemiBold,
+                        color = KedgeColors.onSurface,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 messageBody()
