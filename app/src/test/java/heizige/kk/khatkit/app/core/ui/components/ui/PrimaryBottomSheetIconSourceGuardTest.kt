@@ -270,10 +270,7 @@ class PrimaryBottomSheetIconSourceGuardTest {
             68,
             sites.size,
         )
-        assertTrue(
-            "群聊页的 GroupConfigSheet 是本次真机崩的那个点，扫描必须覆盖到它",
-            sites.any { it.file.endsWith("feature/chat/GroupChatPage.kt") },
-        )
+        assertTrue("群配置面板已移除", sites.none { it.file.endsWith("feature/chat/GroupChatPage.kt") })
     }
 
     /**
@@ -314,18 +311,4 @@ class PrimaryBottomSheetIconSourceGuardTest {
         )
     }
 
-    /**
-     * 本次崩溃点的定点回归：群配置面板必须显式带上图标，且用的是顶栏「群配置」
-     * 按钮同款 `tune` —— 触发按钮与它打开的弹层同图标，语义闭合。
-     */
-    @Test
-    fun groupConfigSheet_passesTune() {
-        val site = allCallSites().firstOrNull {
-            it.file.endsWith("feature/chat/GroupChatPage.kt")
-        } ?: error("没找到 GroupChatPage.kt 里的 PrimaryBottomSheet 调用点")
-        assertTrue(
-            "GroupConfigSheet 必须显式传 imageVector = tune（真机实测必崩点）",
-            Regex("\\bimageVector\\s*=\\s*tune\\b").containsMatchIn(site.argText),
-        )
-    }
 }

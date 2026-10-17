@@ -21,6 +21,7 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.files.SkillManager
@@ -160,6 +161,11 @@ object AppHiltModule {
 
     @Provides
     @Singleton
+    fun provideRoleMemoryRepository(@ApplicationContext context: Context): RoleMemoryRepository =
+        RoleMemoryRepository(java.io.File(context.noBackupFilesDir, "role-memory"))
+
+    @Provides
+    @Singleton
     fun provideChatToolFactory(
         json: Json,
         memoryRepository: MemoryRepository,
@@ -170,6 +176,8 @@ object AppHiltModule {
         workspaceRepository: WorkspaceRepository,
         filesManager: FilesManager,
         khatKitToolProvider: KhatKitToolProvider,
+        settingsRepository: SettingsRepository,
+        roleMemoryRepository: RoleMemoryRepository,
     ): ChatToolFactory = ChatToolFactory(
         json = json,
         memoryRepository = memoryRepository,
@@ -180,6 +188,8 @@ object AppHiltModule {
         workspaceRepository = workspaceRepository,
         filesManager = filesManager,
         khatKitToolProvider = khatKitToolProvider,
+        settingsRepository = settingsRepository,
+        roleMemoryRepository = roleMemoryRepository,
     )
 
     /**
@@ -199,6 +209,7 @@ object AppHiltModule {
         conversationRepo: ConversationRepository,
         memoryRepository: MemoryRepository,
         memoryExtractor: MemoryExtractor,
+        roleMemoryRepository: RoleMemoryRepository,
         generationLoop: GenerationLoop,
         translationHandler: TranslationHandler,
         templateTransformer: TemplateTransformer,
@@ -219,6 +230,7 @@ object AppHiltModule {
         conversationRepo = conversationRepo,
         memoryRepository = memoryRepository,
         memoryExtractor = memoryExtractor,
+        roleMemoryRepository = roleMemoryRepository,
         generationLoop = generationLoop,
         translationHandler = translationHandler,
         templateTransformer = templateTransformer,

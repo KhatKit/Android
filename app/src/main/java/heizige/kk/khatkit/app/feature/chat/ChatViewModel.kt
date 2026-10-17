@@ -22,6 +22,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -81,6 +82,15 @@ class ChatViewModel @AssistedInject constructor(
         viewModelScope.launch {
             runCatching { chatService.selectMessageNode(current.id, node.id, index) }
         }
+    }
+
+    fun switchRole(roleId: Uuid, onReady: (Uuid) -> Unit) = viewModelScope.launch {
+        if (settingsStore.settingsFlow.value.assistants.none { it.id == roleId }) return@launch
+        val target = selectRoleChat(roleId, conversation.value,
+            conversationRepo.getRoleConversationSummaries().first(),
+            conversationJobs.value.filterValues { it?.isActive == true }.keys) ?: Uuid.random()
+        settingsStore.update { it.copy(assistantId = roleId) }
+        onReady(target)
     }
 
     // 聊天输入状态 - 保存在 ViewModel 中避免 TransactionTooLargeException

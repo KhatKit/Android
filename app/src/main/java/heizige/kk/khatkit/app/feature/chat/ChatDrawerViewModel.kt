@@ -63,6 +63,9 @@ class ChatDrawerViewModel @Inject constructor(
         .flatMapLatest { folderRepo.getFoldersOfAssistant(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val roleChats = conversationRepo.getRoleConversationSummaries()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // 主列表展示当前助手下未归入任何文件夹的会话，按时间分组。
     // 类型筛选整个下沉给 SQL（见 planConversationListQuery）：type 只作为查询参数传下去，
     // 不再对 PagingData 做内存过滤——内存过滤只作用在已加载的那几页，翻页会漏出别的类型，
@@ -101,11 +104,6 @@ class ChatDrawerViewModel @Inject constructor(
         savedStateHandle["scrollOffset"] = offset
     }
 
-    fun createGroup(onCreated: (Uuid) -> Unit) {
-        viewModelScope.launch {
-            onCreated(chatService.createGroup())
-        }
-    }
 
     fun createFolder(name: String) {
         val trimmed = name.trim()

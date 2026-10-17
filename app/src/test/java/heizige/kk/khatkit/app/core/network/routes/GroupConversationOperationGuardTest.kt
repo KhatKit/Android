@@ -60,7 +60,7 @@ class GroupConversationOperationGuardTest {
     // ---------------- 边界：isGroupConversation 要求两个条件同时成立 ----------------
 
     @Test
-    fun `groupConfig null but type GROUP is not a group conversation`() {
+    fun `groupConfig null but type GROUP is still archived`() {
         // 老数据可能只留了 type 没留 group_config（或反过来）。
         // 判定必须与 ChatManager.isGroupConversation 同口径：两个条件缺一不可，
         // 否则一次普通单聊调用会误伤同 id 的群聊行。
@@ -70,8 +70,8 @@ class GroupConversationOperationGuardTest {
         }
         val blocked = reasons.filterValues { it != null }.keys
         assertTrue(
-            "group_config 为 null 时（哪怕 type=GROUP）必须放行，实际拒绝了：$blocked",
-            blocked.isEmpty(),
+            "群配置缺失也不能恢复群聊执行",
+            blocked.size == ConversationOperation.entries.size,
         )
     }
 

@@ -6,7 +6,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * 五个会话操作端点的群聊门禁**源码文本护栏**。
+ * 六个消息操作端点的历史群聊只读门禁源码护栏。
  *
  * ⚠️ **这是文本护栏，不是行为断言。** 仓库 `app` 的 testImplementation 只有 junit，
  * 没有 Ktor test host / Robolectric，`conversationRoutes(...)` 要在真机或集成环境里跑，
@@ -48,6 +48,7 @@ class GroupOperationApiGuardSourceGuardTest {
     }
 
     private val guardedEndpoints = mapOf(
+        "post(\"/{id}/messages\")" to ConversationOperation.SendMessage,
         "post(\"/{id}/messages/{messageId}/edit\")" to ConversationOperation.EditMessage,
         "post(\"/{id}/fork\")" to ConversationOperation.Fork,
         "delete(\"/{id}/messages/{messageId}\")" to ConversationOperation.DeleteMessage,
@@ -72,11 +73,10 @@ class GroupOperationApiGuardSourceGuardTest {
 
     @Test
     fun `no other endpoint gained a group guard`() {
-        // 门禁是「点状」的：只有这五个端点该有。多出来的说明有人把守卫撒到了
-        // messages / title / stop 这类不破坏轮次账目的端点上，那是在改非群聊路径的行为。
+        // 发送和消息修改均禁用；标题元数据、停止任务等操作不受影响。
         val guardedRouteCount = lines.count { it.contains("requireConversationOperationAllowed(") }
         assertEquals(
-            "只有五个端点该有群聊门禁",
+            "消息操作端点必须完整覆盖归档门禁",
             guardedEndpoints.size,
             guardedRouteCount,
         )

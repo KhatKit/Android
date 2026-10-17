@@ -267,6 +267,10 @@ fun Route.conversationRoutes(
             val request = call.receive<SendMessageRequest>()
 
             chatService.initializeConversation(uuid)
+            requireConversationOperationAllowed(
+                chatService.getConversationFlow(uuid).value,
+                ConversationOperation.SendMessage,
+            )
             applyInitialConversationInjections(
                 chatService = chatService,
                 settingsStore = settingsStore,

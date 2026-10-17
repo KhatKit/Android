@@ -315,10 +315,7 @@ class BottomSheetScrollSourceGuardTest {
             "所有自己滚的调用点都应该配 scrollable = false（当前 ${selfScrolling.size} 处）",
             selfScrolling.all { it.scrollDisabled },
         )
-        assertTrue(
-            "群聊页的 GroupConfigSheet 是本次真机崩的那个点，扫描必须覆盖到它",
-            sites.any { it.file.endsWith("feature/chat/GroupChatPage.kt") },
-        )
+        assertTrue("群配置面板已移除", sites.none { it.file.endsWith("feature/chat/GroupChatPage.kt") })
     }
 
     /**
@@ -359,30 +356,4 @@ class BottomSheetScrollSourceGuardTest {
         )
     }
 
-    /**
-     * 本次崩溃点的定点回归：群配置面板必须显式 `scrollable = false`，
-     * 且内容里**恰好一个** `verticalScroll`。
-     *
-     * 为什么单独钉这一条：主规则只看「有没有叠两层」，判不出「滚动权归谁」；
-     * 而这个面板的正确答案就是它自己滚（内容很长），钉住具体形态才防得住
-     * 「顺手把 scrollable 改回 true」或「顺手再套一层 LazyColumn」。
-     */
-    @Test
-    fun groupConfigSheet_scrollsItselfAndOnlyItself() {
-        val site = allCallSites().firstOrNull {
-            it.file.endsWith("feature/chat/GroupChatPage.kt")
-        } ?: error("没找到 GroupChatPage.kt 里的 PrimaryBottomSheet 调用点")
-
-        assertTrue(
-            "GroupConfigSheet 必须显式传 scrollable = false（真机实测滚动必崩点）：" +
-                "Khromia BasicBottomSheet 在 scrollable = true 时已经套了一层 verticalScroll",
-            site.scrollDisabled,
-        )
-        val scrolls = SELF_SCROLL_REGEX.findAll(site.contentText).count()
-        assertEquals(
-            "GroupConfigSheet 内应恰好有 1 个纵向滚动容器（自己那层），实际 $scrolls 个",
-            1,
-            scrolls,
-        )
-    }
 }

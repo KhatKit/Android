@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ fun AssistantItem(
     contentColor: Color = Color.Unspecified,
     supportingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
+    showDescription: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
     val displayName = assistant.name.ifBlank { defaultAssistantName }
@@ -92,7 +94,21 @@ fun AssistantItem(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        supportingContent = supportingContent,
+        supportingContent = if ((showDescription && assistant.description.isNotBlank()) || supportingContent != null) {
+            {
+                Column {
+                    if (showDescription && assistant.description.isNotBlank()) {
+                        Text(
+                            text = assistant.description,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = KedgeTextStyles.footnoteSmall(),
+                        )
+                    }
+                    supportingContent?.invoke()
+                }
+            }
+        } else null,
         trailingContent = trailingContent,
     )
 }

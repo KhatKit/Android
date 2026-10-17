@@ -98,6 +98,7 @@ import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.GroupMemorySpacePolicy
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.messagesVisibleToRole
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.NotFoundException
@@ -262,6 +263,7 @@ class ChatManager(
      * 让契约「取消/超时不得写入未生成的消息」的超时半条不用等 15 分钟就能被断言。
      */
     private val groupRoundStepTimeoutMs: Long = GROUP_ROUND_STEP_TIMEOUT_MS,
+    private val roleMemoryRepository: heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository? = null,
 ) {
     /**
      * 群聊轮次运行日志（`group_runs`）读写。
@@ -477,6 +479,10 @@ class ChatManager(
     fun sendMessage(conversationId: Uuid, content: List<UIMessagePart>, answer: Boolean = true) {
         if (content.isEmptyInputMessage()) return
         val session = sessionManager.getOrCreate(conversationId)
+        if (session.state.value.isArchivedGroupConversation()) {
+            addError(IllegalStateException(LEGACY_GROUP_ARCHIVE_MESSAGE), conversationId)
+            return
+        }
         synchronized(session) {
             if (session.messageQueue.state.value.messages.isEmpty()) session.messageQueue.resume()
             session.messageQueue.enqueue(content, answer)
@@ -489,6 +495,7 @@ class ChatManager(
         val session = sessionManager.getOrCreate(conversationId)
         val reply = CompletableDeferred<String?>()
         synchronized(session) {
+            requireActiveRoleConversation(session.state.value)
             check(text.isNotBlank()) { context.getString(R.string.chat_page_voice_empty) }
             check(!session.messageQueue.state.value.paused || session.messageQueue.state.value.messages.isEmpty()) {
                 context.getString(R.string.chat_page_voice_resume_queue)
@@ -528,6 +535,7 @@ class ChatManager(
                 finishInterruptedPendingTools(conversationId)
 
                 val currentConversation = session.state.value
+                requireActiveRoleConversation(currentConversation)
                 val settings = settingsStore.settingsFlow.first()
                 val assistant = settings.getAssistantById(currentConversation.assistantId)
                     ?: settings.getCurrentAssistant()
@@ -630,6 +638,7 @@ class ChatManager(
             try {
                 previousJob?.join()
                 val conversation = session.state.value
+                requireActiveRoleConversation(conversation)
 
                 if (message.role == MessageRole.USER) {
                     // 如果是用户消息，则截止到当前消息
@@ -686,6 +695,7 @@ class ChatManager(
             try {
                 afterPreviousGeneration(previousJob) {
                     val conversation = session.state.value
+                    requireActiveRoleConversation(conversation)
                     // Ignore double taps and stale approvals for completed or inactive tools.
                     if (conversation.currentMessages.none { message ->
                             message.getTools().any { it.toolCallId == toolCallId && it.isPending }
@@ -749,6 +759,7 @@ class ChatManager(
     ) {
         val settings = settingsStore.settingsFlow.first()
         val initialConversation = getConversationFlow(conversationId).value
+        requireActiveRoleConversation(initialConversation)
         var assistant = settings.getAssistantById(initialConversation.assistantId)
             ?: settings.getCurrentAssistant()
         var groupStep: SpeakerStep? = null
@@ -804,7 +815,8 @@ class ChatManager(
             groupRunToken = (groupEntry as? GroupTurnEntry.Speak)?.runToken
             val step = groupStep
             if (step != null && groupConfig != null) {
-                settings.getAssistantById(Uuid.parse(step.role.assistantId))?.let { assistant = it }
+                assistant = settings.getAssistantById(Uuid.parse(step.role.assistantId))
+                    ?: error("Group role configuration no longer exists")
                 // C1-02：模型选型与气泡显示同一口径——角色自己的 `model_id` 优先，绑不上
                 // （空串 / 非法 Uuid / 模型已删）才回落助手 `chatModelId`，那正是 C1 之前
                 // 那一行传的值，路由与预算行为一字未变。判定本身在纯函数里（见
@@ -851,6 +863,7 @@ class ChatManager(
                     assistant = assistant,
                     model = model,
                     workspaceCwd = conversation.workspaceCwd,
+                    conversationId = conversationId,
                     // C1-M：群聊时记忆工具绑定本轮发言角色的群空间
                     // `group:<conv>:role:<role>`，不回退到助手/全局空间。
                     groupMemory = step?.let { GroupMemoryScope(conversationId.toString(), it.role.id) },
@@ -890,7 +903,7 @@ class ChatManager(
                     .filter { it.role == MessageRole.USER }
                     .joinToString("\n") { it.toText() }
                     .takeLast(4_000)
-            val memories = memoryRepository.searchMemories(
+            val memories = if (roleMemoryRepository != null) emptyList() else memoryRepository.searchMemories(
                 assistantId = memoryScope,
                 query = memoryQuery,
                 limit = 8,
@@ -944,39 +957,14 @@ class ChatManager(
                 },
                 outputTransformers = outputTransformers,
                 tools = tools,
-            ).onCompletion {
+            ).onCompletion { completionCause ->
                 // 可能被取消了，或者意外结束，兜底更新
                 val updatedConversation = session.finishGeneration { conversation ->
                     saveConversation(conversationId, conversation)
                 }
 
-                // A2 自动记忆抽取
-                if (assistant.enableMemory && assistant.autoExtractMemory) {
-                    val speakingRole = groupStep?.role
-                    val memSpace = when {
-                        speakingRole != null -> GroupChat.memorySpaceId(conversationId.toString(), speakingRole.id)
-                        assistant.useGlobalMemory -> MemoryRepository.GLOBAL_MEMORY_ID
-                        else -> assistant.id.toString()
-                    }
-                    // C1-M：抽取的输入也必须是 viewer 可见集合——直接喂完整历史会把同群
-                    // 其他角色的发言抽进本角色空间，与检索/工具侧同一口径。这里刻意不传
-                    // `predecessorId`：pipeline 里上一位的输出属于别人的发言，由他自己
-                    // 写进自己的空间，记忆才真正一角色一份。
-                    val extractScope = if (speakingRole != null && groupConfig != null) {
-                        GroupChat.buildContext(speakingRole.id, updatedConversation.currentMessages, groupConfig)
-                    } else {
-                        updatedConversation.currentMessages
-                    }
-                    appScope.launch {
-                        runCatching {
-                            memoryExtractor.extractFromTurn(
-                                spaceId = memSpace,
-                                messages = extractScope.takeLast(MemoryExtractor.MAX_EXTRACT_WINDOW),
-                                roleId = speakingRole?.id,
-                                settings = settingsStore.settingsFlow.first(),
-                            )
-                        }
-                    }
+                if (completionCause == null && step == null) {
+                    recordCompletedRoleTurn(updatedConversation, assistant)
                 }
 
                 // 生成结束：取消 Live Update 通知，后台时发送完成通知
@@ -1046,7 +1034,12 @@ class ChatManager(
             val config = conversation.groupConfig ?: return@onSuccess
             val plan = GroupTurnCoordinator.roundPlanFor(config, conversation.currentMessages)
                 ?: return@onSuccess
-            when (val advance = commitGroupTurn(conversationId, step, groupRunToken, plan, config)) {
+            val advance = commitGroupTurn(conversationId, step, groupRunToken, plan, config)
+            // Role attribution and run ownership become authoritative only after commit.
+            if (advance != null && advance !is GroupTurnCoordinator.Advance.Halted) {
+                recordCompletedRoleTurn(getConversationFlow(conversationId).value, assistant, step.role.id)
+            }
+            when (advance) {
                 // `commitGroupTurn` 返回 null 的**唯一**形状是 `produced == null`（空产出）。
                 // 那条路里 `failGroupTurn` 会在**归属成立**时自己清镜像，所以这里的兜底
                 // 只为「`failGroupTurn` 提前 return」而存在：`groupConfig` 已被改成单聊、
@@ -1090,6 +1083,50 @@ class ChatManager(
             sessionManager.launchWithSession(conversationId) {
                 generateTitle(conversationId, finalConversation)
             }
+        }
+    }
+
+    private suspend fun recordCompletedRoleTurn(
+        conversation: Conversation,
+        assistant: Assistant,
+        groupRoleId: String? = null,
+    ) {
+        if (!assistant.enableMemory) return
+        val visible = if (groupRoleId != null) {
+            val config = conversation.groupConfig ?: return
+            GroupChat.buildContext(groupRoleId, conversation.currentMessages, config)
+        } else conversation.currentMessages
+        val last = visible.lastOrNull {
+            it.role == MessageRole.ASSISTANT && (groupRoleId == null || it.roleId == groupRoleId)
+        } ?: return
+        if (last.toText().isBlank() || last.getTools().any { it.isPending }) return
+        runCatching {
+            val user = visible.lastOrNull { it.role == MessageRole.USER }
+            roleMemoryRepository?.appendTurn(assistant.id, conversation.id, last.id,
+                "USER: ${user?.toText().orEmpty().take(400)} | ASSISTANT: ${last.toText().take(700)}")
+        }.onFailure { error ->
+            if (error is CancellationException) throw error
+            Logging.log(TAG, "Memory journal write failed: ${error.javaClass.simpleName}")
+        }
+        if (!assistant.autoExtractMemory) return
+        val spaceId = when {
+            groupRoleId != null -> GroupChat.memorySpaceId(conversation.id.toString(), groupRoleId)
+            assistant.useGlobalMemory && roleMemoryRepository == null -> MemoryRepository.GLOBAL_MEMORY_ID
+            else -> assistant.id.toString()
+        }
+        appScope.launch {
+            runCatching {
+                memoryExtractor.extractFromTurn(
+                    spaceId = spaceId,
+                    messages = visible.takeLast(MemoryExtractor.MAX_EXTRACT_WINDOW),
+                    roleId = groupRoleId,
+                    settings = settingsStore.settingsFlow.first(),
+                    existingMemory = roleMemoryRepository?.read(assistant.id)?.content.orEmpty(),
+                    onFact = roleMemoryRepository?.let { repository ->
+                        { fact -> repository.remember(assistant.id, fact.content, fact.replaces) }
+                    },
+                )
+            }.onFailure { if (it is CancellationException) throw it }
         }
     }
 
@@ -1257,6 +1294,7 @@ class ChatManager(
         targetTokens: Int,
         keepRecentMessages: Int = 32
     ): Result<Unit> = runCatching {
+        requireActiveRoleConversation(conversation)
         val settings = settingsStore.settingsFlow.first()
         val model = TaskRoutes.resolve(settings, ModelTaskType.SUMMARY)
         val provider = model.findProvider(settings.providers)
@@ -1296,6 +1334,28 @@ class ChatManager(
             // viewer 在压缩窗口里一条都看不到：发空内容会让模型凭空编一段摘要，再拿它替换掉
             // 真实历史。宁可失败，也不让用户丢消息。
             throw IllegalStateException("No visible message to compress under the current group viewer scope")
+        }
+
+        // Flush durable facts before replacing the only full context with a summary.
+        if (roleMemoryRepository != null) {
+            val roleIds = conversation.groupConfig?.roles?.mapNotNull {
+                runCatching { Uuid.parse(it.assistantId) }.getOrNull()
+            }?.distinct() ?: listOf(conversation.assistantId)
+            val compressedIds = messagesToCompress.mapTo(hashSetOf()) { it.id }
+            for (roleId in roleIds) {
+                val memoryRole = settings.getAssistantById(roleId)?.takeIf { it.enableMemory } ?: continue
+                val visible = conversation.messagesVisibleToRole(roleId).filter { it.id in compressedIds }
+                roleMemoryRepository.archiveBeforeCompression(roleId, conversationId, visible)
+                for (window in visible.chunked(MemoryExtractor.MAX_EXTRACT_WINDOW)) {
+                    memoryExtractor.extractFromTurn(
+                        spaceId = roleId.toString(),
+                        messages = window,
+                        settings = settings,
+                        existingMemory = roleMemoryRepository.read(memoryRole.id).content,
+                        onFact = { roleMemoryRepository.remember(memoryRole.id, it.content, it.replaces) },
+                    )
+                }
+            }
         }
 
         fun splitMessages(messages: List<UIMessage>): List<List<UIMessage>> {
@@ -1475,6 +1535,10 @@ class ChatManager(
     ) {
         appScope.launch(Dispatchers.IO) {
             try {
+                if (getConversationFlow(conversationId).value.isArchivedGroupConversation()) {
+                    addError(IllegalStateException(LEGACY_GROUP_ARCHIVE_MESSAGE), conversationId)
+                    return@launch
+                }
                 val settings = settingsStore.settingsFlow.first()
 
                 val messageText = message.parts.filterIsInstance<UIMessagePart.Text>()
@@ -1540,6 +1604,7 @@ class ChatManager(
         if (parts.isEmptyInputMessage()) return
 
         val currentConversation = getConversationFlow(conversationId).value
+        requireActiveRoleConversation(currentConversation)
         val settings = settingsStore.settingsFlow.first()
         val assistant = settings.getAssistantById(currentConversation.assistantId)
             ?: settings.getCurrentAssistant()
@@ -1571,6 +1636,7 @@ class ChatManager(
         messageId: Uuid
     ): Conversation {
         val currentConversation = getConversationFlow(conversationId).value
+        requireActiveRoleConversation(currentConversation)
         val targetNodeIndex = currentConversation.messageNodes.indexOfFirst { node ->
             node.messages.any { it.id == messageId }
         }
@@ -1609,6 +1675,7 @@ class ChatManager(
         selectIndex: Int
     ) {
         val currentConversation = getConversationFlow(conversationId).value
+        requireActiveRoleConversation(currentConversation)
         val targetNode = currentConversation.messageNodes.firstOrNull { it.id == nodeId }
             ?: throw NotFoundException("Message node not found")
 
@@ -1637,6 +1704,7 @@ class ChatManager(
         failIfMissing: Boolean = true,
     ) {
         val currentConversation = getConversationFlow(conversationId).value
+        requireActiveRoleConversation(currentConversation)
         val updatedConversation = buildConversationAfterMessageDelete(currentConversation, messageId)
 
         if (updatedConversation == null) {
@@ -1723,42 +1791,6 @@ class ChatManager(
         updateConversation(conversationId, currentConversation.copy(messageNodes = updatedNodes))
     }
 
-    suspend fun createGroup(): Uuid {
-        val settings = settingsStore.settingsFlow.value
-        val current = settings.getCurrentAssistant()
-        val members = (listOf(current) + settings.assistants.filter { it.id != current.id }.take(2))
-        val roles = members.map { assistant ->
-            GroupRole(
-                id = assistant.id.toString(),
-                name = assistant.name.ifBlank { "角色" },
-                assistantId = assistant.id.toString(),
-                chair = assistant.id == current.id,
-            )
-        }
-        val config = GroupConfig(
-            roles = roles,
-            mode = GroupChat.MODE_PIPELINE,
-            tokenBudgetPerRound = 2000,
-        )
-        val conversation = Conversation(
-            assistantId = current.id,
-            title = "群聊",
-            messageNodes = emptyList(),
-            type = GroupChat.TYPE_GROUP,
-            groupConfig = config,
-        )
-        // 落库前跑一遍字段级校验。返回类型是 Uuid（ChatDrawerViewModel.createGroup 依赖它），
-        // 不能改成可空/结果对象，所以非法配置只能拒收：先记日志再抛，绝不写进库。
-        // 当前组装逻辑本应恒合法，这里是把「先校验后落库」固化成结构约束，而不是口头约定。
-        val invalid = GroupChat.validate(config, conversation.id.toString())
-        if (invalid.isNotEmpty()) {
-            val detail = invalid.joinToString { "${it.field}: ${it.message}" }
-            Log.w(TAG, "createGroup 群配置校验失败，拒绝落库：$detail")
-            error("群配置校验失败，拒绝落库：$detail")
-        }
-        conversationRepo.insertConversation(conversation)
-        return conversation.id
-    }
 
     /**
      * 轮次准入：**落库成功之后**才可能返回 [GroupTurnEntry.Speak]，也就是「run token 必须持久化

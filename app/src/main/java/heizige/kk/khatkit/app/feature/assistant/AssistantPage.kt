@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -60,6 +63,12 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_ASSISTANTS_IDS
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
+import heizige.kk.khatkit.app.core.data.model.RoleTemplates
+import heizige.kk.khatkit.ai.provider.ModelType
+import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
+import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
+import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantItem
@@ -123,7 +132,9 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
     val filteredAssistants = remember(settings.assistants, selectedTagIds, searchQuery) {
         settings.assistants.filter { assistant ->
             val matchesSearch = searchQuery.isBlank() ||
-                assistant.name.contains(searchQuery, ignoreCase = true)
+                assistant.name.contains(searchQuery, ignoreCase = true) ||
+                assistant.description.contains(searchQuery, ignoreCase = true) ||
+                assistant.id.toString().contains(searchQuery, ignoreCase = true)
             val matchesTags = selectedTagIds.isEmpty() ||
                 assistant.tags.any { tagId -> tagId in selectedTagIds }
             matchesSearch && matchesTags
@@ -139,12 +150,14 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 },
                 actions = {
                     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                        MiuixIconButton(onClick = { createState.open(Assistant()) }) {
+                        MiuixIconButton(onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id,
+                            enableMemory = true, autoExtractMemory = true, enableRecentChatsReference = true)) }) {
                             MiuixIcon(add, contentDescription = stringResource(R.string.assistant_page_add))
                         }
                     } else {
                         KedgeIconButton(
-                            onClick = { createState.open(Assistant()) },
+                            onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id,
+                                enableMemory = true, autoExtractMemory = true, enableRecentChatsReference = true)) },
                             shapes = IconButtonDefaults.shapes(),
                         ) {
                             Icon(add, stringResource(R.string.assistant_page_add))
@@ -205,11 +218,11 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             state = reorderableState,
                             key = assistant.id,
                         ) { isDragging ->
-                            val memories by vm.getMemories(assistant).collectAsStateWithLifecycle(
-                                initialValue = emptyList(),
+                            val memoryCount by remember(assistant.id) { vm.getMemoryCount(assistant) }.collectAsStateWithLifecycle(
+                                initialValue = 0,
                             )
                             // 支持行只在真有记忆角标/标签时才占位，空 Row 会在标题下留一道死间距。
-                            val hasSupporting = assistant.enableMemory || assistant.tags.isNotEmpty()
+                            val hasSupporting = assistant.canManageRoles || assistant.enableMemory || assistant.tags.isNotEmpty()
                             AssistantItem(
                                 assistant = assistant,
                                 defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
@@ -222,9 +235,12 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
+                                            if (assistant.canManageRoles) {
+                                                Tag(type = TagType.SUCCESS) { Text("主管") }
+                                            }
                                             if (assistant.enableMemory) {
                                                 Tag(type = TagType.SUCCESS) {
-                                                    Text(stringResource(R.string.assistant_page_memory_count, memories.size))
+                                                    Text(stringResource(R.string.assistant_page_memory_count, memoryCount))
                                                 }
                                             }
 
@@ -297,7 +313,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                         // 双风格都交给 KedgeOptionItem 内部分流（MD3Exp / Miuix），
                         // 不再在这里手写 PreferenceArrow 分支。
                         KedgeOptionItem(
-                            onClick = { createState.open(Assistant()) },
+                            onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 16.dp),
@@ -354,16 +370,16 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
         }
     }
 
-    AssistantCreationSheet(createState)
+    AssistantCreationSheet(createState, settings)
 
     // 操作菜单 Bottom Sheet
     actionSheetAssistant?.let { assistant ->
-        val memories by vm.getMemories(assistant).collectAsStateWithLifecycle(initialValue = emptyList())
+        val memoryCount by remember(assistant.id) { vm.getMemoryCount(assistant) }.collectAsStateWithLifecycle(initialValue = 0)
         AssistantActionSheet(
             assistant = assistant,
             onDismiss = { actionSheetAssistant = null },
             onCopy = {
-                if (!assistant.useGlobalMemory && memories.isNotEmpty()) {
+                if (memoryCount > 0) {
                     cloneWithMemories = false
                     cloneTarget = assistant
                     actionSheetAssistant = null
@@ -474,6 +490,7 @@ private fun AssistantTagsFilterRow(
 @Composable
 private fun AssistantCreationSheet(
     state: EditState<Assistant>,
+    settings: Settings,
 ) {
     state.EditStateContent { assistant, update ->
         PrimaryBottomSheet(
@@ -487,10 +504,14 @@ private fun AssistantCreationSheet(
             onDismiss = {
                 state.dismiss()
             },
+            scrollable = false,
         ) { _ ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
                     .padding(horizontal = 16.dp, vertical = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -499,6 +520,28 @@ private fun AssistantCreationSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    val templates = listOf("自定义角色", "Toolbox 主管")
+                    val toolbox = RoleTemplates.toolbox(modelId = assistant.chatModelId, id = assistant.id)
+                    Select(
+                        options = templates,
+                        selectedOption = if (assistant.systemPrompt == toolbox.systemPrompt) templates[1] else templates[0],
+                        onOptionSelected = { template ->
+                            update(if (template == templates[1]) toolbox else Assistant(
+                                id = assistant.id,
+                                chatModelId = assistant.chatModelId,
+                                enableMemory = true,
+                                autoExtractMemory = true,
+                                enableRecentChatsReference = true,
+                            ))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    UIAvatar(
+                        value = assistant.avatar,
+                        name = assistant.name,
+                        onUpdate = { update(assistant.copy(avatar = it)) },
+                        modifier = Modifier.size(64.dp),
+                    )
                     // 表单行收口到 KedgeOptionItem：标题走 titleContent，输入框走
                     // supportingContent（不再经项目内的转接层）。
                     KedgeOptionItem(
@@ -523,6 +566,23 @@ private fun AssistantCreationSheet(
                         },
                     )
 
+                    KedgeOutlinedTextField(
+                        value = assistant.description,
+                        onValueChange = { update(assistant.copy(description = it)) },
+                        label = "职责描述",
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    ModelSelector(
+                        modelId = assistant.chatModelId,
+                        providers = settings.providers,
+                        type = ModelType.CHAT,
+                        onSelect = { update(assistant.copy(chatModelId = it.id)) },
+                    )
+                    ReasoningButton(
+                        reasoningLevel = assistant.reasoningLevel,
+                        onUpdateReasoningLevel = { update(assistant.copy(reasoningLevel = it)) },
+                    )
                     AssistantImporter(
                         assistant = assistant,
                         onUpdate = {

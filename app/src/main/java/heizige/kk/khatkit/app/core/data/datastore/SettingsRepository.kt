@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -48,6 +50,7 @@ import heizige.kk.khatkit.app.core.data.model.InjectionPosition
 import heizige.kk.khatkit.app.core.data.model.Lorebook
 import heizige.kk.khatkit.app.core.data.model.PromptInjection
 import heizige.kk.khatkit.app.core.data.model.QuickMessage
+import heizige.kk.khatkit.app.core.data.model.RoleTemplates
 import heizige.kk.khatkit.app.core.data.model.Tag
 import heizige.kk.khatkit.app.core.data.sync.s3.S3Config
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
@@ -106,6 +109,8 @@ class SettingsRepository @Inject constructor(
     scope: AppScope,
     private val pebbleEngine: Lazy<PebbleEngine>,
 ) {
+    private val updateMutex = Mutex()
+
     companion object {
         // 版本号
         val VERSION = intPreferencesKey("data_version")
@@ -362,7 +367,7 @@ class SettingsRepository @Inject constructor(
                     )
                 } else provider
             }.toMutableList()
-            val assistants = normalizeAssistants(it.assistants)
+            val assistants = normalizeAssistants(it.assistants).map(::migrateLegacyDefaultRole)
             val ttsProviders = it.ttsProviders.ifEmpty { DEFAULT_TTS_PROVIDERS }.toMutableList()
             DEFAULT_TTS_PROVIDERS.forEach { defaultTTSProvider ->
                 if (ttsProviders.none { provider -> provider.id == defaultTTSProvider.id }) {
@@ -431,6 +436,7 @@ class SettingsRepository @Inject constructor(
                 quickMessages = settings.quickMessages.distinctBy { it.id },
             )
         }
+        .map { it.withRoleModels() }
         .onEach {
             pebbleEngine.get().templateCache.invalidateAll()
         }
@@ -439,7 +445,11 @@ class SettingsRepository @Inject constructor(
         .distinctUntilChanged()
         .toMutableStateFlow(scope, Settings.dummy())
 
-    suspend fun update(settings: Settings) {
+    suspend fun update(settings: Settings) = updateMutex.withLock {
+        persistUpdate(settings)
+    }
+
+    private suspend fun persistUpdate(settings: Settings) {
         if(settings.init) {
             Log.w(TAG, "Cannot update dummy settings")
             return
@@ -447,9 +457,17 @@ class SettingsRepository @Inject constructor(
         // 助手列表非空是全局不变量。读取路径已兜底（见 settingsFlowRaw 里的 normalizeAssistants），
         // 写入路径也必须兜底：否则 settingsFlow 会在 persist 之前短暂持有空列表，
         // 让 getCurrentAssistant() 的 first() 抛 NoSuchElementException（真机删除最后一个助手即崩溃）。
-        val updated = settings.copy(assistants = normalizeAssistants(settings.assistants))
+        val updated = settings.copy(
+            assistants = normalizeAssistants(settings.assistants).map(::migrateLegacyDefaultRole),
+        ).withRoleModels()
+        val previous = settingsFlow.value
         settingsFlow.value = updated
-        persistSettings(dataStore, updated)
+        try {
+            persistSettings(dataStore, updated)
+        } catch (error: Exception) {
+            settingsFlow.value = previous
+            throw error
+        }
     }
 
     suspend fun incrementLaunchCount(): Int {
@@ -461,13 +479,16 @@ class SettingsRepository @Inject constructor(
         return count
     }
 
-    suspend fun update(fn: (Settings) -> Settings) {
-        update(fn(settingsFlow.value))
+    suspend fun update(fn: (Settings) -> Settings) = updateMutex.withLock {
+        persistUpdate(fn(settingsFlow.value))
     }
 
     suspend fun updateAssistant(assistantId: Uuid) {
-        dataStore.edit { preferences ->
-            preferences[SELECT_ASSISTANT] = assistantId.toString()
+        update { current ->
+            current.copy(
+                assistantId = assistantId.takeIf { id -> current.assistants.any { it.id == id } }
+                    ?: current.getCurrentAssistant().id,
+            )
         }
     }
 
@@ -768,8 +789,14 @@ internal fun normalizeAssistants(assistants: List<Assistant>): List<Assistant> =
  * 删除助手；删除后若列表为空，则原子地回落到 [DEFAULT_ASSISTANTS]（而不是留下空列表的中间态），
  * 从而让 [SettingsRepository.update] 始终以非空助手列表写入。
  */
-fun Settings.removeAssistant(assistant: Assistant): Settings =
-    copy(assistants = normalizeAssistants(assistants.filterNot { it.id == assistant.id }))
+fun Settings.removeAssistant(assistant: Assistant): Settings {
+    val remaining = normalizeAssistants(assistants.filterNot { it.id == assistant.id })
+    return copy(
+        assistants = remaining,
+        assistantId = assistantId.takeIf { selected -> remaining.any { it.id == selected } }
+            ?: remaining.first().id,
+    )
+}
 
 fun Settings.getAssistantById(id: Uuid): Assistant? {
     return this.assistants.find { it.id == id }
@@ -877,18 +904,7 @@ private fun Model.findModelProviderFromList(providers: List<ProviderSetting>): P
 
 internal val DEFAULT_ASSISTANT_ID = Uuid.parse("0950e2dc-9bd5-4801-afa3-aa887aa36b4e")
 internal val DEFAULT_ASSISTANTS = listOf(
-    Assistant(
-        id = DEFAULT_ASSISTANT_ID,
-        name = "",
-        systemPrompt = "",
-        enableMemory = true,
-        enableRecentChatsReference = true,
-        enableTimeReminder = true,
-        enableWebSearch = true,
-        localTools = PreferenceStoreV4Migration.ALL_LOCAL_TOOLS,
-        allowConversationSystemPrompt = true,
-        allowConversationPromptInjection = true,
-    ),
+    RoleTemplates.toolbox(id = DEFAULT_ASSISTANT_ID),
 )
 
 val DEFAULT_SYSTEM_TTS_ID = Uuid.parse("026a01a2-c3a0-4fd5-8075-80e03bdef200")

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
@@ -74,7 +75,6 @@ import kotlinx.coroutines.withContext
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.Model
-import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
@@ -91,8 +91,9 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.feature.chat.ChatError
 import heizige.kk.khatkit.app.core.ui.components.ai.ChatAttachmentPickerActions
 import heizige.kk.khatkit.app.core.ui.components.ai.ChatInput
-import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
-import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
+import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPickerSheet
+import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
+import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.ai.FilesPicker
 import heizige.kk.khatkit.app.core.ui.components.ai.SearchMode
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionProvider
@@ -219,54 +220,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
         }
     }
 
-    // ---------- 群聊复用同一个页面 ----------
-    // 单聊与群聊现在都走这一个 [ChatPage]：群聊专属件通过 [ChatScaffold] 的注入缝挂上，
-    // 单聊时全部落默认值（渲染结果与 C1 之前逐字相同）。判定用 [isGroupConversation]
-    // 的严格口径（group_config 非空**且** type == GROUP）。
-    val config = conversation.groupConfig
-    val isGroup = isGroupConversation(conversation)
-    val roleCompletionProvider = remember(config) { GroupRoleCompletionProvider { config } }
-    var showConfigSheet by rememberSaveable { mutableStateOf(false) }
-
-    // 群聊专属注入件。单聊（isGroup == false）全部落 ChatScaffold 的默认值，逐字不变。
-    // ⚠️ lambda 分支必须写在括号里（`if (c) ({ ... }) else (...)`）：`if (c) { ... } else {}`
-    //    会被解析成 if/else 的**代码块**而不是 lambda，块值是 Boolean/Unit，类型对不上。
-    val topBarSlot: (@Composable (TopAppBarScrollBehavior) -> Unit)? = if (isGroup) {
-        ({ scrollBehavior ->
-            GroupTopBar(
-                title = conversation.title.ifBlank { "群聊" },
-                subtitle = config?.let { "${it.mode} · ${it.roles.size} 个角色" },
-                scrollBehavior = scrollBehavior,
-                onBack = { navController.popBackStack() },
-                onOpenConfig = { showConfigSheet = true },
-            )
-        })
-    } else {
-        null
-    }
-    val listOverlaySlot: @Composable BoxScope.() -> Unit = if (isGroup) {
-        ({
-            GroupInfoChip(
-                config = config,
-                modifier = Modifier.align(Alignment.TopEnd),
-                onClick = { showConfigSheet = true },
-            )
-        })
-    } else {
-        ({})
-    }
-    val bottomBarAboveInputSlot: @Composable () -> Unit = if (isGroup) {
-        ({ GroupMemberBar(config = config, settings = setting, inputState = inputState) })
-    } else {
-        ({})
-    }
-    val extraCompletionProvidersSlot: List<ChatCompletionProvider> =
-        if (isGroup) listOf(roleCompletionProvider) else emptyList()
-    // 群聊只放行「编辑用户自己那条提问」：改写角色发言会让群运行日志的
-    // committed_role_ids / last_user_message_id 与实际消息错位，与重新生成/删除/
-    // 切分支同级（那三个已由 ChatList 按 groupChat 关掉）。
-    val canEditMessageSlot: (UIMessage) -> Boolean =
-        if (isGroup) groupCanEditMessage else ({ true })
+    val archived = conversation.isArchivedGroupConversation()
 
     val scaffold: @Composable (Boolean) -> Unit = { bigScreen ->
         ChatScaffold(
@@ -286,11 +240,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
             errors = errors,
             onDismissError = { vm.dismissError(it) },
             onClearAllErrors = { vm.clearAllErrors() },
-            topBar = topBarSlot,
-            listOverlay = listOverlaySlot,
-            bottomBarAboveInput = bottomBarAboveInputSlot,
-            extraCompletionProviders = extraCompletionProvidersSlot,
-            canEditMessage = canEditMessageSlot,
+            archived = archived,
         )
     }
 
@@ -328,67 +278,11 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
         }
     }
 
-    // 群配置面板：只有群聊会话会出现（单聊恒不渲染，与 C1 之前完全相同）。
-    if (isGroup && showConfigSheet) {
-        GroupConfigSheet(
-            conversationId = id,
-            conversation = conversation,
-            config = config,
-            importedCards = conversation.groupCards,
-            settings = setting,
-            onSave = { newConfig, importedCards ->
-                groupConfigSave(vm, id, conversation, newConfig, importedCards)
-            },
-            // 酒馆群聊文件回导。与 onSave 分开是因为它要往 messageNodes 追加消息，
-            // 而 onSave 只改群配置与角色卡快照。
-            onImportTavernGroup = { imported ->
-                vm.updateConversation(imported)
-                vm.saveConversationAsync()
-            },
-            onDismiss = { showConfigSheet = false },
-        )
-    }
 }
 
 /**
- * 单聊页和群聊页共用的消息区骨架。
- *
- * C1 之前群聊页（`GroupChatPage`）自己手写了一套 `LazyColumn` + `Text` 气泡 +
- * `KedgeOutlinedTextFieldWithSlots` 输入框，单聊这一侧已经调通的行为——抽屉、大屏分栏、
- * 语音模式、停止生成、毛玻璃、键盘跟随、@ 选择器插槽——一个都没接过去，两套页面各自漂移。
- * 这里把原先 `private` 的 `ChatPageContent` 提成 [ChatScaffold] 并开出五个**带默认值**的
- * 注入缝，让群聊页复用同一条消息管线，而不是复制一份再各自改。
- *
- * ## 纯加法：单聊零行为变化
- *
- * 五个新参数都有默认值，因此 [ChatPage] 里那两个调用点（`isBigScreen` 的
- * `PermanentNavigationDrawer` 分支与 `else` 的 `ModalNavigationDrawer` 分支）**一行都不用改**：
- * 不传即 `listOverlay = {}`、`bottomBarAboveInput = {}`、`extraCompletionProviders = emptyList()`、
- * `topBar = null`、`canEditMessage = { true }`，
- * 渲染结果与 C1 之前完全相同。**以后给本函数加参数，一律追加到列表末尾并给默认值，
- * 不要动这两个调用点的既有参数顺序。**
- *
- * @param listOverlay 画在 [ChatList] **之后**、仍在内容槽那个 `Box` 里的浮层。
- *   位置是硬要求：同一个 `Box` 里前面依次是 `AssistantBackground` 与 `ChatList`，
- *   插在它们之前会被消息列表整块压住（`AssistantBackground` 还是 `fillMaxSize`）。
- * @param bottomBarAboveInput 画在输入框正上方、仍在 `bottomBar` 槽里的内容（成员头像组等）。
- *   在 `ChatInput` 之前调用，这样它在布局上就在输入框上方，且同样被输入框的毛玻璃 backdrop
- *   覆盖（`ChatInput` 自己会 `hazeSource` 采样上方内容）。
- * @param extraCompletionProviders 追加到 `ChatInput` 的 @ 选择器 provider 列表**尾部**。
- *   ⚠️ 已知坑：`ChatInput` 里是 `val primary = lists.firstOrNull()`，多 provider 合并时
- *   **只认第一个非空列表的 `replacementRange`**，只有 `replacementRange` 相同的列表才会被
- *   合并进候选。所以追加的 provider 必须排在 workspace provider 之后，并且只在
- *   workspace provider 不触发时才给出候选，否则插入范围会错位。
- * @param topBar 替换默认的单聊 [TopBar]。为 null（单聊的默认值）时行为与 C1 之前完全相同。
- *   群聊页传自己的轻量顶栏：单聊那个 `TopBar` 有 394 行、含「点标题切模型」「长按改标题」
- *   「搜索预览」等一堆单聊语义，其中「切换模型」在群聊里根本没有定义（群配置里没有会话级模型字段，
- *   每个角色的模型由 `GroupRole.modelId` 决定，绑不上时才回落该角色所属助手的 `chatModelId`）。
- *   回调把本函数建的 [TopAppBarScrollBehavior] 传回去，需要折叠行为的调用方可以接。
- * @param canEditMessage 气泡「编辑」动作的门禁，默认恒 true（单聊行为与 C1 之前完全相同）。
- *   群聊传 `{ it.role == MessageRole.USER }`：改写**角色发言**会让群运行日志里的
- *   `committed_role_ids` / `last_user_message_id` 与实际消息错位——这与重新生成、删除、
- *   切分支是同一类风险（那三个在 `ChatList` 里已按 `groupChat` 关掉）。
- *   而改用户自己那条提问是合法且常用的操作：轮次由新的 user 消息重新派生，不会错位。
+ * 角色聊天与历史记录共用的消息界面。
+ * @param archived 旧群聊只展示历史和导出，不提供输入与消息修改。
  */
 @Composable
 internal fun ChatScaffold(
@@ -408,28 +302,29 @@ internal fun ChatScaffold(
     errors: List<ChatError>,
     onDismissError: (Uuid) -> Unit,
     onClearAllErrors: () -> Unit,
-    listOverlay: @Composable BoxScope.() -> Unit = {},
-    bottomBarAboveInput: @Composable () -> Unit = {},
-    extraCompletionProviders: List<ChatCompletionProvider> = emptyList(),
-    topBar: (@Composable (TopAppBarScrollBehavior) -> Unit)? = null,
-    canEditMessage: (UIMessage) -> Boolean = { true },
+    archived: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     var previewMode by rememberSaveable { mutableStateOf(false) }
     var previewSearchQuery by rememberSaveable { mutableStateOf("") }
     val hazeState = rememberHazeState()
-    val assistant = setting.getCurrentAssistant()
-    val modelListState = rememberModelListState(
-        modelId = assistant.chatModelId ?: setting.chatModelId,
-        providers = setting.providers,
-        type = ModelType.CHAT,
-    )
+    val assistant = setting.getAssistantById(conversation.assistantId) ?: setting.getCurrentAssistant()
+    var showRolePicker by remember { mutableStateOf(false) }
     var showFilesSheet by remember { mutableStateOf(false) }
-    ModelListSheet(
-        state = modelListState,
-        onSelect = { vm.setChatModel(assistant = setting.getCurrentAssistant(), model = it) },
-    )
+    if (showRolePicker) {
+        AssistantPickerSheet(
+            settings = setting,
+            currentAssistant = assistant,
+            onAssistantSelected = {
+                showRolePicker = false
+                vm.switchRole(it.id) { target ->
+                    navigateToChatPage(navController, target)
+                }
+            },
+            onDismiss = { showRolePicker = false },
+        )
+    }
     val attachmentPickerActions = rememberChatAttachmentPickerActions(
         inputState = inputState,
         setting = setting,
@@ -440,7 +335,6 @@ internal fun ChatScaffold(
         assistant.workspaceId,
         conversation.workspaceCwd,
         workspaceRepository,
-        extraCompletionProviders,
     ) {
         val workspace = assistant.workspaceId?.let { workspaceId ->
             listOf(
@@ -451,10 +345,7 @@ internal fun ChatScaffold(
                 )
             )
         }.orEmpty()
-        // extra 只能追加在**尾部**：ChatInput 合并多 provider 时只认第一个非空列表的
-        // replacementRange（ChatInput.kt 的 lists.firstOrNull()）。把群聊的 @ 角色选择器
-        // 排到 workspace 文件补全前面，会让它篡改文件补全的插入范围。
-        workspace + extraCompletionProviders
+        workspace
     }
 
     TTSAutoPlay(vm = vm, setting = setting, conversation = conversation)
@@ -481,9 +372,6 @@ internal fun ChatScaffold(
         KedgePageScaffold(
             modifier = activeNestedScroll,
             topBar = {
-                if (topBar != null) {
-                    topBar(scrollBehavior)
-                } else {
                     TopBar(
                         settings = setting,
                         conversation = conversation,
@@ -503,22 +391,25 @@ internal fun ChatScaffold(
                         onClickMenu = {
                             previewMode = !previewMode
                         },
-                        onModelClick = {
-                            modelListState.open()
+                        onRoleClick = {
+                            showRolePicker = true
                         },
                         onUpdateTitle = {
                             vm.updateTitle(it)
                         }
                     )
-                }
             },
             bottomBar = {
                 val messageQueue by vm.messageQueue.collectAsStateWithLifecycle()
                 val voiceState by vm.voiceSession.state.collectAsStateWithLifecycle()
-                // 输入框正上方的额外内容（群聊的成员头像组）。必须排在 ChatInput 之前：
-                // ChatInput 自己 hazeSource 采样上方子树，画在它之后就采不到了。
-                bottomBarAboveInput()
-                ChatInput(
+                if (archived) {
+                    Text(
+                        "历史群聊已归档",
+                        style = KedgeTextStyles.body(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
+                    )
+                } else ChatInput(
                     onStartVoiceMode = onStartVoiceMode,
                     voiceState = voiceState,
                     onStopVoiceMode = vm.voiceSession::stop,
@@ -568,7 +459,7 @@ internal fun ChatScaffold(
                     },
                     onSendClick = {
                         if (currentChatModel == null) {
-                            Toast.show("请先选择模型", isError = true)
+                            Toast.show("请先为角色配置模型", isError = true)
                             return@ChatInput
                         }
                         if (inputState.isEditing()) {
@@ -652,8 +543,7 @@ internal fun ChatScaffold(
                     vm.regenerateAtMessage(it)
                 },
                 onEdit = { message ->
-                    // 群聊通过 canEditMessage 关掉「改写角色发言」，单聊默认恒放行。
-                    if (canEditMessage(message)) {
+                    if (!archived) {
                         inputState.editingMessage = message.id
                         inputState.setContents(message.parts)
                     }
@@ -703,9 +593,6 @@ internal fun ChatScaffold(
                     vm.handleToolAnswer(toolCallId, answer)
                 },
                 )
-                // 浮层插槽排在 ChatList **之后**：同 Box 里 AssistantBackground 是
-                // fillMaxSize、ChatList 也是 fillMaxSize，插在它们之前会被整块压住。
-                listOverlay()
             }
         }
 
@@ -816,7 +703,7 @@ private fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
-    onModelClick: () -> Unit,
+    onRoleClick: () -> Unit,
     onUpdateTitle: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -835,14 +722,7 @@ private fun TopBar(
     val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
     val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
 
-    // 与侧边栏一致：展开后自动聚焦，delay(100) 等动画起手再抢焦点，
-    // 直接 requestFocus() 会把入场动画顶掉。
     val searchFocus = remember { FocusRequester() }
-    // MD3 侧：LargeFlexibleTopAppBar 内部是 TwoRowsTopAppBar，同一个 title lambda
-    // 会被渲染两遍（收起态小标题行 + 展开态大标题行），两行按折叠进度交叉淡化，
-    // 任何时刻只有一行可见。FocusRequester 只能挂一份（挂两份时 requestFocus()
-    // 落在先注册的那份 = 收起态小标题行 = 看不见的那行），所以打开搜索时记下当时
-    // 可见的是哪一行，只把 requester 挂到那一行，光标才不会落进隐藏副本。
     var focusLargeTitleRow by remember { mutableStateOf(true) }
     LaunchedEffect(previewMode) {
         if (previewMode) {
@@ -854,12 +734,75 @@ private fun TopBar(
         }
     }
 
-    // 顶栏副标题只显示当前模型名（助手名 + 提供商名在顶栏里太挤，已去掉）。
-    val topBarModel = settings.getCurrentChatModel()
+    val topBarRole = settings.getAssistantById(conversation.assistantId) ?: settings.getCurrentAssistant()
+    val topBarModel = settings.findModelById(topBarRole.chatModelId ?: settings.chatModelId)
+    val roleSubtitle = listOfNotNull(
+        topBarRole.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
+        topBarModel?.displayName,
+    ).joinToString(" · ")
 
     // 长按标题改名的前置条件提示（没有消息时不允许改标题）。MD3 与 Miuix 两条
     // 分支共用同一条文案，所以提到分支外，避免两处各写一份。
     val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
+
+    val largeTitle: @Composable () -> Unit = {
+        val titleStyle = LocalTextStyle.current
+        val isLargeTitleRow = titleStyle.fontSize > MaterialTheme.typography.titleLarge.fontSize
+        Box {
+            if (titleVisible) {
+                KedgeSurface(
+                    modifier = Modifier.graphicsLayer {
+                        alpha = 1f - searchProgress.value
+                        translationX = -searchProgress.value * 24.dp.toPx()
+                    }
+                        .combinedClickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null,
+                            onClick = onRoleClick,
+                            onLongClick = {
+                                if (conversation.messageNodes.isNotEmpty()) titleState.open(conversation.title)
+                                else Toast.show(editTitleWarning, isError = false)
+                            },
+                        ),
+                    color = Color.Transparent,
+                ) {
+                    Column {
+                        Text(
+                            conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+                            style = titleStyle, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            roleSubtitle, style = KedgeTextStyles.body(), color = LocalContentColor.current.copy(0.65f),
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+            if (searchVisible) {
+                Box(Modifier.fillMaxWidth(0.65f + 0.35f * searchProgress.value).graphicsLayer {
+                    alpha = searchProgress.value
+                    translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                }) {
+                    if (searchQuery.isBlank()) {
+                        Text(
+                            stringResource(R.string.history_page_search), style = titleStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                    }
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        singleLine = true,
+                        textStyle = titleStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.fillMaxWidth().then(
+                            if (isLargeTitleRow == focusLargeTitleRow) Modifier.focusRequester(searchFocus) else Modifier
+                        ),
+                    )
+                }
+            }
+        }
+    }
 
     // 重命名标题弹窗必须排在下面 `if (isMiuix) { ... return }` **之前**：
     // 早退会让这条 EditStateContent 在 Miuix 下永远不参与组合，Miuix 的长按改名
@@ -906,38 +849,21 @@ private fun TopBar(
     }
 
     if (isMiuix) {
-        // Miuix：照搬 KernelSU HomeMiuix 的顶栏 —— 原版 TopAppBar 默认
-        // largeTitle = title，即真正的大标题栏，滚动时折叠成小标题。
-        // 搜索态由 KedgeMiuixMorphingTitleBar 负责 morph：标题（大标题 + 副标题 +
-        // 小标题）随同一进度淡出，输入框落在**大标题的位置**、同一字阶同一颜色。
         KedgeMiuixMorphingTitleBar(
-            // 标题 morph 成搜索输入框，与 MD3 版行为一致；进入搜索是 actions 里那个
-            // 搜索图标（onClickMenu），标题本身不参与搜索（见下面的点击语义）。
             title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
             expanded = previewMode,
             keyword = searchQuery,
             onKeywordChange = onSearchQueryChange,
             dragProgress = searchProgress.value,
-            // 不传 dragging 的话 KedgeMiuixMorphingTitleBar 内部的 snapTo 被门控掉
-            // （dragging 默认 false），手势拖动完全没有反馈，只剩 tween。
             dragging = searchExpand.dragging.value,
             onExitSearch = onCollapseSearch,
             placeholder = stringResource(R.string.history_page_search),
-            subtitle = topBarModel?.displayName,
-            // 不传的话 Miuix 侧没有可聚焦的节点，点开后要手动点输入框才弹键盘。
+            subtitle = roleSubtitle,
             focusRequester = searchFocus,
-            // 标题点击语义与 MD3 严格对齐（MD3 见下面 titleContent 里的
-            // combinedClickable）：
-            // - 点标题 → onModelClick → modelListState.open() → ModelListSheet；
-            // - 长按标题 → 有消息才改名，没消息只弹提示。
-            // 组件内部把这块几何画成透明覆盖层，只在非搜索态存在。
-            onTitleClick = onModelClick,
+            onTitleClick = onRoleClick,
             onTitleLongClick = {
-                if (conversation.messageNodes.isNotEmpty()) {
-                    titleState.open(conversation.title)
-                } else {
-                    Toast.show(editTitleWarning, isError = false)
-                }
+                if (conversation.messageNodes.isNotEmpty()) titleState.open(conversation.title)
+                else Toast.show(editTitleWarning, isError = false)
             },
             navigationIcon = {
                 // 一个按钮槽内做「菜单 ↔ 返回」交叉淡化：返回箭头**替换**菜单图标，
@@ -1010,21 +936,6 @@ private fun TopBar(
         return
     }
 
-    // 搜索态**不换顶栏组件**：输入框在同一个大标题栏的 title 槽里 morph 掉标题，
-    // 返回箭头在同一个导航槽位里 morph 掉菜单图标。换成单行小标题栏虽然也能塞下
-    // 输入框，但整条栏会从 152dp 缩到 64dp，正文被顶上去一截，聊天页观感上是「页面
-    // 跳了一下」。
-    //
-    // 关于「同一个 title lambda 被渲染两遍」：LargeFlexibleTopAppBar 内部确实是
-    // TwoRowsTopAppBar，把 title 同时当作收起态 smallTitle 与展开态 title 传下去，
-    // 但两行是按折叠进度**交叉淡化**的（TopTitleAlphaEasing(0)=0 → 展开时只有大标题
-    // 行可见，收起时只有小标题行可见），任何时刻只有一行能看见，所以原地 morph 成立。
-    // 唯一要处理的是焦点：两行各有一份输入框，FocusRequester 只能挂一份，见
-    // focusLargeTitleRow。
-    // MD3Exp 下走 CustomColors.topBarColors（surfaceContainer，比页面底色 surface
-    // 深一档，顶栏才有自己的颜色）；LargeFlexibleTopAppBar 的默认容器色是 surface，
-    // 与页面底色同色，顶栏会整个「消失」。
-    // Miuix 分支不读 colors，仍是现在的透明顶栏。
     KedgePageLargeTopBar(
         colors = CustomColors.topBarColors,
         scrollBehavior = scrollBehavior,
@@ -1077,110 +988,8 @@ private fun TopBar(
             }
         },
         title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-        subtitle = topBarModel?.displayName,
-        titleContent = {
-            // 输入框与标题共用同一个字阶：输入框是**替换**标题，两边字号必须严格相等。
-            //
-            // MD3 下**不覆盖**字阶，直接用栏内默认：LargeFlexibleTopAppBar 的标题槽
-            // 自带行字阶（展开 displaySmall / 收起 titleLarge，见 AppBar.kt 的
-            // TwoRowsTopAppBar）。此前显式给 displayTitle，等于把标题钉死在 28sp，
-            // 收起时不再换档 —— 看着就不是系统默认的大标题栏。
-            // Miuix 的自绘栏不下发行字阶，仍取 title3。
-            val titleStyle = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                KedgeTextStyles.displayTitle()
-            } else {
-                LocalTextStyle.current
-            }
-            // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行：
-            // 收起态小标题行是 titleLarge，展开态大标题行是 displaySmall
-            // （material3 AppBar.kt 的 TwoRowsTopAppBar 传的就是这两个 token）。
-            val isLargeTitleRow = LocalTextStyle.current.fontSize >
-                MaterialTheme.typography.titleLarge.fontSize
-            Box {
-                if (titleVisible) {
-                    KedgeSurface(
-                        modifier = Modifier
-                            .graphicsLayer {
-                                alpha = 1f - searchProgress.value
-                                translationX = -searchProgress.value * 24.dp.toPx()
-                            }
-                            .combinedClickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null,
-                                onClick = onModelClick,
-                                onLongClick = {
-                                    if (conversation.messageNodes.isNotEmpty()) {
-                                        titleState.open(conversation.title)
-                                    } else {
-                                        Toast.show(editTitleWarning, isError = false)
-                                    }
-                                },
-                            ),
-                        color = Color.Transparent,
-                    ) {
-                        Column {
-                            val assistant = settings.getCurrentAssistant()
-                            val model = settings.getCurrentChatModel()
-                            val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
-                            Text(
-                                text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                                maxLines = 1,
-                                style = titleStyle,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (model != null && provider != null) {
-                                Text(
-                                    text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
-                                    overflow = TextOverflow.Ellipsis,
-                                    maxLines = 1,
-                                    color = LocalContentColor.current.copy(0.65f),
-                                    style = KedgeTextStyles.body(),
-                                )
-                            }
-                        }
-                    }
-                }
-                if (searchVisible) {
-                    // 用 searchVisible 而不是 previewMode：previewMode 先变 false、
-                    // 进度还在补间时若已卸载输入框，退场动画会被腰斩（标题直接闪回）。
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
-                            .graphicsLayer {
-                                alpha = searchProgress.value
-                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                            },
-                    ) {
-                        if (searchQuery.isBlank()) {
-                            Text(
-                                text = stringResource(R.string.history_page_search),
-                                style = titleStyle,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            )
-                        }
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = onSearchQueryChange,
-                            singleLine = true,
-                            textStyle = titleStyle.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                            ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                // 只挂到打开搜索那一刻可见的那一行（见 focusLargeTitleRow）
-                                .then(
-                                    if (isLargeTitleRow == focusLargeTitleRow) {
-                                        Modifier.focusRequester(searchFocus)
-                                    } else {
-                                        Modifier
-                                    }
-                                ),
-                        )
-                    }
-                }
-            }
-        },
+        subtitle = roleSubtitle,
+        titleContent = largeTitle,
         actions = {
             KedgeIconButton(
                 onClick = {

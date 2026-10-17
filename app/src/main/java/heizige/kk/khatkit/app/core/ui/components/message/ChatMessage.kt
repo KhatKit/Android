@@ -205,7 +205,7 @@ fun ChatMessage(
                 model = model,
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
-                onUserMessageClick = if (message.role == MessageRole.USER) onEdit else null,
+                onUserMessageClick = if (!groupChat && message.role == MessageRole.USER) onEdit else null,
             )
 
             message.translation?.let { translation ->

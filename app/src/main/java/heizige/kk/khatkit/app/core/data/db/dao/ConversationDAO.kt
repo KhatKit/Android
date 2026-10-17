@@ -58,6 +58,9 @@ internal const val CONVERSATION_TYPE_PREDICATE_SQL = " AND (:type = '' OR type =
 
 @Dao
 interface ConversationDAO {
+    @Query("SELECT id, assistant_id as assistantId, title, is_pinned as isPinned, create_at as createAt, update_at as updateAt, folder_id as folderId, type, group_config as groupConfig FROM conversationentity ORDER BY update_at DESC, id ASC")
+    fun getRoleConversationSummaries(): Flow<List<LightConversationEntity>>
+
     @Query("SELECT * FROM conversationentity ORDER BY is_pinned DESC, update_at DESC, id ASC")
     fun getAll(): Flow<List<ConversationEntity>>
 

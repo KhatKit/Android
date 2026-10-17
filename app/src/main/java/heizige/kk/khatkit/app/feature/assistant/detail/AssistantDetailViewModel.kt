@@ -32,6 +32,7 @@ import heizige.kk.khatkit.app.core.data.model.Tag
 import heizige.kk.khatkit.app.core.data.model.MessageAnchor
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import kotlin.uuid.Uuid
 
@@ -46,17 +47,28 @@ class AssistantDetailViewModel @AssistedInject constructor(
     private val filesManager: FilesManager,
     private val skillManager: SkillManager,
     private val workspaceRepository: WorkspaceRepository,
+    private val roleMemoryRepository: RoleMemoryRepository,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
         fun create(id: String): AssistantDetailViewModel
     }
     private val assistantId = Uuid.parse(id)
+    private val assistantEdits = AssistantEditManager(
+        settingsStore.settingsFlow.value.assistants.find { it.id == assistantId }
+            ?: Assistant(id = assistantId)
+    )
+    val assistant: StateFlow<Assistant> = assistantEdits.state
 
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills = _skills.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            settingsStore.settingsFlow.collect { settings ->
+                assistantEdits.acceptStored(settings.assistants.find { it.id == assistantId })
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             _skills.value = skillManager.listSkills()
         }
@@ -72,16 +84,20 @@ class AssistantDetailViewModel @AssistedInject constructor(
             scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = emptyList()
         )
 
-    val assistant: StateFlow<Assistant> = settingsStore
-        .settingsFlow
-        .map { settings ->
-            settings.assistants.find { it.id == assistantId } ?: Assistant()
-        }.stateIn(
-            scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = Assistant()
-        )
-
     suspend fun locateMemorySource(messageId: String): MessageAnchor? =
         conversationRepository.findMessageAnchor(messageId)
+
+    suspend fun readRoleMemory(path: String = "MEMORY.md") =
+        roleMemoryRepository.read(assistantId, path)
+
+    suspend fun roleMemoryFiles(): List<String> {
+        roleMemoryRepository.importLegacy(assistantId, assistantId.toString(),
+            memoryRepository.getMemoriesOfAssistant(assistantId.toString()).map { it.content })
+        return (listOf("MEMORY.md") + roleMemoryRepository.list(assistantId)).distinct()
+    }
+
+    suspend fun saveRoleMemory(path: String, text: String, version: String, overwrite: Boolean = false) =
+        roleMemoryRepository.save(assistantId, path, text, version, overwrite)
 
     val memories = assistant
         .flatMapLatest { currentAssistant ->
@@ -178,20 +194,28 @@ class AssistantDetailViewModel @AssistedInject constructor(
     }
 
     fun update(assistant: Assistant) {
+        // 输入值先回写；保存中的旧快照不能覆盖用户后续按键和 IME 合成区。
+        assistantEdits.beginEdit(assistant)
         viewModelScope.launch {
-            val settings = settings.value
-            settingsStore.update(
-                settings = settings.copy(
-                    assistants = settings.assistants.map {
-                        if (it.id == assistant.id) {
-                            checkAvatarDelete(old = it, new = assistant) // 删除旧头像
-                            checkBackgroundDelete(old = it, new = assistant) // 删除旧背景
-                            assistant
-                        } else {
-                            it
+            try {
+                settingsStore.update { settings ->
+                    settings.copy(
+                        assistants = settings.assistants.map {
+                            if (it.id == assistant.id) {
+                                checkAvatarDelete(old = it, new = assistant)
+                                checkBackgroundDelete(old = it, new = assistant)
+                                assistant
+                            } else {
+                                it
+                            }
                         }
-                    })
-            )
+                    )
+                }
+            } finally {
+                assistantEdits.finishEdit(
+                    settingsStore.settingsFlow.value.assistants.find { it.id == assistantId }
+                )
+            }
         }
     }
 

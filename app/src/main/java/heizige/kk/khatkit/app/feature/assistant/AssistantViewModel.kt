@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
@@ -18,6 +20,7 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 
 @HiltViewModel
 class AssistantViewModel @Inject constructor(
@@ -25,6 +28,7 @@ class AssistantViewModel @Inject constructor(
     private val memoryRepository: MemoryRepository,
     private val conversationRepo: ConversationRepository,
     private val filesManager: FilesManager,
+    private val roleMemoryRepository: RoleMemoryRepository,
 ) : ViewModel() {
     val settings: StateFlow<Settings> = settingsStore.settingsFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, Settings.dummy())
@@ -37,12 +41,11 @@ class AssistantViewModel @Inject constructor(
 
     fun addAssistant(assistant: Assistant) {
         viewModelScope.launch {
-            val settings = settings.value
-            settingsStore.update(
+            settingsStore.update { settings ->
                 settings.copy(
                     assistants = settings.assistants.plus(assistant)
                 )
-            )
+            }
         }
     }
 
@@ -54,6 +57,7 @@ class AssistantViewModel @Inject constructor(
             // 删除最后一个助手时回落到默认助手，避免出现空列表中间态（getCurrentAssistant().first() 会崩）
             settingsStore.update(settings.removeAssistant(assistant))
             memoryRepository.deleteMemoriesOfAssistant(assistant.id.toString())
+            roleMemoryRepository.deleteRoleMemory(assistant.id)
             conversationRepo.deleteConversationOfAssistant(assistant.id)
         }
     }
@@ -77,21 +81,21 @@ class AssistantViewModel @Inject constructor(
                 name = "${assistant.name} (Clone)",
                 avatar = if(assistant.avatar is Avatar.Image) Avatar.Dummy else assistant.avatar,
             )
-            settingsStore.update(
-                settings.copy(
-                    assistants = settings.assistants.plus(copiedAssistant)
-                )
-            )
-            if (copyMemories && !assistant.useGlobalMemory) {
+            if (copyMemories) {
+                roleMemoryRepository.importLegacy(assistant.id, assistant.id.toString(),
+                    memoryRepository.getMemoriesOfAssistant(assistant.id.toString()).map { it.content })
                 memoryRepository.copyMemories(assistant.id.toString(), copiedAssistant.id.toString())
+                roleMemoryRepository.copyProfile(assistant.id, copiedAssistant.id)
+            }
+            settingsStore.update { current ->
+                current.copy(assistants = current.assistants.plus(copiedAssistant))
             }
         }
     }
 
-    fun getMemories(assistant: Assistant) =
-        if (assistant.useGlobalMemory) {
-            memoryRepository.getGlobalMemoriesFlow()
-        } else {
-            memoryRepository.getMemoriesOfAssistantFlow(assistant.id.toString())
-        }
+    fun getMemoryCount(assistant: Assistant) = flow {
+        roleMemoryRepository.importLegacy(assistant.id, assistant.id.toString(),
+            memoryRepository.getMemoriesOfAssistant(assistant.id.toString()).map { it.content })
+        emitAll(roleMemoryRepository.memoryCount(assistant.id))
+    }
 }

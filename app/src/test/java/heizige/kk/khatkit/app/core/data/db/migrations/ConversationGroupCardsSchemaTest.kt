@@ -196,44 +196,28 @@ class ConversationGroupCardsSchemaTest {
     }
 
     @Test
-    fun importPathStoresPayloadCardsButExportPathStaysGenerated() {
-        val page = sourceOf("src/main/java/heizige/kk/khatkit/app/feature/chat/GroupChatPage.kt")
+    fun archivedGroupExportPathStaysGenerated() {
         val exportCard = sourceOf(
             "src/main/java/heizige/kk/khatkit/app/feature/chat/GroupExportCard.kt"
         )
-        // 导入：payload.cards 真的被交给落库回调
-        assertTrue(
-            "导入必须把 payload.cards 一起交出去落库",
-            page.contains("onSave(result.payload.config, result.payload.cards)"),
-        )
-        // 手动保存配置：传 null = 与角色卡无关，保留库里已有的一份
-        assertTrue(
-            "手动保存群配置必须传 null（不得清掉已落库的卡片）",
-            page.contains("onSave(draft, null)"),
-        )
-        assertTrue(
-            "落库取值必须是 importedCards ?: conversation.groupCards",
-            page.contains("groupCards = importedCards ?: conversation.groupCards"),
-        )
-        // 导出：二维码与酒馆文件两条路径仍然只用现场生成的那一份，一行都没改
+        // 群配置编辑和导入已移除，旧记录仍可导出。
         val exportSites = listOf(
-            "GroupChat.encodeQr(draft, groupExportRoleCards(draft.roles, settings))",
             "cards = groupExportRoleCards(config.roles, settings),",
         )
         exportSites.forEach { site ->
             assertTrue(
                 "导出链路必须仍是现场生成：找不到 `$site`",
-                (page + exportCard).contains(site),
+                exportCard.contains(site),
             )
         }
         assertEquals(
-            "导出链路的 groupExportRoleCards 调用点必须仍是 2 处（不允许引入第三个来源）",
-            2,
-            countOf(page + exportCard, "groupExportRoleCards("),
+            "归档导出只保留导出卡片里的构造调用",
+            1,
+            countOf(exportCard, "groupExportRoleCards("),
         )
         assertFalse(
             "导出链路不得读导入快照（persona 属于导出方那台机器）",
-            (page + exportCard).contains("encodeQr(draft, conversation.groupCards"),
+            exportCard.contains("encodeQr(draft, conversation.groupCards"),
         )
     }
 

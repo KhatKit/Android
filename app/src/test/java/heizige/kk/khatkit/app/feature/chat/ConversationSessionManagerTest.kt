@@ -151,6 +151,34 @@ class ConversationSessionManagerTest {
     }
 
     @Test
+    fun `two roles keep running after UI switches and stopping one does not stop the other`() = runBlocking {
+        val rig = Rig()
+        try {
+            val first = rig.manager.acquire(Uuid.random())
+            val second = rig.manager.acquire(Uuid.random())
+            first.updateConversation(first.state.value.copy(assistantId = Uuid.random()))
+            second.updateConversation(second.state.value.copy(assistantId = Uuid.random()))
+            val firstJob = rig.scope.launch(start = CoroutineStart.LAZY) { awaitCancellation() }
+            val secondJob = rig.scope.launch(start = CoroutineStart.LAZY) { awaitCancellation() }
+            first.setJob(firstJob)
+            second.setJob(secondJob)
+            rig.manager.release(first.id)
+            rig.manager.release(second.id)
+            rig.manager.removeIfIdle(first)
+            rig.manager.removeIfIdle(second)
+            assertTrue(firstJob.isActive)
+            assertTrue(secondJob.isActive)
+            assertSame(first, rig.manager.get(first.id))
+            assertSame(second, rig.manager.get(second.id))
+            first.cancelJobs().forEach { it.join() }
+            assertTrue(firstJob.isCancelled)
+            assertTrue(secondJob.isActive)
+        } finally {
+            rig.close()
+        }
+    }
+
+    @Test
     fun `cleanup clears observed job registry and cancels every generation`() = runBlocking {
         val rig = Rig()
         try {

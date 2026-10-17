@@ -42,6 +42,7 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.visualTransforms
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.ai.tools.buildRoleIdentity
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import java.io.File
 import java.io.IOException
@@ -404,6 +405,8 @@ class GenerationLoop(
                 if (effectiveSystemPrompt.isNotBlank()) {
                     append(effectiveSystemPrompt)
                 }
+                appendLine()
+                append(buildRoleIdentity(assistant))
 
                 // 记忆
                 if (assistant.enableMemory) {

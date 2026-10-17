@@ -107,6 +107,8 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.icons.memory
+import androidx.compose.material3.HorizontalDivider
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.kedge.theme.KedgeStyle
@@ -175,6 +177,8 @@ fun ChatDrawerContent(
 
     val conversations = drawerVm.conversations.collectAsLazyPagingItems()
     val folders by drawerVm.folders.collectAsStateWithLifecycle()
+    val roleChats by drawerVm.roleChats.collectAsStateWithLifecycle()
+    var showRoleHistory by rememberSaveable { mutableStateOf(false) }
     val conversationListState = rememberLazyListState(
         initialFirstVisibleItemIndex = drawerVm.scrollIndex,
         initialFirstVisibleItemScrollOffset = drawerVm.scrollOffset,
@@ -309,6 +313,12 @@ fun ChatDrawerContent(
                         drawerBarScrollBehavior
                     },
                 navigationIcon = {
+                    if (showRoleHistory && !searchVisible) {
+                        KedgeIconButton(onClick = {
+                            showRoleHistory = false
+                            drawerVm.updateSearchKeyword("")
+                        }) { Icon(arrowBack, contentDescription = "角色") }
+                    }
                     if (searchVisible) {
                         KedgeIconButton(
                             onClick = {
@@ -331,7 +341,7 @@ fun ChatDrawerContent(
                     Box {
                         if (titleVisible) {
                             Text(
-                                text = "KhatKit",
+                                text = if (showRoleHistory) "聊天记录" else "角色",
                                 style = topBarStyle,
                                 modifier = Modifier.graphicsLayer {
                                     alpha = 1f - searchProgress.value
@@ -350,7 +360,7 @@ fun ChatDrawerContent(
                             ) {
                                 if (searchKeyword.isBlank()) {
                                     Text(
-                                        text = stringResource(R.string.chat_page_search_chats),
+                                        text = if (showRoleHistory) stringResource(R.string.chat_page_search_chats) else "搜索角色",
                                         style = topBarStyle,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                     )
@@ -528,7 +538,30 @@ fun ChatDrawerContent(
                     // 把这个 modifier 丢掉（只有 Miuix 分支透传给 MiuixScaffold）。
                     .then(activeNestedScroll(drawerBarScrollBehavior)),
             ) {
-                ConversationList(
+                if (!showRoleHistory) {
+                    RoleDrawerList(
+                        roles = settings.assistants,
+                        selected = settings.assistantId,
+                        chats = roleChats,
+                        running = conversationJobs.filterValues { it?.isActive == true }.keys,
+                        keyword = searchKeyword,
+                        contentPadding = PaddingValues(
+                            top = DrawerTopBarHeight + statusBarTop + 8.dp,
+                            bottom = DrawerBottomBarHeight + navBarBottom + 68.dp,
+                        ),
+                        onRole = { role ->
+                            vm.switchRole(role.id) { target ->
+                                scope.launch { drawerState?.close() }
+                                navigateToChatPage(navController, target)
+                            }
+                        },
+                        onManage = { navController.navigate(Screen.Assistant) },
+                        header = {
+                            if (updateChecksEnabled && !isPlayStore) UpdateCard(vm)
+                            BackupReminderCard(settings = settings, onClick = { navController.navigate(Screen.Backup) })
+                        },
+                    )
+                } else ConversationList(
                     conversations = conversations,
                     currentId = current.id,
                     conversationJobs = conversationJobs.keys,
@@ -542,7 +575,7 @@ fun ChatDrawerContent(
                     // 点不到，只留一段空白」就是这么来的），而且顶栏那段留白会和
                     // 列表的 topSpacer 叠成两倍，把文件夹和「新建」按钮拉得很开。
                     topSpacerHeight = DrawerTopBarHeight + statusBarTop,
-                    bottomSpacerHeight = DrawerBottomBarHeight + navBarBottom,
+                    bottomSpacerHeight = DrawerBottomBarHeight + navBarBottom + 68.dp,
                     header = {
                         if (updateChecksEnabled && !isPlayStore) {
                             UpdateCard(vm)
@@ -589,21 +622,6 @@ fun ChatDrawerContent(
                             onCreateFolder = { showCreateFolderDialog = true },
                             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                         )
-                        // 类型筛选 chip 行（全部/单聊/群聊）已按主人要求删除，抽屉里不再切类型。
-                        // 类型谓词的「管道」原样保留、未删：ChatDrawerViewModel.typeFilter 缺省
-                        // FILTER_ALL（不筛），仍参与 planConversationListQuery →
-                        // ConversationDAO 的 `:type` 参数，DAO/单测/分页数据源的类型分支照旧可用。
-                        // 群聊创建入口：由 [ShowGroupChatEntry] 门控（缺省不渲染、不留空位）。
-                        // 业务代码与导航目标原样保留，把常量改回 true 即可放出。
-                        if (ShowGroupChatEntry) {
-                            heizige.kk.kedge.components.KedgeTextButton(
-                                onClick = {
-                                    drawerVm.createGroup { created ->
-                                        navController.navigate(Screen.Chat(created.toString()))
-                                    }
-                                },
-                            ) { Text("新建群聊") }
-                        }
                     },
                     modifier = Modifier
                         .fillMaxSize()
@@ -640,42 +658,42 @@ fun ChatDrawerContent(
                     }
                 )
 
-                // 助手选择器（默认助手卡片：圆角胶囊 + surfaceContainerHigh 底，悬浮于会话列表之上）
+                // Keep role actions on a flat footer, separate from the scrolling list.
                 KedgeSurface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    shape = RoundedCornerShape(0.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(start = 4.dp, end = 4.dp)
                         // 底栏（设置/订阅/下载中心）是浮在内容之上的，且自带
                         // navigationBarsPadding。助手胶囊在内容流里，必须自己垫出
                         // 「底栏高 + 导航栏」的高度，否则会被底栏整块盖住、点不到。
-                        .padding(bottom = DrawerBottomBarHeight + navBarBottom + 8.dp),
+                        .padding(bottom = DrawerBottomBarHeight + navBarBottom),
                 ) {
-                    AssistantPicker(
-                        settings = settings,
-                        onUpdateSettings = {
-                            val updateJob = vm.updateSettings(it)
-                            scope.launch {
-                                updateJob.join()
-                                val id = if (context.readBooleanPreference("create_new_conversation_on_start", true)) {
-                                    Uuid.random()
-                                } else {
-                                    repo.getConversationsOfAssistant(it.assistantId)
-                                        .first()
-                                        .firstOrNull()
-                                        ?.id ?: Uuid.random()
-                                }
-                                navigateToChatPage(navigator = navController, chatId = id)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        onClickSetting = {
-                            val currentAssistantId = settings.assistantId
-                            navController.navigate(Screen.AssistantDetail(id = currentAssistantId.toString()))
+                    Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        KedgeTextButton(onClick = {
+                            showRoleHistory = !showRoleHistory
+                            drawerVm.updateSearchKeyword("")
+                            showSearch = false
+                        }) { Text(if (showRoleHistory) "角色" else "聊天记录") }
+                        Spacer(Modifier.weight(1f))
+                        KedgeTextTooltipBox("记忆") {
+                            KedgeIconButton(onClick = {
+                                navController.navigate(Screen.AssistantMemory(settings.assistantId.toString()))
+                            }) { Icon(memory, "记忆") }
                         }
-                    )
+                        KedgeTextTooltipBox("角色设置") {
+                            KedgeIconButton(onClick = {
+                                navController.navigate(Screen.AssistantDetail(settings.assistantId.toString()))
+                            }) { Icon(settingsIcon, "角色设置") }
+                        }
+                    }
+                    }
                 }
             }
 
@@ -690,14 +708,14 @@ fun ChatDrawerContent(
     val drawerContainerColor = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
         MiuixTheme.colorScheme.surface
     } else {
-        MaterialTheme.colorScheme.surface
+        MaterialTheme.colorScheme.surfaceContainerLow
     }
 
     // 有 drawerState 时用带预测返回的 ModalDrawerSheet（返回手势跟手关闭抽屉）
     if (drawerState != null) {
         ModalDrawerSheet(
             drawerState = drawerState,
-            modifier = Modifier.width(300.dp),
+            modifier = Modifier.width(320.dp),
             windowInsets = WindowInsets(0),
             drawerContainerColor = drawerContainerColor,
         ) {
@@ -705,7 +723,7 @@ fun ChatDrawerContent(
         }
     } else {
         ModalDrawerSheet(
-            modifier = Modifier.width(300.dp),
+            modifier = Modifier.width(320.dp),
             windowInsets = WindowInsets(0),
             drawerContainerColor = drawerContainerColor,
         ) {
@@ -963,22 +981,6 @@ private fun DrawerAction(
     }
 }
 
-/**
- * 群聊入口开关：**false = 隐藏（缺省）**，true = 放出。
- *
- * 原因：群聊（GroupChat）完成度不足 —— 用户真机验收七项 UI 修复时提出先把入口藏起来，
- * 等成熟后再放出。开关现在只作用于**一处**：[ChatDrawerContent] 的「新建会话」区里那个
- * 「新建群聊」`KedgeTextButton`（`drawerVm.createGroup { … }`，仓库内唯一调用 `drawerVm.createGroup` 的入口 —— 见本文件 :601）。
- *
- * ⚠️ 原先开关还门控抽屉里的「群聊」筛选 chip；**chip 行已于 2026-xx 整体删除**
- * （主人要求），所以这里现在只剩按钮一处。
- *
- * 恢复方式：把这里改成 `true` 即可放出按钮 —— 业务代码一行没删、语义没改。
- * 只隐藏「入口」：已存在的群聊会话仍照常在会话列表里显示并可打开
- * （ConversationList 与 ConversationDAO 的类型谓词都没动）；`typeFilter` 又是内存态、
- * 缺省 FILTER_ALL，所以状态不会停在「只看群聊」。
- */
-private const val ShowGroupChatEntry = false
 
 // 抽屉底栏高度：KedgeIconButton 48.dp + 上下各 8.dp 内边距
 // 抽屉顶栏高度：MD3 TopAppBar 内容高 64.dp（不含状态栏 inset）

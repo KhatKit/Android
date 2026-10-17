@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
@@ -117,7 +118,7 @@ fun AssistantPicker(
 }
 
 @Composable
-private fun AssistantPickerSheet(
+fun AssistantPickerSheet(
     settings: Settings,
     currentAssistant: Assistant,
     onAssistantSelected: (Assistant) -> Unit,
@@ -212,6 +213,18 @@ private fun AssistantPickerSheet(
                         onClick = {
                             onAssistantSelected(assistant)
                             dismiss()
+                        },
+                        supportingContent = {
+                            Column {
+                                Text(
+                                    listOfNotNull(
+                                        if (assistant.canManageRoles) "主管" else null,
+                                        settings.findModelById(assistant.chatModelId ?: settings.chatModelId)?.displayName,
+                                    ).joinToString(" · "),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         },
                         trailingContent = {
                             KedgeIconButton(

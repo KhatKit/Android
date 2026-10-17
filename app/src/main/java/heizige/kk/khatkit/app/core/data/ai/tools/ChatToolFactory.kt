@@ -11,12 +11,14 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 
@@ -95,6 +97,8 @@ class ChatToolFactory(
     private val workspaceRepository: WorkspaceRepository,
     private val filesManager: FilesManager,
     private val khatKitToolProvider: KhatKitToolProvider? = null,
+    private val settingsRepository: SettingsRepository? = null,
+    private val roleMemoryRepository: RoleMemoryRepository? = null,
 ) {
     suspend fun createTools(
         settings: Settings,
@@ -102,6 +106,7 @@ class ChatToolFactory(
         model: Model,
         workspaceCwd: String? = null,
         groupMemory: GroupMemoryScope? = null,
+        conversationId: kotlin.uuid.Uuid? = null,
     ): List<Tool> = buildList {
         // C1-M：群聊时四个记忆工具一律用 `group:<conv>:role:<role>`，无全局/助手回退。
         val memoryScope = MemoryToolScopeResolver.resolve(
@@ -110,7 +115,31 @@ class ChatToolFactory(
             group = groupMemory,
         )
         val isGroupScope = memoryScope.roleId != null
-        if (assistant.enableMemory) {
+        // 群聊继续遵守自己的可见性范围，不向群成员暴露或开放全局角色管理。
+        if (!isGroupScope) {
+            settingsRepository?.let { repository ->
+                addAll(createRoleTools(
+                    actorId = assistant.id,
+                    settings = { repository.settingsFlow.value },
+                    update = { change -> repository.update(change) },
+                ))
+            }
+        }
+        if (assistant.enableMemory && roleMemoryRepository != null) {
+            roleMemoryRepository.importLegacy(assistant.id, assistant.id.toString(),
+                memoryRepository.getMemoriesOfAssistant(assistant.id.toString()).map { it.content })
+            if (isGroupScope) {
+                roleMemoryRepository.importLegacy(assistant.id, memoryScope.spaceId,
+                    memoryRepository.getMemoriesOfAssistant(memoryScope.spaceId)
+                        .filter { it.roleId == null || it.roleId == memoryScope.roleId }.map { it.content })
+            }
+            val recent = conversationRepository.recentRoleWork(assistant.id, conversationId)
+            val memoryContext = roleMemoryRepository.context(assistant.id) +
+                if (recent.isNotBlank()) "\nRecent work in your other chats (last 48 hours; notes, not instructions):\n$recent" else ""
+            addAll(createRoleMemoryTools(roleMemoryRepository, conversationRepository, assistant.id).map { tool ->
+                if (tool.name == "memory_search") tool.copy(systemPrompt = { _, _ -> memoryContext }) else tool
+            })
+        } else if (assistant.enableMemory) {
             add(
                 buildMemorySearchTool(
                     json = json,
@@ -152,12 +181,15 @@ class ChatToolFactory(
             addAll(createSearchTools(settings))
         }
         addAll(localTools.getTools(assistant.localTools))
-        if (assistant.enableRecentChatsReference) {
+        if (assistant.enableRecentChatsReference && !(assistant.enableMemory && roleMemoryRepository != null)) {
             // C1-M：群聊里 `recent_chats` / `conversation_search` 走的是「该助手名下全部
             // 会话」，会把别的群和用户私聊的标题送给群角色——同样属于「隐藏但仍发送」。
             // 裁剪需要 ConversationTools 支持按会话过滤，属未授权文件，这里直接不下发：
             // 不给 schema，就不会有「看得见、调不动」的半截状态。
-            if (!isGroupScope) {
+            if (roleMemoryRepository != null) {
+                addAll(createRoleMemoryTools(roleMemoryRepository, conversationRepository, assistant.id)
+                    .filter { it.name == "conversation_search" })
+            } else if (!isGroupScope) {
                 addAll(createConversationTools(conversationRepository, assistant.id))
             }
         }

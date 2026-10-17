@@ -84,7 +84,7 @@ class MemoryRepository(
         val id = chunkDao.insertChunk(
             MemoryChunkEntity(
                 spaceId = assistantId,
-                content = content,
+                content = redactMemoryCredentials(content),
                 sourceKind = sourceKind,
                 sourceMessageId = sourceMessageId,
                 sourceRefId = sourceRefId,
@@ -102,7 +102,7 @@ class MemoryRepository(
 
     suspend fun updateContent(id: Int, content: String): AssistantMemory {
         val old = chunkDao.getChunkById(id) ?: error("Memory record #$id not found")
-        val updated = old.copy(content = content, updatedAt = System.currentTimeMillis())
+        val updated = old.copy(content = redactMemoryCredentials(content), updatedAt = System.currentTimeMillis())
         chunkDao.updateChunk(updated)
         return updated.toModel()
     }

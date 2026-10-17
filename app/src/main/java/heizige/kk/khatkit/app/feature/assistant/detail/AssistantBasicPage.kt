@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -145,6 +146,35 @@ internal fun AssistantBasicContent(
                 },
             )
 
+            item(
+                headlineContent = { Text("角色 UID") },
+                supportingContent = {
+                    SelectionContainer {
+                        Text(assistant.id.toString(), style = KedgeTextStyles.footnoteSmall())
+                    }
+                },
+            )
+            item(
+                headlineContent = { Text("职责描述") },
+                supportingContent = {
+                    KedgeOutlinedTextField(
+                        value = assistant.description,
+                        onValueChange = { onUpdate(assistant.copy(description = it)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                },
+            )
+            item(
+                headlineContent = { Text("主管权限") },
+                supportingContent = { Text("允许 AI 创建、修改和删除团队角色；每次变更仍需确认。") },
+                trailingContent = {
+                    KedgeSwitch(
+                        checked = assistant.canManageRoles,
+                        onCheckedChange = { onUpdate(assistant.copy(canManageRoles = it)) },
+                    )
+                },
+            )
             item(
                 headlineContent = {
                     Text(stringResource(R.string.assistant_page_tags))
@@ -481,7 +511,7 @@ internal fun AssistantBasicContent(
         CardGroup {
             item(
                 headlineContent = {
-                    Text(stringResource(R.string.assistant_page_thinking_budget))
+                    Text("智能 / 推理强度")
                 },
                 supportingContent = {
                     ReasoningButton(

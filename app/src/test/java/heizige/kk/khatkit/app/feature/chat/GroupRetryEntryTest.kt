@@ -137,23 +137,18 @@ class GroupRetryEntryTest {
     }
 
     // ------------------------------------------------------------------
-    // 3. 接线护栏：入口挂在 onGroupResume 上，且群聊「重新生成」保持关闭
+    // 3. 归档记录不能续跑或重新生成
     // ------------------------------------------------------------------
 
-    /**
-     * 三处接线必须同时存在，否则判定对了也点不到（或点到了别的动作）。
-     *
-     * ⚠️ 这是**源码文本**护栏，不是运行时证据；它只防「把判定删了/接错参数」这类漂移。
-     */
     @Test
-    fun `the resume entry is wired through a dedicated onGroupResume action`() {
+    fun `archived group resume entry stays disconnected`() {
         val list = File(repoRoot(), CHAT_LIST).readText()
         val actions = File(repoRoot(), CHAT_MESSAGE_ACTIONS).readText()
         val message = File(repoRoot(), CHAT_MESSAGE).readText()
 
         assertTrue(
-            "$CHAT_LIST 必须用 GroupRetryEntry.canResume 计算 onGroupResume，否则入口条件会漂。",
-            list.contains("GroupRetryEntry.canResume(") && list.contains("onGroupResume ="),
+            "$CHAT_LIST 不得为已归档群聊提供续跑入口。",
+            !list.contains("GroupRetryEntry.canResume(") && list.contains("onGroupResume = null"),
         )
         assertTrue(
             "$CHAT_MESSAGE_ACTIONS 的续跑按钮必须由 onGroupResume != null 门控，",
@@ -165,7 +160,7 @@ class GroupRetryEntryTest {
                 message.contains("onGroupResume = onGroupResume"),
         )
 
-        // 群聊「重新生成」必须保持整条关闭——续跑是另一条通道，不是把这条放开。
+        // 历史消息不得重新生成。
         assertTrue(
             "$CHAT_LIST 的群聊 onRegenerate 必须保持 `if (!groupChat)` 关闭。",
             list.contains("if (!groupChat) onRegenerate(currentMessage)"),

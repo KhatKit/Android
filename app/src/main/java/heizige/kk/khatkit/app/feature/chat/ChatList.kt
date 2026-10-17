@@ -140,11 +140,9 @@ fun ChatList(
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     /**
-     * 群聊会话。默认走 [isGroupConversation] 的严格口径（`group_config` 非空**且**
-     * `type == GROUP`），调用方一般不用显式传——这个默认值本身就是单聊零影响的保证：
-     * 单聊会话算出来恒为 false，行为与 C1 之前逐字相同。
+     * 旧群聊按类型归档，即使配置缺失也不能修改消息。
      */
-    groupChat: Boolean = isGroupConversation(conversation),
+    groupChat: Boolean = conversation.isArchivedGroupConversation(),
 ) {
     AnimatedContent(
         targetState = previewMode,
@@ -521,30 +519,9 @@ private fun ChatListNormal(
                             onRegenerate = {
                                 if (!groupChat) onRegenerate(currentMessage)
                             },
-                            // 群聊「失败续跑」：**只在失败角色的错误节点且是全轮最后一个节点**
-                            // 上出现（判定见 GroupRetryEntry.canResume）。它走同一个
-                            // `onRegenerate`（→ `ChatManager.regenerateAtMessage`），但触发点被
-                            // 收窄，所以复用同一 round_id 并跳过已提交 turn，不会像「重新生成」
-                            // 那样顶掉已提交角色的发言、让运行日志账面错位。单聊恒为 null。
-                            onGroupResume = if (
-                                GroupRetryEntry.canResume(
-                                    isGroup = groupChat,
-                                    isLastMessage = index == lastMessageIndex,
-                                    message = currentMessage,
-                                )
-                            ) {
-                                { onRegenerate(currentMessage) }
-                            } else {
-                                null
-                            },
-                            // ⚠️ 口径与上面三个**不同**，别照抄成 `if (!groupChat)`：群聊下
-                            // 「改角色发言」被 ChatPage 的 canEditMessage 拦掉（GroupChatPage
-                            // 传入 `it.role == MessageRole.USER`），但「改用户自己那条提问」
-                            // 是放行的 —— 整条 `if (!groupChat)` 会连带关掉合法的那一半，
-                            // 那是对群聊功能的真实回退。判定与 ChatMessageActionsSheet 的
-                            // Edit 卡片一致，三处同口径见 GroupEditActionVisibilitySourceGuardTest。
+                            onGroupResume = null,
                             onEdit = {
-                                if (!groupChat || currentMessage.role == MessageRole.USER) {
+                                if (!groupChat) {
                                     onEdit(currentMessage)
                                 }
                             },
@@ -561,12 +538,12 @@ private fun ChatListNormal(
                                     .subList(0, conversation.messageNodes.indexOf(node) + 1))
                             },
                             onUpdate = {
-                                onUpdateMessage(it)
+                                if (!groupChat) onUpdateMessage(it)
                             },
-                            onTranslate = onTranslate,
-                            onClearTranslation = onClearTranslation,
-                            onToolApproval = onToolApproval,
-                            onToolAnswer = onToolAnswer,
+                            onTranslate = onTranslate.takeUnless { groupChat },
+                            onClearTranslation = { if (!groupChat) onClearTranslation(it) },
+                            onToolApproval = onToolApproval.takeUnless { groupChat },
+                            onToolAnswer = onToolAnswer.takeUnless { groupChat },
                             lastMessage = index == lastMessageIndex,
                         )
                     }
@@ -885,11 +862,9 @@ private fun ChatListPreview(
     onSearchQueryChange: (String) -> Unit,
     onJumpToMessage: (Int) -> Unit,
     /**
-     * 群聊会话。与 [ChatList] 的同名参数同一口径（[isGroupConversation]），单聊恒为 false。
-     *
-     * false 时下面每一条群聊分支都不成立（说话者恒为 null），预览与 C1 之前逐字相同。
+     * 与 [ChatList] 一致，保留旧群聊的发言者显示。
      */
-    groupChat: Boolean = isGroupConversation(conversation),
+    groupChat: Boolean = conversation.isArchivedGroupConversation(),
 ) {
     val groupConfig = conversation.groupConfig
     // 过滤消息，同时保留原始 index 避免后续 O(n) indexOf 查找

@@ -60,6 +60,55 @@ class ConversationRepository(
             runCatching { Uuid.parse(row.assistantId) }.getOrNull()?.let { it to row.count }
         }.toMap()
 
+    fun getRoleConversationSummaries(): Flow<List<Conversation>> =
+        conversationDAO.getRoleConversationSummaries().map { rows -> rows.map(::conversationSummaryToConversation) }
+
+    suspend fun searchRoleHistory(
+        roleId: Uuid,
+        query: String,
+        from: java.time.LocalDate? = null,
+        until: java.time.LocalDate? = null,
+        limit: Int = 20,
+    ): List<RoleHistoryHit> {
+        require(from == null || until == null || !from.isAfter(until))
+        val words = query.trim().split(Regex("\\s+")).filter(String::isNotBlank)
+        val hits = mutableListOf<RoleHistoryHit>()
+        for (summary in getRoleConversationSummaries().first().filter { it.includesRole(roleId) }) {
+            val conversation = getConversationById(summary.id) ?: continue
+            for (message in conversation.messagesVisibleToRole(roleId).asReversed()) {
+                val date = java.time.LocalDate.parse(message.createdAt.date.toString())
+                if (from != null && date < from || until != null && date > until) continue
+                val text = redactMemoryCredentials(message.toText())
+                if (text.isNotBlank() && words.all { text.contains(it, ignoreCase = true) }) {
+                    hits += RoleHistoryHit(conversation.id.toString(), message.id.toString(),
+                        redactMemoryCredentials(conversation.title), date.toString(), text.take(2_000))
+                    if (hits.size >= limit.coerceIn(1, 50)) return hits
+                }
+            }
+        }
+        return hits
+    }
+
+    suspend fun recentRoleWork(roleId: Uuid, currentConversationId: Uuid?): String {
+        val since = java.time.Instant.now().minusSeconds(48 * 3_600)
+        val rows = mutableListOf<String>()
+        for (summary in getRoleConversationSummaries().first().filter { it.id != currentConversationId && it.includesRole(roleId) }) {
+            if (summary.updateAt < since) continue
+            val conversation = getConversationById(summary.id) ?: continue
+            val roleIds = conversation.groupConfig?.roles?.filter { it.assistantId == roleId.toString() }?.map { it.id }
+            val message = conversation.messagesVisibleToRole(roleId).lastOrNull {
+                it.role == heizige.kk.khatkit.ai.core.MessageRole.ASSISTANT &&
+                    (roleIds == null || it.roleId in roleIds) && it.toText().isNotBlank()
+            } ?: continue
+            val at = java.time.LocalDateTime.parse(message.createdAt.toString())
+                .atZone(java.time.ZoneId.systemDefault()).toInstant()
+            if (at < since) continue
+            rows += "- $at chat:${summary.id} ${redactMemoryCredentials(summary.title).take(60)}: ${redactMemoryCredentials(message.toText()).take(160)}"
+            if (rows.size >= 10) break
+        }
+        return rows.joinToString("\n").take(RoleMemoryRepository.RECENT_BUDGET)
+    }
+
     suspend fun getRecentConversations(assistantId: Uuid, limit: Int = 10): List<Conversation> {
         return conversationDAO.getRecentConversationsOfAssistant(
             assistantId = assistantId.toString(),
