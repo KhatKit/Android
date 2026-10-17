@@ -101,6 +101,9 @@ import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.kedge.components.KedgeMiuixSurface
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
 
 private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
 
@@ -254,20 +257,33 @@ fun ChatMessage(
     }
 
     if (message.role == MessageRole.USER) {
-        Column(
+        // 用户侧横排：气泡在左、头像在右，是助手侧（头像在左、气泡在右）的镜像。
+        // 名字压在气泡上方、右对齐，与助手侧「模型名在气泡上方」对齐成同一套版式。
+        Row(
             modifier = modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Top,
         ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (showUserAvatarLine) {
+                    Text(
+                        text = settings.userNickname.ifEmpty { stringResource(R.string.user_default_name) },
+                        style = KedgeTextStyles.body(),
+                        maxLines = 1,
+                    )
+                }
+                messageBody()
+            }
             if (showUserAvatarLine) {
-                // 用户侧组件自带「名字 + 头像」右对齐的排版，直接用。
-                ChatMessageUserAvatar(
-                    message = message,
+                ChatMessageUserAvatarIcon(
                     avatar = settings.userAvatar,
                     nickname = settings.userNickname,
                 )
             }
-            messageBody()
         }
     } else {
         // 助手侧横排：头像在左、正文与气泡在右。头像顶端与名字那一行对齐（Alignment.Top），
@@ -377,6 +393,16 @@ private fun MessagePartsBlock(
 ) {
     val context = LocalContext.current
     val contentColor = KedgeColors.onSurface.copy(alpha = 0.65f)
+
+    // 助手气泡底色。**Miuix 下必须用卡片色**：那边 `surfaceContainerHigh` 只比页面底色亮一档
+    // （深色实测 #1D202B vs 页面 #10131C，Δ13），真机上肉眼就是「没有气泡」；而同一屏的
+    // 思考 / 工具卡片用的是 Miuix 卡片色 `surfaceContainer`（实测 #272A34），所以 Miuix 分支
+    // 直接跟卡片同色。MD3 分支维持原来的 `surfaceContainerHigh`：那边页面底色是
+    // `surfaceContainer`，`surfaceContainerHigh` 本来就比它亮一档，层次是对的，别一起改。
+    val assistantBubbleColor = when (LocalKedgeStyle.current) {
+        KedgeStyle.Miuix -> KedgeMiuixSurface.cardContainer
+        KedgeStyle.MD3Exp -> KedgeColors.surfaceContainerHigh
+    }
 
     // 消息输出HapticFeedback
     val hapticFeedback = LocalHapticFeedback.current
@@ -498,7 +524,7 @@ private fun MessagePartsBlock(
                                     KedgeSurface(
                                         modifier = Modifier.animateContentSize(),
                                         shape = RoundedCornerShape(16.dp),
-                                        color = KedgeColors.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                        color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             MarkdownBlock(

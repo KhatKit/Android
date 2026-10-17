@@ -1,11 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -19,11 +15,11 @@ import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
- * 气泡上方要不要给用户头像留一行。与 [ChatMessageUserAvatar] 的渲染条件是同一份：
- * 调用方靠它决定这一行渲不渲染，否则会出现「留了空隙却没有内容」的行。
+ * 气泡旁边要不要给用户头像留一列。与 [ChatMessageUserAvatarIcon] 的渲染条件是同一份：
+ * 调用方靠它决定这一列渲不渲染，否则会出现「留了空隙却没有内容」的空列。名字也挂在同一个
+ * 条件上——头像关掉时名字一起收起来，与旧版「名字 + 头像同一行」的口径一致。
  */
 internal fun shouldShowUserAvatar(message: UIMessage, showUserAvatar: Boolean): Boolean =
     message.role == MessageRole.USER && !message.parts.isEmptyUIMessage() && showUserAvatar
@@ -36,33 +32,22 @@ internal fun shouldShowUserAvatar(message: UIMessage, showUserAvatar: Boolean): 
 internal fun shouldShowAssistantAvatar(message: UIMessage, model: Model?, assistant: Assistant?): Boolean =
     message.role == MessageRole.ASSISTANT && (model != null || assistant?.useAssistantAvatar == true)
 
+/**
+ * 用户头像图标本身（28dp）。用户消息现在是横排布局（气泡在左、头像在右），头像单独占右列，
+ * 名字上移到气泡上方，所以这里只出图标。
+ */
 @Composable
-fun ChatMessageUserAvatar(
-    message: UIMessage,
+fun ChatMessageUserAvatarIcon(
     avatar: Avatar,
     nickname: String,
     modifier: Modifier = Modifier,
 ) {
-    val settings = LocalSettings.current
-    if (shouldShowUserAvatar(message, settings.displaySetting.showUserAvatar)) {
-        Row(
-            modifier = modifier,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = nickname.ifEmpty { stringResource(R.string.user_default_name) },
-                style = KedgeTextStyles.body(),
-                maxLines = 1,
-            )
-            UIAvatar(
-                name = nickname,
-                modifier = Modifier.size(28.dp),
-                value = avatar,
-                loading = false,
-            )
-        }
-    }
+    UIAvatar(
+        name = nickname,
+        modifier = modifier.size(28.dp),
+        value = avatar,
+        loading = false,
+    )
 }
 
 /**
