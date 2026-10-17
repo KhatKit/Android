@@ -205,9 +205,12 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
 
     // 与工具调用行同一套皮：圆角底块（左图标 + 标题 + 可点击展开），
     // 展开/折叠由尾部上下箭头表达（见 ChainOfThoughtScope.OptionItemStep）。
+    // `wrapContent = true`：展开的思考内容落在这一块之内（与标题行同一张卡），
+    // 而不是块外的第二张卡 —— 工具行仍用默认值，观感不变。
     ControlledOptionItemStep(
         expanded = state.expandState == ReasoningCardState.Expanded,
         onExpandedChange = { state.onExpandedChange(it, loading) },
+        wrapContent = true,
         icon = {
             Icon(
                 imageVector = emojiObjects,

@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,6 +47,7 @@ import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -167,16 +169,32 @@ fun <T> ChainOfThought(
             val lineColor = KedgeColors.outlineVariant
             // 每个步骤只绘制自己的连线分段并在节点处留空，
             // 避免使用离屏合成 + BlendMode.Clear（离屏层过大时部分设备会退化，节点区域被清成黑块）。
+            val cards = listCardStyle()
             Column {
                 visibleSteps.fastForEachIndexed { index, step ->
                     val isFirst = index == 0
                     val isLast = index == visibleSteps.lastIndex
-                    val scope = remember(isFirst, isLast, lineColor, showTimeline) {
+                    // 底块行的位号与行距：同一 ThinkingBlock 的选项行（推理 / 工具调用）
+                    // 拼成**一块**分段卡 —— 圆角取 ListCardStyle.indexedShape（首行上圆角 /
+                    // 末行下圆角为大圆角，中间行小圆角），行间 0dp 贴合，整块的上下各留 4dp
+                    // 呼吸（原来每行 4dp、行间 8dp 的缝就是这么来的）。
+                    // 单步链 = indexedShape(0, 1) = 四角大圆角 + 上下各 4dp，与改动前逐值相同。
+                    // 裸行（ask_user 那类）走 ChainOfThoughtStepContent，不用这两个值。
+                    val optionRowShape = cards.indexedShape(index = index, count = visibleSteps.size)
+                    val optionRowPadding = when {
+                        visibleSteps.size == 1 -> PaddingValues(vertical = 4.dp)
+                        isFirst -> PaddingValues(top = 4.dp, bottom = 0.dp)
+                        isLast -> PaddingValues(top = 0.dp, bottom = 4.dp)
+                        else -> PaddingValues(0.dp)
+                    }
+                    val scope = remember(isFirst, isLast, lineColor, showTimeline, optionRowShape, optionRowPadding) {
                         ChainOfThoughtScopeImpl(
                             isFirst = isFirst,
                             isLast = isLast,
                             lineColor = lineColor,
                             showTimeline = showTimeline,
+                            optionRowShape = optionRowShape,
+                            optionRowPadding = optionRowPadding,
                         )
                     }
                     scope.content(step)
@@ -247,8 +265,16 @@ interface ChainOfThoughtScope {
      * 有内容可展开时再叠 [KedgeExpandableOptionItem] 的「点击整行切换 + 尾部旋转箭头 +
      * 展开内容」。时间线、展开/折叠交互与普通步骤完全一致。
      *
-     * 只给「调用工具」这类需要一眼看清是哪一行、且能点开的步骤用；推理步骤仍走
-     * [ChainOfThoughtStep] 的裸行。
+     * **整链一块**：同一个 [ChainOfThought] 里的选项行按位号取
+     * `ListCardStyle.indexedShape(位号, 步骤数)` —— 首行只保上圆角、末行只保下圆角、
+     * 中间行小圆角，行间不留缝，整条链读起来是一张分段卡；单步链退化成四角大圆角。
+     * 圆角数值全部来自 [heizige.kk.khatkit.app.core.ui.theme.ListCardStyle]
+     * （`largeCorner` / `smallCorner`），本文件不新造数值。
+     *
+     * ⚠️ 位号按**整条链**计，不按「连续段」计：`ChainOfThought` 只拿到 `List<T>`，
+     * 容器无法通用地问出每一步是选项行还是裸行（唯一混排的宿主是聊天页，`ask_user`
+     * 工具走裸行）。裸行自带 8dp 行距、形状也完全不同，链本来就在那里断开，
+     * 所以这里不为它再切一段位号。
      */
     @Composable
     fun OptionItemStep(
@@ -270,6 +296,12 @@ interface ChainOfThoughtScope {
         onClick: (() -> Unit)? = null,
         contentVisible: Boolean = expanded,
         content: (@Composable () -> Unit)? = null,
+        /**
+         * 展开内容是否与标题行合成同一张卡（透传给
+         * [KedgeExpandableOptionItem] 的 `wrapContent`）。默认 `false` = 现状：
+         * 内容渲染在底块下方。聊天页推理行传 `true`，工具行保持默认。
+         */
+        wrapContent: Boolean = false,
     )
 }
 
@@ -279,6 +311,10 @@ private class ChainOfThoughtScopeImpl(
     private val lineColor: Color,
     /** 是否保留 24dp 时间线槽与连线；纯工具调用块为 false（见 [ChainOfThought.showTimeline]） */
     private val showTimeline: Boolean = true,
+    /** 本行在整块里的圆角：`ListCardStyle.indexedShape(位号, 总数)`，见 [ChainOfThought] 的循环 */
+    private val optionRowShape: Shape,
+    /** 本行的纵向行距：块内 0dp 贴合，块的上下各留 4dp */
+    private val optionRowPadding: PaddingValues,
 ) : ChainOfThoughtScope {
     @Composable
     override fun ChainOfThoughtStep(
@@ -346,6 +382,9 @@ private class ChainOfThoughtScopeImpl(
             onExpandedChange = { expanded = it },
             contentVisible = expanded,
             content = content,
+            optionRowShape = optionRowShape,
+            optionRowPadding = optionRowPadding,
+            wrapContent = false,
         )
     }
 
@@ -358,7 +397,8 @@ private class ChainOfThoughtScopeImpl(
         extra: @Composable (() -> Unit)?,
         onClick: (() -> Unit)?,
         contentVisible: Boolean,
-        content: @Composable (() -> Unit)?
+        content: @Composable (() -> Unit)?,
+        wrapContent: Boolean,
     ) {
         OptionItemStepContent(
             icon = icon,
@@ -369,6 +409,9 @@ private class ChainOfThoughtScopeImpl(
             onExpandedChange = onExpandedChange,
             contentVisible = contentVisible,
             content = content,
+            optionRowShape = optionRowShape,
+            optionRowPadding = optionRowPadding,
+            wrapContent = wrapContent,
         )
     }
 
@@ -434,7 +477,8 @@ private class ChainOfThoughtScopeImpl(
      *
      * 展开内容由 [KedgeExpandableOptionItem] 在底块下方渲染，缩进与时间线继续由本文件
      * 负责：内容起点与底块左边缘对齐（32dp 那截已经由外面的空槽 + 8dp 间距占掉了），
-     * 竖线则靠上面那条连续画法一路盖过内容区。
+     * 竖线则靠上面那条连续画法一路盖过内容区。行距与圆角由 [ChainOfThought] 按位号发下来
+     * （[optionRowPadding] / [optionRowShape]），[wrapContent] 时内容改成落进同一张卡。
      */
     @Composable
     private fun OptionItemStepContent(
@@ -446,12 +490,18 @@ private class ChainOfThoughtScopeImpl(
         onExpandedChange: (Boolean) -> Unit,
         contentVisible: Boolean,
         content: @Composable (() -> Unit)?,
+        /** 本行在整块里的圆角，见 [ChainOfThought] 的 `cards.indexedShape(...)` */
+        optionRowShape: Shape,
+        /** 本行的纵向行距：块内 0dp 贴合，块的上下各留 4dp */
+        optionRowPadding: PaddingValues,
+        /** 展开内容是否与标题行合成同一张卡；只有推理行开 */
+        wrapContent: Boolean,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(if (showTimeline) Modifier.optionItemTimelineLine() else Modifier)
-                .padding(vertical = 4.dp),
+                .padding(optionRowPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -465,6 +515,7 @@ private class ChainOfThoughtScopeImpl(
                 KedgeOptionItem(
                     onClick = onClick,
                     modifier = Modifier.weight(1f),
+                    shape = optionRowShape,
                     leadingContent = icon,
                     titleContent = label,
                     trailingContent = extra,
@@ -475,6 +526,10 @@ private class ChainOfThoughtScopeImpl(
                     onExpandedChange = onExpandedChange,
                     onClick = onClick,
                     modifier = Modifier.weight(1f),
+                    shape = optionRowShape,
+                    // 推理行开「同卡」：展开内容落在这块之内，而不是块外的第二张卡。
+                    // 工具行沿用默认（false），观感一字不变。
+                    wrapContent = wrapContent,
                     leadingContent = icon,
                     titleContent = label,
                     trailingContent = extra,
