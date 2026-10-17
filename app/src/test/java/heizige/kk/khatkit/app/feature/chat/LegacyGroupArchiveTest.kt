@@ -10,6 +10,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.LEGACY_GROUP_ARCHIVE_MESSAGE
+import heizige.kk.khatkit.app.feature.chat.data.requireActiveRoleConversation
+import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 class LegacyGroupArchiveTest {
     private fun conversation(type: String, config: GroupConfig? = null) = Conversation(

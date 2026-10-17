@@ -20,12 +20,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Scaffold
@@ -33,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,8 +55,10 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
+import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.RouteActivity
 import heizige.kk.khatkit.app.core.util.CrashHandler
 import dagger.hilt.android.AndroidEntryPoint
@@ -234,34 +239,45 @@ private fun AssistantPickerSheet(
                 }
             }
 
+            // 助手单选行 = 一张 option item（底色的内边距/按压反馈都交给 KedgeOptionItem），
+            // 圆角与同页其他行同源：listCardStyle().indexedShape(index, count)，不再直写
+            // MaterialTheme.shapes.large。选中态沿用改动前的主色容器 + onPrimaryContainer
+            // 字色（KedgeOptionItem 只有 backgroundColor 槽，字色在 titleContent 里显式给），
+            // 行尾再补一个勾作为选中标记。
+            val cards = listCardStyle()
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(cards.gap),
             ) {
-                items(filteredAssistants, key = { it.id }) { assistant ->
+                itemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->
                     val checked = assistant.id == settings.assistantId
-                    KedgeCard(
+                    KedgeOptionItem(
                         onClick = {
                             onAssistantSelected(assistant.id)
                             dismiss()
                         },
                         modifier = Modifier.animateItem(),
-                        shape = MaterialTheme.shapes.large,
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (checked) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface,
-                            contentColor = if (checked) MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurface,
-                        ),
-                    ) {
-                        Text(
-                            text = assistant.name.ifEmpty { stringResource(R.string.safe_mode_default_assistant) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            style = KedgeTextStyles.body(),
-                        )
-                    }
+                        shape = cards.indexedShape(index, filteredAssistants.size),
+                        backgroundColor = if (checked) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface,
+                        titleContent = {
+                            Text(
+                                text = assistant.name.ifEmpty { stringResource(R.string.safe_mode_default_assistant) },
+                                style = KedgeTextStyles.body(),
+                                color = if (checked) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
+                        trailingContent = if (checked) {
+                            {
+                                Icon(
+                                    imageVector = check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+                        } else null,
+                    )
                 }
             }
         }

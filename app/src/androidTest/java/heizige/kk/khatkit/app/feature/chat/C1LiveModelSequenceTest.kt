@@ -87,6 +87,7 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
 
 /**
  * C1 真机证据（第二轮）：采契约 `docs/beyond-operit-client-changes.md:206` 点名的

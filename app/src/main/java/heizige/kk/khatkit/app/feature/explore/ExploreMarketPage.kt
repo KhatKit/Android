@@ -27,6 +27,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -49,9 +50,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,7 +66,9 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.GlassPopup
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.popupBackdropBlur
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import androidx.compose.material3.MaterialTheme
@@ -148,7 +153,9 @@ import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
 import heizige.kk.khatkit.app.core.ui.icons.deleteForever
+import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.extension
+import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.folderManaged
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.package2
@@ -161,6 +168,8 @@ import heizige.kk.khatkit.app.core.ui.icons.school
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.timer
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.upload
+import heizige.kk.khatkit.app.core.ui.icons.vpnKey
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
@@ -187,6 +196,8 @@ import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior
 import heizige.kk.kedge.adaptive.miuixScrollBehavior
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
+import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
+import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.hooks.SearchExpandState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
@@ -269,11 +280,6 @@ private val localToolCatalog = listOf(
 // Stable extension identity: this mirrors KodeHeap's avatar palette hashing.
 // 身份色只负责「区分彼此」，不负责抢眼：整组压到低饱和度中明度（莫兰迪调），
 // 这样十几个图标排在一起不会变成调色盘，浅色/深色主题下都还看得清。
-private val extensionPalette = listOf(
-    Color(0xFFC27B7B), Color(0xFFA98BC4), Color(0xFF7FA6C9), Color(0xFF7FB5AB),
-    Color(0xFF9CB07C), Color(0xFFC9A06A), Color(0xFFB09287), Color(0xFF8B9BAA),
-)
-
 private val extensionShapes = listOf(
     MaterialShapes.Circle,
     MaterialShapes.Arch,
@@ -289,11 +295,10 @@ private val extensionShapes = listOf(
 
 @Composable
 private fun ExtensionBadge(seed: String, label: String, icon: ImageVector) {
-    val index = abs(seed.hashCode()) % extensionPalette.size
-    val color = extensionPalette[index]
+    val color = roleAvatarColor(seed)
     Row(
         modifier = Modifier
-            .clip(extensionShapes[index].toShape())
+            .clip(CircleShape)
             .background(color.copy(alpha = 0.16f))
             .padding(horizontal = 8.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1162,6 +1167,10 @@ fun ExploreMarketPage() {
         }
     }
 
+    // 外层 Box：item 详情是玻璃 popup，它必须和「被模糊的页面」平级、并且画在后者上面，
+    // 所以整页（Scaffold + 所有浮层）收进同一个 Box 里。模糊只挂在 Scaffold 自己的
+    // modifier 上（见下面 [popupBackdropBlur]），popup 保持清晰。
+    Box(modifier = Modifier.fillMaxSize()) {
     KedgePageScaffold(
         // 顶栏不再常驻搜索药丸：入口是右上角那个搜索图标，点开后才在**标题槽位**里
         // morph 出输入框（逻辑照 ChatPage）。所以这里只有一行大标题栏。
@@ -1208,7 +1217,9 @@ fun ExploreMarketPage() {
         },
         // Miuix 下 KedgePageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
         // 滚动增量（整页滑不动），所以按风格取。
-        modifier = activeNestedScroll(scrollBehavior),
+        // 详情 popup 打开时整页高斯模糊：模糊挂在 Scaffold 上，popup 是它的兄弟节点。
+        modifier = activeNestedScroll(scrollBehavior)
+            .popupBackdropBlur(selectedCard != null || resourceTarget != null),
         // 页面底色见上面算好的 [pageSurface]：悬浮筛选栏与整页必须同色，只能有一份来源。
         containerColor = pageSurface,
     
@@ -1351,6 +1362,7 @@ fun ExploreMarketPage() {
                 ),
             )
         }
+    }
     }
 }
 
@@ -1607,6 +1619,8 @@ fun ExploreCardsPage(initialQuery: String = "") {
     val pageSurface = CustomColors.pageContainerColor
     val chipDockedSurface = CustomColors.topBarColors.scrolledContainerColor
 
+    // 同声明的玻璃 popup 宿主：整页收进 Box，模糊只挂在 Scaffold 上。
+    Box(modifier = Modifier.fillMaxSize()) {
     KedgePageScaffold(
         topBar = {
             ExploreSearchTopBar(
@@ -1625,7 +1639,8 @@ fun ExploreCardsPage(initialQuery: String = "") {
                 scrollBehavior = scrollBehavior,
             )
         },
-        modifier = activeNestedScroll(scrollBehavior),
+        modifier = activeNestedScroll(scrollBehavior)
+            .popupBackdropBlur(selectedCard != null),
         containerColor = pageSurface,
         md3ScrollBehavior = scrollBehavior,
     ) { innerPadding ->
@@ -1709,6 +1724,7 @@ fun ExploreCardsPage(initialQuery: String = "") {
         forkTarget = forkTarget,
         onForkTarget = { forkTarget = it },
     )
+    }
 }
 
 /**
@@ -1763,7 +1779,6 @@ private fun cardsList(
     // 末项圆下边、中间四角小圆），项间距取 [ListCardStyle.gap] —— 与一级页 [GroupContainer]
     // 的卡片栈逐像素同款。二级页此前一张卡一格、每格整张圆角 + 12dp 间距，同一批卡在两个
     // 页面是两种卡面，现在两边共用一份口径。
-    val swapKey = remember(matched) { matched.joinToString(",") { it.name } }
     LazyColumn(
         state = listState,
         // 列表整体下移一个「折叠态顶栏高度」：sticky 只钉在 LazyColumn 自己的顶边上，
@@ -1831,27 +1846,26 @@ private fun cardsList(
                 }
             }
         } else {
-            // 关键：一张卡一个 item，滑到哪组合到哪；形状按它在结果集里的位号算，
-            // 与一级页那条卡片栈同一份口径（[ListCardStyle.indexedShape]）。
-            itemsIndexed(matched, key = { _, entry -> entry.name }) { index, entry ->
-                // 搜索换场：`animateItem` 只管「项自己进出 + 邻项挪位」，项号（key = 卡名）
-                // 没变时**管不到**「同一格里的内容换了」。所以每格再套一层内容换场，
-                // 键取整个结果集的签名 —— 命中集合一变，屏上这几张卡一起走一遍
-                // `AnimatedContent` 的默认换场（淡出 → 延迟 90ms 淡入并 0.92→1 放大）。
-                MarketContentSwap(key = swapKey, modifier = swapIn(rowPad)) {
-                    CompactCard(
-                        entry = entry,
-                        installedVersion = installed[entry.name],
-                        triggers = triggers[entry.name] ?: entry.triggers,
-                        hubInfo = hubInfo[entry.name],
-                        busy = busyCard == entry.name,
-                        onClick = { onSelectCard(entry) },
-                        onInstall = { onInstallCard(entry) },
-                        onUpdate = { onUpdateCard(entry) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = cardStyle.indexedShape(index, matched.size),
-                    )
-                }
+            // 关键：一张卡一个 item，滑到哪组合到哪。这里不挂 `animateItem` 或
+            // `AnimatedContent`：市场通常有几十到几百张卡，快速滚动时条目持续进出
+            // 视口，逐项进出场动画会让每一帧同时跑大量动画与重绘。
+            itemsIndexed(
+                items = matched,
+                key = { _, entry -> entry.name },
+                contentType = { _, _ -> "market_card" },
+            ) { index, entry ->
+                CompactCard(
+                    entry = entry,
+                    installedVersion = installed[entry.name],
+                    triggers = triggers[entry.name] ?: entry.triggers,
+                    hubInfo = hubInfo[entry.name],
+                    busy = busyCard == entry.name,
+                    onClick = { onSelectCard(entry) },
+                    onInstall = { onInstallCard(entry) },
+                    onUpdate = { onUpdateCard(entry) },
+                    modifier = rowPad,
+                    shape = cardStyle.indexedShape(index, matched.size),
+                )
             }
         }
     }
@@ -2731,8 +2745,14 @@ private fun ResourceRow(
     )
 }
 
-/** 资源详情：先看清包里有什么（技能 / MCP 端点），再决定装不装。 */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/**
+ * 资源合集详情：**玻璃 popup**（居中浮起、背后页面高斯模糊），取代原来的底部抽屉。
+ *
+ * 版面与卡片详情同一套骨架：固定头部（图标 + 名称 + 类型/版本 + 关闭）/ 可滚正文
+ * （徽章 → 描述 → 「包含」清单 → 作者）/ 固定页脚（安装、可选配置）。
+ * 「包含」清单从原来的裸箭头列表换成分组里的圆点行，长短不一的技能名/端点读起来更整齐。
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResourceDetailSheet(
     entry: HubResourceEntry,
@@ -2745,41 +2765,34 @@ private fun ResourceDetailSheet(
     /** P0-5：已装但缺必填，详情里也标「需要配置」，与卡片/本机列表同一判定。 */
     needsConfig: Boolean = false,
 ) {
-    KedgeModalBottomSheet(
-        show = true,
-        onDismissRequest = onDismiss,
-    ) {
+    val scroll = rememberScrollState()
+    GlassPopup(onDismiss = onDismiss) { dismiss ->
+        PopupHead(
+            title = entry.name,
+            kicker = resourceKindLabel(entry),
+            badge = stringResource(R.string.explore_market_version_prefix, entry.version),
+            icon = resourceIcon(entry.icon, entry.kind),
+            onDismiss = dismiss,
+        )
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+                .weight(1f, fill = false)
+                .verticalScroll(scroll)
+                .padding(horizontal = 20.dp)
+                .padding(top = 14.dp, bottom = 4.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = entry.name,
-                    style = KedgeTextStyles.displayTitle(),
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = stringResource(R.string.explore_market_version_prefix, entry.version),
-                    style = KedgeTextStyles.title(),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                KedgeBadge(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
-                    Text(resourceKindLabel(entry))
-                }
                 if (installed) {
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) { Text(stringResource(R.string.explore_market_state_installed)) }
+                    KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
+                        Text(stringResource(R.string.explore_market_state_installed))
+                    }
                 }
                 if (needsConfig) {
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                    KedgeBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
                         Text(stringResource(R.string.explore_market_mcp_needs_config))
                     }
                 }
@@ -2801,31 +2814,28 @@ private fun ResourceDetailSheet(
             }
 
             if (entry.items.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = stringResource(R.string.explore_market_includes),
                         style = KedgeTextStyles.footnote().copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    entry.items.forEach { item ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                imageVector = chevronRight,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = item,
-                                style = KedgeTextStyles.body(),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                    PopupActionGroup {
+                        entry.items.forEachIndexed { index, item ->
+                            if (index > 0) PopupActionDivider()
+                            PopupBulletRow(item)
                         }
                     }
+                }
+            }
+
+            if (busy) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Text(stringResource(R.string.explore_market_processing), style = KedgeTextStyles.body())
                 }
             }
 
@@ -2836,40 +2846,43 @@ private fun ResourceDetailSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
+        PopupFooterDivider()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            BigActionButton(
+                text = when {
+                    busy -> stringResource(R.string.explore_market_action_installing)
+                    installed -> stringResource(R.string.explore_market_action_reinstall)
+                    else -> stringResource(R.string.explore_market_action_download_enable)
+                },
+                onClick = { if (!busy) onInstall() },
+                container = if (busy) {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                } else {
+                    MaterialTheme.colorScheme.primary.harmonizeWithPrimary()
+                },
+                contentColor = if (busy) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onPrimary
+                },
+                modifier = Modifier.weight(1f),
+            )
+            // P0-5：先配置再安装 —— 缺必填的 MCP 条目也能在这里进表单预填。
+            if (onConfigure != null) {
                 BigActionButton(
-                    text = when {
-                        busy -> stringResource(R.string.explore_market_action_installing)
-                        installed -> stringResource(R.string.explore_market_action_reinstall)
-                        else -> stringResource(R.string.explore_market_action_download_enable)
-                    },
-                    onClick = { if (!busy) onInstall() },
-                    container = if (busy) {
-                        MaterialTheme.colorScheme.surfaceContainerHighest
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
-                    contentColor = if (busy) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onPrimary
-                    },
+                    text = stringResource(R.string.explore_market_mcp_configure),
+                    onClick = { if (!busy) onConfigure() },
+                    container = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                // P0-5：先配置再安装 —— 缺必填的 MCP 条目也能在这里进表单预填。
-                if (onConfigure != null) {
-                    BigActionButton(
-                        text = stringResource(R.string.explore_market_mcp_configure),
-                        onClick = { if (!busy) onConfigure() },
-                        container = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
             }
         }
     }
@@ -3026,7 +3039,7 @@ private fun DependencyRow(
  * 底部按钮走 [KedgeButton]（两套风格各自的配色都在这里给全），不再是手写的 Row 药丸：
  * 一是形状/按压反馈跟全站按钮统一，二是要按需求去掉箭头图标后没必要再自己画一个。
  *
- * **配色由包名哈希生成**（见 [extensionPalette] / [posterTone]）：卡片底色是该卡身份色压暗后的
+ * **配色由包名哈希生成**（见 [roleAvatarPalette] / [posterTone]）：卡片底色是该卡身份色压暗后的
  * 「海报色」，同一张卡在一级页、二级页、轮播里是同一个色，不需要第二套视觉身份。
  * 徽标轮廓吃同一张身份形（[extensionShapes]，与网格里同一张卡的轮廓一致），背景是右上角一块
  * 同表错开半个周期的有机形 —— 纯平色块看着像没画完，这一块负责体积感。
@@ -3066,8 +3079,8 @@ private fun FeaturedCard(
     val installState = cardInstallState(installedVersion, entry.version)
     // 身份色 / 身份形都由包名哈希决定，与卡片行的类型图标是两套东西：
     // 同一张卡在网格里是哪个颜色、哪个轮廓，进了轮播还是它，不需要第二套视觉身份。
-    val identityIndex = abs(entry.name.hashCode()) % extensionPalette.size
-    val identity = extensionPalette[identityIndex]
+    val identityIndex = abs(entry.name.hashCode()) % roleAvatarPalette.size
+    val identity = roleAvatarColor(entry.name)
     val poster = posterTone(identity)
     val badgeShape = extensionShapes[identityIndex].toShape()
     // 右上角那一块用同一张表里错开半个周期的形，避免和徽标撞成同一个轮廓。
@@ -3443,7 +3456,19 @@ private fun CompactCard(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/**
+ * 卡片详情：**玻璃 popup**（居中浮起、背后页面高斯模糊），取代原来的底部抽屉。
+ *
+ * 三段版面，自上而下：
+ * 1. 固定头部：图标瓦片 + 名称 + 「版本 · 引擎 · 权限」+ 关闭按钮；
+ * 2. 可滚正文：描述 → 徽章 → 原生依赖 → 次要操作分组；
+ * 3. 固定页脚：主操作（安装 / 更新 / 运行）。
+ *
+ * 主操作为什么独占页脚：它的文案和数量随卡状态变（未装=安装；已装=运行 / 更新到 vX），
+ * 固定在卡底能让视线每次都落在同一处。密钥 / 卸载 / 发布 / 提交改进 / 投票这些次级动作
+ * 降为正文里的一行行动作（图标 + 文案 + 箭头），不再和主操作抢同一个视觉高度。
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CardDetailSheet(
     entry: CardIndexEntry,
@@ -3464,39 +3489,49 @@ private fun CardDetailSheet(
     onVote: () -> Unit,
 ) {
     val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
+    val scroll = rememberScrollState()
 
-    // 走 Kedge 的弹层：MD3Exp 下是 ModalBottomSheet，Miuix 下是 Miuix 的
-    // WindowBottomSheet（自带标题栏与圆角）。此前直接用 MD3 ModalBottomSheet，
-    // Miuix 风格下会漏出 MD3 弹层。
-    KedgeModalBottomSheet(
-        show = true,
-        onDismissRequest = onDismiss,
-    ) {
+    // 次级动作在组合期拼好：文案全是 stringResource，只能在这里取。
+    val secretsLabel = stringResource(R.string.explore_market_secrets)
+    val uninstallLabel = stringResource(R.string.explore_market_uninstall)
+    val publishLabel = stringResource(R.string.explore_market_publish_to_hub)
+    val forkLabel = stringResource(R.string.explore_market_submit_revision)
+    val voteLabel = stringResource(R.string.explore_market_vote)
+    val voteNeedsActivationLabel = stringResource(R.string.explore_market_vote_needs_activation)
+    val secondaryActions = buildList {
+        if (installedVersion != null) {
+            add(PopupAction(secretsLabel, vpnKey, onSecretsClick))
+            add(PopupAction(uninstallLabel, deleteForever, onUninstall))
+        }
+        if (installedVersion != null && activated) {
+            add(PopupAction(publishLabel, upload, onPublishClick))
+            add(PopupAction(forkLabel, editNote, onForkClick))
+        }
+        if (hubInfo != null) {
+            add(PopupAction(if (activated) voteLabel else voteNeedsActivationLabel, keyboardArrowUp, onVote))
+        }
+    }
+
+    val showRun = installedVersion != null && CardManifest.TRIGGER_USER in triggers
+    val showUpdate = installedVersion != null && installedVersion != entry.version && entry.url.isNotBlank()
+    val showInstall = installedVersion == null && entry.url.isNotBlank()
+
+    GlassPopup(onDismiss = onDismiss) { dismiss ->
+        PopupHead(
+            title = entry.name,
+            kicker = listOf(entry.engine, entry.privilege).filter { it.isNotBlank() }.joinToString(" · "),
+            badge = stringResource(R.string.explore_market_version_prefix, entry.version),
+            icon = extension,
+            onDismiss = dismiss,
+        )
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+                .weight(1f, fill = false)
+                .verticalScroll(scroll)
+                .padding(horizontal = 20.dp)
+                .padding(top = 14.dp, bottom = 4.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = entry.name,
-                    style = KedgeTextStyles.displayTitle(),
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = stringResource(R.string.explore_market_version_prefix, entry.version),
-                    style = KedgeTextStyles.title(),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            if (installedVersion != null) {
-                KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-                    Text(stringResource(R.string.explore_market_installed_version_badge, installedVersion))
-                }
-            }
-
             val description = entry.summary.ifBlank { entry.description }
             if (description.isNotBlank()) {
                 Text(
@@ -3510,15 +3545,30 @@ private fun CardDetailSheet(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                if (installedVersion != null) {
+                    KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
+                        Text(stringResource(R.string.explore_market_installed_version_badge, installedVersion))
+                    }
+                }
                 entry.bridges.distinct().forEach { bridge ->
                     ExtensionBadge(bridge, bridge, bolt)
                 }
                 entry.dependencies.forEach { dependency ->
-                    ExtensionBadge(dependency.name, stringResource(R.string.explore_market_name_version, dependency.name, dependency.version), deployedCode)
+                    ExtensionBadge(
+                        dependency.name,
+                        stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
+                        deployedCode,
+                    )
                 }
                 displayTriggers.forEach { trigger ->
                     KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                        Text(if (trigger == CardManifest.TRIGGER_AI) stringResource(R.string.explore_market_card_filter_ai) else stringResource(R.string.explore_market_trigger_user))
+                        Text(
+                            if (trigger == CardManifest.TRIGGER_AI) {
+                                stringResource(R.string.explore_market_card_filter_ai)
+                            } else {
+                                stringResource(R.string.explore_market_trigger_user)
+                            },
+                        )
                     }
                 }
                 hubInfo?.let { info ->
@@ -3542,24 +3592,24 @@ private fun CardDetailSheet(
                 }
             }
 
-            Text(
-                text = "${entry.engine} · ${entry.privilege} · ${entry.bridges.joinToString(", ").ifBlank { "L0" }}",
-                style = KedgeTextStyles.body(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
             if (entry.dependencies.isNotEmpty()) {
-                Text(stringResource(R.string.explore_market_section_dependencies), style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    entry.dependencies.forEach { dependency ->
-                        ExtensionBadge(
-                            seed = dependency.name,
-                            label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
-                            icon = deployedCode,
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.explore_market_section_dependencies),
+                        style = KedgeTextStyles.footnote().copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        entry.dependencies.forEach { dependency ->
+                            ExtensionBadge(
+                                seed = dependency.name,
+                                label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
+                                icon = deployedCode,
+                            )
+                        }
                     }
                 }
             }
@@ -3574,35 +3624,41 @@ private fun CardDetailSheet(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (installedVersion != null) {
-                    if (CardManifest.TRIGGER_USER in triggers) {
-                        BigActionButton(
-                            text = stringResource(R.string.explore_market_run_card),
-                            onClick = onRun,
-                            container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        )
+            if (secondaryActions.isNotEmpty()) {
+                PopupActionGroup {
+                    secondaryActions.forEachIndexed { index, action ->
+                        if (index > 0) PopupActionDivider()
+                        PopupActionRow(action)
                     }
-                    if (installedVersion != entry.version && entry.url.isNotBlank()) {
-                        BigActionButton(
-                            text = stringResource(R.string.explore_market_update_to_version, entry.version),
-                            onClick = onUpdate,
-                            container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButtonLike(text = stringResource(R.string.explore_market_secrets), onClick = onSecretsClick, modifier = Modifier.weight(1f))
-                        OutlinedButtonLike(text = stringResource(R.string.explore_market_uninstall), onClick = onUninstall, modifier = Modifier.weight(1f))
-                    }
-                    if (activated) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButtonLike(text = stringResource(R.string.explore_market_publish_to_hub), onClick = onPublishClick, modifier = Modifier.weight(1f))
-                            OutlinedButtonLike(text = stringResource(R.string.explore_market_submit_revision), onClick = onForkClick, modifier = Modifier.weight(1f))
-                        }
-                    }
-                } else if (entry.url.isNotBlank()) {
+                }
+            }
+        }
+
+        if (showRun || showUpdate || showInstall) {
+            PopupFooterDivider()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (showRun) {
+                    BigActionButton(
+                        text = stringResource(R.string.explore_market_run_card),
+                        onClick = onRun,
+                        container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                if (showUpdate) {
+                    BigActionButton(
+                        text = stringResource(R.string.explore_market_update_to_version, entry.version),
+                        onClick = onUpdate,
+                        container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                if (showInstall) {
                     BigActionButton(
                         text = stringResource(R.string.explore_market_install_card),
                         onClick = onInstall,
@@ -3610,18 +3666,205 @@ private fun CardDetailSheet(
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
-
-                if (hubInfo != null) {
-                    OutlinedButtonLike(
-                        text = if (activated) stringResource(R.string.explore_market_vote) else stringResource(R.string.explore_market_vote_needs_activation),
-                        onClick = onVote,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
             }
         }
     }
 }
+
+/** 玻璃 popup 的头部：图标瓦片 + 标题两行（名称 / 版本 · 副标题）+ 关闭按钮。 */
+@Composable
+private fun PopupHead(
+    title: String,
+    kicker: String?,
+    badge: String?,
+    icon: ImageVector,
+    onDismiss: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 12.dp, top = 18.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = KedgeTextStyles.title().copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (!badge.isNullOrBlank()) {
+                    Text(
+                        text = badge,
+                        style = KedgeTextStyles.footnoteSmall().tabular(),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (!badge.isNullOrBlank() && !kicker.isNullOrBlank()) {
+                    Text(
+                        text = "·",
+                        style = KedgeTextStyles.footnoteSmall(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (!kicker.isNullOrBlank()) {
+                    Text(
+                        text = kicker,
+                        style = KedgeTextStyles.footnoteSmall(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = close,
+                contentDescription = stringResource(R.string.explore_market_cancel),
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** popup 正文里的一组次级操作：一块浅底分组，行间用 [PopupActionDivider] 分隔。 */
+@Composable
+private fun PopupActionGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f)),
+        content = content,
+    )
+}
+
+/** 分组内的一行动作：图标 + 文案 + 箭头，整行可点。 */
+@Composable
+private fun PopupActionRow(action: PopupAction) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = action.onClick,
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = action.icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = action.label,
+            style = KedgeTextStyles.body(),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = chevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        )
+    }
+}
+
+/** 分组内的一条纯文本行（资源合集「包含」清单用）：圆点 + 单行省略。 */
+@Composable
+private fun PopupBulletRow(text: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
+        )
+        Text(
+            text = text,
+            style = KedgeTextStyles.body(),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** 分组内的分隔线：左侧留出图标列的宽度，视觉上不切到行首。 */
+@Composable
+private fun PopupActionDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 42.dp)
+            .height(1.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+    )
+}
+
+/** 页脚主操作区上方的分隔线（贴卡边，不再让正文与按钮直接相邻）。 */
+@Composable
+private fun PopupFooterDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp)
+            .height(1.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+    )
+}
+
+/** 次级操作的一行定义：文案在组合期取好，点按回调原样透传。 */
+private class PopupAction(
+    val label: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
 
 @Composable
 private fun BigActionButton(
@@ -3646,30 +3889,6 @@ private fun BigActionButton(
             text = text,
             style = KedgeTextStyles.title(),
             color = contentColor,
-        )
-    }
-}
-
-@Composable
-private fun OutlinedButtonLike(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .pressBounce(interactionSource)
-            .clip(AutoCornersShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.harmonizeWithPrimary())
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            style = KedgeTextStyles.body(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

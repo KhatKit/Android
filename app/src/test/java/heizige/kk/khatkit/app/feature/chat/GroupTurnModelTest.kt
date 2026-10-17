@@ -10,6 +10,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.resolveGroupTurnModelId
 
 /**
  * [resolveGroupTurnModelId] 的用例——群聊本轮发言**实际调用**哪个模型。

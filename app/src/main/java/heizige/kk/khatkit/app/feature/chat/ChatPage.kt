@@ -4,21 +4,27 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.LocalMorphingTitleLarge
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -31,13 +37,13 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.foundation.text.BasicTextField
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -65,6 +71,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.material3.Material3
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Dispatchers
@@ -94,6 +105,7 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ChatInput
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPickerSheet
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
+import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
 import heizige.kk.khatkit.app.core.ui.components.ai.FilesPicker
 import heizige.kk.khatkit.app.core.ui.components.ai.SearchMode
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionProvider
@@ -102,9 +114,8 @@ import heizige.kk.khatkit.app.core.ui.components.ai.rememberChatAttachmentPicker
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
-import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
-import heizige.kk.khatkit.app.core.ui.hooks.useEditState
+import heizige.kk.khatkit.app.core.ui.modifier.shimmer
 import heizige.kk.khatkit.app.core.util.base64Decode
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -112,7 +123,6 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.addComment
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.extension
@@ -123,8 +133,10 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, messageId: Uuid? = null) {
@@ -374,7 +386,11 @@ internal fun ChatScaffold(
             topBar = {
                     TopBar(
                         settings = setting,
-                        conversation = conversation,
+                        // 顶栏角色与正文背景**同一个对象**：:315 已经按
+                        // getAssistantById(conversation.assistantId) ?: getCurrentAssistant()
+                        // 解析过，这里不再让顶栏自己解析一遍（两处各解析一次正是历史 bug 的温床）。
+                        role = assistant,
+                        hazeState = hazeState,
                         bigScreen = bigScreen,
                         drawerState = drawerState,
                         previewMode = previewMode,
@@ -385,8 +401,16 @@ internal fun ChatScaffold(
                             previewSearchQuery = ""
                         },
                         scrollBehavior = scrollBehavior,
-                        onNewChat = {
-                            navigateToChatPage(navController)
+                        onOpenRolePanel = { roleId ->
+                            // 右上角三横杠：进角色聊天面板。roleId 是顶栏**已解析出的那个
+                            // 角色**（topBarRole.id，含 `?: 当前角色` 回退），导航与面板查询
+                            // 同源；会话 id 只给「重命名当前聊天」用。
+                            navController.navigate(
+                                Screen.RoleChatPanel(
+                                    roleId = roleId.toString(),
+                                    conversationId = conversation.id.toString(),
+                                )
+                            )
                         },
                         onClickMenu = {
                             previewMode = !previewMode
@@ -394,9 +418,6 @@ internal fun ChatScaffold(
                         onRoleClick = {
                             showRolePicker = true
                         },
-                        onUpdateTitle = {
-                            vm.updateTitle(it)
-                        }
                     )
             },
             bottomBar = {
@@ -419,6 +440,7 @@ internal fun ChatScaffold(
                     onBeginEditQueuedMessage = vm::beginEditQueuedMessage,
                     onFinishEditQueuedMessage = vm::finishEditQueuedMessage,
                     onResumeMessageQueue = vm::resumeMessageQueue,
+                    onSendQueuedMessageNow = vm::sendQueuedMessageNow,
                     loading = loadingJob != null,
                     settings = setting,
                     hazeState = hazeState,
@@ -505,7 +527,7 @@ internal fun ChatScaffold(
                             )
                         )
                     },
-                    onUpdateSearchService = { index ->
+                    onUpdateSearchRepository = { index ->
                         vm.updateSettings(
                             setting.copy(
                                 searchServiceSelected = index
@@ -524,7 +546,9 @@ internal fun ChatScaffold(
             // 就是这棵子树，画在槽外顶栏的毛玻璃采样不到它 —— 表现是「顶栏没有背景
             // 模糊」，只有消息列表被糊掉。
             Box(modifier = Modifier.fillMaxSize()) {
-                AssistantBackground(setting = setting, modifier = Modifier.hazeSource(hazeState))
+                // 角色由本函数 :315 解析好的 `assistant`（= getAssistantById(会话角色) ?: 当前角色）
+                // 传入，与顶栏、ChatInput 全部同源。背景图/流光不再自己解析全局 currentAssistant。
+                AssistantBackground(assistant = assistant, modifier = Modifier.hazeSource(hazeState))
                 ChatList(
                 innerPadding = innerPadding,
                 conversation = conversation,
@@ -592,6 +616,21 @@ internal fun ChatScaffold(
                 onToolAnswer = { toolCallId, answer ->
                     vm.handleToolAnswer(toolCallId, answer)
                 },
+                )
+
+                // 空会话欢迎层：发出第一条消息（messageNodes 变非空）就整层淡出。
+                // 盖在 ChatList 之上，而不是塞进它的 LazyColumn 当一个 item ——
+                // 列表为空时本来没有项，塞进去会让 item 数凭空 +1，滚动条比例、
+                // 「滚到底部」的目标索引、自动跟随这几套算术都得跟着改口径。
+                ChatWelcomeHost(
+                    visible = !archived && !previewMode && conversation.messageNodes.isEmpty(),
+                    assistant = assistant,
+                    // 只填输入框，不代发：发送路径上还有「角色没配模型」等守卫，
+                    // 欢迎层不该替用户跨过去。
+                    onSuggestionClick = { inputState.setMessageText(it) },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
                 )
             }
         }
@@ -690,10 +729,78 @@ private fun ChatFilesPickerSheet(
     }
 }
 
+/**
+ * 顶栏角色信息还在从 DataStore 恢复时的轻量骨架。
+ *
+ * 宽高与真实标题区保持一致，避免启动时角色数据到达后发生横向跳动。
+ */
+@Composable
+private fun RoleTitlePlaceholder(largeRow: Boolean) {
+    val baseColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(if (largeRow) 12.dp else 8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(baseColor)
+                .shimmer(isLoading = true),
+        )
+        Box(
+            modifier = Modifier
+                .width(if (largeRow) 128.dp else 88.dp)
+                .height(if (largeRow) 20.dp else 16.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(baseColor)
+                .shimmer(isLoading = true),
+        )
+    }
+}
+
+/**
+ * Miuix 顶栏底色覆写：把 Miuix 主题里的 `surface` 换成透明，让正文那张角色背景透上来。
+ *
+ * 为什么在页面侧覆主题色、而不是给顶栏传颜色：`KedgeMiuixMorphingTitleBar` 没有颜色入参，
+ * 底色在组件内部按 `LocalKedgePageBackdrop` 决定 —— 有 backdrop（毛玻璃开着，本页由
+ * `KedgePageScaffold` 建立）时用 `Color.Transparent`，否则退回
+ * `MiuixTheme.colorScheme.surface`。**关掉毛玻璃时 backdrop 为 null**，顶栏就是一块实色，
+ * 角色自定义背景被它盖住 —— 这里只在「角色有自定义背景」时把 `surface` 换成透明。
+ *
+ * 只改 `surface` 一个槽位，`onSurface` / `primary` / `textStyles` 全部沿用当前主题
+ * （`textStyles` 显式透传，避免 MiuixTheme 重载退化成默认字阶），因此字色、字阶与栏高
+ * 都不受影响；`transparent = false` 时直接透传，不引入任何额外节点。
+ */
+@Composable
+private fun MiuixMorphingBarSurface(
+    transparent: Boolean,
+    content: @Composable () -> Unit,
+) {
+    if (!transparent) {
+        content()
+        return
+    }
+    MiuixTheme(
+        colors = MiuixTheme.colorScheme.copy(surface = Color.Transparent),
+        textStyles = MiuixTheme.textStyles,
+    ) {
+        content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
     settings: Settings,
-    conversation: Conversation,
+    /**
+     * 本会话的角色，由 [ChatScaffold] 用
+     * `getAssistantById(conversation.assistantId) ?: getCurrentAssistant()` 解析后传入。
+     * 顶栏与正文背景（[AssistantBackground]）共用同一个实例，避免两处各解析一次而分叉。
+     */
+    role: Assistant,
+    /** 与正文背景同一个 haze 源，供顶栏在角色有自定义背景时做毛玻璃。 */
+    hazeState: HazeState,
     drawerState: DrawerState,
     bigScreen: Boolean,
     previewMode: Boolean,
@@ -702,15 +809,11 @@ private fun TopBar(
     onCollapseSearch: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     onClickMenu: () -> Unit,
-    onNewChat: () -> Unit,
+    onOpenRolePanel: (roleId: Uuid) -> Unit,
     onRoleClick: () -> Unit,
-    onUpdateTitle: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val navController = LocalNavController.current
-    val titleState = useEditState<String> {
-        onUpdateTitle(it)
-    }
     val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
 
     // 搜索（预览）展开进度：预测返回手势跟手收起
@@ -734,16 +837,98 @@ private fun TopBar(
         }
     }
 
-    val topBarRole = settings.getAssistantById(conversation.assistantId) ?: settings.getCurrentAssistant()
+    // 顶栏角色 = 调用方传入的那个角色（与正文背景同一个 Assistant 实例）。
+    val topBarRole = role
     val topBarModel = settings.findModelById(topBarRole.chatModelId ?: settings.chatModelId)
-    val roleSubtitle = listOfNotNull(
-        topBarRole.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-        topBarModel?.displayName,
-    ).joinToString(" · ")
+    // 顶栏标题区改成「角色」驱动：头像 + 角色名，副标题是模型名。
+    // 会话标题（conversation.title）不再上顶栏 —— 它是会话属性，不是角色身份；
+    // 改名入口随长按标题一起移到角色聊天面板（ChatRolePanelPage）。
+    val roleName = topBarRole.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
+    val roleModelName = topBarModel?.displayName.orEmpty()
 
-    // 长按标题改名的前置条件提示（没有消息时不允许改标题）。MD3 与 Miuix 两条
-    // 分支共用同一条文案，所以提到分支外，避免两处各写一份。
-    val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
+    // 角色有没有自定义底色（背景图 / 流光）。有的话顶栏不能再自带一块不透明色：
+    // 正文里的 AssistantBackground 是按整页铺的（Scaffold 的 content 从 (0,0) 起布局，
+    // innerPadding 只是传给列表当 contentPadding），顶栏只要画了实色就是「盖住角色背景」，
+    // 也正是用户说的「顶栏和正文不是一个角色」的观感来源之一。
+    val roleHasCustomBackground = role.background != null || role.useGradientBackground
+    // MD3 顶栏底色：
+    //  - 无自定义背景 → 与改造前逐像素一致（静止态 pageContainerColor，滚动后渐变到
+    //    CustomColors.topBarColors 的 surfaceContainer）；
+    //  - 有自定义背景 → 两态都透明，把底色让给正文那张背景；开模糊时再叠一层 haze
+    //    （与 Miuix 侧 backdrop 毛玻璃口径对齐），关模糊时就是纯透明。
+    // 折叠态与展开态吃的是同一份 colors，不会出现「展开透明、收起变灰块」。
+    val chatTopBarColors = if (roleHasCustomBackground) {
+        TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent,
+        )
+    } else {
+        scrollLinkedTopBarColors(CustomColors.topBarColors, scrollBehavior)
+    }
+    val chatTopBarModifier =
+        if (roleHasCustomBackground && settings.displaySetting.enableBlurEffect) {
+            Modifier.hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = HazeBlurStyle.Material3 { blurRadius(20.dp) },
+            )
+        } else {
+            Modifier
+        }
+
+    /**
+     * 标题区的富内容（头像 + 角色名 / 模型）。两条风格分支共用同一份：
+     * - MD3：作为 `LargeFlexibleTopAppBar` 的 `title` 槽，展开行与收起行各渲染一次，
+     *   行内字阶由栏下发（沿用改造前按 `LocalTextStyle` 判行的写法）；
+     * - Miuix：`KedgeMiuixMorphingTitleBar` 的 `titleContent` 覆盖层，组件通过
+     *   [LocalMorphingTitleLarge] 明确告知当前是折叠行还是大标题行。
+     * 点击仍走 onRoleClick（Miuix 靠组件自带的透明点击覆盖层，MD3 靠下面 combinedClickable）。
+     */
+    val roleTitleContent: @Composable () -> Unit = {
+        val largeRow = LocalMorphingTitleLarge.current ||
+            LocalTextStyle.current.fontSize > MaterialTheme.typography.titleLarge.fontSize
+        if (settings.init) {
+            RoleTitlePlaceholder(largeRow = largeRow)
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(if (largeRow) 12.dp else 8.dp),
+            ) {
+                UIAvatar(
+                    name = roleName,
+                    value = topBarRole.avatar,
+                    avatarShape = topBarRole.avatarShape,
+                    defaultIconName = settings.findModelProviderName(
+                        topBarRole.chatModelId ?: settings.chatModelId
+                    ),
+                    avatarColor = topBarRole.avatarColor,
+                    onUpdate = null,
+                    // 折叠行/大标题行同尺寸 32dp（= UIAvatar 内部默认值）。
+                    // 原来按 largeRow 分 40/26：Miuix 覆盖层的字阶判定不可靠，折叠行实际会拿到
+                    // 大标题字阶而画成 40dp，26dp 分支等于空操作；顶栏高度两态都容得下 32dp。
+                    // 需要改尺寸时只改这里，UIAvatar 内部的 `size(32.dp)` 会被外层固定尺寸覆盖
+                    // （enforceIncoming），不会再抬回 32dp。
+                    modifier = Modifier.size(32.dp),
+                )
+                Column {
+                    Text(
+                        roleName,
+                        style = LocalTextStyle.current,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (roleModelName.isNotBlank()) {
+                        Text(
+                            roleModelName,
+                            style = KedgeTextStyles.body(),
+                            color = LocalContentColor.current.copy(0.65f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     val largeTitle: @Composable () -> Unit = {
         val titleStyle = LocalTextStyle.current
@@ -758,24 +943,11 @@ private fun TopBar(
                         .combinedClickable(
                             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                             indication = null,
-                            onClick = onRoleClick,
-                            onLongClick = {
-                                if (conversation.messageNodes.isNotEmpty()) titleState.open(conversation.title)
-                                else Toast.show(editTitleWarning, isError = false)
-                            },
+                            onClick = { if (!settings.init) onRoleClick() },
                         ),
                     color = Color.Transparent,
                 ) {
-                    Column {
-                        Text(
-                            conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                            style = titleStyle, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            roleSubtitle, style = KedgeTextStyles.body(), color = LocalContentColor.current.copy(0.65f),
-                            maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    roleTitleContent()
                 }
             }
             if (searchVisible) {
@@ -804,140 +976,120 @@ private fun TopBar(
         }
     }
 
-    // 重命名标题弹窗必须排在下面 `if (isMiuix) { ... return }` **之前**：
-    // 早退会让这条 EditStateContent 在 Miuix 下永远不参与组合，Miuix 的长按改名
-    // 只会改掉 state 而弹窗不出现。AppAlertDialog 自己按风格分流
-    // （KedgeAlertDialogSlots），两种风格下都能正常渲染。
-    titleState.EditStateContent { title, onUpdate ->
-        AppAlertDialog(
-            onDismissRequest = {
-                titleState.dismiss()
-            },
-            title = {
-                Text(stringResource(R.string.chat_page_edit_title))
-            },
-            text = {
-                KedgeOutlinedTextField(
-                    value = title,
-                    onValueChange = onUpdate,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
-                )
-            },
-            confirmButton = {
-                KedgeTextButton(
-                    onClick = {
-                        titleState.confirm()
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.chat_page_save))
-                }
-            },
-            dismissButton = {
-                KedgeTextButton(
-                    onClick = {
-                        titleState.dismiss()
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.chat_page_cancel))
-                }
-            }
-        )
-    }
+    // 会话重命名弹窗已随「长按标题改名」一起移到角色聊天面板（ChatRolePanelPage 的
+    // 「重命名当前聊天」option item），顶栏不再持有 EditState。
 
     if (isMiuix) {
-        KedgeMiuixMorphingTitleBar(
-            title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-            expanded = previewMode,
-            keyword = searchQuery,
-            onKeywordChange = onSearchQueryChange,
-            dragProgress = searchProgress.value,
-            dragging = searchExpand.dragging.value,
-            onExitSearch = onCollapseSearch,
-            placeholder = stringResource(R.string.history_page_search),
-            subtitle = roleSubtitle,
-            focusRequester = searchFocus,
-            onTitleClick = onRoleClick,
-            onTitleLongClick = {
-                if (conversation.messageNodes.isNotEmpty()) titleState.open(conversation.title)
-                else Toast.show(editTitleWarning, isError = false)
-            },
-            navigationIcon = {
-                // 一个按钮槽内做「菜单 ↔ 返回」交叉淡化：返回箭头**替换**菜单图标，
-                // 手法照侧边栏（只 alpha + 横移，不叠 scale）。大屏常驻返回箭头，
-                // 只是点击动作从「上一页」切成「退出搜索」。
-                val p = searchProgress.value
-                MiuixIconButton(
-                    onClick = {
-                        when {
-                            p >= 0.5f -> onCollapseSearch()
-                            bigScreen -> navController.popBackStack()
-                            else -> scope.launch { drawerState.open() }
-                        }
-                    },
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (!bigScreen) {
+        // Miuix 顶栏的底色不由本页传参：`KedgeMiuixMorphingTitleBar` 内部按
+        // `LocalKedgePageBackdrop` 决定 —— 有 backdrop（毛玻璃开着，本页由
+        // `KedgePageScaffold` 建立）就是 `Color.Transparent`，否则取
+        // `MiuixTheme.colorScheme.surface`（全站统一的页面色，不是 MD3 的
+        // surfaceContainer）。所以「角色有自定义背景图/流光」时这里只把主题里的
+        // `surface` 换成透明，让正文那张背景在两态（展开 / 折叠）都透上来；
+        // 没有自定义背景时不包这层，顶栏颜色与现状逐像素一致。
+        MiuixMorphingBarSurface(transparent = roleHasCustomBackground) {
+            KedgeMiuixMorphingTitleBar(
+                // 字符串标题只是「量具」：titleContent 非 null 时组件把它的颜色透明度归零，
+                // 折叠区间/栏高仍按同一段文本度量，所以照传角色名，不要换成空串。
+                title = roleName,
+                expanded = previewMode,
+                keyword = searchQuery,
+                onKeywordChange = onSearchQueryChange,
+                dragProgress = searchProgress.value,
+                dragging = searchExpand.dragging.value,
+                onExitSearch = onCollapseSearch,
+                placeholder = stringResource(R.string.history_page_search),
+                subtitle = roleModelName,
+                focusRequester = searchFocus,
+                titleContent = roleTitleContent,
+                onTitleClick = { if (!settings.init) onRoleClick() },
+                navigationIcon = {
+                    // 一个按钮槽内做「菜单 ↔ 返回」交叉淡化：返回箭头**替换**菜单图标，
+                    // 手法照侧边栏（只 alpha + 横移，不叠 scale）。大屏常驻返回箭头，
+                    // 只是点击动作从「上一页」切成「退出搜索」。
+                    val p = searchProgress.value
+                    MiuixIconButton(
+                        onClick = {
+                            when {
+                                p >= 0.5f -> onCollapseSearch()
+                                bigScreen -> navController.popBackStack()
+                                else -> scope.launch { drawerState.open() }
+                            }
+                        },
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (!bigScreen) {
+                                MiuixIcon(
+                                    imageVector = menu,
+                                    contentDescription = "Messages",
+                                    modifier = Modifier.graphicsLayer {
+                                        alpha = 1f - p
+                                        translationX = p * 24.dp.toPx()
+                                    },
+                                )
+                            }
                             MiuixIcon(
-                                imageVector = menu,
-                                contentDescription = "Messages",
+                                imageVector = arrowBack,
+                                contentDescription = null,
                                 modifier = Modifier.graphicsLayer {
-                                    alpha = 1f - p
-                                    translationX = p * 24.dp.toPx()
-                                },
-                            )
-                        }
-                        MiuixIcon(
-                            imageVector = arrowBack,
-                            contentDescription = null,
-                            modifier = Modifier.graphicsLayer {
-                                alpha = p
-                                translationX = (1f - p) * -24.dp.toPx()
-                            },
-                        )
-                    }
-                }
-            },
-            actions = {
-                // 搜索图标切「聊天内容预览搜索」(previewMode)；与 MD3 版一致，
-                // 判定同样照 ImageToolbox SettingsContent（搜索态无输入时留空）。
-                val searching = searchProgress.value >= 0.5f
-                val hasQuery = searchProgress.value >= 0.5f && searchQuery.isNotEmpty()
-                MiuixIconButton(onClick = onClickMenu) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (!searching) {
-                            MiuixIcon(
-                                imageVector = search,
-                                contentDescription = "Chat Options",
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = 1f - searchProgress.value
-                                },
-                            )
-                        }
-                        if (searching && hasQuery) {
-                            MiuixIcon(
-                                imageVector = close,
-                                contentDescription = "Chat Options",
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = searchProgress.value
+                                    alpha = p
+                                    translationX = (1f - p) * -24.dp.toPx()
                                 },
                             )
                         }
                     }
-                }
-                MiuixIconButton(onClick = onNewChat) {
-                    MiuixIcon(addComment, contentDescription = "New Message")
-                }
-            },
-        )
+                },
+                actions = {
+                    // 搜索图标切「聊天内容预览搜索」(previewMode)；与 MD3 版一致，
+                    // 判定同样照 ImageToolbox SettingsContent（搜索态无输入时留空）。
+                    val searching = searchProgress.value >= 0.5f
+                    val hasQuery = searchProgress.value >= 0.5f && searchQuery.isNotEmpty()
+                    MiuixIconButton(onClick = onClickMenu) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (!searching) {
+                                MiuixIcon(
+                                    imageVector = search,
+                                    contentDescription = "Chat Options",
+                                    modifier = Modifier.graphicsLayer {
+                                        alpha = 1f - searchProgress.value
+                                    },
+                                )
+                            }
+                            if (searching && hasQuery) {
+                                MiuixIcon(
+                                    imageVector = close,
+                                    contentDescription = "Chat Options",
+                                    modifier = Modifier.graphicsLayer {
+                                        alpha = searchProgress.value
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    // 右上角：原来这里是「新建会话」(addComment)。改成三横杠，
+                    // 打开角色聊天面板（角色配置 / 历史聊天 / 新建聊天 / 重命名当前聊天）。
+                    MiuixIconButton(onClick = { if (!settings.init) onOpenRolePanel(topBarRole.id) }) {
+                        MiuixIcon(menu, contentDescription = stringResource(R.string.chat_role_panel_title))
+                    }
+                },
+            )
+        }
         return
     }
 
-    KedgePageLargeTopBar(
-        colors = CustomColors.topBarColors,
+    // MD3 顶栏走 M3 的 LargeFlexibleTopAppBar，而不是 `KedgePageLargeTopBar`：
+    // 后者内部用 `scrollLinkedTopBarColors` 把 containerColor 硬写成
+    // `CustomColors.pageContainerColor`（不透明），调用方传进去的 colors 的 containerColor
+    // 会被丢掉 —— 角色有自定义背景时无论传什么都盖在背景上。这里改成由本页决定底色
+    // （见上面的 `chatTopBarColors` / `chatTopBarModifier`）：
+    //   - 无自定义背景：`scrollLinkedTopBarColors(CustomColors.topBarColors, scrollBehavior)`，
+    //     与走 wrapper 时逐像素一致（静止态页面色、滚动后渐到 surfaceContainer）；
+    //   - 有自定义背景：两态透明 + 可选 haze 毛玻璃，底色就是正文那张角色背景。
+    // 折叠/展开共用同一份 colors，不会出现「展开透明、收起变灰块」。
+    LargeFlexibleTopAppBar(
+        title = largeTitle,
+        modifier = chatTopBarModifier,
+        colors = chatTopBarColors,
         scrollBehavior = scrollBehavior,
         navigationIcon = {
             // 菜单 ↔ 返回在**同一个槽位**交叉淡化：返回箭头替换菜单图标。
@@ -987,9 +1139,9 @@ private fun TopBar(
                 }
             }
         },
-        title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-        subtitle = roleSubtitle,
-        titleContent = largeTitle,
+        // 标题槽只放一份富内容（头像 + 角色名 / 模型）：大标题行与折叠行都由
+        // `LargeFlexibleTopAppBar` 各渲染一次同一个 lambda，行内字阶由栏下发。
+        // roleName / roleModelName 只用于 Miuix 的量具文本与无障碍，不再重复传给 MD3 栏。
         actions = {
             KedgeIconButton(
                 onClick = {
@@ -1025,13 +1177,14 @@ private fun TopBar(
                 }
             }
 
+            // 右上角：原来这里是「新建会话」(addComment)。三横杠打开角色聊天面板。
             KedgeIconButton(
                 onClick = {
-                    onNewChat()
+                    if (!settings.init) onOpenRolePanel(topBarRole.id)
                 },
                 shapes = IconButtonDefaults.shapes(),
             ) {
-                Icon(addComment, "New Message")
+                Icon(menu, stringResource(R.string.chat_role_panel_title))
             }
         },
     )

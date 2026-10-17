@@ -28,6 +28,7 @@ import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.favorite
 import heizige.kk.khatkit.app.core.ui.icons.inventory2
+import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.language
 import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.palette
@@ -224,6 +225,13 @@ fun SettingPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 },
                 icon = addPhotoAlternate,
                 onClick = { navController.navigate(Screen.SettingFiles) },
+            )
+            // 记忆入口从聊天抽屉搬到这里：先选角色，再进该角色的记忆面板。
+            PreferenceArrow(
+                title = stringResource(R.string.setting_page_memory),
+                summary = stringResource(R.string.setting_page_memory_desc),
+                icon = memory,
+                onClick = { navController.navigate(Screen.SettingMemory) },
             )
         }
 

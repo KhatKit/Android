@@ -92,7 +92,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.feature.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder

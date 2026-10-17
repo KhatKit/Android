@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -57,6 +58,7 @@ import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.MorphPolygonShape
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.components.KedgeExpandableOptionItem
@@ -332,6 +334,9 @@ fun ThemeCustomColorSheet(
     history: List<Long>,
     onDismiss: () -> Unit,
     onColorChanged: (Color) -> Unit = {},
+    // 非空时在「确定」左侧多一个「重置」：清空调用点的颜色字段（例如头像底色回到 null）。
+    // 主题页三处不传 → 那张表的外观与行为逐字不变。
+    onClear: (() -> Unit)? = null,
     onConfirm: (Color) -> Unit,
 ) {
     var customColor by remember(visible) { mutableStateOf(initialColor) }
@@ -387,6 +392,13 @@ fun ThemeCustomColorSheet(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.Bottom,
             ) {
+                if (onClear != null) {
+                    KedgeTextButton(onClick = { onClear() }) {
+                        Text(stringResource(R.string.avatar_reset))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
                 if (history.isNotEmpty()) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -489,7 +501,7 @@ KedgeEditDialog(
 )
 }
 
-private fun parseHexColor(input: String): Color? {
+internal fun parseHexColor(input: String): Color? {
     return try {
         val normalized = input.trim()
             .replace(" ", "")

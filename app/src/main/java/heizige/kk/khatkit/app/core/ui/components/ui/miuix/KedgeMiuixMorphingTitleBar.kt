@@ -4,7 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -23,9 +24,13 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -45,6 +50,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.adaptive.miuixScrollBehavior
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -86,6 +92,18 @@ private suspend fun settleTopAppBar(
 }
 
 /**
+ * [KedgeMiuixMorphingTitleBar.titleContent] 当前画在哪一行：`true` = 大标题行（展开态），
+ * `false` = 折叠行。
+ *
+ * 存在的理由：MD3 的 `titleContent` 会被 LargeFlexibleTopAppBar 的展开行与收起行**各渲染
+ * 一次**，调用方靠行内字阶（`LocalTextStyle.current.fontSize`）区分即可；Miuix 侧的自绘
+ * 覆盖层不发放行字阶之外的信号，所以这里显式下发一个布尔，让调用方用同一个 lambda 同时
+ * 服务两种风格（ChatPage 的头像 + 角色名就这么写）。默认 `false`（折叠行），与不传
+ * [KedgeMiuixMorphingTitleBar.titleContent] 时的行为无关。
+ */
+val LocalMorphingTitleLarge = compositionLocalOf { false }
+
+/**
  * Miuix 顶栏标题的「morph 成输入框」组件。
  *
  * 背景：Miuix 原版 [TopAppBar] 的 `title` 是 `String`，无法像 MD3
@@ -104,9 +122,9 @@ private suspend fun settleTopAppBar(
  * 进度来源与抽屉一致：以 [expanded] 为准自持 [Animatable]，
  * [dragProgress] 仅在预测返回手势进行中（[dragging]）才接管，保证跟手且不重播动画。
  *
- * 另有一层「标题点击/长按」的透明覆盖层（[onTitleClick] / [onTitleLongClick]，见下面
- * 覆盖层处的几何说明）：命中区跟着**可见的那个标题**走，展开态命中大标题、折叠态命中
- * 折叠行里的小标题，与 MD3 `titleContent`（收起行与展开行都带 `combinedClickable`）对齐。
+ * 另有一层「标题点击」的透明覆盖层（[onTitleClick]，见下面覆盖层处的几何说明）：命中区
+ * 跟着**可见的那个标题**走，展开态命中大标题、折叠态命中折叠行里的小标题，与 MD3
+ * `titleContent`（收起行与展开行都可点）对齐。
  *
  * @param title 关闭态标题（大标题与小标题同文）。
  * @param subtitle 副标题（Miuix 用 `body2` 样式）。
@@ -125,7 +143,13 @@ private suspend fun settleTopAppBar(
  *   槽位，原版 [TopAppBar] 的 `title` 是 `String`）。展开态命中大标题、折叠态命中
  *   折叠行里的小标题那一行，两态都可点；搜索展开态不参与。为 null 时不叠加任何
  *   覆盖层，行为与加参数之前完全一致。
- * @param onTitleLongClick 长按标题的回调（命中区同上）；为 null 时该层不处理长按。
+ * @param titleContent 富标题内容（头像 + 名字这类原版 `title: String` 放不下的东西）。
+ *   非 null 时字符串 [title] / [subtitle] 只当「占位量具」用（保留同一段文本与颜色槽，
+ *   保证折叠区间、栏高与默认路径逐像素一致），颜色透明度归零，可见内容全部来自本槽位：
+ *   折叠态画在折叠行、展开态画在大标题行，几何与搜索输入框/标题点击覆盖层同一套内边距，
+ *   并随搜索进度淡出（把位置让给输入框）。行内字阶与 [LocalMorphingTitleLarge] 一起下发，
+ *   调用方能在**同一个 lambda** 里区分是哪一行（与 MD3 `titleContent` 被两行各渲染一次
+ *   的行为对齐）。为 null 时整段不参与组合，行为与加参数之前完全一致。
  */
 @Composable
 fun KedgeMiuixMorphingTitleBar(
@@ -144,7 +168,7 @@ fun KedgeMiuixMorphingTitleBar(
     placeholder: String = "",
     focusRequester: FocusRequester? = null,
     onTitleClick: (() -> Unit)? = null,
-    onTitleLongClick: (() -> Unit)? = null,
+    titleContent: (@Composable () -> Unit)? = null,
     /**
      * 是否给顶栏垫状态栏/刘海/导航栏 inset。必须与覆盖层保持一致（覆盖层照抄了
      * 原版同一组 inset padding），所以只暴露一个参数，不要在两处各写一份。
@@ -288,17 +312,21 @@ fun KedgeMiuixMorphingTitleBar(
 
     Box(modifier = modifier) {
         Box(modifier = Modifier.fillMaxWidth().then(dragModifier)) {
+            // 传了 titleContent 时，原版字符串标题只当「占位量具」：文本原样传下去
+            // （折叠区间与栏高都由它度量，不能换成空串），只把颜色透明度归零，
+            // 免得和自绘的富标题叠字。默认路径下 stringTitleAlpha 就是原来的 1f - p。
+            val stringTitleAlpha = if (titleContent != null) 0f else 1f - p
             // 底层原版 TopAppBar：负责大标题折叠动画与整体度量。
             // 必须包 KedgeBlurredBar 才有毛玻璃，否则顶栏是死板的纯色。
             heizige.kk.kedge.adaptive.KedgeBlurredBar(backdrop = backdrop) {
             TopAppBar(
                 color = barColor,
                 title = title,
-                titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 1f - p),
+                titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = stringTitleAlpha),
                 largeTitle = title,
-                largeTitleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = 1f - p),
+                largeTitleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = stringTitleAlpha),
                 subtitle = subtitle.orEmpty(),
-                subtitleColor = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 1f - p),
+                subtitleColor = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = stringTitleAlpha),
                 navigationIcon = {
                     // 只是一层「量宽」包裹：内容原样、尺寸不变，标题定位照旧
                     // （Miuix 的导航槽是 Box(padding(start = NavigationIconPadding)){导航内容}）。
@@ -374,12 +402,86 @@ fun KedgeMiuixMorphingTitleBar(
                 }
             }
 
+            // 富标题覆盖层：原版 TopAppBar 的 title/largeTitle 只收 String，所以
+            // 「头像 + 名字」这类内容只能像搜索输入框那样贴在同一组几何位置上。
+            // 两段与标题点击覆盖层的 ①/② 严格同边界（① 与折叠行小标题对齐、② 与大标题
+            // +副标题对齐），并随搜索进度淡出（搜索态把位置让给输入框）；字符串标题此时
+            // 透明度为 0，不会与这里叠字。为 null 时整段不参与组合。
+            //
+            // 两行用**同一条交叉淡化曲线**（不是「小标题可见」那个布尔硬切）：Miuix 的
+            // TopAppBarLayout 里小标题 alpha = frac*3、大标题 alpha = 1 - frac*3，照抄之后
+            // 滚动到中间时两行一起淡，不会出现「大标题区空了、折叠行突然冒出内容」的跳变。
+            if (titleContent != null) {
+                val searchAlpha = 1f - p
+                if (searchAlpha > 0.001f) {
+                    // 两个图标槽的实测内容宽（px → dp）：与点击覆盖层同一组量，
+                    // 保证折叠行的富标题既不被图标压住，也不越出标题段。
+                    val navSlotWidth = with(density) { navigationSlotWidthPx.toDp() }
+                    val actionSlotWidth = with(density) { actionSlotWidthPx.toDp() }
+                    val collapseFraction = (barState?.collapsedFraction ?: 0f).coerceIn(0f, 1f)
+                    val collapsedAlpha = (collapseFraction * 3f).coerceIn(0f, 1f) * searchAlpha
+                    val largeAlpha = (1f - collapseFraction * 3f).coerceIn(0f, 1f) * searchAlpha
+
+                    if (collapsedAlpha > 0.001f) {
+                        // ① 折叠行：只取折叠行高（52dp），内容在其中垂直居中；
+                        // 横向边界取两个图标槽的实测内容宽，与点击覆盖层 ① 一致。
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(
+                                    start = with(density) { startInsetTotal.toDp() } +
+                                        TopAppBarDefaults.NavigationIconPadding + navSlotWidth,
+                                    end = with(density) { endInsetTotal.toDp() } +
+                                        TopAppBarDefaults.ActionIconPadding + actionSlotWidth,
+                                    top = with(density) { topInset.toDp() },
+                                )
+                                .height(TopAppBarDefaults.CollapsedHeight)
+                                .graphicsLayer { alpha = collapsedAlpha },
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            CompositionLocalProvider(
+                                LocalContentColor provides MiuixTheme.colorScheme.onSurface,
+                                LocalMorphingTitleLarge provides false,
+                            ) {
+                                ProvideTextStyle(MiuixTheme.textStyles.title3) { titleContent() }
+                            }
+                        }
+                    }
+                    if (largeAlpha > 0.001f) {
+                        // ② 大标题行：内边距照抄原版大标题（状态栏 inset + 折叠行高 +
+                        // TitlePadding），与搜索输入框、点击覆盖层 ② 同一套。
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .padding(
+                                    start = with(density) { startInset.toDp() },
+                                    end = with(density) { endInset.toDp() },
+                                    top = with(density) { topInset.toDp() } +
+                                        TopAppBarDefaults.CollapsedHeight,
+                                )
+                                .padding(horizontal = TopAppBarDefaults.TitlePadding)
+                                .graphicsLayer { alpha = largeAlpha },
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            CompositionLocalProvider(
+                                LocalContentColor provides MiuixTheme.colorScheme.onSurface,
+                                LocalMorphingTitleLarge provides true,
+                            ) {
+                                ProvideTextStyle(MiuixTheme.textStyles.title1) { titleContent() }
+                            }
+                        }
+                    }
+                }
+            }
+
             // 标题点击覆盖层：原版 TopAppBar 的 `title` 是 String，没有 MD3 那样的
-            // `titleContent` 槽位，所以「点标题开模型选择 / 长按改标题」只能叠透明可点层。
+            // `titleContent` 槽位，所以「点标题开模型选择」只能叠透明可点层。
+            // 长按改标题随改名入口搬到角色聊天面板（ChatRolePanelPage）一起删了：
+            // 这里只保留点击，不要再加回长按分支。
             //
             // 命中区必须跟着**可见的那个标题**走，而不是钉死在大标题矩形上：MD3 侧
             // 同一个 titleContent lambda 会被 TwoRowsTopAppBar 的收起行与展开行各渲染
-            // 一份、两份都带 combinedClickable，所以两态都能点；Miuix 这里就拆成两段
+            // 一份、两份都可点，所以两态都能点；Miuix 这里就拆成两段
             // 互补的矩形，「小标题可见」与「大标题可见」的阈值与 Miuix 内部一致：
             //
             // ① 折叠行中间段（小标题那一行）：只在非搜索态存在。
@@ -414,7 +516,7 @@ fun KedgeMiuixMorphingTitleBar(
             // 覆盖层是底层 TopAppBar 的兄弟节点、后画在上，点击由它消费；纵向拖动超过
             // touchSlop 后由父级的 draggable 消费并让 tap 取消，所以「点标题」与
             // 「拖顶栏折叠」仍然共存。
-            if (p <= 0.001f && (onTitleClick != null || onTitleLongClick != null)) {
+            if (p <= 0.001f && onTitleClick != null) {
                 val navSlotWidth = with(density) { navigationSlotWidthPx.toDp() }
                 val actionSlotWidth = with(density) { actionSlotWidthPx.toDp() }
 
@@ -429,11 +531,10 @@ fun KedgeMiuixMorphingTitleBar(
                                 TopAppBarDefaults.ActionIconPadding + actionSlotWidth,
                             top = with(density) { topInset.toDp() },
                         )
-                        .combinedClickable(
+                        .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { onTitleClick?.invoke() },
-                            onLongClick = onTitleLongClick,
+                            onClick = { onTitleClick() },
                         ),
                 )
 
@@ -448,11 +549,10 @@ fun KedgeMiuixMorphingTitleBar(
                                 top = with(density) { topInset.toDp() } +
                                     TopAppBarDefaults.CollapsedHeight,
                             )
-                            .combinedClickable(
+                            .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                                onClick = { onTitleClick?.invoke() },
-                                onLongClick = onTitleLongClick,
+                                onClick = { onTitleClick() },
                             ),
                     )
                 }

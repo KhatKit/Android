@@ -20,3 +20,6 @@ local.properties
 
 __pycache__/
 *.pyc
+
+# 本地排查日志/时序快照（emu、构建日志等），不入库
+artifacts/

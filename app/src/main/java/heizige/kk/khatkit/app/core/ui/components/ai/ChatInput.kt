@@ -157,14 +157,15 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.PageBackInterceptor
 import heizige.kk.khatkit.app.core.data.datastore.BackgroundEffectType
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.getSelectedASRProvider
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
 import heizige.kk.khatkit.app.core.data.datastore.getQuickMessagesOfAssistant
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.QuickMessage
-import heizige.kk.khatkit.app.feature.chat.MessageQueueState
-import heizige.kk.khatkit.app.feature.chat.QueuedMessage
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueueState
+import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionContext
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionItem
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionList
@@ -225,7 +226,7 @@ fun ChatInput(
     modifier: Modifier = Modifier,
     completionProviders: List<ChatCompletionProvider> = emptyList(),
     onUpdateAssistant: (Assistant) -> Unit,
-    onUpdateSearchService: (Int) -> Unit,
+    onUpdateSearchRepository: (Int) -> Unit,
     onMoreClick: () -> Unit,
     attachmentActions: ChatAttachmentPickerActions? = null,
     onCancelClick: () -> Unit,
@@ -238,6 +239,7 @@ fun ChatInput(
     onBeginEditQueuedMessage: (Uuid) -> QueuedMessage? = { null },
     onFinishEditQueuedMessage: (Uuid, List<UIMessagePart>?) -> Unit = { _, _ -> },
     onResumeMessageQueue: () -> Unit = {},
+    onSendQueuedMessageNow: (Uuid) -> Unit = {},
     onStartVoiceMode: (() -> Unit)? = null,
     voiceState: VoiceSessionState = VoiceSessionState(),
     onStopVoiceMode: () -> Unit = {},
@@ -400,6 +402,7 @@ fun ChatInput(
     val asrConfigureHint = stringResource(R.string.chat_page_voice_configure_asr)
     // 未配置语音识别模型的提示弹层（长按发送键时弹出）
     var asrSetupSheetVisible by remember { mutableStateOf(false) }
+    val selectedAsrProvider = settings.getSelectedASRProvider()
 
     /**
      * 长按发送键 = 语音输入（语音转文字填进输入框）。
@@ -407,7 +410,8 @@ fun ChatInput(
      */
     fun startVoiceInput() {
         if (asrState.isRecording) return
-        if (!asrState.isAvailable) {
+        // 同时检查设置中的选中项和控制器状态：空白 API key / 本地模型路径会被视为未配置。
+        if (selectedAsrProvider == null || !asrState.isAvailable) {
             asrSetupSheetVisible = true
             return
         }
@@ -439,6 +443,8 @@ fun ChatInput(
                 onBeginEdit = onBeginEditQueuedMessage,
                 onFinishEdit = onFinishEditQueuedMessage,
                 onResume = onResumeMessageQueue,
+                onSendNow = onSendQueuedMessageNow,
+                generating = loading,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),

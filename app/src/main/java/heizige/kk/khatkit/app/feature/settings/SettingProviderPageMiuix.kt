@@ -11,13 +11,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -55,12 +59,13 @@ import heizige.kk.khatkit.app.core.ui.icons.dragIndicator
 import heizige.kk.khatkit.app.core.ui.icons.image
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.util.ImageUtils
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
+import heizige.kk.khatkit.app.core.util.ImageHelper
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -71,7 +76,6 @@ import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.preference.ArrowPreference
 
 /**
  * AI 提供商列表页的 Miuix 风格版。
@@ -83,20 +87,21 @@ import top.yukonga.miuix.kmp.preference.ArrowPreference
  * 「import + 函数开头早退块」，不能顺手把可见性放宽 —— 所以**行与三个弹窗的动作层**在这里重建，
  * 但下面这些全部按原样复用，没有第二份实现：
  *
- * - `KedgeSearchBar`（自带 MD3/Miuix 分流）、`KedgeCard`、`KedgeIconButton`、`KedgeButton`、
+ * - `KedgeSearchBar`（自带 MD3/Miuix 分流）、`KedgeOptionItem`、`KedgeIconButton`、`KedgeButton`、
  *   `KedgeTextButton`、`AppAlertDialog`（Miuix 下走 `KedgeAlertDialogSlots`）、
  *   `PrimaryBottomSheet`（Miuix 下走 `KedgePrimaryBottomSheet`）；
  * - `ProviderConfigure`（表单本身已双风格化：`KedgeSingleChoiceSegmentedRow` +
  *   `KedgeOutlinedTextField` + `KedgeSwitchFormRow`），新增/编辑提供商**不重写表单**；
- * - `AutoAIIcon`、`Screen.SettingProviderDetail`、`Toast`、`ImageUtils.decodeQRCodeFromUri`、
+ * - `AutoAIIcon`、`Screen.SettingProviderDetail`、`Toast`、`ImageHelper.decodeQRCodeFromUri`、
  *   `decodeProviderSetting`、`RECOMMENDED_PROVIDERS`、`useEditState`。
  *
  * ## 外壳与列表
  *
- * 外壳用 `MiuixSettingsPage`；每一行是 `KedgeCard(contentPadding = 0)` + miuix 的
- * `ArrowPreference`（`PreferenceArrow` 的底层），因为只有它有 `bottomAction` 槽可以放
- * `provider.shortDescription()`（MD3 行里也有这段描述），而 KhatKit 的 `PreferenceArrow`
- * 包装没有暴露该槽，且 `PreferenceItems.kt` 在 settings-parity-gaps.md §21 的禁改清单里。
+ * 外壳用 `MiuixSettingsPage`；每一行走 `KedgeOptionItem`（插槽版），与 MD3 侧的
+ * `ProviderItem` 同一套 leading/title/supporting/trailing —— 组内圆角按 index/count 算、
+ * 项距取 `listCardStyle().gap`，Miuix 下就是一整块。以前是 `KedgeCard` + miuix
+ * `ArrowPreference`：选它只为拿 `bottomAction` 槽放 `provider.shortDescription()`，
+ * 而 `KedgeOptionItem` 的 supporting 槽正好是那个位置。
  */
 @Composable
 fun SettingProviderPageMiuix(vm: SettingViewModel = hiltViewModel()) {
@@ -132,6 +137,9 @@ fun SettingProviderPageMiuix(vm: SettingViewModel = hiltViewModel()) {
     val openDetail: (ProviderSetting) -> Unit = { provider ->
         navController.navigate(Screen.SettingProviderDetail(provider.id.toString()))
     }
+    // 整列并成一张分组卡用：圆角按 index/count 逐项算、项距取 `.gap`。必须在 composable
+    // 作用域里取（LazyListScope 的 content 不是 composable，不能在 items 里调）。
+    val cards = listCardStyle()
 
     MiuixSettingsPage(
         title = stringResource(R.string.setting_provider_page_title),
@@ -201,16 +209,21 @@ fun SettingProviderPageMiuix(vm: SettingViewModel = hiltViewModel()) {
 
         // 展开期间页面正文整个抽掉（KSU 的 SearchBox 同款）：列表只在结果槽里出现一次。
         if (!searchExpanded) {
-            items(filteredProviders, key = { it.id }) { provider ->
+            itemsIndexed(filteredProviders, key = { _, provider -> provider.id }) { index, provider ->
                 ReorderableItem(
                     state = pageReorderableState,
                     key = provider.id,
                 ) { isDragging ->
                     ProviderRowMiuix(
                         provider = provider,
+                        // 整列并成一张分组卡：圆角按 index/count 逐项算（首项只圆上边、
+                        // 末项只圆下边、中间项直角），组距只在首行留一份 —— 与
+                        // SettingProviderPage 的 ProviderList 同一套口径。
+                        shape = cards.indexedShape(index, filteredProviders.size),
                         modifier = Modifier
                             .scale(if (isDragging) 0.95f else 1f)
-                            .animateItem(),
+                            .animateItem()
+                            .then(if (index == 0) Modifier.miuixItemSpacing() else Modifier),
                         dragHandle = { ProviderDragHandle() },
                         onClick = { openDetail(provider) },
                     )
@@ -254,21 +267,25 @@ private fun ProviderListMiuix(
     reorderableState: ReorderableLazyListState,
     contentPadding: PaddingValues,
 ) {
+    val cards = listCardStyle()
     LazyColumn(
         modifier = modifier,
         contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(cards.gap),
         state = listState,
     ) {
-        items(providers, key = { it.id }) { provider ->
+        itemsIndexed(providers, key = { _, provider -> provider.id }) { index, provider ->
             ReorderableItem(
                 state = reorderableState,
                 key = provider.id,
             ) { isDragging ->
                 ProviderRowMiuix(
                     provider = provider,
+                    shape = cards.indexedShape(index, providers.size),
                     modifier = Modifier
                         .scale(if (isDragging) 0.95f else 1f)
-                        .animateItem(),
+                        .animateItem()
+                        .then(if (index == 0) Modifier.miuixItemSpacing() else Modifier),
                     dragHandle = { ProviderDragHandle() },
                     onClick = { onClick(provider) },
                 )
@@ -280,14 +297,18 @@ private fun ProviderListMiuix(
 /**
  * 单个提供商行。
  *
- * 用 miuix 的 `ArrowPreference` 而不是 KhatKit 的 `PreferenceArrow`：后者没有 `bottomAction`
- * 槽，放不下 `provider.shortDescription()`（MD3 行里保留了这段描述），而 `PreferenceItems.kt`
- * 属于 §21 的禁改共享组件，不能为它加参数。外层 `KedgeCard(contentPadding = 0)` 提供分组卡片，
- * 与 `miuixGroup` 的构造完全一致。
+ * 行的**皮**交给 [KedgeOptionItem]（MD3 走 Khromia `OptionItem`、Miuix 走 `KedgeCard` 行），
+ * 与 MD3 侧的 `ProviderItem` 同一套插槽：`22/28dp` 图标 → leading、名称 → title、
+ * 「启用状态 · 模型数」+ `provider.shortDescription()` → supporting、拖柄 → trailing。
+ *
+ * 以前这里是 `KedgeCard(contentPadding = 0)` + miuix `ArrowPreference` —— 因为
+ * `PreferenceArrow` 没有 `bottomAction` 槽放描述。`KedgeOptionItem` 的 supporting 槽
+ * 就是那个位置，于是不必再退回 miuix 的原语；分组圆角由调用点按 index/count 传入。
  */
 @Composable
 private fun ProviderRowMiuix(
     provider: ProviderSetting,
+    shape: Shape,
     modifier: Modifier = Modifier,
     dragHandle: @Composable () -> Unit,
     onClick: () -> Unit,
@@ -303,28 +324,25 @@ private fun ProviderRowMiuix(
     // MD3 行里这两条是两个 Tag（启用状态 / 模型数量），Miuix 侧收进 summary 一行。
     val summaryText = "$statusText · $modelCountText"
 
-    KedgeCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .miuixItemSpacing(),
-        contentPadding = PaddingValues(0.dp),
-    ) {
-        ArrowPreference(
-            title = provider.name,
-            summary = summaryText,
-            onClick = onClick,
-            endActions = { dragHandle() },
-            startAction = {
-                AutoAIIcon(
-                    name = provider.name,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .padding(end = 6.dp),
-                )
-            },
-            bottomAction = { provider.shortDescription() },
-        )
-    }
+    KedgeOptionItem(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = shape,
+        leadingContent = {
+            AutoAIIcon(
+                name = provider.name,
+                modifier = Modifier.size(28.dp),
+            )
+        },
+        titleContent = { Text(text = provider.name) },
+        supportingContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(text = summaryText)
+                provider.shortDescription()
+            }
+        },
+        trailingContent = dragHandle,
+    )
 }
 
 /**
@@ -370,47 +388,45 @@ private fun RecommendProviderButtonMiuix(
             imageVector = dns,
             onDismiss = { showSheet = false },
         ) { _ ->
+            val cards = listCardStyle()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = MiuixPageMetrics.HorizontalPadding)
                     .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(cards.gap),
             ) {
-                RECOMMENDED_PROVIDERS.forEach { provider ->
-                    KedgeCard(
+                RECOMMENDED_PROVIDERS.forEachIndexed { index, provider ->
+                    // 与列表同一个口径：整列并成一张分组卡，组距只在首行留一份。
+                    KedgeOptionItem(
+                        onClick = {
+                            onAdd(provider)
+                            Toast.show(importSuccessMessage, isError = false)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .miuixItemSpacing(),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        ArrowPreference(
-                            title = provider.name,
-                            onClick = {
+                            .then(if (index == 0) Modifier.miuixItemSpacing() else Modifier),
+                        shape = cards.indexedShape(index, RECOMMENDED_PROVIDERS.size),
+                        leadingContent = {
+                            AutoAIIcon(
+                                name = provider.name,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        },
+                        titleContent = { Text(text = provider.name) },
+                        supportingContent = { provider.description() },
+                        trailingContent = {
+                            KedgeIconButton(onClick = {
                                 onAdd(provider)
                                 Toast.show(importSuccessMessage, isError = false)
-                            },
-                            startAction = {
-                                AutoAIIcon(
-                                    name = provider.name,
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .padding(end = 6.dp),
+                            }) {
+                                Icon(
+                                    imageVector = add,
+                                    contentDescription = stringResource(R.string.setting_provider_page_add),
                                 )
-                            },
-                            endActions = {
-                                KedgeIconButton(onClick = {
-                                    onAdd(provider)
-                                    Toast.show(importSuccessMessage, isError = false)
-                                }) {
-                                    Icon(
-                                        imageVector = add,
-                                        contentDescription = stringResource(R.string.setting_provider_page_add),
-                                    )
-                                }
-                            },
-                            bottomAction = { provider.description() },
-                        )
-                    }
+                            }
+                        },
+                    )
                 }
             }
         }
@@ -420,7 +436,7 @@ private fun RecommendProviderButtonMiuix(
 /**
  * 顶栏「导入提供商」：从相册选一张带二维码的图，解码后加入列表。
  *
- * 解码逻辑与 MD3 侧同源（`ImageUtils.decodeQRCodeFromUri` + `decodeProviderSetting` + `Toast`），
+ * 解码逻辑与 MD3 侧同源（`ImageHelper.decodeQRCodeFromUri` + `decodeProviderSetting` + `Toast`），
  * 只是 MD3 侧那个 `handleImageQRCode` 是 private 且不能放宽可见性，所以这里再写一遍薄壳。
  */
 @Composable
@@ -508,7 +524,7 @@ private fun importProviderFromImageMiuix(
     onAdd: (ProviderSetting) -> Unit,
 ) {
     runCatching {
-        val qrContent = ImageUtils.decodeQRCodeFromUri(context, uri)
+        val qrContent = ImageHelper.decodeQRCodeFromUri(context, uri)
 
         if (qrContent.isNullOrEmpty()) {
             Toast.show(
@@ -546,28 +562,39 @@ private fun AddProviderButtonMiuix(
     }
 
     if (dialogState.isEditing) {
-        AppAlertDialog(
-            onDismissRequest = { dialogState.dismiss() },
-            title = {
-                Text(stringResource(R.string.setting_provider_page_add_provider))
-            },
-            text = {
+        // 与「推荐提供商」同一套弹层：图标 + 标题 + 底部「添加 / 取消」按钮行；
+        // 表单仍是 ProviderConfigure，不重写。
+        //
+        // scrollable = false + 内容自带 verticalScroll：表单 7 行会顶破弹层高度，而
+        // KedgePrimaryBottomSheet 的 Miuix 分支没有滚动容器（内容超长只能被裁），
+        // 所以这里内容自己滚；MD3 分支据该参数不叠第二层滚动
+        // （见 BottomSheetScrollSourceGuardTest）。
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_provider_page_add_provider),
+            imageVector = add,
+            confirmText = stringResource(R.string.setting_provider_page_add),
+            onConfirm = { dialogState.confirm() },
+            dismissText = stringResource(R.string.cancel),
+            onDismiss = { dialogState.dismiss() },
+            scrollable = false,
+        ) { _ ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    // imePadding 的 insets 只被消费一次：Kedge 分支自己那层 imePadding
+                    // 与本行不会叠加成两倍位移。
+                    .imePadding()
+                    .padding(bottom = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 dialogState.currentState?.let { current ->
                     ProviderConfigure(current) { newState ->
                         dialogState.currentState = newState
                     }
                 }
-            },
-            confirmButton = {
-                KedgeTextButton(onClick = { dialogState.confirm() }) {
-                    Text(stringResource(R.string.setting_provider_page_add))
-                }
-            },
-            dismissButton = {
-                KedgeTextButton(onClick = { dialogState.dismiss() }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
+            }
+        }
     }
 }

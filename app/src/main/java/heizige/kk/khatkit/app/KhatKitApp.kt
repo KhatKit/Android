@@ -26,9 +26,9 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import heizige.kk.khatkit.app.core.data.files.FileFolders
-import heizige.kk.khatkit.app.feature.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
-import heizige.kk.khatkit.app.feature.chat.ChatNotificationManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatNotificationManager
 import java.io.File
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.core.data.sync.RestoreFailedException
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.network.WebServerService
 import heizige.kk.khatkit.app.core.util.CrashHandler
-import heizige.kk.khatkit.app.core.util.DatabaseUtil
+import heizige.kk.khatkit.app.core.util.DatabaseHelper
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.WorkspaceManager
 import dagger.Lazy
@@ -115,7 +115,7 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
         this.createNotificationChannel()
 
         // set cursor window size to 32MB
-        DatabaseUtil.setCursorWindowSize(32 * 1024 * 1024)
+        DatabaseHelper.setCursorWindowSize(32 * 1024 * 1024)
 
         // install crash handler
         CrashHandler.install(this)

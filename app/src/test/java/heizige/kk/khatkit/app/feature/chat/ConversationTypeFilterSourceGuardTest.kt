@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import heizige.kk.khatkit.app.core.data.db.dao.CONVERSATION_TYPE_PREDICATE_SQL
+import heizige.kk.khatkit.app.core.data.model.GroupChat
 import java.io.File
 
 /**
@@ -25,6 +26,53 @@ class ConversationTypeFilterSourceGuardTest {
 
     private val conversationDaoSource by lazy {
         sourceOf("src/main/java/heizige/kk/khatkit/app/core/data/db/dao/ConversationDAO.kt")
+    }
+
+    /**
+     * 抽屉主列表与顶栏搜索关键字**解耦**：抽屉搜索改成「当前角色消息正文检索」
+     * （`ChatDrawerViewModel.messageSearch`）后，主列表只剩「未归档」一条查询，关键字
+     * 不再进 `combine`。以前把关键字塞进 combine 会让每敲一个键就重建一次分页数据源
+     * （白重建 + 多打一次 SQL），而搜索态渲染的是 messageSearch，压根用不到它。
+     *
+     * 这条护栏钉住「不回头」：源码里不许再出现按标题搜索分页的那条查询，也不许再出现
+     * 已删除的 `planConversationListQuery` 判定函数。
+     */
+    @Test
+    fun drawerMainList_isDecoupledFromSearchKeyword() {
+        assertFalse(
+            "抽屉主列表不该再走按会话标题过滤的分页查询（搜索已改为消息正文检索）",
+            drawerViewModelSource.contains("searchConversationsOfAssistantPaging"),
+        )
+        assertFalse(
+            "planConversationListQuery 的 SEARCH 分支已删除，不该再出现这个判定函数",
+            drawerViewModelSource.contains("planConversationListQuery"),
+        )
+        // 2026-10-17：抽屉改成「只有角色列表」（主人确认：去掉角色/聊天记录切换 tab、
+        // 不再单独列会话、文件夹功能整体移除）。抽屉侧连分页会话列表也不再有，
+        // 因此上面「只剩未归档一条查询」的正面断言随之反转成「一条都不许有」。
+        assertFalse(
+            "抽屉已不再列会话，不该再持有未归档会话的分页数据源",
+            drawerViewModelSource.contains("getUnfiledConversationsOfAssistantPaging"),
+        )
+        assertFalse(
+            "抽屉会话列表连同类型筛选一起删除，不该再出现 _typeFilter",
+            drawerViewModelSource.contains("_typeFilter"),
+        )
+    }
+
+    /** chip 值 → SQL type 参数：FILTER_ALL/空白折成空串（= 不筛），只有具体类型才传下去。 */
+    @Test
+    fun typeFilterValue_mapsToSqlParameter() {
+        assertEquals(GroupChat.TYPE_DIRECT, GroupChat.TYPE_DIRECT.asConversationTypeArgument())
+        assertEquals(GroupChat.TYPE_GROUP, GroupChat.TYPE_GROUP.asConversationTypeArgument())
+        assertEquals("", GroupChat.FILTER_ALL.asConversationTypeArgument())
+        assertEquals("", "".asConversationTypeArgument())
+        assertEquals("", "   ".asConversationTypeArgument())
+        // 与 DAO 里的空串语义同一套：不引入第二种表达
+        assertEquals(
+            GroupChat.TYPE_GROUP.asConversationTypeArgument(),
+            GroupChat.TYPE_GROUP.takeUnless { it == GroupChat.FILTER_ALL }.orEmpty(),
+        )
     }
 
     /**

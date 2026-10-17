@@ -1,86 +1,24 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.provider.Model
-import heizige.kk.khatkit.ai.ui.UIMessage
-import heizige.kk.khatkit.ai.ui.isEmptyUIMessage
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Assistant
-import heizige.kk.khatkit.app.core.data.model.Avatar
-import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 
 /**
- * 气泡旁边要不要给用户头像留一列。与 [ChatMessageUserAvatarIcon] 的渲染条件是同一份：
- * 调用方靠它决定这一列渲不渲染，否则会出现「留了空隙却没有内容」的空列。名字也挂在同一个
- * 条件上——头像关掉时名字一起收起来，与旧版「名字 + 头像同一行」的口径一致。
- */
-internal fun shouldShowUserAvatar(message: UIMessage, showUserAvatar: Boolean): Boolean =
-    message.role == MessageRole.USER && !message.parts.isEmptyUIMessage() && showUserAvatar
-
-/**
- * 助手消息左边要不要放头像图标。与 [ChatMessageAssistantAvatarIcon] 的渲染条件是同一份：
- * 必须是助手消息，且要么有模型、要么助手开了「用助手头像」。调用方还要再叠加一次
- * `showModelIcon`：关掉图标时整列都不占宽度，否则气泡会莫名多缩进 8dp。
- */
-internal fun shouldShowAssistantAvatar(message: UIMessage, model: Model?, assistant: Assistant?): Boolean =
-    message.role == MessageRole.ASSISTANT && (model != null || assistant?.useAssistantAvatar == true)
-
-/**
- * 用户头像图标本身（28dp）。用户消息现在是横排布局（气泡在左、头像在右），头像单独占右列，
- * 名字上移到气泡上方，所以这里只出图标。
- */
-@Composable
-fun ChatMessageUserAvatarIcon(
-    avatar: Avatar,
-    nickname: String,
-    modifier: Modifier = Modifier,
-) {
-    UIAvatar(
-        name = nickname,
-        modifier = modifier.size(28.dp),
-        value = avatar,
-        loading = false,
-    )
-}
-
-/**
- * 助手侧的头像图标本身（28dp）。
+ * 气泡旁的头像（用户头像 / AI 图标）已按需求整体删除：AI 头像只在顶栏保留一处，
+ * 用户头像不再出现在消息流里。原先这个文件里的 `shouldShowUserAvatar` /
+ * `ChatMessageUserAvatarIcon` / `shouldShowAssistantAvatar` / `ChatMessageAssistantAvatarIcon`
+ * 都没有调用方了，随渲染路径一起删除（而不是留成「恒返回 false」的死代码）。
  *
- * 从原先「头像 + 名字同一个 Row」的助手头像行里拆出来，是为了让头像**单独占左列**：助手消息现在是
- * 「头像在左、气泡在右」的横排，头像不能再和名字挤在同一个 Row 里（那个 Row 里的名字带
- * `weight(1f)`，一旦横排会把整行宽度吃掉，气泡就没地方了）。
+ * 只留下「气泡上方那一行名字」的口径函数 —— 它跟头像无关，消费的是 `showModelName` /
+ * 群聊 `speakerName`，仍在用。
  *
- * 渲染条件不在这里重复判定：调用方用 [shouldShowAssistantAvatar] + `showModelIcon` 决定。
+ * 持久化字段 `DisplaySetting.showUserAvatar` / `showModelIcon` 保持不动（旧数据、导入导出
+ * 不受影响），只是不再有消费方；对应的两行设置开关已从 MD3 / Miuix 两个设置页删除。
  */
-@Composable
-fun ChatMessageAssistantAvatarIcon(
-    loading: Boolean,
-    model: Model?,
-    assistant: Assistant?,
-    modifier: Modifier = Modifier,
-) {
-    if (assistant?.useAssistantAvatar == true) {
-        UIAvatar(
-            name = assistant.name,
-            modifier = modifier.size(28.dp),
-            value = assistant.avatar,
-            loading = loading,
-        )
-    } else if (model != null) {
-        AutoAIIcon(
-            name = model.modelId,
-            modifier = modifier.size(28.dp),
-            loading = loading,
-        )
-    }
-}
 
 /**
  * 气泡左上方那一行要显示的名字。群聊用 [speakerName]（说话者角色名）压过助手名，

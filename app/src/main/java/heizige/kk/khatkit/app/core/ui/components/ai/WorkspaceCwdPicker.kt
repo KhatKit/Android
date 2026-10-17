@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,16 +8,15 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -29,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.util.concurrent.CancellationException
@@ -41,6 +38,7 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.undo
 import heizige.kk.kedge.components.KedgeHorizontalDivider
@@ -87,6 +85,7 @@ fun WorkspaceCwdPickerSheet(
         onDismiss = onDismiss,
         scrollable = false,
     ) { dismiss ->
+        val cards = listCardStyle()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -130,11 +129,14 @@ fun WorkspaceCwdPickerSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 350.dp),
+                verticalArrangement = Arrangement.spacedBy(cards.gap),
             ) {
                 val dirs = entries.filter { it.isDirectory }
-                items(dirs, key = { it.path }) { entry ->
-                    KedgeListItem(
-                        headlineContent = {
+                itemsIndexed(dirs, key = { _, entry -> entry.path }) { index, entry ->
+                    KedgeOptionItem(
+                        onClick = { browsePath = entry.path },
+                        shape = cards.indexedShape(index, dirs.size),
+                        titleContent = {
                             Text(
                                 text = entry.name,
                                 maxLines = 1,
@@ -148,10 +150,6 @@ fun WorkspaceCwdPickerSheet(
                                 modifier = Modifier.size(22.dp),
                                 tint = MaterialTheme.colorScheme.primary,
                             )
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
-                            browsePath = entry.path
                         },
                     )
                 }

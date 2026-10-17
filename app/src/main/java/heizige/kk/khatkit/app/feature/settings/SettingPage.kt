@@ -68,6 +68,8 @@ import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.campaign
+import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.celebration
 import heizige.kk.khatkit.app.core.ui.icons.database
 import heizige.kk.khatkit.app.core.ui.icons.dns
@@ -236,19 +238,19 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     item(
                         onClick = { navController.navigate(Screen.ExploreMarket) },
                         leadingContent = { Icon(inventory2, null) },
-                        supportingContent = { Text("一站式浏览工具、技能、MCP、模型能力与脚本卡片") },
+                        supportingContent = { Text("浏览工具、技能与脚本卡片") },
                         headlineContent = { Text("探索市场") },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPackage) },
                         leadingContent = { Icon(favorite, null) },
-                        supportingContent = { Text("激活 KhatKitHub 套餐、查看额度，并创建 AI 网关供应商") },
+                        supportingContent = { Text("套餐激活、额度与网关供应商") },
                         headlineContent = { Text("套餐激活") },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingTriggers) },
                         leadingContent = { Icon(bolt, null) },
-                        supportingContent = { Text("卡片在定时、通知、应用启动、充电时自动运行") },
+                        supportingContent = { Text("定时、事件自动运行卡片") },
                         headlineContent = { Text("自动化触发器") },
                     )
                     item(
@@ -291,6 +293,14 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                             }
                         },
                         headlineContent = { Text(stringResource(R.string.setting_page_chat_storage)) },
+                    )
+                    // 记忆入口从聊天抽屉搬到这里：先选角色，再进该角色的记忆面板。
+                    item(
+                        onClick = { navController.navigate(Screen.SettingMemory) },
+                        leadingContent = { Icon(memory, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_memory_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_memory)) },
+                        trailingContent = { Icon(arrowForward, null) },
                     )
                 }
             }

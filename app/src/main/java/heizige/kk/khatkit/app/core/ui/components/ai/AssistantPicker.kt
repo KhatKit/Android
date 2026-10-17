@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -38,11 +40,14 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
+import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAssistantState
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.app.core.ui.icons.search
@@ -95,6 +100,11 @@ fun AssistantPicker(
                     UIAvatar(
                         name = state.currentAssistant.name.ifEmpty { defaultAssistantName },
                         value = state.currentAssistant.avatar,
+                        avatarShape = state.currentAssistant.avatarShape,
+                        avatarColor = state.currentAssistant.avatarColor,
+                        defaultIconName = settings.findModelProviderName(
+                            state.currentAssistant.chatModelId ?: settings.chatModelId
+                        ),
                         onClick = onClickSetting
                     )
                 }
@@ -185,31 +195,24 @@ fun AssistantPickerSheet(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // 助手列表
+            // 助手列表：成组 option item（与设置页 / 抽屉角色列表 / 角色面板同一套
+            // listCardStyle 圆角与行间空隙），不再每行单独一张 surface 卡片。
+            val cards = listCardStyle()
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(filteredAssistants, key = { it.id }) { assistant ->
+                itemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->
                     val checked = assistant.id == currentAssistant.id
                     // 行本身与助手页共用 AssistantItem（core 里的唯一实现）；
-                    // 选中态只是把底色/字色换成 primaryContainer 那对。
+                    // 选中态只用行尾一个勾，底色/字色保持 option item 默认值。
                     AssistantItem(
                         assistant = assistant,
                         defaultAssistantName = defaultAssistantName,
-                        modifier = Modifier.animateItem(),
-                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier
+                            .animateItem()
+                            .padding(bottom = if (index == filteredAssistants.lastIndex) 0.dp else cards.gap),
+                        shape = cards.indexedShape(index, filteredAssistants.size),
                         avatarSize = 32.dp,
-                        backgroundColor = if (checked) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                        contentColor = if (checked) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
                         onClick = {
                             onAssistantSelected(assistant)
                             dismiss()
@@ -226,18 +229,31 @@ fun AssistantPickerSheet(
                                 )
                             }
                         },
+                        providerName = settings.findModelProviderName(
+                            assistant.chatModelId ?: settings.chatModelId
+                        ),
                         trailingContent = {
-                            KedgeIconButton(
-                                onClick = {
-                                    onDismiss()
-                                    navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
-                                },
-                                shapes = IconButtonDefaults.shapes(),
-                            ) {
-                                Icon(
-                                    imageVector = editNote,
-                                    contentDescription = null
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (checked) {
+                                    Icon(
+                                        imageVector = check,
+                                        contentDescription = "当前角色",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(end = 4.dp).size(18.dp),
+                                    )
+                                }
+                                KedgeIconButton(
+                                    onClick = {
+                                        onDismiss()
+                                        navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
+                                    },
+                                    shapes = IconButtonDefaults.shapes(),
+                                ) {
+                                    Icon(
+                                        imageVector = editNote,
+                                        contentDescription = null
+                                    )
+                                }
                             }
                         },
                     )

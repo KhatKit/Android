@@ -106,6 +106,19 @@ import heizige.kk.khatkit.app.core.util.applyPlaceholders
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.ConversationSession
+import heizige.kk.khatkit.app.feature.chat.data.ConversationSessionManager
+import heizige.kk.khatkit.app.feature.chat.helper.GroupPerspectiveTransformer
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.data.LEGACY_GROUP_ARCHIVE_MESSAGE
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueueState
+import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
+import heizige.kk.khatkit.app.feature.chat.helper.SummaryViewerScope
+import heizige.kk.khatkit.app.feature.chat.data.afterPreviousGeneration
+import heizige.kk.khatkit.app.feature.chat.data.requireActiveRoleConversation
+import heizige.kk.khatkit.app.feature.chat.data.resolveGroupTurnModelId
+import heizige.kk.khatkit.app.feature.chat.data.unreferencedQueuedAttachmentUrls
+import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 private const val TAG = "ChatManager"
 
@@ -474,6 +487,32 @@ class ChatManager(
     fun resumeMessageQueue(conversationId: Uuid) {
         sessionManager.get(conversationId)?.messageQueue?.resume()
         dispatchNextQueuedMessage(conversationId)
+    }
+
+    /**
+     * 立即发送队列里的某条消息：先插到队首，再马上发出去。
+     *
+     * 当前回合仍在生成（或停在工具审批上）时按「停止」的语义中断它，否则新消息
+     * 只能排在本回合之后 —— 那就不叫立即发送了。中断会把队列置为暂停，这里恢复一次，
+     * 让其余待发送消息在之后照常续发。
+     */
+    fun sendQueuedMessageNow(conversationId: Uuid, messageId: Uuid) {
+        val session = sessionManager.get(conversationId) ?: return
+        val idle = synchronized(session) {
+            if (session.messageQueue.promote(messageId) == null) return
+            if (session.getJob() != null || session.state.value.currentMessages.any { message ->
+                    message.parts.any { it is UIMessagePart.Tool && it.isPending }
+                }) return@synchronized false
+            session.messageQueue.resume()
+            dispatchNextQueuedMessage(conversationId)
+            true
+        }
+        if (idle) return
+        appScope.launch {
+            stopGeneration(conversationId)
+            sessionManager.get(conversationId)?.messageQueue?.resume()
+            dispatchNextQueuedMessage(conversationId)
+        }
     }
 
     fun sendMessage(conversationId: Uuid, content: List<UIMessagePart>, answer: Boolean = true) {

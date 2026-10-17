@@ -7,8 +7,8 @@ import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupConfigError
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
-import heizige.kk.khatkit.app.feature.chat.GroupSpeakerResolver
-import heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement

@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.feature.workflow
 
-import heizige.kk.khatkit.app.feature.settings.WorkflowDefinition
-import heizige.kk.khatkit.app.feature.settings.WorkflowNode
+import heizige.kk.khatkit.app.feature.settings.data.WorkflowDefinition
+import heizige.kk.khatkit.app.feature.settings.data.WorkflowNode
 
 /** 把列表编辑器里的旧节点收成规范 JSON。已有 graphJson 时直接用，不重写用户图。 */
 object WorkflowLegacy {

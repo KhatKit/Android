@@ -49,6 +49,7 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun AssistantDetailPage(id: String) {
     val vm: AssistantDetailViewModel = hiltViewModel<AssistantDetailViewModel, AssistantDetailViewModel.Factory>(creationCallback = { it.create(id) })
     val assistant by vm.assistant.collectAsStateWithLifecycle()
+    val providers by vm.providers.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -66,6 +67,9 @@ fun AssistantDetailPage(id: String) {
             item {
                 AssistantHeader(
                     assistant = assistant,
+                    providerName = providers
+                        .firstOrNull { provider -> provider.models.any { it.id == assistant.chatModelId } }
+                        ?.name,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp)
                 )
             }
@@ -132,6 +136,7 @@ fun AssistantDetailPage(id: String) {
 @Composable
 private fun AssistantHeader(
     assistant: Assistant,
+    providerName: String?,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -143,6 +148,9 @@ private fun AssistantHeader(
             value = assistant.avatar,
             name = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
             onUpdate = null,
+            avatarShape = assistant.avatarShape,
+            defaultIconName = providerName,
+            avatarColor = assistant.avatarColor,
             modifier = Modifier
                 .size(100.dp)
                 .heroAnimation("assistant_${assistant.id}")

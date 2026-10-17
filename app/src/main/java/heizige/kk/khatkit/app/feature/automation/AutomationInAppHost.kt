@@ -24,6 +24,7 @@ import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khromia.components.ToastCardContainer
 import heizige.kk.khromia.components.ToastDefaults
 import heizige.kk.khromia.layout.FullscreenPopup
+import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 
 /**
  * 应用前台的自动化提示；点击只隐藏提示，不取消脚本。

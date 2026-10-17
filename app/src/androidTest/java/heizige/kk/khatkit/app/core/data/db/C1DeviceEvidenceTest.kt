@@ -31,8 +31,8 @@ import heizige.kk.khatkit.app.core.data.model.VoteOutcome
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FilesRepository
-import heizige.kk.khatkit.app.feature.chat.GroupTurnCoordinator
-import heizige.kk.khatkit.app.feature.chat.resolveGroupTurnModelId
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.data.resolveGroupTurnModelId
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray

@@ -12,6 +12,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
 
 /**
  * 目标里那条具名验收标准的**穷举证据**：

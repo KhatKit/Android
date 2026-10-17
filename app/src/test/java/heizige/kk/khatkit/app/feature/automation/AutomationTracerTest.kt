@@ -7,6 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationTracer
 
 class AutomationTracerTest {
 

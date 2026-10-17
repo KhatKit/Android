@@ -69,6 +69,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalReadiness
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalTab
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalTabsState
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalViewClient
 
 
 

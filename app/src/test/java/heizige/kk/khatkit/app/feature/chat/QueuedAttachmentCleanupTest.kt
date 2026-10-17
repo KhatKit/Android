@@ -10,6 +10,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueue
+import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
+import heizige.kk.khatkit.app.feature.chat.data.unreferencedQueuedAttachmentUrls
 
 class QueuedAttachmentCleanupTest {
     private val image = UIMessagePart.Image("file:///upload/image.png")

@@ -1,51 +1,58 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.RadioButtonPreference
-import top.yukonga.miuix.kmp.preference.SliderPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.sp
-import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
+import top.yukonga.miuix.kmp.preference.SliderPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.material3.Icon as MdIcon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text as MdText
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeRadioButton
 import heizige.kk.kedge.components.KedgeSlider
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.preferences.KedgeListPreference
 import heizige.kk.kedge.preferences.KedgePreferenceOption
 import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.khatkit.app.core.ui.components.ui.LocalInlineCardGroup
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
 /**
  * KhatKit Miuix 偏好项的薄包装：统一图标样式与常用默认值，
  * 免得每个页面重复写 KernelSU 那套 `startAction = { Icon(..., Modifier.padding(end = 6.dp)) }`。
+ *
+ * ⚠️ 本文件**不再自绘选项行**（t11）：[PreferenceSwitch] / [PreferenceArrow] /
+ * [PreferenceInfo] / [PreferenceRadio]（以及 [PreferenceSlider] 的 MD3 一支）全部只是
+ * **签名转接层**，行布局、卡片底色、圆角、内边距、字阶、按压回弹一律由
+ * [KedgeOptionItem] 按 `LocalKedgeStyle` 分流决定（与 `Form.kt` 的 `FormItem`、
+ * `miuix/KedgeForm.kt` 的 `KedgeFormRow` 同一条渲染路径）。
+ *
+ * 以前这里有两条自绘行：Miuix 一支直接渲染 miuix 原生 `SwitchPreference` /
+ * `ArrowPreference`（自带 `BasicComponent` 行），MD3 一支渲染 `KedgeListItem` +
+ * `Modifier.clickable`。两套行各自算一遍内边距/字阶/卡片，改一处漏一处；同一个
+ * 「选项行」在 16-17 个 `*Miuix` 设置页里长成两种样子。现在 95 处调用点**零改动**，
+ * 只是里面的行换成了统一的那一个。
  */
 
 /**
@@ -92,35 +99,68 @@ fun PreferenceIcon(
 }
 
 /**
- * Miuix 观感的可点击：按下时整行缩一点，抬起复原，**不画水波纹**。
+ * 选项行的圆角：与 `Form.kt` 的 `inlineGroupRowShape()` **同一条规则**。
  *
- * Miuix 的 `BasicComponent` 只在 `onClick != null` 时才既挂 clickable 又启用按压动画，
- * 而 `SwitchPreference` 压根没有 onClick 参数——所以行点击只能在这里补。
- * 缩放取 0.97：与 Miuix `holdDownState` 的观感接近，又不会让行看起来被压扁。
+ * - 组外（单行）：按「整组只有一行」算，四角都是大圆角（`listCardStyle().indexedShape(0, 1)`）。
+ * - 组内（[LocalInlineCardGroup] 非空，即 `KedgeFormCard` / `InlineCardGroup` 里）：一律按
+ *   「中间项」算，只留内侧小圆角；首项上边 / 末项下边的大圆角由整组 `clip` 裁出来。
+ *   Miuix 下 `smallCorner = 0`，组内就是直角矩形拼一张卡 —— 正是 KernelSU 的分组观感。
+ *
+ * 这条路径**不需要知道自己是组里第几个**，所以 95 处调用点不必传 index/count；
+ * 组内混着 `PreferenceSlider`、条件行、标题 `Text` 也一样正确。
  */
 @Composable
-private fun Modifier.holdDownClickable(
-    enabled: Boolean,
-    onClick: () -> Unit,
-): Modifier {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) 0.97f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "preferenceHoldDown",
-    )
-    return this
-        .graphicsLayer { scaleX = scale; scaleY = scale }
-        .clickable(
-            enabled = enabled,
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = onClick,
-        )
+private fun preferenceRowShape(): Shape {
+    val cards = listCardStyle()
+    return if (LocalInlineCardGroup.current == null) {
+        cards.indexedShape(0, 1)
+    } else {
+        cards.groupItemShape(isFirst = false, isLast = false)
+    }
 }
 
-/** 开关项。[icon] 为空时不显示前置图标。 */
+/**
+ * 行标题。字阶取 [KedgeTextStyles.title]（Miuix = `headline1 + Medium`，与
+ * [KedgeOptionItem] 自己那层 `MiuixTextStyleScope` 同值；MD3 = `titleMedium`）。
+ *
+ * 取色不能省：Miuix 一支原来由 `SwitchPreference` 的 `BasicComponent` 给
+ * `onSurfaceContainer`，MD3 一支原来吃 `LocalContentColor`；现在两边都从这里出，
+ * 免得 Miuix 页面里标题跟着 MD3 的 `LocalContentColor` 走成黑/白。
+ */
+@Composable
+private fun PreferenceTitle(text: String) {
+    MdText(
+        text = text,
+        style = KedgeTextStyles.title(),
+        color = when (LocalKedgeStyle.current) {
+            KedgeStyle.Miuix -> MiuixTheme.colorScheme.onSurfaceContainer
+            KedgeStyle.MD3Exp -> Color.Unspecified
+        },
+    )
+}
+
+/**
+ * 行摘要。Miuix 取 `onSurfaceVariantSummary`（= `BasicComponent` 给 summary 的那个角色），
+ * MD3 保持改造前的 `onSurfaceVariant`。
+ */
+@Composable
+private fun PreferenceSummary(text: String) {
+    MdText(
+        text = text,
+        style = KedgeTextStyles.body(),
+        color = when (LocalKedgeStyle.current) {
+            KedgeStyle.Miuix -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+            KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.onSurfaceVariant
+        },
+    )
+}
+
+/**
+ * 开关项。[icon] 为空时不显示前置图标。
+ *
+ * 整行点击 = 翻转开关（`onClick` 交给 [KedgeOptionItem]，两种风格都既有整行点击、
+ * 又有按压回弹）；右侧开关自己消费掉它的点击，不会冒泡回来，所以不会翻两次。
+ */
 @Composable
 fun PreferenceSwitch(
     title: String,
@@ -131,52 +171,21 @@ fun PreferenceSwitch(
     icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SwitchPreference(
-            title = title,
-            summary = summary,
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled,
-            modifier = modifier
-                .fillMaxWidth()
-                // 整行可点：Miuix 的 SwitchPreference **没有 onClick 参数**（ArrowPreference
-                // 才有），onClick 缺省时 BasicComponent 根本不挂 clickable，于是「点卡片
-                // 不动、只能点开关」。这里自己补上：指示器关掉，改用 Miuix 那套按压缩放，
-                // 免得在 Miuix 页面里出现一圈 MD3 水波纹。
-                // 开关自己消费掉它那部分点击，不会冒泡回来，所以不会翻两次。
-                .holdDownClickable(enabled) { onCheckedChange(!checked) },
-            startAction = icon?.let { { PreferenceIcon(it, title, enabled) } },
-        )
-    } else {
-        // MD3Exp：原先无条件渲染 Miuix 的 SwitchPreference，MD3 页面里会漏出 Miuix 开关。
-        // 这里走 :kedge 的 KedgeListItem + KedgeSwitch；整行可点的语义与上面一致。
-        KedgeListItem(
-            modifier = modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled) { onCheckedChange(!checked) },
-            headlineContent = {
-                MdText(text = title, style = MaterialTheme.typography.bodyLarge)
-            },
-            supportingContent = summary?.let { s ->
-                {
-                    MdText(
-                        text = s,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
-            trailingContent = {
-                KedgeSwitch(
-                    checked = checked,
-                    onCheckedChange = onCheckedChange,
-                    enabled = enabled,
-                )
-            },
-        )
-    }
+    KedgeOptionItem(
+        onClick = if (enabled) ({ onCheckedChange(!checked) }) else null,
+        modifier = modifier,
+        shape = preferenceRowShape(),
+        leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
+        titleContent = { PreferenceTitle(title) },
+        supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
+        trailingContent = {
+            KedgeSwitch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled,
+            )
+        },
+    )
 }
 
 /** 跳转项。[icon] 为空时不显示前置图标。 */
@@ -191,51 +200,42 @@ fun PreferenceArrow(
     startAction: (@Composable () -> Unit)? = null,
     endAction: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        ArrowPreference(
-            title = title,
-            summary = summary,
-            onClick = onClick,
-            enabled = enabled,
-            modifier = modifier,
-            startAction = startAction ?: icon?.let { { PreferenceIcon(it, title, enabled) } },
-            endActions = { endAction?.invoke(this) },
-        )
-    } else {
-        // MD3Exp：走 :kedge 的 KedgeListItem，startAction/endAction 分别落到
-        // leading/trailing 插槽，右侧补一个 MD3 箭头。
-        KedgeListItem(
-            modifier = modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled, onClick = onClick),
-            headlineContent = {
-                MdText(text = title, style = MaterialTheme.typography.bodyLarge)
-            },
-            supportingContent = summary?.let { s ->
-                {
-                    MdText(
-                        text = s,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            leadingContent = startAction ?: icon?.let { { PreferenceIcon(it, title, enabled) } },
-            trailingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    endAction?.invoke(this)
-                    MdIcon(
-                        imageVector = chevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-        )
-    }
+    KedgeOptionItem(
+        onClick = if (enabled) onClick else null,
+        modifier = modifier,
+        shape = preferenceRowShape(),
+        // startAction 优先（调用点自带的图标/前置控件），其次才用 icon。
+        leadingContent = startAction ?: icon?.let { { PreferenceIcon(it, title, enabled) } },
+        titleContent = { PreferenceTitle(title) },
+        supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                endAction?.invoke(this)
+                MdIcon(
+                    imageVector = chevronRight,
+                    contentDescription = null,
+                    tint = when (LocalKedgeStyle.current) {
+                        // Miuix 的 `ArrowPreference` 自己画的那个箭头就是这个色。
+                        KedgeStyle.Miuix -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        },
+    )
 }
 
-/** 滑块项。[valueText] 显示在滑块右侧（如百分比、当前值）。 */
+/**
+ * 滑块项。[valueText] 显示在滑块右侧（如百分比、当前值）。
+ *
+ * 两种风格都保留**原生滑块**，只把外壳收进 [KedgeOptionItem]：
+ *
+ * - Miuix 一支仍是 `SliderPreference`（`PreferenceItems.kt:213`）：Miuix 的滑块带拖动
+ *   值气泡、刻度绘制与无障碍 setProgress 语义，自己用 `KedgeSlider` 拼一遍会丢这些；
+ *   而且它本来就是 Miuix 自带的 `BasicComponent` 行，不是「裸 `KedgeListItem` + clickable」。
+ * - MD3 一支原来是裸 `KedgeListItem`（透明无底色、无卡片圆角），现在换成
+ *   `KedgeOptionItem(onClick = null)`：纯信息行不可点、无按压回弹，滑块仍是唯一交互元素。
+ */
 @Composable
 fun PreferenceSlider(
     title: String,
@@ -265,21 +265,19 @@ fun PreferenceSlider(
             startAction = icon?.let { { PreferenceIcon(it, title, enabled) } },
         )
     } else {
-        // MD3Exp：KedgeListItem 承载标题/描述，滑块用 :kedge 的 KedgeSlider
-        // （valueText 仍显示在滑块右侧）。
-        KedgeListItem(
-            modifier = modifier.fillMaxWidth(),
-            headlineContent = {
-                MdText(text = title, style = MaterialTheme.typography.bodyLarge)
-            },
+        // MD3Exp：外壳走 KedgeOptionItem（纯信息行，onClick = null），滑块用 :kedge 的
+        // KedgeSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 KedgeListItem 相同，
+        // 只多了卡片底色/圆角。
+        KedgeOptionItem(
+            onClick = null,
+            modifier = modifier,
+            shape = preferenceRowShape(),
+            leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
+            titleContent = { PreferenceTitle(title) },
             supportingContent = {
                 Column {
                     if (summary != null) {
-                        MdText(
-                            text = summary,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        PreferenceSummary(summary)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         KedgeSlider(
@@ -294,19 +292,24 @@ fun PreferenceSlider(
                         if (valueText != null) {
                             MdText(
                                 text = valueText,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = KedgeTextStyles.body(),
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
                     }
                 }
             },
-            leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
         )
     }
 }
 
-/** 只读信息项。[onLongClick] 用于「连点版本号进 Debug」这类隐藏入口。 */
+/**
+ * 只读信息项。[onLongClick] 用于「连点版本号进 Debug」这类隐藏入口。
+ *
+ * 长按在 [KedgeOptionItem] 的 `onClick` 之外补：有 [onLongClick] 时整行点击交给挂上来的
+ * `combinedClickable`（`onClick` 传 null，避免两个 clickable 各点一次），没有时直接走
+ * [KedgeOptionItem] 的 `onClick`（带按压回弹）。
+ */
 @Composable
 fun PreferenceInfo(
     title: String,
@@ -317,45 +320,23 @@ fun PreferenceInfo(
     onLongClick: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        ArrowPreference(
-            title = title,
-            summary = summary,
-            onClick = onClick,
-            modifier = modifier.combinedClickable(
+    KedgeOptionItem(
+        onClick = if (onLongClick == null) onClick else null,
+        modifier = if (onLongClick == null) {
+            modifier
+        } else {
+            modifier.combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = { onClick?.invoke() },
                 onLongClick = onLongClick,
-            ),
-            startAction = icon?.let { { PreferenceIcon(it, title) } },
-        )
-    } else {
-        // MD3Exp：onClick/onLongClick 都保留（长按是「连点版本号进 Debug」这类隐藏入口）。
-        KedgeListItem(
-            modifier = modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = { onClick?.invoke() },
-                    onLongClick = onLongClick,
-                ),
-            headlineContent = {
-                MdText(text = title, style = MaterialTheme.typography.bodyLarge)
-            },
-            supportingContent = summary?.let { s ->
-                {
-                    MdText(
-                        text = s,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            leadingContent = icon?.let { { PreferenceIcon(it, title) } },
-        )
-    }
+            )
+        },
+        shape = preferenceRowShape(),
+        leadingContent = icon?.let { { PreferenceIcon(it, title) } },
+        titleContent = { PreferenceTitle(title) },
+        supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
+    )
 }
 
 /** 单选项（圆点）。 */
@@ -369,44 +350,21 @@ fun PreferenceRadio(
     icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        RadioButtonPreference(
-            title = title,
-            summary = summary,
-            selected = selected,
-            onClick = onClick,
-            enabled = enabled,
-            modifier = modifier.fillMaxWidth(),
-            startAction = icon?.let { { PreferenceIcon(it, title, enabled) } },
-        )
-    } else {
-        // MD3Exp：走 :kedge 的 KedgeListItem + KedgeRadioButton。
-        KedgeListItem(
-            modifier = modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled, onClick = onClick),
-            headlineContent = {
-                MdText(text = title, style = MaterialTheme.typography.bodyLarge)
-            },
-            supportingContent = summary?.let { s ->
-                {
-                    MdText(
-                        text = s,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
-            trailingContent = {
-                KedgeRadioButton(
-                    selected = selected,
-                    onClick = onClick,
-                    enabled = enabled,
-                )
-            },
-        )
-    }
+    KedgeOptionItem(
+        onClick = if (enabled) onClick else null,
+        modifier = modifier,
+        shape = preferenceRowShape(),
+        leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
+        titleContent = { PreferenceTitle(title) },
+        supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
+        trailingContent = {
+            KedgeRadioButton(
+                selected = selected,
+                onClick = onClick,
+                enabled = enabled,
+            )
+        },
+    )
 }
 
 /** 下拉单选项。[icon] 为空时不显示前置图标。 */

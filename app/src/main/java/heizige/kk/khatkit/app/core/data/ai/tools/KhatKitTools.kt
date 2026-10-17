@@ -16,11 +16,11 @@ import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
-import heizige.kk.khatkit.app.feature.automation.ApprovalCategory
-import heizige.kk.khatkit.app.feature.automation.AutomationBus
-import heizige.kk.khatkit.app.feature.automation.AutomationTracer
-import heizige.kk.khatkit.app.feature.automation.BusApprovalGate
-import heizige.kk.khatkit.app.feature.automation.UiAutomationSnapshotProvider
+import heizige.kk.khatkit.app.feature.automation.data.ApprovalCategory
+import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationTracer
+import heizige.kk.khatkit.app.feature.automation.helper.BusApprovalGate
+import heizige.kk.khatkit.app.feature.automation.data.UiAutomationSnapshotProvider
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.ai.CardAiEngine
 import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
@@ -35,8 +35,8 @@ import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitSchemaFormSpec
 import heizige.kk.khatkit.app.core.ui.components.khatkit.fillSchemaArgs
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
-import heizige.kk.khatkit.app.feature.automation.CardScheduleRepository
-import heizige.kk.khatkit.app.feature.automation.ScheduleBridgeImpl
+import heizige.kk.khatkit.app.feature.automation.data.CardScheduleRepository
+import heizige.kk.khatkit.app.feature.automation.helper.ScheduleBridgeImpl
 import heizige.kk.khatkit.record.UiBBox
 import heizige.kk.khatkit.record.VisualGrounding
 import heizige.kk.khatkit.card.CardManifest

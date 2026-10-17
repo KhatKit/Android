@@ -28,6 +28,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import heizige.kk.khatkit.app.feature.automation.data.CardTriggerOverride
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerExactAlarmScheduler
+import heizige.kk.khatkit.app.feature.automation.data.TriggerLogEntry
+import heizige.kk.khatkit.app.feature.automation.data.TriggerLogRepository
+import heizige.kk.khatkit.app.feature.automation.data.TriggerRunQueue
+import heizige.kk.khatkit.app.feature.automation.data.TriggerSettings
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerShortcutPublisher
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerTileRegistry
 
 /**
  * 事件触发控制器：把 khatkit 的 [TriggerEngine] 与真实卡片执行器接起来。

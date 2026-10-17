@@ -2,8 +2,8 @@ package heizige.kk.khatkit.app.core.network.routes
 
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.network.ConflictException
-import heizige.kk.khatkit.app.feature.chat.LEGACY_GROUP_ARCHIVE_MESSAGE
-import heizige.kk.khatkit.app.feature.chat.isArchivedGroupConversation
+import heizige.kk.khatkit.app.feature.chat.data.LEGACY_GROUP_ARCHIVE_MESSAGE
+import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 internal enum class ConversationOperation {
     SendMessage,

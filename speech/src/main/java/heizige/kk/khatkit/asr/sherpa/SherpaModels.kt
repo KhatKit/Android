@@ -77,7 +77,7 @@ object SherpaModels {
 }
 
 /** 模型下载 / 解压 / 删除，落在 filesDir/sherpa-models/<id>。 */
-class SherpaModelStore(private val context: Context) {
+class SherpaModelManager(private val context: Context) {
 
     val rootDir: File get() = File(context.filesDir, "sherpa-models")
 

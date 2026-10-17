@@ -250,7 +250,7 @@ KhatKit = RikkaHub（AGPL-3.0）深度 fork + 自研卡片/自动化体系。技
 - `app/.../feature/assistant/detail/AssistantImporter.kt`（现有 `CharaCardV2Parser/V3Parser` 扩展为双向）
 - 新增 `app/.../core/data/ai/lorebook/`：world info 关键词触发引擎（挂进 `PromptInjectionTransformer` 管线）
 - 宏展开：`{{user}}/{{char}}/{{random}}/{{roll}}` 等（在模板层做，勿与 Pebble 混用）
-- `app/.../core/data/export/ExportSerializer.kt` + PNG 元数据读写（`ImageUtils.getTavernCharacterMeta` 已有读，补写）
+- `app/.../core/data/export/ExportSerializer.kt` + PNG 元数据读写（`ImageHelper.getTavernCharacterMeta` 已有读，补写）
 - 聊天互通：ST 聊天 JSON ↔ `MessageNode`（swipe/分支映射）
 
 **范围分层**

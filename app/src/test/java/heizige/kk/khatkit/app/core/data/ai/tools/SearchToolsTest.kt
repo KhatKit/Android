@@ -2,7 +2,7 @@ package heizige.kk.khatkit.app.core.data.ai.tools
 
 import heizige.kk.khatkit.ai.core.InputSchema
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.search.SearchServiceOptions
+import heizige.kk.khatkit.search.SearchOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -11,7 +11,7 @@ class SearchToolsTest {
     @Test
     fun `exa search tool exposes optional evidence parameters`() {
         val settings = Settings(
-            searchServices = listOf(SearchServiceOptions.ExaOptions()),
+            searchServices = listOf(SearchOptions.ExaOptions()),
             searchServiceSelected = 0,
         )
         val searchTool = createSearchTools(settings).single { it.name == "search_web" }
@@ -28,7 +28,7 @@ class SearchToolsTest {
     @Test
     fun `exa scrape tool keeps url required and freshness optional`() {
         val settings = Settings(
-            searchServices = listOf(SearchServiceOptions.ExaOptions()),
+            searchServices = listOf(SearchOptions.ExaOptions()),
             searchServiceSelected = 0,
         )
         val scrapeTool = createSearchTools(settings).single { it.name == "scrape_web" }

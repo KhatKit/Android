@@ -30,15 +30,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +62,7 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.ToggleSurface
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.feature.settings.SearchAbilityTagLine
@@ -85,7 +89,7 @@ fun SearchPickerButton(
     settings: Settings,
     modifier: Modifier = Modifier,
     onUpdateSearchMode: (SearchMode) -> Unit,
-    onUpdateSearchService: (Int) -> Unit,
+    onUpdateSearchRepository: (Int) -> Unit,
     model: Model?,
     chip: Boolean = false,
 ) {
@@ -199,8 +203,8 @@ fun SearchPickerButton(
                 if (selecting) {
                     SearchProviderPicker(
                         settings = settings,
-                        onUpdateSearchService = { index ->
-                            onUpdateSearchService(index)
+                        onUpdateSearchRepository = { index ->
+                            onUpdateSearchRepository(index)
                             selectingProvider = false
                         },
                         onBack = { selectingProvider = false }
@@ -368,10 +372,13 @@ private fun SearchModeCard(
             MaterialTheme.colorScheme.surfaceContainerHigh
         }
     )
+    // 圆角来源统一到 listCardStyle()：这是网格里的独立大卡（不是选项行，结构与内容不动），
+    // 只把写死的 m3 大圆角换成与全仓卡片同一套表达式。
+    val cards = listCardStyle()
     KedgeCard(
         onClick = onClick,
         modifier = modifier,
-        shape = MaterialTheme.shapes.large,
+        shape = cards.groupItemShape(isFirst = true, isLast = true),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = if (selected) {
             BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
@@ -438,9 +445,10 @@ private fun SearchModeCard(
 @Composable
 private fun SearchProviderPicker(
     settings: Settings,
-    onUpdateSearchService: (Int) -> Unit,
+    onUpdateSearchRepository: (Int) -> Unit,
     onBack: () -> Unit,
 ) {
+    val cards = listCardStyle()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -485,41 +493,38 @@ private fun SearchProviderPicker(
                         MaterialTheme.colorScheme.onSurface
                     }
                 )
-                KedgeCard(
-                    colors = CardDefaults.cardColors(
-                        containerColor = containerColor.value,
-                        contentColor = textColor.value,
-                    ),
-                    onClick = {
-                        onUpdateSearchService(index)
-                    },
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                KedgeOptionItem(
+                    onClick = { onUpdateSearchRepository(index) },
+                    modifier = Modifier.fillMaxWidth(),
+                    // 网格里每张卡是独立一格、不参与纵向分组，取 listCardStyle 的完整圆角
+                    // （Miuix 的 largeCorner=20dp；MD3 走同一表达式，不再写死 m3 的 large 形状）。
+                    shape = cards.groupItemShape(isFirst = true, isLast = true),
+                    backgroundColor = containerColor.value,
+                    leadingContent = {
                         AutoAIIcon(
                             name = service.displayName,
                             modifier = Modifier.size(24.dp)
                         )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(
-                                text = service.displayName,
-                                style = KedgeTextStyles.title(),
-                            )
+                    },
+                    titleContent = {
+                        Text(
+                            text = service.displayName,
+                            style = KedgeTextStyles.title(),
+                            color = textColor.value,
+                        )
+                    },
+                    supportingContent = {
+                        // 卡片的 contentColor 以前由 KedgeCard 的 colors 下发，走
+                        // LocalContentColor 落到标签上；KedgeOptionItem 不接管这个，
+                        // 这里显式补一层，选中态下标签才跟着变 onPrimaryContainer。
+                        CompositionLocalProvider(LocalContentColor provides textColor.value) {
                             SearchAbilityTagLine(
                                 options = service,
                                 modifier = Modifier
                             )
                         }
-                    }
-                }
+                    },
+                )
             }
         }
     }

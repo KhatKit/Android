@@ -24,7 +24,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
-import heizige.kk.khatkit.app.core.util.ImageUtils
+import heizige.kk.khatkit.app.core.util.ImageHelper
 import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
 import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.khatkit.app.core.util.isAllowedFileType
@@ -172,8 +172,8 @@ internal fun rememberChatAttachmentPickerActions(
                 val tempFile = File(context.appTempFolder, "pick_temp_${System.currentTimeMillis()}.jpg")
                 runCatching {
                     // HEIF/HEIC（尤其 HDR HEIF）交给 UCrop 前先解码转为 JPEG，规避裁剪解码失败
-                    val converted = ImageUtils.isHeifImage(context, source) &&
-                        ImageUtils.convertHeifToJpeg(context, source, tempFile)
+                    val converted = ImageHelper.isHeifImage(context, source) &&
+                        ImageHelper.convertHeifToJpeg(context, source, tempFile)
                     if (!converted) {
                         context.contentResolver.openInputStream(source)?.use { input ->
                             tempFile.outputStream().use { output -> input.copyTo(output) }

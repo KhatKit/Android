@@ -5,6 +5,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.graphics.SolidColor
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
@@ -30,9 +35,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -79,7 +83,9 @@ import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
 import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.Folder
 import heizige.kk.khatkit.hub.HubAccountInfo
@@ -98,6 +104,10 @@ import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.createNewFolder
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -107,10 +117,9 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import androidx.compose.material3.HorizontalDivider
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -175,19 +184,12 @@ fun ChatDrawerContent(
     val activity = context as ComponentActivity
     val drawerVm: ChatDrawerViewModel = hiltViewModel(viewModelStoreOwner = activity)
 
-    val conversations = drawerVm.conversations.collectAsLazyPagingItems()
-    val folders by drawerVm.folders.collectAsStateWithLifecycle()
     val roleChats by drawerVm.roleChats.collectAsStateWithLifecycle()
-    var showRoleHistory by rememberSaveable { mutableStateOf(false) }
-    val conversationListState = rememberLazyListState(
-        initialFirstVisibleItemIndex = drawerVm.scrollIndex,
-        initialFirstVisibleItemScrollOffset = drawerVm.scrollOffset,
-    )
 
     // 抽屉顶栏的折叠变色（**只作用于 MD3Exp**，Miuix 仍走毛玻璃那套）。
     //
     // 与页面顶栏同一套联动：静止态取页面底色（栏与内容连成一片，看不出有一条栏），
-    // 会话列表往上滚、内容压到栏下面之后，M3 按 `collapsedFraction` 在
+    // 角色列表往上滚、内容压到栏下面之后，M3 按 `collapsedFraction` 在
     // containerColor → scrolledContainerColor（surfaceContainer）之间插值，色块才浮出来。
     //
     // ⚠️ 必须是**同一个实例**既喂给 TopAppBar、又经 [activeNestedScroll] 挂到列表上：
@@ -195,23 +197,17 @@ fun ChatDrawerContent(
     // fraction 恒为 0 —— 表现就是「顶栏永远一个颜色」（页面顶栏踩过的同一个坑）。
     val drawerBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    LaunchedEffect(conversationListState) {
-        snapshotFlow {
-            conversationListState.firstVisibleItemIndex to
-                conversationListState.firstVisibleItemScrollOffset
-        }
-            .distinctUntilChanged()
-            .collectLatest { (index, offset) ->
-                drawerVm.saveScrollPosition(index, offset)
-            }
-    }
-
     val conversationJobs by vm.conversationJobs.collectAsStateWithLifecycle(
         initialValue = emptyMap(),
     )
 
-    // 顶栏搜索（复刻 ImageToolbox 侧边栏：TopAppBar 内联搜索框，按标题过滤会话）
+    // 顶栏搜索（复刻 ImageToolbox 侧边栏：TopAppBar 内联搜索框）
+    //
+    // 关键字非空 = 搜索态：检索范围是**当前角色下所有会话的消息正文**（FTS 命中，见
+    // ChatDrawerViewModel.messageSearch），结果行给会话标题 + 命中片段（关键词高亮）+ 时间，
+    // 点进会话并定位到命中消息（nodeId）。关键字为空则完全回到原来的角色列表 / 会话列表。
     val searchKeyword by drawerVm.searchKeyword.collectAsStateWithLifecycle()
+    val messageSearch by drawerVm.messageSearch.collectAsStateWithLifecycle()
     var showSearch by rememberSaveable { mutableStateOf(false) }
     val searchFocus = remember { FocusRequester() }
     LaunchedEffect(showSearch) {
@@ -221,16 +217,23 @@ fun ChatDrawerContent(
         }
     }
 
+    // 打开一条消息命中：跳到具体会话并定位到 nodeId。id 解析失败（脏数据）就什么都不做，
+    // 不许把抽屉崩掉。
+    val openMessageHit: (MessageSearchResult) -> Unit = { hit ->
+        val conversationId = runCatching { Uuid.parse(hit.conversationId) }.getOrNull()
+        if (conversationId != null) {
+            scope.launch { drawerState?.close() }
+            navigateToChatPage(
+                navController,
+                conversationId,
+                nodeId = runCatching { Uuid.parse(hit.nodeId) }.getOrNull(),
+            )
+        }
+    }
+
     // 移动对话状态
     var showMoveToAssistantSheet by remember { mutableStateOf(false) }
     var conversationToMove by remember { mutableStateOf<Conversation?>(null) }
-
-    // 文件夹相关状态
-    var showMoveToFolderSheet by remember { mutableStateOf(false) }
-    var conversationToMoveFolder by remember { mutableStateOf<Conversation?>(null) }
-    var showCreateFolderDialog by remember { mutableStateOf(false) }
-    var folderToRename by remember { mutableStateOf<Folder?>(null) }
-    var folderToDelete by remember { mutableStateOf<Folder?>(null) }
 
     // Menu popup 状态
     val updateCheckDisabledUntil = settings.displaySetting.updateCheckDisabledUntilEpochMillis
@@ -313,12 +316,6 @@ fun ChatDrawerContent(
                         drawerBarScrollBehavior
                     },
                 navigationIcon = {
-                    if (showRoleHistory && !searchVisible) {
-                        KedgeIconButton(onClick = {
-                            showRoleHistory = false
-                            drawerVm.updateSearchKeyword("")
-                        }) { Icon(arrowBack, contentDescription = "角色") }
-                    }
                     if (searchVisible) {
                         KedgeIconButton(
                             onClick = {
@@ -341,7 +338,7 @@ fun ChatDrawerContent(
                     Box {
                         if (titleVisible) {
                             Text(
-                                text = if (showRoleHistory) "聊天记录" else "角色",
+                                text = "角色",
                                 style = topBarStyle,
                                 modifier = Modifier.graphicsLayer {
                                     alpha = 1f - searchProgress.value
@@ -359,8 +356,11 @@ fun ChatDrawerContent(
                                     },
                             ) {
                                 if (searchKeyword.isBlank()) {
+                                    // 搜索范围是消息正文（不再按角色名/会话标题过滤）。占位文案
+                                    // 与上面搜索图标的 contentDescription 复用同一个 res key，
+                                    // 读屏与视觉上的这一处措辞只有一个来源。
                                     Text(
-                                        text = if (showRoleHistory) stringResource(R.string.chat_page_search_chats) else "搜索角色",
+                                        text = stringResource(R.string.chat_page_search_chats),
                                         style = topBarStyle,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                     )
@@ -409,7 +409,8 @@ fun ChatDrawerContent(
                             if (searching && hasQuery) {
                                 Icon(
                                     imageVector = close,
-                                    contentDescription = stringResource(R.string.chat_page_search_chats),
+                                    // 叉号是「关闭搜索」，不再借用搜索图标的描述（读屏会误报「搜索聊天」）
+                                    contentDescription = stringResource(R.string.chat_drawer_search_clear),
                                     modifier = Modifier.graphicsLayer {
                                         alpha = searchProgress.value
                                     },
@@ -538,7 +539,30 @@ fun ChatDrawerContent(
                     // 把这个 modifier 丢掉（只有 Miuix 分支透传给 MiuixScaffold）。
                     .then(activeNestedScroll(drawerBarScrollBehavior)),
             ) {
-                if (!showRoleHistory) {
+                if (searchKeyword.isNotBlank()) {
+                    // 搜索态：命中**当前角色**会话的消息正文（角色名 + 「标题/片段/时间」行），
+                    // 点命中行跳进会话并定位到 nodeId。清空关键字立刻回到角色列表。
+                    DrawerMessageSearchList(
+                        keyword = searchKeyword,
+                        state = messageSearch,
+                        roleName = settings.assistants
+                            .firstOrNull { it.id == settings.assistantId }?.name
+                            ?: "当前角色",
+                        groupByConversation = false,
+                        contentPadding = PaddingValues(
+                            top = DrawerTopBarHeight + statusBarTop + 8.dp,
+                            bottom = DrawerBottomBarHeight + navBarBottom + 68.dp,
+                        ),
+                        listTag = "drawer_role_search_list",
+                        onOpenHit = openMessageHit,
+                        onOpenConversation = { conversation ->
+                            scope.launch { drawerState?.close() }
+                            navigateToChatPage(navController, conversation.id)
+                        },
+                    )
+                } else {
+                    // 抽屉只有这一份列表：角色。会话不再单独列一栏（历史聊天在角色面板里），
+                    // 文件夹功能整体移除，因此这里既没有切换 tab，也没有文件夹分组。
                     RoleDrawerList(
                         roles = settings.assistants,
                         selected = settings.assistantId,
@@ -555,146 +579,21 @@ fun ChatDrawerContent(
                                 navigateToChatPage(navController, target)
                             }
                         },
+                        providerName = { role ->
+                            settings.findModelProviderName(role.chatModelId ?: settings.chatModelId)
+                        },
                         onManage = { navController.navigate(Screen.Assistant) },
                         header = {
                             if (updateChecksEnabled && !isPlayStore) UpdateCard(vm)
                             BackupReminderCard(settings = settings, onClick = { navController.navigate(Screen.Backup) })
                         },
                     )
-                } else ConversationList(
-                    conversations = conversations,
-                    currentId = current.id,
-                    conversationJobs = conversationJobs.keys,
-                    listState = conversationListState,
-                    contentPadding = PaddingValues(0.dp),
-                    // 顶/底栏浮在列表之上，列表本身铺满并从栏下面穿过（毛玻璃才有
-                    // 内容可透）；用列表内的 Spacer 占位，首尾项仍能完整滚出来。
-                    // **顶栏下面的一切（更新卡片 / 备份提醒 / 文件夹区 / 新建按钮）
-                    // 都必须放进这个 header**：它们在列表流里，列表顶端本来就在顶栏
-                    // 之下；放到 Column 里会整块藏进顶栏底下（文件夹「建了看不到、
-                    // 点不到，只留一段空白」就是这么来的），而且顶栏那段留白会和
-                    // 列表的 topSpacer 叠成两倍，把文件夹和「新建」按钮拉得很开。
-                    topSpacerHeight = DrawerTopBarHeight + statusBarTop,
-                    bottomSpacerHeight = DrawerBottomBarHeight + navBarBottom + 68.dp,
-                    header = {
-                        if (updateChecksEnabled && !isPlayStore) {
-                            UpdateCard(vm)
-                        }
-
-                        BackupReminderCard(
-                            settings = settings,
-                            onClick = { navController.navigate(Screen.Backup) },
-                        )
-
-                        // 文件夹与「新建文件夹」是同一组（Miuix 下零间距、首末圆角，
-                        // 圆角收口全靠这最后一组），所以它总是要出现——即使一个文件夹
-                        // 都没有，也要渲染出那一行「新建文件夹」。组底留 8dp 断开与
-                        // 会话列表的间距（header 是列表里的单个 item，内部的
-                        // spacedBy 管不到这里）。
-                        //
-                        // 组顶也留 8dp：顶栏是**覆盖式**（KedgeOverlayScaffold 的
-                        // contentInsetTop = 0，列表用 topSpacer 顶开栏高），常态下
-                        // UpdateCard 不渲染、BackupReminderCard 早退，文件夹组就是
-                        // header 里第一个可见子项，直接贴着顶栏最后一个像素。这 8dp
-                        // 与抽屉既有节奏（外层 Column 的 spacedBy(8.dp)、组底那条
-                        // bottom = 8.dp）对齐。
-                        //
-                        // ⚠️ 不能用放大 ConversationList 的 topSpacerHeight 来做这件事：
-                        // 那是列表内首部 Spacer，加高会把 header 里**所有**子项（更新
-                        // 卡片 / 备份提醒）一起往下推并改变列表滚动几何。这里的 padding
-                        // 只作用于文件夹组自身，两种风格共用同一条 modifier。
-                        //
-                        // ⇒ **Miuix 风格抽屉同样多出这 8dp**（同一条 modifier）：抽屉顶栏
-                        // 两风格走的是同一个裸 MD3 TopAppBar（只有颜色分流，:274），栏高都
-                        // 是 DrawerTopBarHeight(64dp) + statusBarTop，所以两风格间距一致；
-                        // Miuix 的「文件夹组内零间距」只约束组**内**，组顶这 8dp 在组外，
-                        // 不破坏首项上圆角。若将来只想改 MD3，把 top 拆到 MD3 分支即可。
-                        FolderSection(
-                            folders = folders,
-                            onClickFolder = { folder ->
-                                if (drawerState != null) {
-                                    scope.launch { drawerState.close() }
-                                }
-                                navController.navigate(Screen.FolderDetail(folder.id.toString()))
-                            },
-                            onRename = { folderToRename = it },
-                            onDelete = { folderToDelete = it },
-                            onCreateFolder = { showCreateFolderDialog = true },
-                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        // C1 真机 UI 测试的定位锚点：会话列表要能被滚动到指定条目
-                        // （performScrollToNode），chip 过滤断言才能覆盖到屏幕外的行。
-                        // 仅新增语义属性，不改布局/行为。
-                        // （顶栏折叠变色的 nestedScroll 挂在外层 Box 上，见那里。）
-                        .testTag("drawer_conversation_list"),
-                    onClick = {
-                        navigateToChatPage(navController, it.id)
-                    },
-                    onRegenerateTitle = {
-                        vm.generateTitle(it, true)
-                    },
-                    onDelete = {
-                        scope.launch {
-                            vm.deleteConversation(it).join()
-                            conversations.refresh()
-                            if (it.id == current.id) {
-                                navigateToChatPage(navController)
-                            }
-                        }
-                    },
-                    onPin = {
-                        vm.updatePinnedStatus(it)
-                    },
-                    onMoveToAssistant = {
-                        conversationToMove = it
-                        showMoveToAssistantSheet = true
-                    },
-                    onMoveToFolder = {
-                        conversationToMoveFolder = it
-                        showMoveToFolderSheet = true
-                    }
-                )
-
-                // Keep role actions on a flat footer, separate from the scrolling list.
-                KedgeSurface(
-                    shape = RoundedCornerShape(0.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        // 底栏（设置/订阅/下载中心）是浮在内容之上的，且自带
-                        // navigationBarsPadding。助手胶囊在内容流里，必须自己垫出
-                        // 「底栏高 + 导航栏」的高度，否则会被底栏整块盖住、点不到。
-                        .padding(bottom = DrawerBottomBarHeight + navBarBottom),
-                ) {
-                    Column {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        KedgeTextButton(onClick = {
-                            showRoleHistory = !showRoleHistory
-                            drawerVm.updateSearchKeyword("")
-                            showSearch = false
-                        }) { Text(if (showRoleHistory) "角色" else "聊天记录") }
-                        Spacer(Modifier.weight(1f))
-                        KedgeTextTooltipBox("记忆") {
-                            KedgeIconButton(onClick = {
-                                navController.navigate(Screen.AssistantMemory(settings.assistantId.toString()))
-                            }) { Icon(memory, "记忆") }
-                        }
-                        KedgeTextTooltipBox("角色设置") {
-                            KedgeIconButton(onClick = {
-                                navController.navigate(Screen.AssistantDetail(settings.assistantId.toString()))
-                            }) { Icon(settingsIcon, "角色设置") }
-                        }
-                    }
-                    }
                 }
+
+                // 抽屉底栏上方原来还有一条 footer（记忆 / 角色设置两个图标）：记忆已搬到
+                // 设置 → 数据设置，角色设置入口随之取消，整块删掉，不留空分隔线。
+                // 列表底部留白由各自 contentPadding（DrawerBottomBarHeight + navBarBottom
+                // + 68.dp）负责，与此处无关。
             }
 
             }
@@ -731,180 +630,6 @@ fun ChatDrawerContent(
         }
     }
 
-    // 移动到文件夹 Bottom Sheet
-    if (showMoveToFolderSheet) {
-        PrimaryBottomSheet(
-            visible = true,
-            title = stringResource(R.string.chat_page_move_to_folder),
-            imageVector = folderIcon,
-            onDismiss = {
-                showMoveToFolderSheet = false
-                conversationToMoveFolder = null
-            },
-            scrollable = false,
-        ) { dismiss ->
-            val doMove: (Uuid?) -> Unit = { folderId ->
-                conversationToMoveFolder?.let { conversation ->
-                    drawerVm.moveConversationToFolder(conversation.id, folderId)
-                    dismiss()
-                    scope.launch {
-                        conversations.refresh()
-                    }
-                }
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // 移出文件夹（未归类）
-                KedgeSurface(
-                    onClick = { doMove(null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    // 不写死 shape：KedgeSurface 在 MD3Exp 下取 shapes.medium、
-                    // Miuix 下取自己的 16dp 圆角，写死就等于把 MD3 圆角带进 Miuix。
-                    color = if (conversationToMoveFolder?.folderId == null) {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    },
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(folderIcon, null)
-                        Text(
-                            text = stringResource(R.string.chat_page_remove_from_folder),
-                            style = KedgeTextStyles.title(),
-                        )
-                    }
-                }
-
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(folders) { folder ->
-                        val isCurrent = folder.id == conversationToMoveFolder?.folderId
-                        KedgeSurface(
-                            onClick = { doMove(folder.id) },
-                            modifier = Modifier.fillMaxWidth(),
-                            // 同上：形状交给 KedgeSurface 按风格取默认
-                            color = if (isCurrent) {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
-                            tonalElevation = if (isCurrent) 2.dp else 0.dp
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Icon(folderIcon, null)
-                                Text(
-                                    text = folder.name,
-                                    style = KedgeTextStyles.title(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-// 新建文件夹对话框。始终调用并用 visible 控制显隐，不要用 if 包一层：
-// 那样退场动画播不出来（组件会在 visible 变 false 的瞬间被卸载）。
-val emptyNameError = stringResource(R.string.chat_page_folder_name_empty)
-KedgeEditDialog(
-    visible = showCreateFolderDialog,
-    title = stringResource(R.string.chat_page_create_folder),
-    fields = listOf(
-        EditFieldConfig(
-            label = stringResource(R.string.chat_page_folder_name),
-            onValidate = { input ->
-                if (input.trim().isEmpty()) emptyNameError else null
-            },
-        )
-    ),
-    confirmText = stringResource(R.string.chat_page_save),
-    dismissText = stringResource(R.string.chat_page_cancel),
-    onDismiss = { showCreateFolderDialog = false },
-    onConfirm = { values ->
-        drawerVm.createFolder(values.first())
-        showCreateFolderDialog = false
-    },
-)
-
-    // 重命名文件夹对话框
-    folderToRename?.let { folder ->
-        var name by remember(folder.id) { mutableStateOf(folder.name) }
-        AppAlertDialog(
-            onDismissRequest = { folderToRename = null },
-            title = { Text(stringResource(R.string.chat_page_rename_folder)) },
-            text = {
-                KedgeTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-            },
-            confirmButton = {
-                KedgeTextButton(
-                    onClick = {
-                        drawerVm.renameFolder(folder.id, name)
-                        folderToRename = null
-                    },
-                    enabled = name.isNotBlank(),
-                ) { Text(stringResource(R.string.chat_page_save)) }
-            },
-            dismissButton = {
-                KedgeTextButton(onClick = { folderToRename = null }) {
-                    Text(stringResource(R.string.chat_page_cancel))
-                }
-            }
-        )
-    }
-
-    // 删除文件夹确认
-    folderToDelete?.let { folder ->
-        val generatingMessage = stringResource(R.string.chat_page_delete_folder_generating)
-        AppAlertDialog(
-            onDismissRequest = { folderToDelete = null },
-            title = { Text(stringResource(R.string.chat_page_delete_folder)) },
-            text = { Text(stringResource(R.string.chat_page_delete_folder_confirm, folder.name)) },
-            confirmButton = {
-                KedgeTextButton(
-                    onClick = {
-                        if (drawerVm.deleteFolder(folder.id)) {
-                            folderToDelete = null
-                            conversations.refresh()
-                        } else {
-                            Toast.show(generatingMessage, isError = false)
-                        }
-                    },
-                ) { Text(stringResource(R.string.chat_page_delete)) }
-            },
-            dismissButton = {
-                KedgeTextButton(onClick = { folderToDelete = null }) {
-                    Text(stringResource(R.string.chat_page_cancel))
-                }
-            }
-        )
-    }
-
     // 移动到助手 Bottom Sheet
     if (showMoveToAssistantSheet) {
         PrimaryBottomSheet(
@@ -924,16 +649,23 @@ KedgeEditDialog(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // 圆角与行间空隙取全局列表卡片样式（与助手页 / 选择器 / 设置页同一套口径），
+                // 首项只圆上边、末项只圆下边，整列看着是一张分组卡片。
+                val cards = listCardStyle()
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(cards.gap),
                 ) {
-                    items(settings.assistants) { assistant ->
+                    itemsIndexed(settings.assistants) { index, assistant ->
                         val isCurrentAssistant = assistant.id == conversationToMove?.assistantId
                         // 与助手页 / 助手选择器共用 core 里的同一行实现（AssistantItem）：
                         // 抽屉只多「当前助手」副标题与当前项底色两处差异，容器与头像不再自绘。
                         AssistantItem(
                             assistant = assistant,
                             defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
+                            shape = cards.indexedShape(index, settings.assistants.size),
+                            providerName = settings.findModelProviderName(
+                                assistant.chatModelId ?: settings.chatModelId
+                            ),
                             backgroundColor = if (isCurrentAssistant) {
                                 MaterialTheme.colorScheme.surfaceVariant
                             } else {
@@ -990,261 +722,6 @@ private val DrawerTopBarHeight = 64.dp
 // 与原先 MD3 BottomAppBar 的高度一致（去掉它之后曾缩到 64.dp，手感偏挤）。
 private val DrawerBottomBarHeight = 80.dp
 
-/**
- * 文件夹行的圆角。MD3 下每行各自圆角（[FolderRowShape]），Miuix 下整组收口
- * （[FolderCorner]，只有首项上圆角、末项下圆角）。
- *
- * 取 20dp 与下方历史记录分组（`ConversationSectionShape`）一致，两块区域圆角统一。
- */
-private val FolderRowShape = RoundedCornerShape(20.dp)
-
-private val FolderCorner = 20.dp
-
-/**
- * Miuix 组内圆角：**只有第一项上圆角、最后一项下圆角，中间项直角**，项与项之间
- * 不留间距（卡片之间本来就有 8dp 圆角，硬拼成方角会在接缝处露出两个小缺口）。
- */
-private fun folderGroupShape(index: Int, count: Int): RoundedCornerShape = RoundedCornerShape(
-    topStart = if (index == 0) FolderCorner else 0.dp,
-    topEnd = if (index == 0) FolderCorner else 0.dp,
-    bottomStart = if (index == count - 1) FolderCorner else 0.dp,
-    bottomEnd = if (index == count - 1) FolderCorner else 0.dp,
-)
-
-/**
- * 抽屉里的文件夹区。
- *
- * Miuix 下「文件夹行 + 新建文件夹行」是**同一组**：组内零间距，首项上圆角、
- * 末项（新建文件夹）下圆角、中间项直角。为此这里不能再套一层限高 156dp 的
- * LazyColumn —— 内层滚动会把「最后一项」滚出可视区，方角与圆角就接不上了；
- * 抽屉本身可滚，文件夹多的时候跟着抽屉一起滚即可。
- *
- * MD3 保持原来的观感：文件夹行各自圆角、行间 6dp，新建文件夹是独立的整宽按钮。
- *
- * 调用方通过 [modifier] 在组顶/组底各留 8dp：顶栏是覆盖式的，组顶那 8dp 是它与
- * 顶栏之间的呼吸间距（组内零间距只约束组**内**，不影响组外）。
- */
-@Composable
-private fun FolderSection(
-    folders: List<Folder>,
-    onClickFolder: (Folder) -> Unit,
-    onRename: (Folder) -> Unit,
-    onDelete: (Folder) -> Unit,
-    onCreateFolder: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
-
-    if (isMiuix) {
-        // 新建文件夹也算一项，所以 count 要 +1
-        val count = folders.size + 1
-        Column(modifier = modifier.fillMaxWidth()) {
-            folders.forEachIndexed { index, folder ->
-                FolderRow(
-                    folder = folder,
-                    shape = folderGroupShape(index, count),
-                    onClick = { onClickFolder(folder) },
-                    onRename = { onRename(folder) },
-                    onDelete = { onDelete(folder) },
-                )
-            }
-            CreateFolderButton(
-                onClick = onCreateFolder,
-                modifier = Modifier.fillMaxWidth(),
-                // 并入文件夹组：末项直角 + 下圆角由外层 clip 收口，按钮自身的
-                // Miuix 圆角设 0，避免内外两套圆角打架。
-                miuixCornerRadius = 0.dp,
-                modifierClip = folderGroupShape(count - 1, count),
-            )
-        }
-        return
-    }
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (folders.isNotEmpty()) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 156.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                items(folders, key = { it.id }) { folder ->
-                    var menuExpanded by remember { mutableStateOf(false) }
-                    Box(modifier = Modifier.animateItem()) {
-                        FolderRow(
-                            folder = folder,
-                            shape = FolderRowShape,
-                            onClick = { onClickFolder(folder) },
-                            onRename = {
-                                menuExpanded = false
-                                onRename(folder)
-                            },
-                            onDelete = {
-                                menuExpanded = false
-                                onDelete(folder)
-                            },
-                        )
-                    }
-                }
-            }
-        }
-
-        // MD3：整宽浅色卡片（surfaceContainer），不是实心主色按钮——
-        // 抽屉里已经有实心按钮了，这里再一个会互相抢视觉。
-        CreateFolderButton(
-            onClick = onCreateFolder,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun FolderRow(
-    folder: Folder,
-    shape: Shape,
-    onClick: () -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    Box {
-        KedgeSurface(
-            shape = shape,
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { menuExpanded = true },
-                ),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Icon(
-                    folderIcon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Text(
-                    text = folder.name,
-                    style = KedgeTextStyles.body(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    chevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-        KedgeDropdownMenuSlots(
-            expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
-        ) {
-            KedgeDropdownItemSlot(
-                text = { Text(stringResource(R.string.chat_page_rename)) },
-                leadingIcon = { Icon(edit, null) },
-                onClick = onRename,
-            )
-            KedgeDropdownItemSlot(
-                text = { Text(stringResource(R.string.chat_page_delete)) },
-                leadingIcon = { Icon(delete, null) },
-                onClick = onDelete,
-            )
-        }
-    }
-}
-
-/**
- * 抽屉里的「新建文件夹」按钮：配色与大小一直沿用原来那个 Secondary 整宽按钮
- * （[KedgeDrawerButtonColors] 加深一档 + 15dp 竖向内边距），Miuix 下并入文件夹组
- * 只需要外层 [modifierClip] 收口。
- */
-@Composable
-private fun CreateFolderButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    miuixCornerRadius: Dp = 12.dp,
-    modifierClip: Shape? = null,
-) {
-    val layoutDirection = LocalLayoutDirection.current
-    val basePadding = KedgeButtonDefaults.ContentPadding
-    Box(modifier = modifier.then(modifierClip?.let { Modifier.clip(it) } ?: Modifier)) {
-        KedgeButton(
-            onClick = onClick,
-            // 文字离背景边缘再远一点：默认 vertical 10dp，这里 +50% 到
-            // 15dp。水平方向保持默认——按钮是 fillMaxWidth 且内容居中，
-            // 水平 padding 对居中内容没有视觉影响，只会缩小可用宽度。
-            contentPadding = PaddingValues(
-                start = basePadding.calculateStartPadding(layoutDirection),
-                end = basePadding.calculateEndPadding(layoutDirection),
-                top = basePadding.calculateTopPadding() * 1.5f,
-                bottom = basePadding.calculateBottomPadding() * 1.5f,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            variant = KedgeButtonVariant.Secondary,
-            shapes = ButtonDefaults.shapes(RoundedCornerShape(12.dp)),
-            miuixCornerRadius = miuixCornerRadius,
-            // 同上：Secondary 默认色太淡，这里加深一档
-            colors = KedgeDrawerButtonColors.md3(),
-            miuixColors = KedgeDrawerButtonColors.miuix(),
-        ) {
-            // 图标 + 文案整体居中（对齐 KernelSU 抽屉的「新建文件夹」）
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    createNewFolder,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.chat_page_create_folder),
-                    style = KedgeTextStyles.bodyLarge(),
-                )
-            }
-        }
-    }
-}
-
-/**
- * 抽屉里两个次级按钮（新建文件夹、套餐/订阅）的配色。
- *
- * [KedgeButtonVariant.Secondary] 的默认色两边都偏淡：MD3 走
- * `filledTonalButton` 的 secondaryContainer，Miuix 走 `buttonColors()` 的
- * secondaryVariant。抽屉底色接近时按钮边界几乎看不见，所以各自往上抬了一档。
- *
- * ## MD3 为什么不用 secondary 混色
- *
- * 之前 MD3 侧是 `lerp(secondaryContainer, secondary, 0.87f)`（几乎就是实色
- * secondary），但**内容色没跟着换**——`filledTonalButtonColors()` 默认给
- * `onSecondaryContainer`/`onTonalSurface`，那是**浅底专用**的深色字。深底配深字，
- * 浅色主题下对比度极低，文字几乎读不出来（就是反馈的「配色反人类」）。
- * 混色本身还破坏了 M3 的容器色/内容色配对关系，再怎么调比例都是补丁。
- *
- * 现在 MD3 直接用中性 `surfaceContainerHigh` + `onSurface`：抽屉里其它卡片
- * （文件夹行 `surfaceContainer`、空态 `surfaceContainer`、助手胶囊
- * `surfaceContainerHigh`）都是这一族，两个按钮回到同一族才是同一套视觉语言；
- * 深浅主题都由 `onSurface` 自动配对，可读性稳定。
- *
- * Miuix 侧保持原来的 secondary 混色：那边按钮本来就小而轻（32dp 胶囊），
- * 提亮后边界够清晰，且没有「深底深字」的问题。
- */
 private object KedgeDrawerButtonColors {
     /**
      * 从 secondaryContainer 朝 secondary 混合的比例。
@@ -1276,5 +753,298 @@ private object KedgeDrawerButtonColors {
         return top.yukonga.miuix.kmp.basic.ButtonDefaults.buttonColors(
             color = lerp(scheme.secondaryContainer, scheme.secondary, TOWARD_SECONDARY),
         )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 抽屉搜索态：当前角色消息正文检索结果（FTS 命中）
+//
+// 数据来自 ChatDrawerViewModel.messageSearch：MessageFtsManager 的 snippet 用
+// simple_snippet(message_fts, 0, '[', ']', ..., 30) 生成，命中词被 `[` `]` 包住，
+// 所以高亮只需把方括号之间那段套上背景色（与 SearchPage.SearchResultItem 同一套解析）。
+// ---------------------------------------------------------------------------
+
+/** FTS 片段（`…[关键词]…`）→ 带高亮背景的富文本。 */
+private fun highlightedSnippet(snippet: String, highlight: Color): AnnotatedString =
+    buildAnnotatedString {
+        var index = 0
+        while (index < snippet.length) {
+            val start = snippet.indexOf('[', index)
+            if (start < 0) {
+                append(snippet.substring(index))
+                return@buildAnnotatedString
+            }
+            if (start > index) append(snippet.substring(index, start))
+            val end = snippet.indexOf(']', start + 1)
+            if (end < 0) {
+                append(snippet.substring(start))
+                return@buildAnnotatedString
+            }
+            withStyle(SpanStyle(background = highlight)) {
+                append(snippet.substring(start + 1, end))
+            }
+            index = end + 1
+        }
+    }
+
+/** 命中行的时间：今天给 HH:mm、昨天给「昨天」、更早给 M/d（与角色列表同一套口径）。 */
+private fun drawerSearchTimeLabel(instant: Instant): String {
+    val local = instant.atZone(ZoneId.systemDefault())
+    val today = LocalDate.now()
+    return when (local.toLocalDate()) {
+        today -> local.format(DateTimeFormatter.ofPattern("HH:mm"))
+        today.minusDays(1) -> "昨天"
+        else -> local.format(DateTimeFormatter.ofPattern("M/d"))
+    }
+}
+
+/**
+ * 抽屉搜索态列表（角色 tab / 会话 tab 共用）。
+ *
+ * @param keyword 顶栏输入框的原始关键字。与 [state] 里的关键字对不上 = 还在防抖/查询中，
+ *   此时显示「正在检索」，不闪上一轮的旧结果。
+ * @param roleName 非空时在顶部显示角色名（角色 tab 的「角色名 + 命中行」）。
+ * @param groupByConversation true = 按会话分组（会话 tab：会话标题作分组头，下面挂片段行）；
+ *   false = 平铺，每行自带「会话标题 + 片段 + 时间」（角色 tab）。
+ */
+@Composable
+private fun DrawerMessageSearchList(
+    keyword: String,
+    state: DrawerMessageSearchState,
+    roleName: String?,
+    groupByConversation: Boolean,
+    contentPadding: PaddingValues,
+    listTag: String,
+    onOpenHit: (MessageSearchResult) -> Unit,
+    onOpenConversation: (Conversation) -> Unit,
+) {
+    val highlight = MaterialTheme.colorScheme.tertiaryContainer
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val bodyStyle = KedgeTextStyles.body()
+    val footnote = KedgeTextStyles.footnoteSmall()
+    val grouped = remember(state.hits) { state.hits.groupBy { it.conversationId } }
+    val pending = state.searching || state.keyword != keyword
+    val hasAny = grouped.isNotEmpty() || state.titleFallback.isNotEmpty()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag(listTag),
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        roleName?.let { name ->
+            item("search-role") {
+                Text(
+                    text = name,
+                    style = footnote,
+                    color = muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+                )
+            }
+        }
+        when {
+            pending -> item("search-pending") {
+                Text(
+                    text = stringResource(R.string.chat_drawer_search_searching),
+                    style = bodyStyle,
+                    color = muted,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                )
+            }
+
+            !hasAny -> item("search-empty") {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp)) {
+                    Text(
+                        text = stringResource(R.string.chat_drawer_search_empty),
+                        style = bodyStyle,
+                        color = muted,
+                    )
+                    // 中性表述：只陈述「正文没命中 / 索引可能还没建」，**不**给操作建议——
+                    // 抽屉里没有可达的索引重建入口（SearchPage 在 HEAD 上没有路由），
+                    // 指过去就是死链。标题兜底已由下面的分节显式列出，不需要再说「已回退」。
+                    Text(
+                        text = stringResource(R.string.chat_drawer_search_empty_hint),
+                        style = footnote,
+                        color = muted,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+            }
+
+            else -> {
+                if (grouped.isNotEmpty()) {
+                    val conversationCount = grouped.size
+                    item("search-heading") {
+                        Text(
+                            // 标注一次搜索的**吞吐上限**：FTS 查询只取 DRAWER_SEARCH_HIT_LIMIT 条，
+                            // 不写出来用户会以为「就这么多命中」。这个常量与 MessageFtsManager 的
+                            // LIMIT 对齐；分页/提高上限不在本任务 scope。
+                            text = stringResource(
+                                R.string.chat_drawer_search_hits_heading,
+                                state.hits.size,
+                                conversationCount,
+                                DRAWER_SEARCH_HIT_LIMIT,
+                            ),
+                            style = footnote,
+                            color = muted,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+                        )
+                    }
+                    if (groupByConversation) {
+                        grouped.entries.forEach { (conversationId, hits) ->
+                            val head = hits.first()
+                            item("conv-$conversationId") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = head.title.ifBlank { "未命名会话" },
+                                        style = KedgeTextStyles.title(),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text(
+                                        text = drawerSearchTimeLabel(head.updateAt),
+                                        style = footnote,
+                                        color = muted,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                            items(hits, key = { "hit-${it.conversationId}-${it.nodeId}-${it.messageId}" }) { hit ->
+                                DrawerSearchHitRow(
+                                    hit = hit,
+                                    showTitle = false,
+                                    highlight = highlight,
+                                    onClick = { onOpenHit(hit) },
+                                )
+                            }
+                        }
+                    } else {
+                        items(
+                            state.hits,
+                            key = { "hit-${it.conversationId}-${it.nodeId}-${it.messageId}" },
+                        ) { hit ->
+                            DrawerSearchHitRow(
+                                hit = hit,
+                                showTitle = true,
+                                highlight = highlight,
+                                onClick = { onOpenHit(hit) },
+                            )
+                        }
+                    }
+                }
+
+                if (state.titleFallback.isNotEmpty()) {
+                    item("fallback-heading") {
+                        Text(
+                            // 标题匹配是**降级路**，这里用可见的分节标题明确标出（不与消息命中混排），
+                            // 也就是合同里要求的「保留标题检索必须给出可见入口」。
+                            // 文案中性：只说「正文没找到，以下是标题匹配」，不提任何页面/操作。
+                            text = stringResource(R.string.chat_drawer_search_title_fallback),
+                            style = footnote,
+                            color = muted,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
+                        )
+                    }
+                    items(state.titleFallback, key = { "title-${it.id}" }) { conversation ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .combinedClickable(onClick = { onOpenConversation(conversation) })
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = conversation.title.ifBlank { "未命名会话" },
+                                style = bodyStyle,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = drawerSearchTimeLabel(conversation.updateAt),
+                                style = footnote,
+                                color = muted,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 单条消息命中行：[showTitle] 时自带会话标题 + 时间，否则只有片段 + 时间（外层有分组头）。 */
+@Composable
+private fun DrawerSearchHitRow(
+    hit: MessageSearchResult,
+    showTitle: Boolean,
+    highlight: Color,
+    onClick: () -> Unit,
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val snippet = remember(hit.snippet, highlight) { highlightedSnippet(hit.snippet, highlight) }
+    val time = remember(hit.updateAt) { drawerSearchTimeLabel(hit.updateAt) }
+    KedgeSurface(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            if (showTitle) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = hit.title.ifBlank { "未命名会话" },
+                        style = KedgeTextStyles.title(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = time,
+                        style = KedgeTextStyles.footnoteSmall(),
+                        color = muted,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    text = snippet,
+                    style = KedgeTextStyles.body(),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                Row(verticalAlignment = Alignment.Top) {
+                    Text(
+                        text = snippet,
+                        style = KedgeTextStyles.body(),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = time,
+                        style = KedgeTextStyles.footnoteSmall(),
+                        color = muted,
+                        maxLines = 1,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+        }
     }
 }

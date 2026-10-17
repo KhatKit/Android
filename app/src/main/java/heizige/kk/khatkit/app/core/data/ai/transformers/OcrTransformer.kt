@@ -14,7 +14,7 @@ import heizige.kk.khatkit.ai.provider.TextGenerationParams
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.common.cache.LruCache
-import heizige.kk.khatkit.common.cache.SingleFileCacheStore
+import heizige.kk.khatkit.common.cache.SingleFileCacheRepository
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
 import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
@@ -36,7 +36,7 @@ class OcrTransformer @Inject constructor(
 ) : InputMessageTransformer {
     private val cache by lazy {
         val json = Json { allowStructuredMapKeys = true }
-        val store = SingleFileCacheStore(
+        val store = SingleFileCacheRepository(
             file = File(context.cacheDir, "ocr_cache.json"),
             keySerializer = String.serializer(),
             valueSerializer = String.serializer(),

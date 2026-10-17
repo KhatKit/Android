@@ -3,7 +3,6 @@ package heizige.kk.khatkit.app.core.ui.components.ai
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -41,7 +40,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
  * @param assistant 头像与 id 的来源。
  * @param defaultAssistantName 名称为空时的兜底文案（`stringResource` 由调用点取，
  *   本组件不猜测用哪个字符串资源）。
- * @param shape 分组圆角由调用点按 index/count 算好传下来（未分组时用默认全圆角）。
+ * @param shape **必填**：分组圆角由调用点按 `listCardStyle().indexedShape(index, count)`
+ *   算好传下来（单行分组传 `indexedShape(0, 1)`，即整张全圆角）。这里不给默认值——
+ *   以前默认的 20dp 让选择器/抽屉各自漏出硬编码圆角，与同页其他行不一致。
  * @param avatarSize 头像尺寸档：助手页 40dp、选择器 32dp、抽屉 40dp。
  * @param avatarModifier 头像附加 modifier（助手页的共享元素 `heroAnimation`）。
  * @param backgroundColor 行底色；`Color.Unspecified` 交给 [KedgeOptionItem] 取默认
@@ -57,8 +58,9 @@ fun AssistantItem(
     assistant: Assistant,
     defaultAssistantName: String,
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(20.dp),
+    shape: Shape,
     avatarSize: Dp = 40.dp,
+    providerName: String? = null,
     avatarModifier: Modifier = Modifier,
     backgroundColor: Color = Color.Unspecified,
     contentColor: Color = Color.Unspecified,
@@ -78,6 +80,9 @@ fun AssistantItem(
             UIAvatar(
                 name = displayName,
                 value = assistant.avatar,
+                avatarShape = assistant.avatarShape,
+                defaultIconName = providerName,
+                avatarColor = assistant.avatarColor,
                 modifier = Modifier
                     .size(avatarSize)
                     .then(avatarModifier),

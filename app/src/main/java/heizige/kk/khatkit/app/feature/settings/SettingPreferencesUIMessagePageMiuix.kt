@@ -22,8 +22,11 @@ import kotlin.math.roundToInt
  * 「消息显示」二级页的 Miuix 风格版。
  *
  * 由原「界面偏好设置」页（`SettingPreferencesUIPageMiuix.kt`）的第一个 miuixGroup 拆出：
- * 用户头像 / 助手气泡 / 气泡不透明度 / 模型图标 / 模型名 / 时间 / token 用量 / 思考内容 /
+ * 助手气泡 / 气泡不透明度 / 模型名 / 时间 / token 用量 / 思考内容 /
  * 思考自动折叠 / LaTeX 渲染，开关与滑块全部走 [PreferenceSwitch] / [PreferenceSlider]。
+ *
+ * 「显示用户头像」与「模型图标」两行已删（消息气泡旁的头像整体删除后，
+ * `displaySetting.showUserAvatar` / `showModelIcon` 不再有消费方）；持久化字段保留。
  */
 @Composable
 fun SettingPreferencesUIMessagePageMiuix(vm: SettingViewModel = hiltViewModel()) {
@@ -41,11 +44,8 @@ fun SettingPreferencesUIMessagePageMiuix(vm: SettingViewModel = hiltViewModel())
         navigationIcon = { BackButton() },
     ) {
         miuixGroup {
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_show_user_avatar_title),
-                checked = displaySetting.showUserAvatar,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
-            )
+            // 「显示助手消息气泡」开关保留，默认开。关掉后助手回复退回裸 Markdown，
+            // 与用户侧气泡左右不对称属用户主动选择；消费方在 ChatMessage / ConversationExport。
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_assistant_bubble_title),
                 checked = displaySetting.showAssistantBubble,
@@ -58,11 +58,6 @@ fun SettingPreferencesUIMessagePageMiuix(vm: SettingViewModel = hiltViewModel())
                 steps = 8,
                 valueText = "${(displaySetting.bubbleOpacity * 100).roundToInt()}%",
                 onValueChange = { updateDisplaySetting(displaySetting.copy(bubbleOpacity = it)) },
-            )
-            PreferenceSwitch(
-                title = stringResource(R.string.setting_display_page_chat_list_model_icon_title),
-                checked = displaySetting.showModelIcon,
-                onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
             )
             PreferenceSwitch(
                 title = stringResource(R.string.setting_display_page_show_model_name_title),

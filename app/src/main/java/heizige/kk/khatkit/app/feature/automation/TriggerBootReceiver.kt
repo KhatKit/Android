@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import heizige.kk.khatkit.app.feature.automation.data.TriggerSettings
 
 /**
  * 开机 / 应用升级后重新拉起触发器服务，恢复 schedule 计时与前台应用轮询。

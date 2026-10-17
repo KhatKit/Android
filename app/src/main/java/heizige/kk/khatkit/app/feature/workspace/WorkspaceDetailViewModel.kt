@@ -31,6 +31,7 @@ import heizige.kk.khatkit.workspace.RootfsInstallStage
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceCommandResult
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
 
 @HiltViewModel(assistedFactory = WorkspaceDetailViewModel.Factory::class)
 class WorkspaceDetailViewModel @AssistedInject constructor(

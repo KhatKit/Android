@@ -8,14 +8,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,9 +37,10 @@ import androidx.compose.ui.unit.dp
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.feature.chat.MessageQueueState
-import heizige.kk.khatkit.app.feature.chat.QueuedMessage
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueueState
+import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
+import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextFieldWithState
@@ -47,8 +52,12 @@ internal fun MessageQueuePanel(
     onBeginEdit: (Uuid) -> QueuedMessage?,
     onFinishEdit: (Uuid, List<UIMessagePart>?) -> Unit,
     onResume: () -> Unit,
+    onSendNow: (Uuid) -> Unit = {},
+    generating: Boolean = false,
 ) {
     var editing by remember { mutableStateOf<QueuedMessage?>(null) }
+    // 正在生成时立即发送必然要打断本回合，先确认再动手。
+    var confirmingSendNow by remember { mutableStateOf<QueuedMessage?>(null) }
     if (state.messages.isNotEmpty()) {
         KedgeSurface(
             shape = MaterialTheme.shapes.large,
@@ -105,6 +114,23 @@ internal fun MessageQueuePanel(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            KedgeIconButton(
+                                enabled = !message.isEditing,
+                                onClick = {
+                                    if (generating) confirmingSendNow = message
+                                    else onSendNow(message.id)
+                                },
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .testTag("chat_queue_send_now"),
+                                shapes = IconButtonDefaults.shapes(),
+                            ) {
+                                Icon(
+                                    imageVector = arrowUpward,
+                                    contentDescription = stringResource(R.string.chat_page_queue_send_now),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                             KedgeTextButton(
                                 enabled = !message.isEditing,
                                 onClick = { editing = onBeginEdit(message.id) },
@@ -165,6 +191,29 @@ internal fun MessageQueuePanel(
             },
             dismissButton = {
                 KedgeTextButton(onClick = { editing = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+
+    confirmingSendNow?.let { message ->
+        AppAlertDialog(
+            onDismissRequest = { confirmingSendNow = null },
+            title = { Text(stringResource(R.string.chat_page_queue_send_now)) },
+            text = { Text(stringResource(R.string.chat_page_queue_send_now_interrupt)) },
+            confirmButton = {
+                KedgeTextButton(
+                    onClick = {
+                        confirmingSendNow = null
+                        onSendNow(message.id)
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) { Text(stringResource(R.string.chat_page_queue_send_now_confirm)) }
+            },
+            dismissButton = {
+                KedgeTextButton(
+                    onClick = { confirmingSendNow = null },
+                    shapes = ButtonDefaults.shapes(),
+                ) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

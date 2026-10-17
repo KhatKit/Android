@@ -23,7 +23,7 @@ import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.feature.automation.TriggerController
 import heizige.kk.khatkit.app.feature.workflow.WorkflowRepository
-import heizige.kk.khatkit.app.feature.workspace.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient

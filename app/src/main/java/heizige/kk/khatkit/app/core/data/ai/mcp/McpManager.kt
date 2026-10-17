@@ -68,7 +68,7 @@ class McpManager(
         }
     }
 
-    private val statusStore = McpStatusStore()
+    private val statusStore = McpStatusManager()
     private val oauthCallbackServer = OAuthLoopbackCallbackServer(
         port = MCP_OAUTH_CALLBACK_PORT,
         callbackPath = MCP_OAUTH_CALLBACK_PATH,

@@ -34,7 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
-import heizige.kk.khatkit.asr.sherpa.SherpaModelStore
+import heizige.kk.khatkit.asr.sherpa.SherpaModelManager
 import heizige.kk.khatkit.asr.sherpa.SherpaModels
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.components.AnimatedRadioButton
@@ -749,7 +749,7 @@ private fun SherpaLocalASRConfiguration(
     onValueChange: (ASRProviderSetting) -> Unit,
 ) {
     val context = LocalContext.current
-    val store = remember { SherpaModelStore(context) }
+    val store = remember { SherpaModelManager(context) }
     val scope = rememberCoroutineScope()
     var downloadedIds by remember {
         mutableStateOf(

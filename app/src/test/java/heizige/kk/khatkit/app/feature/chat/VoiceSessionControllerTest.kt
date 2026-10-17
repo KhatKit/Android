@@ -15,7 +15,7 @@ import heizige.kk.khatkit.asr.ASRState
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.asr.ASRVoiceTurn
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.feature.chat.MessageQueue
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueue
 import org.junit.Assert.*
 import org.junit.Test
 

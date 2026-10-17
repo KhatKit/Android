@@ -4,6 +4,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.automation.data.TraceBrowseState
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationTracer
+import heizige.kk.khatkit.app.feature.automation.data.toStepViews
 
 class TraceAuditTest {
     @Test

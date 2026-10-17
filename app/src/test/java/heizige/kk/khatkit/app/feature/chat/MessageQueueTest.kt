@@ -8,6 +8,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueue
 
 class MessageQueueTest {
     private fun text(value: String) = listOf(UIMessagePart.Text(value))
@@ -177,5 +179,44 @@ class MessageQueueTest {
 
         assertNull(first.takeNext())
         assertEquals(text("second"), second.takeNext()!!.parts)
+    }
+
+    @Test
+    fun `sending now promotes the message to the head and keeps the rest in order`() {
+        val queue = MessageQueue()
+        queue.enqueue(text("first"))
+        queue.enqueue(text("second"))
+        queue.enqueue(text("third"))
+        val second = queue.state.value.messages[1].id
+
+        assertEquals(text("second"), queue.promote(second)?.parts)
+        assertEquals(
+            listOf("second", "first", "third"),
+            queue.state.value.messages.map { (it.parts.single() as UIMessagePart.Text).text },
+        )
+        assertEquals(text("second"), queue.takeNext()!!.parts)
+        assertEquals(text("first"), queue.takeNext()!!.parts)
+        assertEquals(text("third"), queue.takeNext()!!.parts)
+    }
+
+    @Test
+    fun `promoting the head or an unknown message changes nothing`() {
+        val queue = MessageQueue()
+        queue.enqueue(text("first"))
+        queue.enqueue(text("second"))
+        val head = queue.state.value.messages.first().id
+
+        // 已在队首时幂等：不能复制出第二条。
+        assertEquals(text("first"), queue.promote(head)?.parts)
+        assertEquals(2, queue.state.value.messages.size)
+        assertNull(queue.promote(Uuid.random()))
+
+        // 暂停中也能插队，只有恢复后才派发。
+        queue.pause()
+        val second = queue.state.value.messages[1].id
+        assertEquals(text("second"), queue.promote(second)?.parts)
+        assertNull(queue.takeNext())
+        queue.resume()
+        assertEquals(text("second"), queue.takeNext()!!.parts)
     }
 }

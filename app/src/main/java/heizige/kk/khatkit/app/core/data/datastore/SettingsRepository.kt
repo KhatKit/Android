@@ -44,6 +44,7 @@ import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV2Mig
 import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV3Migration
 import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV4Migration
 import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV5Migration
+import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV6Migration
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.data.model.InjectionPosition
@@ -58,7 +59,7 @@ import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.toMutableStateFlow
 import heizige.kk.khatkit.search.SearchCommonOptions
-import heizige.kk.khatkit.search.SearchServiceOptions
+import heizige.kk.khatkit.search.SearchOptions
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -98,6 +99,7 @@ private fun createSettingsDataStore(context: Context): DataStore<Preferences> {
             PreferenceStoreV3Migration(),
             PreferenceStoreV4Migration(),
             PreferenceStoreV5Migration(),
+            PreferenceStoreV6Migration(),
         ),
         produceFile = { file },
     )
@@ -303,7 +305,7 @@ class SettingsRepository @Inject constructor(
                 networkSetting = JsonInstant.decodeFromString(preferences[NETWORK_SETTING] ?: "{}"),
                 searchServices = preferences[SEARCH_SERVICES]?.let {
                     JsonInstant.decodeFromString(it)
-                } ?: listOf(SearchServiceOptions.DEFAULT),
+                } ?: listOf(SearchOptions.DEFAULT),
                 searchCommonOptions = preferences[SEARCH_COMMON]?.let {
                     JsonInstant.decodeFromString(it)
                 } ?: SearchCommonOptions(),
@@ -603,7 +605,7 @@ data class Settings(
     val providers: List<ProviderSetting> = DEFAULT_PROVIDERS,
     val assistants: List<Assistant> = DEFAULT_ASSISTANTS,
     val assistantTags: List<Tag> = emptyList(),
-    val searchServices: List<SearchServiceOptions> = listOf(SearchServiceOptions.DEFAULT),
+    val searchServices: List<SearchOptions> = listOf(SearchOptions.DEFAULT),
     val searchCommonOptions: SearchCommonOptions = SearchCommonOptions(),
     val searchServiceSelected: Int = 0,
     val mcpServers: List<McpServerConfig> = emptyList(),
@@ -682,10 +684,10 @@ data class DisplaySetting(
     val userNickname: String = "",
     val useAppIconStyleLoadingIndicator: Boolean = true,
     val showUserAvatar: Boolean = true,
-    // 默认开：助手回答与用户消息一样带气泡（头像在左、气泡在右横排）。开关仍保留，
-    // 想回到「纯文本贴左」可以关掉。⚠️ 早期默认是 false，而本字段随
-    // encodeDefaults=true 一起落盘，所以**既有安装**的 JSON 里是显式的 false ——
-    // 改这个默认值只影响新装 / 从未落过该键的配置。
+    // 默认开：助手回答与用户消息一样带气泡。开关仍在「消息显示」页，关掉退回裸 Markdown。
+    // ⚠️ 本字段随 `encodeDefaults = true` 一起落盘，所以**既有安装**的 JSON 里是显式的
+    // false —— 改这个默认值只影响新装。老安装由 `PreferenceStoreV6Migration` 一次性翻成
+    // true（版本记到 6），之后用户手动关掉不会被覆盖。
     val showAssistantBubble: Boolean = true,
     val bubbleOpacity: Float = 1.0f,
     val showModelIcon: Boolean = true,
@@ -764,6 +766,13 @@ fun List<ProviderSetting>.findModelById(uuid: Uuid): Model? {
         }
     }
     return null
+}
+
+fun Settings.findModelProviderName(uuid: Uuid?): String? {
+    uuid ?: return null
+    return providers.firstOrNull { provider ->
+        provider.models.any { it.id == uuid }
+    }?.name
 }
 
 fun Settings.getCurrentChatModel(): Model? {

@@ -5,7 +5,7 @@ import heizige.kk.khatkit.app.core.data.db.dao.WorkflowDao
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunEntity
 import heizige.kk.khatkit.app.core.data.db.entity.WorkflowRunStepEntity
-import heizige.kk.khatkit.app.feature.settings.WorkflowPreferencesRepository
+import heizige.kk.khatkit.app.feature.settings.data.WorkflowPreferencesRepository
 import java.util.UUID
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer

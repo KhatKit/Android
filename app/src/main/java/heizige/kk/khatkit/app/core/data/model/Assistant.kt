@@ -20,6 +20,10 @@ data class Assistant(
     val description: String = "",
     val canManageRoles: Boolean = false,
     val avatar: Avatar = Avatar.Dummy,
+    /** Optional CSS-style color (for example #C27B7B); null keeps the name hash palette. */
+    val avatarColor: String? = null,
+    /** KodeHeap-style expressive avatar shape; old settings deserialize to Circle. */
+    val avatarShape: String = "Circle",
     val useAssistantAvatar: Boolean = true, // 角色身份优先于底层模型
     val tags: List<Uuid> = emptyList(),
     val systemPrompt: String = "",

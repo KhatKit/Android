@@ -43,6 +43,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceIcon
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
+import heizige.kk.khatkit.app.feature.settings.data.rememberProxyTestState
 
 /**
  * 网络偏好页的 Miuix 风格版。

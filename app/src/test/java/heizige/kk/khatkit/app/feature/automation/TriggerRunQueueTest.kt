@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.automation.data.TriggerRunQueue
 
 class TriggerRunQueueTest {
 

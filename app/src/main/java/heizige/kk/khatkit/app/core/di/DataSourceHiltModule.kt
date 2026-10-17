@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.core.data.network.SettingsProxyAuthenticator
 import heizige.kk.khatkit.app.core.data.network.SettingsSocks5Authenticator
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavSync
-import heizige.kk.khatkit.search.SearchService
+import heizige.kk.khatkit.search.SearchRepository
 import heizige.kk.khatkit.app.core.data.sync.S3Sync
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.common.http.okhttp.logging.HttpLoggingInterceptor
@@ -247,7 +247,7 @@ object DataSourceHiltModule {
                 level = HttpLoggingInterceptor.Level.HEADERS
             })
             .build()
-        SearchService.init(client, context)
+        SearchRepository.init(client, context)
         return client
     }
 

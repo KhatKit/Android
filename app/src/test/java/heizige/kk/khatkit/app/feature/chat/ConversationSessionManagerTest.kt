@@ -21,6 +21,8 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.ConversationSession
+import heizige.kk.khatkit.app.feature.chat.data.ConversationSessionManager
 
 class ConversationSessionManagerTest {
     private class Rig {

@@ -19,6 +19,10 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.ConversationSession
+import heizige.kk.khatkit.app.feature.chat.helper.dropUngeneratedAssistantMessages
+import heizige.kk.khatkit.app.feature.chat.helper.hasGeneratedOutput
+import heizige.kk.khatkit.app.feature.chat.helper.isUngeneratedAssistantMessage
 
 /**
  * 契约条款「取消/超时不得写入未生成的消息」。

@@ -295,6 +295,29 @@ class BottomSheetScrollSourceGuardTest {
      * - `feature/settings/SettingPreferencesThemePageMiuix.kt:427`
      * - `feature/settings/SettingProviderPageMiuix.kt:371`
      * - `feature/settings/SettingModelPromptPageMiuix.kt:123`
+     * ## 68 → 67（2026-10-17，抽屉去掉文件夹功能）
+     *
+     * 删掉 `feature/chat/ChatDrawer.kt` 的「移动到文件夹」sheet（`showMoveToFolderSheet`
+     * 整块移除，连同 `folderIcon` 参数），调用点从 68 变 67；其余调用点未动。
+     *
+     * ## 67 → 69（2026-10-17，「新增提供商」弹窗改成底部弹层）
+     *
+     * MD3 与 Miuix 两个风格文件各新增一处：
+     * - `feature/settings/SettingProviderPage.kt`（`AddButton`）
+     * - `feature/settings/SettingProviderPageMiuix.kt`（`AddProviderButtonMiuix`）
+     *
+     * 两处都是 `scrollable = false` + 内容自带 `verticalScroll`（表单 7 行会顶破弹层
+     * 高度，`KedgePrimaryBottomSheet` 的 Miuix 分支没有滚动容器），所以主断言仍全绿，
+     * 只是覆盖面从 67 变 69。
+     *
+     * ## 69 → 70（2026-10-18，「新增搜索服务」弹窗改成同一套底部弹层）
+     *
+     * `feature/settings/SettingSearchPage.kt`（`AddProviderSheet`，MD3 / Miuix 两个风格页
+     * 共用这一个调用点）新增一处，同样 `scrollable = false` + 内容自带 `LazyColumn`
+     * （20 个搜索引擎，Kedge 版忽略 scrollable，内容必须自己滚）。
+     *
+     * ## 70 → 71（2026-10-17，角色头像形状选择器）
+     * `feature/assistant/detail/AssistantBasicPage.kt` 新增头像形状选择底部弹层。
      */
     @Test
     fun scan_stillFindsSelfScrollingCallSites() {
@@ -302,7 +325,7 @@ class BottomSheetScrollSourceGuardTest {
         assertEquals(
             "扫描到的 PrimaryBottomSheet 调用点数量变了：" +
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
-            68,
+            71,
             sites.size,
         )
         val selfScrolling = sites.filter { it.selfScrolls }

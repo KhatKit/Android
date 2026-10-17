@@ -88,14 +88,14 @@ import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
 import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
-import heizige.kk.khatkit.app.core.data.files.FileUtils
+import heizige.kk.khatkit.app.core.data.files.FileHelper
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.ImagePreviewDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
-import heizige.kk.khatkit.app.core.util.ImageUtils
+import heizige.kk.khatkit.app.core.util.ImageHelper
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
@@ -352,9 +352,9 @@ private fun InputBar(
                 val paths = selectedUris.mapNotNull { uri ->
                     withContext(Dispatchers.IO) {
                         runCatching {
-                            val bitmap = ImageUtils.loadOptimizedBitmap(context, uri, maxSize = 2048)
+                            val bitmap = ImageHelper.loadOptimizedBitmap(context, uri, maxSize = 2048)
                                 ?: error("Failed to decode image")
-                            val pngBytes = FileUtils.compressBitmapToPng(bitmap)
+                            val pngBytes = FileHelper.compressBitmapToPng(bitmap)
                             bitmap.recycle()
                             val file = File(context.appTempFolder, "imggen_ref_${Uuid.random()}.png")
                             file.writeBytes(pngBytes)

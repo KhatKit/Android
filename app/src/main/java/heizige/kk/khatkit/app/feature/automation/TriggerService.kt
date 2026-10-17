@@ -23,6 +23,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import heizige.kk.khatkit.app.feature.automation.data.TriggerEventSources
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerExactAlarmScheduler
 
 /**
  * 事件触发前台服务：用户在主开关打开后启动。

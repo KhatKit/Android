@@ -1,6 +1,8 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,12 +11,14 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
@@ -28,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -46,6 +52,16 @@ import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.TagsInput
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
+import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShape
+import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShapeNames
+import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
+import heizige.kk.khatkit.app.feature.settings.components.parseHexColor
+import heizige.kk.khromia.components.ShapeSelectionGrid
+import heizige.kk.khromia.components.ShapeSelectionOption
+import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
 import heizige.kk.khatkit.app.core.util.toFixed
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -93,6 +109,12 @@ internal fun AssistantBasicContent(
     onUpdate: (Assistant) -> Unit,
     vm: AssistantDetailViewModel
 ) {
+    var showShapeSheet by remember { mutableStateOf(false) }
+    // 头像底色的取色弹窗：与主题页共用 ThemeCustomColorSheet（内含 SquareColorPicker）。
+    var showAvatarColorSheet by remember { mutableStateOf(false) }
+    val providerName = providers
+        .firstOrNull { provider -> provider.models.any { it.id == assistant.chatModelId } }
+        ?.name
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -119,6 +141,9 @@ internal fun AssistantBasicContent(
                         )
                     )
                 },
+                avatarShape = assistant.avatarShape,
+                defaultIconName = providerName,
+                avatarColor = assistant.avatarColor,
                 modifier = Modifier
                     .size(80.dp)
                     .heroAnimation("assistant_${assistant.id}")
@@ -172,6 +197,35 @@ internal fun AssistantBasicContent(
                     KedgeSwitch(
                         checked = assistant.canManageRoles,
                         onCheckedChange = { onUpdate(assistant.copy(canManageRoles = it)) },
+                    )
+                },
+            )
+            item(
+                onClick = { showShapeSheet = true },
+                headlineContent = { Text("头像形状") },
+                supportingContent = { Text(assistant.avatarShape) },
+                trailingContent = { Icon(arrowForward, contentDescription = null) },
+            )
+            // 头像底色：整行可点 = 打开取色弹窗（与主题页共用同一个 ThemeCustomColorSheet，
+            // 里面的取色器就是 SquareColorPicker）。之前是裸文本框，要手打 #RRGGBB；
+            // 现在不再手输：选色写回 "#AARRGGBB"，弹窗里的「重置」把字段清回 null。
+            // 非法旧值不会崩 —— 预览与初值都走 parseHexColor，解析失败时退回角色名派生色。
+            item(
+                onClick = { showAvatarColorSheet = true },
+                headlineContent = { Text(stringResource(R.string.assistant_page_avatar_color)) },
+                supportingContent = {
+                    Text(
+                        assistant.avatarColor?.takeIf { it.isNotBlank() }
+                            ?: stringResource(R.string.assistant_page_avatar_color_default)
+                    )
+                },
+                trailingContent = {
+                    // 当前颜色预览：画的就是头像实际会用的那个色（含未设置时的派生色）。
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(roleAvatarColor(assistant.name, assistant.avatarColor))
                     )
                 },
             )
@@ -651,4 +705,49 @@ internal fun AssistantBasicContent(
             }
         }
     }
+
+    PrimaryBottomSheet(
+        visible = showShapeSheet,
+        title = "头像形状",
+        imageVector = palette,
+        onDismiss = { showShapeSheet = false },
+    ) { dismiss ->
+        ShapeSelectionGrid(
+            options = roleAvatarShapeNames.map { key ->
+                ShapeSelectionOption(key = key, shape = roleAvatarShape(key))
+            },
+            selectedKey = assistant.avatarShape,
+            onSelected = { key ->
+                onUpdate(assistant.copy(avatarShape = key))
+                dismiss()
+            },
+            previewContent = { option ->
+                UIAvatar(
+                    name = assistant.name,
+                    value = assistant.avatar,
+                    avatarShape = option.key,
+                    defaultIconName = providerName,
+                    avatarColor = assistant.avatarColor,
+                    modifier = Modifier.size(56.dp),
+                )
+            },
+        )
+    }
+
+    ThemeCustomColorSheet(
+        visible = showAvatarColorSheet,
+        initialColor = parseHexColor(assistant.avatarColor.orEmpty())
+            ?: roleAvatarColor(assistant.name, null),
+        history = emptyList(),
+        onDismiss = { showAvatarColorSheet = false },
+        onClear = {
+            onUpdate(assistant.copy(avatarColor = null))
+            showAvatarColorSheet = false
+        },
+        onConfirm = { color ->
+            // 只在这里做一次 Color -> 字符串：对话框回调给的是 Color，写回的仍是原来的字符串字段。
+            onUpdate(assistant.copy(avatarColor = String.format("#%08X", color.toArgb())))
+            showAvatarColorSheet = false
+        },
+    )
 }

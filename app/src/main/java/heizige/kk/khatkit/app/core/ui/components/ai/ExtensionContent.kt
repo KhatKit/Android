@@ -8,19 +8,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
@@ -30,6 +28,7 @@ import heizige.kk.khatkit.app.core.data.model.PromptInjection
 import heizige.kk.khatkit.app.core.data.model.QuickMessage
 import heizige.kk.khatkit.app.core.ui.icons.link
 import heizige.kk.khatkit.app.core.ui.icons.openInNew
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -40,13 +39,16 @@ fun ModeInjectionsContent(
     modifier: Modifier = Modifier,
     onManage: (() -> Unit)? = null,
 ) {
+    val cards = listCardStyle()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
-        items(modeInjections) { injection ->
-            KedgeListItem(
-                headlineContent = {
+        itemsIndexed(modeInjections) { index, injection ->
+            KedgeOptionItem(
+                onClick = null,
+                shape = cards.indexedShape(index, modeInjections.size),
+                titleContent = {
                     Text(injection.name.ifBlank { stringResource(R.string.extension_content_unnamed) })
                 },
                 trailingContent = {
@@ -55,7 +57,6 @@ fun ModeInjectionsContent(
                         onCheckedChange = { checked -> onToggle(injection.id, checked) }
                     )
                 },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
         if (onManage != null) {
@@ -74,13 +75,16 @@ fun LorebooksContent(
     modifier: Modifier = Modifier,
     onManage: (() -> Unit)? = null,
 ) {
+    val cards = listCardStyle()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
-        items(lorebooks) { lorebook ->
-            KedgeListItem(
-                headlineContent = {
+        itemsIndexed(lorebooks) { index, lorebook ->
+            KedgeOptionItem(
+                onClick = null,
+                shape = cards.indexedShape(index, lorebooks.size),
+                titleContent = {
                     Text(lorebook.name.ifBlank { stringResource(R.string.extension_content_unnamed_lorebook) })
                 },
                 supportingContent = if (lorebook.description.isNotBlank()) {
@@ -98,7 +102,6 @@ fun LorebooksContent(
                         onCheckedChange = { checked -> onToggle(lorebook.id, checked) }
                     )
                 },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
         if (onManage != null) {
@@ -117,13 +120,16 @@ fun SkillsContent(
     modifier: Modifier = Modifier,
     onManage: (() -> Unit)? = null,
 ) {
+    val cards = listCardStyle()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
-        items(skills, key = { it.skillDir.absolutePath }) { skill ->
-            KedgeListItem(
-                headlineContent = { Text(skill.name) },
+        itemsIndexed(skills, key = { _, skill -> skill.skillDir.absolutePath }) { index, skill ->
+            KedgeOptionItem(
+                onClick = null,
+                shape = cards.indexedShape(index, skills.size),
+                titleContent = { Text(skill.name) },
                 supportingContent = if (skill.description.isNotBlank()) {
                     {
                         Text(
@@ -139,7 +145,6 @@ fun SkillsContent(
                         onCheckedChange = { checked -> onToggle(skill.name, checked) }
                     )
                 },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
         if (onManage != null) {
@@ -158,13 +163,16 @@ fun QuickMessagesContent(
     modifier: Modifier = Modifier,
     onManage: (() -> Unit)? = null,
 ) {
+    val cards = listCardStyle()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
-        items(quickMessages, key = { it.id }) { quickMessage ->
-            KedgeListItem(
-                headlineContent = {
+        itemsIndexed(quickMessages, key = { _, item -> item.id }) { index, quickMessage ->
+            KedgeOptionItem(
+                onClick = null,
+                shape = cards.indexedShape(index, quickMessages.size),
+                titleContent = {
                     Text(quickMessage.title.ifBlank { stringResource(R.string.extension_content_unnamed) })
                 },
                 supportingContent = if (quickMessage.content.isNotBlank()) {
@@ -183,7 +191,6 @@ fun QuickMessagesContent(
                         onCheckedChange = { checked -> onToggle(quickMessage.id, checked) }
                     )
                 },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
         }
     }

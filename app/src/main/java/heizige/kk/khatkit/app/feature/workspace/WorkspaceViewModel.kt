@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.RootfsInstallProgress
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
 
 @HiltViewModel
 class WorkspaceViewModel @Inject constructor(

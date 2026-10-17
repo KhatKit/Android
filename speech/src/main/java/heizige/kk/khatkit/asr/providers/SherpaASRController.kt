@@ -30,7 +30,7 @@ import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.asr.appendAmplitude
 import heizige.kk.khatkit.asr.calculateRmsAmplitude
 import heizige.kk.khatkit.asr.sherpa.NativeLibLoader
-import heizige.kk.khatkit.asr.sherpa.SherpaModelStore
+import heizige.kk.khatkit.asr.sherpa.SherpaModelManager
 import heizige.kk.khatkit.asr.sherpa.SherpaModels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -94,7 +94,7 @@ class SherpaASRController(
             return
         }
 
-        val store = SherpaModelStore(context)
+        val store = SherpaModelManager(context)
         if (!store.isEngineReady()) {
             setError("请先在设置里下载本地识别引擎")
             return
@@ -154,7 +154,7 @@ class SherpaASRController(
     private fun startStreamingRecorder() {
         recorderJob?.cancel()
         recorderJob = scope.launch(Dispatchers.IO) {
-            val modelDir = SherpaModelStore(context).modelDir(provider.modelId)
+            val modelDir = SherpaModelManager(context).modelDir(provider.modelId)
             val recognizer = try {
                 createOnlineRecognizer(modelDir)
             } catch (e: Exception) {
@@ -343,7 +343,7 @@ class SherpaASRController(
         }
         if (pcmBytes.isEmpty()) return
 
-        val modelDir = SherpaModelStore(context).modelDir(provider.modelId)
+        val modelDir = SherpaModelManager(context).modelDir(provider.modelId)
         val text = withContext(Dispatchers.IO) {
             recognizeOffline(modelDir, pcmBytes)
         }

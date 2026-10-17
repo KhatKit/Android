@@ -6,7 +6,7 @@ import kotlin.concurrent.withLock
 
 class LruCache<K, V>(
     private val capacity: Int,
-    private val store: CacheStore<K, V>,
+    private val store: CacheRepository<K, V>,
     private val deleteOnEvict: Boolean = false,
     preloadFromStore: Boolean = false,
     private val expireAfterWriteMillis: Long? = null

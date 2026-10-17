@@ -316,7 +316,6 @@
   <string name="chat_page_dismiss_error">تجاهل الخطأ</string>
   <string name="chat_page_edit_nickname">تعديل الاسم المستعار</string>
   <string name="chat_page_edit_title">تعديل العنوان</string>
-  <string name="chat_page_edit_title_warning">يرجى بدء محادثة أولاً قبل تعديل العنوان</string>
   <string name="chat_page_export_format">تنسيق التصدير</string>
   <string name="chat_page_export_image">تصدير كصورة</string>
   <string name="chat_page_export_image_desc">تصدير المحادثة كصورة PNG</string>
@@ -345,6 +344,9 @@
   <string name="chat_page_queue_image">[صورة]</string>
   <string name="chat_page_queue_paused_count">قائمة الانتظار متوقفة مؤقتًا · %1$d</string>
   <string name="chat_page_queue_pending_count">في قائمة الانتظار · %1$d</string>
+  <string name="chat_page_queue_send_now">إرسال الآن</string>
+  <string name="chat_page_queue_send_now_interrupt">لا يزال الرد الحالي قيد الإنشاء. الإرسال الآن سيقطعه.</string>
+  <string name="chat_page_queue_send_now_confirm">قطع وإرسال</string>
   <string name="chat_page_queue_remove">إزالة</string>
   <string name="chat_page_queue_resume">استئناف الإرسال</string>
   <string name="chat_page_queue_video">[فيديو]</string>
@@ -962,6 +964,7 @@
   <string name="setting_page_request_logs">سجلات الطلبات</string>
   <string name="setting_page_request_logs_desc">سجلات طلبات HTTP</string>
   <string name="setting_page_search_add_provider">إضافة مزوّد</string>
+  <string name="setting_page_search_search_engine">محركات البحث</string>
   <string name="setting_page_search_common_options">خيارات شائعة</string>
   <string name="setting_page_search_config">التكوين</string>
   <string name="setting_page_search_delete_provider">حذف مزوّد</string>
@@ -982,7 +985,7 @@
   <string name="setting_page_tts_service_desc">تحويل النص إلى كلام والتعرّف على الصوت</string>
   <string name="setting_page_tts_settings">إعدادات TTS</string>
   <string name="setting_page_trace_audit">تدقيق التتبّع</string>
-  <string name="setting_page_trace_audit_desc">استعراض لقطات الشاشة والأهداف والنتائج لإجراءات الجهاز خطوة بخطوة</string>
+  <string name="setting_page_trace_audit_desc">لقطات إجراءات الجهاز ونتائجها</string>
   <string name="setting_page_web_server">خادم الويب</string>
   <string name="setting_page_web_server_address_note">ملاحظات العنوان</string>
   <string name="setting_page_web_server_address_note_desc">LAN: IP شبكة Wi-Fi للجهاز، داخل نفس الشبكة فقط.\nمحلي: localhost، هذا الجهاز فقط.\nmDNS: اسم ‎.local، بدون IP.</string>

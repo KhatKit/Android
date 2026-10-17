@@ -6,6 +6,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.card.CardManifest
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerTileRegistry
 
 /**
  * 快捷设置磁贴：点击运行绑定的卡片。

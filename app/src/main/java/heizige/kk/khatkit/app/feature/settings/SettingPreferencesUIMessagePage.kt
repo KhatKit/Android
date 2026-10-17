@@ -67,14 +67,15 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_show_user_avatar_title,
-                            null,
-                            checked = displaySetting.showUserAvatar,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
-                        )
-                    )
+                    // 这里原有的 `show_user_avatar_title`（显示用户头像）与
+                    // `chat_list_model_icon_title`（模型图标）两个开关已删：消息气泡旁的头像
+                    // 整体删除（AI 头像只在顶栏保留一处），`showUserAvatar` / `showModelIcon`
+                    // 再没有消费方，留着就是无效死开关。**持久化字段本身保留**
+                    // （SettingsRepository 不动），旧数据与导入导出不受影响。
+                    //
+                    // `show_assistant_bubble`（显示助手消息气泡）**保留**，且消费方回来了
+                    // （ChatMessage / ConversationExport 一起判定）。默认 true，老安装里
+                    // 落盘的显式 false 由 PreferenceStoreV6Migration 一次性翻正。
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_show_assistant_bubble_title,
@@ -103,14 +104,6 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                                 Text(text = "${(displaySetting.bubbleOpacity * 100).roundToInt()}%")
                             }
                         }
-                    )
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_chat_list_model_icon_title,
-                            null,
-                            checked = displaySetting.showModelIcon,
-                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
-                        )
                     )
                     settingItem(
                         SwitchSetting(

@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -100,6 +100,7 @@ import heizige.kk.khatkit.app.feature.settings.components.SettingProviderBalance
 import heizige.kk.khatkit.app.feature.settings.components.isUsingDefaultBaseUrl
 import heizige.kk.khatkit.app.feature.settings.components.resetBaseUrlToDefault
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.plus
@@ -191,13 +192,20 @@ internal fun ModelList(
                     }
                 }
             } else {
-                items(providerSetting.models, key = { it.id }) { item ->
+                // 用 itemsIndexed 而不只是 items：`ModelCard` 的圆角不再有默认值，
+                // 得按「组里第几项 / 共几项」从 listCardStyle() 算出来传下去
+                // （与提供商页、工具页同一套口径：首项只圆上边、末项只圆下边）。
+                itemsIndexed(
+                    items = providerSetting.models,
+                    key = { _, item -> item.id },
+                ) { index, item ->
                     ReorderableItem(
                         state = reorderableLazyListState,
                         key = item.id
                     ) { isDragging ->
                         ModelCard(
                             model = item,
+                            shape = listCardStyle().indexedShape(index, providerSetting.models.size),
                             onDelete = {
                                 onUpdateProvider(providerSetting.delModel(item))
                             },

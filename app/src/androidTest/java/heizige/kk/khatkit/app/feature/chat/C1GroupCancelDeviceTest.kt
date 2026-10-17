@@ -63,6 +63,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.helper.isUngeneratedAssistantMessage
 
 /**
  * C1-06「取消」半条的真机证据：**边流式边取消**，断言契约

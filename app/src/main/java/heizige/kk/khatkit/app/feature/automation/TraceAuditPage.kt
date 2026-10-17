@@ -27,6 +27,10 @@ import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import java.io.File
+import heizige.kk.khatkit.app.feature.automation.data.TraceBrowseState
+import heizige.kk.khatkit.app.feature.automation.data.TraceStepView
+import heizige.kk.khatkit.app.feature.automation.data.toStepViews
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationTracer
 
 @Composable
 fun TraceAuditPage() {

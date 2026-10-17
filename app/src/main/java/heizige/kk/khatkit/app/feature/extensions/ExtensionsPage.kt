@@ -28,7 +28,6 @@ import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.kedge.theme.KedgeStyle

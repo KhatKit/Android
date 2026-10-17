@@ -1,12 +1,12 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +26,7 @@ import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.kedge.components.KedgeExpandableOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -40,9 +41,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
-import heizige.kk.khatkit.app.feature.automation.CardTriggerOverride
+import heizige.kk.khatkit.app.feature.automation.data.CardTriggerOverride
 import heizige.kk.khatkit.app.feature.automation.TriggerController
-import heizige.kk.khatkit.app.feature.automation.TriggerTilePublisher
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerTilePublisher
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.editNote
@@ -256,51 +258,57 @@ private fun EventCard(
     onChange: (CardManifest.Event) -> Unit,
     onRemove: () -> Unit,
 ) {
-    KedgeCard(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
+    // 事件卡的表头本来就是一个选项行：整行可点 = 展开/收起，右侧挂开关 + 删除 + 箭头。
+    // 之前是 KedgeCard 里手写的 Row（裸 KedgeSwitch），行皮/圆角/内边距只有这里跟
+    // 其它选项行不一样。改走 KedgeExpandableOptionItem（= KedgeOptionItem + 同卡展开区）
+    // 后：折叠区仍在同一张卡内（wrapContent），点击语义 / 开关 / 删除 / 文案全部原样。
+    val cards = listCardStyle()
+    KedgeExpandableOptionItem(
+        expanded = expanded,
+        onExpandedChange = { onToggle() },
+        modifier = Modifier.fillMaxWidth(),
+        shape = cards.indexedShape(0, 1),
+        wrapContent = true,
+        // 箭头自己画在尾槽里（与原静态上下箭头逐字相同），不让组件再补一个。
+        showChevron = false,
+        contentPadding = PaddingValues(bottom = 12.dp),
+        titleContent = {
+            Text(
+                text = eventTypeLabel(event.type) + if (enabled) "" else "（已停用）",
+                style = KedgeTextStyles.title(),
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        },
+        supportingContent = {
+            Text(
+                text = eventSummary(event),
+                style = KedgeTextStyles.body(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                KedgeSwitch(
+                    checked = enabled,
+                    onCheckedChange = onToggleEnabled,
+                )
+                KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+                    Icon(delete, contentDescription = "删除事件", modifier = Modifier.size(18.dp))
+                }
+                Icon(
+                    imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onToggle() }
-                .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = eventTypeLabel(event.type) + if (enabled) "" else "（已停用）",
-                    style = KedgeTextStyles.title(),
-                    color = if (enabled) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-                Text(
-                    text = eventSummary(event),
-                    style = KedgeTextStyles.body(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            KedgeSwitch(
-                checked = enabled,
-                onCheckedChange = onToggleEnabled,
-            )
-            KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
-                Icon(delete, contentDescription = "删除事件", modifier = Modifier.size(18.dp))
-            }
-            Icon(
-                imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        AnimatedVisibility(visible = expanded) {
-            EventFields(cardName = cardName, event = event, onChange = onChange)
-        }
+        EventFields(cardName = cardName, event = event, onChange = onChange)
     }
 }
 
@@ -311,9 +319,9 @@ private fun EventFields(
     onChange: (CardManifest.Event) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+        // 水平内边距由 ExpandableOptionItem 的 contentPadding（InsideMargin 16dp）给，
+        // 这里再加一层会变成 28dp。
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         when (event.type) {

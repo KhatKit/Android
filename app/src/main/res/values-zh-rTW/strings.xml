@@ -281,7 +281,6 @@
   <string name="chat_page_dismiss_error">關閉錯誤</string>
   <string name="chat_page_edit_nickname">編輯暱稱</string>
   <string name="chat_page_edit_title">編輯標題</string>
-  <string name="chat_page_edit_title_warning">請先聊天再編輯標題吧</string>
   <string name="chat_page_export_format">匯出格式</string>
   <string name="chat_page_export_image">匯出為圖片</string>
   <string name="chat_page_export_image_desc">將對話匯出為PNG圖片</string>
@@ -777,6 +776,7 @@
   <string name="setting_page_request_logs">請求記錄</string>
   <string name="setting_page_request_logs_desc">HTTP 請求記錄</string>
   <string name="setting_page_search_add_provider">新增提供商</string>
+  <string name="setting_page_search_search_engine">搜尋引擎</string>
   <string name="setting_page_search_common_options">通用選項</string>
   <string name="setting_page_search_config">設定</string>
   <string name="setting_page_search_delete_provider">刪除提供商</string>
@@ -794,7 +794,7 @@
   <string name="setting_page_sponsor_alert_dismiss">稍後再說</string>
   <string name="setting_page_sponsor_alert_title">支援開發者</string>
   <string name="setting_page_themes">主題</string>
-  <string name="setting_page_themes_desc">顏色模式、配色、自訂主題、介面風格、卡片樣式</string>
+  <string name="setting_page_themes_desc">配色、主題、介面風格</string>
   <string name="setting_theme_page_preset_themes">預設主題</string>
   <string name="setting_theme_page_custom_themes">自訂主題</string>
   <string name="setting_theme_page_add_theme">新增</string>
@@ -812,7 +812,7 @@
   <string name="setting_page_tts_service_desc">語音合成與語音辨識</string>
   <string name="setting_page_tts_settings">TTS設定</string>
   <string name="setting_page_trace_audit">軌跡審計</string>
-  <string name="setting_page_trace_audit_desc">逐步查看裝置動作的截圖、目標和結果</string>
+  <string name="setting_page_trace_audit_desc">查看裝置動作截圖與結果</string>
   <string name="setting_page_web_server">Web伺服器</string>
   <string name="setting_page_web_server_address_note">位址備註</string>
   <string name="setting_page_web_server_address_note_desc">區域網：WiFi IP，僅同網可存取。\n本機：localhost，僅本裝置。\nmDNS：.local 主機名，不需 IP。</string>
@@ -1297,6 +1297,9 @@
   <string name="chat_page_queue_edit_title">編輯佇列中的訊息</string>
   <string name="chat_page_queue_paused_count">佇列已暫停 · %1$d</string>
   <string name="chat_page_queue_pending_count">佇列中 · %1$d</string>
+  <string name="chat_page_queue_send_now">立即傳送</string>
+  <string name="chat_page_queue_send_now_interrupt">目前回覆仍在生成，立即傳送會中斷本次回覆。</string>
+  <string name="chat_page_queue_send_now_confirm">中斷並傳送</string>
   <string name="chat_page_voice_connecting">連線中…</string>
   <string name="chat_page_voice_listening_queued">聆聽中；新的語音將排入佇列</string>
   <string name="chat_page_voice_listening">聆聽中；您說完話後即會傳送訊息</string>
@@ -1387,4 +1390,9 @@
 <string name="chart_series_name">數列 %1$d</string>
   <string name="error_fast_model_not_found">找不到快速模型。請在設定中選擇一個。</string>
   <string name="error_fast_model_provider_not_found">找不到快速模型的供應商</string>
+  <string name="assistant_page_avatar_color">頭像背景色</string>
+  <string name="assistant_page_avatar_color_default">預設（依角色名取色）</string>
+  <string name="avatar_take_photo">拍攝照片</string>
+  <string name="avatar_camera_permission_denied">需要相機權限才能拍照</string>
+  <string name="avatar_pick_icon_file">選擇圖示檔（含 SVG）</string>
 </resources>

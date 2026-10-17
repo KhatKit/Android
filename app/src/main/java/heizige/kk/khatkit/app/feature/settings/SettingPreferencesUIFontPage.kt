@@ -41,7 +41,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
 import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
 import heizige.kk.khatkit.app.core.data.files.FileFolders
-import heizige.kk.khatkit.app.core.data.files.FileUtils
+import heizige.kk.khatkit.app.core.data.files.FileHelper
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -272,7 +272,7 @@ private fun ChatFontFamily.toFontFamilyUI(customFontFamily: FontFamily): FontFam
 }
 
 internal fun importCustomChatFont(context: Context, uri: Uri): ImportedChatFont {
-    val displayName = FileUtils.getFileNameFromUri(context, uri)?.takeIf { it.isNotBlank() } ?: "custom_font"
+    val displayName = FileHelper.getFileNameFromUri(context, uri)?.takeIf { it.isNotBlank() } ?: "custom_font"
     val extension = displayName.substringAfterLast('.', "")
         .lowercase()
         .takeIf { it in CustomFontExtensions }
@@ -302,7 +302,7 @@ internal fun importCustomChatFont(context: Context, uri: Uri): ImportedChatFont 
         throw error
     }
 
-    val relativePath = FileUtils.getRelativePathInFilesDir(context.filesDir, targetFile)
+    val relativePath = FileHelper.getRelativePathInFilesDir(context.filesDir, targetFile)
         ?: "${FileFolders.FONTS}/${targetFile.name}"
     return ImportedChatFont(relativePath = relativePath, displayName = displayName)
 }

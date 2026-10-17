@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
 import androidx.compose.foundation.layout.ColumnScope
 import heizige.kk.kedge.components.KedgeCard
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -80,6 +81,16 @@ fun MiuixSettingsPage(
     /** 外部持有的列表状态：需要驱动视差/折叠动画的页面传入（如关于页的大 logo 头图）。 */
     lazyListState: LazyListState? = null,
     /**
+     * 列表项之间的间距。
+     *
+     * 默认 [Arrangement.Top]（项与项之间不额外留白）—— [miuixGroup] 自己带 12dp 上间距、
+     * 裸卡片用 [miuixItemSpacing]，这满足大多数页面。需要「每项自带 `indexedShape` 圆角、
+     * 间距走 `listCardStyle().gap`」的页面（搜索服务列表）显式传
+     * `Arrangement.spacedBy(listCardStyle().gap)`：Miuix 下 gap = 0dp，整组贴成一整块；
+     * MD3 下由各自页面的 LazyColumn 给 2dp 缝。
+     */
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    /**
      * 浮层内容，与列表同级叠在它上面（KernelSU `AboutMiuix.kt` 的大 logo 就是这么放的：
      * logo 不参与列表布局，列表首项改用一个等高的透明占位）。仅在需要「浮层随滚动收起」时使用。
      */
@@ -155,6 +166,7 @@ fun MiuixSettingsPage(
                 contentPadding = innerPadding.plus(
                     PaddingValues(bottom = bottomInnerPadding)
                 ),
+                verticalArrangement = verticalArrangement,
                 overscrollEffect = null,
                 content = content,
             )

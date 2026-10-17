@@ -46,6 +46,7 @@ import heizige.kk.khatkit.highlight.LocalCodeHighlighter
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.HighlightCodeVisualTransformation
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -56,8 +57,8 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.search.DoubaoSearchMode
 import heizige.kk.khatkit.search.SearchCommonOptions
 import heizige.kk.khatkit.search.SearchResult
-import heizige.kk.khatkit.search.SearchService
-import heizige.kk.khatkit.search.SearchServiceOptions
+import heizige.kk.khatkit.search.SearchRepository
+import heizige.kk.khatkit.search.SearchOptions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -65,6 +66,7 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.feature.settings.search.TavilyOptions
 import heizige.kk.khatkit.app.feature.settings.search.ExaOptions
 import heizige.kk.khatkit.app.feature.settings.search.ZhipuOptions
+import heizige.kk.khatkit.app.feature.settings.search.DeepSeekOptions
 import heizige.kk.khatkit.app.feature.settings.search.DoubaoOptions
 import heizige.kk.khatkit.app.feature.settings.search.SearXNGOptions
 import heizige.kk.khatkit.app.feature.settings.search.SearchLinkUpOptions
@@ -81,6 +83,7 @@ import heizige.kk.khatkit.app.feature.settings.search.TinyfishOptions
 import heizige.kk.khatkit.app.feature.settings.search.GrokOptions
 import heizige.kk.khatkit.app.feature.settings.search.CustomJsOptions
 import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
 
 @Composable
 fun SettingSearchDetailPage(
@@ -99,7 +102,7 @@ fun SettingSearchDetailPage(
     val serviceIndex = settings.searchServices.indexOf(service)
     var options by remember(service) { mutableStateOf(service) }
 
-    fun save(updated: SearchServiceOptions) {
+    fun save(updated: SearchOptions) {
         options = updated
         val newServices = settings.searchServices.toMutableList()
         newServices[serviceIndex] = updated
@@ -113,9 +116,8 @@ fun SettingSearchDetailPage(
             if (settings.searchServices.size > 1) {
                 KedgeIconButton(
                     onClick = {
-                        val newServices = settings.searchServices.toMutableList()
-                        newServices.removeAt(serviceIndex)
-                        vm.updateSettings(settings.copy(searchServices = newServices))
+                        // 走统一入口：删掉的服务若正好是「当前使用的搜索服务」，选中下标要跟着重绑。
+                        removeSearchRepository(vm = vm, settings = settings, service = service)
                         nav.popBackStack()
                     },
                     shapes = IconButtonDefaults.shapes(),
@@ -136,33 +138,10 @@ fun SettingSearchDetailPage(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item("config") {
-                KedgeCard(
-                    colors = CardDefaults.cardColors(
-                        containerColor = CustomColors.listItemColors.containerColor
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .animateContentSize()
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.setting_page_search_config),
-                            style = KedgeTextStyles.title()
-                        )
-
-                        SearchServiceOptionsEditor(
-                            options = options,
-                            onUpdateOptions = { save(it) }
-                        )
-
-                        ProvideTextStyle(KedgeTextStyles.footnote()) {
-                            SearchService.getService(options).Description()
-                        }
-                    }
-                }
+                SearchConfigCard(
+                    options = options,
+                    onUpdate = { save(it) }
+                )
             }
 
             item("test") {
@@ -175,66 +154,116 @@ fun SettingSearchDetailPage(
     }
 }
 
+/**
+ * 「服务参数」分组卡片：标题 + 参数表单 + 能力说明，一整组分段卡片。
+ *
+ * 改造前是 `KedgeCard { Column(padding 16) { 标题; SearchOptionsEditor; 说明 } }`：
+ * 外壳手搓一张卡，里面的参数行（`KedgeFormRow` → `FormItem` → `KedgeOptionItem`）在组外
+ * 各画一张四角全圆的卡 —— 卡里套卡，Miuix 下尤其明显（外壳是 MD3 的 `KedgeCard`，
+ * 行是 Miuix 的 `KedgeCard` 行）。现在外壳交给 `KedgeFormCard`（`InlineCardGroup`）：
+ * 底色与圆角由组统一出，组内行只留内侧小圆角，首项上边、末项下边由整组裁切给出，
+ * 两种风格一致，`SearchOptionsEditor` 一行不用改。
+ */
+@Composable
+internal fun SearchConfigCard(
+    options: SearchOptions,
+    modifier: Modifier = Modifier,
+    onUpdate: (SearchOptions) -> Unit
+) {
+    KedgeFormCard(modifier = modifier.animateContentSize()) {
+        // 标题块是组内「不带底色的子项」，卡片底由 InlineCardGroup 那层透出来；
+        // 内边距由调用点补（组容器不加内边距，行组件自带的 16dp 是行的）。
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.setting_page_search_config),
+                style = KedgeTextStyles.title()
+            )
+        }
+
+        SearchOptionsEditor(
+            options = options,
+            onUpdateOptions = onUpdate
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            ProvideTextStyle(KedgeTextStyles.footnote()) {
+                SearchRepository.get(options).Description()
+            }
+        }
+    }
+}
+
 @Suppress("UNCHECKED_CAST")
 @Composable
-internal fun SearchServiceOptionsEditor(
-    options: SearchServiceOptions,
-    onUpdateOptions: (SearchServiceOptions) -> Unit
+internal fun SearchOptionsEditor(
+    options: SearchOptions,
+    onUpdateOptions: (SearchOptions) -> Unit
 ) {
     when (options) {
-        is SearchServiceOptions.TavilyOptions -> {
+        is SearchOptions.TavilyOptions -> {
             TavilyOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.ExaOptions -> {
+        is SearchOptions.ExaOptions -> {
             ExaOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.ZhipuOptions -> {
+        is SearchOptions.ZhipuOptions -> {
             ZhipuOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.DoubaoOptions -> {
+        is SearchOptions.DeepSeekOptions -> {
+            DeepSeekOptions(options) { onUpdateOptions(it) }
+        }
+        is SearchOptions.DoubaoOptions -> {
             DoubaoOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.SearXNGOptions -> {
+        is SearchOptions.SearXNGOptions -> {
             SearXNGOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.LinkUpOptions -> {
+        is SearchOptions.LinkUpOptions -> {
             SearchLinkUpOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.BraveOptions -> {
+        is SearchOptions.BraveOptions -> {
             BraveOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.MetasoOptions -> {
+        is SearchOptions.MetasoOptions -> {
             MetasoOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.OllamaOptions -> {
+        is SearchOptions.OllamaOptions -> {
             OllamaOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.PerplexityOptions -> {
+        is SearchOptions.PerplexityOptions -> {
             PerplexityOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.BingLocalOptions -> {}
-        is SearchServiceOptions.FirecrawlOptions -> {
+        is SearchOptions.BingLocalOptions -> {}
+        is SearchOptions.FirecrawlOptions -> {
             FirecrawlOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.JinaOptions -> {
+        is SearchOptions.JinaOptions -> {
             JinaOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.BochaOptions -> {
+        is SearchOptions.BochaOptions -> {
             BochaOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.KhatKitOptions -> {
+        is SearchOptions.KhatKitOptions -> {
             KhatKitOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.GrokOptions -> {
+        is SearchOptions.GrokOptions -> {
             GrokOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.TinyfishOptions -> {
+        is SearchOptions.TinyfishOptions -> {
             TinyfishOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.SerperOptions -> {
+        is SearchOptions.SerperOptions -> {
             SerperOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.CustomJsOptions -> {
+        is SearchOptions.CustomJsOptions -> {
             CustomJsOptions(options) { onUpdateOptions(it) }
         }
     }
@@ -242,7 +271,7 @@ internal fun SearchServiceOptionsEditor(
 
 @Composable
 internal fun SearchTestSection(
-    options: SearchServiceOptions,
+    options: SearchOptions,
     commonOptions: SearchCommonOptions
 ) {
     var query by remember { mutableStateOf("") }
@@ -286,7 +315,7 @@ internal fun SearchTestSection(
                             testing = true
                             result = null
                             scope.launch {
-                                val service = SearchService.getService(options)
+                                val service = SearchRepository.get(options)
                                 val params = JsonObject(
                                     mapOf("query" to JsonPrimitive(query))
                                 )

@@ -11,8 +11,8 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.util.JsonInstantPretty
 import heizige.kk.khatkit.app.core.util.toLocalString
-import heizige.kk.khatkit.search.SearchService
-import heizige.kk.khatkit.search.SearchServiceOptions
+import heizige.kk.khatkit.search.SearchRepository
+import heizige.kk.khatkit.search.SearchOptions
 import java.time.LocalDate
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
@@ -55,15 +55,15 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                 parameters = {
                     val options = settings.searchServices.getOrElse(
                         index = settings.searchServiceSelected,
-                        defaultValue = { SearchServiceOptions.DEFAULT })
-                    val service = SearchService.getService(options)
+                        defaultValue = { SearchOptions.DEFAULT })
+                    val service = SearchRepository.get(options)
                     service.parameters(options)
                 },
                 execute = {
                     val options = settings.searchServices.getOrElse(
                         index = settings.searchServiceSelected,
-                        defaultValue = { SearchServiceOptions.DEFAULT })
-                    val service = SearchService.getService(options)
+                        defaultValue = { SearchOptions.DEFAULT })
+                    val service = SearchRepository.get(options)
                     val result = service.search(
                         params = it.jsonObject,
                         commonOptions = settings.searchCommonOptions,
@@ -88,8 +88,8 @@ fun createSearchTools(settings: Settings): Set<Tool> {
 
         val options = settings.searchServices.getOrElse(
             index = settings.searchServiceSelected,
-            defaultValue = { SearchServiceOptions.DEFAULT })
-        val service = SearchService.getService(options)
+            defaultValue = { SearchOptions.DEFAULT })
+        val service = SearchRepository.get(options)
         if (service.scrapingParameters(options) != null) {
             add(
                 Tool(
@@ -103,15 +103,15 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                     parameters = {
                         val options = settings.searchServices.getOrElse(
                             index = settings.searchServiceSelected,
-                            defaultValue = { SearchServiceOptions.DEFAULT })
-                        val service = SearchService.getService(options)
+                            defaultValue = { SearchOptions.DEFAULT })
+                        val service = SearchRepository.get(options)
                         service.scrapingParameters(options)
                     },
                     execute = {
                         val options = settings.searchServices.getOrElse(
                             index = settings.searchServiceSelected,
-                            defaultValue = { SearchServiceOptions.DEFAULT })
-                        val service = SearchService.getService(options)
+                            defaultValue = { SearchOptions.DEFAULT })
+                        val service = SearchRepository.get(options)
                         val result = service.scrape(
                             params = it.jsonObject,
                             commonOptions = settings.searchCommonOptions,

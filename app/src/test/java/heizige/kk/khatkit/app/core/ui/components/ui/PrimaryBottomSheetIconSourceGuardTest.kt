@@ -260,6 +260,21 @@ class PrimaryBottomSheetIconSourceGuardTest {
      * - `feature/settings/SettingPreferencesThemePageMiuix.kt:427`（`imageVector = palette`）
      * - `feature/settings/SettingProviderPageMiuix.kt:371`
      * - `feature/settings/SettingModelPromptPageMiuix.kt:123`
+     *
+     * ## 68 → 67（2026-10-17，抽屉去掉文件夹功能）
+     * ## 68 → 67（2026-10-17，抽屉去掉文件夹功能）
+     * 删掉 `feature/chat/ChatDrawer.kt` 的「移动到文件夹」sheet，调用点 68 → 67。
+     *
+     * ## 67 → 69（2026-10-17，「新增提供商」弹窗改成底部弹层）
+     * `SettingProviderPage.kt` 的 `AddButton` 与 `SettingProviderPageMiuix.kt` 的
+     * `AddProviderButtonMiuix` 各新增一处，图标都传 `imageVector = add`。
+     *
+     * ## 69 → 70（2026-10-18，「新增搜索服务」弹窗改成底部弹层）
+     * `SettingSearchPage.kt` 的 `AddProviderSheet`（MD3 / Miuix 两个风格页共用一个调用点）
+     * 新增一处，图标传 `imageVector = add`。
+     *
+     * ## 70 → 71（2026-10-17，角色头像形状选择器）
+     * `feature/assistant/detail/AssistantBasicPage.kt` 新增一处，图标传 `imageVector = palette`。
      */
     @Test
     fun callSiteScan_stillCoversTheWholeRepo() {
@@ -267,7 +282,7 @@ class PrimaryBottomSheetIconSourceGuardTest {
         assertEquals(
             "扫描到的 PrimaryBottomSheet 调用点数量变了：" +
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
-            68,
+            71,
             sites.size,
         )
         assertTrue("群配置面板已移除", sites.none { it.file.endsWith("feature/chat/GroupChatPage.kt") })

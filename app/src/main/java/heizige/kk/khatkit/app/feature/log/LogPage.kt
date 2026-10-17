@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast as KhromiaToast
 import heizige.kk.khatkit.common.android.LogEntry
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
@@ -142,37 +144,34 @@ private fun RequestLoggingSwitchCard(
     enabled: Boolean,
     onEnabledChange: (Boolean) -> Unit
 ) {
-    KedgeCard(
-        // 整行可点 = 翻转开关（之前只能点右侧那个小开关）。
-        // 挂在 KedgeCard 上而不是内部 Row：卡片自己的按压回弹才有反馈。
+    // 整行可点 = 翻转开关（之前只能点右侧那个小开关）；按压回弹由 KedgeOptionItem 给。
+    // 这是偏好行，不是日志条目，所以随其它选项行一起走 OptionItem；上下两条日志卡
+    // 仍是内容卡（带可点详情 / 选择容器），不动。
+    KedgeOptionItem(
         onClick = { onEnabledChange(!enabled) },
         modifier = Modifier.fillMaxWidth(),
-        colors = CustomColors.cardColorsOnSurfaceContainer,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.log_page_record_requests),
-                    style = KedgeTextStyles.title(),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = stringResource(R.string.log_page_record_requests_desc),
-                    style = KedgeTextStyles.body(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        shape = listCardStyle().indexedShape(0, 1),
+        titleContent = {
+            Text(
+                text = stringResource(R.string.log_page_record_requests),
+                style = KedgeTextStyles.title(),
+                fontWeight = FontWeight.Bold
+            )
+        },
+        supportingContent = {
+            Text(
+                text = stringResource(R.string.log_page_record_requests_desc),
+                style = KedgeTextStyles.body(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        trailingContent = {
             KedgeSwitch(
                 checked = enabled,
                 onCheckedChange = onEnabledChange
             )
-        }
-    }
+        },
+    )
 }
 
 @Composable

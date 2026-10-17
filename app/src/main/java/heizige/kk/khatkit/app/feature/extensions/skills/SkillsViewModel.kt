@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import heizige.kk.khatkit.app.core.data.files.FileUtils
+import heizige.kk.khatkit.app.core.data.files.FileHelper
 import heizige.kk.khatkit.app.core.data.files.SkillFrontmatterParser
 import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.files.SkillMetadata
@@ -64,7 +64,7 @@ class SkillsViewModel @Inject constructor(
         val appContext = context.applicationContext
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val fileName = FileUtils.getFileNameFromUri(appContext, uri).orEmpty()
+                val fileName = FileHelper.getFileNameFromUri(appContext, uri).orEmpty()
                 val bytes = appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: run {
                         withContext(Dispatchers.Main) { onResult(false, "无法读取文件") }

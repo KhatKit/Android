@@ -21,10 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
@@ -34,11 +33,11 @@ import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -50,9 +49,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -83,6 +82,7 @@ import heizige.kk.khatkit.app.core.ui.icons.HeartIcon
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSharedPreferenceString
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.toDp
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import sh.calvin.reorderable.ReorderableItem
@@ -471,9 +471,12 @@ private fun ColumnScope.ModelList(
 
     // 模型列表：折叠态挂在面板里，展开态搬进搜索框的全屏槽，所以抽成一个 lambda 复用。
     val modelList: @Composable (Modifier) -> Unit = { listModifier ->
+        // 行的圆角与行间空隙全部取全局列表卡片样式：收藏组、每个供应商组各自成组，
+        // 组内首项只圆上边、末项只圆下边（MD3 20dp/gap 2dp，Miuix 同组同色/gap 0）。
+        val cards = listCardStyle()
         LazyColumn(
             state = lazyListState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
             contentPadding = PaddingValues(8.dp),
             modifier = listModifier,
         ) {
@@ -499,10 +502,10 @@ private fun ColumnScope.ModelList(
                     )
                 }
 
-                items(
+                itemsIndexed(
                     items = favoriteModels,
-                    key = { "favorite:" + it.first.id.toString() }
-                ) { (model, provider) ->
+                    key = { _, favorite -> "favorite:" + favorite.first.id.toString() }
+                ) { index, (model, provider) ->
                     ReorderableItem(
                         state = reorderableState,
                         key = "favorite:" + model.id.toString()
@@ -514,6 +517,7 @@ private fun ColumnScope.ModelList(
                                 .scale(if (isDragging) 0.95f else 1f)
                                 .animateItem(),
                             providerSetting = provider,
+                            shape = cards.indexedShape(index, favoriteModels.size),
                             select = model.id == currentModel,
                             onDismiss = {
                                 onDismiss()
@@ -560,50 +564,60 @@ private fun ColumnScope.ModelList(
 
             providers.fastForEach { providerSetting ->
                 val collapsed = isCollapsed(providerSetting)
+                // 分组标题本身也是「可点的一行」（点一下折叠/展开该供应商），所以同样走
+                // option item：leading 折叠箭头、title 供应商名、trailing 余额。
+                // 底色给 Transparent —— 它是组标题不是一个选项，保持原来「不带卡面」的观感；
+                // 圆角仍按组首项算（标题就是该供应商组的第一行）。
                 stickyHeader(key = "header:${providerSetting.id}") {
-                    Row(
+                    KedgeOptionItem(
+                        onClick = { toggleCollapsed(providerSetting) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.small)
-                            .clickable { toggleCollapsed(providerSetting) }
-                            .padding(horizontal = 8.dp)
-                            .padding(bottom = 4.dp, top = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (collapsed) chevronRight else keyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-
-                        Text(
-                            text = providerSetting.name,
-                            style = KedgeTextStyles.body(),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        ProviderBalanceText(
-                            providerSetting = providerSetting,
-                            style = KedgeTextStyles.body(),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                            .padding(horizontal = 8.dp),
+                        shape = cards.indexedShape(
+                            index = 0,
+                            count = 1 + visibleModelsByProvider[providerSetting.id].orEmpty().size,
+                        ),
+                        backgroundColor = Color.Transparent,
+                        leadingContent = {
+                            Icon(
+                                imageVector = if (collapsed) chevronRight else keyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        titleContent = {
+                            Text(
+                                text = providerSetting.name,
+                                style = KedgeTextStyles.body(),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        trailingContent = {
+                            ProviderBalanceText(
+                                providerSetting = providerSetting,
+                                style = KedgeTextStyles.body(),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                    )
                 }
 
-                items(
+                itemsIndexed(
                     items = visibleModelsByProvider[providerSetting.id].orEmpty(),
-                    key = { it.id }
-                ) { model ->
+                    key = { _, model -> model.id }
+                ) { index, model ->
                     val favorite = settings.value.favoriteModels.contains(model.id)
                     ModelItem(
                         model = model,
                         onSelect = onSelect,
                         modifier = Modifier.animateItem(),
                         providerSetting = providerSetting,
+                        shape = cards.indexedShape(
+                            index = index,
+                            count = visibleModelsByProvider[providerSetting.id].orEmpty().size,
+                        ),
                         select = currentModel == model.id,
                         onDismiss = {
                             onDismiss()
@@ -729,6 +743,7 @@ private fun ModelItem(
     model: Model,
     providerSetting: ProviderSetting,
     select: Boolean,
+    shape: Shape,
     onSelect: (Model) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -736,81 +751,77 @@ private fun ModelItem(
     dragHandle: @Composable (RowScope.() -> Unit)? = null
 ) {
     val navController = LocalNavController.current
-    val interactionSource = remember { MutableInteractionSource() }
-    KedgeCard(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = if (select) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            contentColor = if (select) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-        )
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp, horizontal = 16.dp)
-        ) {
+    // 与全站其它列表同一套选项行：头像 → leading、模型名 → title、类型/模态/能力标签 →
+    // supporting、收藏按钮与拖拽把手 → trailing。行圆角由调用点按 index/count 传下来，
+    // 组件内不再带圆角默认值。
+    //
+    // 手势保持原样（整行单击 = 选中，长按 = 进该供应商详情），两件事仍由**同一个**
+    // combinedClickable 承担，所以挂在行外层 modifier 上，行组件自身传 onClick = null：
+    // 否则会挂两份点击回调，一次点击触发两次。
+    KedgeOptionItem(
+        onClick = null,
+        modifier = modifier.combinedClickable(
+            enabled = true,
+            onLongClick = {
+                onDismiss()
+                navController.navigate(
+                    Screen.SettingProviderDetail(
+                        providerSetting.id.toString()
+                    )
+                )
+            },
+            onClick = { onSelect(model) },
+            interactionSource = remember { MutableInteractionSource() },
+            indication = LocalIndication.current,
+        ),
+        shape = shape,
+        // 选中态沿用改动前的 primaryContainer 底色 + onPrimaryContainer 字色。
+        backgroundColor = if (select) MaterialTheme.colorScheme.primaryContainer else Color.Unspecified,
+        leadingContent = {
+            KedgeSurface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = MaterialTheme.shapes.small,
+            ) {
+                AutoAIIcon(
+                    name = model.modelId,
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .size(32.dp)
+                )
+            }
+        },
+        titleContent = {
+            Text(
+                text = model.displayName,
+                style = KedgeTextStyles.title(),
+                color = if (select) MaterialTheme.colorScheme.onPrimaryContainer else Color.Unspecified,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                ModelTypeTag(model = model)
+
+                ModelModalityTag(model = model)
+
+                ModelAbilityTag(model = model)
+            }
+        },
+        trailingContent = {
             Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .combinedClickable(
-                        enabled = true,
-                        onLongClick = {
-                            onDismiss()
-                            navController.navigate(
-                                Screen.SettingProviderDetail(
-                                    providerSetting.id.toString()
-                                )
-                            )
-                        },
-                        onClick = { onSelect(model) },
-                        interactionSource = interactionSource,
-                        indication = LocalIndication.current
-                    ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                KedgeSurface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    AutoAIIcon(
-                        name = model.modelId,
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .size(32.dp)
-                    )
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = model.displayName,
-                        style = KedgeTextStyles.title(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                    FlowRow(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        ModelTypeTag(model = model)
-
-                        ModelModalityTag(model = model)
-
-                        ModelAbilityTag(model = model)
-                    }
-                }
                 tail()
+                dragHandle?.invoke(this)
             }
-            dragHandle?.let { it() }
-        }
-    }
+        },
+    )
 }
 
 @Composable

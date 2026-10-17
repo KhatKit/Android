@@ -16,13 +16,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.kedge.theme.KedgeColors
@@ -34,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -57,15 +57,19 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.memory
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
-import androidx.compose.foundation.BorderStroke
 
 @Composable
 internal fun ModelCard(
     model: Model,
     modifier: Modifier = Modifier,
+    // 不给默认值：圆角必须由调用点按 `listCardStyle()` 的 index/count 算好传进来。
+    // 留个 20dp 默认就等于留个「假默认」——调用点忘传也能编译，行却退回独立卡片，
+    // 与同页其它组的圆角口径不一致（全仓 KedgeOptionItem 的 shape 一律来自 listCardStyle）。
+    shape: Shape,
     onDelete: () -> Unit,
     onEdit: (Model) -> Unit,
     parentProvider: ProviderSetting
@@ -162,18 +166,17 @@ internal fun ModelCard(
         gesturesEnabled = true,
         modifier = modifier
     ) {
-        // OutlinedCard 在 Miuix 下不画（Miuix 的 Card 没有描边变体），
-        // 统一走 KedgeCard + BorderStroke，MD3 侧观感与原来一致。
-        KedgeCard(
-            border = BorderStroke(1.dp, KedgeColors.outlineVariant),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        // 模型行 = 图标 / 名称 / 标签 / 编辑按钮，正好是 `KedgeOptionItem` 的四个槽。
+        // 以前是 `KedgeCard` + `BorderStroke` 手搓一行（Miuix 的 Card 没有描边变体，
+        // MD3 侧才像 OutlinedCard），现在与提供商行、工具开关行走同一套行渲染：
+        // 底色/圆角/内边距/字阶与双风格分流全交给组件，调用点只摆槽位。
+        // onClick 传 null：整行本来就不响应点击（只有右侧编辑按钮进弹层），
+        // 这里不改交互，只换皮。
+        KedgeOptionItem(
+            onClick = null,
+            modifier = modifier,
+            shape = shape,
+            leadingContent = {
                 KedgeSurface(
                     color = KedgeColors.secondaryContainer,
                     shape = MaterialTheme.shapes.small,
@@ -183,35 +186,35 @@ internal fun ModelCard(
                         modifier = Modifier.size(36.dp),
                     )
                 }
-                Column(
-                    modifier = Modifier.weight(1f),
+            },
+            titleContent = {
+                Text(
+                    text = model.displayName,
+                    style = KedgeTextStyles.title(),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            supportingContent = {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
-                        text = model.displayName,
-                        style = KedgeTextStyles.title(),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        if (model.providerOverwrite != null) {
-                            Tag(type = TagType.INFO) {
-                                Text(
-                                    model.providerOverwrite?.javaClass?.simpleName ?: model.providerOverwrite?.name
-                                    ?: "ProviderOverwrite"
-                                )
-                            }
+                    if (model.providerOverwrite != null) {
+                        Tag(type = TagType.INFO) {
+                            Text(
+                                model.providerOverwrite?.javaClass?.simpleName ?: model.providerOverwrite?.name
+                                ?: "ProviderOverwrite"
+                            )
                         }
-                        ModelTypeTag(model = model)
-                        ModelModalityTag(model = model)
-                        ModelAbilityTag(model = model)
                     }
+                    ModelTypeTag(model = model)
+                    ModelModalityTag(model = model)
+                    ModelAbilityTag(model = model)
                 }
-
-                // Edit button
+            },
+            // Edit button
+            trailingContent = {
                 KedgeIconButton(
                     onClick = {
                         dialogState.open(model.copy())
@@ -220,8 +223,8 @@ internal fun ModelCard(
                 ) {
                     Icon(build, "Edit")
                 }
-            }
-        }
+            },
+        )
     }
 }
 
@@ -254,33 +257,41 @@ internal fun BuiltInToolsSettings(
             BuiltInTools.ImageGeneration to stringResource(R.string.setting_page_built_in_tools_image_generation),
         )
 
-        availableTools.forEach { (tool, title) ->
-            KedgeCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = title,
-                        modifier = Modifier.weight(1f),
-                        style = KedgeTextStyles.title()
-                    )
-                    OptionSwitch(
-                        checked = tool in tools,
-                        onCheckedChange = { checked ->
-                            if (checked) {
-                                onUpdateTools(tools + tool)
-                            } else {
-                                onUpdateTools(tools - tool)
+        // 三个「标题 + 开关」行：不再各自一张 KedgeCard + 手搓 Row，而是同一组的
+        // `KedgeOptionItem`（圆角按 index/count、项距取 `listCardStyle().gap`，
+        // Miuix 下并成一整块）。整行可点 = 翻转开关，与设置分组里的开关行同款。
+        val cards = listCardStyle()
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
+        ) {
+            availableTools.forEachIndexed { index, (tool, title) ->
+                KedgeOptionItem(
+                    onClick = {
+                        if (tool in tools) onUpdateTools(tools - tool)
+                        else onUpdateTools(tools + tool)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = cards.indexedShape(index, availableTools.size),
+                    titleContent = {
+                        Text(
+                            text = title,
+                            style = KedgeTextStyles.title(),
+                        )
+                    },
+                    trailingContent = {
+                        OptionSwitch(
+                            checked = tool in tools,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    onUpdateTools(tools + tool)
+                                } else {
+                                    onUpdateTools(tools - tool)
+                                }
                             }
-                        }
-                    )
-                }
+                        )
+                    },
+                )
             }
         }
     }
@@ -310,28 +321,29 @@ internal fun ProviderOverrideSettings(
         )
 
         if (providerOverride != null) {
-            KedgeCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+            // 单行（组里只有这一项）：圆角按 `indexedShape(0, 1)` 取，四角都是大圆角。
+            // 图标 / 名称 / 编辑 / 移除 四个位置正好对上 KedgeOptionItem 的槽。
+            KedgeOptionItem(
+                onClick = null,
+                modifier = Modifier.fillMaxWidth(),
+                shape = listCardStyle().indexedShape(0, 1),
+                leadingContent = {
+                    AutoAIIcon(
+                        providerOverride.name,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                titleContent = {
+                    Text(
+                        text = "${providerOverride.name} (Override)",
+                        style = KedgeTextStyles.title(),
+                    )
+                },
+                trailingContent = {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AutoAIIcon(
-                            providerOverride.name,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = "${providerOverride.name} (Override)",
-                            style = KedgeTextStyles.body(),
-                            modifier = Modifier.weight(1f)
-                        )
                         KedgeIconButton(
                             onClick = {
                                 editingProvider = providerOverride
@@ -350,8 +362,8 @@ internal fun ProviderOverrideSettings(
                             Icon(close, contentDescription = "Remove override")
                         }
                     }
-                }
-            }
+                },
+            )
         } else {
             KedgeButton(
                 onClick = {

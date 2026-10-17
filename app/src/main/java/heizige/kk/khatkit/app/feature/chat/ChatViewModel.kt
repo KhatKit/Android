@@ -52,6 +52,7 @@ import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.UpdateChecker
 import java.util.Locale
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.selectRoleChat
 
 private const val TAG = "ChatViewModel"
 
@@ -165,6 +166,8 @@ class ChatViewModel @AssistedInject constructor(
         chatService.finishEditQueuedMessage(_conversationId, id, parts)
 
     fun resumeMessageQueue() = chatService.resumeMessageQueue(_conversationId)
+
+    fun sendQueuedMessageNow(id: Uuid) = chatService.sendQueuedMessageNow(_conversationId, id)
 
     // 生成完成
     val generationDoneFlow: SharedFlow<Uuid> = chatService.generationDoneFlow
@@ -317,13 +320,6 @@ class ChatViewModel @AssistedInject constructor(
         }
     }
 
-    fun updateTitle(title: String) {
-        viewModelScope.launch {
-            val updatedConversation = conversation.value.copy(title = title)
-            chatService.saveConversation(_conversationId, updatedConversation)
-        }
-    }
-
     fun deleteConversation(conversation: Conversation): Job =
         viewModelScope.launch {
             conversationRepo.deleteConversation(conversation)
@@ -365,4 +361,31 @@ class ChatViewModel @AssistedInject constructor(
         }
     }
 
+}
+
+/**
+ * 会话改名的**唯一**实现（原来这里是 `ChatViewModel.updateTitle(title)`，随「改名入口搬到
+ * 角色聊天面板」把 conversationId 补成参数平移到文件级：面板侧
+ * [ChatRolePanelViewModel] 调它，不要再抄第二份 rename）。
+ *
+ * 底座必须是**活内存态**：`ChatManager.getConversationFlow()` 的 state 才是 @Singleton
+ * 会话的真相，流式生成会持续往里写半截回复。拿 DB 快照 copy 再
+ * [ChatManager.saveConversation] 会把内存态整体替换掉 —— 正在生成的那半截回复直接丢。
+ *
+ * 未加载的会话拿到的是 `Conversation.ofId` 占位（空节点、空标题），不能当底座回写，
+ * 回退到 DB 全量会话（`getConversationById` 带 messageNodes）。
+ */
+internal suspend fun renameConversationTitle(
+    chatService: ChatManager,
+    conversationRepo: ConversationRepository,
+    conversationId: Uuid,
+    title: String,
+) {
+    val trimmed = title.trim()
+    if (trimmed.isEmpty()) return
+    val live = chatService.getConversationFlow(conversationId).value
+        .takeIf { it.id == conversationId && it.messageNodes.isNotEmpty() }
+    val base = live ?: conversationRepo.getConversationById(conversationId) ?: return
+    if (base.title == trimmed) return
+    chatService.saveConversation(conversationId, base.copy(title = trimmed))
 }

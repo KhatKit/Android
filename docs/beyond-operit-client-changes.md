@@ -77,7 +77,7 @@
   - **lorebook 条目字段**：触发键（AND/OR/NOT/正则）+ 内容 + 插入位置（角色卡前/后、@深度）+ 递归开关 + 概率 + 优先级；
     上下文装配时按当前对话扫描触发；递归/概率行为对照酒馆语义（≥15 条对照测试）
 - **L2**：ST 聊天 JSON 导入/导出（swipe→`MessageNode` 分支映射）、preset/instruct 模板（提示顺序/系统提示格式）
-- 模块：`AssistantImporter.kt`（V2/V3 双向化）、新增 `core/data/ai/lorebook/`、`ExportSerializer.kt`、PNG 元数据写（`ImageUtils` 已有读）
+- 模块：`AssistantImporter.kt`（V2/V3 双向化）、新增 `core/data/ai/lorebook/`、`ExportSerializer.kt`、PNG 元数据写（`ImageHelper` 已有读）
 - 红线：**兼容子集 = chara_card_v2/v3 全字段 + 上述 lorebook 字段 + 宏清单 + ST 聊天 JSON v1**（写死进测试；超集字段只透传不解释）；不碰酒馆 prompt 模板/扩展体系；**L5（对接用户自建 ST 服务器）明确不做**；L3 卡片市聚合归 B2 市场、L4 群聊语义归 C1
 - 验收：20 卡 round-trip 零丢失（自动化 diff）；PNG 可被酒馆本体识别；lorebook 对照 ≥15 条；聊天导出可被酒馆打开；「带工具的酒馆角色」完成设备任务演示
 

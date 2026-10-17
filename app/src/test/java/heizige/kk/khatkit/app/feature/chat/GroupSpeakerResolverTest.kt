@@ -11,6 +11,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
+import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
 
 /**
  * [GroupSpeakerResolver] 的用例。

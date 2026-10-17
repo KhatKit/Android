@@ -3,7 +3,7 @@ package heizige.kk.khatkit.app.feature.automation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import heizige.kk.khatkit.app.feature.automation.TriggerController
-import heizige.kk.khatkit.app.feature.automation.TriggerShortcutPublisher
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerShortcutPublisher
 import heizige.kk.khatkit.card.CardManifest
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject

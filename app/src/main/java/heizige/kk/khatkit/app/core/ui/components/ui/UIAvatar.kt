@@ -1,7 +1,11 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import android.net.Uri
-import androidx.compose.foundation.shape.RoundedCornerShape
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -14,17 +18,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +47,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.common.android.appTempFolder
@@ -60,6 +64,7 @@ import java.io.File
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.app.core.util.computeAIIconByName
 
 @Composable
 fun TextAvatar(
@@ -96,16 +101,22 @@ fun UIAvatar(
     value: Avatar,
     modifier: Modifier = Modifier,
     loading: Boolean = false,
+    avatarShape: String = "Circle",
+    defaultIconName: String? = null,
+    avatarColor: String? = null,
     onUpdate: ((Avatar) -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val context = LocalContext.current
-    var showPickOption by remember { mutableStateOf(false) }
+    // 编辑头像的入口开关：内容与转场都在 AvatarEditSheet 里，这里只控制挂载。
+    var showEditSheet by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
-    var showUrlInput by remember { mutableStateOf(false) }
-    var urlInput by remember { mutableStateOf("") }
     var preCropTempFile by remember { mutableStateOf<File?>(null) }
+    // 拍照的落盘文件：TakePicture 需要一个可写的 FileProvider uri；
+    // 拍完把文件移交给 preCropTempFile，裁切结束时由 useCropLauncher 的 onCleanup 删掉。
+    var cameraOutputFile by remember { mutableStateOf<File?>(null) }
+    var cameraOutputUri by remember { mutableStateOf<Uri?>(null) }
 
     fun saveAvatarImage(uri: Uri) {
         val localUris = filesManager.createChatFilesByContents(listOf(uri))
@@ -114,6 +125,8 @@ fun UIAvatar(
         }
     }
 
+    // 头像走自研媒体网格选择器（对齐 ImageToolbox），单选
+    var showImagePicker by remember { mutableStateOf(false) }
     val (_, launchImageCrop) = useCropLauncher(
         onCroppedImageReady = { croppedUri ->
             saveAvatarImage(croppedUri)
@@ -125,20 +138,109 @@ fun UIAvatar(
         aspectRatio = 1f to 1f,
         freeStyleCropEnabled = false
     )
+    val iconFilePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { selectedUri ->
+        selectedUri ?: return@rememberLauncherForActivityResult
+        val mime = context.contentResolver.getType(selectedUri).orEmpty()
+        val isSvg = mime.equals("image/svg+xml", ignoreCase = true) ||
+            selectedUri.toString().substringBefore('?').endsWith(".svg", ignoreCase = true)
+        if (isSvg) {
+            saveAvatarImage(selectedUri)
+        } else {
+            val tempFile = File(context.appTempFolder, "avatar_file_${System.currentTimeMillis()}.jpg")
+            runCatching {
+                context.contentResolver.openInputStream(selectedUri)?.use { input ->
+                    tempFile.outputStream().use { output -> input.copyTo(output) }
+                } ?: error("Failed to open input stream for $selectedUri")
+                preCropTempFile?.delete()
+                preCropTempFile = tempFile
+                launchImageCrop(tempFile.toUri())
+            }.onFailure {
+                tempFile.delete()
+                launchImageCrop(selectedUri)
+            }
+        }
+    }
 
-    // 头像走自研媒体网格选择器（对齐 ImageToolbox），单选
-    var showImagePicker by remember { mutableStateOf(false) }
+    fun clearCameraTemp() {
+        cameraOutputFile?.delete()
+        cameraOutputFile = null
+        cameraOutputUri = null
+    }
 
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { captureSuccessful ->
+        val capturedUri = cameraOutputUri
+        if (captureSuccessful && capturedUri != null) {
+            // 与相册选图后的路径逐字一致：先裁切，onUpdate 只在裁切完成后触发。
+            // 落盘文件移交给 preCropTempFile（它由 useCropLauncher 的 onCleanup 负责删）。
+            preCropTempFile?.delete()
+            preCropTempFile = cameraOutputFile
+            cameraOutputFile = null
+            cameraOutputUri = null
+            launchImageCrop(capturedUri)
+        } else {
+            // 取消拍摄：把已建的空文件清掉，不留残渣
+            clearCameraTemp()
+        }
+    }
+
+    fun launchCameraCapture() {
+        val tempFile = File(context.appTempFolder, "avatar_camera_${System.currentTimeMillis()}.jpg")
+        // cache-path 已声明在 res/xml/file_paths.xml，FileProvider 可直接外发该文件
+        val uri = runCatching {
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+        }.getOrNull()
+        if (uri == null) {
+            tempFile.delete()
+            return
+        }
+        cameraOutputFile = tempFile
+        cameraOutputUri = uri
+        cameraLauncher.launch(uri)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchCameraCapture()
+        } else {
+            Toast.makeText(context, context.getString(R.string.avatar_camera_permission_denied), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun takePhoto() {
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            launchCameraCapture()
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    // 头像组件被移出组合时，别把拍摄落盘的临时图留在 cache 目录里
+    DisposableEffect(Unit) {
+        onDispose { cameraOutputFile?.delete() }
+    }
+
+    val shape = remember(loading, avatarShape) {
+        if (loading) null else avatarShape
+    }
     Box(modifier = modifier.then(Modifier.size(32.dp))) {
         KedgeSurface(
-            shape = rememberAvatarShape(loading),
+            shape = if (shape == null) rememberAvatarShape(loading) else roleAvatarShape(shape),
             modifier = Modifier.fillMaxSize(),
             onClick = {
                 onClick?.invoke()
-                if (onUpdate != null) showPickOption = true
+                if (onUpdate != null) showEditSheet = true
             },
             tonalElevation = 4.dp,
-            color = MaterialTheme.colorScheme.secondaryContainer,
+            color = roleAvatarColor(name, avatarColor),
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -168,8 +270,10 @@ fun UIAvatar(
                     }
 
                     is Avatar.Dummy -> {
-                        ProceduralAvatar(
+                        DefaultRoleAvatar(
                             name = name,
+                            iconName = defaultIconName,
+                            backgroundColor = roleAvatarColor(name, avatarColor),
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -199,71 +303,21 @@ fun UIAvatar(
         }
     }
 
-    if (showPickOption) {
-        AppAlertDialog(
-            onDismissRequest = {
-                showPickOption = false
-            },
-            title = {
-                Text(text = stringResource(id = R.string.avatar_change_avatar))
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    KedgeButton(
-                        onClick = {
-                            showPickOption = false
-                            showImagePicker = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Text(text = stringResource(id = R.string.avatar_pick_image))
-                    }
-                    KedgeButton(
-                        onClick = {
-                            showPickOption = false
-                            showEmojiPicker = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Text(text = stringResource(id = R.string.avatar_pick_emoji))
-                    }
-                    KedgeButton(
-                        onClick = {
-                            showPickOption = false
-                            urlInput = ""
-                            showUrlInput = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Text(text = stringResource(id = R.string.avatar_input_url))
-                    }
-                    KedgeButton(
-                        onClick = {
-                            showPickOption = false
-                            onUpdate?.invoke(Avatar.Dummy)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Text(text = stringResource(id = R.string.avatar_reset))
-                    }
+    if (showEditSheet) {
+        AvatarEditSheet(
+            onDismissRequest = { showEditSheet = false },
+            onAction = { action ->
+                when (action) {
+                    AvatarEditSheetAction.PickImage -> showImagePicker = true
+                    AvatarEditSheetAction.TakePhoto -> takePhoto()
+                    AvatarEditSheetAction.PickIconFile ->
+                        iconFilePickerLauncher.launch(arrayOf("image/*", "image/svg+xml"))
+                    AvatarEditSheetAction.PickEmoji -> showEmojiPicker = true
+                    // 重置即清除：Avatar.Dummy 会把图片/emoji 一起清掉，回到默认头像
+                    AvatarEditSheetAction.Reset -> onUpdate?.invoke(Avatar.Dummy)
                 }
             },
-            confirmButton = {
-                KedgeTextButton(
-                    onClick = {
-                        showPickOption = false
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(id = R.string.avatar_cancel))
-                }
-            }
+            onSubmitUrl = { url -> onUpdate?.invoke(Avatar.Image(url)) },
         )
     }
 
@@ -290,49 +344,6 @@ fun UIAvatar(
         }
     }
 
-    if (showUrlInput) {
-        AppAlertDialog(
-            onDismissRequest = {
-                showUrlInput = false
-            },
-            title = {
-                Text(text = stringResource(id = R.string.avatar_url_dialog_title))
-            },
-            text = {
-                KedgeOutlinedTextFieldWithSlots(
-                    value = urlInput,
-                    onValueChange = { urlInput = it },
-                    label = { Text(stringResource(id = R.string.avatar_url_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
-                )
-            },
-            confirmButton = {
-                KedgeTextButton(
-                    onClick = {
-                        if (urlInput.isNotBlank()) {
-                            onUpdate?.invoke(Avatar.Image(urlInput.trim()))
-                            showUrlInput = false
-                        }
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(id = R.string.avatar_url_confirm))
-                }
-            },
-            dismissButton = {
-                KedgeTextButton(
-                    onClick = {
-                        showUrlInput = false
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(id = R.string.avatar_cancel))
-                }
-            }
-        )
-    }
 
     KhatKitMediaPicker(
         visible = showImagePicker,
@@ -357,6 +368,44 @@ fun UIAvatar(
             }
         },
     )
+}
+
+@Composable
+private fun DefaultRoleAvatar(
+    name: String,
+    iconName: String?,
+    backgroundColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val iconPath = remember(iconName) { iconName?.let(::computeAIIconByName) }
+    Box(
+        modifier = modifier.background(backgroundColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (iconPath != null) {
+            val context = LocalContext.current
+            val model = remember(iconPath, context) {
+                coil3.request.ImageRequest.Builder(context)
+                    .data("file:///android_asset/icons/$iconPath")
+                    .build()
+            }
+            AsyncImage(
+                model = model,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
+            )
+        } else {
+            Text(
+                text = name.trim().take(1).uppercase().ifBlank { "?" },
+                color = Color.White,
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
 }
 
 @Composable

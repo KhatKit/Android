@@ -69,7 +69,7 @@ private sealed interface ConnectResult {
 
 internal class McpClientUnavailableException(message: String) : IllegalStateException(message)
 
-internal class McpStatusStore {
+internal class McpStatusManager {
     private val _status = MutableStateFlow<Map<Uuid, McpStatus>>(emptyMap())
     val status: StateFlow<Map<Uuid, McpStatus>> = _status.asStateFlow()
 
@@ -96,7 +96,7 @@ internal class McpSessionRegistry(
     private val appScope: AppScope,
     private val httpClient: HttpClient,
     private val oauthCoordinator: McpOAuthCoordinator,
-    private val statusStore: McpStatusStore,
+    private val statusStore: McpStatusManager,
 ) {
     private val sessions = ConcurrentHashMap<Uuid, McpSession>()
 

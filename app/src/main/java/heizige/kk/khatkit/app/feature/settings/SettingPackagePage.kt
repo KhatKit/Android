@@ -115,7 +115,7 @@ fun SettingPackagePage(
                         },
                         leadingContent = { Icon(openInNew, null) },
                         headlineContent = { Text("打开 KhatKit 套餐商城") },
-                        supportingContent = { Text("在浏览器中查看套餐详情、购买并获取激活令牌") },
+                        supportingContent = { Text("浏览器中购买、获取令牌") },
                     )
                 }
             }
@@ -181,7 +181,7 @@ fun SettingPackagePage(
                         onClick = { if (!busy) refresh(refreshQuota = true) },
                         leadingContent = { Icon(bolt, null) },
                         headlineContent = { Text(if (busy) "正在刷新…" else "刷新额度") },
-                        supportingContent = { Text("调用 GET /api/me 拉取最新额度与到期时间") },
+                        supportingContent = { Text("重新拉取额度与到期时间") },
                     )
                     if (activated) {
                         item(
@@ -194,7 +194,7 @@ fun SettingPackagePage(
                             },
                             leadingContent = { Icon(cleaningServices, null) },
                             headlineContent = { Text("清除本机激活信息") },
-                            supportingContent = { Text("仅清除本机保存的令牌，不影响服务端账户") },
+                            supportingContent = { Text("仅清本机令牌，不影响账户") },
                         )
                     }
                 }

@@ -5,6 +5,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
+import heizige.kk.khatkit.app.feature.automation.data.CardScheduleJob
+import heizige.kk.khatkit.app.feature.automation.data.CardScheduleRepository
 
 class CardScheduleRepositoryTest {
 

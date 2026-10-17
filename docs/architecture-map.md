@@ -76,9 +76,9 @@ find app/src/main/java/heizige/kk/khatkit/app/feature/*/ -name '*.kt' | wc -l
 在 `app` 里再造一个 `core/auth/` 只放转发代码，是纯粹的空壳。
 
 **`core/files` 为什么不提为兄弟**：`core/data/files/` 的 7 个文件全部围绕**文件的读写、
-导入与路径解析**（`FilesManager` / `FileUtils` / `SkillManager` / `SkillPaths` /
+导入与路径解析**（`FilesManager` / `FileHelper` / `SkillManager` / `SkillPaths` /
 `SkillFrontmatterParser` / `BuiltinSkills` / `CardMediaImporter`），是"数据的文件形态"。
-`FileUtils.kt` 走 `ContentResolver` / `DocumentsContract` / `MimeTypeMap`，
+`FileHelper.kt` 走 `ContentResolver` / `DocumentsContract` / `MimeTypeMap`，
 `CardMediaImporter` 走图片存储，都是围绕文件而不是围绕业务实体。
 为了对齐目录图把它搬到 `core/files/`，下一次上游同步要在这两个路径之间做人工三方合并
 （见 §3），收益是目录树好看一格。
@@ -343,6 +343,13 @@ manifest **没有漏声明**（漏声明会让 lint / `adb install` 阶段报错
 成立，**但真正的原因是 vendor merge 复活**，见 §9。
 
 ### 2.4 逐文件判定表（2026-10-06，全量分类；**A 类已执行**）
+
+> ⚠️ **本节已过期（2026-10-17）**：主人要求按 `ARCHITECTURE.md` 执行后，B/C/D 类
+> **已全部改名**（47 个 kt 文件：20 个 Util/Utils、3 个 `common/cache/*Store`、
+> 2 个类级 `*Store`、21 个 `:search` provider + interface、3 个测试）。现行基线
+> `Service/Util/Utils/Store = 9/0/0/1`（唯一残留是专有名词 `PlayStore.kt`），
+> 记账见 `AGENTS.md`「存量改名结果（2026-10-17）」；下面的逐文件证据保留作历史，
+> 旧名 → 新名映射用 `git log --follow <新文件>` 追。
 
 > **覆盖口径**：本节覆盖改名前的全部 **61 个**非合规文件（`Service 30 + Util 9 + Utils 11
 > + Store 11`）。**A 类 8 个已改名**（6 个 commit，全部已 push `origin main`）；

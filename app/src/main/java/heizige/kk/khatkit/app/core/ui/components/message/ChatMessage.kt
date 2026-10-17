@@ -180,20 +180,18 @@ fun ChatMessage(
     val colorScheme = MaterialTheme.colorScheme
 
     // 身份行。C1 之前这层完全不存在：群聊里 3 个角色 + 议长 + 投票小结 + 错误节点
-    // 复用同一个气泡后长得一模一样。渲染条件只有一条——**真有东西可显示**才占位：
-    // 单聊路径下 speakerName / speakerBadge 都是 null，这一行要么不渲染、要么只渲染原本
-    // 就该显示却一直没被接上的头像（`showUserAvatar` / `showModelIcon` / `showModelName`
-    // 三个开关因此重新生效），不会出现凭空多出来的空隙。
+    // 复用同一个气泡后长得一模一样。现在只剩「说话者名字 / 性质徽章」这一档
+    // （`speakerName` / `speakerBadge`，单聊下均为 null 时不占位）。
     //
-    // 两侧排法不同：用户侧是头像压在气泡上方（右对齐的一行）；助手侧是头像单独占左列、
-    // 名字与正文在右列，即「头像和气泡横排」。两条分支共用的正文见下面的 [messageBody]。
-    val showUserAvatarLine = shouldShowUserAvatar(message, settings.showUserAvatar)
-    // 图标那层还要再叠一次 showModelIcon：关掉图标时头像列不占宽，气泡不该因此多缩进。
-    val showAssistantAvatarIcon = shouldShowAssistantAvatar(message, model, assistant) &&
-            settings.showModelIcon
+    // ⚠️ 气泡旁的头像（用户侧头像列 + 助手侧 AI 图标列）已按需求**整列删除**：
+    // AI 头像只在顶栏保留一处，用户头像不出现在消息流里。删除的是渲染路径本身，
+    // 不是把它们隐藏 —— 隐藏会留下 28dp 的空列与 `spacedBy(8.dp)` 的空隙，气泡起始
+    // 位置会整体缩进。两侧外壳因此都退化成「单列 Column」，气泡贴到页面边距起画。
+    //
+    // 持久化字段 `displaySetting.showUserAvatar` / `showModelIcon` **保留不动**
+    // （旧数据与导入导出不破坏），只是不再有消费方；对应开关行已从双风格设置页删除。
 
-    // 正文 + 尾部（操作栏 / 编辑文件 / 技术统计）。两侧外壳不同、内容只写一遍：
-    // 用户侧头像是压在气泡**上方**的一行；助手侧头像是**左边一列**，与气泡横排。
+    // 正文 + 尾部（操作栏 / 编辑文件 / 技术统计）。两侧外壳只剩对齐方向不同，内容只写一遍。
     val messageBody: @Composable () -> Unit = {
         ProvideTextStyle(textStyle) {
             MessagePartsBlock(
@@ -257,89 +255,66 @@ fun ChatMessage(
     }
 
     if (message.role == MessageRole.USER) {
-        // 用户侧横排：气泡在左、头像在右，是助手侧（头像在左、气泡在右）的镜像。
-        // 名字压在气泡上方、右对齐，与助手侧「模型名在气泡上方」对齐成同一套版式。
-        Row(
+        // 用户侧：只留一列右对齐的正文（原先的「气泡 + 右侧头像列」横排已删）。
+        // 不再套 Row，因此没有 `spacedBy(8.dp)` 的列间距、也没有 28dp 头像列，
+        // 气泡直接从页面右侧内边距起画（与改动前相比整体右移 36dp = 28 + 8）。
+        Column(
             modifier = modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Top,
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                if (showUserAvatarLine) {
-                    // 与助手侧的名字槽同一套字：脚注 + 半粗。两边名字都压在气泡上方，
-                    // 风格不统一的话一眼就能看出「用户这行更大」。
-                    Text(
-                        text = settings.userNickname.ifEmpty { stringResource(R.string.user_default_name) },
-                        style = KedgeTextStyles.footnoteSmall(),
-                        fontWeight = FontWeight.SemiBold,
-                        color = KedgeColors.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                messageBody()
-            }
-            if (showUserAvatarLine) {
-                ChatMessageUserAvatarIcon(
-                    avatar = settings.userAvatar,
-                    nickname = settings.userNickname,
-                )
-            }
+            // 昵称行保留：原先它与头像共用一个开关（showUserAvatarLine），开关随「删消息头像」
+            // 一并删掉后这里改成无条件显示 —— 与默认开启时逐像素一致，不新增设置项。
+            // 字号/字重沿用助手侧名字槽那套（脚注 + 半粗），否则两行名字一眼就能看出大小差。
+            Text(
+                text = settings.userNickname.ifEmpty { stringResource(R.string.user_default_name) },
+                style = KedgeTextStyles.footnoteSmall(),
+                fontWeight = FontWeight.SemiBold,
+                color = KedgeColors.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            messageBody()
         }
     } else {
-        // 助手侧横排：头像在左、正文与气泡在右。头像顶端与名字那一行对齐（Alignment.Top），
-        // 不随内容高度居中——长回答时居中会让头像掉到半空。
-        Row(
+        // 助手侧：只留一列正文（原先「AI 图标占左列 + 正文在右列」的横排已删）。
+        // 名字 / 性质徽章仍压在气泡上方，口径见 [assistantMessageLabel]；
+        // 头像只在顶栏保留一处，消息流里不再出现，气泡因此左移到页面左边距。
+        Column(
             modifier = modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Top,
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            if (showAssistantAvatarIcon) {
-                ChatMessageAssistantAvatarIcon(
-                    loading = loading,
-                    model = model,
-                    assistant = assistant,
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                // 名字 + 性质徽章：群聊是角色名，单聊是助手名 / 模型名，口径见此处。
-                val label = assistantMessageLabel(
-                    speakerName = speakerName,
-                    model = model,
-                    assistant = assistant,
-                )
-                if (label != null || speakerBadge != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        label?.let { name ->
-                            Text(
-                                text = name,
-                                style = KedgeTextStyles.footnoteSmall(),
-                                fontWeight = FontWeight.SemiBold,
-                                color = KedgeColors.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        speakerBadge?.let { badge ->
-                            ChatMessageSpeakerBadge(text = badge, isError = speakerBadgeIsError)
-                        }
+            // 名字 + 性质徽章：群聊是角色名，单聊是助手名 / 模型名，口径见此处。
+            val label = assistantMessageLabel(
+                speakerName = speakerName,
+                model = model,
+                assistant = assistant,
+            )
+            if (label != null || speakerBadge != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    label?.let { name ->
+                        Text(
+                            text = name,
+                            style = KedgeTextStyles.footnoteSmall(),
+                            fontWeight = FontWeight.SemiBold,
+                            color = KedgeColors.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    speakerBadge?.let { badge ->
+                        ChatMessageSpeakerBadge(text = badge, isError = speakerBadgeIsError)
                     }
                 }
-                messageBody()
             }
+            messageBody()
         }
     }
+
     if (showActionsSheet) {
         ChatMessageActionsSheet(
             message = message,
@@ -524,36 +499,38 @@ private fun MessagePartsBlock(
                                         )
                                     }
                                 }
-                            } else {
-                                if (settings.displaySetting.showAssistantBubble) {
-                                    KedgeSurface(
-                                        modifier = Modifier.animateContentSize(),
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                    ) {
-                                        Column(modifier = Modifier.padding(8.dp)) {
-                                            MarkdownBlock(
-                                                content = part.text.replaceRegexes(
-                                                    assistant = assistant,
-                                                    scope = AssistantAffectScope.ASSISTANT,
-                                                    visual = true,
-                                                ),
-                                                onClickCitation = handleClickCitation,
-                                            )
-                                        }
+                            } else if (settings.displaySetting.showAssistantBubble) {
+                                // 开关**默认开**（`DisplaySetting.showAssistantBubble`）。
+                                // 老安装的 JSON 里躺着显式 false（该字段随 encodeDefaults
+                                // 一起落盘），由 `PreferenceStoreV6Migration` 一次性翻成 true，
+                                // 所以「装完看不见气泡」不会再复发。关掉后退回裸 Markdown 是
+                                // 用户主动选择，与用户侧 primaryContainer 气泡左右不对称属预期。
+                                KedgeSurface(
+                                    modifier = Modifier.animateContentSize(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        MarkdownBlock(
+                                            content = part.text.replaceRegexes(
+                                                assistant = assistant,
+                                                scope = AssistantAffectScope.ASSISTANT,
+                                                visual = true,
+                                            ),
+                                            onClickCitation = handleClickCitation,
+                                        )
                                     }
-                                } else {
-                                    MarkdownBlock(
-                                        content = part.text.replaceRegexes(
-                                            assistant = assistant,
-                                            scope = AssistantAffectScope.ASSISTANT,
-                                            visual = true,
-                                        ),
-                                        onClickCitation = handleClickCitation,
-                                        modifier = Modifier
-                                            .animateContentSize()
-                                    )
                                 }
+                            } else {
+                                MarkdownBlock(
+                                    content = part.text.replaceRegexes(
+                                        assistant = assistant,
+                                        scope = AssistantAffectScope.ASSISTANT,
+                                        visual = true,
+                                    ),
+                                    onClickCitation = handleClickCitation,
+                                    modifier = Modifier.animateContentSize(),
+                                )
                             }
                         }
 

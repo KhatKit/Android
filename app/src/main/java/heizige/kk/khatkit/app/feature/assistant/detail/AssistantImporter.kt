@@ -37,7 +37,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.data.ai.tavern.CharacterCardCodec
 import heizige.kk.khatkit.app.core.data.ai.tavern.CharacterCardException
 import heizige.kk.khatkit.app.core.data.ai.tavern.PngCharacterCard
-import heizige.kk.khatkit.app.core.util.ImageUtils
+import heizige.kk.khatkit.app.core.util.ImageHelper
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
@@ -219,7 +219,7 @@ private suspend fun importAssistantFromUri(
         val (jsonString, backgroundStr) = withContext(Dispatchers.IO) {
             when (mime) {
                 "image/png" -> {
-                    val result = ImageUtils.getTavernCharacterMeta(context, uri)
+                    val result = ImageHelper.getTavernCharacterMeta(context, uri)
                     result.map { base64Data ->
                         val json = String(Base64.decode(base64Data, Base64.DEFAULT))
                         val bg = filesManager.createChatFilesByContents(listOf(uri)).first().toString()

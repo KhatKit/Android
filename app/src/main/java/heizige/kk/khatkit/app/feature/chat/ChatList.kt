@@ -109,6 +109,9 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
+import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
+import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
+import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 private const val TAG = "ChatList"
 private const val LoadingIndicatorKey = "LoadingIndicator"
@@ -460,10 +463,13 @@ private fun ChatListNormal(
             ) {
             itemsIndexed(
                 items = conversation.messageNodes,
-                key = { index, item -> item.id },
+                key = { _, item -> item.id },
+                // Message layouts contain very different measurement trees (plain text,
+                // reasoning and tool output). Content types let LazyColumn reuse a compatible
+                // slot while flinging instead of subcomposing an unrelated row.
+                contentType = { _, node -> node.currentMessage.role },
             ) { index, node ->
-                Column {
-                    ListSelectableItem(
+                ListSelectableItem(
                         key = node.id,
                         onSelectChange = {
                             if (!selectedItems.contains(node.id)) {
@@ -545,8 +551,7 @@ private fun ChatListNormal(
                             onToolApproval = onToolApproval.takeUnless { groupChat },
                             onToolAnswer = onToolAnswer.takeUnless { groupChat },
                             lastMessage = index == lastMessageIndex,
-                        )
-                    }
+                )
                 }
             }
 

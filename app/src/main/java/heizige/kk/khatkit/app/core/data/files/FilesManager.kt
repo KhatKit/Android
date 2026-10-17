@@ -181,7 +181,7 @@ class FilesManager(
                             if (part.url.startsWith("data:image")) {
                                 val sourceByteArray = Base64.decode(part.url.substringAfter("base64,").toByteArray())
                                 val bitmap = BitmapFactory.decodeByteArray(sourceByteArray, 0, sourceByteArray.size)
-                                val byteArray = FileUtils.compressBitmapToPng(bitmap)
+                                val byteArray = FileHelper.compressBitmapToPng(bitmap)
                                 val urls = createChatFilesByByteArrays(listOf(byteArray))
                                 Log.i(
                                     TAG,
@@ -433,11 +433,11 @@ class FilesManager(
         if (!dir.exists()) {
             dir.mkdirs()
         }
-        return File(dir, FileUtils.buildUuidFileName(displayName = displayName, mimeType = mimeType))
+        return File(dir, FileHelper.buildUuidFileName(displayName = displayName, mimeType = mimeType))
     }
 
     private fun buildUuidFileName(displayName: String?, mimeType: String?): String =
-        FileUtils.buildUuidFileName(displayName, mimeType)
+        FileHelper.buildUuidFileName(displayName, mimeType)
 
     private suspend fun createManagedFileEntity(
         folder: String,
@@ -490,19 +490,19 @@ class FilesManager(
     }
 
     private fun buildRelativePath(folder: String, file: File): String =
-        FileUtils.buildRelativePath(folder, file)
+        FileHelper.buildRelativePath(folder, file)
 
     private fun getRelativePathInFilesDir(file: File): String? =
-        FileUtils.getRelativePathInFilesDir(context.filesDir, file)
+        FileHelper.getRelativePathInFilesDir(context.filesDir, file)
 
     fun getFileNameFromUri(uri: Uri): String? =
-        FileUtils.getFileNameFromUri(context, uri)
+        FileHelper.getFileNameFromUri(context, uri)
 
     fun getFileMimeType(uri: Uri): String? =
-        FileUtils.getFileMimeType(context, uri)
+        FileHelper.getFileMimeType(context, uri)
 
     private fun guessMimeType(file: File, fileName: String): String =
-        FileUtils.guessMimeType(file, fileName)
+        FileHelper.guessMimeType(file, fileName)
 }
 
 data class SyncResult(

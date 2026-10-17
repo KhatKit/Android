@@ -15,6 +15,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.helper.SummaryViewerScope
 
 /**
  * [SummaryViewerScope] 的纯函数判定测试。

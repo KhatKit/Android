@@ -106,6 +106,8 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceFileType
+import heizige.kk.khatkit.app.feature.workspace.data.detectFileType
 
 @Composable
 fun WorkspaceDetailPage(id: String) {

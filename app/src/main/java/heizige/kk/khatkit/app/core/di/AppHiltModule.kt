@@ -33,14 +33,14 @@ import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
 import heizige.kk.khatkit.ai.provider.ProviderManager
-import heizige.kk.khatkit.app.feature.chat.ChatNotificationManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatNotificationManager
 import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.feature.automation.TriggerController
-import heizige.kk.khatkit.app.feature.workspace.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.AppAnalytics
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.util.NoOpAnalytics
-import heizige.kk.khatkit.app.core.util.EmojiUtils
+import heizige.kk.khatkit.app.core.util.EmojiHelper
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.util.UpdateChecker
@@ -84,7 +84,7 @@ object AppHiltModule {
 
     @Provides
     @Singleton
-    fun provideEmojiData(@ApplicationContext context: Context): EmojiData = EmojiUtils.loadEmoji(context)
+    fun provideEmojiData(@ApplicationContext context: Context): EmojiData = EmojiHelper.loadEmoji(context)
 
     @Provides
     @Singleton

@@ -20,10 +20,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
@@ -32,7 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
@@ -75,7 +75,7 @@ import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.khatkit.app.core.util.ImageUtils
+import heizige.kk.khatkit.app.core.util.ImageHelper
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
@@ -297,16 +297,19 @@ private fun RecommendProviderButton(
             imageVector = dns,
             onDismiss = { showSheet = false },
         ) { _ ->
+            val cards = listCardStyle()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(cards.gap)
             ) {
-                RECOMMENDED_PROVIDERS.forEach { provider ->
+                RECOMMENDED_PROVIDERS.forEachIndexed { index, provider ->
+                    // 与 Miuix 侧同形：整列并成一张分组卡，组距只在首行留一份。
                     RecommendProviderItem(
                         provider = provider,
+                        shape = cards.indexedShape(index, RECOMMENDED_PROVIDERS.size),
                         onAdd = {
                             onAdd(provider)
                             Toast.show(
@@ -324,45 +327,40 @@ private fun RecommendProviderButton(
 @Composable
 private fun RecommendProviderItem(
     provider: ProviderSetting,
+    shape: Shape,
     onAdd: () -> Unit
 ) {
-    KedgeCard(
-        colors = CardDefaults.cardColors(
-            containerColor = CustomColors.listItemColors.containerColor
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    KedgeOptionItem(
+        onClick = onAdd,
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        leadingContent = {
             AutoAIIcon(
                 name = provider.name,
                 modifier = Modifier.size(40.dp)
             )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = provider.name,
-                    style = KedgeTextStyles.title(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
-                    CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
-                        provider.description()
-                    }
+        },
+        titleContent = {
+            Text(
+                text = provider.name,
+                style = KedgeTextStyles.title(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        supportingContent = {
+            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
+                CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
+                    provider.description()
                 }
             }
+        },
+        trailingContent = {
             KedgeIconButton(onClick = onAdd, shapes = IconButtonDefaults.shapes()) {
                 Icon(add, contentDescription = stringResource(R.string.setting_provider_page_add))
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -473,7 +471,7 @@ private fun handleImageQRCode(
 ) {
     runCatching {
         // 使用ImageUtils解析二维码
-        val qrContent = ImageUtils.decodeQRCodeFromUri(context, uri)
+        val qrContent = ImageHelper.decodeQRCodeFromUri(context, uri)
 
         if (qrContent.isNullOrEmpty()) {
             Toast.show(
@@ -514,41 +512,40 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
     }
 
     if (dialogState.isEditing) {
-        AppAlertDialog(
-            onDismissRequest = {
-                dialogState.dismiss()
-            },
-            title = {
-                Text(stringResource(R.string.setting_provider_page_add_provider))
-            },
-            text = {
-                dialogState.currentState?.let {
-                    ProviderConfigure(it) { newState ->
+        // 与顶栏「推荐提供商」同一套弹层：图标 + 标题 + 底部「添加 / 取消」按钮行。
+        // 表单本身不重写，仍是双风格化的 ProviderConfigure。
+        //
+        // scrollable = false + 内容自带 verticalScroll：表单 7 行在 Miuix 下会顶破弹层高度，
+        // 而 Kedge 的 Miuix 分支不提供滚动容器，只能内容自己滚；MD3 分支按该参数不叠第二层
+        // 滚动（叠了会在 measure 期抛 infinity maximum height constraints，见
+        // BottomSheetScrollSourceGuardTest）。
+        PrimaryBottomSheet(
+            visible = true,
+            title = stringResource(R.string.setting_provider_page_add_provider),
+            imageVector = add,
+            confirmText = stringResource(R.string.setting_provider_page_add),
+            onConfirm = { dialogState.confirm() },
+            dismissText = stringResource(R.string.cancel),
+            onDismiss = { dialogState.dismiss() },
+            scrollable = false,
+        ) { _ ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    // 键盘弹起时把表单顶上来；insets 会被消费，Miuix 分支自己那层 imePadding
+                    // 不会与本行叠加成两倍位移。
+                    .imePadding()
+                    .padding(bottom = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                dialogState.currentState?.let { current ->
+                    ProviderConfigure(current) { newState ->
                         dialogState.currentState = newState
                     }
                 }
-            },
-            confirmButton = {
-                KedgeTextButton(
-                    onClick = {
-                        dialogState.confirm()
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.setting_provider_page_add))
-                }
-            },
-            dismissButton = {
-                KedgeTextButton(
-                    onClick = {
-                        dialogState.dismiss()
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
+            }
+        }
     }
 }
 

@@ -24,7 +24,7 @@ import heizige.kk.khatkit.asr.providers.SherpaASRController
 import heizige.kk.khatkit.asr.providers.StepASRController
 import heizige.kk.khatkit.asr.providers.VolcengineASRController
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
-import heizige.kk.khatkit.app.core.data.datastore.resolveBestASRProvider
+import heizige.kk.khatkit.app.core.data.datastore.getSelectedASRProvider
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
@@ -39,8 +39,11 @@ fun rememberCustomAsrState(): CustomAsrState {
         CustomAsrStateImpl(context.applicationContext, httpClient)
     }
 
-    DisposableEffect(settings.selectedASRProviderId, settings.asrProviders, settings.providers) {
-        asrState.updateProvider(settings.resolveBestASRProvider())
+    // 语音输入只使用语音设置中明确选择的识别模型。
+    // 不要回退到聊天服务商的凭据：用户没有配置 ASR 时，长按发送键应该明确提示配置，
+    // 而不是悄悄用另一条凭据开始录音。
+    DisposableEffect(settings.selectedASRProviderId, settings.asrProviders) {
+        asrState.updateProvider(settings.getSelectedASRProvider())
         onDispose { }
     }
 

@@ -18,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.CompositionLocalProvider
@@ -37,6 +36,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeTextFieldWithSlots
@@ -51,6 +51,7 @@ import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.folder
@@ -79,6 +80,7 @@ internal fun RoleMemoryPanel(
     var showFiles by remember { mutableStateOf(false) }
     val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val cards = listCardStyle()
     val dirty = document != null && draft != document?.content
     BackHandler(enabled = dirty || busy) { if (!busy) confirmExit = true }
 
@@ -152,26 +154,62 @@ internal fun RoleMemoryPanel(
                 .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("角色记忆", style = KedgeTextStyles.body(), modifier = Modifier.weight(1f))
-                KedgeSwitch(checked = assistant.enableMemory, onCheckedChange = {
-                    vm.update(assistant.copy(enableMemory = it, useGlobalMemory = false))
-                })
+            // 两个开关成一组：行内容、底色、按压反馈交给 KedgeOptionItem，
+            // 组内圆角与项间距由 listCardStyle() 统一（Miuix 下 gap=0 贴成一整张卡）。
+            Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
+                KedgeOptionItem(
+                    onClick = { vm.update(assistant.copy(enableMemory = !assistant.enableMemory, useGlobalMemory = false)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = cards.groupItemShape(isFirst = true, isLast = false),
+                    titleContent = { Text("角色记忆", style = KedgeTextStyles.body()) },
+                    trailingContent = {
+                        KedgeSwitch(checked = assistant.enableMemory, onCheckedChange = {
+                            vm.update(assistant.copy(enableMemory = it, useGlobalMemory = false))
+                        })
+                    },
+                )
+                KedgeOptionItem(
+                    onClick = { vm.update(assistant.copy(autoExtractMemory = !assistant.autoExtractMemory)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = cards.groupItemShape(isFirst = false, isLast = true),
+                    titleContent = { Text("自动整理", style = KedgeTextStyles.body()) },
+                    trailingContent = {
+                        KedgeSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
+                            vm.update(assistant.copy(autoExtractMemory = it))
+                        })
+                    },
+                )
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("自动整理", style = KedgeTextStyles.body(), modifier = Modifier.weight(1f))
-                KedgeSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
-                    vm.update(assistant.copy(autoExtractMemory = it))
-                })
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) {
-                    KedgeTextButton(onClick = { showFiles = true }, enabled = !busy) {
-                        Text(document?.path ?: "MEMORY.md", maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false), style = MaterialTheme.typography.labelLarge)
-                        Icon(keyboardArrowDown, "选择记忆文件", Modifier.size(18.dp))
-                    }
+            // 文件操作行：整行点按 = 打开文件下拉，尾部放重载/保存两个图标按钮。
+            Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
+                Box {
+                    KedgeOptionItem(
+                        onClick = { if (!busy) showFiles = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = cards.groupItemShape(isFirst = true, isLast = true),
+                        leadingContent = {
+                            Icon(folder, "记忆文件", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        },
+                        titleContent = {
+                            Text(document?.path ?: "MEMORY.md", maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                style = KedgeTextStyles.title())
+                        },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(keyboardArrowDown, "选择记忆文件", Modifier.size(18.dp))
+                                KedgeTextTooltipBox("重新加载") {
+                                    KedgeIconButton(onClick = {
+                                        val path = document?.path ?: "MEMORY.md"
+                                        if (dirty) pendingOpen = path
+                                        else scope.launch { files = vm.roleMemoryFiles(); open(path) }
+                                    }, enabled = !busy) { Icon(refresh, "重新加载") }
+                                }
+                                KedgeTextTooltipBox("保存") {
+                                    KedgeIconButton(onClick = { save() }, enabled = !busy && dirty) { Icon(saveIcon, "保存") }
+                                }
+                            }
+                        },
+                    )
                     KedgeDropdownMenuSlots(expanded = showFiles, onDismissRequest = { showFiles = false }) {
                         files.forEach { path ->
                             KedgeDropdownItemSlot(
@@ -184,16 +222,6 @@ internal fun RoleMemoryPanel(
                             )
                         }
                     }
-                }
-                KedgeTextTooltipBox("重新加载") {
-                    KedgeIconButton(onClick = {
-                        val path = document?.path ?: "MEMORY.md"
-                        if (dirty) pendingOpen = path
-                        else scope.launch { files = vm.roleMemoryFiles(); open(path) }
-                    }, enabled = !busy) { Icon(refresh, "重新加载") }
-                }
-                KedgeTextTooltipBox("保存") {
-                    KedgeIconButton(onClick = { save() }, enabled = !busy && dirty) { Icon(saveIcon, "保存") }
                 }
             }
             val current = document

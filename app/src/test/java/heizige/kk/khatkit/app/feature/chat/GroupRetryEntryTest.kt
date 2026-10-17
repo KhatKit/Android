@@ -8,6 +8,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import heizige.kk.khatkit.app.feature.chat.data.GroupRetryEntry
 
 /**
  * C1 —— 群聊「失败续跑」入口判定 [GroupRetryEntry.canResume] 的 JVM 护栏。

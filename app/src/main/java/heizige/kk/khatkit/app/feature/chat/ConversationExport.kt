@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeSwitch
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -68,6 +70,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.data.ai.tools.ConversationCardFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.util.exportImage
 import heizige.kk.khatkit.app.core.util.getActivity
@@ -91,7 +94,6 @@ import androidx.compose.material3.Switch
 import com.dokar.sonner.ToastType
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
@@ -116,6 +118,8 @@ import heizige.kk.khatkit.app.core.ui.components.message.groupMessageParts
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
+import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
 
 @Composable
 fun ChatExportSheet(
@@ -139,30 +143,32 @@ fun ChatExportSheet(
             imageVector = iosShare,
             onDismiss = onDismissRequest,
         ) { dismiss ->
+            // 开关行统一走 option item：圆角取全局列表卡片样式（单行分组 = 整张全圆角）。
+            val cards = listCardStyle()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 32.dp),
+                // 面板里各张卡之间的间距仍按原样 8dp：这里换的是行容器，不是卡片节奏。
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(text = stringResource(id = R.string.chat_page_export_format))
 
-                KedgeCard(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    KedgeListItem(
-                        headlineContent = { Text(stringResource(R.string.chat_page_export_include_reasoning)) },
-                        trailingContent = {
-                            KedgeSwitch(
-                                checked = exportOptions.includeReasoning,
-                                onCheckedChange = {
-                                    exportOptions = exportOptions.copy(includeReasoning = it)
-                                }
-                            )
-                        }
-                    )
-                }
+                KedgeOptionItem(
+                    onClick = null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = cards.indexedShape(0, 1),
+                    titleContent = { Text(stringResource(R.string.chat_page_export_include_reasoning)) },
+                    trailingContent = {
+                        KedgeSwitch(
+                            checked = exportOptions.includeReasoning,
+                            onCheckedChange = {
+                                exportOptions = exportOptions.copy(includeReasoning = it)
+                            }
+                        )
+                    },
+                )
 
                 val markdownSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Markdown")
@@ -207,8 +213,14 @@ fun ChatExportSheet(
 
                         KedgeHorizontalDivider()
 
-                        KedgeListItem(
-                            headlineContent = { Text(stringResource(R.string.chat_page_export_image_expand_reasoning)) },
+                        // 这一行在「导出为图片」这张内容卡内部：外层卡片保留（它同时装着
+                        // 图标行、分隔线与底部按钮，不是纯选项组），只把开关行换成 option
+                        // item，并给 backgroundColor = Transparent，避免卡片里再叠一层卡面。
+                        KedgeOptionItem(
+                            onClick = null,
+                            shape = cards.groupItemShape(isFirst = false, isLast = true),
+                            backgroundColor = Color.Transparent,
+                            titleContent = { Text(stringResource(R.string.chat_page_export_image_expand_reasoning)) },
                             trailingContent = {
                                 KedgeSwitch(
                                     checked = exportOptions.expandReasoning,
@@ -217,7 +229,7 @@ fun ChatExportSheet(
                                         exportOptions = exportOptions.copy(expandReasoning = it)
                                     }
                                 )
-                            }
+                            },
                         )
 
                         Row(
@@ -639,24 +651,24 @@ private fun ExportedChatMessage(
                                                     modifier = Modifier.padding(8.dp)
                                                 )
                                             }
-                                        } else {
-                                            if (settings.displaySetting.showAssistantBubble) {
-                                                KedgeCard(
-                                                    shape = MaterialTheme.shapes.medium,
-                                                    colors = CardDefaults.cardColors(
-                                                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                                    )
-                                                ) {
-                                                    MarkdownBlock(
-                                                        content = part.text,
-                                                        modifier = Modifier.padding(8.dp)
-                                                    )
-                                                }
-                                            } else {
+                                        } else if (settings.displaySetting.showAssistantBubble) {
+                                            // 与 ChatMessage 同口径，跟随同一个开关：导出预览
+                                            // 必须和聊天页长得一样，否则用户会以为导出丢了样式。
+                                            KedgeCard(
+                                                shape = MaterialTheme.shapes.medium,
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                                )
+                                            ) {
                                                 MarkdownBlock(
                                                     content = part.text,
+                                                    modifier = Modifier.padding(8.dp)
                                                 )
                                             }
+                                        } else {
+                                            MarkdownBlock(
+                                                content = part.text,
+                                            )
                                         }
                                     }
                                 }

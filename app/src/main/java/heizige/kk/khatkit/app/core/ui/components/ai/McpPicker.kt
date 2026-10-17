@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,19 +13,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.kedge.components.KedgeBadge
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +39,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
@@ -171,7 +169,15 @@ fun McpPickerListItem(
         it.commonOptions.enable && assistant.mcpServers.contains(it.id)
     }
 
-    KedgeListItem(
+    // 入口行也是 option item：原来自己按 MaterialTheme 的大圆角 clip + clickable，
+    // 与同文件服务器行的圆角/底色/按压反馈两套写法；现在形状与间距统一取
+    // listCardStyle()，单行自成一组（index 0 / count 1）⇒ 四角同大圆角。
+    val cards = listCardStyle()
+    KedgeOptionItem(
+        // 整行可点（点开 MCP 选择弹层），与改动前 clickable 语义一致。
+        onClick = { showMcpPicker = true },
+        modifier = modifier.fillMaxWidth(),
+        shape = cards.indexedShape(index = 0, count = 1),
         leadingContent = {
             if (loading) {
                 KedgeProgressIndicator(modifier = Modifier.size(24.dp))
@@ -182,7 +188,7 @@ fun McpPickerListItem(
                 )
             }
         },
-        headlineContent = {
+        titleContent = {
             Text(stringResource(R.string.mcp_picker_title))
         },
         trailingContent = {
@@ -194,14 +200,6 @@ fun McpPickerListItem(
                 )
             }
         },
-        colors = ListItemDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
-        modifier = modifier
-            .clip(MaterialTheme.shapes.large)
-            .clickable {
-                showMcpPicker = true
-            },
     )
 
     if (showMcpPicker) {
@@ -275,21 +273,23 @@ fun McpPicker(
     onUpdateAssistant: (Assistant) -> Unit
 ) {
     val mcpManager = rememberAppEntryPoint().mcpManager()
+    // 每条服务器 = 一张 option item：圆角/行间距取全局列表卡片样式（首项只圆上边、
+    // 末项只圆下边），不再用裸 KedgeCard 自己排 Row。
+    val cards = listCardStyle()
+    val visibleServers = servers.fastFilter { it.commonOptions.enable }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(cards.gap),
     ) {
-        items(servers.fastFilter { it.commonOptions.enable }) { server ->
+        itemsIndexed(visibleServers) { index, server ->
             val status by mcpManager.getStatus(server).collectAsStateWithLifecycle(McpStatus.Idle)
-            KedgeCard {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            KedgeOptionItem(
+                // 行本身不可点，只有行尾开关可点（与改动前一致）。
+                onClick = null,
+                shape = cards.indexedShape(index, visibleServers.size),
+                // 状态图标/进度圈占 leading 槽。
+                leadingContent = {
                     when (status) {
                         McpStatus.Idle -> Icon(power, null)
                         McpStatus.Connecting -> KedgeProgressIndicator(
@@ -308,14 +308,17 @@ fun McpPicker(
                             modifier = Modifier.size(24.dp)
                         )
                     }
+                },
+                titleContent = {
+                    Text(
+                        text = server.commonOptions.name,
+                        style = KedgeTextStyles.displayTitle(),
+                    )
+                },
+                supportingContent = {
                     Column(
-                        modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
-                            text = server.commonOptions.name,
-                            style = KedgeTextStyles.displayTitle(),
-                        )
                         Text(
                             text = when (val s = status) {
                                 is McpStatus.Idle -> "Idle"
@@ -340,6 +343,8 @@ fun McpPicker(
                             }
                         }
                     }
+                },
+                trailingContent = {
                     KedgeSwitch(
                         checked = server.id in assistant.mcpServers,
                         onCheckedChange = {
@@ -364,8 +369,8 @@ fun McpPicker(
                             }
                         }
                     )
-                }
-            }
+                },
+            )
         }
     }
 }

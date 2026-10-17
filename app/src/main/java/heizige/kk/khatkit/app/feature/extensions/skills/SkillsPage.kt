@@ -2,11 +2,9 @@ package heizige.kk.khatkit.app.feature.extensions.skills
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,7 +27,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
@@ -43,7 +40,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -64,7 +60,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -145,16 +140,26 @@ fun SkillsPage() {
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+        // Scaffold 的 innerPadding 挂在**整列**上（助手列表 / 提供商列表 / 搜索页同款），
+        // 不再塞进列表自己的 padding：以前搜索框留在 y=0 被顶栏压住，列表却整体下移了
+        // 一个顶栏高度，于是「搜索框下方到首项」空出一大块（顶栏高 + 16dp）。
+        // 现在只留设计留白：top=8dp，与 ProviderList 的 vertical=8dp 同一口径。
         val listPadding = Modifier.padding(
-            innerPadding + PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 16.dp,
-                bottom = 16.dp + 72.dp,
-            ),
+            start = 16.dp,
+            end = 16.dp,
+            top = 8.dp,
+            // 底部 16 + 72 是滚动末端留白，保持原值。
+            bottom = 16.dp + 72.dp,
         )
 
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                // MD3 的 KedgeSearchBar 自带 16dp 顶距，Miuix 分支为 0，由调用点补
+                // （与 AssistantPage 的补偿同款），两种风格搜索框上方都是 16dp。
+                .padding(top = if (isMiuix) 16.dp else 0.dp),
+        ) {
             KedgeSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -391,13 +396,18 @@ private fun SkillImportSheet(
         imageVector = extension,
         onDismiss = onDismiss,
     ) { dismiss ->
+        // 弹窗里这三个入口同属一组「选项行」：项间距与逐项圆角走全局列表卡片样式
+        // （首项只圆上边、末项只圆下边），与页面里的技能卡片同一套口径。
+        val cards = listCardStyle()
+        val count = 3
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             SkillImportSheetItem(
+                shape = cards.indexedShape(0, count),
                 icon = { Icon(add, contentDescription = null) },
                 text = stringResource(R.string.skills_page_add_manually),
                 onClick = {
@@ -406,6 +416,7 @@ private fun SkillImportSheet(
                 },
             )
             SkillImportSheetItem(
+                shape = cards.indexedShape(1, count),
                 icon = { Icon(uploadFile, contentDescription = null) },
                 text = stringResource(R.string.skills_page_import_from_file),
                 onClick = {
@@ -414,6 +425,7 @@ private fun SkillImportSheet(
                 },
             )
             SkillImportSheetItem(
+                shape = cards.indexedShape(2, count),
                 icon = { Icon(download, contentDescription = null) },
                 text = stringResource(R.string.skills_page_import_from_github),
                 onClick = {
@@ -427,16 +439,19 @@ private fun SkillImportSheet(
 
 @Composable
 private fun SkillImportSheetItem(
+    shape: Shape,
     icon: @Composable () -> Unit,
     text: String,
     onClick: () -> Unit,
 ) {
-    KedgeListItem(
+    // 与技能卡片同款：底色、内边距、按压反馈都交给 KedgeOptionItem，行内容只走插槽；
+    // 圆角由调用点按 index/count 算好传进来（本组件不猜自己在组里的位置）。
+    KedgeOptionItem(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
         leadingContent = icon,
-        headlineContent = { Text(text) },
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onClick),
+        titleContent = { Text(text) },
     )
 }
 

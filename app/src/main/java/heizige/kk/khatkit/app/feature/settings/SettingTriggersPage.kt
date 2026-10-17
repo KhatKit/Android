@@ -41,13 +41,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.khatkit.app.feature.automation.CardTriggerOverride
+import heizige.kk.khatkit.app.feature.automation.data.CardTriggerOverride
 import heizige.kk.khatkit.app.feature.automation.KhatKitNotificationListenerService
 import heizige.kk.khatkit.app.feature.automation.TriggerController
-import heizige.kk.khatkit.app.feature.automation.TriggerExactAlarmScheduler
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerExactAlarmScheduler
 import heizige.kk.khatkit.app.feature.automation.TriggerService
-import heizige.kk.khatkit.app.feature.automation.TriggerSettings
-import heizige.kk.khatkit.app.feature.automation.computeTriggerLogStats
+import heizige.kk.khatkit.app.feature.automation.data.TriggerSettings
+import heizige.kk.khatkit.app.feature.automation.data.computeTriggerLogStats
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
@@ -77,6 +77,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.add
+import heizige.kk.khatkit.app.feature.settings.data.WorkflowPreferencesRepository
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,
@@ -225,7 +226,7 @@ fun SettingTriggersPage() {
                         onClick = { applyMaster(!triggerState.masterEnabled) },
                         headlineContent = { Text("启用自动化触发器") },
                         supportingContent = {
-                            Text("卡片在定时、通知/点击/回复、应用启动/退出/安装/卸载、充电、Wi-Fi、网络、电量、屏幕、剪贴板、蓝牙、位置、快捷方式、磁贴事件时自动运行")
+                            Text("按事件自动运行卡片")
                         },
                         trailingContent = {
                             KedgeSwitch(
@@ -236,7 +237,7 @@ fun SettingTriggersPage() {
                     )
                     item(
                         headlineContent = { Text("运行并发上限") },
-                        supportingContent = { Text("触发任务按 FIFO 排队；默认 1（串行），可调至 3") },
+                        supportingContent = { Text("默认 1（串行），最高 3") },
                         trailingContent = {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 (TriggerSettings.MIN_MAX_PARALLEL..TriggerSettings.MAX_MAX_PARALLEL).forEach { value ->
@@ -299,7 +300,7 @@ fun SettingTriggersPage() {
                         item(
                             headlineContent = { Text("暂无已安装卡片") },
                             supportingContent = {
-                                Text("在卡片市场安装卡片后，可在这里给它们配置事件触发器")
+                                Text("为已装卡片配置触发器")
                             },
                         )
                     }
@@ -392,14 +393,14 @@ fun SettingTriggersPage() {
                     if (logEntries.isEmpty()) {
                         item(
                             headlineContent = { Text("暂无执行记录") },
-                            supportingContent = { Text("卡片被事件触发后会在这里留下运行结果") },
+                            supportingContent = { Text("触发后的运行结果") },
                         )
                     } else {
                         item(
                             onClick = { controller.logs.clear() },
                             leadingContent = { Icon(cleaningServices, contentDescription = null) },
                             headlineContent = { Text("清空日志") },
-                            supportingContent = { Text("仅清除本地运行记录，不影响卡片配置") },
+                            supportingContent = { Text("仅清本地记录") },
                         )
                         logEntries.asReversed().take(LOG_UI_LIMIT).forEach { entry ->
                             item(
@@ -459,8 +460,8 @@ fun SettingTriggersPage() {
                         headlineContent = { Text("通知监听权限") },
                         supportingContent = {
                             Text(
-                                if (listenerEnabled) "已授予，通知/点击/直接回复触发器可工作"
-                                else "未授予，通知/点击/直接回复触发器无法工作，点此前往开启"
+                                if (listenerEnabled) "已授予"
+                                else "未授予，点此开启"
                             )
                         },
                     )
@@ -481,13 +482,13 @@ fun SettingTriggersPage() {
                         },
                         leadingContent = { Icon(bolt, null) },
                         headlineContent = { Text("忽略电池优化") },
-                        supportingContent = { Text("防止系统在后台限制触发器服务") },
+                        supportingContent = { Text("避免被系统后台限制") },
                     )
                     item(
                         onClick = { permissionState.requestPermissions() },
                         headlineContent = { Text("请求位置 / 蓝牙等运行时权限") },
                         supportingContent = {
-                            Text("位置与蓝牙触发器需要额外权限；未授权时对应事件自动跳过")
+                            Text("未授权时相应事件自动跳过")
                         },
                     )
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !exactAlarmAllowed) {
@@ -505,7 +506,7 @@ fun SettingTriggersPage() {
                             leadingContent = { Icon(bolt, null) },
                             headlineContent = { Text("精确闹钟权限（未授予）") },
                             supportingContent = {
-                                Text("分钟级定时需要「闹钟和提醒」权限；未授予时退回每 60 秒轮询")
+                                Text("未授予时退回 60 秒轮询")
                             },
                         )
                     }

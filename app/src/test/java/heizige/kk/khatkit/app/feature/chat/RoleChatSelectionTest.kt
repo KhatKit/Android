@@ -6,6 +6,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.time.Instant
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.selectRoleChat
 
 class RoleChatSelectionTest {
     private val a = Uuid.random()

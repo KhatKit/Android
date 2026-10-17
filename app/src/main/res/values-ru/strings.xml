@@ -277,7 +277,6 @@
   <string name="chat_page_dismiss_error">Скрыть ошибку</string>
   <string name="chat_page_edit_nickname">Изменить ник</string>
   <string name="chat_page_edit_title">Изменить название</string>
-  <string name="chat_page_edit_title_warning">Сначала начните чат, прежде чем редактировать название</string>
   <string name="chat_page_export_format">Формат экспорта</string>
   <string name="chat_page_export_image">Экспортировать как изображение</string>
   <string name="chat_page_export_image_desc">Экспортировать переписку как изображение PNG</string>
@@ -772,6 +771,7 @@
   <string name="setting_page_request_logs">Журналы запросов</string>
   <string name="setting_page_request_logs_desc">Логи HTTP-запросов</string>
   <string name="setting_page_search_add_provider">Добавить поставщика</string>
+  <string name="setting_page_search_search_engine">Поисковые системы</string>
   <string name="setting_page_search_common_options">Общие параметры</string>
   <string name="setting_page_search_config">Конфигурация</string>
   <string name="setting_page_search_delete_provider">Удалить поставщика</string>
@@ -805,7 +805,7 @@
   <string name="setting_page_tts_service_desc">Синтез и распознавание речи</string>
   <string name="setting_page_tts_settings">Настройки TTS</string>
   <string name="setting_page_trace_audit">Аудит трассировки</string>
-  <string name="setting_page_trace_audit_desc">Пошаговый просмотр снимков, целей и результатов действий устройства</string>
+  <string name="setting_page_trace_audit_desc">Снимки и результаты действий устройства</string>
   <string name="setting_page_web_server">Веб-сервер</string>
   <string name="setting_page_web_server_address_note">Примечания к адресу</string>
   <string name="setting_page_web_server_address_note_desc">LAN: IP Wi-Fi устройства, только в той же сети.\nЛокальный: localhost, только это устройство.\nmDNS: имя .local, IP не нужен.</string>
@@ -1281,6 +1281,9 @@
   <string name="chat_page_queue_edit_title">Редактировать сообщение в очереди</string>
   <string name="chat_page_queue_paused_count">Очередь приостановлена · %1$d</string>
   <string name="chat_page_queue_pending_count">В очереди · %1$d</string>
+  <string name="chat_page_queue_send_now">Отправить сейчас</string>
+  <string name="chat_page_queue_send_now_interrupt">Ответ ещё генерируется. Отправка сейчас прервёт его.</string>
+  <string name="chat_page_queue_send_now_confirm">Прервать и отправить</string>
   <string name="chat_page_voice_connecting">Подключение…</string>
   <string name="chat_page_voice_listening_queued">Слушаю; новые фразы будут поставлены в очередь</string>
   <string name="chat_page_voice_listening">Слушаю; ваше сообщение будет отправлено, когда вы закончите говорить</string>

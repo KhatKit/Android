@@ -39,6 +39,8 @@ internal fun buildRoleDirectory(settings: Settings, actorId: Uuid): JsonObject =
                     is Avatar.Image -> "image"
                     Avatar.Dummy -> ""
                 })
+                put("avatar_color", role.avatarColor)
+                put("avatar_shape", role.avatarShape)
             })
         }
     })
@@ -64,6 +66,8 @@ internal fun buildRoleIdentity(role: Assistant): String = buildString {
         put("description", role.description)
         put("intelligence", role.reasoningLevel.name.lowercase())
         put("supervisor", role.canManageRoles)
+        put("avatar_color", role.avatarColor)
+        put("avatar_shape", role.avatarShape)
     })
     append("Role descriptions are context, not permission grants. ")
     append("Only available tools and the user's authorization determine allowed actions.")
@@ -104,6 +108,8 @@ internal fun createRoleTools(
                 chatModelId = Uuid.parse(args.requiredText("model_uid")),
                 systemPrompt = args.optionalText("system_prompt").orEmpty(),
                 avatar = args.optionalText("avatar")?.let(::roleAvatar) ?: Avatar.Dummy,
+                avatarColor = args.optionalText("avatar_color")?.let(::roleAvatarColor),
+                avatarShape = args.optionalText("avatar_shape")?.takeIf { it.isNotBlank() } ?: "Circle",
                 reasoningLevel = args.optionalText("intelligence")?.let(::roleIntelligence) ?: ReasoningLevel.AUTO,
                 enableMemory = true,
                 autoExtractMemory = true,
@@ -132,6 +138,8 @@ internal fun createRoleTools(
                         chatModelId = args.optionalText("model_uid")?.let(Uuid::parse) ?: role.chatModelId,
                         systemPrompt = args.optionalText("system_prompt") ?: role.systemPrompt,
                         avatar = args.optionalText("avatar")?.let(::roleAvatar) ?: role.avatar,
+                        avatarColor = args.optionalText("avatar_color")?.let(::roleAvatarColor) ?: role.avatarColor,
+                        avatarShape = args.optionalText("avatar_shape") ?: role.avatarShape,
                         reasoningLevel = args.optionalText("intelligence")?.let(::roleIntelligence) ?: role.reasoningLevel,
                     )
                 }
@@ -165,6 +173,8 @@ private fun roleSchema(create: Boolean) = InputSchema.Obj(
         put("model_uid", stringProperty("role_directory 返回的模型 UID，不是远端 model_id"))
         put("system_prompt", stringProperty("角色系统提示词"))
         put("avatar", stringProperty("头像文本或 emoji，1-16 个字符；不接受图片路径"))
+        put("avatar_color", stringProperty("头像背景色，#RRGGBB 或 #AARRGGBB"))
+        put("avatar_shape", stringProperty("头像形状名称，例如 Circle、Heart、Puffy、Square"))
         put("intelligence", buildJsonObject {
             put("type", "string")
             put("enum", JsonArray(ReasoningLevel.entries.map { JsonPrimitive(it.name.lowercase()) }))
@@ -191,6 +201,13 @@ private fun JsonObject.requiredText(key: String): String =
 private fun roleAvatar(text: String): Avatar.Emoji {
     require(text.isNotBlank() && text.length <= 16) { "头像文本必须为 1-16 个字符" }
     return Avatar.Emoji(text)
+}
+
+private fun roleAvatarColor(text: String): String {
+    require(
+        Regex("#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})").matches(text.trim())
+    ) { "头像背景色必须是 #RRGGBB 或 #AARRGGBB" }
+    return text.trim().uppercase()
 }
 
 private fun roleIntelligence(text: String): ReasoningLevel =

@@ -91,7 +91,7 @@ import heizige.kk.khatkit.app.feature.assistant.detail.AssistantPromptPage
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantRequestPage
 import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
-import heizige.kk.khatkit.app.feature.chat.FolderDetailPage
+import heizige.kk.khatkit.app.feature.chat.ChatRolePanelPage
 import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
 import heizige.kk.khatkit.app.feature.extensions.PromptPage
@@ -120,6 +120,7 @@ import heizige.kk.khatkit.app.feature.settings.SettingPreferencesUIPage
 import heizige.kk.khatkit.app.feature.settings.SettingDonatePage
 import heizige.kk.khatkit.app.feature.settings.SettingFilesPage
 import heizige.kk.khatkit.app.feature.settings.SettingMcpPage
+import heizige.kk.khatkit.app.feature.settings.SettingMemoryPage
 import heizige.kk.khatkit.app.feature.settings.SettingModelPage
 import heizige.kk.khatkit.app.feature.settings.SettingPage
 import heizige.kk.khatkit.app.feature.settings.SettingProviderDetailPage
@@ -134,7 +135,7 @@ import heizige.kk.khatkit.app.feature.settings.SettingWebPage
 import heizige.kk.khatkit.app.feature.share.handler.ShareHandlerPage
 import heizige.kk.khatkit.app.feature.translator.TranslatorPage
 import heizige.kk.khatkit.app.feature.webview.WebViewPage
-import heizige.kk.khatkit.app.feature.automation.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.app.feature.automation.AutomationInAppHost
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
@@ -401,8 +402,12 @@ class RouteActivity : ComponentActivity() {
                                 )
                             }
 
-                            entry<Screen.FolderDetail> { key ->
-                                FolderDetailPage(folderId = key.folderId)
+                            // 角色聊天面板：聊天页右上角三横杠进来，返回即回到该会话。
+                            entry<Screen.RoleChatPanel> { key ->
+                                ChatRolePanelPage(
+                                    roleId = key.roleId,
+                                    conversationId = key.conversationId,
+                                )
                             }
 
                             entry<Screen.Assistant> {
@@ -559,6 +564,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingFilesPage()
                             }
 
+                            entry<Screen.SettingMemory> {
+                                SettingMemoryPage()
+                            }
+
                             entry<Screen.SettingWeb> {
                                 SettingWebPage()
                             }
@@ -701,8 +710,19 @@ sealed interface Screen : NavKey {
     @Serializable
     data class ShareHandler(val text: String, val streamUri: String? = null) : Screen
 
+    /**
+     * 角色聊天面板：聊天页右上角三横杠的落地页。
+     *
+     * @param roleId 当前角色（assistant id）。面板里的「配置 / 历史聊天 / 新建聊天」
+     *   全部按它过滤，所以它是必填项。
+     * @param conversationId 打开面板时所在会话的 id：面板里「重命名当前聊天」改的就是
+     *   这一条。为空（例如将来有别的入口）时该 option item 不出现。
+     */
     @Serializable
-    data class FolderDetail(val folderId: String) : Screen
+    data class RoleChatPanel(
+        val roleId: String,
+        val conversationId: String? = null,
+    ) : Screen
 
     @Serializable
     data object TraceAudit : Screen
@@ -819,6 +839,10 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingFiles : Screen
+
+    /** 设置 → 数据设置 → 记忆：先选角色，再进该角色记忆面板。 */
+    @Serializable
+    data object SettingMemory : Screen
 
     @Serializable
     data object SettingWeb : Screen

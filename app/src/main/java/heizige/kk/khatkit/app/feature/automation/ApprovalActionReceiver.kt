@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.feature.automation
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 
 /**
  * 授权通知的「允许 / 拒绝」按钮接收器：把通知上的点击回灌给 [AutomationBus] 的

@@ -109,9 +109,21 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 | feature 内按 `helper/`、数据、Screen、ViewModel 就近内聚 | 不为了"分层好看"把一个功能拆到 core |
 | 删功能 = 删文件夹 | 不留孤儿代码 |
 
-`app/core/` 现有五个子包：`data`(175 kt) / `network`(17) / `ui`(315，含 `icons/` 150) /
+`app/core/` 现有五个子包：`data`(190 kt) / `network`(17) / `ui`(324，含 `icons/` 152) /
 `util`(24) / `di`(4)。`service` 已删（commit `86da59fa0`）。`auth` 不在这里（认证已切成独立模块 `:oauth`），
-`files` 在 `app/core/data/files/`。`app/feature/` 下现有 22 个功能包、201 kt。
+`files` 在 `app/core/data/files/`。`app/feature/` 下现有 23 个功能包、215 kt。
+
+**已按 `helper/` + `data/` 细分的功能包（2026-10-17 整理，Page/ViewModel 仍留 feature 根）**：
+
+| 功能包 | `data/` | `helper/` | 说明 |
+|---|---:|---:|---|
+| `chat` | 9 | 5 | 会话/群回合/队列模型进 data；通知与视角变换进 helper |
+| `automation` | 9 | 7 | 触发器模型/日志/队列进 data；tracer/bus gate/调度器进 helper |
+| `workspace` | 4 | — | 终端会话、文件类型 |
+| `settings` | 3 | — | 搜索服务顺序、工作流偏好、代理测试状态 |
+
+判定口径与 `ARCHITECTURE.md` §1.2 一致：**数据模型/仓库/持久化 → `data/`，无状态打杂 → `helper/`，
+Composable 页面与 ViewModel 留 feature 根**。新增功能包按同一口径建目录，不要再往 feature 根堆逻辑文件。
 
 ## 命名
 
@@ -137,31 +149,34 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 
 ⇒ 写新代码时，若一个类不是框架组件，就**不要**叫 `XxxService`。
 
-### 存量改名结果（2026-10-06，主人要求执行，**A 类已完成**）
+### 存量改名结果（2026-10-17 全量执行完毕）
 
-**A 类（本 fork 独有、无上游对应物的 8 个文件）已改名；B/C/D 类 53 个文件不改。**
-逐文件判定表（每个文件的父类 / manifest / 上游路径 / 持久化证据）见
-**[docs/architecture-map.md](docs/architecture-map.md) §2.4**。改名后基线：
+**B/C/D 类已按 `ARCHITECTURE.md` §2 全部改名，本次共动 47 个 kt 文件。**
+2026-10-06 那次"只做 A 类"的决定已被本次覆盖（覆盖理由见本节末尾）。现存基线：
 
 | 后缀 | 现存 | 构成 |
 |---|---:|---|
-| `*Service` | **29** | 9 个 Android 框架组件（B 类）+ 20 个 `:search`（C 类） |
-| `*Util` | **9** | 全部上游 1:1（D 类） |
-| `*Utils` | **11** | 全部上游 1:1（D 类） |
-| `*Store` | **4** | 3 个 `common/cache/*Store`（上游 1:1）+ `PlayStore`（Google Play 专有名词） |
+| `*Service` | **9** | 全部继承 `android.app.Service` / `TileService` / `AccessibilityService` / `NotificationListenerService`（框架语义，见上节例外） |
+| `*Util` | **0** | — |
+| `*Utils` | **0** | — |
+| `*Store` | **1** | `app/core/ui/hooks/PlayStore.kt`（Google Play 专有名词，与存储无关） |
 
-⇒ 非合规 **53 个**（原 61 − 已改 8），合规率 **37/90 = 41.1%**。
+⇒ 非合规 **1 个**（仅专有名词），合规率 **89/90 = 98.9%**。
 
-已改名清单（8 文件 / 6 commit，均已 push `origin main`）：
+本次改名清单（按类别）：
 
-| 旧名 → 新名 | commit |
-|---|---|
-| `AILiveNotificationService` → `AILiveNotificationManager`（有状态通知生命周期） | `5972207dd` |
-| `BrowserHistoryStore` → `BrowserHistoryRepository`（含测试类同步改名） | `27b14335f` |
-| `CardScheduleStore` → `CardScheduleRepository`（含测试类同步改名） | `563c716d2` |
-| `WorkflowStore` → `WorkflowPreferencesRepository`（避开既有 `WorkflowRepository`） | `6d2aad0e8` |
-| `CardSqlStore` / `SecretStore` / `SharedStore` → `CardSqlRepository` / `SecretRepository` / `SharedFileRepository` | `e3cbf926b` |
-| `DependencyArtifactStore` → `DependencyArtifactHelper`（无状态打杂） | `367a5ebf1` |
+| 类别 | 数量 | 做法 |
+|---|---:|---|
+| 纯函数文件 `*Util/*Utils` | 13 | → `*Extensions`：`Chat` / `Clipboard` / `Collection` / `Context`（app + common 各一个）/ `Coroutine` / `Diff` / `Markdown` / `String` / `Time` / `Route` / `Migration` / `ProviderMessage` |
+| `object` 打杂 | 6 | `FileUtils`→`FileHelper`、`DatabaseUtil`→`DatabaseHelper`、`EmojiUtils`→`EmojiHelper`、`ImageUtils`→`ImageHelper`、`NotificationUtil`→`NotificationHelper`、`PlayStoreUtil`→`PlayStoreHelper` |
+| 文件名含 `Util` 但内容是类 | 1 | `CacheUtil.kt`→`SimpleCache.kt`（按类名命名，类名本就合规范） |
+| `common/cache/*Store` | 3 | → `CacheRepository` / `PerKeyFileCacheRepository` / `SingleFileCacheRepository`（有存取状态，归 `Repository`） |
+| 非文件级 `*Store` 类 | 2 | `SherpaModelStore`→`SherpaModelManager`、`McpStatusStore`→`McpStatusManager`（有状态） |
+| `:search` provider 家族 | 21 + 3 测试 | `interface SearchService<T>`→`SearchRepository<T>`；18 个 `*SearchService` 与 `LinkUpService`/`SearXNGService` → `*Repository`；`SearchServiceOptions`→`SearchOptions`；`getService()`→`get()`；3 个 `*ServiceTest` 同步改名 |
+
+**持久化契约已核对**：`SettingsRepository.kt:221` 序列化的 `searchServices` 字段名未变，
+`SearchOptions` 的 19 个 `@SerialName` 判别串（`"bing_local"` / `"zhipu"` / … / `"custom_js"`）未变 ——
+本次只改类型名，**不碰 wire 名**，已落盘的 DataStore 设置仍可反序列化。
 
 > **复算口径（必须照抄，否则数字会漂）**：全仓 kt 文件、**按文件名后缀**计数、
 > **排除 vendor 进来的 `material3/material-color-utilities/`**、排除所有 `build/`：
@@ -175,7 +190,7 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 > done
 > ```
 >
-> 上述命令在 2026-10-06 改名后的实测输出：**29 / 9 / 11 / 4**。两个关键点：
+> 2026-10-17 改名后的实测输出：**9 / 0 / 0 / 1**。两个关键点：
 > **按文件名后缀**而非 grep 类名 —— 否则 `*Util` 会命中 `*Utils` 内部；
 > **排除 material3** —— `material3/material-color-utilities` 是 **git submodule**
 > （`.gitmodules`，mode `160000`），里面 3 个 `*Utils.kt`（`ColorUtils` / `MathUtils` /
@@ -184,32 +199,20 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 > ⚠️ **这就是历史上同一件事给出 11 / 13 / 14 三个数的根因**：`material3/…` 是 submodule，
 > 所以 `git ls-tree -r --name-only main`（**不递归进 submodule**）得 **11**，
 > 而 `find .`（**看得见已 checkout 的 submodule 文件**）得 **14**。
-> `docs/architecture-map.md` §2.4 用的就是 `git ls-tree` 那条，两条等价。
+> `docs/architecture-map.md` §2.4 记的是改名前的旧账（29 / 9 / 11 / 4），**已过期**。
 >
-> `*Service` 的变迁：32 → **30**（`core/service/` 删空带走 `ChatService.kt` 与
-> `ChatGenerationForegroundService.kt`，commit `86da59fa0`）→ **29**（`5972207dd`
-> 把 fork 独有的 `AILiveNotificationService` 改名 `AILiveNotificationManager`）。
+> `*Service` 的变迁：32 → 30（`86da59fa0`）→ 29（`5972207dd`）→ **9**（2026-10-17 本次）。
 
-B/C/D 类不改的硬理由：
+为什么覆盖 2026-10-06 的"B/C/D 不改"：
 
-1. 本 fork 约 **54% 的 app 文件来自上游**（405 / 744），整树做过
-   `me.rerere.* -> heizige.kk.khatkit.*` 重命名，**`git merge` 上游早已不可用** ——
-   commit `8cf9bec2d` 明确写了「直接 merge 会产生大量伪冲突, 因此逐文件三方合并」。
-   这批 53 个文件里 **47 个**在上游有同名对应物（20 个 `:search` + 24 个 Util/Utils/Store
-   + 3 个框架 Service），改名等于给每一次上游同步追加一遍人工三方比对。
-2. `:search` 模块 20 个 `*Service.kt`（18 个 `*SearchService.kt` + `LinkUpService` /
-   `SearXNGService`）**100% 上游一一对应**；且持久化契约挂在这个模块的命名上 ——
-   `SearchService.kt` 里 `SearchServiceOptions` 的 19 个 `@SerialName`
-   （`"bing_local"` / `"zhipu"` / … / `"rikkahub"` / `"custom_js"`）是**已落盘的设置判别串**
-   （`SettingsRepository.kt:221` 把 `searchServices` 序列化进 DataStore）。
-   ⚠️ 20 个 provider 文件自身的 `@SerialName` 全是 HTTP 响应 DTO，**不在**持久化路径上；
-   但模块级改名会把 interface + Options 一起卷进来，**不做半截改名**。
-3. 9 个 `*Service` 继承 `android.app.Service` / `TileService` / `AccessibilityService` /
-   `NotificationListenerService`，改名要同步改 manifest 与 `PendingIntent` 跳转目标（B 类）。
-4. `common/cache/CacheStore.kt` 这类确实只做存取的类，改成 `Repository` 是退化；
-   `PlayStore.kt` 的 `Store` 是 Google Play 专有名词，与存储无关。
+1. 主人 2026-10-17 明确要求按 `ARCHITECTURE.md` 执行；命名规范优先级高于上游同步成本。
+2. 上次的核心硬理由（`SearchServiceOptions` 的 `@SerialName` 是已落盘判别串）只对 wire 名成立 ——
+   实测本次改名没碰任何 `@SerialName` 值与字段名，**改类型名不破坏持久化**。
+3. 实际爆炸半径比预估小：`:search` 的 20 个 provider `object` 全仓只有 `SearchRepository.get()`
+   一处分发 + provider 选项页 + 测试直接引用，不是"整树散布符号"。
 
-**新代码按上表命名；旧代码保持原样（B/C/D 类不再改）。** 不要在无关 PR 里夹带改名。
+**明码代价**：47 个文件在上游有对应物，以后同步上游时这些文件的比对要"新名 ↔ 旧名"做一次映射；
+每个文件都是独立 rename，`git log --follow` 可追。
 
 ## 快速决策卡
 

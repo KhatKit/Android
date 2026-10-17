@@ -64,6 +64,7 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_ASSISTANTS_IDS
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
+import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
 import heizige.kk.khatkit.app.core.data.model.RoleTemplates
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
@@ -226,7 +227,14 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             AssistantItem(
                                 assistant = assistant,
                                 defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
-                                shape = cards.indexedShape(index, filteredAssistants.size),
+                                providerName = settings.findModelProviderName(
+                                    assistant.chatModelId ?: settings.chatModelId
+                                ),
+                                // 分组总数要算上列表末尾的「新建角色」：它是同一组的末项
+                                // （见本文件 :320 那一段）。若这里仍写 filteredAssistants.size，
+                                // 最后一个角色会被当成本组末项而拿到「下边大圆角」，
+                                // 与「新建角色」的上边 4dp 小圆角错位。
+                                shape = cards.indexedShape(index, filteredAssistants.size + 1),
                                 // 头像 → 详情页的共享元素转场属于本页，不进共享行。
                                 avatarModifier = Modifier.heroAnimation("assistant_${assistant.id}"),
                                 supportingContent = if (hasSupporting) {
@@ -309,15 +317,14 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     }
 
                     item(key = "new_assistant") {
-                        // 独立成组：与上面助手组之间留 16dp，圆角自己走全局列表卡片样式。
-                        // 双风格都交给 KedgeOptionItem 内部分流（MD3Exp / Miuix），
-                        // 不再在这里手写 PreferenceArrow 分支。
+                        // 「新建角色」是同一个分组的末项（与抽屉里「管理角色」同款）：角色在上时
+                        // 只有下圆角是大圆角，角色为空时它自己就是首末项。行间空隙由 LazyColumn
+                        // 的 spacedBy(cards.gap) 统一给，不再单独留 16dp 自成一张四角全圆的大卡。
+                        // 双风格的容器仍交给 KedgeOptionItem 内部分流（MD3Exp / Miuix）。
                         KedgeOptionItem(
                             onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id)) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp),
-                            shape = cards.indexedShape(0, 1),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = cards.indexedShape(filteredAssistants.size, filteredAssistants.size + 1),
                             leadingContent = { Icon(add, contentDescription = null) },
                             titleContent = {
                                 Text(
@@ -377,6 +384,9 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
         val memoryCount by remember(assistant.id) { vm.getMemoryCount(assistant) }.collectAsStateWithLifecycle(initialValue = 0)
         AssistantActionSheet(
             assistant = assistant,
+            providerName = settings.findModelProviderName(
+                assistant.chatModelId ?: settings.chatModelId
+            ),
             onDismiss = { actionSheetAssistant = null },
             onCopy = {
                 if (memoryCount > 0) {
@@ -539,6 +549,11 @@ private fun AssistantCreationSheet(
                     UIAvatar(
                         value = assistant.avatar,
                         name = assistant.name,
+                        avatarShape = assistant.avatarShape,
+                        defaultIconName = settings.findModelProviderName(
+                            assistant.chatModelId ?: settings.chatModelId
+                        ),
+                        avatarColor = assistant.avatarColor,
                         onUpdate = { update(assistant.copy(avatar = it)) },
                         modifier = Modifier.size(64.dp),
                     )
@@ -600,6 +615,7 @@ private fun AssistantCreationSheet(
 @Composable
 private fun AssistantActionSheet(
     assistant: Assistant,
+    providerName: String?,
     onDismiss: () -> Unit,
     onCopy: () -> Unit,
     onDelete: () -> Unit
@@ -628,6 +644,9 @@ private fun AssistantActionSheet(
                 UIAvatar(
                     name = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
                     value = assistant.avatar,
+                    avatarShape = assistant.avatarShape,
+                    defaultIconName = providerName,
+                    avatarColor = assistant.avatarColor,
                     modifier = Modifier.size(40.dp)
                 )
                 Text(

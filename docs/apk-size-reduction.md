@@ -441,7 +441,7 @@ R8 + 资源收缩会让 release 与 debug **不等价**。本轮实测发现了�
 
 **④ `libucrop.so` —— 在用**
 - 依赖层：`app/build.gradle.kts:241 implementation(libs.ucrop)`（`ucrop = "2.2.11-native"`）。
-- 使用层：`app/.../core/ui/components/ai/CropLauncher.kt`、`app/.../core/ui/components/ai/ChatAttachmentPicker.kt`、`app/.../core/util/ImageUtils.kt`（`ImageUtils` 还负责 EXIF 方向）。
+- 使用层：`app/.../core/ui/components/ai/CropLauncher.kt`、`app/.../core/ui/components/ai/ChatAttachmentPicker.kt`、`app/.../core/util/ImageHelper.kt`（`ImageHelper` 还负责 EXIF 方向）。
 
 **⑤ `assets/simple_dict/**` + `lib/libsimple.so` —— 在用**
 - 签入仓库：`git ls-files | grep simple_dict` → 9 个文件（`idf.utf8` / `jieba.dict.utf8` / `hmm_model.utf8` / `pos_dict/*` / `stop_words.utf8` / `user.dict.utf8`）；`git ls-files | grep jniLibs` → `app/src/main/jniLibs/{arm64-v8a,x86_64}/libsimple.so`。
@@ -456,8 +456,8 @@ R8 + 资源收缩会让 release 与 debug **不等价**。本轮实测发现了�
 - ⇒ 回复里出现 ```` ```mermaid ```` 代码块时用它渲染；同一目录下另一个文件 `html/mark.html`（10,936 B）也是这条链的一部分。
 
 **⑦ `assets/emoji/categories.with.modifiers.min.json` —— 在用**
-- 存储层：`app/.../core/util/EmojiUtils.kt:10 context.assets.open("emoji/categories.with.modifiers.min.json")`。
-- DI/装配层：`app/.../core/di/AppHiltModule.kt:86 fun provideEmojiData(@ApplicationContext context: Context): EmojiData = EmojiUtils.loadEmoji(context)`。
+- 存储层：`app/.../core/util/EmojiHelper.kt:10 context.assets.open("emoji/categories.with.modifiers.min.json")`。
+- DI/装配层：`app/.../core/di/AppHiltModule.kt:86 fun provideEmojiData(@ApplicationContext context: Context): EmojiData = EmojiHelper.loadEmoji(context)`。
 - ⚠️ 收益很低（压缩后只有 59,303 B）——虽然判定「在用」，但**不值得为它做任何事**。
 
 **⑧ `libtermux.so` + `libproot_exec.so` + `libproot_loader.so` —— 在用**

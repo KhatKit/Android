@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +41,6 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
-import top.yukonga.miuix.kmp.basic.Icon
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem

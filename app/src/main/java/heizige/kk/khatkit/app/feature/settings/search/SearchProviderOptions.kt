@@ -52,8 +52,8 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.search.DoubaoSearchMode
 import heizige.kk.khatkit.search.SearchCommonOptions
 import heizige.kk.khatkit.search.SearchResult
-import heizige.kk.khatkit.search.SearchService
-import heizige.kk.khatkit.search.SearchServiceOptions
+import heizige.kk.khatkit.search.SearchRepository
+import heizige.kk.khatkit.search.SearchOptions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -66,8 +66,8 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun TavilyOptions(
-    options: SearchServiceOptions.TavilyOptions,
-    onUpdateOptions: (SearchServiceOptions.TavilyOptions) -> Unit
+    options: SearchOptions.TavilyOptions,
+    onUpdateOptions: (SearchOptions.TavilyOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -104,8 +104,8 @@ internal fun TavilyOptions(
 
 @Composable
 internal fun ExaOptions(
-    options: SearchServiceOptions.ExaOptions,
-    onUpdateOptions: (SearchServiceOptions.ExaOptions) -> Unit
+    options: SearchOptions.ExaOptions,
+    onUpdateOptions: (SearchOptions.ExaOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -125,8 +125,8 @@ internal fun ExaOptions(
 
 @Composable
 internal fun ZhipuOptions(
-    options: SearchServiceOptions.ZhipuOptions,
-    onUpdateOptions: (SearchServiceOptions.ZhipuOptions) -> Unit
+    options: SearchOptions.ZhipuOptions,
+    onUpdateOptions: (SearchOptions.ZhipuOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -145,9 +145,24 @@ internal fun ZhipuOptions(
 }
 
 @Composable
+internal fun DeepSeekOptions(
+    options: SearchOptions.DeepSeekOptions,
+    onUpdateOptions: (SearchOptions.DeepSeekOptions) -> Unit
+) {
+    KedgeFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
+        KedgeTextField(
+            value = options.apiKey,
+            onValueChange = { onUpdateOptions(options.copy(apiKey = it)) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+        )
+    }
+}
+
+@Composable
 internal fun DoubaoOptions(
-    options: SearchServiceOptions.DoubaoOptions,
-    onUpdateOptions: (SearchServiceOptions.DoubaoOptions) -> Unit
+    options: SearchOptions.DoubaoOptions,
+    onUpdateOptions: (SearchOptions.DoubaoOptions) -> Unit
 ) {
     KedgeFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
         KedgeTextField(
@@ -174,8 +189,8 @@ internal fun DoubaoOptions(
 
 @Composable
 internal fun SearXNGOptions(
-    options: SearchServiceOptions.SearXNGOptions,
-    onUpdateOptions: (SearchServiceOptions.SearXNGOptions) -> Unit
+    options: SearchOptions.SearXNGOptions,
+    onUpdateOptions: (SearchOptions.SearXNGOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -255,8 +270,8 @@ internal fun SearXNGOptions(
 
 @Composable
 internal fun SearchLinkUpOptions(
-    options: SearchServiceOptions.LinkUpOptions,
-    onUpdateOptions: (SearchServiceOptions.LinkUpOptions) -> Unit
+    options: SearchOptions.LinkUpOptions,
+    onUpdateOptions: (SearchOptions.LinkUpOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -293,8 +308,8 @@ internal fun SearchLinkUpOptions(
 
 @Composable
 internal fun BraveOptions(
-    options: SearchServiceOptions.BraveOptions,
-    onUpdateOptions: (SearchServiceOptions.BraveOptions) -> Unit
+    options: SearchOptions.BraveOptions,
+    onUpdateOptions: (SearchOptions.BraveOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -314,8 +329,8 @@ internal fun BraveOptions(
 
 @Composable
 internal fun SerperOptions(
-    options: SearchServiceOptions.SerperOptions,
-    onUpdateOptions: (SearchServiceOptions.SerperOptions) -> Unit
+    options: SearchOptions.SerperOptions,
+    onUpdateOptions: (SearchOptions.SerperOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -335,8 +350,8 @@ internal fun SerperOptions(
 
 @Composable
 internal fun MetasoOptions(
-    options: SearchServiceOptions.MetasoOptions,
-    onUpdateOptions: (SearchServiceOptions.MetasoOptions) -> Unit
+    options: SearchOptions.MetasoOptions,
+    onUpdateOptions: (SearchOptions.MetasoOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -356,8 +371,8 @@ internal fun MetasoOptions(
 
 @Composable
 internal fun OllamaOptions(
-    options: SearchServiceOptions.OllamaOptions,
-    onUpdateOptions: (SearchServiceOptions.OllamaOptions) -> Unit
+    options: SearchOptions.OllamaOptions,
+    onUpdateOptions: (SearchOptions.OllamaOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -377,8 +392,8 @@ internal fun OllamaOptions(
 
 @Composable
 internal fun PerplexityOptions(
-    options: SearchServiceOptions.PerplexityOptions,
-    onUpdateOptions: (SearchServiceOptions.PerplexityOptions) -> Unit
+    options: SearchOptions.PerplexityOptions,
+    onUpdateOptions: (SearchOptions.PerplexityOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -430,8 +445,8 @@ internal fun PerplexityOptions(
 
 @Composable
 internal fun FirecrawlOptions(
-    options: SearchServiceOptions.FirecrawlOptions,
-    onUpdateOptions: (SearchServiceOptions.FirecrawlOptions) -> Unit
+    options: SearchOptions.FirecrawlOptions,
+    onUpdateOptions: (SearchOptions.FirecrawlOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -451,8 +466,8 @@ internal fun FirecrawlOptions(
 
 @Composable
 internal fun JinaOptions(
-    options: SearchServiceOptions.JinaOptions,
-    onUpdateOptions: (SearchServiceOptions.JinaOptions) -> Unit
+    options: SearchOptions.JinaOptions,
+    onUpdateOptions: (SearchOptions.JinaOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -504,8 +519,8 @@ internal fun JinaOptions(
 
 @Composable
 internal fun BochaOptions(
-    options: SearchServiceOptions.BochaOptions,
-    onUpdateOptions: (SearchServiceOptions.BochaOptions) -> Unit
+    options: SearchOptions.BochaOptions,
+    onUpdateOptions: (SearchOptions.BochaOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -538,8 +553,8 @@ internal fun BochaOptions(
 
 @Composable
 internal fun KhatKitOptions(
-    options: SearchServiceOptions.KhatKitOptions,
-    onUpdateOptions: (SearchServiceOptions.KhatKitOptions) -> Unit
+    options: SearchOptions.KhatKitOptions,
+    onUpdateOptions: (SearchOptions.KhatKitOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -576,8 +591,8 @@ internal fun KhatKitOptions(
 
 @Composable
 internal fun TinyfishOptions(
-    options: SearchServiceOptions.TinyfishOptions,
-    onUpdateOptions: (SearchServiceOptions.TinyfishOptions) -> Unit
+    options: SearchOptions.TinyfishOptions,
+    onUpdateOptions: (SearchOptions.TinyfishOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -597,8 +612,8 @@ internal fun TinyfishOptions(
 
 @Composable
 internal fun GrokOptions(
-    options: SearchServiceOptions.GrokOptions,
-    onUpdateOptions: (SearchServiceOptions.GrokOptions) -> Unit
+    options: SearchOptions.GrokOptions,
+    onUpdateOptions: (SearchOptions.GrokOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -664,8 +679,8 @@ internal fun GrokOptions(
 
 @Composable
 internal fun CustomJsOptions(
-    options: SearchServiceOptions.CustomJsOptions,
-    onUpdateOptions: (SearchServiceOptions.CustomJsOptions) -> Unit
+    options: SearchOptions.CustomJsOptions,
+    onUpdateOptions: (SearchOptions.CustomJsOptions) -> Unit
 ) {
     KedgeFormRow(
         label = {
@@ -727,7 +742,7 @@ internal fun CustomJsOptions(
             maxLines = 20,
             placeholder = {
                 Text(
-                    text = SearchServiceOptions.CustomJsOptions.DEFAULT_SCRAPE_SCRIPT.trimIndent(),
+                    text = SearchOptions.CustomJsOptions.DEFAULT_SCRAPE_SCRIPT.trimIndent(),
                     style = KedgeTextStyles.body().merge(fontFamily = JetbrainsMono),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 )

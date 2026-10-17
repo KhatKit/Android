@@ -26,6 +26,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
 
 /**
  * [GroupTurnCoordinator] 的判定内核测试。
