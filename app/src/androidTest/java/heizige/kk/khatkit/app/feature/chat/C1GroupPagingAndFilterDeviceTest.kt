@@ -77,11 +77,15 @@ import java.security.MessageDigest
 import kotlin.uuid.Uuid
 
 /**
- * C1-10「单聊/群聊筛选」的第 6 轮设备侧补充：**分页数据源**与**逐 chip 全流程**。
+ * C1-10「单聊/群聊筛选」的第 6 轮设备侧补充：**分页数据源**与**混合列表渲染**。
  *
- * 背景：`C1GroupFilterAndAvatarUiTest` 已经把「筛选真按类型过滤、切回不丢」跑成了真机断言，
- * 但它只在一个方法里把 全部→单聊→群聊→全部 串了一遍，覆盖的是三条 chip 的**串联路径**，
- * 且没有触及底层 `PagingSource`。本类补齐两块（验收缺口）：
+ * ⚠️ 2026-xx：抽屉顶部的类型筛选 chip 行（全部/单聊/群聊）已按主人要求从
+ * `ChatDrawer.kt` 删除 → 原「逐 chip 切换 / 切 chip 不丢数据」两条 UI 用例连同
+ * `clickChip` / `CHIP_*` / `isReachableQuietly` 辅助与 `FIXTURE_TITLES` 一并删除
+ * （类型谓词管道本身未删，仍在 `ChatDrawerViewModel.typeFilter` + DAO 里）。
+ * 类型收窄的覆盖改由本类**测 6**（`pagingSource_typeFilterNarrowsWithinSql`，
+ * 直接对生产 DAO/PagingSource 断言）与 JVM 侧
+ * `ConversationListQueryPlanTest` 承担。本类保留两块（验收缺口）：
  *
  * 1. **`PagingSource` 真分页**：抽屉列表的数据源是 Room 的 `LimitOffsetPagingSource`
  *    （`ConversationDAO.getUnfiledConversationsOfAssistantByType` /
@@ -92,16 +96,13 @@ import kotlin.uuid.Uuid
  *    `INITIAL_LOAD_SIZE`、后续页 = 生产 `PAGE_SIZE`、翻到底累计 == DB 行数且无重复。
  *    生产常量用反射读（`private const val`），避免在测试里另抄一份数字而漂移。
  *
- * 2. **逐 chip + 来回切换 + 混合列表渲染**：每片 chip 单独进入、单聊/群聊来回切两轮、
- *    每次断言列表内容与 chip 语义一致；切回后与初始可达集合**精确相等**；切换前后直读
- *    主库（全表 + 按 type 分组）计数必须逐字相同（「筛选只过滤、不丢数据」）。
- *    另外断言混合列表的渲染分支：只有群条目的合并语义节点同时带标题与「群」徽标，
- *    单聊条目不带（`ConversationList.kt:551-558` 的 `if (type == TYPE_GROUP) Text("群")`）。
+ * 2. **混合列表渲染**：抽屉（缺省 FILTER_ALL）里只有群条目的合并语义节点同时带标题与
+ *    「群」徽标，单聊条目不带（`ConversationList.kt:551-558` 的
+ *    `if (type == TYPE_GROUP) Text("群")`）。
  *
  * ## 事实（本轮只读调研结论，均以代码为准）
  *
- * - 抽屉里是 **3 个 chip**：全部 / 单聊 / 群聊（`ChatDrawer.kt:546-556`）；不存在第 4 个。
- * - 类型筛选**下沉到 SQL**：`ChatDrawerViewModel.conversations` 把 type 透传给 DAO，
+ * - 抽屉里**已无 chip**（2026-xx 删除）；类型筛选的 UI 入口不存在，但谓词仍**下沉到 SQL**：`ChatDrawerViewModel.conversations` 把 type 透传给 DAO，
  *   不在内存里 `pagingData.filter`（`ChatDrawerViewModel.kt:70-94`，护栏
  *   `ConversationTypeFilterSourceGuardTest` 钉死「无内存过滤 + 两条查询共用谓词」）。
  * - 分页是**真实 LIMIT/OFFSET 分页**：`pageSize = 20`、`initialLoadSize = 40`
@@ -109,8 +110,8 @@ import kotlin.uuid.Uuid
  *
  * ## 为什么不需要新增 testTag
  *
- * - 列表锚点 `drawer_conversation_list` 已在 `ChatDrawer.kt:571`；
- * - chip 是库组件 `KedgeFilterChip`，按文本「全部/单聊/群聊」即可唯一命中（`ChatDrawer.kt:554`）；
+ * - 列表锚点 `drawer_conversation_list` 已在 `ChatDrawer.kt`（会话列表 `testTag`）；
+ * - 「抽屉已展开」的判据从「chip 行可见」改成该 testTag 出现（`openDrawer()`）；
  * - 群徽标是纯 `Text("群")`（`ConversationList.kt:552-557`），精确文本即可定位，
  *   且行本身 `combinedClickable` 合并语义后，「群」与标题同属一个合并节点；
  * - PagingSource 断言走 DAO，不需要任何 UI 锚点。
@@ -119,8 +120,9 @@ import kotlin.uuid.Uuid
  *
  * ## 与既有测试的关系
  *
- * 独立新文件、独立 id 段（UI 夹具 `...f3xx`，分页夹具 `...f4xx`），不动
- * `C1GroupFilterAndAvatarUiTest`（`...f1xx`）与用户所有夹具（`...e2xx`）一个字节。
+ * 独立新文件、独立 id 段（UI 夹具 `...f3xx`，分页夹具 `...f4xx`），不动用户所有夹具
+ * （`...e2xx`）一个字节。本类的 3 条 chip UI 用例删除**不在 `app/src/main` 留任何改动**；
+ * `C1GroupFilterAndAvatarUiTest` 也只有它自己那条 chip 用例被删。
  */
 @RunWith(AndroidJUnit4::class)
 class C1GroupPagingAndFilterDeviceTest {
@@ -218,138 +220,6 @@ class C1GroupPagingAndFilterDeviceTest {
         scenario?.close()
         scenario = null
         if (::database.isInitialized) database.close()
-    }
-
-    // ==================================================================
-    // 测 1：逐 chip 进入 + 来回切换 + 精确复原
-    // ==================================================================
-
-    @Test
-    fun typeFilter_allChipsFilterIndividuallyAndRestoreExactly() {
-        openGroupChat(groupAId)
-        openDrawer()
-        val list = compose.onNodeWithTag(DRAWER_LIST_TAG)
-
-        // 初始「全部」：4 条 UI 夹具（2 群 + 2 单聊）都可达。
-        assertReachable(list, GROUP_A)
-        assertReachable(list, GROUP_B)
-        assertReachable(list, DIRECT_A)
-        assertReachable(list, DIRECT_B)
-        val initialReachableSet = FIXTURE_TITLES.filter { isReachableQuietly(list, it) }.toSet()
-        assertEquals(
-            "初始「全部」下四条夹具必须全部可达",
-            FIXTURE_TITLES.toSet(),
-            initialReachableSet,
-        )
-
-        // ---- 单聊：只有单聊可达（逐个进入，不依赖上一步状态） ----
-        clickChip(CHIP_DIRECT)
-        compose.waitUntil(WAIT_MS) { !isReachableQuietly(list, GROUP_A) }
-        assertFalse("「单聊」下群甲不可达", isReachableQuietly(list, GROUP_A))
-        assertFalse("「单聊」下群乙不可达", isReachableQuietly(list, GROUP_B))
-        assertEquals("「单聊」下不得出现群甲", 0, countInDrawer(GROUP_A))
-        assertEquals("「单聊」下不得出现群乙", 0, countInDrawer(GROUP_B))
-        assertReachable(list, DIRECT_A)
-        assertReachable(list, DIRECT_B)
-        assertFalse("「单聊」下不得出现任何群徽标", hasGroupBadgeNode())
-
-        // ---- 群聊：只有群可达 ----
-        clickChip(CHIP_GROUP)
-        compose.waitUntil(WAIT_MS) { !isReachableQuietly(list, DIRECT_A) }
-        assertFalse("「群聊」下单聊甲不可达", isReachableQuietly(list, DIRECT_A))
-        assertFalse("「群聊」下单聊乙不可达", isReachableQuietly(list, DIRECT_B))
-        assertEquals("「群聊」下不得出现单聊甲", 0, countInDrawer(DIRECT_A))
-        assertEquals("「群聊」下不得出现单聊乙", 0, countInDrawer(DIRECT_B))
-        assertReachable(list, GROUP_A)
-        assertReachable(list, GROUP_B)
-        assertTrue("「群聊」下必须出现群徽标", hasGroupBadgeNode())
-
-        // ---- 来回切：再回单聊，必须与第一次单聊完全一致 ----
-        clickChip(CHIP_DIRECT)
-        compose.waitUntil(WAIT_MS) { !isReachableQuietly(list, GROUP_A) }
-        assertFalse(isReachableQuietly(list, GROUP_A))
-        assertFalse(isReachableQuietly(list, GROUP_B))
-        assertReachable(list, DIRECT_A)
-        assertReachable(list, DIRECT_B)
-        assertFalse("回到「单聊」后群徽标不得出现", hasGroupBadgeNode())
-
-        // ---- 切回「全部」：与初始可达集合精确相等 ----
-        clickChip(CHIP_ALL)
-        compose.waitUntil(WAIT_MS) { isReachableQuietly(list, GROUP_A) }
-        val restoredSet = FIXTURE_TITLES.filter { isReachableQuietly(list, it) }.toSet()
-        assertEquals(
-            "切回「全部」后可达集合必须与初始逐字相同（筛选只切换视图，不改变数据）",
-            initialReachableSet,
-            restoredSet,
-        )
-
-        emit(
-            "chips",
-            listOf(
-                "case=all_chips_individually",
-                "chips_verified=ALL|DIRECT|GROUP|DIRECT|ALL",
-                "initial_reachable=$initialReachableSet",
-                "restored_reachable=$restoredSet",
-                "restored_equals_initial=${initialReachableSet == restoredSet}",
-            ),
-        )
-    }
-
-    // ==================================================================
-    // 测 2：来回切 chip 前后，直读主库计数必须逐字不变
-    // ==================================================================
-
-    @Test
-    fun typeFilter_chipSwitchNeverLosesData_dbCountsStable() {
-        openGroupChat(groupAId)
-        openDrawer()
-        val list = compose.onNodeWithTag(DRAWER_LIST_TAG)
-
-        val before = runBlocking { dbCountsOf(pagingAssistantId) + dbCountsAll() }
-
-        // 来回切两轮，覆盖每条 chip 的进入与退出。
-        listOf(CHIP_DIRECT, CHIP_GROUP, CHIP_DIRECT, CHIP_ALL, CHIP_GROUP, CHIP_ALL).forEach { chip ->
-            clickChip(chip)
-            compose.waitForIdle()
-        }
-        compose.waitUntil(WAIT_MS) { isReachableQuietly(list, DIRECT_A) }
-
-        val after = runBlocking { dbCountsOf(pagingAssistantId) + dbCountsAll() }
-        assertEquals(
-            "切 chip 不得增删任何会话：全表计数与按 type 分组计数前后必须逐字相同",
-            before,
-            after,
-        )
-
-        // 四条 UI 夹具仍能从主库原样读回（筛选只过滤不删）。
-        val fixtureRows = runBlocking {
-            listOf(groupAId, groupBId, directAId, directBId).map { id ->
-                val c = repository.getConversationById(id)
-                assertNotNull("切 chip 后夹具会话 $id 必须仍在主库", c)
-                "${c!!.title}=${c.type}"
-            }
-        }
-        assertEquals(
-            "UI 夹具在库里必须原样存在",
-            listOf(
-                "$GROUP_A=${GroupChat.TYPE_GROUP}",
-                "$GROUP_B=${GroupChat.TYPE_GROUP}",
-                "$DIRECT_A=${GroupChat.TYPE_DIRECT}",
-                "$DIRECT_B=${GroupChat.TYPE_DIRECT}",
-            ),
-            fixtureRows,
-        )
-
-        emit(
-            "chips",
-            listOf(
-                "case=no_data_loss",
-                "before=$before",
-                "after=$after",
-                "stable=${before == after}",
-                "fixture_rows=$fixtureRows",
-            ),
-        )
     }
 
     // ==================================================================
@@ -619,11 +489,17 @@ class C1GroupPagingAndFilterDeviceTest {
     }
 
     // ==================================================================
-    // 测 9：真实网关群聊轮 —— **从「群聊」筛选结果里打开群**，再在该群上跑真实一轮
+    // 测 9：真实网关群聊轮 —— 群 id 取自**生产 by-type 查询**，再从抽屉打开它跑真实一轮
     // ==================================================================
 
     /**
-     * C1-10 的**真实网关**证据，且这条群必须是**从筛选路径内部**抵达的。
+     * C1-10 的**真实网关**证据，且这条群必须是**用生产类型筛选查询取到、再从抽屉打开的**。
+     *
+     * ⚠️ 2026-xx 抽屉的类型筛选 chip 行已按主人要求删除 → 「点 chip 收窄列表」不再是 UI 路径。
+     * 本方法据此改口径：类型收窄证据来自**生产 by-type DAO 查询**
+     * （`ConversationDAO.getUnfiledConversationsOfAssistantByType(assistantId, TYPE_GROUP)`，
+     * 也就是抽屉 PagingSource 在 typeFilter=TYPE_GROUP 时用的同一条），UI 侧只证明
+     * 「抽屉列表里有这条群、点它能导航过去」。
      *
      * 契约 `:206` 要求 10 个用例「每例保存输入、各角色可见消息集合、实际模型调用序列、
      * token 计数和导出哈希」；`:232-235` 明写「只看截图或只看 UI 状态均标记 `unverified`」。
@@ -631,29 +507,30 @@ class C1GroupPagingAndFilterDeviceTest {
      * ## 为什么不能平行挂载
      *
      * 旧写法只是 `openGroupChat(groupAId) → sendMessage(...)`：它产的 8 个字段全部来自
-     * 「群聊生成路径」，与 C1-10 点名的「单聊/群聊筛选」路径**正交** —— 既不点 chip、
-     * 也不驱动筛选。所以本方法把两者缝成一条真实用户流程：
+     * 「群聊生成路径」，与 C1-10 点名的「单聊/群聊筛选」路径**正交** —— 不驱动类型筛选。
+     * 所以本方法把两者缝成一条真实用户流程：
      *
-     * 1. **先走筛选路径**：从一个非目标会话（单聊甲）进入 → 左滑开抽屉 → 点「群聊」chip
-     *    → 断言筛选后的列表里只有群条目（沿用前 8 条相同的 `isReachableQuietly` /
-     *    `countInDrawer` / 群徽标判定）；
-     * 2. **从筛选结果里取第一条群条目的 id**（生产同一条 DAO 查询就是抽屉 PagingSource
-     *    的数据源），显式断言它确实在筛选结果里；不硬编码 `groupAId`；
-     * 3. **从筛选列表里点开它**（点抽屉行 → `navigateToChatPage`/`clearAndNavigate`），
-     *    再反射读 `NavViewModel.currentPage` 断言导航栈顶就是那条群 id —— 这是「筛选」
-     *    与「跑一轮」缝合的关键；
-     * 4. 在这个**从筛选结果打开的群**上真跑一轮三方 pipeline，产出契约点名的：
+     * 1. **先证明抽屉可用**：从一个非目标会话（单聊甲）进入 → 左滑开抽屉 → 断言 4 条夹具
+     *    都可达且群徽标在（缺省 FILTER_ALL；`isReachableQuietly` / `countInDrawer` 判定）；
+     * 2. **用生产 by-type 查询取第一条群条目的 id**（与抽屉 PagingSource 的
+     *    `pagingSourceFactory` 同一条 DAO 方法），显式断言它确实是 GROUP；不硬编码 `groupAId`；
+     * 3. **从抽屉列表里点开它**（点抽屉行 → `navigateToChatPage`/`clearAndNavigate`），
+     *    再反射读 `NavViewModel.currentPage` 断言导航栈顶就是那条群 id —— 这是「类型筛选
+     *    查询」与「跑一轮」缝合的关键；
+     * 4. 在这个**由 by-type 查询取到的群**上真跑一轮三方 pipeline，产出契约点名的：
      *    - 用例输入（触发文本）；
      *    - 各 viewer 可见消息 ID 台账（生产 `GroupChat.visibleMessages`）；
      *    - 实际模型调用序列（模型名 + prompt/completion token）；
      *    - prompt+completion 总 token；
      *    - 生产 `TavernChatCodec.exportGroupJsonl` → `writeExportTempFile` 的导出 SHA-256。
      *
-     * 证据 JSON 里显式记录 `opened_from_filtered_list=true` +
-     * `filtered_group_ids_before_open` + `opened_group_id` + `navigated_chat_id`，
-     * 使「这条群来自筛选结果」可复核。
+     * 证据 JSON 里显式记录 `opened_from_type_filtered_query=true` +
+     * `type_filtered_group_ids_before_open` + `opened_group_id` + `navigated_chat_id`，
+     * 使「这条群来自生产 by-type 查询」可复核。
      *
-     * 既有 8 条筛选/分页断言在各自方法里，一行未动。
+     * ⚠️ 原先依赖 chip 的两条 UI 用例（逐 chip 切换 / 切 chip 不丢数据）已随 chip 删除，
+     * 类型收窄的其余覆盖仍在：本类测 6（`pagingSource_typeFilterNarrowsWithinSql`）与
+     * `ConversationListQueryPlanTest`（JVM）。
      */
     @Test
     fun realGatewayRoundInFixtureGroupProducesContractArtifacts() {
@@ -669,45 +546,28 @@ class C1GroupPagingAndFilterDeviceTest {
         )
 
         // ============================================================
-        // 阶段 1：走真实筛选路径 —— 非目标会话进入 → 开抽屉 → 点「群聊」chip
+        // 阶段 1：非目标会话进入 → 开抽屉（已无 chip）
         // ============================================================
-        // 从单聊甲进入，这样随后「从筛选列表打开群」是一次真实导航（不是点当前会话）。
+        // ⚠️ 抽屉的类型筛选 chip 行已删除（主人要求），「点 chip 收窄列表」不再是 UI 路径。
+        // 类型收窄改由阶段 2 直接走**生产同一条 DAO 查询**取证（抽屉 PagingSource 在
+        // typeFilter=TYPE_GROUP 时用的就是它），本阶段只证明抽屉列表本身可用。
+        // 从单聊甲进入，这样随后「打开群」是一次真实导航（不是点当前会话）。
         openGroupChat(directAId)
         openDrawer()
         val list = compose.onNodeWithTag(DRAWER_LIST_TAG)
 
-        // 切 chip 前的基线：4 条夹具在「全部」下都可达（否则「切走后不可达」不成立）。
+        // 抽屉未筛选（缺省 FILTER_ALL）：4 条夹具都必须可达。
         assertReachable(list, GROUP_A)
         assertReachable(list, GROUP_B)
         assertReachable(list, DIRECT_A)
         assertReachable(list, DIRECT_B)
-
-        // 先把单聊甲滚进组合窗口，再切 chip——否则「不可达」可能只是「尚未加载」的假信号。
-        list.performScrollToNode(hasText(DIRECT_A))
-        clickChip(CHIP_GROUP)
-        // 条件必须同时要求「群在」且「单聊不在」：只等「单聊不在」会被 PagingData
-        // 换源途中的空窗/旧页误导，随后断言再看到旧页就会假红。
-        compose.waitUntil(WAIT_MS) {
-            isReachableQuietly(list, GROUP_A) &&
-                !isReachableQuietly(list, DIRECT_A) &&
-                !isReachableQuietly(list, DIRECT_B)
-        }
-        compose.waitForIdle()
-
-        // 筛选态断言（沿用前 8 条相同判定方式）：只有群，没有单聊。
-        assertFalse("「群聊」筛选下单聊甲必须不可达", isReachableQuietly(list, DIRECT_A))
-        assertFalse("「群聊」筛选下单聊乙必须不可达", isReachableQuietly(list, DIRECT_B))
-        assertEquals("「群聊」筛选下不得出现单聊甲", 0, countInDrawer(DIRECT_A))
-        assertEquals("「群聊」筛选下不得出现单聊乙", 0, countInDrawer(DIRECT_B))
-        assertReachable(list, GROUP_A)
-        assertReachable(list, GROUP_B)
-        assertTrue("「群聊」筛选下必须出现群徽标", hasGroupBadgeNode())
-        val filteredDirectACount = countInDrawer(DIRECT_A)
-        val filteredDirectBCount = countInDrawer(DIRECT_B)
+        assertTrue("未筛选抽屉里必须出现群徽标", hasGroupBadgeNode())
+        val drawerDirectACount = countInDrawer(DIRECT_A)
+        val drawerDirectBCount = countInDrawer(DIRECT_B)
 
         // ============================================================
-        // 阶段 2：从**筛选结果**里取第一条群条目的 id（不硬编码 groupAId）
-        // 生产同一条 DAO 查询就是抽屉 PagingSource 的数据源。
+        // 阶段 2：用**生产 by-type DAO 查询**取第一条群条目的 id（不硬编码 groupAId）
+        // 这条查询正是抽屉 PagingSource 在 typeFilter=TYPE_GROUP 时用的同一条。
         // ============================================================
         val currentAssistantId = runBlocking { settingsStore.settingsFlow.first().assistantId.toString() }
         val filteredGroups = runBlocking {
@@ -717,9 +577,9 @@ class C1GroupPagingAndFilterDeviceTest {
                 prodInitialLoadSize,
             ).data
         }
-        assertTrue("群聊筛选结果不得为空", filteredGroups.isNotEmpty())
+        assertTrue("by-type 群聊查询结果不得为空", filteredGroups.isNotEmpty())
         assertTrue(
-            "群聊筛选结果每一条都必须是 GROUP 类型，实际脏数据=" +
+            "by-type 群聊查询每一条都必须是 GROUP 类型，实际脏数据=" +
                 filteredGroups.filter { it.type != GroupChat.TYPE_GROUP }.map { it.id },
             filteredGroups.all { it.type == GroupChat.TYPE_GROUP },
         )
@@ -728,31 +588,31 @@ class C1GroupPagingAndFilterDeviceTest {
         val openedGroupId = Uuid.parse(firstFilteredGroup.id)
         // 关键缝合断言：取到的 id 确实在筛选结果里。
         assertTrue(
-            "从筛选结果取到的第一条群 id 必须确实在该筛选结果里：$openedGroupId",
+            "取到的第一条群 id 必须确实在该 by-type 查询结果里：$openedGroupId",
             openedGroupId.toString() in filteredGroupIds,
         )
         // 防御：只允许打开本案夹具群，绝不误打用户真实群。
         assertTrue(
-            "筛选结果第一条群必须是本案夹具群（$groupAId 或 $groupBId），" +
+            "by-type 查询第一条群必须是本案夹具群（$groupAId 或 $groupBId），" +
                 "实际 id=$openedGroupId title=${firstFilteredGroup.title}",
             openedGroupId == groupAId || openedGroupId == groupBId,
         )
         val openedTitle = firstFilteredGroup.title
-        // UI 与 DB 同源：这条群在筛选后的抽屉列表里必须可达。
+        // UI 与 DB 同源：这条群在抽屉列表里必须可达。
         assertReachable(list, openedTitle)
 
         // ============================================================
-        // 阶段 3：从筛选列表里点开这条群（真实用户流程：点抽屉行 → 导航到该会话）
+        // 阶段 3：从抽屉列表里点开这条群（真实用户流程：点抽屉行 → 导航到该会话）
         // ============================================================
         compose.onNode(
             hasAnyAncestor(hasTestTag(DRAWER_LIST_TAG)) and hasText(openedTitle),
         ).performClick()
 
-        // 等导航栈顶变成从筛选结果取到的那条群 id（反射读生产 NavViewModel.currentPage）。
+        // 等导航栈顶变成阶段 2 取到的那条群 id（反射读生产 NavViewModel.currentPage）。
         compose.waitUntil(WAIT_MS) { currentChatPageId() == openedGroupId.toString() }
         val navigatedId = currentChatPageId()
         assertEquals(
-            "点开筛选列表里的群后，导航栈顶会话必须正是从筛选结果取到的那条群 id",
+            "点开抽屉里的群后，导航栈顶会话必须正是阶段 2 取到的那条群 id",
             openedGroupId.toString(),
             navigatedId,
         )
@@ -765,14 +625,14 @@ class C1GroupPagingAndFilterDeviceTest {
         emit(
             "chips",
             listOf(
-                "case=c1_10_opened_from_filtered_list",
-                "opened_from_filtered_list=true",
-                "filtered_group_ids_before_open=$filteredGroupIds",
+                "case=c1_10_opened_from_type_filtered_query",
+                "opened_from_type_filtered_query=true",
+                "type_filtered_group_ids_before_open=$filteredGroupIds",
                 "opened_group_id=$openedGroupId",
                 "opened_title=$openedTitle",
-                "filtered_only_groups=true",
-                "filtered_direct_a_count=$filteredDirectACount",
-                "filtered_direct_b_count=$filteredDirectBCount",
+                "group_ids_from_prod_by_type_query=true",
+                "drawer_direct_a_count=$drawerDirectACount",
+                "drawer_direct_b_count=$drawerDirectBCount",
                 "navigated_chat_id=$navigatedId",
                 "group_info_chip_visible=$groupInfoChipVisible",
             ),
@@ -783,10 +643,10 @@ class C1GroupPagingAndFilterDeviceTest {
         scenario = null
 
         // ============================================================
-        // 阶段 4：在这个「从筛选结果打开的群」上真跑一轮，产出契约 8 字段
+        // 阶段 4：在这个「从 by-type 查询取到的群」上真跑一轮，产出契约 8 字段
         // ============================================================
         val originalConversation = requireNotNull(runBlocking { repository.getConversationById(openedGroupId) }) {
-            "从筛选结果打开的群会话 $openedGroupId 必须能从真库读回"
+            "打开的群会话 $openedGroupId 必须能从真库读回"
         }
         val config = realConfig()
         val invalid = GroupChat.validate(config, openedGroupId.toString())
@@ -887,18 +747,18 @@ class C1GroupPagingAndFilterDeviceTest {
                         put("device_abi", android.os.Build.SUPPORTED_ABIS.joinToString(","))
                         put("case", realCaseName)
                         put("conversation_id", openedGroupId.toString())
-                        // ---------- 「这条群来自筛选结果」的显式证据 ----------
-                        put("opened_from_filtered_list", true)
-                        putJsonArray("filtered_group_ids_before_open") {
+                        // ---------- 「这条群来自生产 by-type 查询」的显式证据 ----------
+                        put("opened_from_type_filtered_query", true)
+                        putJsonArray("type_filtered_group_ids_before_open") {
                             filteredGroupIds.forEach { add(JsonPrimitive(it)) }
                         }
                         put("opened_group_id", openedGroupId.toString())
                         put("opened_group_title", openedTitle)
-                        put("opened_via", "drawer:chip(群聊)→row(openedTitle)→navigateToChatPage→currentPage.id")
+                        put("opened_via", "dao:getUnfiledConversationsOfAssistantByType(GROUP)→drawer row(openedTitle)→navigateToChatPage→currentPage.id")
                         put("navigated_chat_id", navigatedId)
-                        put("filter_drawer_direct_a_count", filteredDirectACount)
-                        put("filter_drawer_direct_b_count", filteredDirectBCount)
-                        put("filter_drawer_groups_only", true)
+                        put("drawer_direct_a_count", drawerDirectACount)
+                        put("drawer_direct_b_count", drawerDirectBCount)
+                        put("drawer_unfiltered", true)
                         put("group_info_chip_visible_after_open", groupInfoChipVisible)
                         put("conversation_type", GroupChat.TYPE_GROUP)
                         put("mode", config.mode)
@@ -1146,7 +1006,7 @@ class C1GroupPagingAndFilterDeviceTest {
         }
     }
 
-    /** 左缘向右滑打开群聊页抽屉；等到 chip 行可见。 */
+    /** 左缘向右滑打开群聊页抽屉；等到会话列表锚点出现（判据不再依赖已删除的 chip 行）。 */
     private fun openDrawer() {
         compose.onRoot().performTouchInput {
             swipe(
@@ -1156,12 +1016,8 @@ class C1GroupPagingAndFilterDeviceTest {
             )
         }
         compose.waitUntil(WAIT_MS) {
-            compose.onAllNodesWithText(CHIP_ALL).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(DRAWER_LIST_TAG).fetchSemanticsNodes().isNotEmpty()
         }
-    }
-
-    private fun clickChip(label: String) {
-        compose.onNodeWithText(label).performClick()
     }
 
     /**
@@ -1199,10 +1055,7 @@ class C1GroupPagingAndFilterDeviceTest {
         .fetchSemanticsNodes()
         .size
 
-    private fun isReachableQuietly(list: SemanticsNodeInteraction, text: String): Boolean =
-        runCatching { list.performScrollToNode(hasText(text)) }.isSuccess
-
-    /** 抽屉列表作用域内是否存在「群」徽标节点（精确文本，chip 的「群聊」不算）。 */
+    /** 抽屉列表作用域内是否存在「群」徽标节点（精确文本；行内徽标，不是已删除的「群聊」chip）。 */
     private fun hasGroupBadgeNode(): Boolean =
         compose.onAllNodes(hasAnyAncestor(hasTestTag(DRAWER_LIST_TAG)) and hasText(GROUP_BADGE))
             .fetchSemanticsNodes()
@@ -1572,9 +1425,6 @@ class C1GroupPagingAndFilterDeviceTest {
         const val CHAT_INPUT_TAG = "chat_input"
         const val DRAWER_LIST_TAG = "drawer_conversation_list"
 
-        const val CHIP_ALL = "全部"
-        const val CHIP_DIRECT = "单聊"
-        const val CHIP_GROUP = "群聊"
         const val GROUP_BADGE = "群"
 
         /** 群聊页专有的群配置胶囊/副标题尾巴（`GroupInfoChip` / `GroupTopBar` 都含它）。 */
@@ -1585,7 +1435,6 @@ class C1GroupPagingAndFilterDeviceTest {
         const val DIRECT_A = "C1-R6 单聊甲"
         const val DIRECT_B = "C1-R6 单聊乙"
 
-        val FIXTURE_TITLES = listOf(GROUP_A, GROUP_B, DIRECT_A, DIRECT_B)
         const val GROUP_FIXTURE_COUNT = 2
 
         /** 分页夹具规模：25 群 + 30 单聊 = 55，跨过 initialLoadSize=40 与 pageSize=20。 */

@@ -64,12 +64,13 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeIconButtonVariant
 
-private const val ASK_USER_TOOL_NAME = "ask_user"
+internal const val ASK_USER_TOOL_NAME = "ask_user"
 
 @Composable
 fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool) {
     val loading = !tool.isFinished
-    ChainOfThoughtStep(
+    // 选项行（KedgeOptionItem）皮：与设置页那种圆角底块一致，见 ChainOfThoughtScope.OptionItemStep
+    OptionItemStep(
         icon = {
             if (loading) {
                 DotLoading(size = 10.dp)
@@ -77,7 +78,7 @@ fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool
                 Icon(
                     imageVector = build,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(20.dp),
                     tint = LocalContentColor.current.copy(alpha = 0.7f),
                 )
             }
@@ -136,7 +137,9 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
     // 摘要由注册的渲染器决定; 图片输出与拒绝原因为所有工具通用
     val hasExtraContent = renderer.hasSummary(context) || isDenied || images.isNotEmpty()
 
-    ControlledChainOfThoughtStep(
+    // 「调用工具」这一行用 KedgeOptionItem 的皮（圆角底块 + 左图标），
+    // 时间线/展开内容/批准按钮全部原样保留。
+    ControlledOptionItemStep(
         expanded = expanded,
         onExpandedChange = { expanded = it },
         icon = {
@@ -148,7 +151,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                 Icon(
                     imageVector = renderer.icon(context),
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(20.dp),
                     tint = LocalContentColor.current.copy(alpha = 0.7f)
                 )
             }

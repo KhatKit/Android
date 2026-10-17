@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import android.net.Uri
@@ -598,6 +599,8 @@ internal fun ChatScaffold(
                         }
                         inputState.clearInput()
                     },
+                    // 长按发送键但没配语音识别模型 → 弹「去配置」→ 跳到语音设置页
+                    onConfigureVoice = { navController.navigate(Screen.SettingSpeech) },
                     onUpdateAssistant = {
                         vm.updateSettings(
                             setting.copy(
@@ -1076,10 +1079,18 @@ private fun TopBar(
         title = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
         subtitle = topBarModel?.displayName,
         titleContent = {
-            // 输入框与标题共用同一个字阶 token（displayTitle）：输入框是**替换**
-            // 标题，字号字色必须严格相等。标题 28sp 而输入框另取一档（此前取
-            // topBarTitle 22sp）就是「大小不一样」的来源。
-            val titleStyle = KedgeTextStyles.displayTitle()
+            // 输入框与标题共用同一个字阶：输入框是**替换**标题，两边字号必须严格相等。
+            //
+            // MD3 下**不覆盖**字阶，直接用栏内默认：LargeFlexibleTopAppBar 的标题槽
+            // 自带行字阶（展开 displaySmall / 收起 titleLarge，见 AppBar.kt 的
+            // TwoRowsTopAppBar）。此前显式给 displayTitle，等于把标题钉死在 28sp，
+            // 收起时不再换档 —— 看着就不是系统默认的大标题栏。
+            // Miuix 的自绘栏不下发行字阶，仍取 title3。
+            val titleStyle = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                KedgeTextStyles.displayTitle()
+            } else {
+                LocalTextStyle.current
+            }
             // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行：
             // 收起态小标题行是 titleLarge，展开态大标题行是 displaySmall
             // （material3 AppBar.kt 的 TwoRowsTopAppBar 传的就是这两个 token）。

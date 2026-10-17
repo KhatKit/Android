@@ -13,9 +13,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.kedge.adaptive.KedgeLargeTopAppBar
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
+
+/**
+ * 顶栏底色与滚动的联动：静止态 = 本页底色，折叠/滚动后才渐变到 topBarColors 的
+ * scrolledContainerColor（surfaceContainer）。
+ *
+ * M3 自己就会按 `collapsedFraction` 在 `containerColor` 与 `scrolledContainerColor`
+ * 之间插值（`AppBar.kt` 的 `TopAppBarColors.containerColor(fraction)`，缓动
+ * `FastOutLinearInEasing`），但 [CustomColors.topBarColors] 此前把两色都设成同一支
+ * surfaceContainer，插值等于空转 —— 表现就是「顶栏永远一个颜色，跟下面的滚动无关」。
+ * 这里只把**静止态**换成页面底色（MD3 下即 surface，与 Scaffold 的 containerColor
+ * 同色），滚动语义交给 M3，顶栏因此静止时与内容连成一片、内容被顶起才浮出色块。
+ *
+ * [scrollBehavior] 为 null 的页面（压根不折叠、`collapsedFraction` 恒为 0）原样返回：
+ * 那里不存在「滚动后」这个状态，顶栏必须始终自带颜色，否则会与页面同色而「消失」。
+ */
+@Composable
+internal fun scrollLinkedTopBarColors(
+    colors: TopAppBarColors,
+    scrollBehavior: TopAppBarScrollBehavior?,
+): TopAppBarColors =
+    if (scrollBehavior != null && LocalKedgeStyle.current != KedgeStyle.Miuix) {
+        colors.copy(containerColor = CustomColors.pageContainerColor)
+    } else {
+        colors
+    }
 
 /**
  * 页面大标题栏要挂的滚动连接：**只在 MD3Exp 下挂**，Miuix 下返回空 Modifier。
@@ -98,7 +124,7 @@ fun KedgePageLargeTopBar(
             navigationIcon = navigationIcon,
             actions = actions,
             scrollBehavior = scrollBehavior,
-            colors = colors,
+            colors = scrollLinkedTopBarColors(colors, scrollBehavior),
         )
     }
 }
@@ -137,7 +163,7 @@ fun KedgePageMediumTopBar(
             navigationIcon = navigationIcon,
             actions = actions,
             scrollBehavior = scrollBehavior,
-            colors = colors,
+            colors = scrollLinkedTopBarColors(colors, scrollBehavior),
         )
     }
 }
@@ -171,7 +197,7 @@ fun KedgePageTopBar(
             navigationIcon = navigationIcon,
             actions = actions,
             scrollBehavior = scrollBehavior,
-            colors = colors,
+            colors = scrollLinkedTopBarColors(colors, scrollBehavior),
         )
     }
 }

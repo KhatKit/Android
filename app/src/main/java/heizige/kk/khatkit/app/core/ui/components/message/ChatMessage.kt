@@ -397,13 +397,20 @@ private fun MessagePartsBlock(
             }
             is MessagePartBlock.ThinkingBlock -> {
                 if (block.steps.isNotEmpty()) {
-                    val isReasoningOnlyBlock = block.steps.fastAll { it is ThinkingStep.ReasoningStep }
+                    // 全是圆角底块（推理 / 工具调用）时不要卡片底：连时间线槽与内边距一起去掉，
+                    // 让 OptionItem 底块直接铺满消息宽度（见 ChainOfThought.showTimeline）
+                    val isOptionItemOnlyBlock = block.steps.fastAll { it.usesOptionItemStyle() }
+                    val hasOptionItemStep = block.steps.any { it.usesOptionItemStyle() }
                     ChainOfThought(
                         modifier = Modifier.animateContentSize(),
                         steps = block.steps,
-                        collapsedAdaptiveWidth = isReasoningOnlyBlock,
+                        showTimeline = !isOptionItemOnlyBlock,
                         cardColors = CardDefaults.cardColors(
-                            containerColor = KedgeColors.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                            containerColor = if (hasOptionItemStep) {
+                                Color.Transparent
+                            } else {
+                                KedgeColors.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity)
+                            },
                         ),
                     ) { step ->
                         when (step) {
@@ -413,7 +420,6 @@ private fun MessagePartsBlock(
                                         reasoning = step.reasoning,
                                         model = model,
                                         assistant = assistant,
-                                        collapsedAdaptiveWidth = isReasoningOnlyBlock,
                                     )
                                 }
                             }

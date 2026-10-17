@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import heizige.kk.khromia.components.AnimatedRadioItem
-import heizige.kk.khromia.components.ExpandableOptionItem
 import heizige.kk.khromia.components.FancySlider
 import heizige.kk.khromia.text.OptionsText
 import android.content.ClipData
@@ -33,7 +32,6 @@ import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.kedge.components.KedgeSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import androidx.compose.material3.Text
@@ -68,6 +66,8 @@ import kotlinx.serialization.json.Json
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
@@ -269,15 +269,13 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_amoled_dark_mode_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_amoled_dark_mode_desc)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = amoledDarkMode,
-                                onCheckedChange = { amoledDarkMode = it }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_amoled_dark_mode_title,
+                            R.string.setting_display_page_amoled_dark_mode_desc,
+                            checked = amoledDarkMode,
+                            onCheckedChange = { amoledDarkMode = it },
+                        )
                     )
                 }
             }
@@ -312,17 +310,17 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
 
             item {
                 // 毛玻璃开关：MD3 顶栏不做模糊，但该设置对 Miuix 生效，保留可改。
+                // 走 settingItem(SwitchSetting) 而不是手写 trailing：整行可点等价于点开关。
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_page_blur_title)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = khatKitProvider.enableBlur,
-                                onCheckedChange = { khatKitProvider.enableBlur = it },
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_page_blur_title,
+                            null,
+                            checked = khatKitProvider.enableBlur,
+                            onCheckedChange = { khatKitProvider.enableBlur = it },
+                        )
                     )
                 }
             }
@@ -821,9 +819,14 @@ private fun ColorPickerRow(
     }
 }
 
+// ---------------------------------------------------------------------------
+// HSL 文本解析/格式化：MD3 与 Miuix 两个主题页共用的同一份实现（internal，不新增对外 API）。
+// 原 Miuix 主题页里逐字镜像的「HSL 数字正则 + 解析 + 百分比归一 + 格式化」整套已删除。
+// ---------------------------------------------------------------------------
+
 private val hslNumberRegex = Regex("""[-+]?\d*\.?\d+""")
 
-private fun parseHslCode(value: String): FloatArray? {
+internal fun parseHslCode(value: String): FloatArray? {
     val values = buildList {
         for (match in hslNumberRegex.findAll(value)) {
             add(match.value.toFloatOrNull() ?: return null)
@@ -840,7 +843,7 @@ private fun parseHslCode(value: String): FloatArray? {
     return floatArrayOf(hue, saturation, lightness)
 }
 
-private fun parseHslPercentOrFraction(value: Float): Float? {
+internal fun parseHslPercentOrFraction(value: Float): Float? {
     if (!value.isFinite()) return null
     return if (value > 1f) {
         (value / 100f).coerceIn(0f, 1f)
@@ -849,7 +852,7 @@ private fun parseHslPercentOrFraction(value: Float): Float? {
     }
 }
 
-private fun formatHslCode(hue: Float, saturation: Float, lightness: Float): String {
+internal fun formatHslCode(hue: Float, saturation: Float, lightness: Float): String {
     return "hsl(${hue.roundToInt()} ${(saturation * 100).roundToInt()}% ${(lightness * 100).roundToInt()}%)"
 }
 

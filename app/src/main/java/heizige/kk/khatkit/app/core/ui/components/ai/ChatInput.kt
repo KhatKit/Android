@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -64,7 +65,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -231,6 +231,8 @@ fun ChatInput(
     onCancelClick: () -> Unit,
     onSendClick: () -> Unit,
     onLongSendClick: () -> Unit,
+    /** 长按发送键但未配置语音识别模型时，点「去配置」跳到语音设置页。 */
+    onConfigureVoice: () -> Unit = {},
     messageQueue: MessageQueueState = MessageQueueState(),
     onRemoveQueuedMessage: (Uuid) -> Unit = {},
     onBeginEditQueuedMessage: (Uuid) -> QueuedMessage? = { null },
@@ -392,6 +394,31 @@ fun ChatInput(
     LaunchedEffect(asrState.errorMessage) {
         asrState.errorMessage?.takeIf { it.isNotBlank() }?.let { message ->
             Toast.show(message = message, isError = true)
+        }
+    }
+
+    val asrConfigureHint = stringResource(R.string.chat_page_voice_configure_asr)
+    // 未配置语音识别模型的提示弹层（长按发送键时弹出）
+    var asrSetupSheetVisible by remember { mutableStateOf(false) }
+
+    /**
+     * 长按发送键 = 语音输入（语音转文字填进输入框）。
+     * 没配语音识别模型（[ASRState.isAvailable] == false）时不进录音，只弹「去配置」提示。
+     */
+    fun startVoiceInput() {
+        if (asrState.isRecording) return
+        if (!asrState.isAvailable) {
+            asrSetupSheetVisible = true
+            return
+        }
+        if (!asrPermission.allRequiredPermissionsGranted) {
+            asrPermission.requestPermissions()
+            return
+        }
+        asrBaseText = state.textContent.text.toString()
+        asr.start { transcript ->
+            val spacer = if (asrBaseText.isBlank() || transcript.isBlank()) "" else " "
+            state.setMessageText(asrBaseText + spacer + transcript)
         }
     }
 
@@ -744,15 +771,9 @@ fun ChatInput(
                 }
             }
 
-            // 语音输入 / 发送 二合一的 FAB（和输入框同高，按状态动画切换）
-            val imeVisible = WindowInsets.isImeVisible
-            val showSend = !asrState.isRecording &&
-                (imeVisible || loading || !asrState.isAvailable)
-            val fabState = when {
-                asrState.isRecording -> FabState.Recording
-                showSend || !asrState.isAvailable -> FabState.Send
-                else -> FabState.Mic
-            }
+            // 发送 FAB：图标恒为「发送」（不再按输入框空/满、键盘显隐切成麦克风），
+            // 长按 = 语音输入，录音中变成「停止」。
+            val fabState = if (asrState.isRecording) FabState.Recording else FabState.Send
             Spacer(Modifier.width(((1f - easedProgress()) * 8f).dp))
             Box(
                 modifier = Modifier.layout { measurable, constraints ->
@@ -770,18 +791,6 @@ fun ChatInput(
                     when (fabState) {
                         FabState.Recording -> asr.stop()
                         FabState.Send -> sendMessage()
-                        FabState.Mic -> {
-                            if (!asrPermission.allRequiredPermissionsGranted) {
-                                asrPermission.requestPermissions()
-                            } else {
-                                asrBaseText = state.textContent.text.toString()
-                                asr.start { transcript ->
-                                    val spacer =
-                                        if (asrBaseText.isBlank() || transcript.isBlank()) "" else " "
-                                    state.setMessageText(asrBaseText + spacer + transcript)
-                                }
-                            }
-                        }
                     }
                 },
                 modifier = Modifier
@@ -792,16 +801,18 @@ fun ChatInput(
                         scaleX = 1f - 0.2f * progress
                         scaleY = 1f - 0.2f * progress
                         alpha = 1f - progress
-                    },
+                    }
+                    // KedgeFloatingActionButton 内部（MD3 与 Miuix 都是）只有 clickable，
+                    // 没有 onLongClick 入口，所以长按在 Initial pass 上自行判定：
+                    // 事件只观察不消费 ⇒ 短按仍走按钮自己的 onClick。
+                    .longPressOnly { startVoiceInput() },
                 containerColor = when (fabState) {
                     FabState.Recording -> KedgeColors.errorContainer
                     FabState.Send -> KedgeColors.primary
-                    FabState.Mic -> KedgeColors.secondaryContainer
                 },
                 contentColor = when (fabState) {
                     FabState.Recording -> KedgeColors.onErrorContainer
                     FabState.Send -> KedgeColors.onPrimary
-                    FabState.Mic -> KedgeColors.onSecondaryContainer
                 },
             ) {
                 AnimatedContent(
@@ -815,9 +826,11 @@ fun ChatInput(
                         imageVector = when (fab) {
                             FabState.Recording -> close
                             FabState.Send -> arrowUpward
-                            FabState.Mic -> mic
                         },
-                        contentDescription = null,
+                        contentDescription = when (fab) {
+                            FabState.Recording -> stringResource(R.string.asr_button_stop)
+                            FabState.Send -> stringResource(R.string.send)
+                        },
                     )
                 }
             }
@@ -825,6 +838,21 @@ fun ChatInput(
             }
 
         }
+    }
+
+    // 长按发送键但没配语音识别模型：只提示去配置，不进录音
+    if (asrSetupSheetVisible) {
+        PrimaryBottomSheet(
+            visible = true,
+            title = asrConfigureHint,
+            imageVector = mic,
+            confirmText = stringResource(R.string.setting_page_config),
+            onConfirm = {
+                asrSetupSheetVisible = false
+                onConfigureVoice()
+            },
+            onDismiss = { asrSetupSheetVisible = false },
+        ) { _ -> }
     }
 
     if (permissionSheetVisible) {
@@ -840,6 +868,34 @@ fun ChatInput(
     }
 
 
+}
+
+/**
+ * 「只加长按」的手势：按下超过系统长按时长触发 [onLongPress]，没到时长就抬手则完全不干预。
+ *
+ * 用在 [KedgeFloatingActionButton] 上（MD3 的 FAB 与 Miuix 的 FAB 内部都只有 clickable，
+ * 没有 onLongClick 入口）：事件在 Initial pass 上只观察不消费 ⇒ 按钮自己的 clickable 照常
+ * 收到事件、短按该触发什么就触发什么；一旦判定成长按，再把后续事件消费掉，抑制抬手时
+ * 按钮补发的 onClick（否则长按会「开始录音 + 顺手把消息发出去」）。
+ */
+private fun Modifier.longPressOnly(onLongPress: () -> Unit): Modifier = this.pointerInput(onLongPress) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        val releasedEarly = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                if (event.changes.none { it.pressed }) break
+            }
+        }
+        if (releasedEarly == null) {
+            onLongPress()
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                event.changes.forEach { it.consume() }
+                if (event.changes.none { it.pressed }) break
+            }
+        }
+    }
 }
 
 @Composable
@@ -1739,7 +1795,7 @@ private fun PanelAction(
     }
 }
 
-private enum class FabState { Mic, Send, Recording }
+private enum class FabState { Send, Recording }
 
 /**
  * FLB（手风琴面板 + 全屏编辑器）共用的落定曲线：

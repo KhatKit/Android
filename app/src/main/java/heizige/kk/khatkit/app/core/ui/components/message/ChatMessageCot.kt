@@ -27,6 +27,18 @@ sealed interface ThinkingStep {
 }
 
 /**
+ * 该步骤是否走 `ChainOfThoughtScope.OptionItemStep` 的「圆角底块」形态（KedgeOptionItem）。
+ *
+ * 全是圆角底块的块据此判断能否去掉卡片底与时间线槽，让底块直接铺满消息宽度；
+ * `ask_user` 是交互表单（走裸行 + 输入框），不参与该形态。
+ */
+fun ThinkingStep.usesOptionItemStyle(): Boolean = when (this) {
+    is ThinkingStep.ReasoningStep -> true
+    is ThinkingStep.ServerToolStep -> true
+    is ThinkingStep.ToolStep -> tool.toolName != ASK_USER_TOOL_NAME
+}
+
+/**
  * 消息部分块类型，用于保持渲染顺序
  */
 sealed interface MessagePartBlock {

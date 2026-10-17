@@ -82,7 +82,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
         scope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    importCustomChatFontInternal(context, uri)
+                    importCustomChatFont(context, uri)
                 }
             }.onSuccess { importedFont ->
                 updateDisplaySetting(
@@ -127,7 +127,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                 selectedOption = displaySetting.chatFontFamily,
                                 onOptionSelected = { family ->
                                     if (family == ChatFontFamily.CUSTOM && displaySetting.chatCustomFontPath.isBlank()) {
-                                        fontPickerLauncher.launch(CustomFontMimeTypesUI)
+                                        fontPickerLauncher.launch(CustomFontMimeTypes)
                                     } else {
                                         updateDisplaySetting(displaySetting.copy(chatFontFamily = family))
                                     }
@@ -135,7 +135,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                 modifier = Modifier
                                     .padding(top = 4.dp)
                                     .fillMaxWidth(),
-                                optionToString = { it.labelUI() },
+                                optionToString = { it.label() },
                                 optionLeading = { family ->
                                     Text(
                                         text = "Aa",
@@ -159,7 +159,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                         trailingContent = {
                             Row {
                                 KedgeIconButton(
-                                    onClick = { fontPickerLauncher.launch(CustomFontMimeTypesUI) },
+                                    onClick = { fontPickerLauncher.launch(CustomFontMimeTypes) },
                                     shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     Icon(
@@ -172,7 +172,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                 if (displaySetting.chatCustomFontPath.isNotBlank()) {
                                     KedgeIconButton(
                                         onClick = {
-                                            deleteCustomChatFontInternal(context, displaySetting.chatCustomFontPath)
+                                            deleteCustomChatFont(context, displaySetting.chatCustomFontPath)
                                             updateDisplaySetting(
                                                 displaySetting.copy(
                                                     chatFontFamily = ChatFontFamily.DEFAULT,
@@ -231,7 +231,15 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
     }
 }
 
-private val CustomFontMimeTypesUI = arrayOf(
+// ---------------------------------------------------------------------------
+// 自定义聊天字体：MD3 与 Miuix 两个设置页共用的同一份实现（internal，不新增对外 API）。
+// 原 Miuix 字体页里逐字镜像的 MIME 表 / 扩展名集合 / ImportedChatFont / 导入 / 删除 / 标签
+// 六件套已删除，两页共用本文件的这份实现。
+// 落盘契约不变：目录 filesDir/<FileFolders.FONTS>、文件名 chat_font.<时间戳>.<扩展名>、
+// 写回 DisplaySetting.chatCustomFontPath / chatCustomFontName。
+// ---------------------------------------------------------------------------
+
+internal val CustomFontMimeTypes = arrayOf(
     "font/*",
     "application/x-font-ttf",
     "application/x-font-otf",
@@ -240,15 +248,16 @@ private val CustomFontMimeTypesUI = arrayOf(
     "*/*",
 )
 
-private val CustomFontExtensionsUI = setOf("ttf", "otf", "ttc")
+internal val CustomFontExtensions = setOf("ttf", "otf", "ttc")
 
-private data class ImportedChatFontUI(
+internal data class ImportedChatFont(
     val relativePath: String,
     val displayName: String,
 )
 
+/** 字体族标签：默认 / 衬线 / 等宽 / 自定义，两风格同键同义。 */
 @Composable
-private fun ChatFontFamily.labelUI(): String = when (this) {
+internal fun ChatFontFamily.label(): String = when (this) {
     ChatFontFamily.DEFAULT -> stringResource(R.string.setting_display_page_chat_font_family_default)
     ChatFontFamily.SERIF -> stringResource(R.string.setting_display_page_chat_font_family_serif)
     ChatFontFamily.MONOSPACE -> stringResource(R.string.setting_display_page_chat_font_family_monospace)
@@ -262,11 +271,11 @@ private fun ChatFontFamily.toFontFamilyUI(customFontFamily: FontFamily): FontFam
     ChatFontFamily.CUSTOM -> customFontFamily
 }
 
-private fun importCustomChatFontInternal(context: Context, uri: Uri): ImportedChatFontUI {
+internal fun importCustomChatFont(context: Context, uri: Uri): ImportedChatFont {
     val displayName = FileUtils.getFileNameFromUri(context, uri)?.takeIf { it.isNotBlank() } ?: "custom_font"
     val extension = displayName.substringAfterLast('.', "")
         .lowercase()
-        .takeIf { it in CustomFontExtensionsUI }
+        .takeIf { it in CustomFontExtensions }
         ?: "ttf"
     val fontDir = File(context.filesDir, FileFolders.FONTS).apply { mkdirs() }
     val targetFile = File(fontDir, "chat_font.${System.currentTimeMillis()}.$extension")
@@ -280,13 +289,14 @@ private fun importCustomChatFontInternal(context: Context, uri: Uri): ImportedCh
             }
         } ?: error("Unable to open selected font")
 
+        // 只有能被 Typeface 解析的文件才允许落盘
         runCatching {
             Typeface.createFromFile(tempFile)
         }.onFailure { error ->
             throw IllegalArgumentException(error.message ?: "Invalid font file", error)
         }
 
-        replaceCustomChatFontInternal(fontDir, tempFile, targetFile)
+        replaceCustomChatFont(fontDir, tempFile, targetFile)
     } catch (error: Throwable) {
         tempFile.delete()
         throw error
@@ -294,10 +304,11 @@ private fun importCustomChatFontInternal(context: Context, uri: Uri): ImportedCh
 
     val relativePath = FileUtils.getRelativePathInFilesDir(context.filesDir, targetFile)
         ?: "${FileFolders.FONTS}/${targetFile.name}"
-    return ImportedChatFontUI(relativePath = relativePath, displayName = displayName)
+    return ImportedChatFont(relativePath = relativePath, displayName = displayName)
 }
 
-private fun replaceCustomChatFontInternal(fontDir: File, tempFile: File, targetFile: File) {
+/** 替换语义：旧的 chat_font.* 先备份，替换成功后再删备份；失败回滚，旧字体不丢。 */
+internal fun replaceCustomChatFont(fontDir: File, tempFile: File, targetFile: File) {
     val existingFiles = fontDir.listFiles { file ->
         file.isFile && file.name.startsWith("chat_font.") && file != tempFile
     }?.toList().orEmpty()
@@ -322,7 +333,8 @@ private fun replaceCustomChatFontInternal(fontDir: File, tempFile: File, targetF
     }
 }
 
-private fun deleteCustomChatFontInternal(context: Context, relativePath: String) {
+/** 只删 filesDir 之内的那个文件。 */
+internal fun deleteCustomChatFont(context: Context, relativePath: String) {
     val filesDir = runCatching { context.filesDir.canonicalFile }.getOrNull() ?: return
     val fontFile = runCatching { File(filesDir, relativePath).canonicalFile }.getOrNull() ?: return
     if (fontFile.path.startsWith("${filesDir.path}${File.separator}")) {

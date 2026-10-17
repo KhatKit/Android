@@ -435,8 +435,14 @@ private fun ExploreSearchTopBar(
             scrollBehavior = scrollBehavior,
             colors = CustomColors.topBarColors,
             titleContent = {
-                // 标题与输入框共用同一个字阶 token
-                val titleStyle = KedgeTextStyles.displayTitle()
+                // 标题与输入框共用同一个字阶：MD3 下不覆盖，沿用栏内行字阶
+                // （展开 displaySmall / 收起 titleLarge）；Miuix 自绘栏不下发行字阶，
+                // 仍取 title3。理由同 ChatPage：显式覆盖会把标题钉死在一档。
+                val titleStyle = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                    KedgeTextStyles.displayTitle()
+                } else {
+                    LocalTextStyle.current
+                }
                 // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行
                 val isLargeTitleRow = LocalTextStyle.current.fontSize >
                     MaterialTheme.typography.titleLarge.fontSize

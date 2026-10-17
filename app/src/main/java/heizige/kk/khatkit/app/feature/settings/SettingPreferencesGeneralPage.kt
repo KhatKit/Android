@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khromia.components.FancySlider
-import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
@@ -80,14 +79,13 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_create_new_conversation_on_start_title)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = createNewConversationOnStart,
-                                onCheckedChange = { createNewConversationOnStart = it }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_create_new_conversation_on_start_title,
+                            null,
+                            checked = createNewConversationOnStart,
+                            onCheckedChange = { createNewConversationOnStart = it },
+                        )
                     )
                     settingItem(
                         SwitchSetting(
@@ -123,16 +121,15 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableAutoScroll = it)) },
                         )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_use_app_icon_style_loading_indicator_title)) },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = displaySetting.useAppIconStyleLoadingIndicator,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(useAppIconStyleLoadingIndicator = it))
-                                }
-                            )
-                        },
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_use_app_icon_style_loading_indicator_title,
+                            null,
+                            checked = displaySetting.useAppIconStyleLoadingIndicator,
+                            onCheckedChange = {
+                                updateDisplaySetting(displaySetting.copy(useAppIconStyleLoadingIndicator = it))
+                            },
+                        )
                     )
                     settingItem(
                         SwitchSetting(

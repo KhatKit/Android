@@ -197,14 +197,15 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
     model: Model?,
     assistant: Assistant?,
     fadeHeight: Float = 64f,
-    collapsedAdaptiveWidth: Boolean = false,
 ) {
     val (state, loading) = rememberReasoningState(reasoning)
     val thinkingTitle = reasoning.reasoning.extractThinkingTitle()
     val showThinkingTitle = loading && thinkingTitle != null
     val chatFontFamily = LocalTextStyle.current.fontFamily
 
-    ControlledChainOfThoughtStep(
+    // 与工具调用行同一套皮：圆角底块（左图标 + 标题 + 可点击展开），
+    // 展开/折叠由尾部上下箭头表达（见 ChainOfThoughtScope.OptionItemStep）。
+    ControlledOptionItemStep(
         expanded = state.expandState == ReasoningCardState.Expanded,
         onExpandedChange = { state.onExpandedChange(it, loading) },
         icon = {
@@ -240,7 +241,6 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
                 )
             }
         },
-        collapsedAdaptiveWidth = collapsedAdaptiveWidth,
         contentVisible = state.expandState != ReasoningCardState.Collapsed,
         content = {
             ReasoningContent(

@@ -571,14 +571,14 @@ private fun MiuixColorPickerRow(
     var hue by remember(color) { mutableFloatStateOf(hsl[0]) }
     var saturation by remember(color) { mutableFloatStateOf(hsl[1]) }
     var lightness by remember(color) { mutableFloatStateOf(hsl[2]) }
-    var hslCode by remember(color) { mutableStateOf(formatMiuixHslCode(hsl[0], hsl[1], hsl[2])) }
+    var hslCode by remember(color) { mutableStateOf(formatHslCode(hsl[0], hsl[1], hsl[2])) }
     var hslCodeError by remember(color) { mutableStateOf(false) }
 
     fun updateColor(newHue: Float, newSaturation: Float, newLightness: Float) {
         hue = newHue
         saturation = newSaturation
         lightness = newLightness
-        hslCode = formatMiuixHslCode(newHue, newSaturation, newLightness)
+        hslCode = formatHslCode(newHue, newSaturation, newLightness)
         hslCodeError = false
         onColorChange(Color(ColorUtils.HSLToColor(floatArrayOf(newHue, newSaturation, newLightness))))
     }
@@ -638,7 +638,7 @@ private fun MiuixColorPickerRow(
             value = hslCode,
             onValueChange = { value ->
                 hslCode = value
-                val parsedHsl = parseMiuixHslCode(value)
+                val parsedHsl = parseHslCode(value)
                 hslCodeError = parsedHsl == null
                 if (parsedHsl != null) {
                     hue = parsedHsl[0]
@@ -662,37 +662,8 @@ private fun MiuixColorPickerRow(
     }
 }
 
-private val miuixHslNumberRegex = Regex("""[-+]?\d*\.?\d+""")
-
-private fun parseMiuixHslCode(value: String): FloatArray? {
-    val values = buildList {
-        for (match in miuixHslNumberRegex.findAll(value)) {
-            add(match.value.toFloatOrNull() ?: return null)
-            if (size == 3) break
-        }
-    }
-
-    if (values.size != 3) return null
-
-    val hue = values[0].coerceIn(0f, 360f)
-    val saturation = parseMiuixHslPercentOrFraction(values[1]) ?: return null
-    val lightness = parseMiuixHslPercentOrFraction(values[2]) ?: return null
-
-    return floatArrayOf(hue, saturation, lightness)
-}
-
-private fun parseMiuixHslPercentOrFraction(value: Float): Float? {
-    if (!value.isFinite()) return null
-    return if (value > 1f) {
-        (value / 100f).coerceIn(0f, 1f)
-    } else {
-        value.coerceIn(0f, 1f)
-    }
-}
-
-private fun formatMiuixHslCode(hue: Float, saturation: Float, lightness: Float): String {
-    return "hsl(${hue.roundToInt()} ${(saturation * 100).roundToInt()}% ${(lightness * 100).roundToInt()}%)"
-}
+// HSL 文本解析/格式化（parseHslCode / parseHslPercentOrFraction / formatHslCode）
+// 已与 MD3 版收敛为同一份实现，见 SettingPreferencesThemePage.kt 末尾的 internal 声明。
 
 /** 主题色预览（Miuix 版）。 */
 @Composable

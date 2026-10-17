@@ -49,12 +49,18 @@ import kotlin.uuid.Uuid
  * 背景：第九轮的 chip 过滤与成员头像组证据全部来自「adb 操作 + uiautomator dump
  * + 截图目视」。契约 `docs/beyond-operit-client-changes.md:206` 明文
  * 「不得仅凭 UI 截图勾选」，`:232-235` 又写「只看 UI 状态 → unverified」，
- * 所以那些永远不足以升级验收。本类把三件事变成**跑在被测 app 进程里的断言**：
+ * 所以那些永远不足以升级验收。本类把两件事变成**跑在被测 app 进程里的断言**：
  *
- * 1. `typeFilterChipsFilterWithoutLosingData` —— 筛选 chip 真按类型过滤、切回不丢；
- * 2. `groupMemberBarRendersOneAvatarPerRole` —— 成员头像组真的渲染且数量=角色数；
- * 3. `atMentionPickerInsertsParseableMention` —— `@` 选择器插入的文本能被生产
+ * 1. `groupMemberBarRendersOneAvatarPerRole` —— 成员头像组真的渲染且数量=角色数；
+ * 2. `atMentionPickerInsertsParseableMention` —— `@` 选择器插入的文本能被生产
  *    `GroupChat.parseMentions` 解析出正确 `role_id`。
+ *
+ * ⚠️ 2026-xx：第 3 条原本是 `typeFilterChipsFilterWithoutLosingData`（筛选 chip 真按
+ * 类型过滤、切回不丢）。抽屉的类型筛选 chip 行已按主人要求从 `ChatDrawer.kt` 删除，
+ * 该用例连同只服务于它的辅助（`openDrawer` / `assertReachable` / `countInDrawer` /
+ * `isReachableQuietly` / `DRAWER_LIST_TAG` / `CHIP_*`）一并删除。类型谓词本身没删，
+ * 覆盖改由 `C1GroupPagingAndFilterDeviceTest.pagingSource_typeFilterNarrowsWithinSql`
+ * （设备侧直打生产 DAO/PagingSource）与 JVM 的 `ConversationListQueryPlanTest` 承担。
  *
  * ## 为什么用 `createEmptyComposeRule` + 手动 `ActivityScenario.launch`
  *
@@ -69,18 +75,13 @@ import kotlin.uuid.Uuid
  * 复用其「固定 id + 幂等 seed 主库 + 真库读回」的思路，但**独立新文件、独立 id 段**
  * （`...f1xx`），不碰它一个字节。它写 `...e2xx`，两者互不影响。
  *
- * ## 反脆弱：过滤断言用「可达性」而不是「当时在不在屏幕上」
- *
- * LazyColumn 只组合视口内的项，「不可见」可能是懒加载也可能是真被过滤。所以过滤
- * 断言做成：先证明目标在旧列表里可达 → 切 chip → 等它从语义树消失 → 再试
- * `performScrollToNode` 找它，**必须失败**（若过滤失效，它会被滚出来，断言红）。
- *
  * ## 允许的生产代码改动（本轮只加语义、不加逻辑）
  *
- * - `GroupMemberBar.kt` 容器 `.testTag("group_member_bar")`；
- * - `ChatDrawer.kt` 会话列表 `.testTag("drawer_conversation_list")`。
+ * - `GroupMemberBar.kt` 容器 `.testTag("group_member_bar")`。
  *
- * 二者都只是定位锚点，不改布局/行为。
+ * 只是一个定位锚点，不改布局/行为。
+ * （原先还记着 `ChatDrawer.kt` 会话列表的 `drawer_conversation_list` 锚点 —— 该锚点仍在
+ * 生产代码里、也仍被 `C1GroupPagingAndFilterDeviceTest` 使用，但本类已不再引用它。）
  */
 @RunWith(AndroidJUnit4::class)
 class C1GroupFilterAndAvatarUiTest {
@@ -134,124 +135,6 @@ class C1GroupFilterAndAvatarUiTest {
         scenario?.close()
         scenario = null
         if (::database.isInitialized) database.close()
-    }
-
-    // ==================================================================
-    // 测 1：筛选 chip 真的按类型过滤 + 切回不丢数据
-    // ==================================================================
-
-    @Test
-    fun typeFilterChipsFilterWithoutLosingData() {
-        openGroupChat(groupAId)
-        openDrawer()
-
-        val list = compose.onNodeWithTag(DRAWER_LIST_TAG)
-
-        // ---------- 初始「全部」chips：4 条夹具会话（2 DIRECT + 2 GROUP）都可滚动到达 ----------
-        assertReachable(list, GROUP_A)
-        assertReachable(list, GROUP_B)
-        assertReachable(list, DIRECT_A)
-        assertReachable(list, DIRECT_B)
-
-        // ---------- 切「单聊」：群条目必须不可达，单聊必须可达 ----------
-        // 先让群条目在旧列表里处于组合状态，这样「消失」才是过滤生效的真信号。
-        list.performScrollToNode(hasText(GROUP_A))
-        compose.onNodeWithText(CHIP_DIRECT).performClick()
-        compose.waitUntil(WAIT_MS) { !isReachableQuietly(list, GROUP_A) }
-
-        assertFalse(
-            "「单聊」筛选下群条目必须无法滚动到达（可达=过滤失效）",
-            isReachableQuietly(list, GROUP_A),
-        )
-        assertFalse(
-            "「单聊」筛选下群条目必须无法滚动到达（可达=过滤失效）",
-            isReachableQuietly(list, GROUP_B),
-        )
-        assertEquals(
-            "「单聊」筛选下抽屉列表里不得出现群条目（列表作用域计数）",
-            0,
-            countInDrawer(GROUP_A),
-        )
-        assertEquals(
-            "「单聊」筛选下抽屉列表里不得出现群条目（列表作用域计数）",
-            0,
-            countInDrawer(GROUP_B),
-        )
-        assertReachable(list, DIRECT_A)
-        assertReachable(list, DIRECT_B)
-        emit(
-            "filter",
-            listOf(
-                "case=direct",
-                "group_a_reachable=false",
-                "group_b_reachable=false",
-                "direct_a_reachable=true",
-                "direct_b_reachable=true",
-            ),
-        )
-
-        // ---------- 切「群聊」：单聊必须不可达，群必须可达 ----------
-        list.performScrollToNode(hasText(DIRECT_A))
-        compose.onNodeWithText(CHIP_GROUP).performClick()
-        compose.waitUntil(WAIT_MS) { !isReachableQuietly(list, DIRECT_A) }
-
-        assertFalse(
-            "「群聊」筛选下单聊条目必须无法滚动到达（可达=过滤失效）",
-            isReachableQuietly(list, DIRECT_A),
-        )
-        assertFalse(
-            "「群聊」筛选下单聊条目必须无法滚动到达（可达=过滤失效）",
-            isReachableQuietly(list, DIRECT_B),
-        )
-        assertEquals(
-            "「群聊」筛选下抽屉列表里不得出现单聊条目（列表作用域计数）",
-            0,
-            countInDrawer(DIRECT_A),
-        )
-        assertEquals(
-            "「群聊」筛选下抽屉列表里不得出现单聊条目（列表作用域计数）",
-            0,
-            countInDrawer(DIRECT_B),
-        )
-        assertReachable(list, GROUP_A)
-        assertReachable(list, GROUP_B)
-
-        // ---------- 切回「全部」：4 条条目全部回来（与初始完全相同），且 DB 4 条都在 ----------
-        list.performScrollToNode(hasText(GROUP_A))
-        compose.onNodeWithText(CHIP_ALL).performClick()
-        compose.waitUntil(WAIT_MS) { isReachableQuietly(list, DIRECT_A) }
-
-        assertReachable(list, GROUP_A)
-        assertReachable(list, GROUP_B)
-        assertReachable(list, DIRECT_A)
-        assertReachable(list, DIRECT_B)
-
-        val dbState = runBlocking {
-            listOf(groupAId, groupBId, directAId, directBId).map { id ->
-                val c = repository.getConversationById(id)
-                assertNotNull("切回「全部」后会话 $id 必须仍在主库（筛选只过滤不删）", c)
-                "${c!!.title}=${c.type}"
-            }
-        }
-        assertEquals(
-            "DB 里 4 条夹具会话必须原样存在",
-            listOf(
-                "$GROUP_A=${GroupChat.TYPE_GROUP}",
-                "$GROUP_B=${GroupChat.TYPE_GROUP}",
-                "$DIRECT_A=${GroupChat.TYPE_DIRECT}",
-                "$DIRECT_B=${GroupChat.TYPE_DIRECT}",
-            ),
-            dbState,
-        )
-        emit(
-            "filter",
-            buildList {
-                add("case=switch_back_all")
-                add("fixture_rows_in_db=${dbState.size}")
-                dbState.forEach { add("db=$it") }
-                add("all_titles_reachable=true")
-            },
-        )
     }
 
     // ==================================================================
@@ -464,51 +347,6 @@ class C1GroupFilterAndAvatarUiTest {
         }
     }
 
-    /** 左缘向右滑，打开群聊页的 ModalNavigationDrawer；等到 chip 行可见。 */
-    private fun openDrawer() {
-        compose.onRoot().performTouchInput {
-            swipe(
-                start = Offset(1f, centerY),
-                end = Offset(width - 1f, centerY),
-                durationMillis = 250,
-            )
-        }
-        compose.waitUntil(WAIT_MS) {
-            compose.onAllNodesWithText(CHIP_ALL).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    // ==================================================================
-    // 断言工具
-    // ==================================================================
-
-    /**
-     * 在 lazy 列表上滚动到 [text] 对应节点并断言其在**抽屉列表作用域内**存在。
-     *
-     * 用生产列表的 ScrollToIndex 语义，屏幕外的条目也能找到——这正是「过滤」能被
-     * 真断言的前提：不可达 = 数据源里真的没有，而不是「没组合」。
-     *
-     * ⚠️ 必须限定 `hasAnyAncestor(drawer_conversation_list)`：群聊页顶栏标题也是
-     * 同一个会话标题，全树 `onNodeWithText` 会命中多个节点（实测 3 个）。
-     */
-    private fun assertReachable(list: SemanticsNodeInteraction, text: String) {
-        list.performScrollToNode(hasText(text))
-        assertTrue(
-            "抽屉列表里必须能滚动到条目「$text」",
-            countInDrawer(text) > 0,
-        )
-    }
-
-    /** 抽屉列表作用域内、文本恰为 [text] 的节点数。 */
-    private fun countInDrawer(text: String): Int = compose
-        .onAllNodes(hasAnyAncestor(hasTestTag(DRAWER_LIST_TAG)) and hasText(text))
-        .fetchSemanticsNodes()
-        .size
-
-    /** 不抛异常的版本，用于 waitUntil 与「必须不可达」断言。 */
-    private fun isReachableQuietly(list: SemanticsNodeInteraction, text: String): Boolean =
-        runCatching { list.performScrollToNode(hasText(text)) }.isSuccess
-
     /** 从输入框语义节点读回真实文本（EditableText），不是测试自己记的状态。 */
     private fun chatInputText(): String =
         compose.onNodeWithTag(CHAT_INPUT_TAG).fetchSemanticsNode()
@@ -555,11 +393,6 @@ class C1GroupFilterAndAvatarUiTest {
 
         const val CHAT_INPUT_TAG = "chat_input"
         const val MEMBER_BAR_TAG = "group_member_bar"
-        const val DRAWER_LIST_TAG = "drawer_conversation_list"
-
-        const val CHIP_ALL = "全部"
-        const val CHIP_DIRECT = "单聊"
-        const val CHIP_GROUP = "群聊"
 
         const val GROUP_A = "C1-R5 群聊甲"
         const val GROUP_B = "C1-R5 群聊乙"

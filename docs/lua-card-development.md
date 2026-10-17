@@ -8,7 +8,6 @@
 
 - `docs/script-api-reference.md`：脚本可用宿主接口清单（权威索引，测试强制同步）
 - `docs/triggers.md`：事件触发的最小说明（本文第 2.9、5 节已完整覆盖）
-- `docs/zenneko-cards.md`：内置极客猫平台卡片的接口清单（本文第 4 节给出写法）
 
 ---
 

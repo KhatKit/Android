@@ -47,7 +47,8 @@ import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.network.toProxyOrNull
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.kedge.theme.KedgeStyle
@@ -288,27 +289,21 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    item(
-                        headlineContent = {
-                            Text(stringResource(R.string.setting_page_preferences_network_auto_retry))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.setting_page_preferences_network_auto_retry_desc))
-                        },
-                        trailingContent = {
-                            OptionSwitch(
-                                checked = settings.networkSetting.enableAutoRetry,
-                                onCheckedChange = { enabled ->
-                                    vm.updateSettings(
-                                        settings.copy(
-                                            networkSetting = settings.networkSetting.copy(
-                                                enableAutoRetry = enabled,
-                                            ),
-                                        )
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_page_preferences_network_auto_retry,
+                            R.string.setting_page_preferences_network_auto_retry_desc,
+                            checked = settings.networkSetting.enableAutoRetry,
+                            onCheckedChange = { enabled ->
+                                vm.updateSettings(
+                                    settings.copy(
+                                        networkSetting = settings.networkSetting.copy(
+                                            enableAutoRetry = enabled,
+                                        ),
                                     )
-                                },
-                            )
-                        },
+                                )
+                            },
+                        )
                     )
                 }
             }

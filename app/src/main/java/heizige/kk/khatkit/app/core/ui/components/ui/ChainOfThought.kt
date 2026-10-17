@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.kedge.components.KedgeExpandableOptionItem
+import heizige.kk.kedge.components.KedgeOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +42,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
@@ -60,6 +62,10 @@ import heizige.kk.kedge.theme.KedgeTextStyles
  * @param steps 需要渲染的步骤数据列表
  * @param collapsedVisibleCount 折叠时保留可见的尾部步骤数
  * @param collapsedAdaptiveWidth 是否在折叠态下使用内容自适应宽度
+ * @param showTimeline 是否保留左侧 24dp 时间线槽与卡片内边距。
+ *   `true`（默认）是「思考链」形态：卡片底 + 时间线 + 缩进；
+ *   `false` 用于**纯工具调用块**——去掉时间线槽与内边距，让 `OptionItemStep`
+ *   直接铺满消息宽度（配合透明 `cardColors` 可完全去掉背景层）。
  * @param content 每个步骤的具体 UI，由 [ChainOfThoughtScope] 提供步骤构建能力
  */
 @Composable
@@ -71,6 +77,7 @@ fun <T> ChainOfThought(
     steps: List<T>,
     collapsedVisibleCount: Int = 2,
     collapsedAdaptiveWidth: Boolean = false,
+    showTimeline: Boolean = true,
     content: @Composable ChainOfThoughtScope.(T) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -81,10 +88,19 @@ fun <T> ChainOfThought(
         modifier = modifier,
         colors = cardColors,
         shape = RoundedCornerShape(16.dp),
+        // KedgeCard 默认 contentPadding/insideMargin = 16dp，链式形态靠它 + 下面
+        // 的 12dp 缩进凑出 28dp 左边距；无时间线形态必须归零，否则 item 铺不满宽度。
+        contentPadding = if (showTimeline) PaddingValues(16.dp) else PaddingValues(0.dp),
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .padding(
+                    if (showTimeline) {
+                        PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    } else {
+                        PaddingValues(horizontal = 0.dp, vertical = 4.dp)
+                    }
+                )
                 .animateContentSize(
                     animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 ),
@@ -97,6 +113,14 @@ fun <T> ChainOfThought(
 
             // 显示展开/折叠按钮（统一在顶部）
             if (canCollapse) {
+                val collapseIcon: @Composable () -> Unit = {
+                    Icon(
+                        imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = KedgeColors.primary,
+                    )
+                }
                 Row(
                     modifier = Modifier
                         .then(
@@ -111,22 +135,21 @@ fun <T> ChainOfThought(
                         .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // 左侧：图标区域（24.dp，和步骤图标对齐）
-                    Box(
-                        modifier = Modifier.width(24.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = KedgeColors.primary,
-                        )
+                    if (showTimeline) {
+                        // 左侧：图标区域（24.dp，和步骤图标对齐）
+                        Box(
+                            modifier = Modifier.width(24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            collapseIcon()
+                        }
+                    } else {
+                        collapseIcon()
                     }
 
                     // 右侧：文字区域（8.dp 间距后开始，和步骤 label 对齐）
                     Text(
-                        modifier = Modifier.padding(start = 8.dp),
+                        modifier = Modifier.padding(start = if (showTimeline) 8.dp else 6.dp),
                         text = if (expanded) {
                             stringResource(R.string.chain_of_thought_collapse)
                         } else {
@@ -148,11 +171,12 @@ fun <T> ChainOfThought(
                 visibleSteps.fastForEachIndexed { index, step ->
                     val isFirst = index == 0
                     val isLast = index == visibleSteps.lastIndex
-                    val scope = remember(isFirst, isLast, lineColor) {
+                    val scope = remember(isFirst, isLast, lineColor, showTimeline) {
                         ChainOfThoughtScopeImpl(
                             isFirst = isFirst,
                             isLast = isLast,
                             lineColor = lineColor,
+                            showTimeline = showTimeline,
                         )
                     }
                     scope.content(step)
@@ -216,12 +240,45 @@ interface ChainOfThoughtScope {
         contentVisible: Boolean = expanded,
         content: (@Composable () -> Unit)? = null,
     )
+
+    /**
+     * 声明一个**选项行（OptionItem）样式**的步骤：行的皮换成
+     * [KedgeOptionItem] 的圆角底块（左图标 + 标题 + 尾部，16dp 内边距、minHeight 56dp），
+     * 有内容可展开时再叠 [KedgeExpandableOptionItem] 的「点击整行切换 + 尾部旋转箭头 +
+     * 展开内容」。时间线、展开/折叠交互与普通步骤完全一致。
+     *
+     * 只给「调用工具」这类需要一眼看清是哪一行、且能点开的步骤用；推理步骤仍走
+     * [ChainOfThoughtStep] 的裸行。
+     */
+    @Composable
+    fun OptionItemStep(
+        icon: (@Composable () -> Unit)? = null,
+        label: (@Composable () -> Unit),
+        extra: (@Composable () -> Unit)? = null,
+        onClick: (() -> Unit)? = null,
+        content: (@Composable () -> Unit)? = null,
+    )
+
+    /** [OptionItemStep] 的受控版本，语义与 [ControlledChainOfThoughtStep] 一致。 */
+    @Composable
+    fun ControlledOptionItemStep(
+        expanded: Boolean,
+        onExpandedChange: (Boolean) -> Unit,
+        icon: (@Composable () -> Unit)? = null,
+        label: (@Composable () -> Unit),
+        extra: (@Composable () -> Unit)? = null,
+        onClick: (() -> Unit)? = null,
+        contentVisible: Boolean = expanded,
+        content: (@Composable () -> Unit)? = null,
+    )
 }
 
 private class ChainOfThoughtScopeImpl(
     private val isFirst: Boolean,
     private val isLast: Boolean,
     private val lineColor: Color,
+    /** 是否保留 24dp 时间线槽与连线；纯工具调用块为 false（见 [ChainOfThought.showTimeline]） */
+    private val showTimeline: Boolean = true,
 ) : ChainOfThoughtScope {
     @Composable
     override fun ChainOfThoughtStep(
@@ -272,6 +329,166 @@ private class ChainOfThoughtScopeImpl(
     }
 
     @Composable
+    override fun OptionItemStep(
+        icon: @Composable (() -> Unit)?,
+        label: @Composable () -> Unit,
+        extra: @Composable (() -> Unit)?,
+        onClick: (() -> Unit)?,
+        content: @Composable (() -> Unit)?
+    ) {
+        var expanded by remember { mutableStateOf(false) }
+        OptionItemStepContent(
+            icon = icon,
+            label = label,
+            extra = extra,
+            onClick = onClick,
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            contentVisible = expanded,
+            content = content,
+        )
+    }
+
+    @Composable
+    override fun ControlledOptionItemStep(
+        expanded: Boolean,
+        onExpandedChange: (Boolean) -> Unit,
+        icon: @Composable (() -> Unit)?,
+        label: @Composable () -> Unit,
+        extra: @Composable (() -> Unit)?,
+        onClick: (() -> Unit)?,
+        contentVisible: Boolean,
+        content: @Composable (() -> Unit)?
+    ) {
+        OptionItemStepContent(
+            icon = icon,
+            label = label,
+            extra = extra,
+            onClick = onClick,
+            expanded = expanded,
+            onExpandedChange = onExpandedChange,
+            contentVisible = contentVisible,
+            content = content,
+        )
+    }
+
+    /**
+     * 时间线的一段竖线：节点（20dp）上下各留 10dp 空隙，其余在 x = 12dp 处画 1dp 线。
+     *
+     * 只给**普通步骤**（槽里有圆点）用；选项行走 [optionItemTimelineLine]，但两条路径的
+     * 竖线位置与粗细必须一致（x = 12dp、1dp），否则同一张卡片里的线会错开。
+     */
+    private fun Modifier.timelineLine(): Modifier = drawBehind {
+        val x = 12.dp.toPx()
+        val centerY = size.height / 2
+        val gap = 10.dp.toPx()
+        val strokeWidth = 1.dp.toPx()
+        if (!isFirst) {
+            drawLine(
+                color = lineColor,
+                start = Offset(x, 0f),
+                end = Offset(x, centerY - gap),
+                strokeWidth = strokeWidth,
+            )
+        }
+        if (!isLast) {
+            drawLine(
+                color = lineColor,
+                start = Offset(x, centerY + gap),
+                end = Offset(x, size.height),
+                strokeWidth = strokeWidth,
+            )
+        }
+    }
+
+    /**
+     * 选项行专用的时间线：与 [timelineLine] 同一位置（x = 12dp）、同一粗细，但**不留断口**。
+     *
+     * [timelineLine] 会在节点高度的一半处留 20dp 给圆点；选项行的槽里**没有**圆点
+     * （图标搬进了底块），而且展开内容是这一块的一部分，竖线得跟着长高 —— 按 [timelineLine]
+     * 那种「取整块中心」的画法，展开后断口会跟着中心跑到展开内容里去。所以这里直接画满
+     * 整个步骤高度，只有上下都没有邻居的单步不画。
+     *
+     * 首/末块各让开外层的 4dp 竖直内边距，免得竖线从卡片内边距里探出来。
+     */
+    private fun Modifier.optionItemTimelineLine(): Modifier = drawBehind {
+        if (isFirst && isLast) return@drawBehind
+        val inset = 4.dp.toPx()
+        val x = 12.dp.toPx()
+        drawLine(
+            color = lineColor,
+            start = Offset(x, if (isFirst) inset else 0f),
+            end = Offset(x, if (isLast) size.height - inset else size.height),
+            strokeWidth = 1.dp.toPx(),
+        )
+    }
+
+    /**
+     * 选项行（[KedgeExpandableOptionItem]）版步骤的渲染。
+     *
+     * 与 [ChainOfThoughtStepContent] 的两点差异，都是「块」形态逼出来的：
+     * 1. 左侧仍留 24dp 的**空**时间线槽（图标搬进底块的 leadingContent），
+     *    竖线因此不会被底块盖住 —— 工具调用仍与上下步骤连在同一条链上；
+     * 2. 底块恒 `fillMaxWidth`：OptionItem 是整行块，不参与折叠态的自适应宽度
+     *    （[ChainOfThought] 的 `shouldFillCollapseControlWidth` 只看控制条）。
+     *
+     * 展开内容由 [KedgeExpandableOptionItem] 在底块下方渲染，缩进与时间线继续由本文件
+     * 负责：内容起点与底块左边缘对齐（32dp 那截已经由外面的空槽 + 8dp 间距占掉了），
+     * 竖线则靠上面那条连续画法一路盖过内容区。
+     */
+    @Composable
+    private fun OptionItemStepContent(
+        icon: @Composable (() -> Unit)?,
+        label: @Composable () -> Unit,
+        extra: @Composable (() -> Unit)?,
+        onClick: (() -> Unit)?,
+        expanded: Boolean,
+        onExpandedChange: (Boolean) -> Unit,
+        contentVisible: Boolean,
+        content: @Composable (() -> Unit)?,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (showTimeline) Modifier.optionItemTimelineLine() else Modifier)
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (showTimeline) {
+                // 空槽：只为让上面那条竖线有地方画（槽宽与普通步骤的图标槽一致）。
+                Box(modifier = Modifier.width(24.dp))
+            }
+
+            if (content == null) {
+                // 没有展开内容 = 没有可展开性，尾部也就不该有箭头（箭头由组件按内容决定）。
+                KedgeOptionItem(
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f),
+                    leadingContent = icon,
+                    titleContent = label,
+                    trailingContent = extra,
+                )
+            } else {
+                KedgeExpandableOptionItem(
+                    expanded = expanded,
+                    onExpandedChange = onExpandedChange,
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f),
+                    leadingContent = icon,
+                    titleContent = label,
+                    trailingContent = extra,
+                    contentVisible = contentVisible,
+                    // 内容不套内层底色，缩进交给这里：start = 0（对齐底块左边缘，
+                    // 时间线的 32dp 由外面的空槽 + 间距占掉），上下补呼吸空间。
+                    contentPadding = PaddingValues(start = 0.dp, top = 4.dp, bottom = 8.dp),
+                    expandedContent = content,
+                )
+            }
+        }
+    }
+
+    @Composable
     private fun ChainOfThoughtStepContent(
         icon: @Composable (() -> Unit)?,
         label: @Composable (() -> Unit),
@@ -298,29 +515,7 @@ private class ChainOfThoughtScopeImpl(
             // Label 行：Icon + Label + Extra + 指示器
             Row(
                 modifier = Modifier
-                    .drawBehind {
-                        // 节点上下的连线分段，节点（20.dp）区域留空
-                        val x = 12.dp.toPx()
-                        val centerY = size.height / 2
-                        val gap = 10.dp.toPx()
-                        val strokeWidth = 1.dp.toPx()
-                        if (!isFirst) {
-                            drawLine(
-                                color = lineColor,
-                                start = Offset(x, 0f),
-                                end = Offset(x, centerY - gap),
-                                strokeWidth = strokeWidth,
-                            )
-                        }
-                        if (!isLast) {
-                            drawLine(
-                                color = lineColor,
-                                start = Offset(x, centerY + gap),
-                                end = Offset(x, size.height),
-                                strokeWidth = strokeWidth,
-                            )
-                        }
-                    }
+                    .then(if (showTimeline) Modifier.timelineLine() else Modifier)
                     .then(
                         if (shouldFillMaxWidth) {
                             Modifier.fillMaxWidth()
@@ -345,8 +540,9 @@ private class ChainOfThoughtScopeImpl(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // 无时间线时不留 24dp 空槽，图标本身占位（图标仍要显示，见 ask_user 步骤）
                 Box(
-                    modifier = Modifier.width(24.dp),
+                    modifier = if (showTimeline) Modifier.width(24.dp) else Modifier.size(20.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(
@@ -389,15 +585,8 @@ private class ChainOfThoughtScopeImpl(
                     extra()
                 }
 
-                // 指示器：onClick 显示向右箭头，content 显示展开/折叠箭头
-                if (onClick != null) {
-                    Icon(
-                        imageVector = arrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = KedgeColors.onSurfaceVariant,
-                    )
-                } else if (hasContent) {
+                // 指示器：有展开内容时显示展开/折叠箭头（onClick 不再额外画向右箭头）
+                if (hasContent) {
                     Icon(
                         imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
                         contentDescription = null,
@@ -419,7 +608,7 @@ private class ChainOfThoughtScopeImpl(
                             }
                         )
                         .drawBehind {
-                            if (!isLast) {
+                            if (showTimeline && !isLast) {
                                 val x = 12.dp.toPx()
                                 drawLine(
                                     color = lineColor,
@@ -429,7 +618,11 @@ private class ChainOfThoughtScopeImpl(
                                 )
                             }
                         }
-                        .padding(start = 32.dp, top = 4.dp, bottom = 8.dp)
+                        .padding(
+                            start = if (showTimeline) 32.dp else 28.dp,
+                            top = 4.dp,
+                            bottom = 8.dp,
+                        )
                 ) {
                     content()
                 }

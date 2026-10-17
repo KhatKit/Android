@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -58,10 +59,10 @@ import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.components.KedgeExpandableOptionItem
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.khromia.components.ExpandableOptionItem
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -85,13 +86,28 @@ fun ThemeColorSettingGroup(
     dynamicColorEnabled: Boolean = true,
 ) {
     val cards = listCardStyle()
+    // Kedge 版展开行是受控的（Khromia 那版自己持状态）；默认收起，与旧行为一致。
+    var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
         OptionsText(stringResource(R.string.greeting_settings_theme_color))
         Spacer(Modifier.height(8.dp))
-        ExpandableOptionItem(
-            imageVector = palette,
-            title = stringResource(R.string.greeting_settings_theme_color),
-            contentColor = Color.Transparent,
+        // 之前这里用的是 Khromia 的 `ExpandableOptionItem`（形参是 String + ImageVector、
+        // 自带内层底色）——**本页唯一一张不是 Kedge 皮的行**。换成 Kedge 的可展开选项行后，
+        // 行皮/圆角/尾箭头与工具行、推理行、本页其它 CardGroup 行完全同源；
+        // 展开内容仍旧不铺底色（Kedge 版默认就不铺，不用再手动传 Transparent）。
+        KedgeExpandableOptionItem(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            leadingContent = {
+                Icon(
+                    imageVector = palette,
+                    contentDescription = null,
+                    tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                )
+            },
+            titleContent = { Text(stringResource(R.string.greeting_settings_theme_color)) },
+            // 内边距沿用 Khromia 那版的 12dp，视觉不变。
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 12.dp),
         ) {
             Column {
                 KedgeOptionItem(
