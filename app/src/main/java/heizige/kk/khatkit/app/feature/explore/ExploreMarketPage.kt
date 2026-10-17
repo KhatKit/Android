@@ -105,6 +105,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.compositeOver
@@ -293,19 +294,57 @@ private val extensionShapes = listOf(
     MaterialShapes.SoftBurst,
 )
 
+/** 标签胶囊的统一高度：桥接 / 依赖 / 触发方式 / 授权 / 统计量全用它，改这里就全变。 */
+private val TagChipHeight = 26.dp
+
+/**
+ * 详情弹窗里的标签胶囊 —— **整个市场只有这一种胶囊**，五种标签共用同一套高度、内边距、字阶。
+ *
+ * 为什么要收成一种：原先桥接/依赖是自绘 Row（图标 + 16% 角色色底），触发方式与授权用的是
+ * [KedgeBadge]，一行里两种高度、两种圆角，看起来像两套控件拼的。
+ *
+ * 颜色必须成对显式给，不能靠组件默认值：`KedgeBadge` 在 Miuix 分支的 `contentColor` 取
+ * `MiuixBadgeDefaults.contentColor`，配 `surfaceContainerHigh` 底色实测只有 **1.2:1**
+ * —— 深灰字压深灰底，就是「标签字看不见」的那一条。这里的口径：
+ * - 有色标签（桥接 / 依赖）：16% 角色色打底，文字取「角色色 ←→ onSurface」的中间色，
+ *   仍带色相，实测 4.5:1 → **约 7:1**；
+ * - 中性标签（触发方式 / 授权 / 下载量 / 票数）：surfaceContainerHigh 打底 + onSurfaceVariant，
+ *   约 **9:1**。
+ *
+ * @param seed 非空 = 按这个种子取色相；空 = 中性灰。
+ * @param onClick 非空 = 可点（点了以 [label] 为搜索词），并带水波纹。
+ * @param containerColor / contentColor 显式配色（「已安装」「按次计费」这类语义底色用）。
+ */
 @Composable
-private fun ExtensionBadge(seed: String, label: String, icon: ImageVector) {
-    val color = roleAvatarColor(seed)
+private fun TagChip(
+    label: String,
+    icon: ImageVector? = null,
+    seed: String? = null,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val accent = seed?.let(::roleAvatarColor)
+    val background = containerColor
+        ?: accent?.copy(alpha = 0.16f)
+        ?: MaterialTheme.colorScheme.surfaceContainerHigh
+    val foreground = contentColor
+        ?: accent?.let { lerp(it, MaterialTheme.colorScheme.onSurface, 0.45f) }
+        ?: MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier
+            .height(TagChipHeight)
             .clip(CircleShape)
-            .background(color.copy(alpha = 0.16f))
-            .padding(horizontal = 8.dp, vertical = 5.dp),
+            .background(background)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(13.dp), tint = color)
-        Text(label, style = KedgeTextStyles.footnoteSmall(), color = color)
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(13.dp), tint = foreground)
+        }
+        Text(label, style = KedgeTextStyles.footnoteSmall(), color = foreground)
     }
 }
 
@@ -631,6 +670,15 @@ fun ExploreMarketPage() {
 
     fun matches(text: String): Boolean = query.isBlank() || text.contains(query, ignoreCase = true)
 
+    // 触发方式的两枚胶囊在详情弹窗里可点，点下去的搜索词就是**屏幕上那段文字**
+    // （「AI 触发」/「用户触发」），所以比对文本里必须带上这份本地化文案，
+    // 否则会出现「点标签 → 搜标签 → 0 张」。
+    val triggerLabelAi = stringResource(R.string.explore_market_card_filter_ai)
+    val triggerLabelUser = stringResource(R.string.explore_market_trigger_user)
+    val triggerSearchLabels = remember(triggerLabelAi, triggerLabelUser) {
+        mapOf(CardManifest.TRIGGER_AI to triggerLabelAi, CardManifest.TRIGGER_USER to triggerLabelUser)
+    }
+
     /**
      * 「装没装过」的本地判定：只比对包内条目名 —— 技能看本机技能目录，MCP 看设置里的
      * 服务器名。不下载就能在列表上显示状态；服务端改名后最坏是显示成未安装（可重装），
@@ -753,7 +801,9 @@ fun ExploreMarketPage() {
             val bundlesVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.BUNDLES
             val modelsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.MODELS
 
-            val cardsMatched = filteredCards.filter { matches(it.name + it.summary + it.description) }
+            val cardsMatched = filteredCards.filter {
+                matches(it.searchText(triggerSearchLabels, hubInfo[it.name]?.license))
+            }
             // 资源市场：按 kind 分三块，搜索命中名称 / 描述 / 标签 / 包内条目名。
             val matchedResources = resources.filter {
                 matches(it.name + it.description + it.tags.joinToString(" ") + it.items.joinToString(" "))
@@ -1295,6 +1345,12 @@ fun ExploreMarketPage() {
         refreshQuery = query,
         selectedCard = selectedCard,
         onSelectCard = { selectedCard = it },
+        // 弹窗里的标签点一下 = 以这个词就地搜索：展开搜索栏把词显示出来，
+        // 列表走 [searchText] 过滤（与手打关键词同一条路径，不额外打网络请求）。
+        onTagSearch = { tag ->
+            searchExpanded = true
+            query = tag
+        },
         secretCard = secretCard,
         onSecretCard = { secretCard = it },
         publishTarget = publishTarget,
@@ -1384,6 +1440,8 @@ private fun CardMarketOverlays(
     refreshQuery: String,
     selectedCard: CardIndexEntry?,
     onSelectCard: (CardIndexEntry?) -> Unit,
+    /** 详情弹窗里点了标签之后的去向：各页面自己决定（页内搜索 / 跳卡片市场搜）。 */
+    onTagSearch: (String) -> Unit,
     secretCard: String?,
     onSecretCard: (String?) -> Unit,
     publishTarget: CardIndexEntry?,
@@ -1484,6 +1542,7 @@ private fun CardMarketOverlays(
             activated = activated,
             busy = busyCard == entry.name,
             onDismiss = { onSelectCard(null) },
+            onTagSearch = onTagSearch,
             onToast = { message, isError -> Toast.show(message = message, isError = isError) },
             onSecretsClick = {
                 onSecretCard(entry.name)
@@ -1529,9 +1588,41 @@ private fun formatBytes(bytes: Long): String = when {
     else -> "$bytes B"
 }
 
-/** 卡片命中搜索词的口径（名称 + 摘要 + 描述），一级页与卡片市场共用一份。 */
-private fun CardIndexEntry.matchesQuery(query: String): Boolean =
-    query.isBlank() || (name + summary + description).contains(query, ignoreCase = true)
+/**
+ * 卡片参与搜索的**全部**文本：名称 / 摘要 / 描述 / 桥接名 / 触发方式（含本地化文案）/ 服务端标签 / 授权。
+ *
+ * 为什么不再只是「名称 + 摘要 + 描述」：详情弹窗里的标签是可以点的（点了搜同类卡片），
+ * 而 `tool`、`ui`、`imageToolbox`、`AI 触发`、`MIT` 这些属性本来就不写进简介 ——
+ * 只搜老三样会出现「点了标签，结果 0 张」。一级页、卡片市场页共用这一份口径。
+ *
+ * @param triggerLabels 触发方式的本地化文案（`ai` → 「AI 触发」）。索引里存的是原始值，
+ *   两边都要能命中：点胶囊传的是本地化文案，用户手打的可能是 `ai`。
+ * @param license 授权标识（`MIT` 等）。它来自市场信息而不是索引条目，未发布到市场时为空。
+ */
+private fun CardIndexEntry.searchText(triggerLabels: Map<String, String>, license: String?): String =
+    buildList {
+        add(name)
+        add(summary)
+        add(description)
+        addAll(bridges)
+        triggers.forEach { trigger ->
+            add(trigger)
+            triggerLabels[trigger]?.let(::add)
+        }
+        tags?.let { tag ->
+            add(tag.domain)
+            add(tag.action)
+            tag.scene?.let(::add)
+        }
+        if (!license.isNullOrBlank()) add(license)
+    }.joinToString(" ")
+
+/** 卡片命中搜索词的口径（[searchText]），一级页与卡片市场共用一份。 */
+private fun CardIndexEntry.matchesQuery(
+    query: String,
+    triggerLabels: Map<String, String>,
+    license: String?,
+): Boolean = query.isBlank() || searchText(triggerLabels, license).contains(query, ignoreCase = true)
 
 /**
  * 二级页面：卡片市场全量列表。
@@ -1575,7 +1666,13 @@ fun ExploreCardsPage(initialQuery: String = "") {
     var forkTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
 
     // 与一级页同一套过滤条件：两页看到的是同一份「市场」，只是展示数量不同。
-    val matched = remember(cards, selectedCardFilter, installed, hubInfo, triggers, query) {
+    // 触发方式的本地化文案同理（弹窗里的标签点了就以它为搜索词），见 [searchText]。
+    val triggerLabelAi = stringResource(R.string.explore_market_card_filter_ai)
+    val triggerLabelUser = stringResource(R.string.explore_market_trigger_user)
+    val triggerSearchLabels = remember(triggerLabelAi, triggerLabelUser) {
+        mapOf(CardManifest.TRIGGER_AI to triggerLabelAi, CardManifest.TRIGGER_USER to triggerLabelUser)
+    }
+    val matched = remember(cards, selectedCardFilter, installed, hubInfo, triggers, query, triggerSearchLabels) {
         cards.filter { entry ->
             val info = hubInfo[entry.name]
             val inFilter = when (selectedCardFilter) {
@@ -1585,12 +1682,14 @@ fun ExploreCardsPage(initialQuery: String = "") {
                 CardFilter.PREFERRED -> info?.preferred == true
                 CardFilter.AI -> CardManifest.TRIGGER_AI in (triggers[entry.name] ?: entry.triggers)
             }
-            inFilter && entry.matchesQuery(query)
+            inFilter && entry.matchesQuery(query, triggerSearchLabels, info?.license)
         }
     }
     // 「全部 N」里的 N 是**当前搜索词下的总数**，不跟着卡片筛选走：选中「已安装」后
     // 它不该从 47 掉成 12（读起来是「全部只有 12 张」），那一格的语义是分母。
-    val totalCount = remember(cards, query) { cards.count { it.matchesQuery(query) } }
+    val totalCount = remember(cards, query, triggerSearchLabels, hubInfo) {
+        cards.count { it.matchesQuery(query, triggerSearchLabels, hubInfo[it.name]?.license) }
+    }
     // 列表卡片形状与设置页同一份口径（见 [listCardStyle]）。
     val cardStyle = listCardStyle()
 
@@ -1717,6 +1816,14 @@ fun ExploreCardsPage(initialQuery: String = "") {
         refreshQuery = query,
         selectedCard = selectedCard,
         onSelectCard = { selectedCard = it },
+        // 弹窗里的标签点一下 = 以这个词就地搜索：展开搜索栏把词显示出来，
+        // 列表走 [searchText] 过滤（与手打关键词同一条路径，不额外打网络请求）。
+        onTagSearch = { tag ->
+            searchExpanded = true
+            query = tag
+            // 这一页的列表可能已经滚到几十项之后，过滤后结果集变短，不回到顶部会停在空处。
+            scope.launch { listState.scrollToItem(0) }
+        },
         secretCard = secretCard,
         onSecretCard = { secretCard = it },
         publishTarget = publishTarget,
@@ -2787,21 +2894,23 @@ private fun ResourceDetailSheet(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 if (installed) {
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-                        Text(stringResource(R.string.explore_market_state_installed))
-                    }
+                    TagChip(
+                        label = stringResource(R.string.explore_market_state_installed),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
                 }
                 if (needsConfig) {
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                        Text(stringResource(R.string.explore_market_mcp_needs_config))
-                    }
+                    TagChip(
+                        label = stringResource(R.string.explore_market_mcp_needs_config),
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
                 }
-                entry.tags.take(4).forEach { tag ->
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) { Text(tag) }
-                }
+                entry.tags.take(4).forEach { tag -> TagChip(label = tag) }
                 val meta = resourceMetaLine(entry)
                 if (meta.isNotBlank()) {
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) { Text(meta) }
+                    TagChip(label = meta)
                 }
             }
 
@@ -3478,6 +3587,8 @@ private fun CardDetailSheet(
     activated: Boolean,
     busy: Boolean,
     onDismiss: () -> Unit,
+    /** 点弹窗里的标签：先把弹窗收掉，再由页面拿这段文字去搜索。 */
+    onTagSearch: (String) -> Unit,
     onToast: (String, Boolean) -> Unit,
     onSecretsClick: () -> Unit,
     onPublishClick: () -> Unit,
@@ -3517,6 +3628,12 @@ private fun CardDetailSheet(
     val showInstall = installedVersion == null && entry.url.isNotBlank()
 
     GlassPopup(onDismiss = onDismiss) { dismiss ->
+        // 标签点击：先收弹窗（有退场动画），再让页面去搜这个标签 —— 搜索框 morph 与
+        // 卡片淡出同时发生，不会被「弹窗还盖着、底下已经换了一屏」吓一跳。
+        val searchTag: (String) -> Unit = { tag ->
+            dismiss()
+            onTagSearch(tag)
+        }
         PopupHead(
             title = entry.name,
             kicker = listOf(entry.engine, entry.privilege).filter { it.isNotBlank() }.joinToString(" · "),
@@ -3546,48 +3663,55 @@ private fun CardDetailSheet(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 if (installedVersion != null) {
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-                        Text(stringResource(R.string.explore_market_installed_version_badge, installedVersion))
-                    }
+                    TagChip(
+                        label = stringResource(R.string.explore_market_installed_version_badge, installedVersion),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
                 }
+                // 桥接名 / 触发方式 / 授权三样是**可点的标签**：点一下按这个属性搜同类卡片。
+                // 依赖名与价格、下载量、票数不参与 —— 前者的同名桥接已在上面，后三者是
+                // 统计量而不是分类维度，拿它们当搜索词只会搜出噪音。
                 entry.bridges.distinct().forEach { bridge ->
-                    ExtensionBadge(bridge, bridge, bolt)
+                    TagChip(
+                        label = bridge,
+                        icon = bolt,
+                        seed = bridge,
+                        onClick = { searchTag(bridge) },
+                    )
                 }
                 entry.dependencies.forEach { dependency ->
-                    ExtensionBadge(
-                        dependency.name,
-                        stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
-                        deployedCode,
+                    TagChip(
+                        label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
+                        icon = deployedCode,
+                        seed = dependency.name,
                     )
                 }
                 displayTriggers.forEach { trigger ->
-                    KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                        Text(
-                            if (trigger == CardManifest.TRIGGER_AI) {
-                                stringResource(R.string.explore_market_card_filter_ai)
-                            } else {
-                                stringResource(R.string.explore_market_trigger_user)
-                            },
-                        )
+                    val label = if (trigger == CardManifest.TRIGGER_AI) {
+                        stringResource(R.string.explore_market_card_filter_ai)
+                    } else {
+                        stringResource(R.string.explore_market_trigger_user)
                     }
+                    TagChip(label = label, onClick = { searchTag(label) })
                 }
                 hubInfo?.let { info ->
                     // 免费卡片不再挂「免费」胶囊（默认就是免费，标签只是噪音）；
                     // 收费卡片的价格仍然必须露出，否则用户看不到计费方式。
                     if (info.priceCents > 0L) {
-                        KedgeBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                            Text(stringResource(R.string.explore_market_price_per_call, formatYuan(info.priceCents)))
-                        }
+                        TagChip(
+                            label = stringResource(R.string.explore_market_price_per_call, formatYuan(info.priceCents)),
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
                     }
-                    info.downloadsText()?.let { text ->
-                        KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) { Text(text) }
-                    }
+                    info.downloadsText()?.let { text -> TagChip(label = text) }
                     if (info.license.isNotBlank()) {
-                        KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) { Text(info.license) }
+                        TagChip(label = info.license, onClick = { searchTag(info.license) })
                     }
                     // 「优选」胶囊同样下线；票数保留，它是用户能自己改变的量。
                     if (info.votes > 0) {
-                        KedgeBadge(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) { Text("▲ ${info.votes}") }
+                        TagChip(label = "▲ ${info.votes}")
                     }
                 }
             }
@@ -3604,10 +3728,10 @@ private fun CardDetailSheet(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         entry.dependencies.forEach { dependency ->
-                            ExtensionBadge(
-                                seed = dependency.name,
+                            TagChip(
                                 label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
                                 icon = deployedCode,
+                                seed = dependency.name,
                             )
                         }
                     }
@@ -4327,6 +4451,8 @@ fun ExploreLocalPage() {
         refreshQuery = "",
         selectedCard = selectedCard,
         onSelectCard = { selectedCard = it },
+        // 本地页没有搜索栏：标签点击跳到卡片市场页，以这个词进场（那边入场即展开搜索框）。
+        onTagSearch = { tag -> navController.navigate(Screen.ExploreCards(tag)) },
         secretCard = secretCard,
         onSecretCard = { secretCard = it },
         publishTarget = publishTarget,

@@ -1,8 +1,9 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import android.os.Build
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -41,10 +42,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -70,6 +73,10 @@ private const val PopupExitMillis = 160
  * 退场：所有关闭路径（点遮罩 / 返回键 / 卡片自己的关闭按钮）都走 [dismiss]。
  * [dismiss] 先播完退场动画再回调 [onDismiss]，所以调用方可以照旧「一点就 `state = null`」
  * 地把弹窗从组合里摘掉，不会看到硬切。
+ *
+ * 返回手势是**预测性**的：拖动过程中卡片跟着手缩小、变淡，松手提交才走 [dismiss]，
+ * 中途松手（取消）弹回原样。这里只注册一条 [PredictiveBackHandler]：再叠一个 BackHandler
+ * 会在同一个 dispatcher 上抢返回事件，手势进度就在半路断掉。
  */
 @Composable
 fun GlassPopup(
@@ -98,8 +105,25 @@ fun GlassPopup(
             }
         }
     }
-    // 返回键与系统手势：交给弹窗自己收，不用页面各处再挂 BackHandler。
-    BackHandler(enabled = !closing) { dismiss() }
+    // 返回手势与系统手势：交给弹窗自己收，不用页面各处再挂 BackHandler。
+    //
+    // 预测性返回：手势拖到哪，卡片就缩/淡到哪；松手提交才走 [dismiss]，取消则弹回。
+    // 只留这一条 handler（原来的 BackHandler 已并入）：两者注册在同一个
+    // OnBackPressedDispatcher 上，同时存在会互相抢占，手势进度就在半路断掉。
+    val backProgress = remember { Animatable(0f) }
+    PredictiveBackHandler(enabled = !closing) { backEvents ->
+        try {
+            backEvents.collect { event ->
+                backProgress.snapTo(event.progress.coerceIn(0f, 1f))
+            }
+            // 手势提交：卡片此刻已经淡到只剩影子，余下的交给 [dismiss] 的退场动画收尾。
+            dismiss()
+        } catch (e: CancellationException) {
+            // 手势取消：弹回完全打开态（与进场同一档时长，手感对称）。
+            backProgress.animateTo(0f, tween(durationMillis = PopupEnterMillis))
+            throw e
+        }
+    }
 
     val scrim by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
@@ -129,7 +153,10 @@ fun GlassPopup(
                     indication = null,
                     onClick = dismiss,
                 )
-                .background(scrimColor.copy(alpha = scrimColor.alpha * scrim)),
+                .background(scrimColor.copy(alpha = scrimColor.alpha * scrim))
+                // 手势进度只走绘制层（graphicsLayer 的 lambda 是延迟读，不触发重组）：
+                // 拖到哪遮罩就淡到哪，拖回原处也逐帧跟着回来。
+                .graphicsLayer { alpha = 1f - backProgress.value },
         )
         AnimatedVisibility(
             visible = visible,
@@ -145,6 +172,15 @@ fun GlassPopup(
                     .fillMaxWidth()
                     .widthIn(max = maxWidth)
                     .heightIn(max = cardMaxHeight)
+                    // 跟手缩到 0.9、淡到 15%：拖满时卡片只剩一层影子，
+                    // 提交后由退场动画抹掉它 —— 不会出现「松手先弹回满屏、再播退场」的跳变。
+                    .graphicsLayer {
+                        val progress = backProgress.value
+                        alpha = 1f - 0.85f * progress
+                        val scale = 1f - 0.10f * progress
+                        scaleX = scale
+                        scaleY = scale
+                    }
                     .shadow(elevation = 28.dp, shape = shape, clip = false)
                     .clip(shape)
                     .background(glassColor)
