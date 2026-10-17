@@ -176,62 +176,22 @@ fun ChatMessage(
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
 
-    // 气泡上方的身份行。C1 之前这层完全不存在：群聊里 3 个角色 + 议长 + 投票小结 + 错误节点
+    // 身份行。C1 之前这层完全不存在：群聊里 3 个角色 + 议长 + 投票小结 + 错误节点
     // 复用同一个气泡后长得一模一样。渲染条件只有一条——**真有东西可显示**才占位：
     // 单聊路径下 speakerName / speakerBadge 都是 null，这一行要么不渲染、要么只渲染原本
     // 就该显示却一直没被接上的头像（`showUserAvatar` / `showModelIcon` / `showModelName`
     // 三个开关因此重新生效），不会出现凭空多出来的空隙。
+    //
+    // 两侧排法不同：用户侧是头像压在气泡上方（右对齐的一行）；助手侧是头像单独占左列、
+    // 名字与正文在右列，即「头像和气泡横排」。两条分支共用的正文见下面的 [messageBody]。
     val showUserAvatarLine = shouldShowUserAvatar(message, settings.showUserAvatar)
-    val showAssistantAvatarLine = shouldShowAssistantAvatar(message, model, assistant)
-    val showSpeakerLine = speakerName != null || speakerBadge != null ||
-            showUserAvatarLine || showAssistantAvatarLine
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        if (showSpeakerLine) {
-            if (message.role == MessageRole.USER) {
-                // 用户侧组件自带「名字 + 头像」右对齐的排版，直接用。
-                ChatMessageUserAvatar(
-                    message = message,
-                    avatar = settings.userAvatar,
-                    nickname = settings.userNickname,
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    ChatMessageAssistantAvatar(
-                        message = message,
-                        loading = loading,
-                        model = model,
-                        assistant = assistant,
-                        // 群聊已经有角色名了，别再并排挂一个助手名。
-                        showName = speakerName == null,
-                        // fill = false：头像行按内容宽占位，剩下的宽度留给徽章，
-                        // 名字再长也不会把徽章挤出屏幕。
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    speakerName?.let { name ->
-                        Text(
-                            text = name,
-                            style = KedgeTextStyles.footnoteSmall(),
-                            fontWeight = FontWeight.SemiBold,
-                            color = KedgeColors.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    speakerBadge?.let { badge ->
-                        ChatMessageSpeakerBadge(text = badge, isError = speakerBadgeIsError)
-                    }
-                }
-            }
-        }
+    // 图标那层还要再叠一次 showModelIcon：关掉图标时头像列不占宽，气泡不该因此多缩进。
+    val showAssistantAvatarIcon = shouldShowAssistantAvatar(message, model, assistant) &&
+            settings.showModelIcon
 
+    // 正文 + 尾部（操作栏 / 编辑文件 / 技术统计）。两侧外壳不同、内容只写一遍：
+    // 用户侧头像是压在气泡**上方**的一行；助手侧头像是**左边一列**，与气泡横排。
+    val messageBody: @Composable () -> Unit = {
         ProvideTextStyle(textStyle) {
             MessagePartsBlock(
                 assistant = assistant,
@@ -291,7 +251,73 @@ fun ChatMessage(
         ProvideTextStyle(textStyle) {
             ChatMessageNerdLine(message = message)
         }
+    }
 
+    if (message.role == MessageRole.USER) {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (showUserAvatarLine) {
+                // 用户侧组件自带「名字 + 头像」右对齐的排版，直接用。
+                ChatMessageUserAvatar(
+                    message = message,
+                    avatar = settings.userAvatar,
+                    nickname = settings.userNickname,
+                )
+            }
+            messageBody()
+        }
+    } else {
+        // 助手侧横排：头像在左、正文与气泡在右。头像顶端与名字那一行对齐（Alignment.Top），
+        // 不随内容高度居中——长回答时居中会让头像掉到半空。
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            if (showAssistantAvatarIcon) {
+                ChatMessageAssistantAvatarIcon(
+                    loading = loading,
+                    model = model,
+                    assistant = assistant,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // 名字 + 性质徽章：群聊是角色名，单聊是助手名 / 模型名，口径见此处。
+                val label = assistantMessageLabel(
+                    speakerName = speakerName,
+                    model = model,
+                    assistant = assistant,
+                )
+                if (label != null || speakerBadge != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        label?.let { name ->
+                            Text(
+                                text = name,
+                                style = KedgeTextStyles.footnoteSmall(),
+                                fontWeight = FontWeight.SemiBold,
+                                color = KedgeColors.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        speakerBadge?.let { badge ->
+                            ChatMessageSpeakerBadge(text = badge, isError = speakerBadgeIsError)
+                        }
+                    }
+                }
+                messageBody()
+            }
+        }
     }
     if (showActionsSheet) {
         ChatMessageActionsSheet(

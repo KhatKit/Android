@@ -661,7 +661,11 @@ data class DisplaySetting(
     val userNickname: String = "",
     val useAppIconStyleLoadingIndicator: Boolean = true,
     val showUserAvatar: Boolean = true,
-    val showAssistantBubble: Boolean = false,
+    // 默认开：助手回答与用户消息一样带气泡（头像在左、气泡在右横排）。开关仍保留，
+    // 想回到「纯文本贴左」可以关掉。⚠️ 早期默认是 false，而本字段随
+    // encodeDefaults=true 一起落盘，所以**既有安装**的 JSON 里是显式的 false ——
+    // 改这个默认值只影响新装 / 从未落过该键的配置。
+    val showAssistantBubble: Boolean = true,
     val bubbleOpacity: Float = 1.0f,
     val showModelIcon: Boolean = true,
     val showModelName: Boolean = true,
