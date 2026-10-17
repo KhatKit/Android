@@ -170,14 +170,17 @@ fun <T> ChainOfThought(
             // 每个步骤只绘制自己的连线分段并在节点处留空，
             // 避免使用离屏合成 + BlendMode.Clear（离屏层过大时部分设备会退化，节点区域被清成黑块）。
             val cards = listCardStyle()
-            Column {
+            // 行间距取风格自带的 gap（MD3 默认 2dp，Miuix 0dp = 完全贴合）：
+            // MD3 的分段卡片组本来就有这道 2dp 的轻微间隔，链上不该把它抹成 0。
+            Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
                 visibleSteps.fastForEachIndexed { index, step ->
                     val isFirst = index == 0
                     val isLast = index == visibleSteps.lastIndex
                     // 底块行的位号与行距：同一 ThinkingBlock 的选项行（推理 / 工具调用）
                     // 拼成**一块**分段卡 —— 圆角取 ListCardStyle.indexedShape（首行上圆角 /
-                    // 末行下圆角为大圆角，中间行小圆角），行间 0dp 贴合，整块的上下各留 4dp
-                    // 呼吸（原来每行 4dp、行间 8dp 的缝就是这么来的）。
+                    // 末行下圆角为大圆角，中间行小圆角），行间距离取 ListCardStyle.gap
+                    // （MD3 默认 2dp = 分段卡片组固有的轻微间隔；Miuix 0dp = 完全贴合），
+                    // 整块的上下各留 4dp 呼吸（原来每行 4dp、行间 8dp 的缝就是这么来的）。
                     // 单步链 = indexedShape(0, 1) = 四角大圆角 + 上下各 4dp，与改动前逐值相同。
                     // 裸行（ask_user 那类）走 ChainOfThoughtStepContent，不用这两个值。
                     val optionRowShape = cards.indexedShape(index = index, count = visibleSteps.size)
