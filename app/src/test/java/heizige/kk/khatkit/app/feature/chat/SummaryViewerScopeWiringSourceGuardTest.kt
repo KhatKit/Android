@@ -251,7 +251,7 @@ class SummaryViewerScopeWiringSourceGuardTest {
         private const val CHAT_MANAGER_FILE =
             "app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt"
         private const val SUMMARY_SCOPE_FILE =
-            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/SummaryViewerScope.kt"
+            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/helper/SummaryViewerScope.kt"
 
         private fun repoRoot(): File {
             var dir = File("").absoluteFile
