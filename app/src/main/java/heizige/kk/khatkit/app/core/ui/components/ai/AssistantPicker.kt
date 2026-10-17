@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,22 +11,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeListItem
-import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -197,76 +191,45 @@ private fun AssistantPickerSheet(
             ) {
                 items(filteredAssistants, key = { it.id }) { assistant ->
                     val checked = assistant.id == currentAssistant.id
-                    KedgeCard(
+                    // 行本身与助手页共用 AssistantItem（core 里的唯一实现）；
+                    // 选中态只是把底色/字色换成 primaryContainer 那对。
+                    AssistantItem(
+                        assistant = assistant,
+                        defaultAssistantName = defaultAssistantName,
+                        modifier = Modifier.animateItem(),
+                        shape = MaterialTheme.shapes.large,
+                        avatarSize = 32.dp,
+                        backgroundColor = if (checked) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        contentColor = if (checked) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                         onClick = {
                             onAssistantSelected(assistant)
                             dismiss()
                         },
-                        modifier = Modifier.animateItem(),
-                        shape = MaterialTheme.shapes.large,
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (checked) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
-                            contentColor = if (checked) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        ),
-                        border = null,
-                    ) {
-                        AssistantItem(
-                            assistant = assistant,
-                            defaultAssistantName = defaultAssistantName,
-                            onEdit = {
-                                onDismiss()
-                                navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
+                        trailingContent = {
+                            KedgeIconButton(
+                                onClick = {
+                                    onDismiss()
+                                    navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
+                                },
+                                shapes = IconButtonDefaults.shapes(),
+                            ) {
+                                Icon(
+                                    imageVector = editNote,
+                                    contentDescription = null
+                                )
                             }
-                        )
-                    }
+                        },
+                    )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun AssistantItem(
-    assistant: Assistant,
-    defaultAssistantName: String,
-    onEdit: () -> Unit
-) {
-    KedgeListItem(
-        headlineContent = {
-            Text(
-                text = assistant.name.ifEmpty { defaultAssistantName },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        leadingContent = {
-            UIAvatar(
-                name = assistant.name.ifEmpty { defaultAssistantName },
-                value = assistant.avatar,
-                modifier = Modifier.size(32.dp)
-            )
-        },
-        trailingContent = {
-            KedgeIconButton(
-                onClick = {
-                    onEdit()
-                },
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    imageVector = editNote,
-                    contentDescription = null
-                )
-            }
-        },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-    )
 }

@@ -83,10 +83,12 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.Folder
 import heizige.kk.khatkit.hub.HubAccountInfo
+import heizige.kk.khatkit.app.core.ui.components.ai.AssistantItem
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPicker
 import heizige.kk.khatkit.app.core.ui.components.ui.BackupReminderCard
-import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.components.ui.UpdateCard
+import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
+import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
 import androidx.compose.ui.draw.clip
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
@@ -173,11 +175,21 @@ fun ChatDrawerContent(
 
     val conversations = drawerVm.conversations.collectAsLazyPagingItems()
     val folders by drawerVm.folders.collectAsStateWithLifecycle()
-    val typeFilter by drawerVm.typeFilter.collectAsStateWithLifecycle()
     val conversationListState = rememberLazyListState(
         initialFirstVisibleItemIndex = drawerVm.scrollIndex,
         initialFirstVisibleItemScrollOffset = drawerVm.scrollOffset,
     )
+
+    // 抽屉顶栏的折叠变色（**只作用于 MD3Exp**，Miuix 仍走毛玻璃那套）。
+    //
+    // 与页面顶栏同一套联动：静止态取页面底色（栏与内容连成一片，看不出有一条栏），
+    // 会话列表往上滚、内容压到栏下面之后，M3 按 `collapsedFraction` 在
+    // containerColor → scrolledContainerColor（surfaceContainer）之间插值，色块才浮出来。
+    //
+    // ⚠️ 必须是**同一个实例**既喂给 TopAppBar、又经 [activeNestedScroll] 挂到列表上：
+    // 前者只负责按 fraction 取色，后者负责喂滚动增量。两处各 remember 一个的话
+    // fraction 恒为 0 —— 表现就是「顶栏永远一个颜色」（页面顶栏踩过的同一个坑）。
+    val drawerBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     LaunchedEffect(conversationListState) {
         snapshotFlow {
@@ -282,10 +294,19 @@ fun ChatDrawerContent(
                             ),
                         )
                     } else {
-                        // MD3Exp：走 CustomColors.topBarColors（surfaceContainer），
-                        // 顶栏才有自己的颜色；TopAppBar 的默认容器色是 surface，
-                        // 与抽屉底色同色，顶栏会整个「消失」。
-                        CustomColors.topBarColors
+                        // MD3Exp：走 CustomColors.topBarColors（surfaceContainer），但把
+                        // **静止态**换成页面底色（surface）—— 与页面顶栏同一条
+                        // [scrollLinkedTopBarColors]：顶栏静止时与抽屉内容连成一片，
+                        // 列表滚上来才渐变到 surfaceContainer 分出层次。
+                        // 若这里仍写死 surfaceContainer，两色相同 ⇒ M3 的插值空转，
+                        // 就回到「顶栏永远一个颜色、跟下面的滚动无关」。
+                        scrollLinkedTopBarColors(CustomColors.topBarColors, drawerBarScrollBehavior)
+                    },
+                    // Miuix 不接 MD3 的滚动行为（那边由毛玻璃 + backdrop 负责外观）。
+                    scrollBehavior = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+                        null
+                    } else {
+                        drawerBarScrollBehavior
                     },
                 navigationIcon = {
                     if (searchVisible) {
@@ -497,7 +518,15 @@ fun ChatDrawerContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    // 喂抽屉顶栏的折叠变色：会话列表的滚动增量往上冒到这一层，
+                    // 接到 drawerBarScrollBehavior 上（MD3 才挂，Miuix 下是空 Modifier）。
+                    // ⚠️ 挂在这层**父节点**而不是列表自己：`Modifier.nestedScroll` 要靠
+                    // 节点树找到下面的 scrollable 派发器，父节点这条路径与页面把连接挂在
+                    // Scaffold 上（`ExploreMarketPage.kt:1211`）是同一种结构，最稳。
+                    // 也不能挂在 KedgeOverlayScaffold 的 modifier 上：它 MD3 分支会
+                    // 把这个 modifier 丢掉（只有 Miuix 分支透传给 MiuixScaffold）。
+                    .then(activeNestedScroll(drawerBarScrollBehavior)),
             ) {
                 ConversationList(
                     conversations = conversations,
@@ -560,28 +589,11 @@ fun ChatDrawerContent(
                             onCreateFolder = { showCreateFolderDialog = true },
                             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                         )
-                        // 筛选 chip 行：「群聊」由 [ShowGroupChatEntry] 门控（缺省不渲染，
-                        // 也不占位 —— Row 的 spacedBy(6.dp) 只作用于实际存在的 chip，
-                        // 「全部」「单聊」两枚的位置与门控前完全一致）。
-                        val typeFilterChips: List<Pair<String, String>> = listOfNotNull(
-                            heizige.kk.khatkit.app.core.data.model.GroupChat.FILTER_ALL to "全部",
-                            heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_DIRECT to "单聊",
-                            if (ShowGroupChatEntry) {
-                                heizige.kk.khatkit.app.core.data.model.GroupChat.TYPE_GROUP to "群聊"
-                            } else {
-                                null
-                            },
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 8.dp)) {
-                            typeFilterChips.forEach { (value, label) ->
-                                heizige.kk.kedge.components.KedgeFilterChip(
-                                    selected = typeFilter == value,
-                                    onClick = { drawerVm.updateTypeFilter(value) },
-                                    label = { Text(label) },
-                                )
-                            }
-                        }
-                        // 群聊创建入口：同样由 [ShowGroupChatEntry] 门控（缺省不渲染、不留空位）。
+                        // 类型筛选 chip 行（全部/单聊/群聊）已按主人要求删除，抽屉里不再切类型。
+                        // 类型谓词的「管道」原样保留、未删：ChatDrawerViewModel.typeFilter 缺省
+                        // FILTER_ALL（不筛），仍参与 planConversationListQuery →
+                        // ConversationDAO 的 `:type` 参数，DAO/单测/分页数据源的类型分支照旧可用。
+                        // 群聊创建入口：由 [ShowGroupChatEntry] 门控（缺省不渲染、不留空位）。
                         // 业务代码与导航目标原样保留，把常量改回 true 即可放出。
                         if (ShowGroupChatEntry) {
                             heizige.kk.kedge.components.KedgeTextButton(
@@ -598,6 +610,7 @@ fun ChatDrawerContent(
                         // C1 真机 UI 测试的定位锚点：会话列表要能被滚动到指定条目
                         // （performScrollToNode），chip 过滤断言才能覆盖到屏幕外的行。
                         // 仅新增语义属性，不改布局/行为。
+                        // （顶栏折叠变色的 nestedScroll 挂在外层 Box 上，见那里。）
                         .testTag("drawer_conversation_list"),
                     onClick = {
                         navigateToChatPage(navController, it.id)
@@ -897,15 +910,34 @@ KedgeEditDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(settings.assistants) { assistant ->
+                        val isCurrentAssistant = assistant.id == conversationToMove?.assistantId
+                        // 与助手页 / 助手选择器共用 core 里的同一行实现（AssistantItem）：
+                        // 抽屉只多「当前助手」副标题与当前项底色两处差异，容器与头像不再自绘。
                         AssistantItem(
                             assistant = assistant,
-                            isCurrentAssistant = assistant.id == conversationToMove?.assistantId,
+                            defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
+                            backgroundColor = if (isCurrentAssistant) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                            supportingContent = if (isCurrentAssistant) {
+                                {
+                                    Text(
+                                        text = stringResource(R.string.assistant_page_current_assistant),
+                                        style = KedgeTextStyles.body(),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                null
+                            },
                             onClick = {
                                 conversationToMove?.let { conversation ->
                                     vm.moveConversationToAssistant(conversation, assistant.id)
                                     dismiss()
                                 }
-                            }
+                            },
                         )
                     }
                 }
@@ -935,16 +967,16 @@ private fun DrawerAction(
  * 群聊入口开关：**false = 隐藏（缺省）**，true = 放出。
  *
  * 原因：群聊（GroupChat）完成度不足 —— 用户真机验收七项 UI 修复时提出先把入口藏起来，
- * 等成熟后再放出。入口只有两处，都在 [ChatDrawerContent] 的「新建会话」区：
- * - ①「群聊」筛选 chip：下面 `typeFilterChips` 里的 `GroupChat.TYPE_GROUP to "群聊"` 一项
- *   （`Row(horizontalArrangement = Arrangement.spacedBy(6.dp))` 那一排）；
- * - ②「新建群聊」按钮：`drawerVm.createGroup { … }` 那个 `KedgeTextButton`
- *   （全仓唯一的群聊创建入口）。
+ * 等成熟后再放出。开关现在只作用于**一处**：[ChatDrawerContent] 的「新建会话」区里那个
+ * 「新建群聊」`KedgeTextButton`（`drawerVm.createGroup { … }`，仓库内唯一调用 `drawerVm.createGroup` 的入口 —— 见本文件 :601）。
  *
- * 恢复方式：把这里改成 `true` 即可，两处同时放出 —— 业务代码一行没删、语义没改。
+ * ⚠️ 原先开关还门控抽屉里的「群聊」筛选 chip；**chip 行已于 2026-xx 整体删除**
+ * （主人要求），所以这里现在只剩按钮一处。
+ *
+ * 恢复方式：把这里改成 `true` 即可放出按钮 —— 业务代码一行没删、语义没改。
  * 只隐藏「入口」：已存在的群聊会话仍照常在会话列表里显示并可打开
  * （ConversationList 与 ConversationDAO 的类型谓词都没动）；`typeFilter` 又是内存态、
- * 缺省 FILTER_ALL，所以藏掉 chip 不会让用户停在「只看群聊」。
+ * 缺省 FILTER_ALL，所以状态不会停在「只看群聊」。
  */
 private const val ShowGroupChatEntry = false
 
@@ -1183,57 +1215,6 @@ private fun CreateFolderButton(
                     text = stringResource(R.string.chat_page_create_folder),
                     style = KedgeTextStyles.bodyLarge(),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AssistantItem(
-    assistant: Assistant,
-    isCurrentAssistant: Boolean,
-    onClick: () -> Unit
-) {
-    KedgeSurface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        // 同上：形状交给 KedgeSurface 按风格取默认
-        color = if (isCurrentAssistant) {
-            MaterialTheme.colorScheme.surfaceVariant
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        tonalElevation = if (isCurrentAssistant) 2.dp else 0.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            UIAvatar(
-                name = assistant.name,
-                value = assistant.avatar,
-                onUpdate = {},
-                modifier = Modifier.size(40.dp),
-            )
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    style = KedgeTextStyles.title(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (isCurrentAssistant) {
-                    Text(
-                        text = stringResource(R.string.assistant_page_current_assistant),
-                        style = KedgeTextStyles.body(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }

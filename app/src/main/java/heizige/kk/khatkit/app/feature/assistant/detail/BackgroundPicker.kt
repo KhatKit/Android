@@ -28,7 +28,8 @@ import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
 import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
 import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -50,61 +51,67 @@ fun BackgroundPicker(
 
     val previewOpacity = backgroundOpacity.coerceIn(0f, 1f)
 
-    KedgeFormRow(
-        modifier = modifier,
-        label = {
-            Text(stringResource(R.string.assistant_page_chat_background))
-        },
-        description = {
-            Text(stringResource(R.string.assistant_page_chat_background_desc))
-        }
-    ) {
-        KedgeButton(
-            onClick = {
-                showPickOption = true
+    CardGroup(modifier = modifier) {
+        item(
+            headlineContent = {
+                Text(stringResource(R.string.assistant_page_chat_background))
             },
-            modifier = Modifier.fillMaxWidth(),
-            shapes = ButtonDefaults.shapes(),
-        ) {
-            Text(
-                text = if (background != null) {
-                    stringResource(R.string.assistant_page_change_background)
-                } else {
-                    stringResource(R.string.assistant_page_select_background)
-                }
-            )
-        }
-
-        if (background != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.assistant_page_background_set),
-                    style = KedgeTextStyles.body(),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
-                KedgeTextButton(
-                    onClick = {
-                        onUpdate(null)
+            supportingContent = {
+                KedgeRowSupport(
+                    description = {
+                        Text(stringResource(R.string.assistant_page_chat_background_desc))
                     },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.assistant_page_remove))
-                }
-            }
+                    content = {
+                        KedgeButton(
+                            onClick = {
+                                showPickOption = true
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Text(
+                                text = if (background != null) {
+                                    stringResource(R.string.assistant_page_change_background)
+                                } else {
+                                    stringResource(R.string.assistant_page_select_background)
+                                }
+                            )
+                        }
 
-            AsyncImage(
-                model = background,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(previewOpacity)
-            )
-        }
+                        if (background != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.assistant_page_background_set),
+                                    style = KedgeTextStyles.body(),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                KedgeTextButton(
+                                    onClick = {
+                                        onUpdate(null)
+                                    },
+                                    shapes = ButtonDefaults.shapes(),
+                                ) {
+                                    Text(stringResource(R.string.assistant_page_remove))
+                                }
+                            }
+
+                            AsyncImage(
+                                model = background,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .alpha(previewOpacity)
+                            )
+                        }
+                    },
+                )
+            },
+        )
     }
 
     if (showPickOption) {

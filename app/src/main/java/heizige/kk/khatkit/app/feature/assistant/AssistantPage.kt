@@ -48,13 +48,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -63,8 +61,8 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_ASSISTANTS_IDS
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.model.Assistant
-import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ai.AssistantItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
@@ -91,7 +89,6 @@ import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.kedge.adaptive.KedgePageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.components.KedgeTextField
 import heizige.kk.kedge.theme.KedgeStyle
@@ -211,16 +208,67 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             val memories by vm.getMemories(assistant).collectAsStateWithLifecycle(
                                 initialValue = emptyList(),
                             )
+                            // 支持行只在真有记忆角标/标签时才占位，空 Row 会在标题下留一道死间距。
+                            val hasSupporting = assistant.enableMemory || assistant.tags.isNotEmpty()
                             AssistantItem(
                                 assistant = assistant,
-                                settings = settings,
-                                memories = memories,
+                                defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
                                 shape = cards.indexedShape(index, filteredAssistants.size),
-                                onEdit = {
-                                    navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
+                                // 头像 → 详情页的共享元素转场属于本页，不进共享行。
+                                avatarModifier = Modifier.heroAnimation("assistant_${assistant.id}"),
+                                supportingContent = if (hasSupporting) {
+                                    {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (assistant.enableMemory) {
+                                                Tag(type = TagType.SUCCESS) {
+                                                    Text(stringResource(R.string.assistant_page_memory_count, memories.size))
+                                                }
+                                            }
+
+                                            if (assistant.tags.isNotEmpty()) {
+                                                assistant.tags.take(2).fastForEach { tagId ->
+                                                    val tag = settings.assistantTags.find { it.id == tagId }
+                                                        ?: return@fastForEach
+                                                    KedgeSurface(
+                                                        shape = RoundedCornerShape(50),
+                                                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                                                    ) {
+                                                        Text(
+                                                            text = tag.name,
+                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                            style = KedgeTextStyles.footnoteSmall(),
+                                                        )
+                                                    }
+                                                }
+                                                if (assistant.tags.size > 2) {
+                                                    Text(
+                                                        text = "+${assistant.tags.size - 2}",
+                                                        style = KedgeTextStyles.footnoteSmall(),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    null
                                 },
-                                onShowActions = {
-                                    actionSheetAssistant = assistant
+                                trailingContent = {
+                                    KedgeIconButton(
+                                        onClick = { actionSheetAssistant = assistant },
+                                        shapes = IconButtonDefaults.shapes(),
+                                    ) {
+                                        Icon(
+                                            imageVector = moreVert,
+                                            contentDescription = stringResource(R.string.assistant_page_actions)
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
                                 },
                                 modifier = Modifier
                                     .scale(if (isDragging) 0.95f else 1f)
@@ -451,22 +499,29 @@ private fun AssistantCreationSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    KedgeFormRow(
-                        label = {
-                            Text(stringResource(R.string.assistant_page_name))
+                    // 表单行收口到 KedgeOptionItem：标题走 titleContent，输入框走
+                    // supportingContent（不再经项目内的转接层）。
+                    KedgeOptionItem(
+                        onClick = null,
+                        titleContent = {
+                            Text(
+                                text = stringResource(R.string.assistant_page_name),
+                                style = KedgeTextStyles.title(),
+                            )
                         },
-                    ) {
-                        KedgeOutlinedTextField(
-                            value = assistant.name, onValueChange = {
-                                update(
-                                    assistant.copy(
-                                        name = it
+                        supportingContent = {
+                            KedgeOutlinedTextField(
+                                value = assistant.name, onValueChange = {
+                                    update(
+                                        assistant.copy(
+                                            name = it
+                                        )
                                     )
-                                )
-                            }, modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                    }
+                                }, modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        },
+                    )
 
                     AssistantImporter(
                         assistant = assistant,
@@ -480,95 +535,6 @@ private fun AssistantCreationSheet(
             }
         }
     }
-}
-
-@Composable
-private fun AssistantItem(
-    assistant: Assistant,
-    settings: Settings,
-    modifier: Modifier = Modifier,
-    shape: Shape,
-    memories: List<AssistantMemory>,
-    onEdit: () -> Unit,
-    onShowActions: () -> Unit,
-) {
-    val displayName = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
-    // 支持行只在真有记忆角标/标签时才占位，空 Row 会在标题下留一道死间距。
-    val hasSupporting = assistant.enableMemory || assistant.tags.isNotEmpty()
-
-    KedgeOptionItem(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onEdit,
-        shape = shape,
-        leadingContent = {
-            UIAvatar(
-                name = displayName,
-                value = assistant.avatar,
-                modifier = Modifier
-                    .size(40.dp)
-                    .heroAnimation("assistant_${assistant.id}")
-            )
-        },
-        titleContent = {
-            Text(
-                text = displayName,
-                style = KedgeTextStyles.title(),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = if (hasSupporting) {
-            {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (assistant.enableMemory) {
-                        Tag(type = TagType.SUCCESS) {
-                            Text(stringResource(R.string.assistant_page_memory_count, memories.size))
-                        }
-                    }
-
-                    if (assistant.tags.isNotEmpty()) {
-                        assistant.tags.take(2).fastForEach { tagId ->
-                            val tag = settings.assistantTags.find { it.id == tagId }
-                                ?: return@fastForEach
-                            KedgeSurface(
-                                shape = RoundedCornerShape(50),
-                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                            ) {
-                                Text(
-                                    text = tag.name,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    style = KedgeTextStyles.footnoteSmall(),
-                                )
-                            }
-                        }
-                        if (assistant.tags.size > 2) {
-                            Text(
-                                text = "+${assistant.tags.size - 2}",
-                                style = KedgeTextStyles.footnoteSmall(),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        } else {
-            null
-        },
-        trailingContent = {
-            KedgeIconButton(
-                onClick = onShowActions,
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    imageVector = moreVert,
-                    contentDescription = stringResource(R.string.assistant_page_actions)
-                )
-            }
-        },
-    )
 }
 
 @Composable

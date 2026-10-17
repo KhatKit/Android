@@ -252,7 +252,11 @@ internal fun ModelList(
  * `surfaceContainer` 卡片装一组，卡片之间靠间距分隔、没有分割线 —— 与设置页
  * （`KedgeFormCard` / `MiuixFormMetrics`）以及 KernelSU 的分组偏好一致。
  *
- * Miuix 下 `KedgeFormCard` 不带内边距，所以自己补一层；MD3 下卡片自带 16dp，不再叠加。
+ * 卡内边距由**这里**给、两种风格都要给：`KedgeFormCard` 只是分段容器 ——
+ * `InlineCardGroup` 自己画底色 + 收角，但**不加内边距**（组内是 `KedgeFormRow` 时内边距
+ * 由行自己带，见 `FormItem` 的 `modifier` 注释）。本组装的是「标题 + 任意控件」，没有行
+ * 组件帮忙撑内边距，所以自己补一层；MD3 下也一样（改造前 MD3 那 16dp 来自旧 `KedgeCard`
+ * 的默认 `contentPadding`，现在容器不再提供）。
  */
 @Composable
 internal fun ModelFormGroup(
@@ -261,13 +265,8 @@ internal fun ModelFormGroup(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     KedgeFormCard(modifier = modifier) {
-        val inner = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-            Modifier.padding(MiuixFormMetrics.ItemPadding + 2.dp)
-        } else {
-            Modifier
-        }
         Column(
-            modifier = inner,
+            modifier = Modifier.padding(MiuixFormMetrics.ItemPadding + 2.dp),
             verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.ItemSpacing),
         ) {
             if (LocalKedgeStyle.current == KedgeStyle.Miuix) {

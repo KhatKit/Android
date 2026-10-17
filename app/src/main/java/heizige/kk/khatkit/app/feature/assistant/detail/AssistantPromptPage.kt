@@ -24,14 +24,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeTextButton
@@ -54,7 +51,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -82,13 +78,11 @@ import heizige.kk.khatkit.app.core.data.model.AssistantRegex
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TextArea
 import heizige.kk.khatkit.app.core.ui.theme.ChatFontProvider
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.insertAtCursor
@@ -105,14 +99,9 @@ import heizige.kk.khatkit.app.core.ui.icons.dragHandle
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.sync
-import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -122,46 +111,16 @@ fun AssistantPromptPage(id: String) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        KedgeSettingsPageScaffold(
-            title = stringResource(R.string.assistant_page_tab_prompt),
-            navigationIcon = { BackButton() },
-        ) { innerPadding ->
-            AssistantPromptContent(
-                // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
-                // 旧写法硬编码 PaddingValues(horizontal = 16.dp)（因为 MiuixSettingsPage
-                // 自己用 LazyColumn 的 contentPadding 处理了顶栏），改成内容直接透传后
-                // 顶部就是 0，content 直接压在 TopAppBar 下面。
-                innerPadding = innerPadding,
-                assistant = assistant,
-                settings = settings,
-                onUpdate = { vm.update(it) },
-            )
-        }
-        return
-    }
-
-    KedgePageScaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.assistant_page_tab_prompt),
-                navigationIcon = {
-                    BackButton()
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor,
-    
-        md3ScrollBehavior = scrollBehavior,
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.assistant_page_tab_prompt),
+        scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantPromptContent(
+            // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
             innerPadding = innerPadding,
             assistant = assistant,
             settings = settings,
-            onUpdate = { vm.update(it) }
+            onUpdate = { vm.update(it) },
         )
     }
 }
@@ -185,53 +144,59 @@ private fun AssistantPromptContent(
             .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        KedgeFormCard {
-            Column(
-                modifier = Modifier.padding(MiuixFormMetrics.InnerPadding),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val systemPromptValue = rememberTextFieldState(
-                    initialText = assistant.systemPrompt,
-                )
-                LaunchedEffect(Unit) {
-                    snapshotFlow { systemPromptValue.text }.collect {
-                        onUpdate(
-                            assistant.copy(
-                                systemPrompt = it.toString()
-                            )
-                        )
-                    }
-                }
-
-                TextArea(
-                    state = systemPromptValue,
-                    label = stringResource(R.string.assistant_page_system_prompt),
-                    minLines = 5,
-                    maxLines = 10
-                )
-
-                Column {
-                    Text(
-                        text = stringResource(R.string.assistant_page_available_variables),
-                        style = KedgeTextStyles.footnoteSmall()
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+        CardGroup {
+            item(
+                // 系统提示词的标题头由 TextArea 自己画（同排还有全屏/导入按钮），
+                // 这里不再重复画一次标题。
+                headlineContent = {},
+                supportingContent = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        DefaultPlaceholderProvider.placeholders.forEach { (k, info) ->
-                            Tag(
-                                onClick = {
-                                    systemPromptValue.insertAtCursor("{{$k}}")
-                                }
+                        val systemPromptValue = rememberTextFieldState(
+                            initialText = assistant.systemPrompt,
+                        )
+                        LaunchedEffect(Unit) {
+                            snapshotFlow { systemPromptValue.text }.collect {
+                                onUpdate(
+                                    assistant.copy(
+                                        systemPrompt = it.toString()
+                                    )
+                                )
+                            }
+                        }
+
+                        TextArea(
+                            state = systemPromptValue,
+                            label = stringResource(R.string.assistant_page_system_prompt),
+                            minLines = 5,
+                            maxLines = 10
+                        )
+
+                        Column {
+                            Text(
+                                text = stringResource(R.string.assistant_page_available_variables),
+                                style = KedgeTextStyles.footnoteSmall()
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
-                                info.displayName()
-                                Text(": {{$k}}")
+                                DefaultPlaceholderProvider.placeholders.forEach { (k, info) ->
+                                    Tag(
+                                        onClick = {
+                                            systemPromptValue.insertAtCursor("{{$k}}")
+                                        }
+                                    ) {
+                                        info.displayName()
+                                        Text(": {{$k}}")
+                                    }
+                                }
                             }
                         }
                     }
-                }
-            }
+                },
+            )
         }
 
         CardGroup {
@@ -286,10 +251,9 @@ private fun AssistantPromptContent(
             )
         }
 
-        KedgeFormCard {
-            KedgeFormRow(
-                modifier = Modifier.padding(8.dp),
-                label = {
+        CardGroup {
+            item(
+                headlineContent = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -309,189 +273,161 @@ private fun AssistantPromptContent(
                         }
                     }
                 },
-                content = {
-                    val missingMessage = "{{ message }}" !in assistant.messageTemplate
-                    KedgeOutlinedTextFieldWithSlots(
-                        value = assistant.messageTemplate,
-                        onValueChange = {
-                            onUpdate(
-                                assistant.copy(
-                                    messageTemplate = it
-                                )
+                supportingContent = {
+                    KedgeRowSupport(
+                        description = {
+                            Text(stringResource(R.string.assistant_page_message_template_desc))
+                            Text(buildAnnotatedString {
+                                append(stringResource(R.string.assistant_page_template_variables_label))
+                                append(" ")
+                                append(stringResource(R.string.assistant_page_template_variable_role))
+                                append(": ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append("{{ role }}")
+                                }
+                                append(", ")
+                                append(stringResource(R.string.assistant_page_template_variable_message))
+                                append(": ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append("{{ message }}")
+                                }
+                                append(", ")
+                                append(stringResource(R.string.assistant_page_template_variable_time))
+                                append(": ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append("{{ time }}")
+                                }
+                                append(", ")
+                                append(stringResource(R.string.assistant_page_template_variable_date))
+                                append(": ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append("{{ date }}")
+                                }
+                            })
+                        },
+                        content = {
+                            val missingMessage = "{{ message }}" !in assistant.messageTemplate
+                            KedgeOutlinedTextFieldWithSlots(
+                                value = assistant.messageTemplate,
+                                onValueChange = {
+                                    onUpdate(
+                                        assistant.copy(
+                                            messageTemplate = it
+                                        )
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 5,
+                                maxLines = 15,
+                                isError = missingMessage,
+                                supportingText = if (missingMessage) {
+                                    { Text(stringResource(R.string.assistant_page_message_template_missing_message)) }
+                                } else null,
+                                textStyle = LocalTextStyle.current.copy(
+                                    fontSize = 12.sp,
+                                    fontFamily = JetbrainsMono,
+                                    lineHeight = 16.sp
+                                ),
+                                shape = RoundedCornerShape(16.dp)
                             )
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 5,
-                        maxLines = 15,
-                        isError = missingMessage,
-                        supportingText = if (missingMessage) {
-                            { Text(stringResource(R.string.assistant_page_message_template_missing_message)) }
-                        } else null,
-                        textStyle = LocalTextStyle.current.copy(
-                            fontSize = 12.sp,
-                            fontFamily = JetbrainsMono,
-                            lineHeight = 16.sp
-                        ),
-                        shape = RoundedCornerShape(16.dp)
                     )
                 },
-                description = {
-                    Text(stringResource(R.string.assistant_page_message_template_desc))
-                    Text(buildAnnotatedString {
-                        append(stringResource(R.string.assistant_page_template_variables_label))
-                        append(" ")
-                        append(stringResource(R.string.assistant_page_template_variable_role))
-                        append(": ")
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                            append("{{ role }}")
-                        }
-                        append(", ")
-                        append(stringResource(R.string.assistant_page_template_variable_message))
-                        append(": ")
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                            append("{{ message }}")
-                        }
-                        append(", ")
-                        append(stringResource(R.string.assistant_page_template_variable_time))
-                        append(": ")
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                            append("{{ time }}")
-                        }
-                        append(", ")
-                        append(stringResource(R.string.assistant_page_template_variable_date))
-                        append(": ")
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                            append("{{ date }}")
-                        }
-                    })
-                }
             )
-            Column(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(8.dp)
-                    .fillMaxWidth()
+        }
+
+        Column(
+            modifier = Modifier
+                .padding(8.dp)
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(8.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.assistant_page_template_preview),
+                style = KedgeTextStyles.title()
+            )
+            val rawMessages = listOf(
+                UIMessage.user("你好啊"),
+                UIMessage.assistant("你好，有什么我可以帮你的吗？"),
+            )
+            val preview by produceState<UiState<List<UIMessage>>>(
+                UiState.Success(rawMessages),
+                assistant
             ) {
-                Text(
-                    text = stringResource(R.string.assistant_page_template_preview),
-                    style = KedgeTextStyles.title()
-                )
-                val rawMessages = listOf(
-                    UIMessage.user("你好啊"),
-                    UIMessage.assistant("你好，有什么我可以帮你的吗？"),
-                )
-                val preview by produceState<UiState<List<UIMessage>>>(
-                    UiState.Success(rawMessages),
-                    assistant
-                ) {
-                    value = runCatching {
-                        UiState.Success(
-                            templateTransformer.transform(
-                                ctx = TransformerContext(
-                                    context = context,
-                                    model = Model(modelId = "gpt-4o", displayName = "GPT-4o"),
-                                    assistant = assistant,
-                                    settings = settings
-                                ),
-                                messages = rawMessages
-                            )
+                value = runCatching {
+                    UiState.Success(
+                        templateTransformer.transform(
+                            ctx = TransformerContext(
+                                context = context,
+                                model = Model(modelId = "gpt-4o", displayName = "GPT-4o"),
+                                assistant = assistant,
+                                settings = settings
+                            ),
+                            messages = rawMessages
                         )
-                    }.getOrElse {
-                        UiState.Error(it)
-                    }
-                }
-                preview.onError {
-                    Text(
-                        text = it.message ?: it.javaClass.name,
-                        color = MaterialTheme.colorScheme.error
                     )
+                }.getOrElse {
+                    UiState.Error(it)
                 }
-                preview.onSuccess {
-                    ChatFontProvider(displaySetting = settings.displaySetting) {
-                        it.fastForEach { message ->
-                            ChatMessage(
-                                node = message.toMessageNode(),
-                                onFork = {},
-                                onRegenerate = {},
-                                onEdit = {},
-                                onShare = {},
-                                onDelete = {},
-                                onUpdate = {},
-                                lastMessage = false,
-                            )
-                        }
+            }
+            preview.onError {
+                Text(
+                    text = it.message ?: it.javaClass.name,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            preview.onSuccess {
+                ChatFontProvider(displaySetting = settings.displaySetting) {
+                    it.fastForEach { message ->
+                        ChatMessage(
+                            node = message.toMessageNode(),
+                            onFork = {},
+                            onRegenerate = {},
+                            onEdit = {},
+                            onShare = {},
+                            onDelete = {},
+                            onUpdate = {},
+                            lastMessage = false,
+                        )
                     }
                 }
             }
         }
 
-        KedgeFormCard {
-            KedgeFormRow(
-                modifier = Modifier.padding(8.dp),
-                label = {
+        CardGroup {
+            item(
+                headlineContent = {
                     Text(stringResource(R.string.assistant_page_preset_messages))
                 },
-                description = {
+                supportingContent = {
                     Text(stringResource(R.string.assistant_page_preset_messages_desc))
-                }
+                },
             )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
-                modifier = Modifier.padding(MiuixFormMetrics.InnerPadding)
-            ) {
-                assistant.presetMessages.fastForEachIndexed { index, presetMessage ->
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+        ) {
+            assistant.presetMessages.fastForEachIndexed { index, presetMessage ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Select(
-                                options = listOf(MessageRole.USER, MessageRole.ASSISTANT),
-                                selectedOption = presetMessage.role,
-                                onOptionSelected = { role ->
-                                    onUpdate(
-                                        assistant.copy(
-                                            presetMessages = assistant.presetMessages.mapIndexed { i, msg ->
-                                                if (i == index) {
-                                                    msg.copy(role = role)
-                                                } else {
-                                                    msg
-                                                }
-                                            }
-                                        )
-                                    )
-                                },
-                                modifier = Modifier.width(160.dp)
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-                            KedgeIconButton(
-                                onClick = {
-                                    onUpdate(
-                                        assistant.copy(
-                                            presetMessages = assistant.presetMessages.filterIndexed { i, _ ->
-                                                i != index
-                                            }
-                                        )
-                                    )
-                                },
-                                shapes = IconButtonDefaults.shapes(),
-                            ) {
-                                Icon(close, null)
-                            }
-                        }
-                        KedgeOutlinedTextFieldWithSlots(
-                            value = presetMessage.toText(),
-                            onValueChange = { text ->
+                        Select(
+                            options = listOf(MessageRole.USER, MessageRole.ASSISTANT),
+                            selectedOption = presetMessage.role,
+                            onOptionSelected = { role ->
                                 onUpdate(
                                     assistant.copy(
                                         presetMessages = assistant.presetMessages.mapIndexed { i, msg ->
                                             if (i == index) {
-                                                msg.copy(parts = listOf(UIMessagePart.Text(text)))
+                                                msg.copy(role = role)
                                             } else {
                                                 msg
                                             }
@@ -499,104 +435,136 @@ private fun AssistantPromptContent(
                                     )
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            maxLines = 6,
-                            shape = RoundedCornerShape(16.dp)
+                            modifier = Modifier.width(160.dp)
                         )
-                    }
-                }
-                KedgeButton(
-                    onClick = {
-                        val lastRole = assistant.presetMessages.lastOrNull()?.role ?: MessageRole.ASSISTANT
-                        val nextRole = when (lastRole) {
-                            MessageRole.USER -> MessageRole.ASSISTANT
-                            MessageRole.ASSISTANT -> MessageRole.USER
-                            else -> MessageRole.USER
+                        Spacer(modifier = Modifier.weight(1f))
+                        KedgeIconButton(
+                            onClick = {
+                                onUpdate(
+                                    assistant.copy(
+                                        presetMessages = assistant.presetMessages.filterIndexed { i, _ ->
+                                            i != index
+                                        }
+                                    )
+                                )
+                            },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(close, null)
                         }
-                        onUpdate(
-                            assistant.copy(
-                                presetMessages = assistant.presetMessages + UIMessage(
-                                    role = nextRole,
-                                    parts = listOf(UIMessagePart.Text(""))
+                    }
+                    KedgeOutlinedTextFieldWithSlots(
+                        value = presetMessage.toText(),
+                        onValueChange = { text ->
+                            onUpdate(
+                                assistant.copy(
+                                    presetMessages = assistant.presetMessages.mapIndexed { i, msg ->
+                                        if (i == index) {
+                                            msg.copy(parts = listOf(UIMessagePart.Text(text)))
+                                        } else {
+                                            msg
+                                        }
+                                    }
                                 )
                             )
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Icon(add, null)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 6,
+                        shape = RoundedCornerShape(16.dp)
+                    )
                 }
+            }
+            KedgeButton(
+                onClick = {
+                    val lastRole = assistant.presetMessages.lastOrNull()?.role ?: MessageRole.ASSISTANT
+                    val nextRole = when (lastRole) {
+                        MessageRole.USER -> MessageRole.ASSISTANT
+                        MessageRole.ASSISTANT -> MessageRole.USER
+                        else -> MessageRole.USER
+                    }
+                    onUpdate(
+                        assistant.copy(
+                            presetMessages = assistant.presetMessages + UIMessage(
+                                role = nextRole,
+                                parts = listOf(UIMessagePart.Text(""))
+                            )
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Icon(add, null)
             }
         }
 
-        KedgeFormCard {
-            KedgeFormRow(
-                modifier = Modifier.padding(8.dp),
-                label = {
+        CardGroup {
+            item(
+                headlineContent = {
                     Text(stringResource(R.string.assistant_page_regex_title))
                 },
-                description = {
+                supportingContent = {
                     Text(stringResource(R.string.assistant_page_regex_desc))
-                }
+                },
             )
-            Column(
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+            modifier = Modifier.padding(horizontal = 8.dp)
+        ) {
+            val haptic = LocalHapticFeedback.current
+            ReorderableColumn(
+                list = assistant.regexes,
+                onSettle = { fromIndex, toIndex ->
+                    val regexes = assistant.regexes.toMutableList().apply {
+                        add(toIndex, removeAt(fromIndex))
+                    }
+                    onUpdate(assistant.copy(regexes = regexes))
+                },
                 verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
-                modifier = Modifier.padding(horizontal = 8.dp)
-            ) {
-                val haptic = LocalHapticFeedback.current
-                ReorderableColumn(
-                    list = assistant.regexes,
-                    onSettle = { fromIndex, toIndex ->
-                        val regexes = assistant.regexes.toMutableList().apply {
-                            add(toIndex, removeAt(fromIndex))
-                        }
-                        onUpdate(assistant.copy(regexes = regexes))
-                    },
-                    verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
-                ) { index, regex, isDragging ->
-                    key(regex.id) {
-                        ReorderableItem(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            AssistantRegexCard(
-                                regex = regex,
-                                onUpdate = onUpdate,
-                                assistant = assistant,
-                                index = index,
-                                modifier = Modifier.scale(if (isDragging) 0.95f else 1f),
-                                dragHandleModifier = Modifier
-                                    .size(48.dp)
-                                    .longPressDraggableHandle(
-                                        enabled = assistant.regexes.size > 1,
-                                        onDragStarted = {
-                                            haptic.performHapticFeedback(
-                                                HapticFeedbackType.GestureThresholdActivate
-                                            )
-                                        },
-                                        onDragStopped = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                        }
-                                    )
-                            )
-                        }
+            ) { index, regex, isDragging ->
+                key(regex.id) {
+                    ReorderableItem(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        AssistantRegexCard(
+                            regex = regex,
+                            onUpdate = onUpdate,
+                            assistant = assistant,
+                            index = index,
+                            modifier = Modifier.scale(if (isDragging) 0.95f else 1f),
+                            dragHandleModifier = Modifier
+                                .size(48.dp)
+                                .longPressDraggableHandle(
+                                    enabled = assistant.regexes.size > 1,
+                                    onDragStarted = {
+                                        haptic.performHapticFeedback(
+                                            HapticFeedbackType.GestureThresholdActivate
+                                        )
+                                    },
+                                    onDragStopped = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    }
+                                )
+                        )
                     }
                 }
-                KedgeButton(
-                    onClick = {
-                        onUpdate(
-                            assistant.copy(
-                                regexes = assistant.regexes + AssistantRegex(
-                                    id = Uuid.random()
-                                )
+            }
+            KedgeButton(
+                onClick = {
+                    onUpdate(
+                        assistant.copy(
+                            regexes = assistant.regexes + AssistantRegex(
+                                id = Uuid.random()
                             )
                         )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Icon(add, null)
-                }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Icon(add, null)
             }
         }
     }
@@ -614,219 +582,224 @@ private fun AssistantRegexCard(
     var expanded by remember {
         mutableStateOf(false)
     }
-    KedgeCard(
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(12.dp)
-                .animateContentSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = dragHandleModifier,
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = dragHandle,
-                        contentDescription = null,
-                    )
-                }
-                Text(
-                    text = regex.name,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+    CardGroup(modifier = modifier.fillMaxWidth()) {
+        item(
+            // 折叠头（拖拽把手 + 名称 + 开关 + 展开按钮）和展开后的字段都在这一行里
+            // 自己排，headline 留空以免再画一遍标题。
+            headlineContent = {},
+            supportingContent = {
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .widthIn(max = 200.dp)
-                )
-                KedgeSwitch(
-                    checked = regex.enabled,
-                    onCheckedChange = { enabled ->
-                        onUpdate(
-                            assistant.copy(
-                                regexes = assistant.regexes.mapIndexed { i, reg ->
-                                    if (i == index) {
-                                        reg.copy(enabled = enabled)
-                                    } else {
-                                        reg
-                                    }
-                                }
-                            )
-                        )
-                    },
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-                KedgeIconButton(
-                    onClick = {
-                        expanded = !expanded
-                    },
-                    shapes = IconButtonDefaults.shapes(),
+                        .padding(12.dp)
+                        .animateContentSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
-                        contentDescription = null
-                    )
-                }
-            }
-
-            if (expanded) {
-
-                KedgeOutlinedTextFieldWithSlots(
-                    value = regex.name,
-                    onValueChange = { name ->
-                        onUpdate(
-                            assistant.copy(
-                                regexes = assistant.regexes.mapIndexed { i, reg ->
-                                    if (i == index) {
-                                        reg.copy(name = name)
-                                    } else {
-                                        reg
-                                    }
-                                }
-                            )
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.assistant_page_regex_name)) },
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                KedgeOutlinedTextFieldWithSlots(
-                    value = regex.findRegex,
-                    onValueChange = { findRegex ->
-                        onUpdate(
-                            assistant.copy(
-                                regexes = assistant.regexes.mapIndexed { i, reg ->
-                                    if (i == index) {
-                                        reg.copy(findRegex = findRegex.trim())
-                                    } else {
-                                        reg
-                                    }
-                                }
-                            )
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.assistant_page_regex_find_regex)) },
-                    placeholder = { Text("e.g., \\b\\w+@\\w+\\.\\w+\\b") },
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                KedgeOutlinedTextFieldWithSlots(
-                    value = regex.replaceString,
-                    onValueChange = { replaceString ->
-                        onUpdate(
-                            assistant.copy(
-                                regexes = assistant.regexes.mapIndexed { i, reg ->
-                                    if (i == index) {
-                                        reg.copy(replaceString = replaceString)
-                                    } else {
-                                        reg
-                                    }
-                                }
-                            )
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.assistant_page_regex_replace_string)) },
-                    placeholder = { Text("e.g., [EMAIL]") },
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                Column {
-                    Text(
-                        text = stringResource(R.string.assistant_page_regex_affecting_scopes),
-                        style = KedgeTextStyles.body()
-                    )
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AssistantAffectScope.entries.forEach { scope ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                KedgeCheckbox(
-                                    checked = scope in regex.affectingScope,
-                                    onCheckedChange = { checked ->
-                                        val newScopes = if (checked) {
-                                            regex.affectingScope + scope
-                                        } else {
-                                            regex.affectingScope - scope
+                        Box(
+                            modifier = dragHandleModifier,
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = dragHandle,
+                                contentDescription = null,
+                            )
+                        }
+                        Text(
+                            text = regex.name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .widthIn(max = 200.dp)
+                        )
+                        KedgeSwitch(
+                            checked = regex.enabled,
+                            onCheckedChange = { enabled ->
+                                onUpdate(
+                                    assistant.copy(
+                                        regexes = assistant.regexes.mapIndexed { i, reg ->
+                                            if (i == index) {
+                                                reg.copy(enabled = enabled)
+                                            } else {
+                                                reg
+                                            }
                                         }
-                                        onUpdate(
-                                            assistant.copy(
-                                                regexes = assistant.regexes.mapIndexed { i, reg ->
-                                                    if (i == index) {
-                                                        reg.copy(affectingScope = newScopes)
-                                                    } else {
-                                                        reg
-                                                    }
+                                    )
+                                )
+                            },
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                        KedgeIconButton(
+                            onClick = {
+                                expanded = !expanded
+                            },
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(
+                                imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
+                                contentDescription = null
+                            )
+                        }
+                    }
+
+                    if (expanded) {
+
+                        KedgeOutlinedTextFieldWithSlots(
+                            value = regex.name,
+                            onValueChange = { name ->
+                                onUpdate(
+                                    assistant.copy(
+                                        regexes = assistant.regexes.mapIndexed { i, reg ->
+                                            if (i == index) {
+                                                reg.copy(name = name)
+                                            } else {
+                                                reg
+                                            }
+                                        }
+                                    )
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.assistant_page_regex_name)) },
+                            shape = RoundedCornerShape(16.dp)
+                        )
+
+                        KedgeOutlinedTextFieldWithSlots(
+                            value = regex.findRegex,
+                            onValueChange = { findRegex ->
+                                onUpdate(
+                                    assistant.copy(
+                                        regexes = assistant.regexes.mapIndexed { i, reg ->
+                                            if (i == index) {
+                                                reg.copy(findRegex = findRegex.trim())
+                                            } else {
+                                                reg
+                                            }
+                                        }
+                                    )
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.assistant_page_regex_find_regex)) },
+                            placeholder = { Text("e.g., \\b\\w+@\\w+\\.\\w+\\b") },
+                            shape = RoundedCornerShape(16.dp)
+                        )
+
+                        KedgeOutlinedTextFieldWithSlots(
+                            value = regex.replaceString,
+                            onValueChange = { replaceString ->
+                                onUpdate(
+                                    assistant.copy(
+                                        regexes = assistant.regexes.mapIndexed { i, reg ->
+                                            if (i == index) {
+                                                reg.copy(replaceString = replaceString)
+                                            } else {
+                                                reg
+                                            }
+                                        }
+                                    )
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.assistant_page_regex_replace_string)) },
+                            placeholder = { Text("e.g., [EMAIL]") },
+                            shape = RoundedCornerShape(16.dp)
+                        )
+
+                        Column {
+                            Text(
+                                text = stringResource(R.string.assistant_page_regex_affecting_scopes),
+                                style = KedgeTextStyles.body()
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing)
+                            ) {
+                                AssistantAffectScope.entries.forEach { scope ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        KedgeCheckbox(
+                                            checked = scope in regex.affectingScope,
+                                            onCheckedChange = { checked ->
+                                                val newScopes = if (checked) {
+                                                    regex.affectingScope + scope
+                                                } else {
+                                                    regex.affectingScope - scope
                                                 }
-                                            )
+                                                onUpdate(
+                                                    assistant.copy(
+                                                        regexes = assistant.regexes.mapIndexed { i, reg ->
+                                                            if (i == index) {
+                                                                reg.copy(affectingScope = newScopes)
+                                                            } else {
+                                                                reg
+                                                            }
+                                                        }
+                                                    )
+                                                )
+                                            }
+                                        )
+                                        Text(
+                                            text = scope.name.lowercase().replaceFirstChar { it.uppercase() },
+                                            style = KedgeTextStyles.body()
                                         )
                                     }
+                                }
+                            }
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            KedgeCheckbox(
+                                checked = regex.visualOnly,
+                                onCheckedChange = { visualOnly ->
+                                    onUpdate(
+                                        assistant.copy(
+                                            regexes = assistant.regexes.mapIndexed { i, reg ->
+                                                if (i == index) {
+                                                    reg.copy(visualOnly = visualOnly)
+                                                } else {
+                                                    reg
+                                                }
+                                            }
+                                        )
+                                    )
+                                }
+                            )
+                            Text(
+                                text = stringResource(R.string.assistant_page_regex_visual_only),
+                                style = KedgeTextStyles.body()
+                            )
+                        }
+
+                        KedgeTextButton(
+                            onClick = {
+                                onUpdate(
+                                    assistant.copy(
+                                        regexes = assistant.regexes.filterIndexed { i, _ ->
+                                            i != index
+                                        }
+                                    )
                                 )
-                                Text(
-                                    text = scope.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    style = KedgeTextStyles.body()
-                                )
+                            },
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(delete, null)
+                                Text(stringResource(R.string.delete))
                             }
                         }
                     }
                 }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    KedgeCheckbox(
-                        checked = regex.visualOnly,
-                        onCheckedChange = { visualOnly ->
-                            onUpdate(
-                                assistant.copy(
-                                    regexes = assistant.regexes.mapIndexed { i, reg ->
-                                        if (i == index) {
-                                            reg.copy(visualOnly = visualOnly)
-                                        } else {
-                                            reg
-                                        }
-                                    }
-                                )
-                            )
-                        }
-                    )
-                    Text(
-                        text = stringResource(R.string.assistant_page_regex_visual_only),
-                        style = KedgeTextStyles.body()
-                    )
-                }
-
-                KedgeTextButton(
-                    onClick = {
-                        onUpdate(
-                            assistant.copy(
-                                regexes = assistant.regexes.filterIndexed { i, _ ->
-                                    i != index
-                                }
-                            )
-                        )
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(delete, null)
-                        Text(stringResource(R.string.delete))
-                    }
-                }
-            }
-        }
+            },
+        )
     }
 }

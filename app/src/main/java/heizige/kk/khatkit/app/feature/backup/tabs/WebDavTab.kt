@@ -414,40 +414,6 @@ fun WebDavTab(
 }
 
 @Composable
-private fun BackupStatusCard(
-    title: String,
-    lastBackupText: String,
-    fileSummaryText: String,
-) {
-    CardGroup {
-        item(
-            headlineContent = {
-                Text(
-                    text = title,
-                    style = KedgeTextStyles.title()
-                )
-            },
-            supportingContent = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text(
-                        text = lastBackupText,
-                        style = KedgeTextStyles.body(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = fileSummaryText,
-                        style = KedgeTextStyles.body(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-        )
-    }
-}
-
-@Composable
 private fun WebDavBackupItemCard(
     item: WebDavBackupItem,
     isRestoring: Boolean = false,

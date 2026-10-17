@@ -17,15 +17,11 @@ import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeCard
 import heizige.kk.kedge.components.KedgeTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
@@ -39,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,7 +45,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantMemory
 import heizige.kk.khromia.helper.Toast
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
@@ -58,16 +52,11 @@ import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.kedge.adaptive.KedgePageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -95,46 +84,12 @@ fun AssistantMemoryPage(id: String) {
         }
     }
 
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        KedgeSettingsPageScaffold(
-            title = stringResource(R.string.assistant_page_tab_memory),
-            navigationIcon = { BackButton() },
-        ) { innerPadding ->
-            AssistantMemoryContent(
-                // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
-                // 旧写法硬编码 PaddingValues(horizontal = 16.dp)（因为 MiuixSettingsPage
-                // 自己用 LazyColumn 的 contentPadding 处理了顶栏），改成内容直接透传后
-                // 顶部就是 0，content 直接压在 TopAppBar 下面。
-                innerPadding = innerPadding,
-                assistant = assistant,
-                memories = memories,
-                onUpdateAssistant = { vm.update(it) },
-                onDeleteMemory = { vm.deleteMemory(it) },
-                onAddMemory = { vm.addMemory(it) },
-                onUpdateMemory = { vm.updateMemory(it) },
-                onOpenSource = onOpenSource,
-            )
-        }
-        return
-    }
-
-    KedgePageScaffold(
-        topBar = {
-            KedgePageLargeTopBar(
-                title = stringResource(R.string.assistant_page_tab_memory),
-                navigationIcon = {
-                    BackButton()
-                },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
-            )
-        },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = CustomColors.pageContainerColor,
-    
-        md3ScrollBehavior = scrollBehavior,
+    KedgeSettingsPageScaffold(
+        title = stringResource(R.string.assistant_page_tab_memory),
+        scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantMemoryContent(
+            // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
             innerPadding = innerPadding,
             assistant = assistant,
             memories = memories,
@@ -467,27 +422,17 @@ private fun MemoryItem(
     onDeleteMemory: (AssistantMemory) -> Unit,
     onOpenSource: (String) -> Unit = {},
 ) {
-    KedgeCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CustomColors.cardColorsOnSurfaceContainer
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
+    CardGroup {
+        item(
+            headlineContent = {
                 Text(
                     text = memory.content,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
                     style = KedgeTextStyles.body(),
                 )
+            },
+            supportingContent = {
                 // 来源与置信度（可溯源）
                 val provenance = buildList {
                     if (memory.sourceMessageId != null) {
@@ -519,22 +464,29 @@ private fun MemoryItem(
                         },
                     )
                 }
-            }
-            KedgeIconButton(
-                onClick = { onEditMemory(memory) },
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                Icon(edit, null)
-            }
-            KedgeIconButton(
-                onClick = { onDeleteMemory(memory) },
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    delete,
-                    stringResource(R.string.assistant_page_delete)
-                )
-            }
-        }
+            },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    KedgeIconButton(
+                        onClick = { onEditMemory(memory) },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(edit, null)
+                    }
+                    KedgeIconButton(
+                        onClick = { onDeleteMemory(memory) },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            delete,
+                            stringResource(R.string.assistant_page_delete)
+                        )
+                    }
+                }
+            },
+        )
     }
 }
