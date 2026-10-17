@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -212,14 +213,14 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
         onExpandedChange = { state.onExpandedChange(it, loading) },
         wrapContent = true,
         icon = {
-            // 20dp 与工具调用行（ChatMessageTools.kt:81 的 `size(20.dp)`）对齐：两条行
-            // 都走 KedgeOptionItem 的 leading 槽，且图标底衬按内容包裹，这里写 16dp 会
-            // 连带把底衬缩一圈，同一块链里两种图标大小并存。
+            // 与工具调用行逐项对齐（ChatMessageTools.kt:78-83 / :149-156）：尺寸 20dp、
+            // 着色 `LocalContentColor@0.7`。图标底衬按内容包裹，尺寸或着色任一项不同，
+            // 同一块链里就会出现两种大小/两种颜色；标题仍各自用 KedgeColors.secondary。
             Icon(
                 imageVector = emojiObjects,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = KedgeColors.secondary,
+                tint = LocalContentColor.current.copy(alpha = 0.7f),
             )
         },
         label = {
