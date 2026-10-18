@@ -1,6 +1,8 @@
 package heizige.kk.khatkit.bridge
 
 import heizige.kk.khatkit.ui.UiNodeParser
+import heizige.kk.khatkit.ui.UiScreenPage
+import heizige.kk.khatkit.ui.UiSheetOptions
 
 /** Validate and authorize images on the script thread, before publishing UI state. */
 internal class UiImageAccessBridge(
@@ -33,8 +35,20 @@ internal class UiImageAccessBridge(
     override fun form(title: String, items: Any, options: Map<String, Any?>?): Map<String, Any?>? =
         delegate.form(title, if (items is Map<*, *>) checked(items as Map<String, Any?>) else items, options)
 
-    override fun screen(title: String, root: Map<String, Any?>, options: Map<String, Any?>?): Map<String, Any?>? =
-        delegate.screen(title, checked(root), options)
+    override fun screen(title: String, root: Map<String, Any?>, options: Map<String, Any?>?): Map<String, Any?>? {
+        // Inactive pages have the same image authorization as the visible root.
+        // Validate the bounded page map before walking any of its image sources.
+        val pages = UiScreenPage.parse(options, UiSheetOptions.from(options).navigation)
+        val checkedOptions = if (pages.isEmpty()) options else options!!.toMutableMap().apply {
+            @Suppress("UNCHECKED_CAST")
+            val raw = options["pages"] as Map<String, Map<String, Any?>>
+            put("pages", raw.mapValues { (_, page) ->
+                @Suppress("UNCHECKED_CAST")
+                page + ("tree" to checked(page["tree"] as Map<String, Any?>))
+            })
+        }
+        return delegate.screen(title, checked(root), checkedOptions)
+    }
 
     override fun show(card: Map<String, Any?>, options: Map<String, Any?>?) = delegate.show(checked(card), options)
 }

@@ -16,11 +16,11 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import android.view.WindowInsets
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -38,16 +38,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.IconButtonShapes
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -60,15 +59,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -77,6 +73,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.kedge.theme.KedgeColors
+import heizige.kk.kedge.theme.KedgeStyle
+import heizige.kk.kedge.theme.LocalKedgeStyle
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
+import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme as AppTheme
+import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -97,7 +102,6 @@ import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
-import heizige.kk.khromia.components.ToastCardContainer
 import heizige.kk.khromia.components.ToastDefaults
 import heizige.kk.khatkit.uikit.KhatKitTheme
 import kotlinx.coroutines.CoroutineScope
@@ -120,22 +124,8 @@ private const val IDLE_EXIT_DELAY_MS = 3_000L
 /** 无显式 finish 的运行判定"会话结束"的空闲阈值：短暂无更新即收尾，保证看板不滞留 */
 private const val SESSION_END_IDLE_MS = 5_000L
 
-/** 退场动画结束后再 detach 的余量，保证 AnimatedVisibility 播完（slideOut tween 500 为最长分量）。 */
-private const val EXIT_SETTLE_MS = 700L
-
-/**
- * 悬浮窗外围留白（host 级，不是卡片规格）：上游/软件内的宿主是全屏 window，动画怎么冲都在窗口内；
- * 这里窗口只包裹看板（全屏会触发 Android 12+ 触摸遮挡，见类注释），所以显式留出上/左/右 16dp 给
- * `scaleIn` 弹簧的约 6.8% 过冲（dampingRatio 0.65）与卡片外的 6dp 阴影，避免被窗口边界裁掉。
- * 不加底部留白：窗口底边贴屏幕物理底部，卡片停靠位置完全由 Toast 规格的屏短边 * 0.2f 留白决定，
- * 与软件内/ Khromia 一致。
- */
-private val HostRoom = 16.dp
-
-// 卡片视觉（形状 / 0.95 透明度 / 48dp 最小高度 / 屏短边 0.7 最大宽度 / 6dp 黑色阴影 /
-// 屏短边 0.2f 底部留白 + 24dp 顶部与 12dp 左右留白 / 16dp 内容内边距 / 文字样式）全部来自
-// heizige.kk.khromia.components.ToastDefaults + ToastCardContainer，与软件内看板、
-// Khromia toast（上游 ImageToolbox 规格）共用同一份常量，本文件不再硬编码副本。
+/** 等待 150ms 退场动画完成后移除窗口。 */
+private const val EXIT_SETTLE_MS = 200L
 
 /**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
@@ -157,12 +147,10 @@ private val HostRoom = 16.dp
  * → `getTouchableRegion`），且 Android 12+ 的 `InputDispatcher#computeTouchOcclusionInfoLocked`
  * 会把全屏可见悬浮窗视为遮挡并拦截下层应用的触摸（`getTouchOcclusionMode` 对
  * `TYPE_APPLICATION_OVERLAY` 返回 USE_OPACITY、对 `TYPE_ACCESSIBILITY_OVERLAY` 返回
- * BLOCK_UNTRUSTED）。因此窗口只包裹看板并让底边贴住屏幕物理底部：看板以外区域触摸
+ * BLOCK_UNTRUSTED）。因此窗口只包裹看板，用窗口 y 偏移定位：看板以外区域触摸
  * 正常穿透，退场动画也在窗口底边处收住。
  *
- * 因为窗口不是全屏，窗口底边就是硬裁切边界（软件内看板挂 decorView，全屏宿主没有这个问题），
- * 所以入场/退场的滑位移取「节点高度一半」与「卡片下方窗口内留白」的较小值：位移 ≤ 留白
- * ⇒ 动画全程卡片都不会越过窗口底边。留白本身来自 Toast 规格的屏短边 * 0.2f。
+ * 入场/退场使用无过冲缩放与淡入淡出，不需要扩大触摸区域容纳动画。
  */
 class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
 
@@ -259,7 +247,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             setViewTreeViewModelStoreOwner(this@AutomationOverlayService)
             setViewTreeSavedStateRegistryOwner(this@AutomationOverlayService)
             setContent {
-                KhatKitTheme {
+                AutomationOverlayTheme {
                     AutomationStatusBoard(
                         status = overlayStatus.value,
                         approval = overlayApproval.value,
@@ -288,12 +276,17 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT,
         ).apply {
-            // y = 0：窗口底边贴住屏幕物理底部，看板自身用 Toast 规格的
-            // 屏短边 * 0.2f 底部留白（+ systemBarsPadding）决定离屏距离；
-            // 入场/退场的滑位移被 clamp 在这块留白内，不会越过窗口底边被裁掉。
+            title = "KhatKit automation"
+            // 定位由 WindowManager 提供，窗口本身只包住可见内容，不包含底部空白。
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             x = 0
-            y = 0
+            val display = resources.displayMetrics
+            val navigationBottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                manager.currentWindowMetrics.windowInsets
+                    .getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom
+            } else 0
+            y = (minOf(display.widthPixels, display.heightPixels) *
+                ToastDefaults.BottomScreenFraction).toInt() + navigationBottom
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
@@ -512,8 +505,21 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     }
 }
 
+/** 后台独立 Compose 根也读取应用选择的风格、深浅色和主题配色。 */
 @Composable
-private fun AutomationStatusBoard(
+internal fun AutomationOverlayTheme(content: @Composable () -> Unit) {
+    AppTheme {
+        val style = rememberAppEntryPoint().khatKitToolProvider().uiStyle
+        if (style == KhatKitUiStyle.MIUIX) {
+            KhatKitTheme(style = style, darkTheme = rememberIsDarkTheme(), content = content)
+        } else {
+            content()
+        }
+    }
+}
+
+@Composable
+internal fun AutomationStatusBoard(
     status: AutomationBus.AutomationStatus?,
     approval: AutomationBus.ApprovalRequest?,
     visible: Boolean,
@@ -525,65 +531,25 @@ private fun AutomationStatusBoard(
 ) {
     val boardVisible = visible && !hidden && (status != null || approval != null)
 
-    // 与 Khromia Toast（GlobalToastHost）一致的可见性驱动：MutableTransitionState 从 false
-    // 开始，首帧组合后再由 LaunchedEffect 翻到目标值，保证第一次展示也播进入动画。
     val visibleState = remember { MutableTransitionState(false) }
-
-    // 滑动位移基准高度：只在可见性切换的那一刻冻结当前实测高度（等价 Toast 的 it），
-    // 内容尺寸动画（SizeTransform）逐帧改高度时 it/2 不再跟着变，避免窗口 relayout
-    // 与滑动 offset 相互追逐造成鬼畜/振荡。
-    var measuredHeightPx by remember { mutableIntStateOf(0) }
-    var slideHeightPx by remember { mutableIntStateOf(0) }
-
     LaunchedEffect(boardVisible) {
-        if (visibleState.targetState != boardVisible) {
-            if (measuredHeightPx > 0) slideHeightPx = measuredHeightPx
-            visibleState.targetState = boardVisible
-        }
+        visibleState.targetState = boardVisible
     }
-    // 进入/退场与 Khromia Toast（GlobalToastHost → 上游 ImageToolbox ToastDefaults.transition）完全同源：
-    // fadeIn(tween(300)) + scaleIn(spring(0.65f, MediumLow), 底部中点) + slideIn(spring(StiffnessHigh))；
-    // 退场 fadeOut(tween(250)) + slideOut(tween(500)) + scaleOut(spring(MediumBouncy, MediumLow), 底部中点)，
-    // 滑动距离仍用冻结的稳定高度 slideHeightPx / 2。
-    //
-    // 与软件内唯一的不同：这里不是全屏窗口（全屏会触发 Android 12+ 触摸遮挡，见类注释），
-    // 窗口底边就是硬裁切边界，而卡片下方窗口内只有 Toast 自身的
-    // 屏短边 * 0.2f 底部留白（`it` 是整个节点 = 卡片 + 该留白 + 顶部/左右留白 + 系统栏内边距，
-    // 在 411dp 宽屏上节点约 card + 154dp，因此 `it / 2` 基本恒大于这块留白）。所以把位移
-    // clamp 到留白本身：位移 ≤ 留白 ≤ 卡片下方窗口内实际空闲 ⇒ 入场/退场全程卡片都不会越过窗口底边。
-    // 数值：留白 = 0.2 * 屏短边 ≈ 82dp @411dp；节点 `it / 2` ≈ 107dp（卡片 60dp 时）→ clamp 生效，
-    // 位移取 82dp。这正是旧实现的问题：当时卡片下方只有 48dp 留白，`it / 2` ≈ 107dp 超出约 59dp，
-    // 入场时卡片底部被窗口底边裁掉；clamp 之后位移 ≤ 留白，全程不越界。
-    val bottomRoomPx = with(LocalDensity.current) {
-        (ToastDefaults.screenSizeMin() * ToastDefaults.BottomScreenFraction).roundToPx()
-    }
-    val slideOffset: (Int) -> Int = { fullHeight ->
-        val half = if (slideHeightPx > 0) slideHeightPx / 2 else fullHeight / 2
-        minOf(half, bottomRoomPx)
-    }
-    Box(
-        modifier = Modifier.padding(start = HostRoom, top = HostRoom, end = HostRoom),
-        contentAlignment = Alignment.BottomCenter,
+    // 原位缩放不需要为移动动画扩大可触摸的窗口。
+    AnimatedVisibility(
+        visibleState = visibleState,
+        enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.96f),
+        exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.96f),
     ) {
-        AnimatedVisibility(
-            visibleState = visibleState,
-            enter = ToastDefaults.enterTransition(slideOffset),
-            exit = ToastDefaults.exitTransition(slideOffset),
-        ) {
-            if (status != null || approval != null) {
-                AutomationToast(
-                    status = status,
-                    approval = approval,
-                    onApprove = onApprove,
-                    onDeny = onDeny,
-                    onRemember = onRemember,
-                    onDismiss = onDismiss,
-                    modifier = Modifier.onSizeChanged { size ->
-                        measuredHeightPx = size.height
-                        if (slideHeightPx == 0) slideHeightPx = size.height
-                    },
-                )
-            }
+        if (status != null || approval != null) {
+            AutomationToast(
+                status = status,
+                approval = approval,
+                onApprove = onApprove,
+                onDeny = onDeny,
+                onRemember = onRemember,
+                onDismiss = onDismiss,
+            )
         }
     }
 }
@@ -633,20 +599,15 @@ private sealed interface BoardContent {
 }
 
 /**
- * 看板容器：卡片规格由 Khromia 的 [ToastCardContainer] 提供（同一份常量也喂给软件内看板），
- * 即上游 ImageToolbox `ToastHost.kt` 的 Toast：
- * - 形状 AutoCornersShape(32.dp)、透明度 0.95、heightIn(min = 48.dp)
- * - 宽度上限 = 屏短边 * 0.7f、6dp 黑色（ambient/spot）阴影
- * - 宿主留白 = 屏短边 * 0.2f 底部 + 24dp 顶部 + 12dp 左右 + systemBarsPadding/imePadding
- * - 内容内边距 16dp、文字 MaterialTheme.typography.bodySmall（12.sp 常规 / 0.4sp）
- * 本文件不再硬编码这些值。
+ * 看板容器：应用内外共用按内容测量的胶囊，Miuix 使用原生 secondaryContainer 配色。
+ * 定位在宿主完成，点击区域只覆盖胶囊；长文案最多占屏幕短边的 85%。
  *
  * 内容由 [AnimatedContent] 承载：尺寸变化交给 [SizeTransform] 做容器动画，子内容
  * 始终按目标尺寸测量，避免独立 animateContentSize 在 WRAP_CONTENT 悬浮窗里
  * 逐帧把高度反哺测量导致抖动。
  */
 @Composable
-private fun AutomationToast(
+internal fun AutomationToast(
     status: AutomationBus.AutomationStatus?,
     approval: AutomationBus.ApprovalRequest?,
     onApprove: () -> Unit,
@@ -662,11 +623,15 @@ private fun AutomationToast(
         else -> BoardContent.Status
     }
 
-    // 卡片视觉与软件内看板/ Khromia toast 同源：形状、0.95 透明度、48dp 最小高度、
-    // 屏短边 0.7 最大宽度、6dp 黑色阴影、屏短边 0.2f 底部留白 + 24/12dp 宿主留白
-    // （含 systemBarsPadding）全部由 ToastCardContainer 提供。
-    ToastCardContainer(
-        modifier = modifier.clickable(onClick = onDismiss),
+    val miuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+    Surface(
+        color = if (miuix) KedgeColors.secondaryContainer else ToastDefaults.color,
+        contentColor = if (miuix) KedgeColors.onSecondaryContainer else ToastDefaults.contentColor,
+        shape = RoundedCornerShape(24.dp),
+        modifier = modifier
+            .widthIn(max = ToastDefaults.screenSizeMin() * 0.85f)
+            .heightIn(min = 48.dp)
+            .clickable(onClick = onDismiss),
     ) {
         AnimatedContent(
             targetState = content,
@@ -678,7 +643,7 @@ private fun AutomationToast(
             label = "automationToastContent",
         ) { target ->
             Row(
-                modifier = Modifier.padding(ToastDefaults.ContentPadding),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
@@ -707,7 +672,7 @@ private fun AutomationToast(
                                         scaleOut(tween(ANIMATION_MS), targetScale = 0.92f)
                                     ) using SizeTransform(clip = false) { _, _ -> tween(ANIMATION_MS) }
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f, fill = false),
                             contentAlignment = Alignment.CenterStart,
                             label = "approvalTitle",
                         ) { title ->
@@ -730,7 +695,8 @@ private fun AutomationToast(
                         // 步骤文本每次变化都做一次淡入淡出 + 轻微垂直滑动，
                         // 尺寸变化交给 SizeTransform（clip = false），避免窗口 relayout 抖动
                         AnimatedContent(
-                            targetState = status?.label.orEmpty(),
+                            targetState = listOfNotNull(status?.label, status?.detail?.takeIf { it.isNotBlank() })
+                                .joinToString(" · "),
                             transitionSpec = {
                                 (
                                     fadeIn(tween(ANIMATION_MS)) +
@@ -747,7 +713,7 @@ private fun AutomationToast(
                                 text = label,
                                 style = ToastDefaults.textStyle,
                                 textAlign = TextAlign.Center,
-                                maxLines = 1,
+                                maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
@@ -773,6 +739,32 @@ private fun ApprovalButtonGroup(
     onDeny: () -> Unit,
     onRemember: () -> Unit,
 ) {
+    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            KedgeIconButton(onClick = onDeny, modifier = Modifier.size(32.dp)) {
+                Icon(close, "拒绝", Modifier.size(16.dp))
+            }
+            Box {
+                var expanded by remember { mutableStateOf(false) }
+                KedgeIconButton(
+                    onClick = onApprove,
+                    variant = KedgeIconButtonVariant.Filled,
+                    modifier = Modifier.size(32.dp),
+                ) { Icon(check, "允许", Modifier.size(16.dp)) }
+                Box(Modifier.matchParentSize().combinedClickable(
+                    onClick = onApprove,
+                    onLongClick = { expanded = true },
+                ))
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(text = { Text("10 分钟内自动允许") }, onClick = {
+                        expanded = false
+                        onRemember()
+                    })
+                }
+            }
+        }
+        return
+    }
     val leadingShapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
     val trailingShapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {

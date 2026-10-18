@@ -5,6 +5,7 @@ do
   local fields = {
     TextField="string", NumberField="number", Switch="boolean", Checkbox="boolean",
     Slider="number", Select="string", RadioGroup="string", FilePicker="paths", DirPicker="string",
+    CounterButton="number",
   }
   -- Icon 名单与运行时 UiIcons.names 一致（khatkit 的 UiIconsTest 会比对两份）。
   local icons = {}
@@ -33,11 +34,14 @@ do
     Switch={}, Checkbox={}, Slider={min="number",max="number",step="number"},
     Select={options="strings"}, RadioGroup={options="strings"},
     FilePicker={filter="image|video|audio|document|any",multiple="boolean"}, DirPicker={},
+    CounterButton={action="string",count="number",localCount="number",caption="string",
+      revision="number",disabled="boolean",tone="primary|default",modifier="modifier"},
     Button={label="string",action="string",tone="primary|default|danger",disabled="boolean",
       icon="icon",color="color",modifier="modifier"},
     IconButton={action="string",icon="icon",tone="default|muted|primary|error|success|warning",
-      disabled="boolean",contentDescription="string",modifier="modifier"},
+      color="color",disabled="boolean",contentDescription="string",modifier="modifier"},
   }
+  for _,s in pairs(schemas) do s.key="string" end
   for name, kind in pairs(fields) do
     local s = schemas[name]
     s.id, s.label, s.value, s.hint, s.required = "string","string",kind,"string","boolean"
@@ -178,11 +182,30 @@ do
       end
       if name=="Icon" and not p.name then fail(name..".name","required") end
       if name=="Button" and (not p.action or p.action=="") then fail(name..".action","required") end
+      if name=="CounterButton" then
+        if not p.action or not p.action:find("%S") then fail(name..".action","required") end
+        for _,key in ipairs({"count","localCount","revision","value"}) do
+          local v=p[key]
+          if v and (v<0 or v%1~=0 or v>(key=="value" and 10 or 9007199254740991)) then
+            fail(name.."."..key,"invalid count")
+          end
+        end
+      end
       if name=="IconButton" and (not p.action or p.action=="" or not p.icon) then
         fail(name..".action","action and icon are required")
       end
       local n=array(node.children,name..".children")
       if not layouts[name] and n>0 then fail(name..".children","leaf cannot contain children") end
+      local keys={}
+      for _,child in ipairs(node.children) do
+        local key=type(child)=="table" and type(child.props)=="table" and child.props.key
+        if key then
+          if type(key)~="string" or not key:find("%S") or #key>128 or keys[key] then
+            fail(name..".children.key","expected distinct nonblank keys up to 128 characters")
+          end
+          keys[key]=true
+        end
+      end
       for _,child in ipairs(node.children) do visit(child,depth+1) end
       visiting[node]=nil
     end

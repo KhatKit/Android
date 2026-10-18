@@ -187,7 +187,7 @@ fun KhatKitUiHost() {
                 androidx.compose.runtime.LaunchedEffect(current.root) {
                     android.util.Log.d("KKPerf", "applied @" + (System.nanoTime() / 1_000_000))
                 }
-                TreeSheet(current.title, current.root, current.options, provider)
+                TreeSheet(current.title, current.root, current.options, provider, pages = current.pages)
             }
             is UiRequest.ShowTree -> key(current) {
                 TreeSheet(current.title, current.root, current.options, provider, readOnly = true)
@@ -252,10 +252,12 @@ private fun TreeSheet(
     provider: KhatKitToolProvider,
     form: Boolean = false,
     readOnly: Boolean = false,
+    pages: Map<String, heizige.kk.khatkit.ui.UiScreenPage> = emptyMap(),
 ) {
     NodeTreeSheet(
         title = title, root = root, options = options, form = form, readOnly = readOnly,
         pickerHost = provider.formPickerHost,
+        pages = pages,
         onAction = { event, values ->
             if (form) provider.submitForm(values) else provider.submitScreen(event, values)
         },

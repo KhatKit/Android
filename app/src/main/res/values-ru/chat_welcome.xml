@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_welcome_question">Что хотите сделать сегодня?</string>
+    <string name="chat_welcome_ideas">Несколько идей</string>
+    <string name="chat_welcome_shuffle">Другие идеи</string>
+    <string name="chat_idea_web">Прочитать веб-страницу</string>
+    <string name="chat_idea_web_detail">Главное, со ссылками на источники</string>
+    <string name="chat_idea_web_prompt">Помоги прочитать веб-страницу, выделить главное и указать источник.</string>
+    <string name="chat_idea_image">Обработать изображения</string>
+    <string name="chat_idea_image_detail">Сжатие, конвертация и удаление метаданных</string>
+    <string name="chat_idea_image_prompt">Помоги обработать изображения. Сначала спроси, какая операция нужна.</string>
+    <string name="chat_idea_files">Упорядочить файлы</string>
+    <string name="chat_idea_files_detail">Сортировка, переименование и архивация</string>
+    <string name="chat_idea_files_prompt">Помоги упорядочить файлы. До изменений уточни папку и план действий.</string>
+    <string name="chat_idea_schedule">Создать автоматизацию</string>
+    <string name="chat_idea_schedule_detail">Повседневные задачи по расписанию</string>
+    <string name="chat_idea_schedule_prompt">Помоги настроить запуск карточки по расписанию. Сначала уточни задачу и время.</string>
+    <string name="chat_widgets">Виджеты</string>
+    <string name="chat_widgets_manage">Управление виджетами</string>
+    <string name="chat_widgets_add">Добавить виджет</string>
+    <string name="chat_widget_refresh">Обновить виджет</string>
+    <string name="chat_widget_hide">Скрыть виджет</string>
+    <string name="chat_widget_loading">Выполняется…</string>
+    <string name="chat_widget_failed">Не удалось загрузить виджет</string>
+    <string name="chat_widget_empty">Пока нечего показать</string>
+</resources>

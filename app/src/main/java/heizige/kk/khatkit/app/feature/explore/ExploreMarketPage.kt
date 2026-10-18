@@ -2611,7 +2611,18 @@ private fun ToolRow(
             )
         },
         trailingContent = {
-            MetaChip(text = if (enabled) stringResource(R.string.explore_market_enabled) else stringResource(R.string.explore_market_disabled), accent = enabled)
+            // 状态位和详情弹窗里的标签用同一种胶囊（[TagChip]）：26dp、满圆角、footnoteSmall，
+            // 不再自起一套 KedgeBadge 度量。启用的语义色取 primaryContainer 对
+            // onPrimaryContainer（与市场「已安装」一致），停用退回中性灰。
+            if (enabled) {
+                TagChip(
+                    label = stringResource(R.string.explore_market_enabled),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            } else {
+                TagChip(label = stringResource(R.string.explore_market_disabled))
+            }
         },
     )
 }
@@ -3832,6 +3843,9 @@ private fun PopupHead(
             Text(
                 text = title,
                 style = KedgeTextStyles.title().copy(fontWeight = FontWeight.SemiBold),
+                // 显式取色，不依赖 LocalContentColor：弹窗卡面是 Color.alpha 的半透明底，
+                // 一旦上层没人 provide 内容色（MD3 分支的默认值是纯黑），标题就是黑底黑字。
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

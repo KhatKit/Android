@@ -366,6 +366,7 @@ sealed interface UiRequest {
         val root: UiNode,
         val options: UiSheetOptions,
         val deferred: CompletableDeferred<Map<String, Any?>?>,
+        val pages: Map<String, UiScreenPage> = emptyMap(),
     ) : UiRequest
 
     data class ShowTree(val title: String, val root: UiNode, val options: UiSheetOptions) : UiRequest
@@ -532,9 +533,11 @@ class UiBridgeHost(
         Logger.getLogger("KKPerf").fine("screen.entry @${System.nanoTime() / 1_000_000}")
         val deferred = CompletableDeferred<Map<String, Any?>?>()
         val parsed = UiNodeParser.parse(root)
+        val sheetOptions = UiSheetOptions.from(options)
+        val pages = UiScreenPage.parse(options, sheetOptions.navigation)
         Logger.getLogger("KKPerf").fine("screen.parsed @${System.nanoTime() / 1_000_000}")
         return awaitRequest(
-            UiRequest.Screen(title, parsed, UiSheetOptions.from(options), deferred),
+            UiRequest.Screen(title, parsed, sheetOptions, deferred, pages),
             deferred,
             budget(),
         )
@@ -648,19 +651,24 @@ class UiBridgeHost(
     fun submitScreen(event: String, values: Map<String, Any?>) {
         Logger.getLogger("KKPerf").fine("click:$event @${System.nanoTime() / 1_000_000}")
         val screen = _request.value as? UiRequest.Screen ?: return
-        if (screen.root.errors(values).isNotEmpty()) return
+        val pageId = values[UiScreenPage.PAGE_VALUE_KEY] as? String
+        val page = if (screen.pages.isEmpty()) null else screen.pages[pageId] ?: return
+        val activeRoot = page?.root ?: screen.root
+        if (activeRoot.errors(values).isNotEmpty()) return
         // 事件必须真的来自这张树：Button / IconButton 的 action，或底部导航条目的 event。
         // 只认 Button 会把 IconButton（刷新 / 外链）和 nav 全吞掉 —— 点下去毫无反应。
-        val fromNode = screen.root.walk().any {
-            (it.type == "Button" || it.type == "IconButton") &&
-                it.props["action"] == event && it.props["disabled"] != true
+        val fromNode = activeRoot.walk().any {
+            (it.type == "Button" || it.type == "IconButton" || it.type == "CounterButton") &&
+                it.props["action"] == event && it.props["disabled"] != true &&
+                (it.type != "CounterButton" || ((values[it.props["id"]] as? Number)?.toInt() ?: 0) in 1..10)
         }
         val fromNav = screen.options.navigation?.items
             ?.any { it.event == event && it.enabled } == true
         val fromTopBar = screen.options.topActions.any { it.event == event }
-        val fromLoadMore = screen.options.loadMoreEvent == event
+        val fromLoadMore = (page?.loadMoreEvent ?: if (page == null) screen.options.loadMoreEvent else null) == event
         if (!fromNode && !fromNav && !fromTopBar && !fromLoadMore) return
-        val result = mapOf("event" to event, "values" to screen.root.collect(values))
+        val result = mapOf("event" to event, "values" to activeRoot.collect(values)) +
+            if (page != null) mapOf("page" to pageId) else emptyMap()
         if (expired.remove(screen)) {
             dispatchLate(screen, result)
             return

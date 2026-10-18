@@ -213,6 +213,11 @@ object AutomationBus {
         )
     }
 
+    /** 下载依赖、普通 UI 进度等仅补充已有的自动化会话，不为普通卡片创建提示。 */
+    fun updateIfRunning(label: String, detail: String = "") {
+        if (isSessionHeld()) update(label, detail)
+    }
+
     /**
      * 显式运行（卡片 / 触发）开始：在首次 [update] 前调用，运行期间看板不会把
      * 长时间无更新误判为会话结束；持有期间每次 [update] 续期，[finish] / [clear]
@@ -267,7 +272,12 @@ object AutomationBus {
      * 5. 两者都不可用 → 高优先级通知「允许 / 拒绝」，通知权限也没有时直接拒绝。
      * 60s 未响应按拒绝处理；同一时刻只允许一个请求。
      */
-    suspend fun requestApproval(title: String, detail: String, category: ApprovalCategory): Boolean {
+    suspend fun requestApproval(
+        title: String,
+        detail: String,
+        category: ApprovalCategory,
+        grantSession: Boolean = true,
+    ): Boolean {
         if (isHandsOff()) return true
         when (policyOf(category)) {
             ApprovalPolicy.ALLOW -> return true
@@ -314,7 +324,7 @@ object AutomationBus {
                 _pendingApproval.value = null
                 cancelApprovalNotification()
             }
-            if (outcome == ApprovalOutcome.APPROVED) sessionApproved = true
+            if (outcome == ApprovalOutcome.APPROVED && grantSession) sessionApproved = true
             outcome != ApprovalOutcome.DENIED
         }
     }

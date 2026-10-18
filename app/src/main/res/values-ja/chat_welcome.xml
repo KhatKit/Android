@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_welcome_question">今日は何をしましょうか？</string>
+    <string name="chat_welcome_ideas">こんなことも</string>
+    <string name="chat_welcome_shuffle">別の提案</string>
+    <string name="chat_idea_web">ウェブページを読む</string>
+    <string name="chat_idea_web_detail">要点と出典をまとめる</string>
+    <string name="chat_idea_web_prompt">ウェブページを読み、要点を出典付きでまとめてください。</string>
+    <string name="chat_idea_image">画像を処理する</string>
+    <string name="chat_idea_image_detail">圧縮、変換、メタデータの削除</string>
+    <string name="chat_idea_image_prompt">画像の処理を手伝ってください。まず必要な操作を聞いてください。</string>
+    <string name="chat_idea_files">ファイルを整理する</string>
+    <string name="chat_idea_files_detail">分類、名前の変更、アーカイブ</string>
+    <string name="chat_idea_files_prompt">ファイルの整理を手伝ってください。変更前にフォルダーと手順を確認してください。</string>
+    <string name="chat_idea_schedule">自動化を作成する</string>
+    <string name="chat_idea_schedule_detail">日々の作業を定時に</string>
+    <string name="chat_idea_schedule_prompt">カードの定期実行を設定したいです。まず作業内容と実行時刻を確認してください。</string>
+    <string name="chat_widgets">ウィジェット</string>
+    <string name="chat_widgets_manage">ウィジェットの管理</string>
+    <string name="chat_widgets_add">ウィジェットを追加</string>
+    <string name="chat_widget_refresh">ウィジェットを更新</string>
+    <string name="chat_widget_hide">ウィジェットを非表示</string>
+    <string name="chat_widget_loading">実行中…</string>
+    <string name="chat_widget_failed">ウィジェットを読み込めませんでした</string>
+    <string name="chat_widget_empty">表示する内容がありません</string>
+</resources>

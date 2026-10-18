@@ -624,7 +624,8 @@ internal fun ChatScaffold(
                 // 「滚到底部」的目标索引、自动跟随这几套算术都得跟着改口径。
                 ChatWelcomeHost(
                     visible = !archived && !previewMode && conversation.messageNodes.isEmpty(),
-                    assistant = assistant,
+                    sessionKey = conversation.id.toString(),
+                    manager = vm.welcome,
                     // 只填输入框，不代发：发送路径上还有「角色没配模型」等守卫，
                     // 欢迎层不该替用户跨过去。
                     onSuggestionClick = { inputState.setMessageText(it) },

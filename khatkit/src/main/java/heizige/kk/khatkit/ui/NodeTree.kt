@@ -14,6 +14,7 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
         field.props["id"] as String to (if (field.type == "FilePicker" && initial is List<*>) initial.joinToString("\n") else initial ?: when (field.type) {
             "Switch", "Checkbox" -> false
             "Slider" -> field.props["min"] ?: 0.0
+            "CounterButton" -> 0
             else -> ""
         })
     }
@@ -30,6 +31,10 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
             val empty = value == null || value is String && value.isBlank() || value is List<*> && value.isEmpty()
             if (p["required"] == true && empty) put(id, "请填写此项")
             if (!empty && field.type in setOf("Switch", "Checkbox") && value !is Boolean) put(id, "请输入布尔值")
+            if (field.type == "CounterButton") {
+                val n = (value as? Number)?.toDouble()
+                if (n == null || !n.isFinite() || n !in 0.0..10.0 || n % 1 != 0.0) put(id, "计数须为 0..10 的整数")
+            }
             if (!empty && field.type in setOf("TextField", "DirPicker") && value !is String) put(id, "请输入文本")
             if (!empty && field.type == "FilePicker" && value !is String &&
                 !(value is List<*> && value.all { it is String })) put(id, "请输入文件路径")
@@ -55,7 +60,7 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
 class UiNodeException(message: String) : IllegalArgumentException(message)
 
 object UiNodeParser {
-    val fields = setOf("TextField", "NumberField", "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker")
+    val fields = setOf("TextField", "NumberField", "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "CounterButton")
     private val containers = setOf("Column", "Row", "Box", "Card", "Section")
     private fun schema(vararg entries: Pair<String, String>) = entries.toMap()
     private val schemas = mapOf(
@@ -88,6 +93,11 @@ object UiNodeParser {
         "Select" to schema("options" to "strings"), "RadioGroup" to schema("options" to "strings"),
         "FilePicker" to schema("filter" to "image|video|audio|document|any", "multiple" to "boolean"),
         "DirPicker" to emptyMap(),
+        "CounterButton" to schema(
+            "action" to "string", "count" to "number", "localCount" to "number",
+            "caption" to "string", "revision" to "number", "disabled" to "boolean",
+            "tone" to "primary|default", "modifier" to "modifier",
+        ),
         "Button" to schema(
             "label" to "string", "action" to "string", "tone" to "primary|default|danger",
             "disabled" to "boolean", "icon" to "icon", "color" to "color", "modifier" to "modifier",
@@ -95,13 +105,15 @@ object UiNodeParser {
         "IconButton" to schema(
             "action" to "string", "icon" to "icon",
             "tone" to "default|muted|primary|error|success|warning",
+            "color" to "color",
             "disabled" to "boolean", "contentDescription" to "string", "modifier" to "modifier",
         ),
     ).mapValues { (name, props) ->
-        if (name !in fields) props else props + schema(
+        val keyed = props + schema("key" to "string")
+        if (name !in fields) keyed else keyed + schema(
             "id" to "string", "label" to "string", "hint" to "string", "required" to "boolean",
             "value" to when (name) {
-                "NumberField", "Slider" -> "number"
+                "NumberField", "Slider", "CounterButton" -> "number"
                 "Switch", "Checkbox" -> "boolean"
                 "FilePicker" -> "paths"
                 else -> "string"
@@ -146,6 +158,15 @@ object UiNodeParser {
                 }
             }
             if (name == "Button" && (copy["action"] as? String).isNullOrEmpty()) fail("$name.action", "required")
+            if (name == "CounterButton") {
+                if ((copy["action"] as? String).isNullOrBlank()) fail("$name.action", "required")
+                for (key in listOf("count", "localCount", "revision", "value")) {
+                    (copy[key] as? Number)?.toDouble()?.let {
+                        if (it < 0 || it % 1 != 0.0 || it > if (key == "value") 10.0 else 9_007_199_254_740_991.0)
+                            fail("$name.$key", "invalid count")
+                    }
+                }
+            }
             if (name == "IconButton" &&
                 ((copy["action"] as? String).isNullOrEmpty() || (copy["icon"] as? String).isNullOrEmpty())
             ) fail("$name.action", "action and icon are required")
@@ -165,7 +186,11 @@ object UiNodeParser {
             if ((copy["step"] as? Number)?.toDouble()?.let { it <= 0 } == true) fail("$name.step", "must be positive")
             val children = array(node["children"], "$name.children")
             if (name !in containers && children.isNotEmpty()) fail("$name.children", "leaf cannot contain children")
-            return UiNode(name, copy, children.map { visit(it, depth + 1) })
+            val parsedChildren = children.map { visit(it, depth + 1) }
+            val keys = parsedChildren.mapNotNull { it.props["key"] as? String }
+            if (keys.any { it.isBlank() || it.length > 128 } || keys.distinct().size != keys.size)
+                fail("$name.children.key", "expected distinct nonblank keys up to 128 characters")
+            return UiNode(name, copy, parsedChildren)
         }
         val root = visit(raw, 1)
         java.util.logging.Logger.getLogger("KKPerf").fine("parsed nodes=$count")

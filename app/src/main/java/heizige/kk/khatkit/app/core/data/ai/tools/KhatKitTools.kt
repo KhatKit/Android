@@ -78,7 +78,7 @@ import heizige.kk.khatkit.hub.LoadedCard
 import heizige.kk.khatkit.ui.MediaPickerHost
 import heizige.kk.khatkit.ui.UiBridgeHost
 import heizige.kk.khatkit.ui.CardWidgetBridge
-import heizige.kk.khatkit.ui.UiNode
+import heizige.kk.khatkit.ui.CardWidgetContent
 import heizige.kk.khatkit.uikit.CardRunResult
 import heizige.kk.khatkit.uikit.FormPickerHost
 import heizige.kk.khatkit.uikit.KhatKitController
@@ -215,7 +215,7 @@ class KhatKitToolProvider(
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
     private val cache = CardCache(rootDir)
     private val uiHost = UiBridgeHost(
-        onAutomationStatus = { label, detail -> AutomationBus.update(label, detail) },
+        onAutomationStatus = { label, detail -> AutomationBus.updateIfRunning(label, detail) },
         onCancelled = { AutomationBus.isCancelRequested() },
     )
 
@@ -243,7 +243,7 @@ class KhatKitToolProvider(
     private val mediaImporter = CardMediaImporter(appContext)
     private val mediaPickerHost = MediaPickerHost(
         importToCache = { cardName, uris -> mediaImporter.import(cardName, uris) },
-        onAwaiting = { name -> AutomationBus.update("等待选择媒体", name) },
+        onAwaiting = { name -> AutomationBus.updateIfRunning("等待选择媒体", name) },
     )
 
     /**
@@ -454,7 +454,7 @@ class KhatKitToolProvider(
                 ),
                 // 原生依赖包从用户配置的 Hub 下载；下载/校验进度发布到自动化看板
                 hubBaseUrl = { hubBaseUrl },
-                onDependencyStatus = { AutomationBus.update(it) },
+                onDependencyStatus = { AutomationBus.updateIfRunning(it) },
                 approvalGate = BusApprovalGate(),
                 mediaPicker = mediaPickerHost,
                 ai = aiBridge,
@@ -493,7 +493,7 @@ class KhatKitToolProvider(
         locales: List<String>,
         action: String = "",
         values: Map<String, Any?> = emptyMap(),
-    ): UiNode {
+    ): CardWidgetContent {
         val widget = withContext(Dispatchers.IO) { cache.loadWidget(card) }
         val context = currentCoroutineContext()
         val ui = CardWidgetBridge { !context.isActive }
@@ -516,7 +516,10 @@ class KhatKitToolProvider(
             is EngineResult.Err -> error("${result.code}: ${result.message}")
             is EngineResult.Ok -> {
                 result.value["error"]?.toString()?.takeIf { it.isNotBlank() }?.let { error(it) }
-                requireNotNull(ui.content) { "WIDGET_EMPTY: call ui.show(node)" }
+                CardWidgetContent(
+                    requireNotNull(ui.content) { "WIDGET_EMPTY: call ui.show(node)" },
+                    ui.refreshAction,
+                )
             }
         }
     }
@@ -693,7 +696,8 @@ class KhatKitToolProvider(
             pendingInteractions[card.manifest.name] = PendingInteraction(args, conversationId, System.currentTimeMillis())
         }
         val uiTimeoutsBefore = uiHost.timeouts.value
-        if (AutomationBus.isCancelRequested()) {
+        val automation = showsAutomationStatus(card.manifest, trigger)
+        if (automation && AutomationBus.isCancelRequested()) {
             runCatching {
                 cardRunDao.finish(
                     runId,
@@ -723,7 +727,7 @@ class KhatKitToolProvider(
             }
             return EngineResult.Err("VFLOW_NOT_CONFIGURED", VFLOW_NOT_CONFIGURED_HINT)
         }
-        AutomationBus.begin()
+        if (automation) AutomationBus.begin()
         try {
             val manifest = card.manifest
             val price = manifest.pricing?.price ?: 0.0
@@ -753,10 +757,13 @@ class KhatKitToolProvider(
                 }
             }
 
-            AutomationBus.update("正在运行卡片：${card.manifest.name}")
+            if (automation) AutomationBus.update("正在运行卡片：${card.manifest.name}")
             runCatching { cardRunDao.updateStatus(runId, CardRunEntity.RUNNING, System.currentTimeMillis()) }
             val category = cardApprovalCategory(card)
-            if (!AutomationBus.requestApproval("运行卡片：${card.manifest.name}", "触发来源：$trigger", category)) {
+            if (!AutomationBus.requestApproval(
+                    "运行卡片：${card.manifest.name}", "触发来源：$trigger", category,
+                    grantSession = automation,
+                )) {
                 val denied = EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
                 recordCardRunFinished(runId, denied)
                 return denied
@@ -780,7 +787,7 @@ class KhatKitToolProvider(
             throw e
         } finally {
             if (!keepLateScreen) uiHost.endScreen()
-            AutomationBus.finish()
+            if (automation) AutomationBus.finish()
         }
     }
 
@@ -1095,7 +1102,6 @@ class KhatKitToolProvider(
             .filter { entry -> installed[entry.name]?.let { it != entry.version } == true }
             .forEach { entry ->
                 runCatching {
-                    AutomationBus.update("正在同步云端工具：${entry.name} → ${entry.version}")
                     cache.ensure(entry, hub(), force = true)
                 }.onFailure { error ->
                     Log.w(TAG, "云端工具更新失败：${entry.name}", error)
@@ -1110,11 +1116,6 @@ class KhatKitToolProvider(
         val installedVersion = spec.card?.manifest?.version ?: cache.installedVersions()[spec.name]
         val needsUpdate = installedVersion != null && installedVersion != entry.version
         runCatching {
-            if (installedVersion == null) {
-                AutomationBus.update("正在安装云端卡片：${spec.name}")
-            } else if (needsUpdate) {
-                AutomationBus.update("正在更新云端卡片：${spec.name} ${installedVersion} → ${entry.version}")
-            }
             // cache.ensure 负责下载卡片包；随后执行时 CardExecutor 会自动下载 requires.dependencies
             cache.load(cache.ensure(entry, hub(), force = needsUpdate))
         }.getOrNull() ?: spec.card

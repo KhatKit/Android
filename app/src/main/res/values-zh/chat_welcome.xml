@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_welcome_question">今天想完成什么？</string>
+    <string name="chat_welcome_ideas">试试这些</string>
+    <string name="chat_welcome_shuffle">换一换</string>
+    <string name="chat_idea_web">读一个网页</string>
+    <string name="chat_idea_web_detail">提炼重点，保留来源</string>
+    <string name="chat_idea_web_prompt">帮我阅读一个网页，提取要点并标注来源。</string>
+    <string name="chat_idea_image">处理图片</string>
+    <string name="chat_idea_image_detail">压缩、转换、去除元数据</string>
+    <string name="chat_idea_image_prompt">帮我处理图片，先问我需要进行什么操作。</string>
+    <string name="chat_idea_files">整理文件</string>
+    <string name="chat_idea_files_detail">分类、重命名与归档</string>
+    <string name="chat_idea_files_prompt">帮我整理文件，修改前先和我确认目录和整理方案。</string>
+    <string name="chat_idea_schedule">创建自动化</string>
+    <string name="chat_idea_schedule_detail">让日常任务按时完成</string>
+    <string name="chat_idea_schedule_prompt">帮我创建一个定时运行的卡片任务，先确认任务内容和运行时间。</string>
+    <string name="chat_widgets">组件</string>
+    <string name="chat_widgets_manage">管理小组件</string>
+    <string name="chat_widgets_add">添加小组件</string>
+    <string name="chat_widget_refresh">刷新小组件</string>
+    <string name="chat_widget_hide">隐藏小组件</string>
+    <string name="chat_widget_loading">正在运行…</string>
+    <string name="chat_widget_failed">小组件暂时无法加载</string>
+    <string name="chat_widget_empty">暂时没有内容</string>
+</resources>

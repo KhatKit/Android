@@ -51,13 +51,40 @@ class NodeTreeParserTest {
             mapOf("action" to "go", "icon" to "check"), node("Text"))) }
     }
 
+    @Test fun counterBatchesRequireAnActionAndBoundedWholeNumbers() {
+        val props = mapOf("id" to "taps", "action" to "react", "count" to 200, "localCount" to 2)
+        val tree = UiNodeParser.parse(node("CounterButton", props))
+        assertEquals(0, tree.initialValues()["taps"])
+        assertTrue(tree.errors(mapOf("taps" to 10)).isEmpty())
+        for (invalid in listOf(-1, 11, 0.5, Double.NaN, "2")) {
+            assertTrue(tree.errors(mapOf("taps" to invalid)).containsKey("taps"))
+        }
+        rejects("CounterButton.action") { UiNodeParser.parse(node("CounterButton", props - "action")) }
+        rejects("CounterButton.count") { UiNodeParser.parse(node("CounterButton", props + ("count" to -1))) }
+        rejects("CounterButton.value") { UiNodeParser.parse(node("CounterButton", props + ("value" to 11))) }
+    }
+
+    @Test fun stableKeysAreUniqueOnlyAmongSiblings() {
+        val a = node("Card", mapOf("key" to "chart"), node("Text", mapOf("key" to "title")))
+        val b = node("Card", mapOf("key" to "record"), node("Text", mapOf("key" to "title")))
+        UiNodeParser.parse(node("Column", emptyMap(), a, b))
+        rejects("children.key") { UiNodeParser.parse(node("Column", emptyMap(), a, a)) }
+        rejects("children.key") { UiNodeParser.parse(node("Column", emptyMap(), node("Text", mapOf("key" to "")))) }
+    }
+
     @Test fun themeRolesWorkForTextAndBackgroundAndRejectUnknownColors() {
         UiColors.roles.forEach { role ->
             UiNodeParser.parse(node("Text", mapOf(
                 "text" to "Theme-aware", "color" to role,
                 "modifier" to mapOf("__mod" to listOf(listOf("background", role))),
             )))
+            UiNodeParser.parse(node("IconButton", mapOf(
+                "action" to "open", "icon" to "open_in_new", "color" to role,
+            )))
         }
+        rejects("IconButton.color") { UiNodeParser.parse(node("IconButton", mapOf(
+            "action" to "open", "icon" to "open_in_new", "color" to "on_surfce",
+        ))) }
         rejects("Text.color") { UiNodeParser.parse(node("Text", mapOf("color" to "on_surfce"))) }
         rejects("background") { UiNodeParser.modifierOps(mapOf("__mod" to listOf(listOf("background", "on_surfce")))) }
     }

@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.core.ui.theme
 import android.os.Build
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
@@ -143,7 +144,21 @@ fun KhatKitTheme(
     //  ⇒ 所以「把当前值原样转发下去」就等于本层不 provide，取的正是平台默认工厂。
     val overscrollFactory = LocalOverscrollFactory.current
 
+    // 内容色必须显式给，不能吃 Compose 的默认值。
+    //
+    // `MaterialTheme` / `MaterialExpressiveTheme` 只 provide colorScheme / typography /
+    // shapes，**不 provide `LocalContentColor`**；它的默认值是纯黑（`Color.Black`）。
+    // 只有 `Surface` / `Scaffold` / `Card` 这类容器会在自己内部 provide 一次。
+    // 于是「没有包在 Surface 里、又没写 `color =` 的 `Text`」在深色模式下就是黑字配
+    // 深底 —— 实测卡片弹窗标题（`ExploreMarketPage` 的 `PopupHead`）1.0:1，肉眼
+    // 只能看到一点点笔画。浅色模式下黑字配浅底是对的，所以这个缺陷只在深色出现。
+    //
+    // 与 Kedge 的 Miuix 分支同口径：`MiuixMaterialThemeBridge`
+    //（Kedge/…/theme/MiuixMaterialBridge.kt）也是把 `LocalContentColor` 桥成
+    // `onBackground`；这里补的是 MD3 分支漏掉的那一半。内层 `Surface`/`Card`
+    // 仍会用 `contentColorFor()` 覆盖本值，不受影响。
     CompositionLocalProvider(
+        LocalContentColor provides colorSchemeConverted.onBackground,
         LocalDarkMode provides darkTheme,
         LocalExtendColors provides extendColors,
         LocalOverscrollFactory provides if (isMiuix) null else overscrollFactory,

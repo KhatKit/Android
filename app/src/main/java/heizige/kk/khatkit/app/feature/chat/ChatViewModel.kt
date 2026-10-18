@@ -53,6 +53,7 @@ import heizige.kk.khatkit.app.core.util.UpdateChecker
 import java.util.Locale
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.feature.chat.data.selectRoleChat
+import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 
 private const val TAG = "ChatViewModel"
 
@@ -66,7 +67,19 @@ class ChatViewModel @AssistedInject constructor(
     val updateChecker: UpdateChecker,
     private val analytics: AppAnalytics,
     private val filesManager: FilesManager,
+    cardProvider: KhatKitToolProvider,
 ) : ViewModel() {
+    internal val welcome = ChatWelcomeManager(viewModelScope, cardProvider) { localeTags, count ->
+        // 开场提示按「当前会话的助手」写：顶栏显示谁，提示就替谁说话。
+        // 快速模型没配 / 请求失败时返回空列表，欢迎页回退到内置静态提示。
+        chatService.generateWelcomeIdeas(
+            assistant = settingsStore.settingsFlow.value.assistants
+                .firstOrNull { it.id == conversation.value.assistantId },
+            localeTag = localeTags.firstOrNull().orEmpty(),
+            count = count,
+        )
+    }
+
     @AssistedFactory
     interface Factory {
         fun create(id: String): ChatViewModel

@@ -3,6 +3,7 @@ package heizige.kk.khatkit.uikit
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -13,12 +14,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,6 +29,7 @@ import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
 import heizige.kk.kedge.components.KedgeHorizontalDivider
 import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -33,6 +37,7 @@ import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiNodeParser
 import heizige.kk.khatkit.ui.UiSheetOptions
+import heizige.kk.khatkit.ui.UiScreenPage
 import heizige.kk.kedge.theme.KedgeColors
 
 @Composable
@@ -42,12 +47,17 @@ fun NodeTreeSheet(
     options: UiSheetOptions,
     form: Boolean = false,
     readOnly: Boolean = false,
+    pages: Map<String, UiScreenPage> = emptyMap(),
     pickerHost: FormPickerHost? = null,
     onAction: (String, Map<String, Any?>) -> Unit,
     onDismiss: () -> Unit,
     markdown: @Composable (String, Modifier) -> Unit,
     image: @Composable (String, String?, Modifier) -> Unit,
 ) {
+    if (pages.isNotEmpty() && !form && !readOnly) {
+        PagedNodeTreeSheet(title, pages, options, pickerHost, onAction, onDismiss, markdown, image)
+        return
+    }
     val values = remember(root) { mutableStateMapOf<String, Any?>().apply { putAll(root.initialValues()) } }
     val errors = remember(root) { mutableStateMapOf<String, String>() }
     val submit: (String) -> Unit = { action ->
@@ -62,11 +72,10 @@ fun NodeTreeSheet(
     val hasSubmit = root.walk().any { it.type == "Button" && it.props["action"] == "submit" }
     // A screen's top-level blocks are independent lazy items; fields still live in
     // values above, so recycling an off-screen block never loses form input.
-    val lazy = options.usesLargeSheet && root.type == "Column" &&
-        root.props["scrollable"] != true &&
-        root.ops().none { it[0] == "scrollable" || it[0] == "visible" && it[1] == false }
+    val lazy = options.usesLargeSheet && root.lazyScreenRoot()
     val pageKey = options.navigation?.selected ?: title
     val lazyState = key(pageKey) { rememberLazyListState() }
+    val counterHost = rememberCounterButtonHost()
     KhatKitSheet(
         title = title,
         imageVector = Icons.Default.Edit,
@@ -79,11 +88,36 @@ fun NodeTreeSheet(
         onNavigate = { event -> onAction(event, root.collect(values)) },
         // 换屏后同一张弹层还在组合里：用「当前导航项」当 key，换页归零、同页刷新/求重置保留滚动位置。
         scrollKey = options.navigation?.selected ?: root,
-        // 每次请求的 root 都不同：触底加载守卫与滑入动画按它复位（历史滚到底加载下一页）。
+        // 内容更新后复位触底加载守卫。
         contentKey = root,
         lazyListState = if (lazy) lazyState else null,
     ) {
-        if (lazy) {
+        NodeTreeContent(root, values, errors, pickerHost, readOnly, submit, markdown, image,
+            if (lazy) lazyState else null, form && !hasSubmit, onDismiss, counterHost)
+    }
+}
+
+internal fun UiNode.lazyScreenRoot(): Boolean = type == "Column" &&
+    props["scrollable"] != true &&
+    ops().none { it[0] == "scrollable" || it[0] == "visible" && it[1] == false }
+
+@Composable
+internal fun NodeTreeContent(
+    root: UiNode,
+    values: MutableMap<String, Any?>,
+    errors: Map<String, String>,
+    pickerHost: FormPickerHost?,
+    readOnly: Boolean,
+    submit: (String) -> Unit,
+    markdown: @Composable (String, Modifier) -> Unit,
+    image: @Composable (String, String?, Modifier) -> Unit,
+    lazyState: LazyListState?,
+    cancelButton: Boolean = false,
+    onDismiss: () -> Unit = {},
+    counterHost: CounterButtonHost? = null,
+) {
+    CompositionLocalProvider(LocalCounterButtonHost provides counterHost) {
+        if (lazyState != null) {
             val alignment = when (root.props["hAlign"]) {
                 "center" -> Alignment.CenterHorizontally
                 "end" -> Alignment.End
@@ -96,10 +130,16 @@ fun NodeTreeSheet(
                 verticalArrangement = Arrangement.spacedBy((root.props["spacing"] as? Number)?.toFloat()?.dp ?: 0.dp),
                 horizontalAlignment = alignment,
             ) {
-                itemsIndexed(root.children, contentType = { _, node -> node.type }) { _, node ->
-                    node.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
+                itemsIndexed(root.children,
+                    key = { index, node -> node.props["key"]?.let { "node:$it" } ?: "index:$index" },
+                    contentType = { _, node -> node.type },
+                ) { _, node ->
+                    // Independent drawing layers keep a static chart's display
+                    // list intact while neighbouring records update or animate.
+                    node.Render(values, errors, pickerHost, readOnly, submit, markdown, image,
+                        Modifier.graphicsLayer())
                 }
-                if (form && !hasSubmit) {
+                if (cancelButton) {
                     item {
                         KedgeTextButton(onClick = onDismiss) {
                             Text("取消", style = StyleResolvers.current().textStyle("label"))
@@ -110,7 +150,7 @@ fun NodeTreeSheet(
         } else {
             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 root.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
-                if (form && !hasSubmit) {
+                if (cancelButton) {
                     KedgeTextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
                         Text("取消", style = StyleResolvers.current().textStyle("label"))
                     }
@@ -226,12 +266,16 @@ fun UiNode.Render(
         }
         "Section", "Card" -> {
             val content: @Composable () -> Unit = {
-                Column(Modifier.fillMaxWidth().padding(if (type == "Card") 12.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (text("title").isNotEmpty()) Text(text("title"), style = style.textStyle("subtitle"), color = style.color("default"))
                     children.forEach { it.Render(values, errors, pickerHost, readOnly, onAction, markdown, image) }
                 }
             }
-            if (type == "Card") KedgeSurface(modifier = m, content = content) else Box(m) { content() }
+            if (type == "Card") {
+                // Use the same container as settings. Kedge owns both theme branches,
+                // shape and padding; informational groups have no row click feedback.
+                KedgeOptionItem(onClick = null, modifier = m, titleContent = content)
+            } else Box(m) { content() }
         }
         "Spacer" -> Spacer(m.width(number("width").dp).height(number("height").dp))
         "Divider" -> KedgeHorizontalDivider(modifier = m, color = style.color("muted"))
@@ -267,6 +311,7 @@ fun UiNode.Render(
             if (text("label").isNotEmpty()) Text(text("label"), style = style.textStyle("label"))
             KedgeProgressIndicator(progress = number("ratio"), type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
         }
+        "CounterButton" -> CounterButton(this, values, readOnly, onAction, m)
         "Button" -> KedgeButton(
             onClick = { onAction(text("action")) },
             enabled = !readOnly && props["disabled"] != true,
@@ -274,7 +319,7 @@ fun UiNode.Render(
             variant = if (text("tone") == "primary") KedgeButtonVariant.Primary else KedgeButtonVariant.Secondary,
         ) {
             val label = nodeColor(text("color"))
-                ?: if (text("tone") == "danger") style.color("error") else Color.Unspecified
+                ?: if (text("tone") == "danger") style.color("error") else LocalContentColor.current
             val icon = UiIconVectors.vector(text("icon"))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (icon != null) {
@@ -295,7 +340,9 @@ fun UiNode.Render(
                 Icon(
                     imageVector = vector,
                     contentDescription = (props["contentDescription"] as? String) ?: text("action"),
-                    tint = style.color(text("tone", "default")),
+                    tint = (nodeColor(text("color")) ?: style.color(text("tone", "default"))).let {
+                        if (readOnly || props["disabled"] == true) it.copy(alpha = it.alpha * 0.38f) else it
+                    },
                 )
             }
         }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_welcome_question">What would you like to get done?</string>
+    <string name="chat_welcome_ideas">A few ideas</string>
+    <string name="chat_welcome_shuffle">More ideas</string>
+    <string name="chat_idea_web">Read a webpage</string>
+    <string name="chat_idea_web_detail">Key points, with sources</string>
+    <string name="chat_idea_web_prompt">Help me read a webpage, extract the key points and cite the source.</string>
+    <string name="chat_idea_image">Work with images</string>
+    <string name="chat_idea_image_detail">Compress, convert or remove metadata</string>
+    <string name="chat_idea_image_prompt">Help me process some images. First, ask which operation I need.</string>
+    <string name="chat_idea_files">Organize files</string>
+    <string name="chat_idea_files_detail">Sort, rename and archive</string>
+    <string name="chat_idea_files_prompt">Help me organize files. Confirm the folder and plan before making changes.</string>
+    <string name="chat_idea_schedule">Set up an automation</string>
+    <string name="chat_idea_schedule_detail">Everyday tasks, on schedule</string>
+    <string name="chat_idea_schedule_prompt">Help me create a scheduled card task. First, ask what I need and when it should run.</string>
+    <string name="chat_widgets">Components</string>
+    <string name="chat_widgets_manage">Manage widgets</string>
+    <string name="chat_widgets_add">Add widget</string>
+    <string name="chat_widget_refresh">Refresh widget</string>
+    <string name="chat_widget_hide">Hide widget</string>
+    <string name="chat_widget_loading">Running…</string>
+    <string name="chat_widget_failed">Widget could not load</string>
+    <string name="chat_widget_empty">Nothing to show yet</string>
+</resources>

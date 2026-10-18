@@ -11,7 +11,7 @@ object UiWidgetVocabulary {
         "Column", "Row", "Box", "Spacer", "Divider", "Card", "Section",
         "Text", "Markdown", "Image", "Icon", "Badge", "ProgressBar", "TextField", "NumberField",
         "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "Button",
-        "IconButton",
+        "IconButton", "CounterButton",
     )
     val LEGACY = setOf(
         "text", "input", "number", "switch", "slider", "select", "radio",

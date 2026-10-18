@@ -1311,6 +1311,48 @@ class ChatManager(
         }
     }
 
+    // ---- 生成欢迎页开场提示 ----
+
+    /**
+     * 用 TITLE 那颗快速模型生成欢迎页的「试试这些」。
+     *
+     * 三条硬约定：
+     * 1. **不弹错**。欢迎页每次进空会话都会画，失败就退回内置静态提示即可；
+     *    在这里 `addError` 会把一次网络抖动变成用户每开一个新会话都看到的红卡。
+     * 2. **不落库**。提示只是这一屏的装饰，[ChatWelcomeManager] 在内存里缓存，
+     *    用户点「换一换」才重新要一次（[WelcomeIdeas.count] 条）。
+     * 3. **人设从当前会话的助手取**，不是全局默认助手 —— 顶栏显示的是谁，提示就该按谁写。
+     */
+    suspend fun generateWelcomeIdeas(
+        assistant: Assistant?,
+        localeTag: String,
+        count: Int = WelcomeIdeas.COUNT,
+    ): List<WelcomeIdeas.Idea> = withContext(Dispatchers.IO) {
+        runCatching {
+            val settings = settingsStore.settingsFlow.first()
+            val model = TaskRoutes.resolve(settings, ModelTaskType.TITLE)
+            val provider = model.findProvider(settings.providers) ?: return@runCatching emptyList()
+            val providerHandler = providerManager.getProviderByType(provider)
+            val result = providerHandler.generateText(
+                providerSetting = provider,
+                messages = listOf(
+                    UIMessage.user(
+                        prompt = WelcomeIdeas.prompt(
+                            localeTag = localeTag,
+                            count = count,
+                            assistantName = assistant?.name,
+                            persona = assistant?.systemPrompt,
+                        ),
+                    ),
+                ),
+                params = backgroundTextGenerationParams(model, Uuid.random(), settings.fastModelReasoningLevel),
+            )
+            val raw = result.message.toText()
+            Log.w(TAG, "welcomeIdeas raw=${raw.take(600).replace("\n", "\\n")}")
+            WelcomeIdeas.parse(raw, count).also { Log.w(TAG, "welcomeIdeas parsed=${it.size}") }
+        }.getOrDefault(emptyList())
+    }
+
     // ---- 压缩对话历史 ----
 
     /**

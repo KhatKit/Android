@@ -42,7 +42,6 @@ import kotlin.math.abs
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -80,17 +79,12 @@ fun TextAvatar(
             .background(color),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text.take(1).uppercase(),
+        // 字形先渲进位图再贴出来（[LetterGlyphImage]）：度量只发生一次，
+        // 之后换色只换 tint，不再重组一次就重排一次字。
+        LetterGlyphImage(
+            glyph = text.take(1).uppercase(),
             color = LocalContentColor.current,
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = 8.sp,
-                maxFontSize = 32.sp,
-                stepSize = 1.sp
-            ),
-            lineHeight = 0.8.em
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
@@ -398,11 +392,13 @@ private fun DefaultRoleAvatar(
                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White),
             )
         } else {
-            Text(
-                text = name.trim().take(1).uppercase().ifBlank { "?" },
+            // 与原来 `Text(fontSize = 18.sp)` 视觉字号逐点对齐：显式字号不参与自适应，
+            // 只按位图/盒子的像素比缩放（见 [LetterGlyphImage] 的 `fontSize`）。
+            LetterGlyphImage(
+                glyph = name.trim().take(1).uppercase().ifBlank { "?" },
                 color = Color.White,
                 fontSize = 18.sp,
-                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }

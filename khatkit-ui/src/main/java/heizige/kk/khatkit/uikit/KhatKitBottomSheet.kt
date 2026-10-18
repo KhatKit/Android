@@ -45,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +70,7 @@ import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.khromia.components.LocalBottomSheetDismiss
 import heizige.kk.khromia.layout.FullscreenPopup
 import heizige.kk.khatkit.ui.UiSheetOptions
+import heizige.kk.khatkit.ui.UiNode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -123,6 +125,7 @@ fun KhatKitBottomSheet(
     /** 每次请求的内容标识（换页/加载更多后换值）：用于重置触底加载守卫。 */
     contentKey: Any? = null,
     lazyListState: LazyListState? = null,
+    pagerState: PagerState? = null,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -132,7 +135,8 @@ fun KhatKitBottomSheet(
     // Commit selection and content in the same frame. Optimistic selection left
     // the previous page visible under a newly selected tab while Lua was busy.
     var navigationPending by remember(contentKey) { mutableStateOf(false) }
-    val navSelected = options.navigation?.selected
+    val navSelected = pagerState?.let { options.navigation?.items?.getOrNull(it.targetPage)?.event }
+        ?: options.navigation?.selected
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val dismissThreshold = with(density) { 96.dp.toPx() }
@@ -193,9 +197,13 @@ fun KhatKitBottomSheet(
         val list = lazyListState ?: return@LaunchedEffect
         val event = loadMoreEvent ?: return@LaunchedEffect
         var armed = true
+        val expectedItems = (contentKey as? UiNode)?.takeIf { it.lazyScreenRoot() }?.children?.size
         snapshotFlow {
             val layout = list.layoutInfo
             layout.totalItemsCount > 0 &&
+                // The old layout may still be visible for one frame after Lua
+                // appends records. Wait for the new list before rearming.
+                (expectedItems == null || layout.totalItemsCount == expectedItems) &&
                 (layout.visibleItemsInfo.lastOrNull()?.index ?: -1) >= layout.totalItemsCount - 2
         }.distinctUntilChanged().collect { nearEnd ->
             if (nearEnd && armed) {
@@ -296,6 +304,7 @@ fun KhatKitBottomSheet(
                                             imageVector = item.icon?.let { UiIconVectors.vector(it) }
                                                 ?: Icons.Filled.Circle,
                                             contentDescription = item.label,
+                                            tint = KedgeColors.onSurface,
                                         )
                                     }
                                 }
@@ -325,7 +334,7 @@ fun KhatKitBottomSheet(
                                     Modifier
                                 },
                             )
-                            .then(if (lazyListState == null) Modifier.verticalScroll(scrollState) else Modifier),
+                            .then(if (lazyListState == null && pagerState == null) Modifier.verticalScroll(scrollState) else Modifier),
                     ) {
                         content(onDismiss)
                     }
@@ -333,9 +342,9 @@ fun KhatKitBottomSheet(
                         KedgeNavigationBar(
                             selectedItem = navSelected ?: navigation.items.first().event,
                             onItemSelected = { event ->
-                                if (!navigationPending && event != navSelected &&
+                                if ((pagerState != null || !navigationPending) && event != navSelected &&
                                     navigation.items.any { it.event == event && it.enabled }) {
-                                    navigationPending = true
+                                    if (pagerState == null) navigationPending = true
                                     onNavigate(event)
                                 }
                             },

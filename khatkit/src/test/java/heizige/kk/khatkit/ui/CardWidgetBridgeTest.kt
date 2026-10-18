@@ -32,4 +32,17 @@ class CardWidgetBridgeTest {
         assertEquals("Column", bridge.content!!.type)
         assertEquals("ok", bridge.content!!.children.single().props["text"])
     }
+
+    @Test fun refreshEventIsScriptOwnedAndFollowsLastSuccessfulShow() {
+        val bridge = CardWidgetBridge()
+        bridge.show(text("cached"), mapOf("refresh_action" to "refresh_status"))
+        assertEquals("refresh_status", bridge.refreshAction)
+        listOf<Any>("", " ", 42, "x".repeat(129)).forEach { invalid ->
+            assertTrue(runCatching { bridge.show(text("invalid"), mapOf("refresh_action" to invalid)) }.isFailure)
+            assertEquals("cached", bridge.content!!.props["text"])
+            assertEquals("refresh_status", bridge.refreshAction)
+        }
+        bridge.show(text("default"), null)
+        assertEquals("", bridge.refreshAction)
+    }
 }

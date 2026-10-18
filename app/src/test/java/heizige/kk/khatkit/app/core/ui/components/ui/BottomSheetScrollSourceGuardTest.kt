@@ -325,7 +325,8 @@ class BottomSheetScrollSourceGuardTest {
         assertEquals(
             "扫描到的 PrimaryBottomSheet 调用点数量变了：" +
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
-            71,
+            // ChatWelcome adds a bounded, self-scrolling widget manager (scrollable = false).
+            72,
             sites.size,
         )
         val selfScrolling = sites.filter { it.selfScrolls }

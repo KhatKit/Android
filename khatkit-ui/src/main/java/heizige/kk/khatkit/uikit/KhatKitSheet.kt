@@ -2,6 +2,7 @@ package heizige.kk.khatkit.uikit
 
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khromia.components.BasicBottomSheet
@@ -55,6 +56,7 @@ fun KhatKitSheet(
     contentKey: Any? = null,
     /** The content owns scrolling when it is a lazy list. */
     lazyListState: LazyListState? = null,
+    pagerState: PagerState? = null,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
 ) {
     val hasTopBar = headerActions.isNotEmpty() ||
@@ -77,6 +79,7 @@ fun KhatKitSheet(
             scrollKey = scrollKey,
             contentKey = contentKey,
             lazyListState = lazyListState,
+            pagerState = pagerState,
             content = content,
         )
         return

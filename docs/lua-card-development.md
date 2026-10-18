@@ -504,7 +504,7 @@ manifest 的 `i18n` 不会修改远端索引。
 #### 脚本入口契约
 
 - **独立入口、独立运行**：每次刷新/点按钮都是一次完整运行，走与普通卡片相同的审批、方法权限、域名白名单、文件授权、并发闸门与计量。`triggers` 里不需要写 `widget`，也不需要 `ai` / `user`。
-- **参数**：`args.widget = { action, values, locale }`；`args.__khatkit_trigger == "聊天小组件"`。首次加载与刷新时 `action == ""`、`values == {}`；`locale` 是当前首选语言标签（同时驱动 `i18n` 与 `@string/key` 解析）。
+- **参数**：`args.widget = { action, values, locale }`；`args.__khatkit_trigger == "聊天小组件"`。首次加载时 `action == ""`、`values == {}`；标题栏刷新使用脚本声明的 `refresh_action`（未声明时仍为空），并收集当前字段值；`locale` 是当前首选语言标签（同时驱动 `i18n` 与 `@string/key` 解析）。
 - **返回值**：普通 map，可带 `error` 字段（非空字符串会被宿主当作失败展示）；**内容只能靠 `ui.show`**，不调就是 `WIDGET_EMPTY`。
 - **预算**：30 秒硬预算（含排队与审批等待），到点 `WIDGET_TIMEOUT`。所以小组件入口只做「读缓存 + 画内容」，不要在里面跑长任务、下载大依赖或发模型请求。
 
@@ -526,9 +526,15 @@ ui.show(Column {
     value = store.kvGet("note", ""), multiline = true,
   },
   Button { label = "@string/save", action = "save", tone = "primary" },
-})
+}, { refresh_action = "refresh_note" })
 return { ok = true }
 ```
+
+`ui.show(node, { refresh_action = "refresh_note" })` 可以声明标题栏刷新图标的事件；
+事件须为非空字符串，最多 128 字符，不必在内容区再放同名按钮。
+用户点刷新后按普通按钮的字段校验规则回传 `args.widget.action` 和 `values`。
+未声明则保留原有的空事件刷新；多次 `ui.show` 以最后一次的内容与刷新事件为准。
+自动加载仍传空事件：联网、写入放在明确的刷新事件分支，不能因为声明事件而在首屏执行。
 
 #### 运行期 UI 限制（硬限制，不是建议）
 
@@ -541,7 +547,8 @@ return { ok = true }
 | `ui.automationStatus` / `ui.isCancelled` | 照常可用；离开页面/关开关时 `isCancelled()` 变 true。 |
 | 节点数 | 根节点整棵树 **≤ 64 个节点**，超出 `WIDGET_TOO_LARGE`。 |
 | 根节点为 `Card` | 宿主把根 `Card` 降级成 `Column`（外层边框/标题由宿主负责，卡片里再套一层就显得重复）。 |
-| `options`（`title` / `height` / `fullscreen` / `hide_topbar` / `dismissable` 等） | 全部无效——小组件不是弹层，高度只由你给出的节点树决定（不设上限、卡内不滚动）。 |
+| `options.refresh_action` | 声明标题栏刷新图标的事件；不声明时回传空事件。 |
+| 弹层 `options`（`title` / `height` / `fullscreen` / `hide_topbar` / `dismissable` 等） | 无效——小组件不是弹层，高度只由你给出的节点树决定（不设上限、卡内不滚动）。 |
 
 #### 交互回流
 
@@ -554,7 +561,7 @@ return { ok = true }
 #### 宿主生命周期与外观（脚本改不了）
 
 - 进入前台空聊天页且开关打开时执行一次；**结果缓存**在聊天页 ViewModel 内，重组、旋转、来回切页面都不重跑。
-- 点标题行刷新按钮 = 重跑同一入口（`action` 为空）；点隐藏按钮 = 关闭该卡片开关。
+- 点标题行刷新按钮 = 使用 `refresh_action` 重跑同一入口；顶栏不提供关闭图标，小组件开关统一放在「组件」标题右侧的管理入口。
 - 发出消息、离开页面、进入后台 → 未完成的运行被取消（`pause()`）。
 - 卡片更新或应用语言变化 → 丢弃旧内容，下次进入重跑。
 
@@ -565,9 +572,10 @@ return { ok = true }
 | 排列 | 多个小组件**按添加顺序**（= 安装顺序，不是名字字典序）从上到下排；更新卡片不会改变它原来的位置。 |
 | 圆角 | 一组小组件拼成**一张卡**：第一张只圆上边、最后一张只圆下边、中间四张角是小圆角，组内间距 `gap`；圆角数值取设置 → 界面 → 列表卡片样式（默认 20dp / 4dp / 2dp，Miuix 是 20dp / 0 / 0）。 |
 | 边框 | **没有边框**——贴合靠同色底 + 共享圆角，不给卡片描边。 |
-| 顶栏 | 24dp 图标 + 小组件标题（`widget.title`，缺省用 `i18n.name`）+ 一句说明（`i18n.description`，没有就只显示标题），右侧是这一张卡片自己的按钮（刷新 / 隐藏）。尺寸对齐 `KedgeOptionItem`（16dp 内边距、minHeight 56dp）。 |
+| 顶栏 | 原生 `KedgeOptionItem`：24dp 图标 + 小组件标题（`widget.title`，缺省用 `i18n.name`）+ 一句说明（`i18n.description`，没有就只显示标题），右侧只保留刷新图标。 |
 | 内容区 | 完整显示，**没有高度上限、卡内不再滚动**；长度 = 节点树高度，跟着整页一起滚。所以别塞几百行的表——`≤64` 节点的限制就是为此。 |
-| 状态 | 加载中显示宿主自带的加载指示器；失败显示「小组件暂时无法加载」+ 最多 3 行错误摘要；入口跑空（`WIDGET_EMPTY`）显示一行占位提示。 |
+| 动画 | 整张小组件淡入上浮；首次内容出现时淡入滑入，刷新保留原内容；父 `Column` 使用 `animateContentSize()` 平滑改变高度。 |
+| 状态 | 加载中在标题栏刷新按钮内原位替换为 20dp 指示器，不增加内容行，保留已有内容并拦截重复刷新；失败显示「小组件暂时无法加载」+ 最多 3 行错误摘要；入口跑空（`WIDGET_EMPTY`）显示一行占位提示。 |
 
 - 一个都没开启时，欢迎页该位置换成一行「添加小组件」；「组件」标题右侧的编辑按钮始终存在，点开是开关列表。
 
@@ -835,6 +843,8 @@ Checkbox/Slider/Select/RadioGroup/FilePicker/DirPicker，动作使用 Button。
 | `automationStatus(label, detail)` | label/detail: string | 无 | 发布当前自动化步骤到悬浮看板；detail 可空。连续重复 label 会去重。 |
 | `isCancelled()` | 无 | boolean | 用户在看板点过「停止」后返回 true；新一轮运行自动复位。 |
 
+运行看板只用于设备自动化（`accessibility` / `root` / `shizuku`、提权或 command 卡片）及定时任务、事件触发、flow。普通查询、UI 卡片及聊天小组件不创建运行/完成提示；必要的授权确认仍按审批策略展示。`progress` / `automationStatus` 只更新已有自动化会话。应用内外共用随当前主题切换的紧凑胶囊，外部窗口按内容尺寸测量，定位留白不占用触摸区域。
+
 无人值守（`HEADLESS`）运行时，上表所有阻塞方法立即返回 `nil` / `false`，`show` / `progress` / `automationStatus` 为 no-op；AI 也可用工具参数 `__khatkit_ui="headless"` 按次要求。完整规则见 3.5。
 
 聊天页小组件（`2.12`）比 HEADLESS 更严：**只有 `ui.show` 可用**，`form` / `screen` / `sheet` / `webSheet` / `confirm`
@@ -968,7 +978,7 @@ local root = Column {            -- 子节点放数组部分
 | `Column` | 纵向排列 | `spacing`(dp 数字) / `hAlign`(`start`\|`center`\|`end`) / `scrollable` / `modifier` |
 | `Row` | 横向排列 | `spacing` / `vAlign`(`start`\|`center`\|`end`\|`space_between`) / `modifier` |
 | `Box` | 叠放 | `hAlign` / `vAlign` / `modifier` |
-| `Card` | 卡片容器（宿主底色 + 内边距） | `title` / `modifier` |
+| `Card` | 设置项风格容器（原生 `KedgeOptionItem`，随 MD3 / Miuix 切换底色、圆角和内边距；容器本身不可点击，子按钮照常响应） | `title` / `modifier` |
 | `Section` | 带小标题的分组 | `title` / `modifier` |
 | `Spacer` | 空白 | `width` / `height`（dp 数字） |
 | `Divider` | 分割线 | — |
@@ -979,7 +989,15 @@ local root = Column {            -- 子节点放数组部分
 | `Badge` | 小标签 | `text` / `tone`(`default`\|`primary`\|`success`\|`warning`\|`error`) / `color`(文字色，`#RRGGBB`) |
 | `ProgressBar` | 只读进度条 | `ratio`(0–1) / `label` |
 | `Button` | 可点按钮 | `label` / `action`(回传的 event 名) / `tone`(`primary`\|`default`\|`danger`) / `disabled` / `icon`(前置图标名) / `color`(文字色) / `modifier`(支持 `weight`，可直接均分宽度) |
-| `IconButton` | 只有图标的按钮（顶栏刷新 / 外链之类） | `icon`(必填) / `action`(必填，回传的 event 名) / `tone`(`default`\|`muted`\|`primary`\|`error`\|`success`\|`warning`) / `disabled` / `contentDescription`(无障碍描述，缺省用 action) / `modifier` |
+| `IconButton` | 只有图标的按钮（顶栏刷新 / 外链之类） | `icon`(必填) / `action`(必填，回传的 event 名) / `tone`(`default`\|`muted`\|`primary`\|`error`\|`success`\|`warning`) / `color`(图标色，优先于 tone；禁用时降低透明度) / `disabled` / `contentDescription`(无障碍描述，缺省用 action) / `modifier` |
+| `CounterButton` | 原生连点互动面板，含飘字、数字滚动、本机次数与排队提交 | `id` / `action`(必填) / `label` / `caption` / `count`(服务端总数，可省略显示 —) / `localCount` / `revision` / `tone`(`primary` 橙色，`default` 普通按钮) / `hint`(错误信息) / `disabled` / `modifier` |
+
+`CounterButton` 用于 `ui.screen`：每次点击即时预览 +1，停顿 180ms 或累计 10 次后回传
+`{event=action, values={[id]=n}}`，`n` 为 1..10 的整数。脚本完成一次提交后，无论成功或失败都须增加
+`revision` 并再次调用 `ui.screen`；成功传入最新 `count` / `localCount`，失败保留已确认计数并传入 `hint`。
+宿主在收到新 revision 后确认或回退上一批，再提交排队点击。状态由页面持有，懒列表回收不会丢失排队。
+未提交状态的字段默认值为 0；普通字段校验允许 0..10，互动事件要求 1..10。
+组件本身不联网、不写存储；`ui.show` 中只展示，互动入口使用 `ui.screen`。
 
 **字段组件**（值只按 `id` 收集回脚本）
 
@@ -1022,9 +1040,34 @@ timer trending_down trending_up verified visibility warning
 `tone` 仍在，两个都给时 `color` 优先。自定义颜色/字号只影响这一处文本，不改主题。
 
 全屏或自绘大弹层的根 `Column` 会按直接子节点分成原生懒加载列表项，只组合可见区域附近的节点。
+节点可写 `key="稳定标识"`（同级非空且唯一，最多 128 字符）；根 Column 的直接子节点由此保持
+懒列表身份，适合图表、按月记录和加载更多。列表更新不会因为插入记录而复用错行。
 历史、每日记录应各自作为根 `Column` 的直接子节点；不要把整页记录再包进一个大 `Card` 或内层 `Column`。
 该优化不改变脚本侧 512 节点上限，也不减少网络返回量：长历史仍应分批提交。
 普通表单字段值由宿主持有，滚出可见区域不会清空输入；小组件保持原有完整展示方式。
+
+`ui.screen` 还可在 `options.pages` 一次提供导航各页的节点树，实现原生横向分页：
+
+```lua
+ui.screen("看板", todayTree, {
+  fullscreen = true,
+  nav = { selected = "today", items = {
+    { id = "today", label = "今日" }, { id = "history", label = "历史" },
+  } },
+  pages = {
+    today = { tree = todayTree },
+    history = { tree = historyTree, load_more = "more_history" },
+  },
+})
+```
+
+`pages` 的 key 必须与 2–5 个导航条目的事件名完全一致，每页只接受 `tree` 与可选的 `load_more` 事件字符串；
+每棵树独立校验，仍最多 512 节点，所有页面（包括未显示的页面）均检查图片权限。
+导航点击和横向滑动只在宿主执行，**不回传导航事件、不唤醒脚本**；每页各自懒加载并保留滚动位置。
+切页动画不会临时禁用整页控件或切换其禁用配色；滑动中的普通按钮事件在提交处拦截，避免误触。
+按钮、顶栏动作或触底事件才结束这次等待，返回 `{ event, values, page }`，其中 `page` 是事件所属页面。
+脚本应先用 `response.page` 更新当前页面，再处理事件；回传只收集该页字段，其他页面的必填项不参与校验。
+刷新或筛选后再次提交页面集合，宿主原地更新内容。该能力仅用于 `ui.screen`，小组件与 `ui.form` 不使用分页集合。
 
 **Modifier**（`modifier = ui.Modifier.xxx()`，可链式）
 

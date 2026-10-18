@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_welcome_question">ماذا تريد أن تنجز اليوم؟</string>
+    <string name="chat_welcome_ideas">بعض الأفكار</string>
+    <string name="chat_welcome_shuffle">أفكار أخرى</string>
+    <string name="chat_idea_web">قراءة صفحة ويب</string>
+    <string name="chat_idea_web_detail">أهم النقاط مع المصادر</string>
+    <string name="chat_idea_web_prompt">ساعدني في قراءة صفحة ويب واستخراج أهم النقاط مع ذكر المصدر.</string>
+    <string name="chat_idea_image">معالجة الصور</string>
+    <string name="chat_idea_image_detail">ضغط وتحويل وحذف البيانات الوصفية</string>
+    <string name="chat_idea_image_prompt">ساعدني في معالجة الصور. اسألني أولاً عن العملية المطلوبة.</string>
+    <string name="chat_idea_files">تنظيم الملفات</string>
+    <string name="chat_idea_files_detail">تصنيف وإعادة تسمية وأرشفة</string>
+    <string name="chat_idea_files_prompt">ساعدني في تنظيم الملفات. تأكد من المجلد والخطة قبل إجراء تغييرات.</string>
+    <string name="chat_idea_schedule">إنشاء أتمتة</string>
+    <string name="chat_idea_schedule_detail">مهام يومية في وقتها المحدد</string>
+    <string name="chat_idea_schedule_prompt">ساعدني في إنشاء مهمة بطاقة مجدولة. تأكد أولاً من المهمة ووقت تشغيلها.</string>
+    <string name="chat_widgets">الأدوات المصغّرة</string>
+    <string name="chat_widgets_manage">إدارة الأدوات المصغّرة</string>
+    <string name="chat_widgets_add">إضافة أداة مصغّرة</string>
+    <string name="chat_widget_refresh">تحديث الأداة المصغّرة</string>
+    <string name="chat_widget_hide">إخفاء الأداة المصغّرة</string>
+    <string name="chat_widget_loading">جارٍ التشغيل…</string>
+    <string name="chat_widget_failed">تعذّر تحميل الأداة المصغّرة</string>
+    <string name="chat_widget_empty">لا يوجد شيء لعرضه بعد</string>
+</resources>

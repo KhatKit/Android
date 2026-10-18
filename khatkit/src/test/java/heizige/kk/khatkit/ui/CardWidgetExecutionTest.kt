@@ -74,11 +74,11 @@ class CardWidgetExecutionTest {
                 ui.show(ui.Column {
                   ui.Text { text = "@string/name" },
                   ui.Button { label = "@string/name", action = "save" }
-                })
+                }, { refresh_action = "refresh_status" })
                 return { label = i18n.text("greet", { name = "友人" }), locale = i18n.locale() }
             """.trimIndent(),
             EngineKind.JS to """
-                ui.show({__ui:"Text", props:{text:"@string/name"}, children:[]});
+                ui.show({__ui:"Text", props:{text:"@string/name"}, children:[]}, {refresh_action:"refresh_status"});
                 return {label:i18n.text("greet", {name:"友人"}), locale:i18n.locale()};
             """.trimIndent(),
         )
@@ -95,6 +95,7 @@ class CardWidgetExecutionTest {
             assertEquals("こんにちは 友人", values["label"])
             assertEquals("ja-JP", values["locale"])
             assertEquals("メモ", inline.content!!.walk().first { it.type == "Text" }.props["text"])
+            assertEquals("refresh_status", inline.refreshAction)
             assertNull(global.content)
         }
     }

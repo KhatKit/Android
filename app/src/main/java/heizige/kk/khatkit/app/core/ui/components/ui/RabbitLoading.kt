@@ -40,8 +40,9 @@ fun RabbitLoadingIndicator(modifier: Modifier = Modifier) {
             }
         )
     } else {
-        // MD3 的 ContainedLoadingIndicator 在 Miuix 下不画任何东西，
-        // 换成 Kedge 的 Circular：Miuix 走自己的环形进度，MD3 侧外观基本一致。
+        // 不用 MD3 的 ContainedLoadingIndicator（Miuix 下不画任何东西）。
+        // 统一走 Kedge 的双风格加载指示器：MD3 侧是 Expressive 的 LoadingIndicator
+        // （图形循环变形），Miuix 侧是 Miuix 自己的环。
         KedgeProgressIndicator(
             modifier = modifier,
             type = KedgeProgressIndicatorType.Circular,

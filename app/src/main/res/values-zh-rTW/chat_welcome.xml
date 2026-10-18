@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_welcome_question">今天想完成什麼？</string>
+    <string name="chat_welcome_ideas">試試這些</string>
+    <string name="chat_welcome_shuffle">換一換</string>
+    <string name="chat_idea_web">閱讀網頁</string>
+    <string name="chat_idea_web_detail">提煉重點，保留來源</string>
+    <string name="chat_idea_web_prompt">幫我閱讀一個網頁，提取重點並標註來源。</string>
+    <string name="chat_idea_image">處理圖片</string>
+    <string name="chat_idea_image_detail">壓縮、轉換、移除中繼資料</string>
+    <string name="chat_idea_image_prompt">幫我處理圖片，先問我需要進行什麼操作。</string>
+    <string name="chat_idea_files">整理檔案</string>
+    <string name="chat_idea_files_detail">分類、重新命名與封存</string>
+    <string name="chat_idea_files_prompt">幫我整理檔案，修改前先和我確認目錄和整理方案。</string>
+    <string name="chat_idea_schedule">建立自動化</string>
+    <string name="chat_idea_schedule_detail">讓日常任務按時完成</string>
+    <string name="chat_idea_schedule_prompt">幫我建立一個定時執行的卡片任務，先確認任務內容和執行時間。</string>
+    <string name="chat_widgets">小工具</string>
+    <string name="chat_widgets_manage">管理小工具</string>
+    <string name="chat_widgets_add">新增小工具</string>
+    <string name="chat_widget_refresh">重新整理小工具</string>
+    <string name="chat_widget_hide">隱藏小工具</string>
+    <string name="chat_widget_loading">正在執行…</string>
+    <string name="chat_widget_failed">小工具暫時無法載入</string>
+    <string name="chat_widget_empty">暫時沒有內容</string>
+</resources>

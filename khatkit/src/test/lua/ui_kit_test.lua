@@ -19,8 +19,17 @@ ui.Image{src="https://example.com/image.png"}
 for role in ([[surface on_surface on_surface_variant surface_container surface_container_high
   surface_container_highest outline_variant primary on_primary error error_container on_error_container]]):gmatch("%S+") do
   Text{color=role,modifier=ui.Modifier.background(role)}
+  ui.IconButton{icon="open_in_new",action="open",color=role}
 end
+rejects("IconButton.color",function() ui.IconButton{icon="open_in_new",action="open",color="on_surfce"} end)
 rejects("Text.color",function() Text{color="on_surfce"} end)
+ui.CounterButton{id="taps",action="react",count=100,localCount=2,value=0,revision=0}
+Column{ui.Card{key="chart",Text{key="title"}},ui.Card{key="record",Text{key="title"}}}
+rejects("children.key",function() Column{Text{key="same"},Text{key="same"}} end)
+rejects("children.key",function() Column{Text{key=""}} end)
+rejects("CounterButton.action",function() ui.CounterButton{id="taps"} end)
+rejects("CounterButton.count",function() ui.CounterButton{id="taps",action="react",count=-1} end)
+rejects("CounterButton.value",function() ui.CounterButton{id="taps",action="react",value=11} end)
 rejects("NoSuch",function() ui.NoSuch{} end)
 rejects("TextField.id",function() Column{TextField{id="x"},TextField{id="x"}} end)
 rejects("Modifier.padding",function() ui.Modifier.padding(1,2,3) end)
