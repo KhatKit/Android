@@ -23,13 +23,17 @@ class CardRunManager(
     private val semaphore = Semaphore(maxConcurrent.coerceAtLeast(1))
 
     /** 提交并等待结果（AI tool / MCP 调用走这里）。 */
-    suspend fun run(card: LoadedCard, args: Map<String, Any?>): EngineResult {
+    suspend fun run(
+        card: LoadedCard,
+        args: Map<String, Any?>,
+        execution: suspend (LoadedCard, Map<String, Any?>) -> EngineResult = execute,
+    ): EngineResult {
         val completion = CompletableDeferred<EngineResult>()
         val job = scope.launch(Dispatchers.Default) {
             try {
                 semaphore.withPermit {
                     val result = try {
-                        execute(card, args)
+                        execution(card, args)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Throwable) {

@@ -204,7 +204,6 @@ class RouteActivity : ComponentActivity() {
                 val khatKitDarkTheme = heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme()
                 val appContent: @Composable () -> Unit = {
                     AppRoutes()
-                    KhatKitUiHost()
                     AutomationInAppHost()
                 }
                 if (khatKitProvider.uiStyle == heizige.kk.khatkit.uikit.KhatKitUiStyle.MIUIX) {
@@ -337,6 +336,9 @@ class RouteActivity : ComponentActivity() {
                     showCloseButton = true,
                 )
                 TTSController()
+                // Card Markdown and forms need the same settings/toaster/nav
+                // locals as pages, including when hosted in a FullscreenPopup.
+                KhatKitUiHost()
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

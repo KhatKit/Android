@@ -1,22 +1,31 @@
 package heizige.kk.khatkit.uikit
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
 import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -24,6 +33,7 @@ import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiNodeParser
 import heizige.kk.khatkit.ui.UiSheetOptions
+import heizige.kk.kedge.theme.KedgeColors
 
 @Composable
 fun NodeTreeSheet(
@@ -50,6 +60,13 @@ fun NodeTreeSheet(
         onDispose { pickerHost?.detach() }
     }
     val hasSubmit = root.walk().any { it.type == "Button" && it.props["action"] == "submit" }
+    // A screen's top-level blocks are independent lazy items; fields still live in
+    // values above, so recycling an off-screen block never loses form input.
+    val lazy = options.usesLargeSheet && root.type == "Column" &&
+        root.props["scrollable"] != true &&
+        root.ops().none { it[0] == "scrollable" || it[0] == "visible" && it[1] == false }
+    val pageKey = options.navigation?.selected ?: title
+    val lazyState = key(pageKey) { rememberLazyListState() }
     KhatKitSheet(
         title = title,
         imageVector = Icons.Default.Edit,
@@ -58,16 +75,86 @@ fun NodeTreeSheet(
         confirmText = if (form && !hasSubmit) "提交" else null,
         onConfirm = if (form && !hasSubmit) ({ submit("submit") }) else null,
         onDismiss = onDismiss,
+        // 导航条不是提交：不跑字段校验，直接把条目 event 交回脚本。
+        onNavigate = { event -> onAction(event, root.collect(values)) },
+        // 换屏后同一张弹层还在组合里：用「当前导航项」当 key，换页归零、同页刷新/求重置保留滚动位置。
+        scrollKey = options.navigation?.selected ?: root,
+        // 每次请求的 root 都不同：触底加载守卫与滑入动画按它复位（历史滚到底加载下一页）。
+        contentKey = root,
+        lazyListState = if (lazy) lazyState else null,
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            root.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
-            if (form && !hasSubmit) {
-                KedgeTextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                    Text("取消", style = StyleResolvers.current().textStyle("label"))
+        if (lazy) {
+            val alignment = when (root.props["hAlign"]) {
+                "center" -> Alignment.CenterHorizontally
+                "end" -> Alignment.End
+                else -> Alignment.Start
+            }
+            LazyColumn(
+                state = lazyState,
+                modifier = root.nodeModifier(Modifier.fillMaxWidth()).fillMaxHeight(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy((root.props["spacing"] as? Number)?.toFloat()?.dp ?: 0.dp),
+                horizontalAlignment = alignment,
+            ) {
+                itemsIndexed(root.children, contentType = { _, node -> node.type }) { _, node ->
+                    node.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
+                }
+                if (form && !hasSubmit) {
+                    item {
+                        KedgeTextButton(onClick = onDismiss) {
+                            Text("取消", style = StyleResolvers.current().textStyle("label"))
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                root.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
+                if (form && !hasSubmit) {
+                    KedgeTextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                        Text("取消", style = StyleResolvers.current().textStyle("label"))
+                    }
                 }
             }
         }
     }
+}
+
+private fun hex(value: String): Color? {
+    if (!value.startsWith("#")) return null
+    val digits = value.substring(1)
+    return runCatching {
+        when (digits.length) {
+            6 -> Color(0xFF000000L or digits.toLong(16))
+            8 -> Color(digits.toLong(16))
+            else -> null
+        }
+    }.getOrNull()
+}
+
+@Composable
+private fun nodeColor(value: String): Color? = when (value) {
+    "surface" -> KedgeColors.surface
+    "on_surface" -> KedgeColors.onSurface
+    "on_surface_variant" -> KedgeColors.onSurfaceVariant
+    "surface_container" -> KedgeColors.surfaceContainer
+    "surface_container_high" -> KedgeColors.surfaceContainerHigh
+    "surface_container_highest" -> KedgeColors.surfaceContainerHighest
+    "outline_variant" -> KedgeColors.outlineVariant
+    "primary" -> KedgeColors.primary
+    "on_primary" -> KedgeColors.onPrimary
+    "error" -> KedgeColors.error
+    "error_container" -> KedgeColors.errorContainer
+    "on_error_container" -> KedgeColors.onErrorContainer
+    else -> hex(value)
+}
+
+private fun weight(value: String): FontWeight? = when (value) {
+    "normal" -> FontWeight.Normal
+    "medium" -> FontWeight.Medium
+    "semibold" -> FontWeight.SemiBold
+    "bold" -> FontWeight.Bold
+    else -> null
 }
 
 private fun UiNode.ops() = UiNodeParser.modifierOps(props["modifier"])
@@ -92,6 +179,7 @@ private fun UiNode.nodeModifier(base: Modifier): Modifier {
                 else -> result.padding(start = dp(), top = dp(2), end = dp(3), bottom = dp(4))
             }
             "clip" -> result.clip(if (op[1] == "circle") CircleShape else RoundedCornerShape(if (op.size > 2) dp(2) else 12.dp))
+            "background" -> result.background(nodeColor(op[1] as String) ?: Color.Unspecified)
             else -> result
         }
     }
@@ -147,13 +235,33 @@ fun UiNode.Render(
         }
         "Spacer" -> Spacer(m.width(number("width").dp).height(number("height").dp))
         "Divider" -> KedgeHorizontalDivider(modifier = m, color = style.color("muted"))
-        "Text" -> Text(text("text"), modifier = m, color = style.color(text("tone", "default")),
-            style = style.textStyle(text("style", "body")), fontWeight = if (props["bold"] == true) FontWeight.Bold else null)
+        "Text" -> {
+            val base = style.textStyle(text("style", "body"))
+            Text(
+                text("text"), modifier = m,
+                color = nodeColor(text("color")) ?: style.color(text("tone", "default")),
+                style = base.copy(fontSize = (props["size"] as? Number)?.toFloat()?.sp ?: base.fontSize),
+                fontWeight = weight(text("weight"))
+                    ?: if (props["bold"] == true) FontWeight.Bold else null,
+            )
+        }
+        "Icon" -> {
+            val vector = UiIconVectors.vector(text("name"))
+            if (vector != null) {
+                Icon(
+                    imageVector = vector,
+                    contentDescription = props["contentDescription"] as? String,
+                    modifier = m.size(number("size", 20f).dp),
+                    tint = nodeColor(text("color")) ?: style.color(text("tone", "default")),
+                )
+            }
+        }
         "Markdown" -> markdown(text("text"), m)
         "Image" -> image(text("src"), props["contentDescription"] as? String, m)
         "Badge" -> KedgeSurface(modifier = m) {
             Text(text("text"), Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                style = style.textStyle("label"), color = style.color(text("tone", "default")))
+                style = style.textStyle("label"),
+                color = nodeColor(text("color")) ?: style.color(text("tone", "default")))
         }
         "ProgressBar" -> Column(m) {
             if (text("label").isNotEmpty()) Text(text("label"), style = style.textStyle("label"))
@@ -165,8 +273,31 @@ fun UiNode.Render(
             modifier = m,
             variant = if (text("tone") == "primary") KedgeButtonVariant.Primary else KedgeButtonVariant.Secondary,
         ) {
-            Text(text("label"), style = style.textStyle("label"),
-                color = if (text("tone") == "danger") style.color("error") else androidx.compose.ui.graphics.Color.Unspecified)
+            val label = nodeColor(text("color"))
+                ?: if (text("tone") == "danger") style.color("error") else Color.Unspecified
+            val icon = UiIconVectors.vector(text("icon"))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 6.dp).size(16.dp),
+                        tint = label)
+                }
+                Text(text("label"), style = style.textStyle("label"), color = label)
+            }
+        }
+        "IconButton" -> KedgeIconButton(
+            onClick = { onAction(text("action")) },
+            enabled = !readOnly && props["disabled"] != true,
+            modifier = m,
+            shapes = IconButtonDefaults.shapes(),
+        ) {
+            val vector = UiIconVectors.vector(text("icon"))
+            if (vector != null) {
+                Icon(
+                    imageVector = vector,
+                    contentDescription = (props["contentDescription"] as? String) ?: text("action"),
+                    tint = style.color(text("tone", "default")),
+                )
+            }
         }
         else -> {
             val legacy = when (type) {

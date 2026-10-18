@@ -20,6 +20,7 @@
 | 全局 | 类型 | 说明 |
 |---|---|---|
 | `args` | table | 卡片入参（`card.json` 的 `parameters` 按 JSON Schema 校验后注入）。无入参时是空 table。 |
+| `i18n` | bridge | 本次卡片的文案字典与应用语言，始终注入，见 3.5.1。 |
 | `require(name)` | function | 加载 `requires.libs` 声明的共享库（`package.preload`）；宿主也内置了同名库时优先用内置的。 |
 
 ## 2. Bridge 能力表
@@ -32,6 +33,7 @@
 | `json` | `JsonBridge` | L0 | 始终 | 结构化 JSON 编解码、查询与合并。 |
 | `crypto` | `CryptoBridge` | L0 | 始终 | 哈希、HMAC、AES、Base64、URL 与随机值工具。 |
 | `time` | `TimeBridge` | L0 | 始终 | 时间戳、ISO-8601、格式化、解析与本地化信息。 |
+| `i18n` | `I18nBridge` | 无额外权限 | 无需声明 | manifest 多语言文案与当前应用语言。 |
 | `host` | `HostBridge` | L0 | 始终 | 宿主信息、能力体检、日志与运行耗时。 |
 | `system` | `SystemBridge` | L0 | 始终 | URL、分享、通知、电池、存储和网络状态。 |
 | `ai` | `AiBridge` | L0 | 始终 | 同步调用宿主已配置的模型供应商。 |
@@ -47,7 +49,7 @@
 | `accessibility` | `AccessibilityBridge` | L1 | 无障碍服务开启 | 找节点 / 点击 / 手势 / 识图。 |
 | `root` | `RootBridge` | L2 | 设置里开启 root | 只有 `shell`。 |
 
-未声明的 bridge 不会注入，对应全局名不存在；声明了但设备不具备的，卡片不可见 / 运行时报 `BRIDGE_UNAVAILABLE`。
+除始终注入的 `i18n` 外，未声明的 bridge 不会注入，对应全局名不存在；声明了但设备不具备的，卡片不可见 / 运行时报 `BRIDGE_UNAVAILABLE`。
 依赖包注入的动态 bridge（名字由卡片自定）不在本文件里，字段与生命周期见 [dependency-system.md](dependency-system.md)。
 
 ## 2.1 browser（可编程浏览器）
@@ -190,6 +192,20 @@ WebView 未回调的重定向资源等仍需进一步隔离；不要据此执行
 | `time.timeZone()` | string | 设备默认时区 ID。 |
 | `time.locale()` | string | 当前 Locale 的 BCP-47 标签。 |
 
+## 3.5.1 i18n（本地文案）
+
+每次运行均注入，不要求写入 `requires.bridges`，无网络访问或额外权限。
+字典来自 manifest 的 `i18n`，语言来自 Android 当前应用配置；支持任意 BCP 47 标签，不限制为宿主已有翻译语言。
+字段规范、回退规则和小组件示例见 [卡片开发文档 2.11 / 2.12](lua-card-development.md#211-多语言文案)。
+
+| 接口 | 返回 | 说明 |
+|---|---|---|
+| `i18n.locale()` | string | 本次运行首选语言的 BCP 47 标签。 |
+| `i18n.text(key, values?)` | string | 按语言回退读取文案，并替换 `{key}` 命名占位符。`values` 缺省为空对象；文案不存在返回键本身。不是自动翻译或 ICU 复数格式化。 |
+
+声明式 UI 中的显示字符串还可直接使用 `@string/key`；宿主在 UI 节点与图片权限校验之前解析引用。
+小组件的 `ui.show` 写入该次运行专属的内嵌内容，不创建结果弹窗，也不与其他卡片的 UI 状态混用；小组件入口只能用 `ui.show`，弹层型 `ui.*` 与文件/目录选择字段会被拒。声明字段、校验码、运行限制与开发清单见 [卡片开发文档 2.12](lua-card-development.md#212-聊天页小组件widget开发规范)。
+
 ## 3.6 host（L0）
 
 | 接口 | 返回 | 说明 |
@@ -282,27 +298,45 @@ return { count = #paths, first = paths[1] }
 
 ## 4. ui（L0）
 
-弹层都是阻塞调用：用户确认 / 超时（默认 300 秒）后才返回。
+弹层都是阻塞调用：用户确认 / 等待上限（默认 300 秒，或卡片运行期限，取小）后才返回。
+
+运行期策略（`docs/lua-card-development.md` §3.5）：宿主按触发来源决定是否允许弹层 ——
+`AI` / `用户` / `聊天小组件` 为 INTERACTIVE；`定时任务` / `事件触发` / `flow` 为 HEADLESS，
+此时本表所有阻塞方法立即返回 `nil` / `false`，`show` / `progress` / `automationStatus` 为 no-op，
+`isCancelled()` 恒 `false`。AI 可用工具参数 `__khatkit_ui="headless"` 按次要求 HEADLESS。
+等待超时**不等于取消**：脚本拿到 `nil` 继续跑，弹层保留；用户之后提交时宿主用「原参数 + 用户值」
+重跑一次卡片，并注入回放 UI（脚本下一次同类 `ui.*` 直接拿到用户提交的值，不再弹层），
+结果作为新消息补发回原会话。宿主 Compose 层不在场时，
+阻塞调用只等 1.5 秒挂载宽限就降级返回。
 
 | 接口 | 返回 | 说明 |
 |---|---|---|
-| `ui.form(title, items, options)` | table / nil | 接收受限 Compose 节点树，返回字段值；取消/超时返回 nil。旧 items 数组保留一个发布周期，已弃用。 |
-| `ui.screen(title, root, options)` | table / nil | 阻塞节点树屏幕；按钮返回 `{event=action, values={id=value}}`，取消/超时返回 nil。 |
-| `ui.sheet(title, actions, options)` | table / nil | 声明式操作弹层；返回 `{event, values}`，取消或超时返回 nil。actions 字段见 §10。 |
-| `ui.confirm(title, message, danger)` | boolean | 二次确认；`danger` 为真时按钮是危险样式。取消 / 超时返回 false。 |
+| `ui.form(title, items, options)` | table / nil | 接收受限 Compose 节点树，返回字段值；取消或等待超时返回 nil（超时保留弹层，用户之后提交会续跑）。旧 items 数组保留一个发布周期，已弃用。 |
+| `ui.screen(title, root, options)` | table / nil | 阻塞节点树屏幕；按钮返回 `{event=action, values={id=value}}`，取消或超时返回 nil（超时保留弹层）。 |
+| `ui.sheet(title, actions, options)` | table / nil | 声明式操作弹层；返回 `{event, values}`，取消或超时返回 nil（超时保留弹层）。actions 字段见 §10。 |
+| `ui.confirm(title, message, danger)` | boolean | 二次确认；`danger` 为真时按钮是危险样式。取消或超时返回 false（超时保留弹层）。 |
 | `ui.progress(ratio, label)` | 无 | 顶部进度条，`ratio` 0.0–1.0，`label` 为空则只更新进度。 |
 | `ui.show(card, options)` | 无 | 非阻塞展示节点树；标题取 options.title。兼容旧 `{title, markdown/text/content}`。 |
 | `ui.automationStatus(label, detail)` | 无 | 发布当前步骤。应用前台显示为应用内 Toast，应用退后台后切换为悬浮看板；连续重复 `label` 由宿主去重。点击提示卡片可隐藏提示，不会取消脚本。 |
 | `ui.isCancelled()` | boolean | 用户在看板点过「停止」后为 true；长脚本在每步之间轮询。 |
 | `ui.webSheet(title, url, actions, options)` | table / nil | **宿主专用**：`web.openLogin` 的宿主实现，脚本请调 `web.openLogin`。 |
 
-弹层 `options` 字段全集：
+弹层 `options` 字段全集（键名接受下划线 / 驼峰 / 连字符；详见 `docs/lua-card-development.md` §4.2）：
 
 | 字段 | 适用 | 类型 | 说明 |
 |---|---|---|---|
-| `fullscreen` | form / show / sheet | boolean | 占满屏幕宽高，仍可下滑或返回键关闭。 |
-| `landscape` | form / show / sheet | boolean | 弹层期间 Activity 切 `FULL_SENSOR`，关闭后还原。 |
-| `height` | form / show / sheet | number | 高度占屏比例 0.1–1.0（`fullscreen=true` 等价 `height=1`）。 |
+| `fullscreen` | form / screen / show / sheet | boolean | 强制全屏：铺满窗口、去圆角；仍可下滑或返回键关闭（除非 `dismissable=false`）。 |
+| `height` | form / screen / show / sheet | number | 高度占屏比例 0.1–1.0，默认 0.9（`fullscreen=true` 时忽略）。 |
+| `hide_topbar` | form / screen / show / sheet | boolean | 隐藏顶栏（拖柄条 + 标题行）。 |
+| `hide_bottombar` | form / screen / show / sheet | boolean | 隐藏底栏按钮行；**`dismissable=false` 时被忽略**。 |
+| `topbar` | form / screen / show / sheet | string / boolean | `"large"` = 用 Kedge `KedgeLargeTopAppBar`（大标题随内容折叠）；`"hidden"` 等价 `hide_topbar`。也可写 `large_topbar=true`。 |
+| `load_more` | form / screen / show / sheet | string / boolean | 滚到接近底部时回传的 event（`true` = `"load_more"`），用于滚动加载；新内容到达后守卫复位。 |
+| `top_actions` | form / screen / show / sheet | table | 大顶栏右侧图标动作 `{ { id/event, label, icon? }, … }`，最多 3 个，点击回传 event。 |
+| `nav` | form / screen / show / sheet | table | 底部导航栏（宿主用 Kedge 的 `KedgeNavigationBar` 画，固定在弹层底部、不随内容滚动）。`{ selected = "<当前项 id>", items = { { id/event, label, icon? }, … } }`，2–5 项；`id` 就是回传的 event 名，`icon` 用同一份图标名。出现时操作底栏自动让位。 |
+| `dismissable` | form / screen / show / sheet | boolean | `false` = 锁定：遮罩点击 / 返回键 / 下滑都关不掉，只能点弹层内按钮。别名 `dismissible` / `closable`，反向 `locked=true`。锁定态宿主强制保留带按钮的底栏。 |
+| `orientation` | form / screen / show / sheet | string | `"landscape"` / `"portrait"` / `"auto"`（`sensor` 同义，也接受 `"横屏"` / `"竖屏"`）；弹层关闭后还原。 |
+| `landscape` | form / screen / show / sheet | boolean | 旧写法，等价 `orientation="landscape"`；显式 `orientation` 优先。 |
+| `title` | show | string | 弹层标题。 |
 | `desktop` | web.openLogin | boolean | 按桌面布局渲染：宽视口 + overview + 缩放 + 显式打开 JS/DOM storage。 |
 | `user_agent` | web.openLogin | string | 自定义 UA（也接受 `userAgent`）。宿主不内置任何 UA，桌面版页面要脚本自己给不含 `Android`/`Mobile` 的 UA。 |
 
@@ -485,22 +519,26 @@ local values = ui.form("无障碍点击", Column {
 if not values then return { cancelled = true } end
 ```
 
-节点组件：Column、Row、Box、Spacer、Divider、Card、Section、Text、Markdown、Image、
+节点组件：Column、Row、Box、Spacer、Divider、Card、Section、Text、Icon、Markdown、Image、
 Badge、ProgressBar、TextField、NumberField、Switch、Checkbox、Slider、Select、RadioGroup、
-FilePicker、DirPicker、Button。布局接受节点子项，裸字符串提升为 Text；叶子不接受子项。
+FilePicker、DirPicker、Button、IconButton。布局接受节点子项，裸字符串提升为 Text；叶子不接受子项。
 字段以 `id` 为键，默认值使用 `value`；`required` 空值阻止提交。
-Column/Row 支持 spacing；Section 使用 title。Button 使用 label/action/tone/disabled。
-Text 的 style 为 title/subtitle/body/label/code，tone 为 default/muted/primary/error；
-Badge tone 为 default/primary/success/warning/error；Button tone 为 primary/default/danger。
-禁止 raw 颜色、字号、字体和 theme 属性。未知组件/属性、非法 token、重复 id、超过 32 层或
+Column/Row 支持 spacing；Section 使用 title。Button 使用 label/action/tone/disabled/icon/color；
+IconButton 只有图标（`action` + `icon` 必填，`contentDescription` 给无障碍描述）。
+Text 的 style 为 title/subtitle/body/label/code，tone 为 default/muted/primary/error，
+并支持 `color`（`#RRGGBB` / `#AARRGGBB`）、`size`（sp，6–64）、`weight`（normal|medium|semibold|bold）；
+Badge tone 为 default/primary/success/warning/error，并支持 `color` 文字色；
+Icon tone 为 default/muted/primary/error/success/warning，支持 `color` / `size` / `name`。
+字体、theme 属性仍不可写。未知组件/属性、非法 token、重复 id、超过 32 层或
 512 节点的树均被拒绝。Lua 和宿主双端校验；JS 暂不注入构造器。
 
 `ui.Modifier` 支持 fillMaxSize/fillMaxWidth/fillMaxHeight、width/height/size(dp)、
 padding(n)/padding(h,v)/padding(start,top,end,bottom)、weight(n)、clip("rounded"|"circle",radius?)、
-visible(bool)、scrollable()。尺寸为有限非负数字，weight 为正数且仅用于 Row/Column 直接子项。
+background("#RRGGBB")、visible(bool)、scrollable()。尺寸为有限非负数字，weight 为正数且仅用于
+Row/Column 直接子项；背景色要配 `clip` 才有圆角（先 clip 再 background 再 padding）。
 嵌套滚动容器有界高，避免与弹层滚动冲突。Image 仅接受经过本次卡片文件权限检查的本地路径或可读 content URI。
 form 内没有 submit Button 时宿主提供提交底栏。form/screen 默认等待 300s；
-等待时间也计入 host.setTimeout 预算，超时返回 nil。
+等待时间也计入 host.setTimeout 预算，超时返回 nil，弹层保留并等待用户在之后提交后续跑。
 
 旧语法迁移：input→TextField、number→NumberField、switch→Switch、slider→Slider、
 select→Select、radio→RadioGroup、file_picker→FilePicker、dir_picker→DirPicker，

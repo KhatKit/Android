@@ -32,7 +32,7 @@
 一张卡片 = 一个目录：`card.json`（声明）+ 一个入口脚本（`main.lua` / `main.js`），或 `engine: command` 时的纯命令模板。
 
 - 卡片通过 `parameters`（标准 JSON Schema）暴露给 AI，AI 以 `khatkit__<name>` 工具名调用并填参。
-- 脚本在宿主进程内执行，只能调用 `card.json` 中声明过的 bridge；网络、文件、下载、UI 都由宿主 Kotlin 实现（厚宿主、薄脚本）。
+- 脚本在宿主进程内执行，只能调用 `card.json` 中声明过的 bridge（纯文案 `i18n` 始终可用）；网络、文件、下载、UI 都由宿主 Kotlin 实现（厚宿主、薄脚本）。
 - 脚本运行时是 Rust native 单引擎（`khatkit_core`）：Lua 5.4（mlua）与 QuickJS（rquickjs）共用同一套 bridge API，**卡片脚本不要依赖任一引擎的独有特性**，保证 Lua/JS 可互换。
 - 脚本里出现的 bridge 调用与域名必须先在 manifest 里声明，`card-validator` 会做静态校验。
 
@@ -43,6 +43,7 @@ cards/<name>/
   card.json      必须，manifest
   main.lua       入口（entry.lua）
   main.js        入口（entry.js）
+  widget.lua     可选，聊天页小组件的独立入口（widget.entry.lua）
   README.md      可选
 ```
 
@@ -147,10 +148,13 @@ return { message: "Hello, " + name };
 | `name` | string | — | 是 | 全局唯一。必须匹配 `^[a-z][a-z0-9_]{1,63}$`：小写字母开头，后接 1–63 个小写字母/数字/下划线（总长 2–64）。否则 `NAME_INVALID`。 |
 | `version` | string | `"0.0.0"` | 否 | 建议 SemVer（`1.2.3`，可带 `-beta`/`+build`）。不匹配只报 WARNING `VERSION_NOT_SEMVER`。内置卡片靠它判断覆盖更新。 |
 | `description` | string | `""` | 否 | 一句话说明，展示给用户并作为 AI 工具描述的一部分（Hub 的 `summary` 优先）。 |
+| `default_locale` | string | `"en"` | 否 | 卡片默认语言的 BCP 47 标签，见 2.11。 |
+| `i18n` | object | `{}` | 否 | `{语言码: {文案键: 翻译}}`，不限语言种类，见 2.11。 |
 | `author` | string | `""` | 否 | 作者。 |
 | `license` | string | `""` | 否 | 许可证。 |
 | `engine` | string | `"auto"` | 否 | `lua` / `js` / `auto` / `command`，其他值报 `ENGINE_UNKNOWN`。 |
 | `entry` | object | `{}` | 条件 | `{ "lua": "main.lua", "js": "main.js" }`，至少一个与 `engine` 匹配（见 2.2）。 |
+| `widget` | object | null | 否 | 空聊天页内嵌小组件：独立脚本入口、自动启动与最小能力集；字段/校验码/硬限制见 2.12。 |
 | `privilege` | string | `"none"` | 否 | `none` / `elevated`，其他值报 `PRIVILEGE_UNKNOWN`。声明性字段，见 6.1。 |
 | `requires` | object | `{}` | 否 | 能力声明，见 2.3。 |
 | `network` | object | `{}` | 否 | `{ "allow": ["api.example.com"] }`，见 2.4。 |
@@ -160,11 +164,14 @@ return { message: "Hello, " + name };
 | `triggers` | array | `["ai","user"]` | 否 | `ai` / `user`，不允许空数组、重复或未知值，见 2.8。 |
 | `events` | array | `[]` | 否 | 事件触发声明，18 种类型，见 2.9。 |
 | `tags` | object | null | **是** | `{ "domain": ..., "action": ..., "scene": ... }`，词表见 2.6；缺失报 `TAGS_MISSING`。 |
-| `compliance` | object | null | 条件 | `{ "risk": "low|medium|high", "note": "..." }`；`tags.domain == "game"` 时必填。 |
+| `compliance` | object | null | 条件 | `{ "risk": "low\|medium\|high", "note": "..." }`；`tags.domain == "game"` 时必填。 |
 | `store` | object | `{ "quota_mb": 50, "secret": false }` | 否 | 卡片存储配额（file + db 合计）与敏感标记；`quota_mb` 最小按 1MB 生效。 |
-| `command` | string | null | 条件 | `engine == "command"` 时必填，`{}` 占位符由宿主做白名单转义，见 3.7。 |
+| `pricing` | object | null | 否 | 调用计费：`{ "price": 0.0, "currency": "CNY" }`。缺省 = 免费；`price` 不能为负（`PRICING_PRICE_INVALID`），`currency` 不能空（`PRICING_CURRENCY_INVALID`）。实际扣费由 Hub 的套餐/工具次数结算，见 4.11。 |
+| `command` | string | null | 条件 | `engine == "command"` 时必填，`{}` 占位符由宿主做白名单转义，见 3.8。 |
 
-字段命名注意：事件里的 `package`、`level_below`、`level_above`、`radius_m` 使用下划线；`text_contains` 与 `textContains` 两种写法都接受（`@JsonNames`）。
+字段命名注意：事件里的 `package`、`level_below`、`level_above`、`radius_m` 使用下划线；
+`text_contains` / `textContains`、`title_contains` / `titleContains` 两种写法都接受（`@JsonNames`）。
+`requires` 里的 `dependencies` 同样兼容旧写法 `plugins`。
 
 ### 2.2 engine 与 entry 规则
 
@@ -184,13 +191,23 @@ return { message: "Hello, " + name };
     { "name": "@khatkit/std", "lang": "js", "version": "^1.0.0" }
   ],
   "bins": [],
-  "env": []
+  "env": [],
+  "dependencies": []
 }
 ```
 
-- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `net` `fs` `json` `crypto` `time` `host` `system` `ai` `mediaPicker` `ui` `web` `download` `store` `shizuku` `root` `accessibility` `imageToolbox` `schedule`，未知值报 `BRIDGE_UNKNOWN`。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
+- `bridges`：声明脚本会用到的桥，取值只能是 `tool` `net` `fs` `json` `crypto` `time` `host` `system` `ai` `mediaPicker` `ui` `web` `browser` `download` `store` `shizuku` `root` `accessibility` `imageToolbox` `schedule` `i18n`，未知值报 `BRIDGE_UNKNOWN`。`i18n` 是始终注入的桥，写不写都不影响运行，只在需要显式声明能力时列上。运行时要求设备**全部具备**这些能力，缺任何一个返回 `BRIDGE_UNAVAILABLE`（错误文案会提示去「+」面板开启对应权限）。
 - `libs`：共享库声明。`name` 为库名；`lang` 为 `lua` / `js`（默认 `js`）；`version` 为 SemVer 范围（默认 `*`）。宿主解析顺序：内置层 `assets/libs/<dir>/<version>/` → Hub CDN 共享库 registry；**只解析与当前引擎同语言的库**。脚本内用 `require(name)` 使用（Lua 走 `package.preload`，JS 为 CommonJS 形态）。
 - `bins` / `env`：当前宿主版本未消费，保留字段，可留空数组。
+- `dependencies`：原生依赖包（旧字段名 `plugins` 仍可解析）。依赖产物是从 Hub 下载的含 `classes.dex` 的 jar，校验 sha256 后由宿主 `DexClassLoader` 加载，**注册成同名 bridge**（如 `imageToolbox`），脚本调用方式与内置 bridge 一致：
+
+  ```json
+  "dependencies": [
+    { "name": "imageToolbox", "version": "1.4.0", "sha256": "<64 位小写十六进制>", "signature": "<base64 DER>" }
+  ]
+  ```
+
+  字段：`name` 小写开头、允许 camelCase（bridge 名）；`version` SemVer；`url` 留空时走 Hub 约定地址 `/api/dependencies/<name>/<version>`；`sha256` 必填且 64 位小写十六进制；`signature` 是 ECDSA P-256/SHA256withECDSA 分离签名（DER base64），缺失或验签失败一律拒绝加载。校验与加载错误码见 3.3 的 `DEPENDENCY_*`。
 
 内置共享库 `@khatkit/std` 目前提供：
 
@@ -235,8 +252,9 @@ return { message: "Hello, " + name };
 ```
 
 - `source` 只能是 `ai` / `ui`，否则 `UI_SOURCE_INVALID`。
-- `widget` 必须在宿主已实现的白名单内，否则 `UI_WIDGET_UNKNOWN`：
-  `text` `input` `number` `switch` `slider` `select` `radio` `file_picker` `dir_picker` `button` `progress` `markdown` `divider` `custom`。
+- `widget` 必须在宿主已实现的白名单内，否则 `UI_WIDGET_UNKNOWN`。白名单 = 旧式小写项 + 节点名两套写法：
+  - 旧式（历史写法）：`text` `input` `number` `switch` `slider` `select` `radio` `file_picker` `dir_picker` `button` `progress` `markdown` `divider` `custom`。
+  - 节点名（与 `ui.show` 的节点同名，推荐）：`Column` `Row` `Box` `Spacer` `Divider` `Card` `Section` `Text` `Markdown` `Image` `Badge` `ProgressBar` `TextField` `NumberField` `Switch` `Checkbox` `Slider` `Select` `RadioGroup` `FilePicker` `DirPicker` `Button`。
 - 注意：`file_picker` / `dir_picker` 渲染为**路径文本框 + 「浏览」按钮**：不点按钮就是纯文本输入（历史行为不变），点按钮才弹选择器。`file_picker` 的 `filter` 描述媒体（`image/*`、`png` 等）时走应用内媒体选择器，其余（`application/pdf`、`*/*` 等）走系统文件选择器；`multiple = true` 允许多选，回填值是**换行分隔**的路径列表。`dir_picker` 弹系统目录选择器，回填目录的绝对路径（无法还原为真实路径时保持原值）。
 
 ### 2.6 tags（受控词表）
@@ -245,7 +263,7 @@ return { message: "Hello, " + name };
 
 - `domain`（10 选 1）：`file`（文件）`media`（图片/视频/音频）`app`（应用管理）`system`（系统设置）`net`（网络请求）`text`（文本处理）`device`（设备控制：屏幕/传感器）`game`（游戏：画面识别/挂机/自动任务）`social`（社交通讯）`data`（结构化数据：表格/数据库）。
 - `action`（7 选 1）：`read` `convert` `batch` `clean` `monitor` `control` `create`。
-- `scene`（可选，3 选 1）：`work` `dev` `daily` `privacy` `gaming`。
+- `scene`（可选，5 选 1）：`work` `dev` `daily` `privacy` `gaming`。
 
 不合法分别报 `TAG_DOMAIN_INVALID` / `TAG_ACTION_INVALID` / `TAG_SCENE_INVALID`。`domain == "game"` 时必须提供 `compliance`，否则 `GAME_COMPLIANCE_MISSING`。
 
@@ -259,7 +277,7 @@ return { message: "Hello, " + name };
 
 - `compliance.risk` 约定为 `low|medium|high`（默认 `low`），`note` 写清风险；除 `game` 域强制外，校验器不检查取值，请如实填写。
 - `store.quota_mb` 控制卡片 `store` 文件 + 数据库的合计配额，超限写入报中文错误；`store.secret` 为保留标记，密钥 `secretGet/secretSet` 始终走 Keystore 加密。
-- `command` 模板中的 `{参数名}` 会被 `args` 替换，宿主只允许 `[A-Za-z0-9._\-/:@]` 字符，含空格/中文/管道等一律拒绝执行；缺参数会失败。命令优先经 Shizuku，其次 root（见 3.7）。
+- `command` 模板中的 `{参数名}` 会被 `args` 替换，宿主只允许 `[A-Za-z0-9._\-/:@]` 字符，含空格/中文/管道等一律拒绝执行；缺参数会失败。命令优先经 Shizuku，其次 root（见 3.8）。
 
 ### 2.8 triggers
 
@@ -270,6 +288,7 @@ return { message: "Hello, " + name };
 - `ai`：卡片暴露为 AI 工具 `khatkit__<name>`，模型可调用；未声明 `ai` 的卡片不在工具列表里，调用会被拒绝（`TRIGGER_DENIED`）。
 - `user`：卡片市场显示「运行」按钮。
 - 默认两者都有；空数组报 `TRIGGER_EMPTY`，未知值（如 `timer`）报 `TRIGGER_UNKNOWN`，重复值报 `TRIGGER_DUPLICATE`。
+- 触发来源同时决定运行期 UI 策略：`ai` / `user` 默认允许弹层，`schedule` / `on` / flow 默认 HEADLESS（`ui.*` 立即返回，不阻塞），见 3.5。
 - 设备能力过滤：`requires.bridges` 有缺失的卡片对 AI 不可见；`privilege: elevated` 还要求设备具备 `shizuku` / `root` / `accessibility` 之一。
 
 ### 2.9 events（事件触发）
@@ -294,9 +313,10 @@ return { message: "Hello, " + name };
 | `times` | string[] | schedule 专用，严格 `HH:mm`（`00:00`–`23:59`）。 |
 | `intervalMinutes` | int | schedule 专用，间隔分钟数，与 `times` 二选一。 |
 | `days` | int[] | schedule 专用，1=周一 … 7=周日；空 = 每天。 |
-| `package` | string | notification / app_launch 包名；空 = 不限制。 |
-| `titleContains` | string | notification 标题包含（忽略大小写）。 |
-| `textContains` / `text_contains` | string | notification 正文包含；clipboard 新文本包含（忽略大小写）。 |
+| `calendar` | string | schedule 专用，`any`（默认）/ `workday` / `weekend` / `holiday`，按中国节假日日历过滤；其他事件写非默认值报 `EVENT_CALENDAR_UNSUPPORTED`，取值非法报 `EVENT_CALENDAR_INVALID`。 |
+| `package` | string | notification / notification_click / notification_reply / app_launch / app_exit / app_install / app_uninstall 的包名；空 = 不限制（`notification_reply` / `app_exit` 必填）。 |
+| `titleContains` | string | notification / notification_click / notification_reply 的标题包含（忽略大小写）；兼容 `title_contains`。 |
+| `textContains` / `text_contains` | string | notification / notification_click / notification_reply 的正文包含；clipboard 新文本包含（忽略大小写）。 |
 | `state` | string | 各状态类事件的转换方向/目标状态。 |
 | `ssid` | string | wifi 热点名，空 = 任意；匹配忽略大小写。 |
 | `device` | string | bluetooth 设备名包含，空 = 任意；匹配忽略大小写。 |
@@ -309,7 +329,7 @@ return { message: "Hello, " + name };
 
 | type | 必填/校验 | 运行时匹配 | `args.event` 字段 |
 |---|---|---|---|
-| `schedule` | 需要 `times` 或 `intervalMinutes`（≥1），否则 `EVENT_SCHEDULE_EMPTY`；`intervalMinutes` 不能为负；`times` 格式错 `EVENT_TIME_INVALID`；`days` 越界 `EVENT_DAY_INVALID` | 前台服务每 60 秒 tick；命中本地时间 `HH:mm`（同分钟去重，跨天可重触发）或达到间隔；`days` 限定星期 | `type`, `time`（如 `"08:00"`；间隔模式为当前时间） |
+| `schedule` | 需要 `times` 或 `intervalMinutes`（≥1），否则 `EVENT_SCHEDULE_EMPTY`；`intervalMinutes` 不能为负；`times` 格式错 `EVENT_TIME_INVALID`；`days` 越界 `EVENT_DAY_INVALID`；`calendar` 取值错 `EVENT_CALENDAR_INVALID` | `times` 模式由**精确闹钟**（`TriggerExactAlarmScheduler`）在到点时唤醒服务，每 60 秒 tick 只作兜底（无闹钟权限 / `intervalMinutes` 模式）；命中本地时间 `HH:mm`（同分钟去重，跨天可重触发）或达到间隔；`days` 限定星期，`calendar` 按工作日/休息日/法定假日过滤 | `type`, `time`（如 `"08:00"`；间隔模式为当前时间） |
 | `notification` | `package` / `titleContains` / `textContains` 不能全空，否则 `EVENT_NOTIFICATION_EMPTY` | 通知监听服务收到通知；包名精确匹配，标题/正文包含、忽略大小写 | `type`, `package`, `title`, `text` |
 | `app_launch` | 无（`package` 可空 = 任意应用） | 无障碍服务每秒轮询前台包名变化；包名精确匹配 | `type`, `package` |
 | `charging` | `state` 必须是 `connected` / `disconnected`，否则 `EVENT_CHARGING_STATE_INVALID` | 插拔充电器广播 | `type`, `state` |
@@ -369,7 +389,8 @@ end
   `net.get` / `net.post` / `net.put` / `net.delete` / `net.multipart` / `net.streamText` / `net.toFile` / `net.head`、
   `fs.read` / `fs.write` / `fs.exists` / `fs.stat` / `fs.list` / `fs.copy` / `fs.move` / `fs.mkdir` / `fs.delete` /
   `fs.zip` / `fs.unzip` / `fs.readBase64` / `fs.saveBase64` / `fs.openDir`、
-  `ai.chat` / `ai.complete` / `system.launchApp` / `mediaPicker.pickMedia`。
+  `ai.chat` / `ai.complete` / `system.launchApp` / `mediaPicker.pickMedia` /
+  `browser.open` / `browser.snapshot` / `browser.act` / `browser.close`。
 - value 非法报 `PERMISSION_VALUE_INVALID`；key 所属 bridge 没写进 `requires.bridges` 报 `PERMISSION_UNDECLARED_METHOD`。
 - **默认值**：没声明的方法按各 bridge 的默认策略走——`ai.chat` / `ai.complete` / `fs.delete` / `system.launchApp`
   默认 `ask`（每次调用要用户点允许，类别见 [script-api-reference.md](script-api-reference.md)），其余默认直接放行。
@@ -381,6 +402,201 @@ end
   出网仍以 `network.allow` 的域白名单为准，`permissions` 只管审批方式。
 - `fsRead` / `fsWrite` 是**前缀白名单**，`fs` 的每个路径都会做规范化（含符号链接）后校验，越界返回中文错误；
   访问共享存储还需要宿主已授予「所有文件访问」。
+
+---
+
+### 2.11 多语言文案
+
+卡片不再受宿主已有翻译语言列表限制：任何 Android 能表达的 BCP 47 语言标签都可使用，
+例如 `zh-CN`、`zh-Hant-TW`、`pt-BR`、`sr-Latn-RS`、`ar`。**支持语言不等于自动翻译**：
+作者提供翻译，宿主按 Android 当前应用的语言偏好选择。普通字符串和没有 `i18n` 的旧卡片保持原样。
+
+```json
+{
+  "name": "daily_note",
+  "description": "A private scratchpad",
+  "default_locale": "en",
+  "i18n": {
+    "en": {
+      "name": "Daily note",
+      "description": "A private scratchpad",
+      "note_label": "Note",
+      "save": "Save",
+      "saved": "Saved {count} characters"
+    },
+    "zh": {
+      "name": "随手记",
+      "description": "保存在本机的便笺",
+      "note_label": "便笺",
+      "save": "保存",
+      "saved": "已保存 {count} 个字符"
+    }
+  }
+}
+```
+
+- `name` 是不可翻译的稳定 ID（工具名、缓存目录和权限都靠它）；`i18n.*.name` 是面向用户的名称。
+- `i18n.*.description` 翻译介绍；未提供时保留顶层 `description`。
+- 每个文案键单独回退：依次检查用户的每种偏好语言，其精确标签 → 语言+脚本 → 语言+地区 → 基础语言，
+  再检查 `default_locale` 的同样回退链，最后 `en`。不随意选另一种文字体系；仍无翻译则返回原文或文案键。
+  标签忽略大小写，并兼容 `_` 分隔写法。
+- JSON Schema 的介绍/标题和 `ui` 参数配置里的文案可写成 `@string/note_label`；
+  `ui.show` / `ui.screen` / `ui.form` 的节点文案、弹层标题、操作标签也支持相同引用。
+  ID、工具名、`Button.action`、枚举值等程序标识应保持固定，不要写成翻译引用。
+- 语言码本身会被校验：非法 BCP 47 报 `LOCALE_INVALID`，忽略大小写/下划线后重复报 `LOCALE_DUPLICATE`。
+- 脚本可在 Lua / JS 中使用始终注入的 `i18n`，不需要额外权限或写入 `requires.bridges`。
+
+```lua
+local label = i18n.text("saved", { count = 12 })
+local language = i18n.locale() -- 当前应用首选语言标签
+ui.show(ui.Column {
+  ui.Text { text = label },
+  ui.Button { label = "@string/save", action = "save" }
+})
+```
+
+```js
+const label = i18n.text("saved", { count: 12 });
+ui.show({ __ui: "Text", props: { text: label }, children: [] });
+```
+
+`{key}` 是简单命名占位符，不是 ICU MessageFormat；需要复数、性别或复杂日期格式时由脚本按语言处理。
+语言切换会重新加载欢迎页小组件；已打开的普通弹层使用它所属运行的语言快照。
+Hub 索引的 `display_name`、`summary` 等市场元数据继续使用索引已有的多语言字段，发布时也要同步这些翻译；
+manifest 的 `i18n` 不会修改远端索引。
+
+### 2.12 聊天页小组件（widget）开发规范
+
+**只有已安装且声明 `widget` 的卡片才参与**；不自动下载市场卡片，也不把普通 `entry` 当自启动任务。
+小组件是**前台欢迎页里的一张内联卡片**，不是 Android 桌面 Widget、不后台常驻、不轮询。
+
+#### 声明与校验
+
+```json
+"widget": {
+  "entry": { "lua": "widget.lua" },
+  "autostart": true,
+  "title": "@string/name",
+  "bridges": ["ui", "store"]
+}
+```
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `entry` | object | 必填 | 独立入口，`lua` / `js` 必须与卡片 `engine` 匹配（`auto` 仍 JS 优先，再回退 Lua）。路径必须在卡片目录内，且不能等于普通入口。 |
+| `autostart` | boolean | `true` | 用户还没手动设置过的初始开关；设置过一次后存 `chat_widget.<卡片名>`，重启/更新保留，卸载清除。 |
+| `title` | string | 卡片本地化名称 | 卡片标题行文案，支持 `@string/key`。 |
+| `bridges` | string[] | 继承 `requires.bridges` | 只能收紧为父清单的**子集**且必须含 `ui`；用到的最小能力集里的原生依赖才会被加载。 |
+
+校验码（静态校验器 + 运行前各判一次，任一命中直接失败）：
+
+| 码 | 触发条件 |
+|---|---|
+| `WIDGET_ENGINE` | `engine: command` 卡片声明了 `widget`；或运行时 `requires.bridges` 里没有 `ui`。 |
+| `WIDGET_UI` | `requires.bridges` 没声明 `ui`。 |
+| `WIDGET_BRIDGES` | `widget.bridges` 不含 `ui`，或不是 `requires.bridges` 的子集。 |
+| `WIDGET_ENTRY` | 没有入口，或入口语言与 `engine` 不匹配（`lua` 卡片只给 `js` 等）。 |
+| `WIDGET_PATH` | 入口路径是绝对路径、含 `\`、含 `..` / `.` / 空段，或解析后跑出卡片目录。 |
+| `WIDGET_MAIN_ENTRY` | 入口与普通入口（`entry.lua` / `entry.js`）指向同一个文件。 |
+| `WIDGET_SCRIPT_MISSING` | 清单里写了入口，但打包里没有这个文件。 |
+| `WIDGET_UNAVAILABLE` | 运行期发现卡片没有 `widget` 声明。 |
+
+#### 脚本入口契约
+
+- **独立入口、独立运行**：每次刷新/点按钮都是一次完整运行，走与普通卡片相同的审批、方法权限、域名白名单、文件授权、并发闸门与计量。`triggers` 里不需要写 `widget`，也不需要 `ai` / `user`。
+- **参数**：`args.widget = { action, values, locale }`；`args.__khatkit_trigger == "聊天小组件"`。首次加载与刷新时 `action == ""`、`values == {}`；`locale` 是当前首选语言标签（同时驱动 `i18n` 与 `@string/key` 解析）。
+- **返回值**：普通 map，可带 `error` 字段（非空字符串会被宿主当作失败展示）；**内容只能靠 `ui.show`**，不调就是 `WIDGET_EMPTY`。
+- **预算**：30 秒硬预算（含排队与审批等待），到点 `WIDGET_TIMEOUT`。所以小组件入口只做「读缓存 + 画内容」，不要在里面跑长任务、下载大依赖或发模型请求。
+
+```lua
+-- widget.lua
+local Column, Text, TextField, Button = ui.Column, ui.Text, ui.TextField, ui.Button
+local event = args.widget or {}
+
+if event.action == "save" then
+  local note = tostring((event.values or {}).note or "")
+  store.kvSet("note", note)          -- 写入只放在明确的按钮分支
+end
+
+ui.show(Column {
+  spacing = 8,
+  Text { text = i18n.text("note_title"), style = "subtitle" },
+  TextField {
+    id = "note", label = "@string/note_label",
+    value = store.kvGet("note", ""), multiline = true,
+  },
+  Button { label = "@string/save", action = "save", tone = "primary" },
+})
+return { ok = true }
+```
+
+#### 运行期 UI 限制（硬限制，不是建议）
+
+| 能力 | 小组件入口 |
+|---|---|
+| `ui.show(node, options)` | **唯一可用**的 UI 出口；多次调用以最后一次为准。 |
+| `ui.form` / `ui.screen` / `ui.sheet` / `ui.webSheet` / `ui.confirm` | 抛 `WIDGET_MODAL_UNSUPPORTED`——小组件不得抢焦点弹宿主弹层。 |
+| `FilePicker` / `DirPicker` 字段 | 抛 `WIDGET_PICKER_UNSUPPORTED`——要选文件请走普通入口。 |
+| `ui.progress` | no-op（进度只在运行看板上体现）。 |
+| `ui.automationStatus` / `ui.isCancelled` | 照常可用；离开页面/关开关时 `isCancelled()` 变 true。 |
+| 节点数 | 根节点整棵树 **≤ 64 个节点**，超出 `WIDGET_TOO_LARGE`。 |
+| 根节点为 `Card` | 宿主把根 `Card` 降级成 `Column`（外层边框/标题由宿主负责，卡片里再套一层就显得重复）。 |
+| `options`（`title` / `height` / `fullscreen` / `hide_topbar` / `dismissable` 等） | 全部无效——小组件不是弹层，高度只由你给出的节点树决定（不设上限、卡内不滚动）。 |
+
+#### 交互回流
+
+点 `Button` 后宿主：清空错误 → 按 `id` 收集字段值 → 校验 `required` / 范围 / 枚举；
+校验通过就把这一轮的 `action` 与 `values` 作为 `args.widget.action` / `args.widget.values`
+**重跑同一个小组件入口**，内容返回后原地替换。等待新内容期间旧内容以 `readOnly = true` 渲染，
+避免用户重复点。这意味着**状态要自己持久化**（`store.kvSet` / `store.sql`），
+不要指望宿主记住上一次运行的局部变量。
+
+#### 宿主生命周期与外观（脚本改不了）
+
+- 进入前台空聊天页且开关打开时执行一次；**结果缓存**在聊天页 ViewModel 内，重组、旋转、来回切页面都不重跑。
+- 点标题行刷新按钮 = 重跑同一入口（`action` 为空）；点隐藏按钮 = 关闭该卡片开关。
+- 发出消息、离开页面、进入后台 → 未完成的运行被取消（`pause()`）。
+- 卡片更新或应用语言变化 → 丢弃旧内容，下次进入重跑。
+
+**外观全部由宿主决定**（脚本只能提供节点树，改不了下面任何一条）：
+
+| 维度 | 规则 |
+|---|---|
+| 排列 | 多个小组件**按添加顺序**（= 安装顺序，不是名字字典序）从上到下排；更新卡片不会改变它原来的位置。 |
+| 圆角 | 一组小组件拼成**一张卡**：第一张只圆上边、最后一张只圆下边、中间四张角是小圆角，组内间距 `gap`；圆角数值取设置 → 界面 → 列表卡片样式（默认 20dp / 4dp / 2dp，Miuix 是 20dp / 0 / 0）。 |
+| 边框 | **没有边框**——贴合靠同色底 + 共享圆角，不给卡片描边。 |
+| 顶栏 | 24dp 图标 + 小组件标题（`widget.title`，缺省用 `i18n.name`）+ 一句说明（`i18n.description`，没有就只显示标题），右侧是这一张卡片自己的按钮（刷新 / 隐藏）。尺寸对齐 `KedgeOptionItem`（16dp 内边距、minHeight 56dp）。 |
+| 内容区 | 完整显示，**没有高度上限、卡内不再滚动**；长度 = 节点树高度，跟着整页一起滚。所以别塞几百行的表——`≤64` 节点的限制就是为此。 |
+| 状态 | 加载中显示宿主自带的加载指示器；失败显示「小组件暂时无法加载」+ 最多 3 行错误摘要；入口跑空（`WIDGET_EMPTY`）显示一行占位提示。 |
+
+- 一个都没开启时，欢迎页该位置换成一行「添加小组件」；「组件」标题右侧的编辑按钮始终存在，点开是开关列表。
+
+#### 错误与排错
+
+| 码 / 现象 | 含义与处理 |
+|---|---|
+| `WIDGET_EMPTY` | 脚本跑完没有调 `ui.show`。加一次 `ui.show`，注意别只在某个分支里调。 |
+| `WIDGET_TOO_LARGE` | 节点超 64。拆成更少的组件或只留关键信息。 |
+| `WIDGET_PICKER_UNSUPPORTED` | 用了选择器字段，换成 `TextField` 手输或改走普通入口。 |
+| `WIDGET_MODAL_UNSUPPORTED` | 调了弹层型 `ui.*`，改成 `ui.show` + 内联按钮。 |
+| `WIDGET_TIMEOUT` | 超 30 秒。检查是不是同步网络 / 大文件 / 模型调用。 |
+| `WIDGET_FAILED` | 其他异常的兜底码（拿不到具体错误信息时用它），同上先看运行日志。 |
+| `CARD_DENIED` / `CARD_ALREADY_RUNNING` / `DEPENDENCY_*` | 与普通运行同义：审批被拒、并发闸门、原生依赖失败。宿主只展示错误摘要，完整信息看运行日志。 |
+
+#### 开发清单
+
+1. `requires.bridges` 必须含 `ui`；只想用最小能力就用 `widget.bridges` 收紧，别把 `root` / `shizuku` 带进来。
+2. 入口单独一个 `widget.lua` / `widget.js`，不要复用 `main.lua`（校验直接报 `WIDGET_MAIN_ENTRY`）。
+3. 首屏只读：默认分支只读缓存 + `ui.show`；写入只放在明确的 `action` 分支。
+4. 根节点用 `Column`，不套 `Card`，不写卡片圆角/描边/装饰性大间距——外壳（圆角、边框、间距、顶栏）全由宿主决定。
+5. 内容完整展示：不要自己在卡片里再套滚动容器（`Scroll` / 固定高度列表），高度只由节点树决定。
+6. 文案走 `@string/key` 或 `i18n.text`（市场卡片的多语言要求），别硬编码中文。
+7. 图标/图片用卡片已授权目录内的本地路径或 `content://`。
+8. 自测：改完跑静态校验 `./gradlew :card-validator:run --args="<卡片目录>"`，
+   再进空聊天页看开关列表里有没有它、刷新一次是否出内容、点按钮是否按预期回流。
+
+> 完整可运行示例位于独立卡片工作区 `KhatKitCards/daily_note/`，包含普通入口、
+> 独立小组件入口与多语言字典；安装分发仍经 Hub，不随 APK 打包。
 
 ---
 
@@ -439,13 +655,19 @@ if (res && res.__error) return { error: "读取失败：" + res.__error };
 | `CARD_DENIED` | 用户在看板上拒绝了本次运行的授权。 |
 | `CARD_UNAVAILABLE` / `TRIGGER_DENIED` / `CARD_TOOL` | AI 调用时卡片不可下载 / 未声明 `ai` / 工具层异常。 |
 | `COMMAND_*` | command 卡片的命令缺失、宿主无执行能力、执行失败。 |
+| `CARD_ALREADY_RUNNING` | 用户手动入口：同一张卡片上一轮还没结束就再次「运行」。AI / 事件入口共用并发闸门，不返回这个码。 |
+| `DEPENDENCY_*` | `requires.dependencies` 原生依赖包失败：`DEPENDENCY_UNAVAILABLE`（未下载/无法解析）、`DEPENDENCY_SHA256_INVALID`、`DEPENDENCY_SIGNATURE_MISSING` / `DEPENDENCY_SIGNATURE_INVALID`、`DEPENDENCY_PUBKEY_INVALID` / `DEPENDENCY_PUBKEY_MISMATCH`、`DEPENDENCY_URL_INVALID`、`DEPENDENCY_HUB_UNCONFIGURED`、`DEPENDENCY_REVOKED`、`DEPENDENCY_VERSION_UNAVAILABLE`、`DEPENDENCY_DOWNLOAD_FAILED`。依赖失败时卡片直接失败，不会以「缺 bridge」形式继续。 |
 
 ### 3.4 超时、取消与状态
 
-- 卡片没有全局超时；长任务请把大文件交给 `download` bridge，循环任务每步轮询 `ui.isCancelled()`。
+- **存在单次运行的硬超时**（`RunDeadline`），但它是**协作式**的：只能在 bridge 调用前判定，不能抢占正在执行的 native 线程。
+  初始值来自运行入口（聊天页小组件固定 30 秒，AI / 用户 / 事件入口默认不限），脚本可用 `host.setTimeout(ms)` 自行改写（`ms=0` 取消限制）。
+  超时后任何 bridge 调用都返回 `{"__error":"卡片运行超时，已终止"}`。
+- 长任务请把大文件交给 `download` bridge，循环任务每步轮询 `ui.isCancelled()`；纯计算死循环不会被硬超时打断，只会在下一次 bridge 调用时报超时。
 - 取消是**协作式**的：悬浮看板点「停止」只设置标记（`AutomationBus.requestCancel()`），脚本不轮询就不会退出；宿主无法抢占正在执行的 native 线程。
-- `ui.form` / `ui.confirm` 阻塞等待用户操作，超时 300 秒；超时视为取消/拒绝（form 返回 `nil`/`null`，confirm 返回 `false`）。
-- `ui.form` / `ui.show` 传 `options.landscape=true` 时，弹层显示期间 Activity 方向为 `FULL_SENSOR`（可横屏），关闭/超时/取消后自动还原 `UNSPECIFIED`；`options.fullscreen` 让弹层占满屏幕，仍可下滑或返回键取消。
+- `ui.form` / `ui.confirm` 阻塞等待用户操作，等待上限 300 秒（运行期限更短时取运行期限）。**超时只代表没等到，不等于取消**：
+  脚本拿到 `nil` / `false` 继续跑，弹层留在屏幕上，用户之后提交时宿主按「原参数 + 用户值」续跑一次并把结果补发回会话（见 3.5）。
+- 弹层外观按次可控（`options`，字段见 4.2）：`orientation="landscape"|"portrait"|"auto"` 在弹层显示期间把 Activity 锁到对应方向（关闭/超时/取消后还原 `UNSPECIFIED`），`fullscreen=true` 占满屏幕，`hide_topbar` / `hide_bottombar` 隐藏顶/底栏，`dismissable=false` 锁死（点遮罩、返回键、下滑都关不掉，只能点弹层里的按钮）。
 - `download.status(id, waitSeconds)` 的等待、`shizuku.shell`（30 秒）、`root.shell`（30 秒）有各自超时。
 - 常用骨架：
 
@@ -458,17 +680,49 @@ for i = 1, 100 do
 end
 ```
 
-### 3.5 engine: auto 的选择
+### 3.5 运行期 UI 策略（INTERACTIVE / HEADLESS）与异步续跑
+
+卡片里的 `ui.*` 是**运行级能力**，开不开由宿主按「这次是谁在运行」决定，脚本不用为无人值守改代码。
+
+| 触发来源（`args.__khatkit_trigger`） | 默认 UI 策略 | 说明 |
+|---|---|---|
+| `AI`（`khatkit__<卡片名>`） | `INTERACTIVE` | 缺必填参数时宿主先弹 schema 表单补参 |
+| `用户`（市场 / 本机页点「运行」） | `INTERACTIVE` | 同上 |
+| `聊天小组件` | `INTERACTIVE`（运行期 `CardWidgetBridge`） | 只能用 `ui.show` 画节点树，不能弹宿主弹层 |
+| `定时任务` / `事件触发` / `flow` | `HEADLESS` | 无人值守，没有会话可回 |
+
+- **HEADLESS 语义**：`ui.form` / `ui.screen` / `ui.sheet` / `ui.webSheet` 立即返回 `nil`，`ui.confirm` 立即返回 `false`，`ui.show` / `ui.progress` / `ui.automationStatus` 是 no-op，`ui.isCancelled()` 恒为 `false`；宿主也不会在运行前弹「缺参 schema 表单」，脚本按缺参自己兜底。脚本按「用户没给值」降级跑完：不会挂在弹层上等 300 秒，也不会在后台留下弹层。抛错不是这里的语义——「无人值守拿不到用户输入」是正常结果，不该判整卡失败。
+- **AI 可以按次选择**：工具参数加 `"__khatkit_ui": "headless"` 表示「只要结果、不要弹层」，`"interactive"` 或不传则用上表默认。宿主会把该键从脚本参数里剥掉，脚本侧照旧从 `args.__khatkit_trigger` 判断来源。
+- **`args.__khatkit_trigger` 所有入口都注入**：`AI` / `用户` / `聊天小组件` / `定时任务` / `事件触发` / `flow`。脚本可据此分支，例如 AI 调用时静默、用户点开时才弹配置页：
+
+```lua
+if args.__khatkit_trigger == "用户" then
+  local v = ui.form("配置", ui.Column { ui.TextField { id = "kw", label = "关键词", required = true } })
+  if not v then return { cancelled = true } end
+  return run(v.kw)
+end
+return run(args.kw or "默认")
+```
+
+**等待超时 ≠ 用户取消**，阻塞型 `ui.*` 超过等待上限后：
+
+1. 脚本拿到 `nil` / `false` 继续跑，本次运行正常收尾；AI 的工具结果里会多一个 `ui_pending` 字段，提示「用户在操作，稍后结果会自动补发」，**不要**当成拒绝再调一次。
+2. 弹层留在屏幕上并标记为过期。用户之后提交时，宿主用「本次运行原参数 + 用户提交的值」重跑一次卡片：注入**回放 UI**（`ReplayUiBridge`）—— 脚本下一次同类阻塞调用（`ui.form` / `ui.screen` / `ui.sheet` / `ui.confirm`）直接拿到用户之前提交的值，不再弹层、也不再等待。续跑结果作为**新消息补发回原会话**并触发新一轮生成，AI 直接接着往下走；用户点关闭/取消则只补一条「本次交互取消」，不触发再生成。
+3. 续跑有效期 15 分钟，超时丢弃。只有 `AI` / `用户` 触发的运行会登记续跑上下文（无人值守没有会话可回）。
+
+**宿主不在场时立即降级**：Compose 宿主未挂载（后台、桌面、纯工具调用）时，阻塞型 `ui.*` 先等 1.5 秒挂载宽限，仍不在场就返回 `nil`，不会把脚本线程挂满 300 秒。
+
+### 3.6 engine: auto 的选择
 
 `auto` 同时声明 `entry.lua` 与 `entry.js` 时，**优先执行 JS**（`entry.js` 文件存在即选 JS）。发布卡片时建议写死 `lua` 或 `js`，避免行为随打包内容变化。
 
-### 3.6 共享库 require
+### 3.7 共享库 require
 
 - Lua：`local std = require("@khatkit/std")`，库源码被注册到 `package.preload`，`require` 时执行并返回其返回值。
 - JS：`const std = require("@khatkit/std")`，CommonJS 形态；模块只加载一次并缓存。
 - 只加载与当前引擎同语言的库；命中的内置层不联网，否则回源 Hub 并按需缓存到 `cacheDir/libs`。
 
-### 3.7 engine: command（无脚本卡片）
+### 3.8 engine: command（无脚本卡片）
 
 ```json
 {
@@ -488,7 +742,8 @@ end
 
 - 模板占位符为 `{参数名}`；每个值必须匹配 `^[A-Za-z0-9._\-/:@]+$`，否则直接拒绝（脚本无法拼命令、无法注入空格或管道）。
 - 执行顺序：Shizuku 可用走 Shizuku（命令按空白切分直接 exec，不经 shell 解析），否则 root；两者都不可用返回 `COMMAND_UNAVAILABLE`。
-- 成功返回 `{ "output": "[ok]/stdout" }`；失败返回 `COMMAND_FAILED`。
+- 返回 `{ "output": "..." }`：动作级 exec 的空输出是 `[ok]`，非空是 stdout；**退出码非 0 也算成功**，输出文本形如 `[exit N] ...`，脚本要自己判 `string.find(out, "^%[exit 0%]")` 或匹配 `[exit`。
+- 只有缺少执行能力（`COMMAND_UNAVAILABLE`）、`command` 为空（`COMMAND_MISSING`）或占位符参数非法/命令抛异常（`COMMAND_FAILED`）才是错误码。
 
 ---
 
@@ -505,8 +760,8 @@ end
 
 ### 4.1 tool（L0：文件 / 网络 / 媒体 / 压缩 / OCR）
 
-> **新卡片别再用这一节的接口**：文件类方法已废弃（改用 [`fs`](#44-store卡片隔离存储-l0)），
-> 网络类已废弃（改用 [`net`](#41-tooll0文件--网络--媒体--压缩--ocr) 同级的 `net` 一节，见 script-api-reference §3.1）。
+> **新卡片别再用这一节的接口**：文件类方法已废弃，改用独立的 `fs` bridge（见 [接口清单 §3.2](script-api-reference.md#32-fsl0)，
+> 本文 2.10 讲了它的路径白名单）；网络类已废弃，改用 `net`（见 [接口清单 §3.1](script-api-reference.md#31-netl0)，受 `network.allow` 约束，本文 2.4）。
 > 旧方法保持历史行为不变，所以与 `fs` 有两点差异：① `tool.*` 按传入绝对路径操作、只受「所有文件访问」约束，
 > `fs.*` 只允许卡片私有目录与 `permissions.fsRead/fsWrite` 声明的目录；② `tool.deletePath` **不**向用户确认，
 > `fs.delete` 每次都确认。这条不一致是有意保留的（不改已发布卡片的脚本行为）。
@@ -557,7 +812,7 @@ local saved = tool.saveBase64(img, "/sdcard/Download/copy.png")
 
 新 Lua 卡片使用受限 Compose DSL，构造器只生成节点数据，不执行任意 UI 代码。
 `local Column, TextField = ui.Column, ui.TextField` 按需取局部别名；
-子节点放表的数组部分，命名键作为属性。布局为 Column/Row/Box/Card/Section，
+子节点放表的数组部分，命名键作为属性。布局为 Column/Row/Box/Spacer/Divider/Card/Section，
 文本为 Text/Markdown/Image/Badge/ProgressBar，字段为 TextField/NumberField/Switch/
 Checkbox/Slider/Select/RadioGroup/FilePicker/DirPicker，动作使用 Button。
 完整字段、token 和 Modifier 白名单见 [接口清单 §9](script-api-reference.md#9-uiform-组件白名单)。
@@ -565,30 +820,263 @@ Checkbox/Slider/Select/RadioGroup/FilePicker/DirPicker，动作使用 Button。
 不提供响应式状态或 Lua 回调。
 
 字段初始值用 `value`，必填用 `required=true`，以 `id` 收集结果。
-`Text.style` 使用 title/subtitle/body/label/code；颜色用各组件支持的语义 `tone`，
-禁止 raw 颜色、字号、字体和卡片自选 theme。外观跟随宿主 M3/Miuix 及明暗模式。
+`Text.style` 使用 title/subtitle/body/label/code；颜色优先使用各组件支持的语义 `tone`
+或下文的主题色角色。局部 `color` / `size` 可按 §4.3 配置，不允许自选全局 theme 或字体。
+文字与中性背景应跟随宿主 M3/Miuix 及明暗模式，避免固定浅底与深色字混用。
 
 | 方法（签名） | 参数 | 返回 | 说明 |
 |---|---|---|---|
-| `form(title, root, options)` | title: string；root: 节点树；options: map 或 nil | map 或 nil | 阻塞表单；submit Button 提交，未声明则宿主追加提交栏。required 空值阻止提交；取消或 300 秒超时返回 nil。旧 items 数组已弃用，保留一个发布周期。 |
-| `screen(title, root, options)` | title: string；root: 节点树；options: map 或 nil | map 或 nil | 阻塞屏幕，Button 的 action 作为 event 返回，结构为 `{event, values}`；取消/超时 nil。 |
-| `sheet(title, actions, options)` | title: string；actions: map[]；options: map 或 nil | map 或 nil | 声明式操作弹层，阻塞等待。actions 每项声明 `event`（回传的事件名）、`label`、`icon`、`placement`，摆放位置见下方「Sheet 动作」。用户取消或超时返回 nil。 |
-| `confirm(title, message, danger)` | title/message: string；danger: boolean | boolean | 二次确认弹窗；danger 时按钮文案为危险样式。取消/超时返回 false。 |
+| `form(title, root, options)` | title: string；root: 节点树；options: map 或 nil | map 或 nil | 阻塞表单；submit Button 提交，未声明则宿主追加提交栏。required 空值阻止提交；取消返回 nil；超时也返回 nil 但弹层保留，用户之后提交会续跑（见 3.5）。旧 items 数组已弃用，保留一个发布周期。 |
+| `screen(title, root, options)` | title: string；root: 节点树；options: map 或 nil | map 或 nil | 阻塞屏幕，Button 的 action 作为 event 返回，结构为 `{event, values}`；取消或超时返回 nil（超时保留弹层，见 3.5）。 |
+| `sheet(title, actions, options)` | title: string；actions: map[]；options: map 或 nil | map 或 nil | 声明式操作弹层，阻塞等待。actions 每项声明 `event`（回传的事件名）、`label`、`icon`、`placement`，摆放位置见下方「Sheet 动作」。用户取消或超时返回 nil（超时保留弹层，见 3.5）。 |
+| `confirm(title, message, danger)` | title/message: string；danger: boolean | boolean | 二次确认弹窗；danger 时按钮文案为危险样式。取消或超时返回 false（超时保留弹层，见 3.5）。 |
 | `progress(ratio, label)` | ratio: 0.0–1.0；label: string | 无 | 显示顶部进度；label 会同步到自动化看板。 |
 | `show(root, options)` | root: 节点树；options: map 或 nil | 无 | 非阻塞结果展示；标题使用 options.title，尺寸选项同 form。旧 `{title,markdown}` 保持兼容。 |
 | `automationStatus(label, detail)` | label/detail: string | 无 | 发布当前自动化步骤到悬浮看板；detail 可空。连续重复 label 会去重。 |
 | `isCancelled()` | 无 | boolean | 用户在看板点过「停止」后返回 true；新一轮运行自动复位。 |
 
-弹层选项（`form` / `show` 的 `options`，Lua table / JS object）：
+无人值守（`HEADLESS`）运行时，上表所有阻塞方法立即返回 `nil` / `false`，`show` / `progress` / `automationStatus` 为 no-op；AI 也可用工具参数 `__khatkit_ui="headless"` 按次要求。完整规则见 3.5。
 
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `fullscreen` | boolean | 弹层占满屏幕宽高（无部分展开态），仍可下滑或返回键关闭。适合字段很多、需要横屏的大表单。 |
-| `landscape` | boolean | 弹层显示期间宿主把 Activity 方向切到 `FULL_SENSOR`，允许横屏；表单提交/取消后自动还原 `UNSPECIFIED`（不改变用户平时的旋转锁定）。 |
-| `height` | number | 弹层高度占屏幕比例 `0.1–1.0`（`fullscreen=true` 等价于 `height=1`）；不传沿用组件默认（最高约 0.9 屏）。 |
+聊天页小组件（`2.12`）比 HEADLESS 更严：**只有 `ui.show` 可用**，`form` / `screen` / `sheet` / `webSheet` / `confirm`
+直接抛 `WIDGET_MODAL_UNSUPPORTED`，`FilePicker` / `DirPicker` 抛 `WIDGET_PICKER_UNSUPPORTED`。
+
+#### 弹层外观选项（`form` / `screen` / `sheet` / `show` 的 `options`）
+
+Lua table / JS object 均可；键名接受下划线、驼峰、连字符三种写法
+（`hide_topbar` / `hideTopBar` / `hide-topbar` 等价），非法值忽略不报错。
+
+| 选项 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `fullscreen` | boolean | `false` | 强制全屏：铺满整个窗口（**含状态栏区域**，内容按系统栏 inset 内缩）、去掉圆角。仍可下滑/返回关闭（除非同时 `dismissable=false`）。 |
+| `height` | number | `0.9` | 弹层高度占屏幕比例 `0.1–1.0`，超范围自动钳位，`fullscreen=true` 时忽略。 |
+| `hide_topbar` | boolean | `false` | 隐藏顶栏（拖柄条 + 标题行都不画），内容直接顶到弹层上边缘。适合自带标题的界面或纯展示屏。 |
+| `hide_bottombar` | boolean | `false` | 隐藏底栏（右侧的提交/确认/关闭按钮行）。**锁定态下宿主会忽略它**（见下）。 |
+| `topbar` | string / boolean | 不设置 | 顶栏样式：`"large"`（或 `large_topbar = true`）= 换成 Kedge 的 `KedgeLargeTopAppBar`，大标题会随内容滚动折叠；`"hidden"` 等价 `hide_topbar=true`。 |
+| `load_more` | string / boolean | 不设置 | 内容滚到距底部 64dp 内时回传一次该 event（`true` 等于 `"load_more"`），用于「滚动加载」；新内容到达后守卫自动复位。 |
+| `top_actions` | table | 不设置 | 大顶栏右侧的图标动作：`{ { id/event, label, icon? }, … }`（最多 3 个），点击回传 event，和 `nav.items` 同一套写法。 |
+| `nav` | table | 不设置 | 底部导航栏：`{ selected = "<当前项 id>", items = { { id/event, label, icon? }, … } }`，2–5 项。宿主用 Kedge 的 `KedgeNavigationBar` 绘制，固定在弹层底部、**不随内容滚动**，点击回传该项的 event；出现时操作底栏自动让位。少于 2 项、多于 5 项或缺 event/label 的条目会被丢弃；`icon` 不在图标名单里时退回圆点图标。 |
+| `dismissable` | boolean | `true` | `false` = 锁定：点遮罩、返回键、下滑都关不掉，只能点弹层里的按钮。别名：`dismissible` / `closable`；也可反向写 `locked=true`。 |
+| `orientation` | string | 不设置 | 弹层期间锁方向：`"landscape"`（横屏）/ `"portrait"`（竖屏）/ `"auto"`（跟随传感器，允许四个方向）。也接受 `"横屏"` / `"竖屏"` / `"sensor"`。关闭弹层后还原用户原本的旋转设置。 |
+| `landscape` | boolean | `false` | **旧写法**，等价 `orientation="landscape"`；显式 `orientation` 优先。 |
+| `title` | string | 无 | 仅 `ui.show` 认，弹层标题。 |
+| `desktop` / `user_agent` | boolean / string | — | 仅 `web.openLogin` 认，见 §4.9。 |
+
+**锁定态（`dismissable=false`）的三条行为约定**，避免把用户关在里面：
+
+1. 遮罩点击、返回键、下拉手势全部禁用；
+2. 底栏**强制保留**并保证有一个可点按钮 —— 有 `confirmText`（如 `ui.form` 的提交）就是提交，
+   没有就用「关闭」直接返回；
+3. 所以 `hide_bottombar=true` + `dismissable=false` 组合时，`hide_bottombar` 被忽略。
+
+想完全自定义关闭时机（例如「必须填完才能走」），正确姿势是**不隐藏底栏**、
+让 `ui.form` 的 `required=true` 拦住提交，而不是把底栏和关闭手势一起关掉。
+
+> 实现位置：三条渲染路径 —— 默认 `PrimaryBottomSheet`（风格跟随宿主）、
+> 顶栏动作版 `TopBarSheet`、以及新增的完全受控弹层
+> `KhatKitBottomSheet`（`khatkit-ui`，从 `PrimaryBottomSheet` 的视觉拆出来的独立组件）。
+> 只要用了 `fullscreen` / `height` / `hide_topbar` / `hide_bottombar` / `dismissable=false`
+> 之一，就走独立的 `KhatKitBottomSheet`，两个 UI 风格行为一致；
+> 只改 `orientation` 不影响外观，任何路径都生效。
+
+各选项单独使用的效果：
+
+```lua
+local Column, Text, Markdown, TextField, Switch, Button =
+  ui.Column, ui.Text, ui.Markdown, ui.TextField, ui.Switch, ui.Button
+
+-- 1) 隐藏底栏：底部不留按钮行，内容自己排按钮（用 ui.screen + Button 回传 event）
+local r = ui.screen("详情", Column {
+  Text { text = "长文说明…", style = "body" },
+  Button { label = "知道了", action = "ok", tone = "primary" },
+}, { hide_bottombar = true, height = 0.7 })
+if not r then return { cancelled = true } end
+return { event = r.event }
+
+-- 2) 隐藏顶栏：没有拖柄条与标题，纯内容屏
+ui.show(Column { Markdown { text = "运行完成" } }, { hide_topbar = true, height = 0.5 })
+
+-- 3) 全屏 + Kedge 大标题栏 + 底部导航：顶栏、底栏、导航条全交给宿主（Kedge 组件）
+local r = ui.screen("看板", Column {
+  Button { label = "刷新", action = "refresh" },
+}, {
+  fullscreen = true,       -- 铺满窗口（含状态栏区域；内容自动避开系统栏）
+  topbar = "large",        -- KedgeLargeTopAppBar：大标题随滚动折叠
+  top_actions = { { id = "refresh", label = "刷新", icon = "refresh" } },
+  hide_bottombar = true,
+  nav = {
+    selected = "today",
+    items = {
+      { id = "today", label = "今日", icon = "calendar_month" },
+      { id = "history", label = "历史", icon = "history" },
+    },
+  },
+})
+if not r then return { cancelled = true } end
+return { event = r.event }
+
+-- 4) 强制全屏 + 横屏：表格/多字段大表单
+local v = ui.form("批量任务", Column {
+  TextField { id = "pattern", label = "匹配规则", required = true },
+  Switch { id = "dry", label = "只演练", value = true }
+}, { fullscreen = true, orientation = "landscape" })
+
+-- 5) 锁竖屏打开
+ui.form("竖屏表单", Column { TextField { id = "q", label = "关键字" } },
+  { orientation = "portrait" })
+
+-- 6) 必须点按钮才能关闭（返回键/下滑/点遮罩都无效）
+local r = ui.sheet("请确认升级", {
+  { event = "upgrade", label = "立即升级" },
+}, { dismissable = false })
+-- 用户只能点「立即升级」；返回键与下滑都被吞掉
+if not r then return { skipped = true } end
+return { picked = r.event }
+```
+
+> 锁定态弹层**必须**在脚本侧有超时兜底：用户可能一直不点，而宿主不会替你关。
+> `ui.*` 的等待上限（默认 300 秒）到点返回 `nil` 并保留弹层（见 3.5），
+> 所以锁定弹层里不要写死循环，也不要假设一定有返回值。
 
 新节点树按 Column/Row/Box 的嵌套关系排版；Row 子节点需要分配宽度时使用 `ui.Modifier.weight(n)`。
 旧 items 兼容表单在宽度 ≥ 600dp 时仍自动排成两列。
+
+#### 怎么写一个界面：节点树完整速查
+
+**一句话模型**：`ui.Column` / `ui.Text` / `ui.TextField` 这些构造器只**生成数据**，不执行 UI 代码。
+每个构造器产出一个节点 `{__ui = "类型", props = {属性...}, children = {子节点...}}`，
+子节点写在表的**数组部分**，属性写成**命名键**。每次 screen / form / show 只能给**一个**根节点，
+根一般是容器（Column / Row / Box / Card / Section）；根直接用 `Text` 这类叶子也允许，
+宿主会把它放进弹层的内容列里。
+
+```lua
+local Column, Row, Text, TextField, Switch = ui.Column, ui.Row, ui.Text, ui.TextField, ui.Switch
+
+local root = Column {            -- 子节点放数组部分
+  Text { text = "账号设置", style = "title" },   -- 属性放命名键
+  Row {
+    TextField { id = "user", label = "用户名", required = true },
+    TextField { id = "pass", label = "密码" },
+  },
+  Switch { id = "remember", label = "记住我", value = true },
+}
+```
+
+**容器与展示组件**
+
+| 组件 | 作用 | 可写属性 |
+|---|---|---|
+| `Column` | 纵向排列 | `spacing`(dp 数字) / `hAlign`(`start`\|`center`\|`end`) / `scrollable` / `modifier` |
+| `Row` | 横向排列 | `spacing` / `vAlign`(`start`\|`center`\|`end`\|`space_between`) / `modifier` |
+| `Box` | 叠放 | `hAlign` / `vAlign` / `modifier` |
+| `Card` | 卡片容器（宿主底色 + 内边距） | `title` / `modifier` |
+| `Section` | 带小标题的分组 | `title` / `modifier` |
+| `Spacer` | 空白 | `width` / `height`（dp 数字） |
+| `Divider` | 分割线 | — |
+| `Text` | 纯文本 | `text` / `style`(`title`\|`subtitle`\|`body`\|`label`\|`code`) / `tone`(`default`\|`muted`\|`primary`\|`error`) / `bold` / `color`(`#RRGGBB` 或 `#AARRGGBB`) / `size`(sp，6–64) / `weight`(`normal`\|`medium`\|`semibold`\|`bold`) / `modifier` |
+| `Markdown` | 富文本（复用宿主渲染） | `text` / `modifier` |
+| `Image` | 图片 | `src`（本卡可读的本地绝对路径、可读 `content://`，或 `https://` 远程图；远程图域名必须在 `network.allow` 里） / `contentDescription` / `modifier` |
+| `Icon` | 单色图标 | `name`(必填，见下表) / `tone`(`default`\|`muted`\|`primary`\|`error`\|`success`\|`warning`) / `color` / `size`(dp，6–64，缺省 20) / `contentDescription` / `modifier` |
+| `Badge` | 小标签 | `text` / `tone`(`default`\|`primary`\|`success`\|`warning`\|`error`) / `color`(文字色，`#RRGGBB`) |
+| `ProgressBar` | 只读进度条 | `ratio`(0–1) / `label` |
+| `Button` | 可点按钮 | `label` / `action`(回传的 event 名) / `tone`(`primary`\|`default`\|`danger`) / `disabled` / `icon`(前置图标名) / `color`(文字色) / `modifier`(支持 `weight`，可直接均分宽度) |
+| `IconButton` | 只有图标的按钮（顶栏刷新 / 外链之类） | `icon`(必填) / `action`(必填，回传的 event 名) / `tone`(`default`\|`muted`\|`primary`\|`error`\|`success`\|`warning`) / `disabled` / `contentDescription`(无障碍描述，缺省用 action) / `modifier` |
+
+**字段组件**（值只按 `id` 收集回脚本）
+
+| 组件 | 取值类型 | 专属属性 | 公共属性 |
+|---|---|---|---|
+| `TextField` | string | `placeholder` / `multiline` / `lines` | 全部字段共有：`id`(必填且唯一) / `label` / `hint`(下方小字) / `required` / `value`(初始值) |
+| `NumberField` | number 或原样字符串 | `min` / `max` / `step` | 同上 |
+| `Switch` | boolean | — | 同上 |
+| `Checkbox` | boolean | — | 同上 |
+| `Slider` | number | `min` / `max` / `step` | 同上 |
+| `Select` | string | `options`(字符串数组) | 同上 |
+| `RadioGroup` | string | `options`(字符串数组) | 同上 |
+| `FilePicker` | string（多选时换行分隔） | `filter`(`image`\|`video`\|`audio`\|`document`\|`any`) / `multiple` | 同上 |
+| `DirPicker` | string | — | 同上 |
+
+取值规则（`UiNode.initialValues` / `UiNode.errors` 的实际行为）：
+
+- 初始值用 `value`；`Switch` / `Checkbox` 缺省 `false`，`Slider` 缺省取 `min`，其余缺省空串；
+- `required = true` 且值为空（空串 / 空表 / null）时阻止提交，并把错误显示在该字段下方；
+- `NumberField` / `Slider` 会校验 `min` / `max` / `step`（`step` 按 `min` 起算，误差 1e-6）；
+- `Select` / `RadioGroup` 的值必须在 `options` 里，否则报错；
+- `FilePicker` 支持多选：`multiple = true` 时值是多行字符串。
+
+**图标名**（`Icon.name` / `Button.icon`，取自 Material 图标，运行时会校验；名单之外直接报 `ui.Icon.name: unknown icon`）
+
+```
+account_circle add analytics arrow_back arrow_downward arrow_forward arrow_upward bolt
+block calendar_month cancel celebration check check_circle close delete edit email error
+event expand_more favorite favorite_border history hourglass_top info insights link lock
+more_vert notifications open_in_new paid people person psychology refresh remove
+rocket_launch schedule search settings share star star_border sync thumb_down thumb_up
+timer trending_down trending_up verified visibility warning
+```
+
+`color` 接受 6 位或 8 位十六进制，或以下主题角色：
+`surface`、`on_surface`、`on_surface_variant`、`surface_container`、
+`surface_container_high`、`surface_container_highest`、`outline_variant`、
+`primary`、`on_primary`、`error`、`error_container`、`on_error_container`。
+主题角色由宿主当前 M3/Miuix 配色解析，随明暗模式变化；`Modifier.background` 也接受同一名单。
+`tone` 仍在，两个都给时 `color` 优先。自定义颜色/字号只影响这一处文本，不改主题。
+
+全屏或自绘大弹层的根 `Column` 会按直接子节点分成原生懒加载列表项，只组合可见区域附近的节点。
+历史、每日记录应各自作为根 `Column` 的直接子节点；不要把整页记录再包进一个大 `Card` 或内层 `Column`。
+该优化不改变脚本侧 512 节点上限，也不减少网络返回量：长历史仍应分批提交。
+普通表单字段值由宿主持有，滚出可见区域不会清空输入；小组件保持原有完整展示方式。
+
+**Modifier**（`modifier = ui.Modifier.xxx()`，可链式）
+
+| 操作 | 说明 |
+|---|---|
+| `fillMaxSize()` / `fillMaxWidth()` / `fillMaxHeight()` | 撑满 |
+| `width(n)` / `height(n)` / `size(n)` | 固定尺寸（dp，有限非负数字） |
+| `padding(n)` / `padding(h, v)` / `padding(start, top, end, bottom)` | 内边距 |
+| `weight(n)` | 仅用于 `Row` / `Column` 的**直接子项**，n 为正数；Row 里按比例分宽 |
+| `clip("rounded"[, r])` / `clip("circle")` | 圆角裁剪，`r` 缺省 12dp |
+| `background("#RRGGBB")` / `background("#AARRGGBB")` | 给节点铺底色；**先 `clip` 再 `background`** 才有圆角 |
+| `background("surface_container_high")` 等主题角色 | 随宿主主题变化的底色；搭配 `color="on_surface"` / `"on_surface_variant"` |
+| `visible(false)` | 不渲染（仍占节点槽位） |
+| `scrollable()` | 让该子树自己滚动（有界高，避免和弹层滚动打架） |
+
+**三种交互形态**（同一个节点树，换入口就行）
+
+```lua
+-- A) 表单：拿回所有字段值；没有 submit Button 时宿主补提交底栏
+local values = ui.form("登录", Column {
+  TextField { id = "user", label = "用户名", required = true },
+  TextField { id = "pass", label = "密码", required = true },
+})
+if not values then return { cancelled = true } end
+return { user = values.user }
+
+-- B) 屏幕：按钮的 action 作为事件回传，同时带回全部字段值
+local r = ui.screen("选择操作", Column {
+  TextField { id = "note", label = "备注" },
+  Row {
+    Button { label = "保存", action = "save", tone = "primary", modifier = ui.Modifier.weight(1) },
+    Button { label = "丢弃", action = "discard", tone = "danger", modifier = ui.Modifier.weight(1) },
+  },
+})
+if not r then return { cancelled = true } end
+if r.event == "save" then return { note = r.values.note } end
+return { discarded = true }
+
+-- C) 展示：不阻塞，不返回值
+ui.show(Column { Markdown { text = "**完成**：处理 12 个文件" } }, { title = "结果", height = 0.6 })
+```
+
+**校验红线**（Lua 侧与 Kotlin 侧各校验一次，违反直接报错，不会静默降级）：
+
+- 未知组件名、未知属性名、属性类型不符 → 报错（拼错的属性不会「当作没写」）；
+- 字段 `id` 缺失或重复 → 报错（`__ui` 与 `props` / `children` 结构也校验）；
+- 节点树超过 **32 层**或 **512 个节点** → 报错，拆成多个 `ui.show` / 多个弹层；
+- 局部颜色和字号按上述白名单使用；字体和全局 theme 不可写；
+- `Image.src` 只能是本卡片文件权限内的本地路径或可读 `content://` URI。
+
+**排版建议**：弹层宽度默认铺满、内容高度可滚动，所以别写死固定高的大表格；
+`Row` 里靠 `Modifier.weight(n)` 分宽（如上例两个按钮各占 1/2）。
 
 兼容 Sheet 动作（`ui.sheet` 与 `web.openLogin` 的 actions，共用一套字段；新普通屏幕优先用 `ui.screen`）：
 
@@ -601,7 +1089,10 @@ Checkbox/Slider/Select/RadioGroup/FilePicker/DirPicker，动作使用 Button。
 | `placement` | string | `content`（默认，内容区文字按钮）/ `top`（BottomSheet 拖柄所在顶行右侧的图标按钮）/ `overflow`（顶行右侧溢出菜单）。 |
 
 - 有 `placement="top"` 或 `overflow` 的动作时，弹层改为「拖柄顶行 + 标题」布局：图标按钮与溢出菜单入口在拖柄所在顶行右侧，底部只留关闭按钮；两种动作都不会再出现在内容区。
-- 常用图标名：`key` / `vpn_key`（钥匙）、`save`、`info`、`delete`、`refresh`、`more`、`close`。`icon` 认不出来时该动作退回内容区文字按钮，不会出现空按钮。
+- 常用图标名：`key` / `vpn_key`（钥匙）、`save`、`info`、`delete`、`refresh`、`more`、`close`。
+  `placement="top"` 但**没写 `icon`** 时该动作降级为内容区文字按钮；
+  写了 `icon` 但**宿主认不出这个图标名**时，整条动作会被丢弃（既不显示图标按钮，也不会退回内容区），
+  所以自定义图标名之前先按上面的常用名试，别依赖兜底。
 - 表单弹层（`ui.form`）没有顶栏动作，只有 `ui.sheet` / `web.openLogin` 支持。
 
 ```lua
@@ -692,7 +1183,7 @@ NodeTree 模型位于 khatkit 运行时模块以避免 khatkit→khatkit-ui 循�
 
 任务跑在 App 级下载服务里，脚本退出后继续；所有任务都出现在全局「下载中心」。
 
-任务 Map 字段：`url`（必填）、`name`（可选，缺省从 URL 推断）、`headers`（可选 map）。保存目录为应用内部 `khatkit/downloads/files/`，完成后 `file` 字段给出绝对路径。
+任务 Map 字段：`url`（必填）、`name`（可选，缺省从 URL 推断）、`headers`（可选 map）、`threads`（可选，分片线程数 1–32，默认 1）。保存目录为应用内部 `khatkit/downloads/files/`，完成后 `file` 字段给出绝对路径。
 
 | 方法（签名） | 脚本可用 | 返回 | 说明 |
 |---|---|---|---|
@@ -805,7 +1296,10 @@ local token = store.secretGet("token")
 
 ### 4.5 shizuku（L1，动作级 + shell）
 
-需要 Shizuku 服务在线且已授权；卡片声明 `requires.bridges: ["shizuku"]`，`privilege: "elevated"`。返回值均为文本：成功输出 stdout，空输出为 `[ok]`，失败为 `[exit N] ...` 或 `[error] ...`。
+需要 Shizuku 服务在线且已授权；卡片声明 `requires.bridges: ["shizuku"]`，`privilege: "elevated"`。返回值均为文本，但两类方法不一致：
+
+- **动作级**（`setAppEnabled` / `settingsPut` / `pm`）：成功返回 stdout，空输出为 `[ok]`，退出码非 0 为 `[exit N] ...`，异常为 `[error] ...`。
+- **`shell`**：**永远**返回 `[exit N]\n` 加合并后的 stdout/stderr，即使成功也不会给 `[ok]`；命令非 0 退出不会抛异常。
 
 | 方法（签名） | 说明 |
 |---|---|
@@ -941,9 +1435,9 @@ WebView 登录弹层 + 按站点隔离的站点 Cookie。**Cookie 只加密保�
 
 | 方法（签名） | 参数 | 返回 | 说明 |
 |---|---|---|---|
-| `openLogin(url, title, actions, options)` | url: string（http/https）；title: string；actions: map[]；options: map 或 nil | map | 弹出网页登录弹层并阻塞等待。actions 字段见上方「Sheet 动作」，options 见下方「网页渲染选项」。返回 `{event, values}`；`event` 为 `save_cookie` / `cookie_status` / `clear_cookie`，`values.currentUrl` 是点击时的当前页面地址（登录后常已跳到别的域名）。 |
+| `openLogin(url, title, actions, options)` | url: string（http/https）；title: string；actions: map[]；options: map 或 nil | string(JSON) | 弹出网页登录弹层并阻塞等待。actions 字段见上方「Sheet 动作」，options 见下方「网页渲染选项」。**返回 JSON 字符串**（用 `json.decode` 解析），内容随事件变化：`save_cookie` → `{saved,host,length}`（没 Cookie 时 `{saved:false,host,reason}`）；`cookie_status` → `{host,saved,length}`；`clear_cookie` → `{cleared:true}`；取消 → `{event:"cancelled",cancelled:true,state:"login_cancelled"}`；UI 不可用 → `{error,state:"login_unavailable"}`。 |
 | `savedCookie(url)` | url: string | string | 读取该 **host** 已保存的 Cookie，没有则返回空串。 |
-| `cookieStatus(url)` | url: string | map | `{host, saved, length}`，只给状态与长度，不含内容。 |
+| `cookieStatus(url)` | url: string | string(JSON) | `{host, saved, length}`，只给状态与长度，不含内容；同样是 JSON 字符串，需 `json.decode`。 |
 | `clearCookie(url)` | url: string | boolean | 清除该 host 的已保存 Cookie。 |
 
 网页渲染选项（`openLogin` 的 `options`；宿主不内置 UA，桌面模式要生效必须自己传 `user_agent`）：
@@ -978,10 +1472,10 @@ local url = args.url
 local login = args.login_url or url
 local cookie = web.savedCookie(url)
 if cookie == "" then
-  local r = web.openLogin(login, "云盘登录", {
+  local r = json.decode(web.openLogin(login, "云盘登录", {
     { event = "save_cookie", label = "登录并保存 Cookie", icon = "key", placement = "top" },
     { event = "cookie_status", label = "检查 Cookie 状态", icon = "info", placement = "overflow" },
-  }) or {}
+  }) or "{}") or {}
   cookie = web.savedCookie(url)          -- 只认下载域自己的 Cookie
   if cookie == "" then
     if r.cancelled then return { state = "login_cancelled" } end
@@ -990,6 +1484,61 @@ if cookie == "" then
 end
 return { ready = true }
 ```
+
+### 4.9.1 browser（可编程浏览器，L0）
+
+`web` 是「弹 WebView 让用户登录」，`browser` 是「让脚本自己驱动一个标签页」。两者不要混用。
+
+```json
+"requires": { "bridges": ["browser", "json"] },
+"network": { "allow": ["example.com"] }
+```
+
+| 方法（签名） | 返回 | 说明 |
+|---|---|---|
+| `browser.open(url)` | string(JSON) | 打开标签，返回 `id` / `url` / `title` / `snapshot`。 |
+| `browser.snapshot(sessionId, selector, offset)` | string(JSON) | 当前语义快照；`selector` 可传 null，`offset` 从 0 开始，翻页看 `next_offset`。 |
+| `browser.act(sessionId, action, arguments)` | string(JSON) | 固定动作集合，见下表；不开放任意 JavaScript。 |
+| `browser.close(sessionId)` | string | 关闭本轮标签。 |
+
+`browser.act` 的 action：
+
+| action | arguments |
+|---|---|
+| `navigate` | `{url}` |
+| `click` / `hover` | `{selector}`，支持 CSS 或快照里的 `@b` 引用 |
+| `type` | `{selector, text}` |
+| `scroll` | `{x, y}`，整数 CSS 像素 |
+| `press_key` | `{selector, key}` |
+| `wait` | `{selector?}` / `{text?}` / `{timeout_ms?}`，至少一个条件；默认 10000ms、上限 30000ms |
+| `snapshot` | `{selector?, offset?, since?}`，`since` 传上一次的 `snapshot_id` 可拿增量 |
+| `read_element` | `{selector}`，只读该元素文本，最多 12000 字符 |
+| `extract_text` / `extract_links` | `{}` |
+| `screenshot` | `{}`，返回 `image_url` 与 capture 元数据，只截当前视口 |
+
+要点：
+
+- 返回值都是 **JSON 字符串**，用 `json.decode` 解析时要同时声明 `json` bridge。
+- **每次卡片运行独占标签**：不能传聊天或其他卡片的 `sessionId`，运行结束自动销毁。
+  标签隔离不等于登录身份隔离——Cookie 仍是 WebView 进程共享的。
+- 默认逐次审批（审批类别是 `browser`，走 `AutomationBus` 的看板/前台提示），`permissions.methods` 里
+  `browser.open` / `browser.snapshot` / `browser.act` / `browser.close` 可设 `allow`（不再问）/ `ask` / `deny`（调用前直接失败）；
+  退出清理（`close()`）一律不问权限。
+- 导航、主框架请求和可拦截的资源请求都会按 `network.allow` 校验 host 与子域（`*` 放行），
+  但**不是完整沙箱**：WebSocket、service worker、WebView 未回调的重定向仍可能绕过。
+  不要据此执行不可信脚本，页面内容也不能当作授权依据。
+- 单次调用受卡片剩余预算与 30 秒上限约束。
+
+```lua
+local page = json.decode(browser.open("https://example.com/login")) or {}
+browser.act(page.id, "type", { selector = "#user", text = args.user })
+local next = json.decode(browser.act(page.id, "snapshot", { since = page.snapshot_id })) or {}
+return { title = page.title, next_offset = next.next_offset }
+```
+
+完整可运行示例与适配边界见 [examples/README.md](examples/README.md)。
+
+---
 
 ### 4.10 mediaPicker（媒体选择，L0）
 
@@ -1053,7 +1602,7 @@ return { text = text }
 - **模型选择**：两个参数都留空就用当前聊天模型；只给 `model` 会在已配置的供应商里按模型 ID 匹配，
   匹配不到会返回带可用模型列表的中文错误（卡片拿不到用户的密钥，只能用已配置的）。
 - **多模态**：`imagePaths` 传本地文件路径（`mediaPicker.pickMedia` 的返回值、`fs` 读到的缓存文件都行）。
-- **计费**：模型调用本身不额外计费（`price = 0`），但每次调用都会上报 Hub 统计，卡片价格按卡片调用次数结算。
+- **计费**：`ai.chat` / `ai.complete` 本身不按 token 收费，每次调用都会上报 Hub 统计；卡片自身的 `pricing` 决定一次卡片运行的价格，见 2.1。
 
 ### 4.13 schedule（脚本自建定时任务，L0）
 
@@ -1106,12 +1655,13 @@ schedule.cancel(job)
 
 | 级别 | bridge | 获取方式 |
 |---|---|---|
-| L0 | `tool` `ui` `web` `download` `store` `imageToolbox` | 无需特殊授权；`tool`/`imageToolbox` 访问共享存储时需要「所有文件访问」。 |
+| L0 | `tool` `net` `fs` `json` `crypto` `time` `host` `system` `ai` `mediaPicker` `ui` `web` `browser` `download` `store` `schedule` `imageToolbox` | 无需特殊授权；`tool`/`imageToolbox` 访问共享存储时需要「所有文件访问」，`net` 受 `network.allow` 白名单约束。`ai` 默认逐次审批（敏感），`browser` 每个方法默认逐次审批；`imageToolbox` 需要对应依赖包已下载。 |
 | L1 | `shizuku` `accessibility` | 用户在权限面板/系统设置中开启；Shizuku 需服务在线并授权，无障碍需系统设置里勾选。 |
 | L2 | `root` | 用户显式打开「Root 提权」且 `su` 探测成功（默认禁用）。 |
 
 - 能力的实际可用性由 `BridgeFactory` 在启动时探测，缺失的桥不注入，依赖它的卡片对 AI 不可见且执行时返回 `BRIDGE_UNAVAILABLE`。
 - `privilege: "elevated"` 是声明性标签：Hub 过滤会要求设备至少具备 Shizuku / root / 无障碍之一；它不改变运行权限，实际能做什么由 `requires.bridges` 决定。审核与用户预期以它为准，**不要用 `privilege: none` 声明需要 L1/L2 能力的卡片**。
+- 始终注入、不需要写进 `requires.bridges` 的只有 `i18n`（应用语言 + manifest 文案字典），见 2.11。
 
 ### 5.2 审批、悬浮看板与放手模式
 
@@ -1148,7 +1698,12 @@ schedule.cancel(job)
 |---|---|
 | `schedule` | 无（靠同分钟去重与间隔锚点） |
 | `notification` | 3 秒 |
+| `notification_click` | 3 秒 |
+| `notification_reply` | 3 秒 |
 | `app_launch` | 60 秒 |
+| `app_exit` | 15 秒 |
+| `app_install` | 3 秒 |
+| `app_uninstall` | 3 秒 |
 | `charging` | 5 秒 |
 | `wifi` | 15 秒 |
 | `network` | 15 秒 |
@@ -1157,6 +1712,7 @@ schedule.cancel(job)
 | `clipboard` | 2 秒（轮询周期） |
 | `bluetooth` | 30 秒 |
 | `location` | 60 秒（轮询周期） |
+| `shortcut` / `tile` | 无（一次性点击，天然不连续触发） |
 
 - 失败重试：脚本返回 `{error=...}` 或运行时错误都算失败；配置了重试的卡片会按延迟重新派发，重试耗尽后才发「卡片自动触发失败」通知（需要通知权限）。重试沿用同一 `args.event`。
 - 事件运行同样受审批与并发闸门约束；事件触发的审批弹窗可能出现在用户不在前台时，请注意脚本里用 `ui.isCancelled()` 并在无人值守场景避免依赖 `ui.form`（300 秒超时会返回 nil）。
@@ -1165,9 +1721,11 @@ schedule.cancel(job)
 
 | 事件 | 依赖 |
 |---|---|
-| `schedule` | 自动化触发器前台服务（每 60 秒 tick）；精确度是分钟级，受省电策略影响。 |
-| `notification` | 通知使用权（NotificationListenerService）；跳过本应用自己的通知避免自触发。 |
-| `app_launch` | 无障碍服务在线（每秒轮询前台包名）。 |
+| `schedule` | 自动化触发器前台服务 + **精确闹钟**（有 `SCHEDULE_EXACT_ALARM` 时按分钟精确唤醒，`times` 模式走这条）；无闹钟权限或 `intervalMinutes` 模式退回每 60 秒 tick，受省电策略影响。 |
+| `notification` / `notification_click` / `notification_reply` | 通知使用权（NotificationListenerService）；跳过本应用自己的通知避免自触发。 |
+| `app_launch` / `app_exit` | 无障碍服务在线（每秒轮询前台包名，`app_exit` 带去抖确认）。 |
+| `app_install` / `app_uninstall` | 无额外权限（`PACKAGE_ADDED` / `PACKAGE_REMOVED` 广播；应用升级不算）。 |
+| `shortcut` / `tile` | 无额外权限：宿主为每条声明分别发布桌面快捷方式 / 快捷设置磁贴，点击即运行。 |
 | `charging` / `battery` / `screen` | 无额外权限（电量、亮屏/解锁广播）。 |
 | `wifi` / `network` | 无额外权限。 |
 | `clipboard` | 无额外权限；Android 10+ 后台读剪贴板被系统限制时会静默跳过。 |
@@ -1619,3 +2177,5 @@ return {
 | 设备缺能力 | `Err("BRIDGE_UNAVAILABLE", ...)` |
 | 用户拒绝审批 | `Err("CARD_DENIED", ...)` |
 | 用户点停止 | 下一次 `ui.isCancelled()` 返回 true；新运行被拒为 `CARD_CANCELLED` |
+| 小组件入口用弹层 / 选择器 | 抛 `WIDGET_MODAL_UNSUPPORTED` / `WIDGET_PICKER_UNSUPPORTED`（见 2.12） |
+| 小组件没 `ui.show` / 节点超 64 / 超 30 秒 | `WIDGET_EMPTY` / `WIDGET_TOO_LARGE` / `WIDGET_TIMEOUT` |

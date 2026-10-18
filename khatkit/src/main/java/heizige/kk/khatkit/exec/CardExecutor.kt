@@ -2,22 +2,39 @@ package heizige.kk.khatkit.exec
 
 import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.bridge.ApprovalGate
+import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineFactory
 import heizige.kk.khatkit.engine.EngineKind
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
+import heizige.kk.khatkit.ui.UiMode
 import heizige.kk.khatkit.dependency.DependencyEnsureResult
 import heizige.kk.khatkit.dependency.DependencyFallback
 import heizige.kk.khatkit.dependency.DependencyManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 
 /** 执行 engine: command 形态的命令，由宿主实现（走 shizuku/root）。 */
 fun interface CommandRunner {
     fun run(command: String): String
 }
+
+/**
+ * 一次卡片运行的可调项。
+ *
+ * [uiMode] 是**运行级**的 UI 开关（见 [UiMode]）：`INTERACTIVE` 才可能弹层，
+ * `HEADLESS` 下 `ui.*` 全部立即返回。默认值由宿主按触发来源决定，脚本与 AI
+ * 也可以在一次调用里覆盖（AI 侧参数 `__khatkit_ui`）。
+ */
+data class CardExecutionOptions(
+    val ui: UiBridge? = null,
+    val uiMode: UiMode = UiMode.INTERACTIVE,
+    val locales: List<String>? = null,
+    val deadlineAt: Long = 0L,
+)
 
 /**
  * 卡片执行器：manifest + 引擎 + bridge 注入。
@@ -32,16 +49,21 @@ class CardExecutor(
     private val onDependencyStatus: ((String) -> Unit)? = null,
     private val approvalGate: ApprovalGate? = null,
 ) {
-    suspend fun execute(card: LoadedCard, args: Map<String, Any?>): EngineResult =
+    suspend fun execute(
+        card: LoadedCard,
+        args: Map<String, Any?>,
+        options: CardExecutionOptions = CardExecutionOptions(),
+    ): EngineResult =
         withContext(Dispatchers.Default) {
             // 卡片/脚本/宿主任何一环出问题都收敛成 Err，绝不让异常冒泡打断整轮生成
             runCatching {
                 ensureDependencies(card.manifest)?.let { return@runCatching it }
                 when (card.engineKind) {
                     EngineKind.COMMAND -> executeCommand(card.manifest, args)
-                    EngineKind.LUA, EngineKind.JS -> executeScript(card, args)
+                    EngineKind.LUA, EngineKind.JS -> executeScript(card, args, options)
                 }
             }.getOrElse { error ->
+                if (error is CancellationException) throw error
                 EngineResult.Err("CARD_EXECUTOR", error.message ?: error.toString())
             }
         }
@@ -99,9 +121,10 @@ class CardExecutor(
         return null
     }
 
-    private suspend fun executeScript(card: LoadedCard, args: Map<String, Any?>): EngineResult {
+    private suspend fun executeScript(card: LoadedCard, args: Map<String, Any?>, options: CardExecutionOptions): EngineResult {
         val required = card.manifest.requiredBridges
-        val missing = required - bridges.availableBridges()
+        val available = bridges.availableBridges(options.uiMode, options.ui)
+        val missing = required - available
         if (missing.isNotEmpty()) {
             return EngineResult.Err(
                 "BRIDGE_UNAVAILABLE",
@@ -116,7 +139,12 @@ class CardExecutor(
         val engine = EngineFactory.create(card.engineKind)
         val runResources = mutableListOf<AutoCloseable>()
         return try {
-            if (!bridges.inject(engine, card.manifest, approvalGate = approvalGate, runResources = runResources)) {
+            if (!bridges.inject(
+                    engine, card.manifest, approvalGate = approvalGate, runResources = runResources,
+                    uiOverride = options.ui, uiMode = options.uiMode,
+                    locales = options.locales, deadlineAt = options.deadlineAt,
+                )
+            ) {
                 EngineResult.Err("BRIDGE_INJECT_FAILED", "bridge 注入失败")
             } else {
                 modules.forEach { lib -> engine.defineModule(lib.name, lib.source) }

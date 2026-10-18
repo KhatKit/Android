@@ -2,11 +2,15 @@ package heizige.kk.khatkit.bridge
 
 import heizige.kk.khatkit.engine.ScriptEngine
 import heizige.kk.khatkit.card.CardManifest
+import heizige.kk.khatkit.card.CardStrings
 import heizige.kk.khatkit.bridge.impl.CardAiBridge
+import heizige.kk.khatkit.bridge.impl.CardI18nBridge
 import heizige.kk.khatkit.bridge.impl.EmbeddingEngine
 import heizige.kk.khatkit.bridge.impl.StoreRequest
 import heizige.kk.khatkit.bridge.impl.ScopedFsBridgeImpl
+import heizige.kk.khatkit.ui.HeadlessUiBridge
 import heizige.kk.khatkit.ui.MediaPickerHost
+import heizige.kk.khatkit.ui.UiMode
 
 /**
  * 按设备当前能力决定挂哪些 bridge（设计文档 7.1 的能力协商）。
@@ -35,6 +39,7 @@ class BridgeRegistry(
     private val accessibility: AccessibilityBridge? = null,
     private val schedule: ScheduleBridge? = null,
     private val browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
+    private val localeTags: () -> List<String> = { listOf(java.util.Locale.getDefault().toLanguageTag()) },
 ) {
     /**
      * 运行期动态注册的 bridge（原生依赖包加载后注册，如 imageToolbox）。
@@ -89,10 +94,33 @@ class BridgeRegistry(
         if (browserProvider != null) add("browser")
         addAll(dynamicBridges.keys)
         add(CAPABILITY_DEPENDENCY)
+        add("i18n")
     }
 
     /** 卡片所需能力是否全部具备。 */
     fun supports(required: Collection<String>): Boolean = availableBridges().containsAll(required)
+
+    /**
+     * 按本次运行的 UI 策略挑出真正要注入的 `ui` 实现。
+     *
+     * [UiMode.HEADLESS] 恒返回 [HeadlessUiBridge]（不弹层、立即返回），**优先于**任何
+     * 运行期 override —— 无人值守时不允许被一张带 `ui` 的卡片反手弹出弹层。
+     */
+    fun uiDelegate(uiOverride: UiBridge?, uiMode: UiMode): UiBridge? = when (uiMode) {
+        UiMode.HEADLESS -> HeadlessUiBridge
+        UiMode.INTERACTIVE -> uiOverride ?: ui
+    }
+
+    /**
+     * 本次运行实际具备的能力集合。
+     *
+     * 与 [availableBridges] 的差别只有 `ui` 一项：HEADLESS 下 `ui` 仍然算“具备”
+     * （脚本可以照常调用，拿到的全是立即返回的空实现），而不是让整卡因缺 bridge 被拒。
+     */
+    fun availableBridges(uiMode: UiMode, uiOverride: UiBridge? = null): Set<String> {
+        val base = availableBridges() - "ui"
+        return if (uiDelegate(uiOverride, uiMode) != null) base + "ui" else base
+    }
 
     /**
      * 把卡片声明过的 bridge 注入引擎。
@@ -104,9 +132,14 @@ class BridgeRegistry(
         approvalGate: ApprovalGate? = null,
         deadlineAt: Long = 0L,
         runResources: MutableList<AutoCloseable>? = null,
+        uiOverride: UiBridge? = null,
+        uiMode: UiMode = UiMode.INTERACTIVE,
+        locales: List<String>? = null,
     ): Boolean {
         val required = manifest.requiredBridges
-        if (!supports(required)) return false
+        val delegateUi = uiDelegate(uiOverride, uiMode)
+        val available = availableBridges(uiMode, uiOverride)
+        if (!available.containsAll(required)) return false
         val context = BridgeContext(
             cardName = manifest.name,
             engine = manifest.engine,
@@ -116,7 +149,9 @@ class BridgeRegistry(
             approvalGate = approvalGate,
             deadlineAt = deadlineAt,
         )
-        required.forEach { name ->
+        val strings = CardStrings(manifest, locales ?: localeTags())
+        engine.define("i18n", scopedBridge(context, "i18n", CardI18nBridge(strings)))
+        required.filterNot { it == "i18n" }.forEach { name ->
             val impl: Any = when (name) {
                 "tool" -> tool
                 "net" -> net
@@ -143,14 +178,20 @@ class BridgeRegistry(
                     is MediaPickerHost -> mp.forCard(manifest.name)
                     else -> mp
                 }
-                "ui" -> ui?.let { delegate ->
+                "ui" -> delegateUi?.let { delegate ->
                     val imageFs = (fs as? ScopedFsBridgeImpl)?.let {
                         ScopedFsBridgeImpl(it.context(), manifest.name,
                             manifest.permissions.fsRead.toSet(), approvalGate, context.grants)
                     }
-                    UiImageAccessBridge(delegate) { path ->
-                        imageFs?.imageSource(path) ?: error("Image.src: file access unavailable")
-                    }
+                    val checked = UiImageAccessBridge(
+                        delegate,
+                        { path -> imageFs?.imageSource(path) ?: error("Image.src: file access unavailable") },
+                        allowRemote = { url ->
+                            val host = runCatching { java.net.URI(url).host?.lowercase() }.getOrNull()
+                            host != null && context.networkAllow.any { it == "*" || host == it || host.endsWith(".$it") }
+                        },
+                    )
+                    LocalizedUiBridge(checked, strings)
                 }
                 "web" -> web
                 "browser" -> browserProvider?.invoke(context)?.also {

@@ -101,20 +101,40 @@ class ScopedMediaPickerBridge(
     delegate: MediaPickerBridge,
 ) : MediaPickerBridge by delegate, ContextAwareBridge
 
-/** UI 包装器；超时后 `isCancelled()` 直接返回 true，脚本能在长循环里尽快退出。 */
+/**
+ * UI 包装器；超时后 `isCancelled()` 直接返回 true，脚本能在长循环里尽快退出。
+ *
+ * 阻塞型调用（form / screen / sheet / webSheet / confirm）额外做两件事：
+ * 1. 把运行期限折算成等待预算（`withinBudget`），脚本线程不会等过卡片自己的期限；
+ * 2. 把卡片名写进 `UiBridgeHost` 的线程上下文，超时后用户的「迟到提交」才能定位到
+ *    是哪张卡片要续跑（见 `UiBridgeHost.onLateAnswer`）。
+ */
 class ScopedUiBridge(
     override val context: BridgeContext,
     private val delegate: UiBridge,
 ) : UiBridge by delegate, ContextAwareBridge {
+    private fun <T> await(block: () -> T): T = heizige.kk.khatkit.ui.UiBridgeHost.withinCard(context.cardName) {
+        heizige.kk.khatkit.ui.UiBridgeHost.withinBudget(context.deadline.remainingMs(), block)
+    }
+
     override fun isCancelled(): Boolean = delegate.isCancelled() || context.deadline.expired()
     override fun form(title: String, items: Any, options: Map<String, Any?>?): Map<String, Any?>? =
-        heizige.kk.khatkit.ui.UiBridgeHost.withinBudget(context.deadline.remainingMs()) {
-            delegate.form(title, items, options)
-        }
+        await { delegate.form(title, items, options) }
     override fun screen(title: String, root: Map<String, Any?>, options: Map<String, Any?>?): Map<String, Any?>? =
-        heizige.kk.khatkit.ui.UiBridgeHost.withinBudget(context.deadline.remainingMs()) {
-            delegate.screen(title, root, options)
-        }
+        await { delegate.screen(title, root, options) }
+    override fun sheet(
+        title: String,
+        actions: List<Map<String, Any?>>,
+        options: Map<String, Any?>?,
+    ): Map<String, Any?>? = await { delegate.sheet(title, actions, options) }
+    override fun webSheet(
+        title: String,
+        url: String,
+        actions: List<Map<String, Any?>>,
+        options: Map<String, Any?>?,
+    ): Map<String, Any?>? = await { delegate.webSheet(title, url, actions, options) }
+    override fun confirm(title: String, message: String, danger: Boolean): Boolean =
+        await { delegate.confirm(title, message, danger) }
 }
 
 /** 透明 Web 包装器。 */
@@ -163,8 +183,14 @@ class ScopedAccessibilityBridge(
     delegate: AccessibilityBridge,
 ) : AccessibilityBridge by delegate, ContextAwareBridge
 
+class ScopedI18nBridge(
+    override val context: BridgeContext,
+    delegate: I18nBridge,
+) : I18nBridge by delegate, ContextAwareBridge
+
 /** 动态依赖桥暂不知晓接口，保持原对象注入。 */
 fun scopedBridge(context: BridgeContext, name: String, delegate: Any): Any = when (name) {
+    "i18n" -> ScopedI18nBridge(context, delegate as I18nBridge)
     "tool" -> ScopedToolBridge(context, delegate as ToolBridge)
     "net" -> ScopedNetBridge(context, delegate as NetBridge)
     "fs" -> ScopedFsBridge(context, delegate as FsBridge)

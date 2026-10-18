@@ -335,6 +335,11 @@ interface ImageToolboxBridge {
     fun pdfEdit(op: String, source: String, paramsJson: String = "{}"): String
 }
 
+interface I18nBridge {
+    fun locale(): String
+    fun text(key: String, values: Map<String, Any?>? = null): String
+}
+
 interface UiBridge {
     /** Lua 声明式操作 Sheet；返回 {event=..., values=...}，取消返回 null。 */
     fun sheet(
@@ -354,8 +359,9 @@ interface UiBridge {
     /**
      * items 为组件列表，返回用户填好的值；用户取消返回 null。
      *
-     * options 可选：`fullscreen`（占满屏幕）、`landscape`（弹层期间允许横屏）、
-     * `height`（高度比例 0.1–1.0）；不传或全是默认值时保持原有样式。
+     * options 是弹层外观选项（`fullscreen` / `height` / `hide_topbar` / `hide_bottombar` /
+     * `dismissable` / `orientation` / 旧 `landscape`），详见 `UiSheetOptions`；
+     * 不传或全是默认值时保持原有样式。
      */
     fun form(
         title: String,
@@ -370,7 +376,13 @@ interface UiBridge {
     fun confirm(title: String, message: String, danger: Boolean = false): Boolean
     fun progress(ratio: Float, label: String)
 
-    /** 弹出结果卡片；options 同 [form]（fullscreen / landscape / height），不阻塞。 */
+    /**
+     * 弹出结果卡片，不阻塞。
+     *
+     * options 是弹层外观选项（`fullscreen` / `height` / `hide_topbar` / `hide_bottombar` /
+     * `dismissable` / `orientation` / 旧 `landscape`），详见 `UiSheetOptions`。
+     * 聊天小组件入口忽略 options：内容是内联卡片，不是弹层。
+     */
     fun show(card: Map<String, Any?>, options: Map<String, Any?>? = null)
 
     /**

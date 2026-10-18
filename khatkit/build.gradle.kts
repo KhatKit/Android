@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.testing.Test
+import java.io.File
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -24,7 +25,12 @@ android {
 }
 
 tasks.withType<Test>().configureEach {
-    System.getenv("KHATKIT_NATIVE_LIB")?.let { systemProperty("khatkit.native.path", it) }
+    System.getenv("KHATKIT_NATIVE_LIB")?.let {
+        systemProperty("khatkit.native.path", it)
+        // EngineFactory checks loadLibrary too, not only the test's explicit System.load.
+        systemProperty("java.library.path",
+            file(it).absoluteFile.parent + File.pathSeparator + System.getProperty("java.library.path", ""))
+    }
     // BridgeApiDocTest 校验 docs/script-api-reference.md，把 docs 目录登记为输入：
     // 文档或接口代码变了就重跑，防止接口清单悄悄漂移。
     inputs.dir(layout.projectDirectory.dir("../docs"))

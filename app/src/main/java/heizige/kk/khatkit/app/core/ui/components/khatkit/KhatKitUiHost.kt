@@ -94,28 +94,41 @@ private fun SheetAction.toSheetAction(): KhatKitSheetAction? {
  * 卡片执行时（可能在聊天流里），脚本线程阻塞等待；这里在 Compose 主线程
  * 渲染表单/确认/进度/结果卡片，交互后把值回传。渲染层在 :khatkit-ui。
  *
- * `ui.form` / `ui.show` 的 options 支持 fullscreen / landscape / height：
- * landscape 生效期间把 Activity 方向切到 FULL_SENSOR，弹层关闭（或请求变化）后还原 UNSPECIFIED。
+ * 弹层外观全部来自 `UiSheetOptions`（`ui.form` / `ui.show` / `ui.screen` / `ui.sheet` 的 options）：
+ * fullscreen / height / hide_topbar / hide_bottombar / dismissable / orientation。
+ * orientation 生效期间把 Activity 方向锁到横屏或竖屏（`SCREEN_ORIENTATION_SENSOR_*`），
+ * 弹层关闭（或请求变化）后还原 UNSPECIFIED；`auto` 用 FULL_SENSOR 跟随传感器。
  */
 @Composable
 fun KhatKitUiHost() {
     val provider = rememberAppEntryPoint().khatKitToolProvider()
+    // 宿主在场/离场：Compose 层不在场时（后台/无宿主）UiBridgeHost 不再挂满 300s，
+    // 而是给 1.5s 挂载宽限后立即返回 nil，脚本按「用户没给值」继续跑。
+    DisposableEffect(provider) {
+        provider.onUiHostAttached()
+        onDispose { provider.onUiHostDetached() }
+    }
     val request by provider.uiRequest.collectAsStateWithLifecycle()
     val progress by provider.uiProgress.collectAsStateWithLifecycle()
 
-    val landscape = when (val current = request) {
-        is UiRequest.Sheet -> current.options.landscape
-        is UiRequest.Form -> current.options.landscape
-        is UiRequest.Show -> current.options.landscape
-        is UiRequest.FormTree -> current.options.landscape
-        is UiRequest.Screen -> current.options.landscape
-        is UiRequest.ShowTree -> current.options.landscape
-        else -> false
+    // 弹层声明的方向（orientation / 旧 landscape）：关闭或请求变化后还原用户原本的设置。
+    val orientation = when (val current = request) {
+        is UiRequest.Sheet -> current.options.effectiveOrientation
+        is UiRequest.Form -> current.options.effectiveOrientation
+        is UiRequest.Show -> current.options.effectiveOrientation
+        is UiRequest.FormTree -> current.options.effectiveOrientation
+        is UiRequest.Screen -> current.options.effectiveOrientation
+        is UiRequest.ShowTree -> current.options.effectiveOrientation
+        else -> null
     }
     val activity = LocalActivity.current
-    DisposableEffect(landscape) {
-        if (landscape) {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+    DisposableEffect(orientation) {
+        if (orientation != null) {
+            activity?.requestedOrientation = when (orientation) {
+                UiSheetOptions.ORIENTATION_PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                UiSheetOptions.ORIENTATION_AUTO -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+                else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            }
             onDispose {
                 activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             }
@@ -164,7 +177,16 @@ fun KhatKitUiHost() {
             is UiRequest.FormTree -> key(current) {
                 TreeSheet(current.title, current.root, current.options, provider, form = true)
             }
-            is UiRequest.Screen -> key(current) {
+            // 不用 key(current)：换页/触底加载时保持同一份弹层组合，
+            // 滚动位置才有连续状态（滚动归零/守卫分别由 scrollKey/contentKey 控制）。
+            is UiRequest.Screen -> {
+                remember(current.root) {
+                    android.util.Log.d("KKPerf", "compose @" + (System.nanoTime() / 1_000_000))
+                    current.root
+                }
+                androidx.compose.runtime.LaunchedEffect(current.root) {
+                    android.util.Log.d("KKPerf", "applied @" + (System.nanoTime() / 1_000_000))
+                }
                 TreeSheet(current.title, current.root, current.options, provider)
             }
             is UiRequest.ShowTree -> key(current) {
@@ -240,8 +262,12 @@ private fun TreeSheet(
         onDismiss = { provider.dismissUi() },
         markdown = { text, modifier -> Box(modifier) { MarkdownBlock(text) } },
         image = { src, description, modifier ->
-            AsyncImage(model = if (src.startsWith("content://")) android.net.Uri.parse(src) else java.io.File(src),
-                contentDescription = description, modifier = modifier)
+            val model = when {
+                src.startsWith("content://") -> android.net.Uri.parse(src)
+                src.startsWith("https://") -> src
+                else -> java.io.File(src)
+            }
+            AsyncImage(model = model, contentDescription = description, modifier = modifier)
         },
     )
 }

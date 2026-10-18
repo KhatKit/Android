@@ -66,10 +66,20 @@ object UiNodeParser {
         "Divider" to emptyMap(),
         "Card" to schema("title" to "string", "modifier" to "modifier"),
         "Section" to schema("title" to "string", "modifier" to "modifier"),
-        "Text" to schema("text" to "string", "style" to "title|subtitle|body|label|code", "tone" to "default|muted|primary|error", "bold" to "boolean", "modifier" to "modifier"),
+        "Text" to schema(
+            "text" to "string", "style" to "title|subtitle|body|label|code",
+            "tone" to "default|muted|primary|error", "bold" to "boolean",
+            "color" to "color", "size" to "number", "weight" to "normal|medium|semibold|bold",
+            "modifier" to "modifier",
+        ),
+        "Icon" to schema(
+            "name" to "icon", "tone" to "default|muted|primary|error|success|warning",
+            "color" to "color", "size" to "number", "contentDescription" to "string",
+            "modifier" to "modifier",
+        ),
         "Markdown" to schema("text" to "string", "modifier" to "modifier"),
         "Image" to schema("src" to "string", "contentDescription" to "string", "modifier" to "modifier"),
-        "Badge" to schema("text" to "string", "tone" to "default|primary|success|warning|error"),
+        "Badge" to schema("text" to "string", "tone" to "default|primary|success|warning|error", "color" to "color"),
         "ProgressBar" to schema("ratio" to "number", "label" to "string"),
         "TextField" to schema("placeholder" to "string", "multiline" to "boolean", "lines" to "number"),
         "NumberField" to schema("min" to "number", "max" to "number", "step" to "number"),
@@ -78,7 +88,15 @@ object UiNodeParser {
         "Select" to schema("options" to "strings"), "RadioGroup" to schema("options" to "strings"),
         "FilePicker" to schema("filter" to "image|video|audio|document|any", "multiple" to "boolean"),
         "DirPicker" to emptyMap(),
-        "Button" to schema("label" to "string", "action" to "string", "tone" to "primary|default|danger", "disabled" to "boolean"),
+        "Button" to schema(
+            "label" to "string", "action" to "string", "tone" to "primary|default|danger",
+            "disabled" to "boolean", "icon" to "icon", "color" to "color", "modifier" to "modifier",
+        ),
+        "IconButton" to schema(
+            "action" to "string", "icon" to "icon",
+            "tone" to "default|muted|primary|error|success|warning",
+            "disabled" to "boolean", "contentDescription" to "string", "modifier" to "modifier",
+        ),
     ).mapValues { (name, props) ->
         if (name !in fields) props else props + schema(
             "id" to "string", "label" to "string", "hint" to "string", "required" to "boolean",
@@ -121,11 +139,20 @@ object UiNodeParser {
             if (name == "Section" && copy["title"] == null) fail("$name.title", "required")
             if (name == "Image") {
                 val src = copy["src"] as? String
-                if (src.isNullOrEmpty() || !src.startsWith("/") && !src.startsWith("content://")) {
-                    fail("$name.src", "expected local absolute path or content URI")
+                if (src.isNullOrEmpty() ||
+                    !src.startsWith("/") && !src.startsWith("content://") && !src.startsWith("https://")
+                ) {
+                    fail("$name.src", "expected local path, content URI or https URL")
                 }
             }
             if (name == "Button" && (copy["action"] as? String).isNullOrEmpty()) fail("$name.action", "required")
+            if (name == "IconButton" &&
+                ((copy["action"] as? String).isNullOrEmpty() || (copy["icon"] as? String).isNullOrEmpty())
+            ) fail("$name.action", "action and icon are required")
+            if (name == "Icon" && (copy["name"] as? String).isNullOrEmpty()) fail("$name.name", "required")
+            if (name == "Text" || name == "Icon") {
+                (copy["size"] as? Number)?.toDouble()?.let { if (it < 6 || it > 64) fail("$name.size", "expected 6..64") }
+            }
             if (name == "ProgressBar" && copy["ratio"] != null && (copy["ratio"] as Number).toDouble() !in 0.0..1.0) fail("$name.ratio", "expected 0..1")
             listOf("spacing", "width", "height", "lines").forEach { key ->
                 (copy[key] as? Number)?.toDouble()?.let {
@@ -140,7 +167,9 @@ object UiNodeParser {
             if (name !in containers && children.isNotEmpty()) fail("$name.children", "leaf cannot contain children")
             return UiNode(name, copy, children.map { visit(it, depth + 1) })
         }
-        return visit(raw, 1)
+        val root = visit(raw, 1)
+        java.util.logging.Logger.getLogger("KKPerf").fine("parsed nodes=$count")
+        return root
     }
 
     // The existing Rust encoder serializes an empty Lua table as {}, including empty arrays.
@@ -158,6 +187,8 @@ object UiNodeParser {
             "strings" -> array(v, where).all { it is String }
             "paths" -> v is String || array(v, where).all { it is String }
             "modifier" -> { if (v == null) fail(where, "expected Modifier"); modifierOps(v, where); true }
+            "color" -> v is String && UiColors.isValid(v)
+            "icon" -> v is String && UiIcons.isValid(v)
             else -> v is String && v in kind.split('|')
         }
         if (!valid) fail(where, "expected $kind")
@@ -182,6 +213,9 @@ object UiNodeParser {
                 "visible" -> args.size == 1 && args[0] is Boolean
                 "clip" -> args.size in 1..2 && args[0] in setOf("rounded", "circle") &&
                     (args.size == 1 || args[1] is Number && (args[1] as Number).toDouble().let { it.isFinite() && it >= 0 })
+                "background" -> args.size == 1 && (args[0] as? String)?.let {
+                    UiColors.isValid(it)
+                } == true
                 else -> false
             }
             if (!valid) fail("$where.$name", "invalid operation or arguments")

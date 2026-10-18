@@ -26,6 +26,7 @@ class BridgeApiDocTest {
         JsonBridge::class.java to "json",
         CryptoBridge::class.java to "crypto",
         TimeBridge::class.java to "time",
+        I18nBridge::class.java to "i18n",
         HostBridge::class.java to "host",
         SystemBridge::class.java to "system",
         AiBridge::class.java to "ai",

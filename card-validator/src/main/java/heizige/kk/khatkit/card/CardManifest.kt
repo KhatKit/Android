@@ -53,11 +53,25 @@ data class CardManifest(
 
     /** engine == command 时的命令模板，`{}` 占位符由宿主白名单转义 */
     val command: String? = null,
+    /** BCP 47 locale -> string key -> translation. Existing plain-text cards stay valid. */
+    val i18n: Map<String, Map<String, String>> = emptyMap(),
+    @SerialName("default_locale") val defaultLocale: String = "en",
+    /** An independent, inline ChatPage entry; never auto-runs the normal tool entry. */
+    val widget: Widget? = null,
 ) {
     @Serializable
     data class Entry(
         val lua: String? = null,
         val js: String? = null,
+    )
+
+    @Serializable
+    data class Widget(
+        val entry: Entry,
+        val autostart: Boolean = true,
+        val title: String = "",
+        /** Optional least-privilege subset of requires.bridges for this entry. */
+        val bridges: List<String>? = null,
     )
 
     @Serializable

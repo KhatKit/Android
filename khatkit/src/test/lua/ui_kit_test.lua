@@ -14,7 +14,13 @@ assert(#chain.__mod==1 and #root.props.modifier.__mod==2)
 assert(ui.form("test",root)==root and calls==1)
 rejects("Text.color",function() Text{color="#fff"} end)
 rejects("Text.tone",function() Text{tone="danger"} end)
-rejects("Image.src",function() ui.Image{src="https://example.com/image.png"} end)
+rejects("Image.src",function() ui.Image{src="http://example.com/image.png"} end)
+ui.Image{src="https://example.com/image.png"}
+for role in ([[surface on_surface on_surface_variant surface_container surface_container_high
+  surface_container_highest outline_variant primary on_primary error error_container on_error_container]]):gmatch("%S+") do
+  Text{color=role,modifier=ui.Modifier.background(role)}
+end
+rejects("Text.color",function() Text{color="on_surfce"} end)
 rejects("NoSuch",function() ui.NoSuch{} end)
 rejects("TextField.id",function() Column{TextField{id="x"},TextField{id="x"}} end)
 rejects("Modifier.padding",function() ui.Modifier.padding(1,2,3) end)

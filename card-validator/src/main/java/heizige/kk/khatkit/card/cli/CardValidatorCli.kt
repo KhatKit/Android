@@ -43,6 +43,8 @@ fun main(args: Array<String>) {
         val scripts = listOfNotNull(
             manifest.entry.lua?.let { it to File(dir, it) },
             manifest.entry.js?.let { it to File(dir, it) },
+            manifest.widget?.entry?.lua?.let { it to File(dir, it) },
+            manifest.widget?.entry?.js?.let { it to File(dir, it) },
         ).filter { (_, file) -> file.exists() }
             .associate { (name, file) -> name to file.readText() }
 

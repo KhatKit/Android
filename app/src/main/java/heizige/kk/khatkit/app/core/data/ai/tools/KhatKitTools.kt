@@ -7,6 +7,10 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.PowerManager
 import android.util.Log
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import androidx.compose.runtime.mutableStateOf
 import heizige.kk.khatkit.bridge.AccessibilityBridge
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
@@ -40,12 +44,17 @@ import heizige.kk.khatkit.app.feature.automation.helper.ScheduleBridgeImpl
 import heizige.kk.khatkit.record.UiBBox
 import heizige.kk.khatkit.record.VisualGrounding
 import heizige.kk.khatkit.card.CardManifest
+import heizige.kk.khatkit.card.CardStrings
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.card.CardParser
 import heizige.kk.khatkit.dependency.DependencyCache
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.exec.CardExecutor
+import heizige.kk.khatkit.exec.CardExecutionOptions
+import heizige.kk.khatkit.ui.LateUiAnswer
+import heizige.kk.khatkit.ui.ReplayUiBridge
+import heizige.kk.khatkit.ui.UiMode
 import heizige.kk.khatkit.exec.CardRunManager
 import heizige.kk.khatkit.hub.BuiltinCards
 import heizige.kk.khatkit.hub.BundledLibProvider
@@ -68,6 +77,8 @@ import heizige.kk.khatkit.hub.LibResolver
 import heizige.kk.khatkit.hub.LoadedCard
 import heizige.kk.khatkit.ui.MediaPickerHost
 import heizige.kk.khatkit.ui.UiBridgeHost
+import heizige.kk.khatkit.ui.CardWidgetBridge
+import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.uikit.CardRunResult
 import heizige.kk.khatkit.uikit.FormPickerHost
 import heizige.kk.khatkit.uikit.KhatKitController
@@ -78,6 +89,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -106,6 +121,7 @@ import heizige.kk.khatkit.app.core.util.collectLocalImagePaths
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
+import heizige.kk.khatkit.app.feature.chat.ChatManager
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -126,7 +142,7 @@ private data class CardToolSpec(
 private fun CardToolSpec.descriptionText(): String {
     val base = entry?.summary?.takeIf { it.isNotBlank() }
         ?: entry?.description?.takeIf { it.isNotBlank() }
-        ?: card?.manifest?.description?.takeIf { it.isNotBlank() }
+        ?: card?.manifest?.let { CardStrings(it).description }?.takeIf { it.isNotBlank() }
         ?: name
     // 明确标注来源与安装状态：云端卡片脚本可按需下载运行，vFlow 是另一个 App 的联动卡片
     val status = when {
@@ -134,7 +150,10 @@ private fun CardToolSpec.descriptionText(): String {
         entry != null -> "【云端卡片·已安装】"
         else -> "【本地内置卡片】"
     }
-    return "$status $base"
+    // 运行期 UI 开关也让模型知道：需要静默执行时它自己传 __khatkit_ui=headless，
+    // 不用把「要不要弹层」写死进脚本。
+    return "$status $base｜可选参数 __khatkit_ui：传 headless 表示本次只要结果、不要任何弹层；" +
+        "interactive 或不传则按触发来源默认（AI 调用默认允许弹层补参）。"
 }
 
 private fun CardToolSpec.supportsAi(): Boolean =
@@ -144,13 +163,29 @@ private fun CardToolSpec.supportsAi(): Boolean =
 
 private fun CardToolSpec.inputSchema(): InputSchema? {
     // 未下载时用索引里的 schema，保证 AI 仍能正确填参
-    val parameters = entry?.parameters?.takeIf { it.isNotEmpty() }
+    val raw = entry?.parameters?.takeIf { it.isNotEmpty() }
         ?: card?.manifest?.parameters
         ?: return null
+    val parameters = card?.manifest?.let { CardStrings(it).resolveJson(raw) as JsonObject } ?: raw
     val properties = parameters["properties"] as? JsonObject ?: return null
     val required = (parameters["required"] as? JsonArray)
         ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
-    return InputSchema.Obj(properties, required)
+    // 宿主注入的按次 UI 开关（不在 manifest 里，脚本也看不到）：见 docs/lua-card-development.md §3.5
+    val merged = JsonObject(
+        properties.toMutableMap().apply {
+            put(
+                "__khatkit_ui",
+                buildJsonObject {
+                    put("type", "string")
+                    put(
+                        "description",
+                        "可选：headless = 本次只取结果、不要任何弹层；interactive 或不传按触发来源默认。",
+                    )
+                },
+            )
+        },
+    )
+    return InputSchema.Obj(merged, required)
 }
 
 /** 卡片 manifest 的 parameters 已是标准 JSON Schema，直接转成宿主 InputSchema。 */
@@ -183,6 +218,23 @@ class KhatKitToolProvider(
         onAutomationStatus = { label, detail -> AutomationBus.update(label, detail) },
         onCancelled = { AutomationBus.isCancelRequested() },
     )
+
+    /**
+     * 交互式运行（AI / 用户）的「谁在等用户」登记：卡片名 → 本次参数与会话。
+     *
+     * 卡片弹层等用户等到超时后脚本会带着 `nil` 继续跑；用户之后才提交的值不能丢，
+     * [UiBridgeHost.onLateAnswer] 按卡片名找回来，重跑一次卡片（HEADLESS）并把结果
+     * 作为新消息补发回原会话，让 AI 接着往下走。
+     */
+    private val pendingInteractions = ConcurrentHashMap<String, PendingInteraction>()
+
+    init {
+        uiHost.onLateAnswer = ::onLateUiAnswer
+    }
+
+    fun onUiHostAttached() = uiHost.onHostAttached()
+
+    fun onUiHostDetached() = uiHost.onHostDetached()
 
     /**
      * `mediaPicker.pickMedia` 的宿主侧：脚本线程在这里等，Compose 层弹媒体选择器，
@@ -422,6 +474,53 @@ class KhatKitToolProvider(
         CardRunManager(scope = scope) { card, args -> executor().execute(card, args) }
     }
 
+    private val _cardCatalogueRevision = MutableStateFlow(0L)
+    val cardCatalogueRevision = _cardCatalogueRevision.asStateFlow()
+
+    suspend fun chatCards(): List<LoadedCard> = withContext(Dispatchers.IO) { loadInstalledCards() }
+
+    fun widgetEnabled(card: LoadedCard): Boolean =
+        settings.getBoolean("chat_widget.${card.manifest.name}", card.manifest.widget?.autostart == true)
+
+    fun setWidgetEnabled(cardName: String, enabled: Boolean) {
+        settings.edit().putBoolean("chat_widget.$cardName", enabled).apply()
+        _cardCatalogueRevision.update { it + 1 }
+    }
+
+    /** Same approval, metering and concurrency boundary as a normal card, with run-local UI. */
+    suspend fun runChatWidget(
+        card: LoadedCard,
+        locales: List<String>,
+        action: String = "",
+        values: Map<String, Any?> = emptyMap(),
+    ): UiNode {
+        val widget = withContext(Dispatchers.IO) { cache.loadWidget(card) }
+        val context = currentCoroutineContext()
+        val ui = CardWidgetBridge { !context.isActive }
+        val args = mapOf("widget" to mapOf(
+            "action" to action,
+            "values" to values,
+            "locale" to locales.firstOrNull().orEmpty(),
+        ))
+        val result = runCardWithStatus(
+            widget, args, trigger = "聊天小组件",
+            uiMode = UiMode.INTERACTIVE,
+            options = CardExecutionOptions(
+                ui = ui,
+                uiMode = UiMode.INTERACTIVE,
+                locales = locales,
+                deadlineAt = System.currentTimeMillis() + 30_000L,
+            ),
+        )
+        return when (result) {
+            is EngineResult.Err -> error("${result.code}: ${result.message}")
+            is EngineResult.Ok -> {
+                result.value["error"]?.toString()?.takeIf { it.isNotBlank() }?.let { error(it) }
+                requireNotNull(ui.content) { "WIDGET_EMPTY: call ui.show(node)" }
+            }
+        }
+    }
+
     /**
      * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后进入完成态。
      * AI tool / 用户手动 / 事件触发三个入口都汇聚到这里；用户已请求停止时不再开新运行。
@@ -439,16 +538,110 @@ class KhatKitToolProvider(
         trigger: String = "AI",
         uiSchema: JsonObject? = null,
         parentRunId: String? = null,
+        options: CardExecutionOptions = CardExecutionOptions(),
+        uiMode: UiMode? = null,
+        conversationId: kotlin.uuid.Uuid? = null,
     ): EngineResult {
         val userRun = trigger == "用户"
         if (userRun && !activeUserCards.add(card.manifest.name)) {
             return EngineResult.Err("CARD_ALREADY_RUNNING", "卡片正在运行：${card.manifest.name}")
         }
+        // 运行级 UI 策略：显式传入 > options 里显式声明的非默认值 > 按触发来源推导。
+        // 无人值守（定时任务 / 事件触发 / flow）默认 HEADLESS：脚本里的 ui.* 立即返回，
+        // 不会把后台线程挂在 300s 的弹层等待上，也不会在屏幕上留弹层。
+        val mode = uiMode
+            ?: options.uiMode.takeIf { it != UiMode.INTERACTIVE }
+            ?: defaultUiMode(trigger)
         try {
-            return runCardTracked(card, args, trigger, uiSchema, parentRunId)
+            return runCardTracked(card, args, trigger, uiSchema, parentRunId, options.copy(uiMode = mode), mode, conversationId)
         } finally {
             if (userRun) activeUserCards.remove(card.manifest.name)
         }
+    }
+
+    /** 触发来源 → 默认 UI 策略（见 `docs/lua-card-development.md` §3.5）。 */
+    internal fun defaultUiMode(trigger: String): UiMode = defaultUiModeForTrigger(trigger)
+
+    /** 一次「有人在等用户」的运行上下文：迟到提交按卡片名找回来续跑。 */
+    private data class PendingInteraction(
+        val args: Map<String, Any?>,
+        val conversationId: kotlin.uuid.Uuid?,
+        val createdAt: Long,
+    )
+
+    /**
+     * 逾期运行的收尾提示：这次弹层没等到用户，但用户之后提交的值会自动续跑。
+     *
+     * 加在返回值里而不是写“取消”，避免 AI 把「超时」当成「用户拒绝」而重跑一遍。
+     */
+    private fun annotateUiPending(result: EngineResult): EngineResult = when (result) {
+        is EngineResult.Ok -> EngineResult.Ok(
+            result.value + mapOf(
+                "ui_pending" to "用户在卡片弹层里操作超过等待上限；用户之后提交的值会自动重新运行本卡片，" +
+                    "结果会作为新消息补发到本会话，不要再重复调用。",
+            ),
+        )
+        is EngineResult.Err -> result
+    }
+
+    /**
+     * 迟到的用户提交（脚本早已按超时返回）：重跑一次卡片并把结果补发回原会话。
+     *
+     * `values == null` 表示用户关掉了弹层，只补发一条「取消」说明，不触发再生成。
+     */
+    private fun onLateUiAnswer(cardName: String, answer: LateUiAnswer) {
+        val pending = pendingInteractions.remove(cardName) ?: return
+        if (System.currentTimeMillis() - pending.createdAt > PENDING_INTERACTION_TTL_MS) return
+        scope.launch {
+            if (answer.cancelled) {
+                deliverToConversation(
+                    pending.conversationId,
+                    "【卡片：$cardName】用户关闭了参数/操作弹层，本次交互取消。",
+                    answer = false,
+                )
+                return@launch
+            }
+            val card = runCatching { resolveCardByName(cardName) }.getOrNull()
+            if (card == null) {
+                deliverToConversation(
+                    pending.conversationId,
+                    "【卡片：$cardName】用户补齐了参数，但卡片当前不可用，未能继续运行。",
+                    answer = false,
+                )
+                return@launch
+            }
+            // 续跑 = 重新执行脚本；ReplayUiBridge 让脚本下一次 ui.form/screen/sheet/confirm
+            // 直接拿到用户之前提交的值，而不是再弹一次（HEADLESS 会返回 nil，值就白丢了）。
+            val result = runCardWithStatus(
+                card = card,
+                args = pending.args + (answer.values ?: emptyMap()),
+                trigger = "用户",
+                options = CardExecutionOptions(ui = ReplayUiBridge(answer)),
+                conversationId = pending.conversationId,
+            )
+            deliverToConversation(pending.conversationId, describeLateResult(cardName, result), answer = true)
+        }
+    }
+
+    private fun describeLateResult(cardName: String, result: EngineResult): String = when (result) {
+        is EngineResult.Ok -> "【卡片：$cardName】用户补参后的运行结果：\n" + encode(result.value)
+        is EngineResult.Err -> "【卡片：$cardName】用户补参后的运行失败（${result.code}）：${result.message}"
+    }
+
+    /**
+     * 把迟到交互的结果发回原会话，让 AI 接着往下走。
+     *
+     * `answer = true` 会像用户发消息一样触发新一轮生成；Core 层不直接持有 [ChatManager]
+     * （`ChatManager → ChatToolFactory → 本 Provider` 会成环），所以运行时经 Hilt
+     * [EntryPoint] 取单例，失败只记日志，不能影响卡片本身。
+     */
+    private fun deliverToConversation(conversationId: kotlin.uuid.Uuid?, text: String, answer: Boolean) {
+        val id = conversationId ?: return
+        runCatching {
+            EntryPointAccessors.fromApplication(appContext, CardInteractionEntryPoint::class.java)
+                .chatManager()
+                .sendMessage(id, listOf(UIMessagePart.Text(text)), answer = answer)
+        }.onFailure { Log.w(TAG, "卡片续跑结果补发失败：$id", it) }
     }
 
     private suspend fun runCardTracked(
@@ -457,10 +650,15 @@ class KhatKitToolProvider(
         trigger: String,
         uiSchema: JsonObject?,
         parentRunId: String?,
+        options: CardExecutionOptions,
+        uiMode: UiMode,
+        conversationId: kotlin.uuid.Uuid?,
     ): EngineResult {
         val runId = UUID.randomUUID().toString()
         val queuedAt = System.currentTimeMillis()
         val argsSummary = args.keys.sorted().joinToString(", ")
+        // 操作屏提交后会被「保持显示」到本次运行结束；超时那种要留着等迟到提交，不能收。
+        var keepLateScreen = false
         runCatching {
             cardRunDao.insert(
                 CardRunEntity(
@@ -477,9 +675,10 @@ class KhatKitToolProvider(
                 ),
             )
         }
-        // §8 P0-6：缺必填 UI 参数时先用宿主 schema 表单补齐，再走下面同一条执行/审批/计量链路
+        // §8 P0-6：缺必填 UI 参数时先用宿主 schema 表单补齐，再走下面同一条执行/审批/计量链路。
+        // HEADLESS 运行连这个表单也不弹：AI 明确「只要结果」时不该被弹层拦住，脚本按缺参降级即可。
         val arguments = try {
-            fillCardArgs(card, args, trigger, uiSchema)
+            if (uiMode == UiMode.INTERACTIVE) fillCardArgs(card, args, trigger, uiSchema) else args
         } catch (e: Exception) {
             recordCardRunException(runId, e)
             throw e
@@ -489,6 +688,11 @@ class KhatKitToolProvider(
                 .onFailure { Log.w(TAG, "任务参数模板写入失败：$runId", it) }
         }
         runCatching { cardRunDao.updateStatus(runId, CardRunEntity.PREPARING, System.currentTimeMillis()) }
+        // 交互式运行登记续跑上下文：用户迟到的提交靠它找回来（无人值守不需要）
+        if (uiMode == UiMode.INTERACTIVE && (trigger == "AI" || trigger == "用户")) {
+            pendingInteractions[card.manifest.name] = PendingInteraction(args, conversationId, System.currentTimeMillis())
+        }
+        val uiTimeoutsBefore = uiHost.timeouts.value
         if (AutomationBus.isCancelRequested()) {
             runCatching {
                 cardRunDao.finish(
@@ -558,16 +762,24 @@ class KhatKitToolProvider(
                 return denied
             }
             val startedAt = System.currentTimeMillis()
-            val result = runManager.run(card, arguments)
+            // 脚本可见的运行期上下文：触发来源（AI / 用户 / 定时任务 / 事件触发 / flow / 聊天小组件）。
+            // `__khatkit_ui` 是宿主开关，不进脚本参数。
+            val scriptArgs = arguments.filterKeys { !it.startsWith("__khatkit_ui") } + mapOf("__khatkit_trigger" to trigger)
+            val result = runManager.run(card, scriptArgs) { loaded, input -> executor().execute(loaded, input, options) }
+            val uiTimedOut = uiHost.timeouts.value > uiTimeoutsBefore
+            keepLateScreen = uiTimedOut
+            if (!uiTimedOut) pendingInteractions.remove(card.manifest.name)
             recordCardRunFinished(runId, result)
             if (!hubToken.isNullOrBlank()) {
                 reportToolCallAsync(hubToken, manifest, price, trigger, startedAt, result)
             }
-            return result
+            return if (uiTimedOut) annotateUiPending(result) else result
         } catch (e: Exception) {
+            pendingInteractions.remove(card.manifest.name)
             recordCardRunException(runId, e)
             throw e
         } finally {
+            if (!keepLateScreen) uiHost.endScreen()
             AutomationBus.finish()
         }
     }
@@ -704,12 +916,14 @@ class KhatKitToolProvider(
     ): Map<String, Any?> {
         if (trigger != "AI" && trigger != "用户") return args
         val manifest = card.manifest
+        val locales = appContext.resources.configuration.locales
+        val strings = CardStrings(manifest, (0 until locales.size()).map { locales[it].toLanguageTag() })
         val plan = runCatching {
             KhatKitSchemaFormSpec.plan(
-                name = manifest.name,
-                parameters = manifest.parameters,
-                uiSchema = uiSchema,
-                ui = manifest.ui,
+                name = strings.name,
+                parameters = strings.resolveJson(manifest.parameters) as JsonObject,
+                uiSchema = uiSchema?.let { strings.resolveJson(it) as JsonObject },
+                ui = manifest.ui.mapValues { strings.resolveJson(it.value) as JsonObject },
                 provided = args,
             )
         }.getOrNull() ?: return args
@@ -787,7 +1001,10 @@ class KhatKitToolProvider(
      * 组装全部工具。[model] 为当前生成所用模型：支持图片输入时 device_screen 会把截图作为图片
      * 一并返回，让多模态模型直接「看」屏幕；为 null（如 MCP 出口）时只返回文本。
      */
-    suspend fun tools(model: Model? = null): List<Tool> = withContext(Dispatchers.IO) {
+    suspend fun tools(
+        model: Model? = null,
+        conversationId: kotlin.uuid.Uuid? = null,
+    ): List<Tool> = withContext(Dispatchers.IO) {
         // 内置卡片先落地（已存在的跳过），保证随版本新增的示例卡片可见
         if (!builtinsInstalled) {
             runCatching { BuiltinCards.install(appContext, cache) }
@@ -820,7 +1037,7 @@ class KhatKitToolProvider(
         val cardTools = specs
             .filter { it.supportsAi() && !(isVflowCard(it.name) && !vflowReady) }
             .take(TOOL_CANDIDATE_LIMIT)
-            .map { spec -> spec.toTool() } + cloudScriptsTool() + runFlowTool()
+            .map { spec -> spec.toTool(conversationId) } + cloudScriptsTool(conversationId) + runFlowTool()
         // 无障碍可用时挂宿主专用内置工具（overlay/screen_state/unlock）；
         // 看屏幕与基本动作已外置为 a11y_screen / a11y_act / a11y_visual_act 卡片
         if (AccessibilityBridgeHolder.current() == null) {
@@ -903,7 +1120,7 @@ class KhatKitToolProvider(
         }.getOrNull() ?: spec.card
     }
 
-    private fun CardToolSpec.toTool(): Tool {
+    private fun CardToolSpec.toTool(conversationId: kotlin.uuid.Uuid?): Tool {
         // 审批已统一移到自动化悬浮看板（runCardWithStatus），这里不再走会话内审批
         return Tool(
             name = "khatkit__$name",
@@ -914,9 +1131,13 @@ class KhatKitToolProvider(
             },
             execute = { args ->
                 // 脚本据此区分 AI 已明确给出完整参数的调用与用户手动打开的配置页。
-                val arguments = jsonToMap(args).toMutableMap().apply {
+                val raw = jsonToMap(args).toMutableMap().apply {
                     put("__khatkit_trigger", "AI")
                 }
+                // AI 显式只要结果时传 `__khatkit_ui = "headless"`：本次运行不弹任何层，
+                // `ui.*` 立即返回 nil（见 docs/lua-card-development.md §3.5）。
+                val requestedUi = UiMode.fromId(raw.remove("__khatkit_ui")?.toString())
+                val arguments = raw
                 // 任何异常都收敛成 error 文本，不能让卡片问题打断整轮生成。
                 val result = try {
                     val card = resolveCard(this)
@@ -931,6 +1152,8 @@ class KhatKitToolProvider(
                             trigger = "AI",
                             // P0-6：Hub 索引里的 ui_schema 只作展示控件提示，缺参判断仍以 input_schema 为准
                             uiSchema = entry?.uiSchema,
+                            uiMode = requestedUi,
+                            conversationId = conversationId,
                         )
                     }
                 } catch (e: CancellationException) {
@@ -967,7 +1190,7 @@ class KhatKitToolProvider(
      * 卡片候选超过 [TOOL_CANDIDATE_LIMIT] 时，仍可用 run 参数指定卡片名，
      * 自动安装（含 requires.dependencies 原生依赖）后运行。
      */
-    private fun cloudScriptsTool(): Tool = Tool(
+    private fun cloudScriptsTool(conversationId: kotlin.uuid.Uuid?): Tool = Tool(
         name = "khatkit__search_cloud_cards",
         description = "云端卡片脚本（非 vFlow）——可按需安装并运行；vFlow 是另一个 App，仅通过 vflow_* 卡片联动。" +
             "用 query 搜索云端卡片（按名称/描述/标签/用途，如：翻译、抠图、下载、PDF、快递、网盘、视频、无障碍），" +
@@ -1030,7 +1253,13 @@ class KhatKitToolProvider(
                                     runCatching { jsonToMap(json.parseToJsonElement(raw)) }.getOrNull()
                                 }.orEmpty()
                                 val result = try {
-                                    runCardWithStatus(card, runArgs, trigger = "AI", uiSchema = entry.uiSchema)
+                                    runCardWithStatus(
+                                        card,
+                                        runArgs,
+                                        trigger = "AI",
+                                        uiSchema = entry.uiSchema,
+                                        conversationId = conversationId,
+                                    )
                                 } catch (e: CancellationException) {
                                     throw e
                                 } catch (e: Throwable) {
@@ -1847,6 +2076,7 @@ class KhatKitToolProvider(
         withContext(Dispatchers.IO) {
             runCatching {
                 cache.ensure(entry, hub(), force)
+                _cardCatalogueRevision.update { it + 1 }
                 true
             }.getOrDefault(false)
         }
@@ -1854,7 +2084,11 @@ class KhatKitToolProvider(
     /** 卸载卡片（删掉其所有版本目录）。 */
     override suspend fun uninstallCard(name: String): Boolean = withContext(Dispatchers.IO) {
         val ok = cache.uninstall(name)
-        if (ok) cancelScheduledCardJobs(name)
+        if (ok) {
+            cancelScheduledCardJobs(name)
+            settings.edit().remove("chat_widget.$name").apply()
+            _cardCatalogueRevision.update { it + 1 }
+        }
         ok
     }
 
@@ -1959,6 +2193,9 @@ class KhatKitToolProvider(
             dir.mkdirs()
             File(dir, "card.json").writeText(card.manifestJson)
             File(dir, "main.js").writeText(card.scriptText)
+            // 这条路不经过 CardCache.ensure()，要自己补记添加顺序，否则欢迎页里排到最后。
+            cache.recordInstall(card.name)
+            _cardCatalogueRevision.update { it + 1 }
             true
         }.getOrDefault(false)
     }
@@ -2228,10 +2465,14 @@ class KhatKitToolProvider(
             hubClient ?: HubClient(hubBaseUrl).also { hubClient = it }
         }
 
-    private fun loadInstalledCards(): List<LoadedCard> =
-        cache.installedVersions().mapNotNull { (name, version) ->
-            runCatching { cache.load(cache.cardDir(name, version)) }.getOrNull()
-        }
+    /**
+     * 已安装卡片，**按添加顺序**排列（顺序口径在 [CardCache.installedCards] 里）。
+     *
+     * 欢迎页小组件、AI 的工具候选、市场页「已安装」都吃这一份，所以顺序只能有一处定义：
+     * `installedVersions()` 是目录列举出来的 map，ext4 上是哈希序，卡片更新一次换个 inode
+     * 就会整体跳位。
+     */
+    private fun loadInstalledCards(): List<LoadedCard> = cache.installedCards()
 
     companion object {
         /** 卡片 Hub 默认指向 KodeHeadServer；可在卡片市场设置里改。 */
@@ -2294,6 +2535,21 @@ private const val FLOW_MAX_STEPS = 20
  * 超过上限即停止并降级为占位文本，保证任何输入都能终止。
  */
 private const val MAX_RECURSION_DEPTH = 32
+
+/** 迟到 UI 提交的续跑有效期：超过就不再重跑（避免几分钟前关掉的弹层突然再触发一次生成）。 */
+private const val PENDING_INTERACTION_TTL_MS = 15 * 60 * 1000L
+
+/**
+ * 触发来源 → 默认运行期 UI 策略（`docs/lua-card-development.md` §3.5）。
+ *
+ * 有人看着的入口（AI 工具调用、用户手动运行、聊天小组件）允许弹层；
+ * 无人值守的入口（定时任务、事件触发、flow 子步骤）一律 HEADLESS，
+ * 否则脚本里一句 `ui.form` 会把后台线程挂到超时。
+ */
+internal fun defaultUiModeForTrigger(trigger: String): UiMode = when (trigger) {
+    "AI", "用户", "聊天小组件" -> UiMode.INTERACTIVE
+    else -> UiMode.HEADLESS
+}
 private const val RECURSION_PLACEHOLDER = "[嵌套过深]"
 
 /** device_act 触屏 / 手势动作（执行前需确认屏幕点亮） */
@@ -2726,4 +2982,16 @@ private fun JsonElement.toPlainValue(): Any? = when (this) {
         content == "false" -> false
         else -> content.toLongOrNull() ?: content.toDoubleOrNull() ?: content
     }
+}
+
+/**
+ * Core 层经它取 [ChatManager]，用于把迟到交互的续跑结果补发回会话。
+ *
+ * 为什么不构造注入：`ChatManager -> ChatToolFactory -> KhatKitToolProvider` 已是闭环，
+ * 再注入 ChatManager 会成环；运行时用 Hilt EntryPoint 取已建好的单例最省事。
+ */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface CardInteractionEntryPoint {
+    fun chatManager(): ChatManager
 }

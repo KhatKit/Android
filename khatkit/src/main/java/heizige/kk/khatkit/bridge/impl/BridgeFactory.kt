@@ -102,6 +102,10 @@ object BridgeFactory {
             accessibility = accessibilityBridge,
             schedule = schedule ?: UnavailableScheduleBridge(),
             browserProvider = browserProvider,
+            localeTags = {
+                val locales = appContext.resources.configuration.locales
+                (0 until locales.size()).map { locales[it].toLanguageTag() }
+            },
         )
 
         // 原生依赖包：随云端卡片下载，校验 sha256 + ECDSA 签名后 DexClassLoader 加载为动态 bridge。

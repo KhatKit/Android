@@ -21,7 +21,7 @@ data class CardIssue(
 object CardValidator {
     val ENGINES = setOf("lua", "js", "auto", "command")
     val PRIVILEGES = setOf("none", "elevated")
-    val BRIDGES = setOf("tool", "net", "fs", "json", "crypto", "time", "host", "system", "ai", "mediaPicker", "ui", "web", "browser", "download", "store", "shizuku", "root", "accessibility", "imageToolbox", "schedule")
+    val BRIDGES = setOf("tool", "net", "fs", "json", "crypto", "time", "host", "system", "ai", "mediaPicker", "ui", "web", "browser", "download", "store", "shizuku", "root", "accessibility", "imageToolbox", "schedule", "i18n")
     private val BRIDGE_METHODS = mapOf(
         "net" to setOf("get", "post", "put", "delete", "multipart", "streamText", "toFile", "head"),
         "fs" to setOf("read", "write", "exists", "stat", "list", "copy", "move", "mkdir", "delete", "zip", "unzip", "readBase64", "saveBase64", "openDir"),
@@ -62,6 +62,39 @@ object CardValidator {
         }
         if (manifest.privilege !in PRIVILEGES) {
             error("PRIVILEGE_UNKNOWN", "privilege 必须是 none|elevated：${manifest.privilege}")
+        }
+        (manifest.i18n.keys + manifest.defaultLocale).forEach { tag ->
+            if (tag.isBlank() || java.util.Locale.forLanguageTag(tag.replace('_', '-')).language.isBlank()) {
+                error("LOCALE_INVALID", "i18n 需要有效的 BCP 47 语言代码：$tag")
+            }
+        }
+        if (manifest.i18n.keys.map(CardStrings::normalize).distinct().size != manifest.i18n.size) {
+            error("LOCALE_DUPLICATE", "i18n 中的语言代码不能重复（忽略大小写和下划线）")
+        }
+        manifest.widget?.let { widget ->
+            if (manifest.isCommand) error("WIDGET_ENGINE", "command 卡片不支持聊天小组件")
+            if ("ui" !in manifest.requiredBridges) error("WIDGET_UI", "小组件需要声明 ui bridge")
+            widget.bridges?.let { bridges ->
+                if ("ui" !in bridges || !manifest.requiredBridges.containsAll(bridges)) {
+                    error("WIDGET_BRIDGES", "widget.bridges 必须包含 ui，且只能使用 requires.bridges 的子集")
+                }
+            }
+            val entries = listOfNotNull(widget.entry.lua, widget.entry.js)
+            if (entries.isEmpty() ||
+                (manifest.engine == "lua" && widget.entry.lua.isNullOrBlank()) ||
+                (manifest.engine == "js" && widget.entry.js.isNullOrBlank())
+            ) error("WIDGET_ENTRY", "小组件需要与 engine 匹配的独立入口")
+            entries.forEach { path ->
+                if (path.isBlank() || path.startsWith("/") || '\\' in path ||
+                    path.split('/').any { it == ".." || it == "." || it.isEmpty() }
+                ) error("WIDGET_PATH", "小组件入口必须位于卡片目录内：$path")
+                if (path == manifest.entry.lua || path == manifest.entry.js) {
+                    error("WIDGET_MAIN_ENTRY", "小组件不能使用工具任务的入口：$path")
+                }
+                if (scripts.isNotEmpty() && path !in scripts) {
+                    error("WIDGET_SCRIPT_MISSING", "缺少小组件脚本：$path")
+                }
+            }
         }
 
         // 触发方式：只允许 ai/user，不允许为空或重复

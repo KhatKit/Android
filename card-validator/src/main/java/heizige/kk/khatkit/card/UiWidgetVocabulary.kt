@@ -9,8 +9,9 @@ package heizige.kk.khatkit.card
 object UiWidgetVocabulary {
     val NODES = setOf(
         "Column", "Row", "Box", "Spacer", "Divider", "Card", "Section",
-        "Text", "Markdown", "Image", "Badge", "ProgressBar", "TextField", "NumberField",
+        "Text", "Markdown", "Image", "Icon", "Badge", "ProgressBar", "TextField", "NumberField",
         "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "Button",
+        "IconButton",
     )
     val LEGACY = setOf(
         "text", "input", "number", "switch", "slider", "select", "radio",

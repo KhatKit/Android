@@ -6,23 +6,37 @@ do
     TextField="string", NumberField="number", Switch="boolean", Checkbox="boolean",
     Slider="number", Select="string", RadioGroup="string", FilePicker="paths", DirPicker="string",
   }
+  -- Icon 名单与运行时 UiIcons.names 一致（khatkit 的 UiIconsTest 会比对两份）。
+  local icons = {}
+  for name in ([[account_circle add analytics arrow_back arrow_downward arrow_forward
+    arrow_upward bolt block calendar_month cancel celebration check check_circle close delete
+    edit email error event expand_more favorite favorite_border history hourglass_top info insights
+    link lock more_vert notifications open_in_new paid people person psychology refresh remove
+    rocket_launch schedule search settings share star star_border sync thumb_down thumb_up timer
+    trending_down trending_up verified visibility warning]]):gmatch("%S+") do icons[name] = true end
   local schemas = {
     Column={spacing="number",hAlign="start|center|end",scrollable="boolean",modifier="modifier"},
     Row={spacing="number",vAlign="start|center|end|space_between",modifier="modifier"},
     Box={hAlign="start|center|end",vAlign="start|center|end",modifier="modifier"},
     Spacer={height="number",width="number"}, Divider={},
     Card={title="string",modifier="modifier"}, Section={title="string",modifier="modifier"},
-    Text={text="string",style="title|subtitle|body|label|code",tone="default|muted|primary|error",bold="boolean",modifier="modifier"},
+    Text={text="string",style="title|subtitle|body|label|code",tone="default|muted|primary|error",bold="boolean",
+      color="color",size="number",weight="normal|medium|semibold|bold",modifier="modifier"},
+    Icon={name="icon",tone="default|muted|primary|error|success|warning",color="color",size="number",
+      contentDescription="string",modifier="modifier"},
     Markdown={text="string",modifier="modifier"},
     Image={src="string",contentDescription="string",modifier="modifier"},
-    Badge={text="string",tone="default|primary|success|warning|error"},
+    Badge={text="string",tone="default|primary|success|warning|error",color="color"},
     ProgressBar={ratio="number",label="string"},
     TextField={placeholder="string",multiline="boolean",lines="number"},
     NumberField={min="number",max="number",step="number"},
     Switch={}, Checkbox={}, Slider={min="number",max="number",step="number"},
     Select={options="strings"}, RadioGroup={options="strings"},
     FilePicker={filter="image|video|audio|document|any",multiple="boolean"}, DirPicker={},
-    Button={label="string",action="string",tone="primary|default|danger",disabled="boolean"},
+    Button={label="string",action="string",tone="primary|default|danger",disabled="boolean",
+      icon="icon",color="color",modifier="modifier"},
+    IconButton={action="string",icon="icon",tone="default|muted|primary|error|success|warning",
+      disabled="boolean",contentDescription="string",modifier="modifier"},
   }
   for name, kind in pairs(fields) do
     local s = schemas[name]
@@ -30,6 +44,14 @@ do
   end
   local function fail(where, why) error("ui." .. where .. ": " .. why, 3) end
   local function number(v) return type(v)=="number" and v==v and math.abs(v)<math.huge end
+  local color_roles = {}
+  for role in ([[surface on_surface on_surface_variant surface_container surface_container_high
+    surface_container_highest outline_variant primary on_primary error error_container on_error_container]]):gmatch("%S+") do
+    color_roles[role] = true
+  end
+  local function color(v)
+    return type(v)=="string" and (color_roles[v] or v:match("^#%x%x%x%x%x%x$") or v:match("^#%x%x%x%x%x%x%x%x$"))
+  end
   local function array(t, where)
     if type(t)~="table" then fail(where,"expected array") end
     local n=0
@@ -65,11 +87,16 @@ do
     elseif name=="clip" then
       if (n~=1 and n~=2) or (args[1]~="rounded" and args[1]~="circle")
         or (n==2 and (not number(args[2]) or args[2]<0)) then fail("Modifier.clip","invalid shape/radius") end
+    elseif name=="background" then
+      if n~=1 or not color(args[1]) then
+        fail("Modifier.background","expected theme color role, #RRGGBB or #AARRGGBB")
+      end
     else fail("Modifier."..tostring(name),"unknown operation") end
   end
   local function modifier(ops)
     return setmetatable({__mod=ops}, {__index=function(_, name)
-      if not noargs[name] and not dimensions[name] and name~="padding" and name~="visible" and name~="clip" then
+      if not noargs[name] and not dimensions[name] and name~="padding" and name~="visible"
+        and name~="clip" and name~="background" then
         fail("Modifier."..tostring(name),"unknown operation")
       end
       return function(...)
@@ -99,6 +126,12 @@ do
       for _,s in ipairs(v) do if type(s)~="string" then fail(where,"expected string array") end end
     elseif kind=="number" then
       if not number(v) then fail(where,"expected finite number") end
+    elseif kind=="color" then
+      if not color(v) then
+        fail(where,"expected theme color role, #RRGGBB or #AARRGGBB")
+      end
+    elseif kind=="icon" then
+      if type(v)~="string" or not icons[v] then fail(where,"unknown icon") end
     elseif kind:find("|",1,true) then
       if type(v)~="string" or not ("|"..kind.."|"):find("|"..v.."|",1,true) then fail(where,"invalid token") end
     elseif type(v)~=(kind=="paths" and "string" or kind) then fail(where,"expected "..kind) end
@@ -137,10 +170,17 @@ do
       if p.step and p.step<=0 then fail(name..".step","must be positive") end
       if name=="Section" and not p.title then fail(name..".title","required") end
       if name=="Image" and (not p.src or p.src=="" or
-        (p.src:sub(1,1)~="/" and p.src:sub(1,10)~="content://")) then
-        fail(name..".src","expected local absolute path or content URI")
+        (p.src:sub(1,1)~="/" and p.src:sub(1,10)~="content://" and p.src:sub(1,8)~="https://")) then
+        fail(name..".src","expected local path, content URI or https URL")
       end
+      if (name=="Text" or name=="Icon") and p.size and (p.size<6 or p.size>64) then
+        fail(name..".size","expected 6..64")
+      end
+      if name=="Icon" and not p.name then fail(name..".name","required") end
       if name=="Button" and (not p.action or p.action=="") then fail(name..".action","required") end
+      if name=="IconButton" and (not p.action or p.action=="" or not p.icon) then
+        fail(name..".action","action and icon are required")
+      end
       local n=array(node.children,name..".children")
       if not layouts[name] and n>0 then fail(name..".children","leaf cannot contain children") end
       for _,child in ipairs(node.children) do visit(child,depth+1) end
