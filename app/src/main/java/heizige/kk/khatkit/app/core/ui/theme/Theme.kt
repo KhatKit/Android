@@ -24,11 +24,30 @@ private val ExtendDarkColors = darkExtendColors()
 
 val LocalDarkMode = compositionLocalOf { false }
 
-/** 本仓 [ColorMode] → mochi 的配色模式：只换明暗，不换种子色/取色算法（预设主题运行期不注入）。 */
-private fun ColorMode.toMochiColorSchemeMode(): ColorSchemeMode = when (this) {
+/**
+ * 本仓 [ColorMode] → mochi 的配色模式：**只换明暗**，不换种子色/取色算法（预设主题运行期不注入）。
+ *
+ * 三态闭环：
+ *  · [ColorMode.SYSTEM] → [ColorSchemeMode.System]：mochi 的 `ThemeController.currentColorScheme()`
+ *    读 `isSystemInDarkTheme()`，系统切夜间即跟随（见 Theme.kt 里 `darkTheme` 的同一判定）；
+ *  · [ColorMode.LIGHT] / [ColorMode.DARK] → `ColorSchemeMode.Light` / `.Dark`：强覆盖，与系统无关；
+ *  · `darkTheme`（LocalDarkMode/扩展色/系统栏图标/代码高亮用）与配色同源于 `colorMode`，
+ *    所以不会再出现「配色深、图标浅」的错位。单测见 `ColorModeMappingTest`。
+ */
+internal fun ColorMode.toMochiColorSchemeMode(): ColorSchemeMode = when (this) {
     ColorMode.SYSTEM -> ColorSchemeMode.System
     ColorMode.LIGHT -> ColorSchemeMode.Light
     ColorMode.DARK -> ColorSchemeMode.Dark
+}
+
+/**
+ * 三态 → 明暗的**唯一**判定（配色、LocalDarkMode、扩展色、系统栏图标、代码高亮都读它）：
+ * SYSTEM 跟随 [systemDark]，LIGHT/DARK 强覆盖系统。单测见 ColorModeMappingTest。
+ */
+internal fun ColorMode.resolveDark(systemDark: Boolean): Boolean = when (this) {
+    ColorMode.SYSTEM -> systemDark
+    ColorMode.LIGHT -> false
+    ColorMode.DARK -> true
 }
 
 @Serializable
@@ -55,11 +74,8 @@ fun KhatKitTheme(
 ) {
     val settings by rememberUserSettingsState()
 
-    val darkTheme = when (colorMode) {
-        ColorMode.SYSTEM -> isSystemInDarkTheme()
-        ColorMode.LIGHT -> false
-        ColorMode.DARK -> true
-    }
+    // 三态判定只此一处：配色、图标、扩展色都从这里拿同一个 boolean
+    val darkTheme = colorMode.resolveDark(isSystemInDarkTheme())
     val amoledDarkMode by rememberAmoledDarkMode()
 
     val extendColors = if (darkTheme) ExtendDarkColors else ExtendLightColors

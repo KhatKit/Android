@@ -200,9 +200,10 @@ fun InlineCardGroup(
 /**
  * 组卡片的底色。
  *
- * - MD3Exp：`CustomColors.cardColorsOnSurfaceContainer.containerColor`（= `surfaceBright`），
- *   与改造前 `KedgeFormCard` 的 MD3 分支（`KkCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
- *   完全一致。
+ * - MD3Exp：`CustomColors.cardColorsOnSurfaceContainer.containerColor`（= `surfaceContainerHigh`，
+ *   见 `themecompat/Color.kt` 里 CustomColors 的说明：刻意不用 `surfaceBright` —— 那个角色浅色下
+ *   与 surface 同色会让分组整片消失、深色下又比 surface 亮太多），
+ *   与改造前 `KedgeFormCard` 的 MD3 分支（`KkCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）同源。
  * - Miuix：`MaterialTheme.colorScheme.surfaceContainer`（= `MochiTheme.colorScheme.surfaceContainer`），
  *   与改造前 Miuix 分支那张卡、以及 `MochiOptionItem` 自己的行卡片同色。
  *

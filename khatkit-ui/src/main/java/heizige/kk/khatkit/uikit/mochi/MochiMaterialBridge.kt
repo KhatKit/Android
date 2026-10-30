@@ -75,7 +75,77 @@ fun rememberMochiMaterialTokens(amoled: Boolean = false): MochiMaterialTokens {
     }
 }
 
-private fun MochiColorScheme.toMaterial3(): ColorScheme = ColorScheme(
+/**
+ * MD3 的 12 个 **fixed* / onFixed*** 角色：与明暗**无关**的 tone-fixed 色
+ * （primary 家族 = P90/P80/P10/P30 一族；secondary/tertiary 同理）。
+ *
+ * `MochiColorScheme` 只给「当前明暗那一套」的 37 个角色，没有 fixed 系列。
+ * 不显式传的话 material3 会走自己的默认推导，动态色组件（featured 卡、carousel、
+ * 工具栏底色等）就会拿到跟 Mochi 无关的紫调默认色。这里从**已有角色**按 MD3 tone 规范反推，
+ * 每个家族需要的四个 tone 在两个明暗里各有一半，正好互补：
+ *
+ * | tone | light 取谁 | dark 取谁 |
+ * |---|---|---|
+ * | 90 (Fixed) | primaryContainer | onPrimaryContainer |
+ * | 80 (FixedDim) | inversePrimary（secondary/tertiary 无 inverse → 由 40→90 插值） | primary |
+ * | 10 (OnFixed) | onPrimaryContainer | 由 30 向黑插值（暗色下没有 10 档角色） |
+ * | 30 (OnFixedVariant) | 由 10→40 插值 | primaryContainer |
+ *
+ * 插值用 compose 的 `lerp`（Oklab，不发灰），误差约 1~3 个 tone，正文/图标对比度不受影响。
+ * 一旦 Mochi 对外暴露 tonal palette，这里应改成精确取 tone。
+ */
+private class MochiFixedRoles(
+    val primaryFixed: Color,
+    val primaryFixedDim: Color,
+    val onPrimaryFixed: Color,
+    val onPrimaryFixedVariant: Color,
+    val secondaryFixed: Color,
+    val secondaryFixedDim: Color,
+    val onSecondaryFixed: Color,
+    val onSecondaryFixedVariant: Color,
+    val tertiaryFixed: Color,
+    val tertiaryFixedDim: Color,
+    val onTertiaryFixed: Color,
+    val onTertiaryFixedVariant: Color,
+)
+
+/** 90/80/10/30 四个 tone 的取法见 [MochiFixedRoles] 注释里的表。 */
+private fun MochiColorScheme.fixedRoles(): MochiFixedRoles =
+    if (!isDark) {
+        MochiFixedRoles(
+            primaryFixed = primaryContainer,
+            primaryFixedDim = inversePrimary,
+            onPrimaryFixed = onPrimaryContainer,
+            onPrimaryFixedVariant = lerp(onPrimaryContainer, primary, 2f / 3f),
+            secondaryFixed = secondaryContainer,
+            secondaryFixedDim = lerp(secondary, secondaryContainer, 0.8f),
+            onSecondaryFixed = onSecondaryContainer,
+            onSecondaryFixedVariant = lerp(onSecondaryContainer, secondary, 2f / 3f),
+            tertiaryFixed = tertiaryContainer,
+            tertiaryFixedDim = lerp(tertiary, tertiaryContainer, 0.8f),
+            onTertiaryFixed = onTertiaryContainer,
+            onTertiaryFixedVariant = lerp(onTertiaryContainer, tertiary, 2f / 3f),
+        )
+    } else {
+        MochiFixedRoles(
+            primaryFixed = onPrimaryContainer,
+            primaryFixedDim = primary,
+            onPrimaryFixed = lerp(primaryContainer, Color.Black, 2f / 3f),
+            onPrimaryFixedVariant = primaryContainer,
+            secondaryFixed = onSecondaryContainer,
+            secondaryFixedDim = secondary,
+            onSecondaryFixed = lerp(secondaryContainer, Color.Black, 2f / 3f),
+            onSecondaryFixedVariant = secondaryContainer,
+            tertiaryFixed = onTertiaryContainer,
+            tertiaryFixedDim = tertiary,
+            onTertiaryFixed = lerp(tertiaryContainer, Color.Black, 2f / 3f),
+            onTertiaryFixedVariant = tertiaryContainer,
+        )
+    }
+
+private fun MochiColorScheme.toMaterial3(): ColorScheme {
+    val fixed = fixedRoles()
+    return ColorScheme(
     primary = primary,
     onPrimary = onPrimary,
     primaryContainer = primaryContainer,
@@ -112,7 +182,21 @@ private fun MochiColorScheme.toMaterial3(): ColorScheme = ColorScheme(
     surfaceContainer = surfaceContainer,
     surfaceContainerHigh = surfaceContainerHigh,
     surfaceContainerHighest = surfaceContainerHighest,
+    // fixed*：显式映射，避免动态色组件落回 material3 默认推导（见 MochiFixedRoles）
+    primaryFixed = fixed.primaryFixed,
+    primaryFixedDim = fixed.primaryFixedDim,
+    onPrimaryFixed = fixed.onPrimaryFixed,
+    onPrimaryFixedVariant = fixed.onPrimaryFixedVariant,
+    secondaryFixed = fixed.secondaryFixed,
+    secondaryFixedDim = fixed.secondaryFixedDim,
+    onSecondaryFixed = fixed.onSecondaryFixed,
+    onSecondaryFixedVariant = fixed.onSecondaryFixedVariant,
+    tertiaryFixed = fixed.tertiaryFixed,
+    tertiaryFixedDim = fixed.tertiaryFixedDim,
+    onTertiaryFixed = fixed.onTertiaryFixed,
+    onTertiaryFixedVariant = fixed.onTertiaryFixedVariant,
 )
+}
 
 /**
  * 圆角**统一走 Mochi 的 G2 连续曲率**（2026-10-30 样式归属拍板）：
