@@ -203,10 +203,16 @@ object CustomColors {
         }
 
     // 以下三个在 Miuix 风格下取 Miuix 的表面色，否则深色 Miuix 主题下
-    // MD3 的 surfaceBright/surfaceContainer 会明显偏灰、与 Miuix 卡片不搭。
+    // MD3 的 surfaceContainer 会明显偏灰、与 Miuix 卡片不搭。
     private val isMiuix: Boolean
         @Composable get() = false
 
+    // ⚠️ 卡片/行底色**只用 surfaceContainer* 阶梯，绝不用 surfaceBright/surfaceDim**：
+    //   · surfaceBright 在浅色 = N98（与 surface 同色）⇒ 卡片/分组/列表行在浅色下**整片消失**；
+    //   · surfaceBright 在深色 = N24（比 surface 的 N6 亮 18 个 tone）⇒ 卡片在深色下过度发灰/发白。
+    //   这一对角色是「明暗各自跑到极端」的设计，不构成阶梯；能构成阶梯的是 surfaceContainer 系列
+    //   （浅色 N100/96/94/92/90 逐档变深，深色 N4/6/12/17/22 逐档变亮，两个方向都单调）。
+    //   页面 → 组 → 行 三级各差一档：surface → surfaceContainer → surfaceContainerHigh。
     val cardColors: CardColors
         @Composable get() = CardDefaults.cardColors(
             containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceContainer
@@ -214,11 +220,11 @@ object CustomColors {
 
     val cardColorsOnSurfaceContainer: CardColors
         @Composable get() = CardDefaults.cardColors(
-            containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceBright
+            containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceContainerHigh
         )
 
     val listItemColors: ListItemColors
         @Composable get() = ListItemDefaults.colors(
-            containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceBright
+            containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceContainer
         )
 }

@@ -10,7 +10,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
+import ui.feice.mochi.theme.ColorSchemeMode
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.theme.ThemeController
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberUserSettingsState
@@ -21,6 +23,13 @@ private val ExtendLightColors = lightExtendColors()
 private val ExtendDarkColors = darkExtendColors()
 
 val LocalDarkMode = compositionLocalOf { false }
+
+/** 本仓 [ColorMode] → mochi 的配色模式：只换明暗，不换种子色/取色算法（预设主题运行期不注入）。 */
+private fun ColorMode.toMochiColorSchemeMode(): ColorSchemeMode = when (this) {
+    ColorMode.SYSTEM -> ColorSchemeMode.System
+    ColorMode.LIGHT -> ColorSchemeMode.Light
+    ColorMode.DARK -> ColorSchemeMode.Dark
+}
 
 @Serializable
 enum class ColorMode {
@@ -54,6 +63,14 @@ fun KhatKitTheme(
     val amoledDarkMode by rememberAmoledDarkMode()
 
     val extendColors = if (darkTheme) ExtendDarkColors else ExtendLightColors
+
+    // 调色板明暗必须由**本 app 的 ColorMode** 决定，不能交给 MochiTheme 的默认 controller：
+    // 默认 controller 是 ColorSchemeMode.System，只看 isSystemInDarkTheme()，
+    // 于是「设置里选浅色 + 系统是深色」会得到一套深色配色（而 LocalDarkMode/扩展色/系统栏图标
+    // 都按浅色走），这就是浅/深色适配错位的根因。预设主题运行期不注入，只换明暗。
+    val mochiController = remember(colorMode) {
+        ThemeController(colorSchemeMode = colorMode.toMochiColorSchemeMode())
+    }
 
     val isMiuix = false
     val listCardStyle = remember(
@@ -98,7 +115,7 @@ fun KhatKitTheme(
 
     // 2026-10-30 口径：全面切 Mochi，不搬旧色板/字阶 ⇒ 只用 Mochi 默认
     // colorScheme / textStyles / shapes，由 MochiTheme 独家管理系统栏图标对比度。
-    MochiTheme(systemBarAppearance = !darkTheme) {
+    MochiTheme(controller = mochiController, systemBarAppearance = !darkTheme) {
         CompositionLocalProvider(
             LocalDarkMode provides darkTheme,
             LocalExtendColors provides extendColors,
@@ -107,7 +124,7 @@ fun KhatKitTheme(
             LocalOptionSwitchScale provides 1f,
             LocalOptionSwitchExpressiveEnabled provides false,
         ) {
-            ProvideMaterial3Theme(dark = darkTheme, amoled = amoledDarkMode) {
+            ProvideMaterial3Theme(amoled = amoledDarkMode) {
                 // U4f1：全局 Toast 宿主（Mochi 胶囊）。Toast.show() 的跨页面提示都落在这里，
                 // 新的提示替换旧的，不堆叠；host 只吃胶囊区域的触摸。
                 androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {

@@ -51,7 +51,13 @@ fun <T> Select(
         MochiItem(
             label = optionToString(option),
             destructive = false,
-            icon = { _ -> optionLeading?.invoke(option) },
+            // Mochi 会给行内图标一个「行文字色」；optionLeading 里可能是 Text/Icon，
+            // 用 LocalContentColor 把它透传下去，保证「Aa」与选项文字同色。
+            icon = { color ->
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.material3.LocalContentColor provides color,
+                ) { optionLeading?.invoke(option) }
+            },
         )
     }.toImmutableList()
 

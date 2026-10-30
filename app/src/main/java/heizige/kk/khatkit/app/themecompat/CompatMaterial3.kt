@@ -12,16 +12,19 @@ import heizige.kk.khatkit.uikit.mochi.rememberMochiMaterialTokens
  * U2 正式 Bridge 的**应用侧挂载点**：全 app 只有这一处 MaterialTheme 挂载点。
  *
  * token 全部来自 Mochi（映射在 khatkit-ui/uikit/mochi/MochiMaterialBridge.kt）：
- *  - colorScheme ← MochiColorScheme（37 角色逐域拷贝；AMOLED 只压 background/surface）
+ *  - colorScheme ← MochiColorScheme（37 角色逐域拷贝；AMOLED 整条表面阶梯重锚到纯黑，见 Bridge）
  *  - shapes ← MochiShapes（按 Mochi 圆角半径建 RoundedCornerShape）
  *  - typography ← MochiTextStyles 的 15 个 MD3 角色
  *  - motionScheme ← MochiMotionScheme（当前取 expressive，逐条 spring 映射待后续）
  *
  * 页面直接用 MD3 组件即为 Mochi 外观；旧 extend 调色板与 GoogleSans 只在功能点直接引用，不进主题。
+ *
+ * 明暗**不从这里传**：唯一真相是 KhatKitTheme 里那个 ThemeController（本仓 ColorMode → mochi
+ * ColorSchemeMode），Bridge 拷过来的已经是 isDark 之后的那套角色。这里再收一个 `dark` 参数只会造出
+ * 第二个真相 —— 之前那个被 @Suppress 掉的 UNUSED_PARAMETER 就是这么骗人的。
  */
 @Composable
 fun ProvideMaterial3Theme(
-    @Suppress("UNUSED_PARAMETER") dark: Boolean,
     amoled: Boolean,
     content: @Composable () -> Unit,
 ) {
