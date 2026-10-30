@@ -265,44 +265,36 @@ private fun SortMenuButton(
     onSortChange: (MessageSearchSort) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
-        MochiIconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
-            Icon(
-                sort,
-                contentDescription = stringResource(R.string.search_page_sort)
+    val items: kotlinx.collections.immutable.ImmutableList<ui.feice.mochi.basic.MochiItem> =
+        kotlinx.collections.immutable.persistentListOf(*MessageSearchSort.entries.map { sort ->
+            ui.feice.mochi.basic.MochiItem(
+                label = stringResource(
+                    when (sort) {
+                        MessageSearchSort.RELEVANCE -> R.string.search_page_sort_relevance
+                        MessageSearchSort.NEWEST_FIRST -> R.string.search_page_sort_newest
+                        MessageSearchSort.OLDEST_FIRST -> R.string.search_page_sort_oldest
+                    }
+                ),
+                icon = { color ->
+                    Md3RadioButton(selected = sort == current, onClick = null)
+                },
             )
-        }
-        MochiMenuPopup(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            MessageSearchSort.entries.forEach { sort ->
-                MochiMenuRow(
-                    text = {
-                        Text(
-                            stringResource(
-                                when (sort) {
-                                    MessageSearchSort.RELEVANCE -> R.string.search_page_sort_relevance
-                                    MessageSearchSort.NEWEST_FIRST -> R.string.search_page_sort_newest
-                                    MessageSearchSort.OLDEST_FIRST -> R.string.search_page_sort_oldest
-                                }
-                            )
-                        )
-                    },
-                    leadingIcon = {
-                        Md3RadioButton(
-                            selected = sort == current,
-                            onClick = null,
-                        )
-                    },
-                    onClick = {
-                        expanded = false
-                        onSortChange(sort)
-                    },
-                )
-            }
-        }
-    }
+        }.toTypedArray())
+
+    ui.feice.mochi.basic.MochiDropdown(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        items = items,
+        onItemClick = { index ->
+            expanded = false
+            MessageSearchSort.entries.getOrNull(index)?.let(onSortChange)
+        },
+        selectedIndex = MessageSearchSort.entries.indexOf(current),
+        onClick = { expanded = !expanded },
+        buttonContent = {
+            Icon(sort, contentDescription = stringResource(R.string.search_page_sort))
+        },
+    )
 }
 
 @Composable

@@ -50,6 +50,7 @@ fun ItemActionMenu(
         MochiItem(
             label = action.text,
             destructive = action.destructive,
+            enabled = action.enabled,
             icon = { color ->
                 Icon(imageVector = action.icon, contentDescription = null, tint = color)
             },
