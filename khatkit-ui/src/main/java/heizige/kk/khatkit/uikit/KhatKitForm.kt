@@ -30,8 +30,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import heizige.kk.khatkit.ui.UiSheetOptions
 
 /** 宽度达到该值后表单排两列（横屏手机 / 平板）。 */
@@ -283,9 +283,9 @@ internal fun FormWidget(
         "progress" -> {
             val ratio = (values[id] as? Number)?.toFloat()
                 ?: (item["ratio"] as? Number)?.toFloat() ?: 0f
-            KedgeProgressIndicator(
+            KkProgressIndicator(
                 progress = ratio,
-                type = KedgeProgressIndicatorType.Linear,
+                type = KkProgressIndicatorType.Linear,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

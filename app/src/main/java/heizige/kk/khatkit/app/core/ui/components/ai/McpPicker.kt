@@ -23,7 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiBadge
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,7 +49,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.power
 import heizige.kk.khatkit.app.core.ui.icons.warning
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 
 @Composable
@@ -84,7 +84,7 @@ fun McpPickerButton(
                 contentAlignment = Alignment.Center
             ) {
                 if (loading) {
-                    KedgeProgressIndicator(
+                    KkProgressIndicator(
                         modifier = Modifier.size(20.dp)
                     )
                 } else {
@@ -131,8 +131,8 @@ fun McpPickerButton(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        KedgeProgressIndicator(
-                    type = KedgeProgressIndicatorType.Linear,)
+                        KkProgressIndicator(
+                    type = KkProgressIndicatorType.Linear,)
                         Text(
                             text = stringResource(id = R.string.mcp_picker_syncing),
                             style = MaterialTheme.typography.bodyMedium
@@ -180,7 +180,7 @@ fun McpPickerListItem(
         shape = cards.indexedShape(index = 0, count = 1),
         leadingContent = {
             if (loading) {
-                KedgeProgressIndicator(modifier = Modifier.size(24.dp))
+                KkProgressIndicator(modifier = Modifier.size(24.dp))
             } else {
                 Icon(
                     imageVector = dns,
@@ -242,8 +242,8 @@ private fun McpPickerSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.padding(vertical = 4.dp)
                 ) {
-                    KedgeProgressIndicator(
-                    type = KedgeProgressIndicatorType.Linear,)
+                    KkProgressIndicator(
+                    type = KkProgressIndicatorType.Linear,)
                     Text(
                         text = stringResource(id = R.string.mcp_picker_syncing),
                         style = MaterialTheme.typography.bodyMedium
@@ -292,19 +292,19 @@ fun McpPicker(
                 leadingContent = {
                     when (status) {
                         McpStatus.Idle -> Icon(power, null)
-                        McpStatus.Connecting -> KedgeProgressIndicator(
+                        McpStatus.Connecting -> KkProgressIndicator(
                             modifier = Modifier.size(
                                 24.dp
                             )
                         )
 
                         McpStatus.Connected -> Icon(dns, null)
-                        is McpStatus.Reconnecting -> KedgeProgressIndicator(
+                        is McpStatus.Reconnecting -> KkProgressIndicator(
                             modifier = Modifier.size(24.dp)
                         )
                         is McpStatus.Error -> Icon(warning, null)
                         McpStatus.NeedsAuthorization -> Icon(warning, null)
-                        McpStatus.Authorizing -> KedgeProgressIndicator(
+                        McpStatus.Authorizing -> KkProgressIndicator(
                             modifier = Modifier.size(24.dp)
                         )
                     }

@@ -18,8 +18,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -193,12 +193,12 @@ private fun DownloadTaskRow(
 
             if (task.isActive || task.state == "paused") {
                 if (task.total > 0) {
-                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
+                    KkProgressIndicator(type = KkProgressIndicatorType.Linear,
                         progress = { task.progress },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
+                    KkProgressIndicator(type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
                 }
             }
 

@@ -209,7 +209,7 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.components.KedgeFloatingActionButton
+import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -790,7 +790,7 @@ fun ChatInput(
                     // 右侧 FAB 与胶囊同一曲线淡出（见 flbFadeOnEditorReveal 注释）
                     .flbFadeOnEditorReveal()
             ) {
-            KedgeFloatingActionButton(
+            KkFloatingActionButton(
                 onClick = {
                     when (fabState) {
                         FabState.Recording -> asr.stop()
@@ -806,7 +806,7 @@ fun ChatInput(
                         scaleY = 1f - 0.2f * progress
                         alpha = 1f - progress
                     }
-                    // KedgeFloatingActionButton 内部（MD3 与 Miuix 都是）只有 clickable，
+                    // KkFloatingActionButton 内部（MD3 与 Miuix 都是）只有 clickable，
                     // 没有 onLongClick 入口，所以长按在 Initial pass 上自行判定：
                     // 事件只观察不消费 ⇒ 短按仍走按钮自己的 onClick。
                     .longPressOnly { startVoiceInput() },
@@ -877,7 +877,7 @@ fun ChatInput(
 /**
  * 「只加长按」的手势：按下超过系统长按时长触发 [onLongPress]，没到时长就抬手则完全不干预。
  *
- * 用在 [KedgeFloatingActionButton] 上（MD3 的 FAB 与 Miuix 的 FAB 内部都只有 clickable，
+ * 用在 [KkFloatingActionButton] 上（MD3 的 FAB 与 Miuix 的 FAB 内部都只有 clickable，
  * 没有 onLongClick 入口）：事件在 Initial pass 上只观察不消费 ⇒ 按钮自己的 clickable 照常
  * 收到事件、短按该触发什么就触发什么；一旦判定成长按，再把后续事件消费掉，抑制抬手时
  * 按钮补发的 onClick（否则长按会「开始录音 + 顺手把消息发出去」）。

@@ -55,7 +55,7 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.kedge.components.KedgeFloatingActionButton
+import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
@@ -71,7 +71,7 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
         title = stringResource(R.string.workspace_page_title),
         scrollBehavior = scrollBehavior,
         floatingActionButton = {
-            KedgeFloatingActionButton(onClick = { showAddDialog = true }) {
+            KkFloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(add, contentDescription = null)
             }
         },

@@ -47,8 +47,8 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.package2
 import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 
 
@@ -241,7 +241,7 @@ internal fun ModelTypeSelector(
     onTypeSelected: (ModelType) -> Unit,
     fillWidth: Boolean = true,
 ) {
-    KedgeSingleChoiceSegmentedRow(
+    KkSingleChoiceSegmentedRow(
         items = ModelType.entries.map { type ->
             SegmentedItem(
                 label = stringResource(
@@ -275,7 +275,7 @@ internal fun ModelModalitySelector(
 ) {
     if (model.type == ModelType.CHAT) {
         ModelFormGroup(stringResource(R.string.setting_provider_page_input_modality)) {
-            KedgeMultiChoiceSegmentedRow(
+            KkMultiChoiceSegmentedRow(
                 items = Modality.entries.map { modality ->
                     SegmentedItem(
                         label = stringResource(
@@ -300,7 +300,7 @@ internal fun ModelModalitySelector(
         }
 
         ModelFormGroup(stringResource(R.string.setting_provider_page_output_modality)) {
-            KedgeMultiChoiceSegmentedRow(
+            KkMultiChoiceSegmentedRow(
                 items = Modality.entries.map { modality ->
                     SegmentedItem(
                         label = stringResource(
@@ -332,7 +332,7 @@ fun ModalAbilitySelector(
     abilities: List<ModelAbility>,
     onUpdateAbilities: (List<ModelAbility>) -> Unit,
 ) {
-    KedgeMultiChoiceSegmentedRow(
+    KkMultiChoiceSegmentedRow(
         items = ModelAbility.entries.map { ability ->
             SegmentedItem(
                 label = stringResource(

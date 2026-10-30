@@ -60,7 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.Greeting
@@ -365,7 +365,7 @@ private fun WelcomeRefreshButton(
             shapes = IconButtonDefaults.shapes(),
         ) {
             if (loading) {
-                KedgeProgressIndicator(modifier = Modifier.size(20.dp))
+                KkProgressIndicator(modifier = Modifier.size(20.dp))
             } else {
                 Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }

@@ -43,11 +43,11 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import heizige.kk.khatkit.app.core.ui.icons.description
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 
 @Composable
 fun ImportExportTab(
@@ -203,7 +203,7 @@ fun ImportExportTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_backup_items)) },
                     supportingContent = {
-                        KedgeMultiChoiceSegmentedRow(
+                        KkMultiChoiceSegmentedRow(
                             modifier = Modifier.fillMaxWidth(),
                             items = WebDavConfig.BackupItem.entries.map { item ->
                                 SegmentedItem(
@@ -246,8 +246,8 @@ fun ImportExportTab(
                     },
                     leadingContent = {
                         if (isExporting) {
-                            KedgeProgressIndicator(
-                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
+                            KkProgressIndicator(
+                        type = KkProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(description, null)
                         }
@@ -272,8 +272,8 @@ fun ImportExportTab(
                     },
                     leadingContent = {
                         if (isRestoring) {
-                            KedgeProgressIndicator(
-                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
+                            KkProgressIndicator(
+                        type = KkProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(uploadFile, null)
                         }
@@ -301,8 +301,8 @@ fun ImportExportTab(
                     supportingContent = { Text(stringResource(R.string.backup_page_import_chatbox_desc)) },
                     leadingContent = {
                         if (isRestoring && importType == "chatbox") {
-                            KedgeProgressIndicator(
-                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
+                            KkProgressIndicator(
+                        type = KkProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(uploadFile, null)
                         }
@@ -320,8 +320,8 @@ fun ImportExportTab(
                     supportingContent = { Text(stringResource(R.string.backup_page_import_cherry_studio_desc)) },
                     leadingContent = {
                         if (isRestoring && importType == "cherry") {
-                            KedgeProgressIndicator(
-                        type = KedgeProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
+                            KkProgressIndicator(
+                        type = KkProgressIndicatorType.Circular,modifier = Modifier.size(24.dp))
                         } else {
                             Icon(uploadFile, null)
                         }

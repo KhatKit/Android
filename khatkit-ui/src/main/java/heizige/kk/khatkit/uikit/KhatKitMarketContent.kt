@@ -67,11 +67,11 @@ import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
 import androidx.compose.material3.FilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import kotlinx.coroutines.launch
 import androidx.compose.material3.FilterChip
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 
 /**
  * KhatKit 卡片市场 - 现代探索页面风格
@@ -233,7 +233,7 @@ fun KhatKitMarketContent(
         }
 
         if (loading) {
-            KedgeProgressIndicator(modifier = Modifier.fillMaxWidth())
+            KkProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
 
         LazyColumn(
@@ -972,9 +972,9 @@ private fun PublishCardDialog(
                 }
             }
             if (submitting) {
-                KedgeProgressIndicator(
+                KkProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
-                    type = KedgeProgressIndicatorType.Linear,
+                    type = KkProgressIndicatorType.Linear,
                 )
             }
         }
@@ -1060,9 +1060,9 @@ private fun ForkCardDialog(
                 }
             }
             if (submitting) {
-                KedgeProgressIndicator(
+                KkProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
-                    type = KedgeProgressIndicatorType.Linear,
+                    type = KkProgressIndicatorType.Linear,
                 )
             }
         }

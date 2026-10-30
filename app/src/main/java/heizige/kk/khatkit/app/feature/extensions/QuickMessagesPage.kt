@@ -53,7 +53,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.kedge.components.KedgeFloatingActionButton
+import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
@@ -68,7 +68,7 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
         title = stringResource(R.string.assistant_page_quick_messages),
         scrollBehavior = scrollBehavior,
         floatingActionButton = {
-            KedgeFloatingActionButton(onClick = { showAddDialog = true }) {
+            KkFloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(add, contentDescription = null)
             }
         },

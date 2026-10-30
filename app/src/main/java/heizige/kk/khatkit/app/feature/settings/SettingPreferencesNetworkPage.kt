@@ -23,7 +23,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -391,7 +391,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                 shapes = ButtonDefaults.shapes(),
                             ) {
                                 if (proxyTesting) {
-                                    KedgeProgressIndicator(
+                                    KkProgressIndicator(
                                         modifier = Modifier.size(18.dp),
                                         strokeWidth = 2.dp,
                                     )

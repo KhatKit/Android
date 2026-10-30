@@ -24,8 +24,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -656,7 +656,7 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     )
                 }
-                KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
+                KkProgressIndicator(type = KkProgressIndicatorType.Linear,
                     progress = { (app.appMs().toFloat() / maxAppMs).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth(),
                 )

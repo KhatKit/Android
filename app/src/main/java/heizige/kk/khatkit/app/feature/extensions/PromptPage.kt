@@ -107,7 +107,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
-import heizige.kk.kedge.containers.KedgeFloatingToolbar
+import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 @Composable
@@ -258,7 +258,7 @@ private fun ModeInjectionTab(
             }
         }
 
-        KedgeFloatingToolbar(
+        KkFloatingToolbar(
             expanded = expanded,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -651,7 +651,7 @@ private fun LorebookTab(
             }
         }
 
-        KedgeFloatingToolbar(
+        KkFloatingToolbar(
             expanded = expanded,
             modifier = Modifier
                 .align(Alignment.BottomCenter)

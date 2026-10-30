@@ -14,7 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -170,7 +170,7 @@ private fun PlayPauseButton(
             contentDescription = null,
         )
         if (playbackState.status == PlaybackStatus.Playing || playbackState.status == PlaybackStatus.Buffering || playbackState.status == PlaybackStatus.Paused) {
-            KedgeProgressIndicator(
+            KkProgressIndicator(
                 progress = {
                     if (playbackState.status == PlaybackStatus.Playing) {
                         playbackState.positionMs.toFloat() / playbackState.durationMs
@@ -182,7 +182,7 @@ private fun PlayPauseButton(
                 strokeWidth = 2.dp,
                 trackColor = Color.Transparent
             )
-            KedgeProgressIndicator(
+            KkProgressIndicator(
                 progress = {
                     if (playbackState.status == PlaybackStatus.Playing) {
                         playbackState.currentChunkIndex.toFloat() / playbackState.totalChunks

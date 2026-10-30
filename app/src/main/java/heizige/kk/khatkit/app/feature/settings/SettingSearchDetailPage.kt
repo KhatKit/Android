@@ -26,7 +26,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -322,7 +322,7 @@ internal fun SearchTestSection(
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     if (testing) {
-                        KedgeProgressIndicator(
+                        KkProgressIndicator(
                             modifier = Modifier.padding(4.dp),
                             strokeWidth = 2.dp
                         )

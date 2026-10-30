@@ -106,7 +106,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
-import heizige.kk.kedge.containers.KedgeFloatingToolbar
+import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
 import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
@@ -615,7 +615,7 @@ private fun ChatListNormal(
                     targetOffsetY = { it * 2 },
                 ),
             ) {
-                KedgeFloatingToolbar(
+                KkFloatingToolbar(
                     expanded = true,
                 ) {
                     Tooltip(

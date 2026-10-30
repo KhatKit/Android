@@ -60,8 +60,8 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 
 @Composable
 internal fun TavilyOptions(
@@ -89,7 +89,7 @@ internal fun TavilyOptions(
         }
     ) {
         val depthOptions = listOf("basic", "advanced")
-        KedgeSingleChoiceSegmentedRow(
+        KkSingleChoiceSegmentedRow(
             items = depthOptions.map { depth ->
                 SegmentedItem(
                     label = depth.replaceFirstChar { it.uppercase() },
@@ -174,7 +174,7 @@ internal fun DoubaoOptions(
 
     KedgeFormRow(label = { Text("Mode") }) {
         val modes = DoubaoSearchMode.entries
-        KedgeSingleChoiceSegmentedRow(
+        KkSingleChoiceSegmentedRow(
             items = modes.map { mode ->
                 SegmentedItem(
                     label = mode.name.lowercase().replaceFirstChar(Char::uppercase),
@@ -293,7 +293,7 @@ internal fun SearchLinkUpOptions(
         }
     ) {
         val depthOptions = listOf("standard", "deep")
-        KedgeSingleChoiceSegmentedRow(
+        KkSingleChoiceSegmentedRow(
             items = depthOptions.map { depth ->
                 SegmentedItem(
                     label = depth.replaceFirstChar { it.uppercase() },
@@ -576,7 +576,7 @@ internal fun KhatKitOptions(
         }
     ) {
         val depthOptions = listOf("standard", "deep")
-        KedgeSingleChoiceSegmentedRow(
+        KkSingleChoiceSegmentedRow(
             items = depthOptions.map { depth ->
                 SegmentedItem(
                     label = depth.replaceFirstChar { it.uppercase() },

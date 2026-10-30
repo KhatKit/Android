@@ -44,7 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
@@ -321,19 +321,19 @@ internal fun McpServerItem(
             ) {
                 when (status) {
                     McpStatus.Idle -> Icon(commentsDisabled, null)
-                    McpStatus.Connecting -> KedgeProgressIndicator(
+                    McpStatus.Connecting -> KkProgressIndicator(
                         modifier = Modifier.size(
                             24.dp
                         )
                     )
 
                     McpStatus.Connected -> Icon(dns, null)
-                    is McpStatus.Reconnecting -> KedgeProgressIndicator(
+                    is McpStatus.Reconnecting -> KkProgressIndicator(
                         modifier = Modifier.size(24.dp)
                     )
                     is McpStatus.Error -> Icon(error, null)
                     McpStatus.NeedsAuthorization -> Icon(error, null)
-                    McpStatus.Authorizing -> KedgeProgressIndicator(
+                    McpStatus.Authorizing -> KkProgressIndicator(
                         modifier = Modifier.size(24.dp)
                     )
                 }

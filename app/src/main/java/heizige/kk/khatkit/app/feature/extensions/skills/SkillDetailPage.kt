@@ -66,7 +66,7 @@ import heizige.kk.khatkit.app.core.ui.icons.editDocument
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.folderOpen
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.kedge.components.KedgeFloatingActionButton
+import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
@@ -103,7 +103,7 @@ fun SkillDetailPage(skillName: String) {
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut(),
             ) {
-                KedgeFloatingActionButton(onClick = { showAddDialog = true }) {
+                KkFloatingActionButton(onClick = { showAddDialog = true }) {
                     Icon(add, contentDescription = null)
                 }
             }

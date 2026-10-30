@@ -25,8 +25,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import java.time.Instant
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
@@ -64,7 +64,7 @@ fun ReminderTab(vm: BackupViewModel) {
                     headlineContent = { Text(stringResource(R.string.backup_page_reminder_interval)) },
                     supportingContent = {
                         val intervals = listOf(1, 3, 7, 14, 30)
-                        KedgeSingleChoiceSegmentedRow(
+                        KkSingleChoiceSegmentedRow(
                             modifier = Modifier.fillMaxWidth(),
                             items = intervals.map { days ->
                                 SegmentedItem(

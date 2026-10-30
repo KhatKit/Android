@@ -53,7 +53,7 @@ import heizige.kk.khatkit.app.core.ui.icons.chat
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 
 @Composable
 fun StatsPage(vm: StatsVM = hiltViewModel()) {
@@ -72,7 +72,7 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                KedgeProgressIndicator(modifier = Modifier.size(24.dp))
+                KkProgressIndicator(modifier = Modifier.size(24.dp))
             }
         } else {
             LazyColumn(

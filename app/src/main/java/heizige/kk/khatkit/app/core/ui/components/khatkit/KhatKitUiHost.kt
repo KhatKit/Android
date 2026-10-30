@@ -53,7 +53,7 @@ import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.core.ui.components.webview.WebView
 import heizige.kk.khatkit.app.core.ui.components.webview.applyScriptWebOptions
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
@@ -216,7 +216,7 @@ fun KhatKitUiHost() {
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(label, style = MaterialTheme.typography.bodyMedium)
-                        KedgeProgressIndicator(
+                        KkProgressIndicator(
                             progress = ratio,
                             modifier = Modifier
                                 .fillMaxWidth()

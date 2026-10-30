@@ -101,7 +101,7 @@ import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import heizige.kk.kedge.components.KedgeAssistChip
+import heizige.kk.khatkit.uikit.mochi.KkAssistChip
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -718,7 +718,7 @@ private fun ColumnScope.ModelList(
             state = providerBadgeListState
         ) {
             items(providers) { provider ->
-                KedgeAssistChip(
+                KkAssistChip(
                     onClick = {
                         val position = providerPositions[provider.id] ?: 0
                         coroutineScope.launch {

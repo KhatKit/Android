@@ -69,11 +69,11 @@ import heizige.kk.khatkit.app.core.ui.icons.upload
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 
 @Composable
 fun WebDavTab(
@@ -210,7 +210,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_backup_items)) },
                     supportingContent = {
-                    KedgeMultiChoiceSegmentedRow(
+                    KkMultiChoiceSegmentedRow(
                         modifier = Modifier.fillMaxWidth(),
                         items = WebDavConfig.BackupItem.entries.map { item ->
                             SegmentedItem(
@@ -299,8 +299,8 @@ fun WebDavTab(
                 shapes = ButtonDefaults.shapes(),
             ) {
                 if (isBackingUp) {
-                    KedgeProgressIndicator(
-                        type = KedgeProgressIndicatorType.Circular,
+                    KkProgressIndicator(
+                        type = KkProgressIndicatorType.Circular,
                         modifier = Modifier.size(18.dp)
                     )
                 } else {
@@ -403,8 +403,8 @@ fun WebDavTab(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        KedgeProgressIndicator(
-                        type = KedgeProgressIndicatorType.Circular,)
+                        KkProgressIndicator(
+                        type = KkProgressIndicatorType.Circular,)
                     }
                 }
             }
@@ -468,8 +468,8 @@ private fun WebDavBackupItemCard(
                             shapes = ButtonDefaults.shapes(),
                         ) {
                             if (isRestoring) {
-                                KedgeProgressIndicator(
-                        type = KedgeProgressIndicatorType.Circular,
+                                KkProgressIndicator(
+                        type = KkProgressIndicatorType.Circular,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(Modifier.width(8.dp))

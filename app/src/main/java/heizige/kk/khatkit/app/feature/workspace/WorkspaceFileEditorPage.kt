@@ -16,7 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -128,7 +128,7 @@ fun WorkspaceFileEditorPage(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                KedgeProgressIndicator()
+                KkProgressIndicator()
             }
 
             loadError != null -> Box(

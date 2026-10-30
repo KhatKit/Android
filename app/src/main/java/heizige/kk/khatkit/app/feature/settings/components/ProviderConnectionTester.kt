@@ -48,8 +48,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.error
 import heizige.kk.khatkit.app.core.ui.icons.link
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 
 @Composable
 fun ProviderConnectionTester(
@@ -247,8 +247,8 @@ private fun TestResultItem(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            is UiState.Loading -> KedgeProgressIndicator(
-                    type = KedgeProgressIndicatorType.Linear,modifier = Modifier.weight(1f))
+            is UiState.Loading -> KkProgressIndicator(
+                    type = KkProgressIndicatorType.Linear,modifier = Modifier.weight(1f))
             is UiState.Success -> Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)

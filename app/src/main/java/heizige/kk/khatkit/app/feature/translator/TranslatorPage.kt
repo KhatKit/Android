@@ -70,10 +70,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
-import heizige.kk.kedge.components.KedgeFloatingActionButton
+import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
 import androidx.compose.foundation.layout.navigationBarsPadding
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 
 @Composable
 fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
@@ -154,8 +154,8 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
             // 翻译进度条
             Crossfade(translating) { isTranslating ->
                 if (isTranslating) {
-                    KedgeProgressIndicator(
-                    type = KedgeProgressIndicatorType.Linear,
+                    KkProgressIndicator(
+                    type = KkProgressIndicatorType.Linear,
                         modifier = Modifier
                             .padding(8.dp)
                             .fillMaxWidth()
@@ -292,7 +292,7 @@ private fun BottomBar(
         Box(
             modifier = Modifier.align(Alignment.CenterEnd),
         ) {
-            KedgeFloatingActionButton(
+            KkFloatingActionButton(
                 onClick = {
                     if (translating) {
                         onCancelTranslation()

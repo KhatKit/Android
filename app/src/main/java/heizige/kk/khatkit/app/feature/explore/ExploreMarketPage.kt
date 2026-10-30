@@ -85,7 +85,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.khatkit.uikit.mochi.MochiBadge
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
@@ -2476,7 +2476,7 @@ private fun ExploreFooterSync(loading: Boolean, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (loading) {
-            KedgeProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+            KkProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
         }
         Text(
             text = if (loading) stringResource(R.string.explore_market_footer_syncing) else stringResource(R.string.explore_market_footer_end),
@@ -2786,7 +2786,7 @@ private fun ResourceRow(
                     }
                 }
                 when {
-                    busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    busy -> KkProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
                     // （`onClick` 只是组件签名要求，不会被调到）。
                     installed -> MochiIconButton(
@@ -2907,7 +2907,7 @@ private fun ResourceDetailSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    KkProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     Text(stringResource(R.string.explore_market_processing), style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -3490,7 +3490,7 @@ private fun CompactCard(
         },
         trailingContent = {
             when {
-                busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                busy -> KkProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
                 // （`onClick` 只是组件签名要求，不会被调到）。卸载入口在详情抽屉里。
                 installState == CardInstallState.INSTALLED -> MochiIconButton(
@@ -3707,7 +3707,7 @@ private fun CardDetailSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    KkProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     Text(stringResource(R.string.explore_market_processing), style = MaterialTheme.typography.bodyMedium)
                 }
             }

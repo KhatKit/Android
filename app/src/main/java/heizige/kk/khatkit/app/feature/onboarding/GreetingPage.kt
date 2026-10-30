@@ -145,8 +145,8 @@ import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiStatusTag
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
@@ -178,8 +178,8 @@ import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
@@ -490,10 +490,10 @@ private fun RowScope.GreetingBottomActions(
         Text(stringResource(R.string.greeting_action_back))
     }
     Spacer(modifier = Modifier.weight(1f))
-    KedgeProgressIndicator(
+    KkProgressIndicator(
         modifier = Modifier.width(64.dp),
         progress = animatedProgress,
-        type = KedgeProgressIndicatorType.Linear,
+        type = KkProgressIndicatorType.Linear,
     )
     Spacer(modifier = Modifier.weight(1f))
     MochiButton(
@@ -966,7 +966,7 @@ private fun GreetingAiSetupScreen() {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (provider == null) {
-                    KedgeSingleChoiceSegmentedRow(
+                    KkSingleChoiceSegmentedRow(
                         modifier = Modifier.fillMaxWidth(),
                         items = ProviderSetting.Types.map { type ->
                             SegmentedItem(

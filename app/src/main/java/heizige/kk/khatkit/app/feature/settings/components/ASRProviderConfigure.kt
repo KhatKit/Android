@@ -24,8 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -794,7 +794,7 @@ private fun SherpaLocalASRConfiguration(
                         )
                     }
                     when {
-                        engineDownloading -> KedgeProgressIndicator(
+                        engineDownloading -> KkProgressIndicator(
                             progress = { engineProgress },
                             modifier = Modifier.size(24.dp),
                         )
@@ -832,7 +832,7 @@ private fun SherpaLocalASRConfiguration(
                     }
                 }
                 if (engineDownloading) {
-                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
+                    KkProgressIndicator(type = KkProgressIndicatorType.Linear,
                         progress = { engineProgress },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -884,7 +884,7 @@ private fun SherpaLocalASRConfiguration(
                                 )
                             }
                             when {
-                                downloadingId == preset.id -> KedgeProgressIndicator(
+                                downloadingId == preset.id -> KkProgressIndicator(
                                     progress = { progress },
                                     modifier = Modifier.size(24.dp),
                                 )
@@ -932,7 +932,7 @@ private fun SherpaLocalASRConfiguration(
                         }
 
                         if (downloadingId == preset.id) {
-                            KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
+                            KkProgressIndicator(type = KkProgressIndicatorType.Linear,
                                 progress = { progress },
                                 modifier = Modifier.fillMaxWidth(),
                             )

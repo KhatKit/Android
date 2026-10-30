@@ -30,8 +30,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,7 +62,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 
 @Composable
@@ -172,7 +172,7 @@ private fun SearchResultSection(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
 
-        KedgeSingleChoiceSegmentedRow(
+        KkSingleChoiceSegmentedRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
@@ -193,7 +193,7 @@ private fun SearchResultSection(
 
         Box(modifier = Modifier.weight(1f)) {
             if (vm.isLoading || vm.isRebuilding) {
-                KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
+                KkProgressIndicator(type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
             }
 
             when {

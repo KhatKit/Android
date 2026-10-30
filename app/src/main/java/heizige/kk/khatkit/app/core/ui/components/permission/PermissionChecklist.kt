@@ -66,8 +66,8 @@ import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -548,7 +548,7 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
                         text = stringResource(category.labelRes),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    KedgeSingleChoiceSegmentedRow(
+                    KkSingleChoiceSegmentedRow(
                         items = ApprovalPolicy.entries.map { option ->
                             SegmentedItem(
                                 label = stringResource(option.labelRes),

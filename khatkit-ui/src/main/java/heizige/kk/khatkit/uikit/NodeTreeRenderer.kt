@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiNodeParser
 import heizige.kk.khatkit.ui.UiSheetOptions
@@ -309,7 +309,7 @@ fun UiNode.Render(
         }
         "ProgressBar" -> Column(m) {
             if (text("label").isNotEmpty()) Text(text("label"), style = style.textStyle("label"))
-            KedgeProgressIndicator(progress = number("ratio"), type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
+            KkProgressIndicator(progress = number("ratio"), type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
         }
         "CounterButton" -> CounterButton(this, values, readOnly, onAction, m)
         "Button" -> MochiButton(

@@ -25,7 +25,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,7 +67,7 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.icons.stop
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
-import heizige.kk.kedge.components.KedgeExtendedFloatingActionButton
+import heizige.kk.khatkit.uikit.mochi.KkExtendedFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
@@ -135,9 +135,9 @@ fun SettingWebPage() {
         title = stringResource(R.string.setting_page_web_server),
         scrollBehavior = scrollBehavior,
         floatingActionButton = {
-            KedgeExtendedFloatingActionButton(
+            KkExtendedFloatingActionButton(
                 onClick = {
-                    if (serverState.isLoading) return@KedgeExtendedFloatingActionButton
+                    if (serverState.isLoading) return@KkExtendedFloatingActionButton
                     if (!serverState.isRunning) {
                         if (permissionState.allPermissionsGranted) {
                             startWebServer()
@@ -157,7 +157,7 @@ fun SettingWebPage() {
                 },
                 icon = {
                     if (serverState.isLoading) {
-                        KedgeProgressIndicator(
+                        KkProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 3.dp,
                         )
@@ -191,7 +191,7 @@ fun SettingWebPage() {
                 start = 8.dp,
                 top = PageMetrics.TopContentPadding,
                 end = 8.dp,
-                // 本页有 FAB（KedgeExtendedFloatingActionButton），底部按 FAB 的
+                // 本页有 FAB（KkExtendedFloatingActionButton），底部按 FAB 的
                 // 高度让位，否则滚到底时末项被按钮压住。
                 // ⚠️ 这里的底部加码（80dp）是给 FAB 让位，**不参与上下对称** ——
                 // 顶部仍然只是 TopContentPadding（24dp），别跟着改成 80。

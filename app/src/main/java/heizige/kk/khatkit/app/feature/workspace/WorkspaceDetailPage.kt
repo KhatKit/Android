@@ -45,8 +45,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -102,8 +102,8 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
-import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
-import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceFileType
 import heizige.kk.khatkit.app.feature.workspace.data.detectFileType
@@ -525,12 +525,12 @@ private fun RootfsProgress(progress: RootfsInstallProgress) {
             (progress.bytesRead.toFloat() / it).coerceIn(0f, 1f)
         }
         if (fraction != null && progress.stage == RootfsInstallStage.DOWNLOADING) {
-            KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
+            KkProgressIndicator(type = KkProgressIndicatorType.Linear,
                 progress = { fraction },
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
+            KkProgressIndicator(type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
         }
         Text(
             text = when (progress.stage) {
@@ -669,7 +669,7 @@ private fun WorkspaceFilesPage(
                     ) { Text("导出 (${selectedFiles.size})") }
                 }
                 if (state.exporting) {
-                    KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
+                    KkProgressIndicator(type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
                     Text("正在导出 ${state.exportCompleted}/${state.exportTotal}")
                 }
             }
@@ -719,7 +719,7 @@ private fun WorkspaceAreaSelector(
         WorkspaceStorageArea.FILES to stringResource(R.string.workspace_detail_area_files),
         WorkspaceStorageArea.LINUX to stringResource(R.string.workspace_detail_area_rootfs),
     )
-    KedgeSingleChoiceSegmentedRow(
+    KkSingleChoiceSegmentedRow(
         modifier = Modifier.fillMaxWidth(),
         items = areas.map { (area, label) ->
             SegmentedItem(
