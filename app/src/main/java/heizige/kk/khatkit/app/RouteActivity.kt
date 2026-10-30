@@ -11,16 +11,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
-import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,18 +37,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.ui.NavDisplay
 import heizige.kk.khatkit.app.navigation.KkDeepLinkRoutes
 import heizige.kk.khatkit.app.navigation.KkNavController
 import heizige.kk.khatkit.app.navigation.ScreenRoutes
@@ -69,7 +57,6 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.DatabaseMigrationTracker
 import heizige.kk.khatkit.app.core.data.db.MigrationState
 import heizige.kk.khatkit.app.core.data.event.AppEvent
-import heizige.kk.khatkit.app.core.data.event.AppEventBus
 import heizige.kk.khatkit.app.core.ui.activity.SafeModeActivity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
@@ -78,7 +65,6 @@ import heizige.kk.khatkit.app.feature.explore.ExploreLocalPage
 import heizige.kk.khatkit.app.feature.explore.ExploreMarketPage
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.nav.NavViewModel
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalSharedTransitionScope
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
@@ -164,11 +150,6 @@ class RouteActivity : ComponentActivity() {
     @Inject
     lateinit var settingsStore: SettingsRepository
 
-    /**
-     * 全局导航栈的所有者。`by viewModels()` 在 `onCreate` 之前就建好，所以
-     * [handleIntent]（`onCreate`/`onNewIntent` 都会调）可以直接压栈。
-     */
-    private val navViewModel: NavViewModel by viewModels()
 
     /**
      * 深链 / ACTION_SEND 等 Intent 的目标 route。
@@ -290,32 +271,20 @@ class RouteActivity : ComponentActivity() {
         }
         val migrationState by DatabaseMigrationTracker.state.collectAsStateWithLifecycle()
 
-        // ── U7a-2：导航栈改由 Mochi 的 MochiNavigator 持有 ─────────────────────────
-        // 本步只把 4 个核心页（引导/聊天/设置/设置详情）接进 MochiNavHost；其余路由
-        // fallback 到下面 LegacyNav3Shell 里的原 Nav3 NavDisplay（页面主体一行未改）。
-        // 返回始终只有一处接管：核心页由 Mochi 的预测性返回处理，fallback 页先退自己的
-        // fallback 栈，退到底再把返回交回 Mochi 栈（Nav3 侧不新增 BackHandler）。
-        //
-        // NavViewModel 只剩「初始栈种子」一个职责（它在 onCreate 前就从 SavedState/偏好恢复好），
-        // U7a-3 全量迁完连它一起删。
-        val seedScreens = remember { navViewModel.stack.toList().mapNotNull { it as? Screen } }
-        // Mochi 的根页不能是引导页：MochiNavigator 没有 replaceRoot，引导页做根就永远删不掉。
-        // 所以根固定是会话页，引导页叠在它上面，完成时直接 pop 回会话页。
-        val rootScreen = remember(seedScreens) {
-            seedScreens.firstOrNull { it is Screen.Chat } as? Screen.Chat ?: nextChatScreen(this@RouteActivity)
-        }
+        // ── U7a-3：导航栈全量交给 Mochi；Nav3 外壳（页面用 Nav3 渲染的那套）已整体移除 ───
+        // 60 条 Screen 全部由 MochiNavHost 渲染（ScreenRoutes 的 route⇄Screen 映射，单测守互逆）。
+        // 页面里 94 处 navController.navigate(Screen.X) 一行未改，仍走 LocalNavController，
+        // 但它背后是 MochiBackedNavStack：压栈/弹栈直接落到 KkNavController（Mochi 栈）。
+        // 引导页不做根：MochiNavigator 没有 replaceRoot，根固定是会话页，没走过引导页时
+        // 把 Greeting 压在上面，完成时 pop 回会话页（进程重建靠 rememberSaveable 恢复整条栈）。
+        val greetingCompleted = remember { readBooleanPreference("greeting_completed", false) }
+        val rootScreen = remember { nextChatScreen(this@RouteActivity) }
         val mochiNavigator = rememberMochiNavigator(ScreenRoutes.routeOf(rootScreen))
         val kkNav = remember(mochiNavigator) { KkNavController(mochiNavigator) }
-        // 初始栈里除根之外的页按原顺序压回 Mochi 栈（进程恢复 / 深链冷启动）。
-        // rememberMochiNavigator 自己也会从 rememberSaveable 恢复，恢复过就别重复压。
         LaunchedEffect(mochiNavigator) {
+            // rememberMochiNavigator 自己会从 rememberSaveable 恢复；恢复过就别再压引导页。
             if (mochiNavigator.backStack.size > 1) return@LaunchedEffect
-            // NavViewModel 不再跟着用户走，引导页完成后的重建里它的栈还停在 Greeting；
-            // 用偏好兜一层，免得每次重建都把引导页再压回来。
-            val greetingDone = readBooleanPreference("greeting_completed", false)
-            seedScreens
-                .filter { it != rootScreen && !(it is Screen.Greeting && greetingDone) }
-                .forEach { kkNav.navigate(it) }
+            if (!greetingCompleted) kkNav.navigate(Screen.Greeting)
         }
         // 深链 / ACTION_SEND 等 Intent：KkDeepLinkRoutes 只产出 route（单测覆盖），这里解码成 Screen 压栈。
         val pendingRoute = pendingScreenRoute.value
@@ -325,8 +294,6 @@ class RouteActivity : ComponentActivity() {
                 ScreenRoutes.screenOf(pendingRoute)?.let { kkNav.navigate(it) }
             }
         }
-        // 页面里 94 处 navController.navigate(Screen.X) 不用改：LocalNavController 换成 Mochi 支撑的
-        // Navigator（同一份 Navigator 语义），压栈/弹栈直接落到 Mochi 栈上。
         val mochiBackedNavigator = remember(kkNav) { Navigator(MochiBackedNavStack(kkNav)) }
 
         SharedTransitionLayout {
@@ -355,46 +322,104 @@ class RouteActivity : ComponentActivity() {
                         .semantics { testTagsAsResourceId = true }
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    // ── U7a-2：核心 4 页走 MochiNavHost，其余路由 fallback 到原 Nav3 外壳 ──
-                    // 判断依据是 [ScreenRoutes] 产出的 route（U7a-1 的映射表，单测守 60 条互逆）。
+                    // ── U7a-3：60 条路由全部由 MochiNavHost 渲染，Nav3 外壳已删除 ──────────
+                    // route ⇄ Screen 由 [ScreenRoutes] 保证（单测守 60 条互逆）；未知 route 不画、不崩。
                     MochiNavHost(navigator = mochiNavigator, modifier = Modifier.fillMaxSize()) { route ->
-                        // 页内浮层（ChatInput 全屏编辑器）的返回仍然先于 Mochi 的弹栈：只在有浮层登记时
-                        // 注册，等价于原来 NavDisplay.onBack 里的 PageBackInterceptor 那一层。
+                        // 页内浮层（ChatInput 全屏编辑器）的返回：只有浮层登记时抢在 Mochi 前面，
+                        // 否则完全交给 Mochi 的预测性返回处理（取消 rethrow、提交才 pop）。
                         if (route == mochiNavigator.current) {
                             PageBackGuard { if (!kkNav.popBackStack()) finish() }
                         }
-                        when (route) {
-                            "greeting" -> GreetingPage(
+                        when (val screen = ScreenRoutes.screenOf(route)) {
+                            // 未知 route（旧版本恢复/脏数据）：不画，交给 Mochi 栈回退，别崩。
+                            null -> Unit
+                            is Screen.Greeting -> GreetingPage(
                                 onFinish = {
                                     writeBooleanPreference("greeting_completed", true)
                                     if (!kkNav.popBackStack()) finish()
                                 }
                             )
-
-                            "chat" -> (ScreenRoutes.screenOf(route) as? Screen.Chat)?.let { key ->
-                                ChatPage(
-                                    id = Uuid.parse(key.id),
-                                    text = key.text,
-                                    files = key.files.map { it.toUri() },
-                                    nodeId = key.nodeId?.let { Uuid.parse(it) },
-                                    messageId = key.messageId?.let { Uuid.parse(it) },
+                            is Screen.Chat -> ChatPage(
+                                    id = Uuid.parse(screen.id),
+                                    text = screen.text,
+                                    files = screen.files.map { it.toUri() },
+                                    nodeId = screen.nodeId?.let { Uuid.parse(it) },
+                                    messageId = screen.messageId?.let { Uuid.parse(it) },
                                 )
+                            is Screen.ShareHandler -> ShareHandlerPage(
+                                    text = screen.text,
+                                    image = screen.streamUri
+                                )
+                            is Screen.RoleChatPanel -> ChatRolePanelPage(
+                                    roleId = screen.roleId,
+                                    conversationId = screen.conversationId,
+                                )
+                            is Screen.Assistant -> AssistantPage()
+                            is Screen.AssistantDetail -> AssistantDetailPage(screen.id)
+                            is Screen.AssistantBasic -> AssistantBasicPage(screen.id)
+                            is Screen.AssistantPrompt -> AssistantPromptPage(screen.id)
+                            is Screen.AssistantMemory -> AssistantMemoryPage(screen.id)
+                            is Screen.AssistantRequest -> AssistantRequestPage(screen.id)
+                            is Screen.AssistantMcp -> AssistantMcpPage(screen.id)
+                            is Screen.AssistantLocalTool -> AssistantLocalToolPage(screen.id)
+                            is Screen.AssistantInjections -> AssistantExtensionsPage(screen.id)
+                            is Screen.Translator -> TranslatorPage()
+                            is Screen.Setting -> SettingPage()
+                            is Screen.Backup -> BackupPage()
+                            is Screen.ImageGen -> ImageGenPage()
+                            is Screen.WebView -> WebViewPage(screen.url, screen.contentId)
+                            is Screen.SettingPreferencesTheme -> SettingPreferencesThemePage()
+                            is Screen.SettingPreferencesNotification -> SettingPreferencesNotificationPage()
+                            is Screen.SettingPreferencesGeneral -> SettingPreferencesGeneralPage()
+                            is Screen.SettingPermissions -> SettingPermissionsPage()
+                            is Screen.SettingPreferencesUI -> SettingPreferencesUIPage()
+                            is Screen.SettingPreferencesUIMessage -> SettingPreferencesUIMessagePage()
+                            is Screen.SettingPreferencesUIFont -> SettingPreferencesUIFontPage()
+                            is Screen.SettingPreferencesUICode -> SettingPreferencesUICodePage()
+                            is Screen.SettingPreferencesNetwork -> SettingPreferencesNetworkPage()
+                            is Screen.SettingProvider -> SettingProviderPage()
+                            is Screen.SettingProviderDetail -> {
+                                val id = Uuid.parse(screen.providerId)
+                                SettingProviderDetailPage(id = id)
                             }
-
-                            "setting" -> SettingPage()
-
-                            "setting-provider-detail" ->
-                                (ScreenRoutes.screenOf(route) as? Screen.SettingProviderDetail)?.let { key ->
-                                    SettingProviderDetailPage(id = Uuid.parse(key.providerId))
-                                }
-
-                            // 其余 56 条路由（U7a-3 迁完就删掉这条分支）：整页交给原 Nav3 外壳。
-                            // 不按「是否栈顶」裁剪：Nav3 小栈退到底时会把返回交回 Mochi，裁剪反而会让
-                            // pop 转场的那段时间里页面变空白。
-                            else -> LegacyNav3Shell(
-                                seed = ScreenRoutes.screenOf(route) ?: Screen.Greeting,
-                                onExit = { if (!kkNav.popBackStack()) finish() },
-                            )
+                            is Screen.SettingModels -> SettingModelPage()
+                            is Screen.TraceAudit -> heizige.kk.khatkit.app.feature.automation.TraceAuditPage()
+                            is Screen.SettingAbout -> SettingAboutPage()
+                            is Screen.SettingSearch -> SettingSearchPage()
+                            is Screen.SettingSearchDetail -> {
+                                val id = Uuid.parse(screen.serviceId)
+                                SettingSearchDetailPage(id)
+                            }
+                            is Screen.SettingSpeech -> SettingSpeechPage()
+                            is Screen.SettingMcp -> SettingMcpPage()
+                            is Screen.ExploreMarket -> ExploreMarketPage()
+                            is Screen.ExploreCards -> ExploreCardsPage(initialQuery = screen.initialQuery)
+                            is Screen.ExploreLocal -> ExploreLocalPage()
+                            is Screen.CardRuns -> CardRunsPage()
+                            is Screen.SettingDonate -> SettingDonatePage()
+                            is Screen.SettingFiles -> SettingFilesPage()
+                            is Screen.SettingMemory -> SettingMemoryPage()
+                            is Screen.SettingWeb -> SettingWebPage()
+                            is Screen.SettingTriggers -> SettingTriggersPage()
+                            is Screen.CreateWorkflow -> CreateWorkflowPage(screen.workflowId)
+                            is Screen.SettingPackage -> SettingPackagePage()
+                            is Screen.Debug -> DebugPage()
+                            is Screen.Log -> LogPage()
+                            is Screen.Extensions -> ExtensionsPage()
+                            is Screen.QuickMessages -> QuickMessagesPage()
+                            is Screen.Prompts -> PromptPage()
+                            is Screen.Skills -> SkillsPage()
+                            is Screen.Workspaces -> WorkspacePage()
+                            is Screen.WorkspaceDetail -> WorkspaceDetailPage(screen.id)
+                            is Screen.WorkspaceTerminal -> WorkspaceTerminalPage(screen.id)
+                            is Screen.WorkspaceFileEditor -> WorkspaceFileEditorPage(
+                                    id = screen.id,
+                                    area = WorkspaceStorageArea.valueOf(screen.area),
+                                    path = screen.path,
+                                )
+                            is Screen.SkillDetail -> SkillDetailPage(skillName = screen.skillName)
+                            is Screen.MessageSearch -> SearchPage()
+                            is Screen.DownloadCenter -> DownloadCenterPage()
                         }
                     }
                     if (BuildConfig.DEBUG) {
@@ -446,331 +471,7 @@ class RouteActivity : ComponentActivity() {
     }
 }
 
-/**
- * U7a-2 过渡态 fallback 外壳：4 个核心页已由 [MochiNavHost] 渲染，其余路由整页落到这里 ——
- * 内容就是迁移前的 Nav3 [NavDisplay]（页面主体一行未改），换的只有「栈从哪来」和「返回到哪去」。
- *
- * 行为边界（U7a-3 全量迁完删掉整个函数）：
- * - 每条 fallback 路由一份独立小栈，页内跳转/返回全在小栈里，和迁移前完全一致；
- * - 小栈退到根页后返回交回 Mochi 栈（Mochi 优先），Mochi 也退不动才 finish；
- * - 不新增 BackHandler / PredictiveBackHandler，返回仍只有一处接管。
- */
-@Composable
-private fun LegacyNav3Shell(seed: Screen, onExit: () -> Unit) {
-    // key(seed)：不同 fallback 路由不复用同一条小栈（否则会看到上一条路由的旧栈）。
-    key(seed) {
-        val context = LocalContext.current
-        val fallbackStack = rememberNavBackStack(seed)
-        val fallbackNav = remember(fallbackStack) { Navigator(fallbackStack) }
-        // 页内 94 处 navigate 在 fallback 里仍然落到这条小栈上。
-        CompositionLocalProvider(LocalNavController provides fallbackNav) {
 
-            NavDisplay(
-                backStack = fallbackStack,
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
-                modifier = Modifier.fillMaxSize(),
-                // ── fallback 页的返回：仍然是单点 ────────────────────────────
-                //  · 页内浮层（ChatInput 全屏编辑器等）先经 PageBackInterceptor 消费；
-                //  · fallback 自己还有页就退自己；
-                //  · 退到 fallback 根页后把返回交回 Mochi 栈（Mochi 优先），Mochi 也退不动才 finish。
-                // Nav3 侧不新增 BackHandler，页面里也不要再挂。
-                onBack = {
-                    if (!PageBackInterceptor.intercept()) {
-                        if (fallbackStack.size > 1) fallbackNav.popBackStack()
-                        else onExit()
-                    }
-                },
-                transitionSpec = {
-                    if (fallbackStack.size == 1) fadeIn() togetherWith fadeOut()
-                    else {
-                        slideInHorizontally { it } togetherWith
-                            slideOutHorizontally { -it / 2 } + scaleOut(targetScale = 0.7f) + fadeOut()
-                    }
-                },
-                popTransitionSpec = {
-                    slideInHorizontally { -it / 2 } + scaleIn(initialScale = 0.7f) + fadeIn() togetherWith
-                        slideOutHorizontally { it }
-                },
-                predictivePopTransitionSpec = {
-                    slideInHorizontally { -it / 2 } + scaleIn(initialScale = 0.7f) + fadeIn() togetherWith
-                        slideOutHorizontally { it }
-                },
-                entryProvider = entryProvider {
-                    entry<Screen.Greeting> {
-                        GreetingPage(
-                            onFinish = {
-                                context.writeBooleanPreference("greeting_completed", true)
-                                fallbackNav.navigate(nextChatScreen(context))
-                            }
-                        )
-                    }
-
-                    entry<Screen.Chat>(
-                        metadata = NavDisplay.transitionSpec { fadeIn() togetherWith fadeOut() }
-                            + NavDisplay.popTransitionSpec { fadeIn() togetherWith fadeOut() }
-                    ) { key ->
-                        ChatPage(
-                            id = Uuid.parse(key.id),
-                            text = key.text,
-                            files = key.files.map { it.toUri() },
-                            nodeId = key.nodeId?.let { Uuid.parse(it) },
-                            messageId = key.messageId?.let { Uuid.parse(it) },
-                        )
-                    }
-
-                    entry<Screen.ShareHandler> { key ->
-                        ShareHandlerPage(
-                            text = key.text,
-                            image = key.streamUri
-                        )
-                    }
-
-                    // 角色聊天面板：聊天页右上角三横杠进来，返回即回到该会话。
-                    entry<Screen.RoleChatPanel> { key ->
-                        ChatRolePanelPage(
-                            roleId = key.roleId,
-                            conversationId = key.conversationId,
-                        )
-                    }
-
-                    entry<Screen.Assistant> {
-                        AssistantPage()
-                    }
-
-                    entry<Screen.AssistantDetail> { key ->
-                        AssistantDetailPage(key.id)
-                    }
-
-                    entry<Screen.AssistantBasic> { key ->
-                        AssistantBasicPage(key.id)
-                    }
-
-                    entry<Screen.AssistantPrompt> { key ->
-                        AssistantPromptPage(key.id)
-                    }
-
-                    entry<Screen.AssistantMemory> { key ->
-                        AssistantMemoryPage(key.id)
-                    }
-
-                    entry<Screen.AssistantRequest> { key ->
-                        AssistantRequestPage(key.id)
-                    }
-
-                    entry<Screen.AssistantMcp> { key ->
-                        AssistantMcpPage(key.id)
-                    }
-
-                    entry<Screen.AssistantLocalTool> { key ->
-                        AssistantLocalToolPage(key.id)
-                    }
-
-                    entry<Screen.AssistantInjections> { key ->
-                        AssistantExtensionsPage(key.id)
-                    }
-
-                    entry<Screen.Translator> {
-                        TranslatorPage()
-                    }
-
-                    entry<Screen.Setting> {
-                        SettingPage()
-                    }
-
-                    entry<Screen.Backup> {
-                        BackupPage()
-                    }
-
-                    entry<Screen.ImageGen> {
-                        ImageGenPage()
-                    }
-
-                    entry<Screen.WebView> { key ->
-                        WebViewPage(key.url, key.contentId)
-                    }
-
-                    entry<Screen.SettingPreferencesTheme> {
-                        SettingPreferencesThemePage()
-                    }
-
-                    entry<Screen.SettingPreferencesNotification> {
-                        SettingPreferencesNotificationPage()
-                    }
-
-                    entry<Screen.SettingPreferencesGeneral> {
-                        SettingPreferencesGeneralPage()
-                    }
-
-                    entry<Screen.SettingPermissions> {
-                        SettingPermissionsPage()
-                    }
-
-                    entry<Screen.SettingPreferencesUI> {
-                        SettingPreferencesUIPage()
-                    }
-
-                    entry<Screen.SettingPreferencesUIMessage> {
-                        SettingPreferencesUIMessagePage()
-                    }
-
-                    entry<Screen.SettingPreferencesUIFont> {
-                        SettingPreferencesUIFontPage()
-                    }
-
-                    entry<Screen.SettingPreferencesUICode> {
-                        SettingPreferencesUICodePage()
-                    }
-
-                    entry<Screen.SettingPreferencesNetwork> {
-                        SettingPreferencesNetworkPage()
-                    }
-
-                    entry<Screen.SettingProvider> {
-                        SettingProviderPage()
-                    }
-
-                    entry<Screen.SettingProviderDetail> { key ->
-                        val id = Uuid.parse(key.providerId)
-                        SettingProviderDetailPage(id = id)
-                    }
-
-                    entry<Screen.SettingModels> {
-                        SettingModelPage()
-                    }
-
-                    entry<Screen.TraceAudit> {
-                        heizige.kk.khatkit.app.feature.automation.TraceAuditPage()
-                    }
-
-                    entry<Screen.SettingAbout> {
-                        SettingAboutPage()
-                    }
-
-                    entry<Screen.SettingSearch> {
-                        SettingSearchPage()
-                    }
-
-                    entry<Screen.SettingSearchDetail> { key ->
-                        val id = Uuid.parse(key.serviceId)
-                        SettingSearchDetailPage(id)
-                    }
-
-                    entry<Screen.SettingSpeech> {
-                        SettingSpeechPage()
-                    }
-
-                    entry<Screen.SettingMcp> {
-                        SettingMcpPage()
-                    }
-
-                    entry<Screen.ExploreMarket> {
-                        ExploreMarketPage()
-                    }
-
-                    entry<Screen.ExploreCards> { key ->
-                        ExploreCardsPage(initialQuery = key.initialQuery)
-                    }
-
-                    entry<Screen.ExploreLocal> {
-                        ExploreLocalPage()
-                    }
-
-                    entry<Screen.CardRuns> {
-                        CardRunsPage()
-                    }
-
-                    entry<Screen.SettingDonate> {
-                        SettingDonatePage()
-                    }
-
-                    entry<Screen.SettingFiles> {
-                        SettingFilesPage()
-                    }
-
-                    entry<Screen.SettingMemory> {
-                        SettingMemoryPage()
-                    }
-
-                    entry<Screen.SettingWeb> {
-                        SettingWebPage()
-                    }
-
-                    entry<Screen.SettingTriggers> {
-                        SettingTriggersPage()
-                    }
-
-                    entry<Screen.CreateWorkflow> { key ->
-                        CreateWorkflowPage(key.workflowId)
-                    }
-
-                    entry<Screen.SettingPackage> {
-                        SettingPackagePage()
-                    }
-
-                    entry<Screen.Debug> {
-                        DebugPage()
-                    }
-
-                    entry<Screen.Log> {
-                        LogPage()
-                    }
-
-                    entry<Screen.Extensions> {
-                        ExtensionsPage()
-                    }
-
-                    entry<Screen.QuickMessages> {
-                        QuickMessagesPage()
-                    }
-
-                    entry<Screen.Prompts> {
-                        PromptPage()
-                    }
-
-                    entry<Screen.Skills> {
-                        SkillsPage()
-                    }
-
-                    entry<Screen.Workspaces> {
-                        WorkspacePage()
-                    }
-
-                    entry<Screen.WorkspaceDetail> { key ->
-                        WorkspaceDetailPage(key.id)
-                    }
-
-                    entry<Screen.WorkspaceTerminal> { key ->
-                        WorkspaceTerminalPage(key.id)
-                    }
-
-                    entry<Screen.WorkspaceFileEditor> { key ->
-                        WorkspaceFileEditorPage(
-                            id = key.id,
-                            area = WorkspaceStorageArea.valueOf(key.area),
-                            path = key.path,
-                        )
-                    }
-
-                    entry<Screen.SkillDetail> { key ->
-                        SkillDetailPage(skillName = key.skillName)
-                    }
-
-                    entry<Screen.MessageSearch> {
-                        SearchPage()
-                    }
-
-                    entry<Screen.DownloadCenter> {
-                        DownloadCenterPage()
-                    }
-
-                }
-            )
-        }
-    }
-}
 
 
 /** 引导页完成后要进的会话页（逻辑与迁移前的 greetingChatScreen 一致）。 */
@@ -819,7 +520,7 @@ private class MochiBackedNavStack(private val kkNav: KkNavController) : Abstract
 
 /**
  * 核心页的返回前置钩子：只在有页内浮层登记返回拦截时注册（否则完全不注册，返回照旧由
- * [MochiNavHost] 的预测性返回处理）。等价于迁移前 \`NavDisplay.onBack\` 里那层
+ * [MochiNavHost] 的预测性返回处理）。等价于迁移前 Nav3 onBack 里那层
  * [PageBackInterceptor]，保证 ChatInput 全屏编辑器这类浮层还能先关自己。
  */
 @Composable
@@ -1046,9 +747,9 @@ sealed interface Screen : NavKey {
  * 页内浮层的返回拦截登记处（结构性地保证浮层打开时返回不会穿透到导航栈）。
  *
  * 背景：ChatInput 的全屏编辑器是**同一 window 内的页内浮层**（Khromia `FullscreenPopup`
- * 挂在 decorView 上），它自己的 `PredictiveBackHandler` 与 `NavDisplay` 的返回处理注册在
+ * 挂在 decorView 上），它自己的 PredictiveBackHandler 与 Nav3 onBack 的返回处理注册在
  * 同一个页面 dispatcher 上。「后注册者优先」是 androidx 文档写明的规则，但为了让返回
- * 结果不依赖这个顺序假设，这里再兜一层：浮层登记后，`NavDisplay.onBack` 先问拦截器。
+ * 结果不依赖这个顺序假设，这里再兜一层：浮层登记后，返回接管点先问拦截器。
  *
  * 这是普通可变状态而不是 Compose state：`onBack` 与浮层回调都在事件里同步读写它，
  * 不需要参与重组；浮层的显示/隐藏由各自的 Compose 状态驱动。

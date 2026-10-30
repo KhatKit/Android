@@ -10,9 +10,9 @@ import ui.feice.mochi.navigation.rememberMochiNavigator
 /**
  * [Screen] 世界与 Mochi 返回栈（[MochiNavigator]，路由是 String）之间的适配器。
  *
- * 迁移期先只提供「新世界」的 API；RouteActivity 仍走 Nav3 的 [heizige.kk.khatkit.app.core.ui.nav.NavViewModel]，
- * 本类不参与，所以接入它对现有行为零影响。接线分三步（U7a-1 → U7a-2 → U7a-3），
- * 每一步只把一批页面从 Nav3 换到 [rememberKkNavController] 建的栈上。
+ * U7a-3 起 RouteActivity 的唯一导航栈就是本类包着的 Mochi 栈（Nav3 的 NavDisplay 与
+ * NavViewModel 已删除）；页面里的 navController.navigate(Screen.X) 仍走 LocalNavController，
+ * 但背后由 RouteActivity 的 MochiBackedNavStack 转发到本类，所以 94 处调用点不用改。
  *
  * 路由字符串由 [ScreenRoutes] 决定（纯函数、可单测）；本类只做栈操作。
  *
