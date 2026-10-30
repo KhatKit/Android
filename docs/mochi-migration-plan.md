@@ -331,3 +331,61 @@ cat docs/mochi-migration-plan.md | head -40    # 本文件
 | P5 material3 清理 | 未开始 | | |
 | P6 自绘组件重做 | 未开始 | | |
 | P7 收尾与记账 | 未开始 | | |
+
+---
+
+## 13. 本地 Mochi 源码库（mavenLocal `0.2.0-khatkit`）
+
+主人要求 Mochi 走**本地源码库**（以后直接改库源码即可生效），所以 KhatKit 解析的是
+从本地源码 publish 出来的 `0.2.0-khatkit`，不是 Maven Central 的 `0.2.0`。
+
+| 项 | 值（2026-10-30 实测） |
+|---|---|
+| 本地源码 | `/home/heizige/文档/Android/Project/Mochi` |
+| 基线 tag / commit | `v0.2.0` / `3f4eda8` |
+| 发布版本号 | `0.2.0-khatkit`（三个构件同版本） |
+| m2 产物 | `~/.m2/repository/io/github/feice11/mochi-{compose,ios,icons}/0.2.0-khatkit/`（含 `-sources.jar`） |
+| 仓库声明 | `settings.gradle.kts:49` 的 `mavenLocal()`（已在 `dependencyResolutionManagement` 内） |
+| 版本声明 | `gradle/libs.versions.toml` 的 `mochi = "0.2.0-khatkit"` |
+
+**为什么不用 composite build（`includeBuild`）**：KhatKit 用 Gradle 9.7.1，Mochi v0.2.0 的
+AGP 8.13.2 只支持 Gradle 8.x，直接 `includeBuild` 会撞工具链。mavenLocal 路线等价
+（改库 → 重发布 → KhatKit 重编），且不引入 Gradle/AGP 版本冲突。
+
+### 重新发布（在 Mochi 目录，用它自带的 Gradle 8.14.3 wrapper）
+
+```bash
+cd /home/heizige/文档/Android/Project/Mochi
+git checkout v0.2.0                     # 或你改库所在的分支
+./gradlew :mochi-compose:publishToMavenLocal \
+          :mochi-ios:publishToMavenLocal \
+          :mochi-icons:publishToMavenLocal \
+          -PVERSION_NAME=0.2.0-khatkit
+```
+
+### 改库循环（改 Mochi → 重发布 → 重编 app）
+
+```bash
+# 1) 改 Mochi 源码（Kotlin 在 mochi-compose/src/main/...）
+# 2) 重发布（同版本号会覆盖 ~/.m2 里的产物）
+cd /home/heizige/文档/Android/Project/Mochi && ./gradlew :mochi-compose:publishToMavenLocal -PVERSION_NAME=0.2.0-khatkit
+# 3) KhatKit 重新编译。**同名同版本 m2 产物 Gradle 会命中缓存**，必须刷新依赖：
+cd /home/heizige/文档/Android/Project/KhatKit && ./gradlew :app:assembleDebug --refresh-dependencies
+#    不想每次 --refresh-dependencies 就改 VERSION_NAME 后缀（如 0.2.0-khatkit2）并同步 libs.versions.toml
+```
+
+### 校验解析来源
+
+```bash
+cd /home/heizige/文档/Android/Project/KhatKit
+./gradlew :app:dependencies --configuration debugRuntimeClasspath | grep -i 'mochi-'
+# 期望：io.github.feice11:mochi-compose:0.2.0-khatkit / mochi-ios:0.2.0-khatkit / mochi-icons:0.2.0-khatkit
+```
+
+### 注意
+
+- `0.2.0-khatkit` 只存在于本机 m2，**不要**推到 Central；换机器/CI 需先按上面命令 publish，
+  或临时把 `mochi` 改回 `0.2.0`。
+- 本阶段的 `0.2.0-khatkit` 与 Central `0.2.0` 内容相同（同一 tag），仅版本号不同。
+- `settings.gradle.kts` 里 kedge/khromia 的 `includeBuild` 与本条无关，P7 才处理。
+

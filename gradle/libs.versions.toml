@@ -74,7 +74,8 @@ snakeyaml = "2.7"
 shizuku = "13.1.5"
 kedge = "0.1.2"
 khromia = "1.6.5"
-mochi = "0.2.0"
+# 本地源码库产物（mavenLocal，由 ../Mochi 源码 publishToMavenLocal 生成；见 docs/mochi-migration-plan.md §13）
+mochi = "0.2.0-khatkit"
 richeditorCompose = "1.0.0"
 
 [libraries]
