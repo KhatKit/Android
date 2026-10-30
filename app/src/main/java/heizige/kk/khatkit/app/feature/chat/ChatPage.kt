@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.mutableIntStateOf
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
@@ -381,6 +385,131 @@ internal fun ChatScaffold(
         // 顶栏作为兄弟节点采样（KernelSU MainActivity.kt:306 同构）。
         // 助手背景要画在**内容槽里面**（见下面），不能留在 Scaffold 外面：
         // backdrop 只录制内容槽那棵子树，画在槽外就不在模糊源里，顶栏会糊不到它。
+        // U3b：输入栏改悬浮层，不再占 scaffold bottomBar 的纵向位置。
+        val inputBarOverlay: @Composable () -> Unit = {
+            val messageQueue by vm.messageQueue.collectAsStateWithLifecycle()
+            val voiceState by vm.voiceSession.state.collectAsStateWithLifecycle()
+            if (archived) {
+                Text(
+                    "历史群聊已归档",
+                    style = KedgeTextStyles.body(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
+                )
+            } else ChatInput(
+                onStartVoiceMode = onStartVoiceMode,
+                voiceState = voiceState,
+                onStopVoiceMode = vm.voiceSession::stop,
+                state = inputState,
+                messageQueue = messageQueue,
+                onRemoveQueuedMessage = vm::removeQueuedMessage,
+                onBeginEditQueuedMessage = vm::beginEditQueuedMessage,
+                onFinishEditQueuedMessage = vm::finishEditQueuedMessage,
+                onResumeMessageQueue = vm::resumeMessageQueue,
+                onSendQueuedMessageNow = vm::sendQueuedMessageNow,
+                loading = loadingJob != null,
+                settings = setting,
+                hazeState = hazeState,
+                completionProviders = completionProviders,
+                onCancelClick = {
+                    vm.stopGeneration()
+                },
+                enableSearch = enableWebSearch,
+                onUpdateSearchMode = { mode ->
+                    val current = setting.getCurrentAssistant()
+                    val model = setting.getCurrentChatModel()
+                    vm.updateSettings(
+                        setting.copy(
+                            assistants = setting.assistants.map { assistant ->
+                                if (assistant.id == current.id) {
+                                    assistant.copy(enableWebSearch = mode == SearchMode.LOCAL)
+                                } else {
+                                    assistant
+                                }
+                            },
+                            providers = if (model == null) {
+                                setting.providers
+                            } else {
+                                setting.providers.map { provider ->
+                                    provider.editModel(
+                                        model.copy(
+                                            tools = if (mode == SearchMode.BUILT_IN) {
+                                                model.tools + BuiltInTools.Search
+                                            } else {
+                                                model.tools - BuiltInTools.Search
+                                            }
+                                        )
+                                    )
+                                }
+                            },
+                        )
+                    )
+                },
+                onSendClick = {
+                    if (currentChatModel == null) {
+                        Toast.show("请先为角色配置模型", isError = true)
+                        return@ChatInput
+                    }
+                    if (inputState.isEditing()) {
+                        vm.handleMessageEdit(
+                            parts = inputState.getContents(),
+                            messageId = inputState.editingMessage!!,
+                        )
+                    } else {
+                        vm.handleMessageSend(inputState.getContents())
+                        scope.launch {
+                            delay(100.milliseconds)
+                            chatListState.requestScrollToItem(conversation.currentMessages.size + 5)
+                        }
+                    }
+                    inputState.clearInput()
+                },
+                onLongSendClick = {
+                    if (inputState.isEditing()) {
+                        vm.handleMessageEdit(
+                            parts = inputState.getContents(),
+                            messageId = inputState.editingMessage!!,
+                        )
+                    } else {
+                        vm.handleMessageSend(content = inputState.getContents(), answer = false)
+                        scope.launch {
+                            chatListState.requestScrollToItem(conversation.currentMessages.size + 5)
+                        }
+                    }
+                    inputState.clearInput()
+                },
+                // 长按发送键但没配语音识别模型 → 弹「去配置」→ 跳到语音设置页
+                onConfigureVoice = { navController.navigate(Screen.SettingSpeech) },
+                onUpdateAssistant = {
+                    vm.updateSettings(
+                        setting.copy(
+                            assistants = setting.assistants.map { assistant ->
+                                if (assistant.id == it.id) {
+                                    it
+                                } else {
+                                    assistant
+                                }
+                            }
+                        )
+                    )
+                },
+                onUpdateSearchRepository = { index ->
+                    vm.updateSettings(
+                        setting.copy(
+                            searchServiceSelected = index
+                        )
+                    )
+                },
+                onMoreClick = {
+                    showFilesSheet = true
+                },
+                attachmentActions = attachmentPickerActions,
+            )
+        
+        }
+        var inputBarHeightPx by remember { mutableIntStateOf(0) }
+        val inputBarHeight = with(LocalDensity.current) { inputBarHeightPx.toDp() }
+        Box(modifier = Modifier.fillMaxSize()) {
         MochiPageScaffold(
             modifier = activeNestedScroll,
             topBar = {
@@ -420,126 +549,6 @@ internal fun ChatScaffold(
                         },
                     )
             },
-            bottomBar = {
-                val messageQueue by vm.messageQueue.collectAsStateWithLifecycle()
-                val voiceState by vm.voiceSession.state.collectAsStateWithLifecycle()
-                if (archived) {
-                    Text(
-                        "历史群聊已归档",
-                        style = KedgeTextStyles.body(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
-                    )
-                } else ChatInput(
-                    onStartVoiceMode = onStartVoiceMode,
-                    voiceState = voiceState,
-                    onStopVoiceMode = vm.voiceSession::stop,
-                    state = inputState,
-                    messageQueue = messageQueue,
-                    onRemoveQueuedMessage = vm::removeQueuedMessage,
-                    onBeginEditQueuedMessage = vm::beginEditQueuedMessage,
-                    onFinishEditQueuedMessage = vm::finishEditQueuedMessage,
-                    onResumeMessageQueue = vm::resumeMessageQueue,
-                    onSendQueuedMessageNow = vm::sendQueuedMessageNow,
-                    loading = loadingJob != null,
-                    settings = setting,
-                    hazeState = hazeState,
-                    completionProviders = completionProviders,
-                    onCancelClick = {
-                        vm.stopGeneration()
-                    },
-                    enableSearch = enableWebSearch,
-                    onUpdateSearchMode = { mode ->
-                        val current = setting.getCurrentAssistant()
-                        val model = setting.getCurrentChatModel()
-                        vm.updateSettings(
-                            setting.copy(
-                                assistants = setting.assistants.map { assistant ->
-                                    if (assistant.id == current.id) {
-                                        assistant.copy(enableWebSearch = mode == SearchMode.LOCAL)
-                                    } else {
-                                        assistant
-                                    }
-                                },
-                                providers = if (model == null) {
-                                    setting.providers
-                                } else {
-                                    setting.providers.map { provider ->
-                                        provider.editModel(
-                                            model.copy(
-                                                tools = if (mode == SearchMode.BUILT_IN) {
-                                                    model.tools + BuiltInTools.Search
-                                                } else {
-                                                    model.tools - BuiltInTools.Search
-                                                }
-                                            )
-                                        )
-                                    }
-                                },
-                            )
-                        )
-                    },
-                    onSendClick = {
-                        if (currentChatModel == null) {
-                            Toast.show("请先为角色配置模型", isError = true)
-                            return@ChatInput
-                        }
-                        if (inputState.isEditing()) {
-                            vm.handleMessageEdit(
-                                parts = inputState.getContents(),
-                                messageId = inputState.editingMessage!!,
-                            )
-                        } else {
-                            vm.handleMessageSend(inputState.getContents())
-                            scope.launch {
-                                delay(100.milliseconds)
-                                chatListState.requestScrollToItem(conversation.currentMessages.size + 5)
-                            }
-                        }
-                        inputState.clearInput()
-                    },
-                    onLongSendClick = {
-                        if (inputState.isEditing()) {
-                            vm.handleMessageEdit(
-                                parts = inputState.getContents(),
-                                messageId = inputState.editingMessage!!,
-                            )
-                        } else {
-                            vm.handleMessageSend(content = inputState.getContents(), answer = false)
-                            scope.launch {
-                                chatListState.requestScrollToItem(conversation.currentMessages.size + 5)
-                            }
-                        }
-                        inputState.clearInput()
-                    },
-                    // 长按发送键但没配语音识别模型 → 弹「去配置」→ 跳到语音设置页
-                    onConfigureVoice = { navController.navigate(Screen.SettingSpeech) },
-                    onUpdateAssistant = {
-                        vm.updateSettings(
-                            setting.copy(
-                                assistants = setting.assistants.map { assistant ->
-                                    if (assistant.id == it.id) {
-                                        it
-                                    } else {
-                                        assistant
-                                    }
-                                }
-                            )
-                        )
-                    },
-                    onUpdateSearchRepository = { index ->
-                        vm.updateSettings(
-                            setting.copy(
-                                searchServiceSelected = index
-                            )
-                        )
-                    },
-                    onMoreClick = {
-                        showFilesSheet = true
-                    },
-                    attachmentActions = attachmentPickerActions,
-                )
-            },
             containerColor = Color.Transparent,
     ) { innerPadding ->
             // 助手背景（图片/流光）放在内容槽内的最底层：Miuix 下 backdrop 录制的
@@ -550,7 +559,11 @@ internal fun ChatScaffold(
                 // 传入，与顶栏、ChatInput 全部同源。背景图/流光不再自己解析全局 currentAssistant。
                 AssistantBackground(assistant = assistant, modifier = Modifier.hazeSource(hazeState))
                 ChatList(
-                innerPadding = innerPadding,
+                // U3b：列表底部补输入栏高度，滚到底时最后一条完整可见。
+                innerPadding = PaddingValues(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = innerPadding.calculateBottomPadding() + inputBarHeight,
+                ),
                 conversation = conversation,
                 state = chatListState,
                 loading = loadingJob != null,
@@ -633,6 +646,19 @@ internal fun ChatScaffold(
                         .fillMaxSize()
                         .padding(innerPadding),
                 )
+            }
+        }
+
+            // 悬浮输入栏：作为兄弟节点画在列表之上（不占纵向布局）；
+            // navigationBarsPadding 让它跟随导航栏/IME，高度回灌给列表 contentPadding。
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .onSizeChanged { inputBarHeightPx = it.height },
+            ) {
+                inputBarOverlay()
             }
         }
 
