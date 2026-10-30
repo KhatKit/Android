@@ -46,6 +46,8 @@ fun ItemActionMenu(
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // 注意 Mochi 的规则：**只要有一项 icon != null，整张菜单都会给每行预留前导空间**。
+    // 所以混合菜单要么全有图标、要么全无；没有真实内容时 icon 必须传 null，别传空 lambda。
     val items: ImmutableList<MochiItem> = actions.map { action ->
         MochiItem(
             label = action.text,

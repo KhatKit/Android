@@ -51,12 +51,15 @@ fun <T> Select(
         MochiItem(
             label = optionToString(option),
             destructive = false,
-            // Mochi 会给行内图标一个「行文字色」；optionLeading 里可能是 Text/Icon，
-            // 用 LocalContentColor 把它透传下去，保证「Aa」与选项文字同色。
-            icon = { color ->
-                androidx.compose.runtime.CompositionLocalProvider(
-                    androidx.compose.material3.LocalContentColor provides color,
-                ) { optionLeading?.invoke(option) }
+            // 注意 Mochi 的规则：**只要有一项 icon != null，整张菜单都会给每行预留前导空间**
+            // （MenuList 的 `items.any { it.icon != null }`）。所以没有 leading 时必须传 null，
+            // 否则整表左边空一块；有 leading 时用 LocalContentColor 透传行文字色。
+            icon = optionLeading?.let { lead ->
+                { color ->
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        androidx.compose.material3.LocalContentColor provides color,
+                    ) { lead(option) }
+                }
             },
         )
     }.toImmutableList()
@@ -104,7 +107,8 @@ fun <T> SelectTextField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val items: ImmutableList<MochiItem> = options.map { option ->
-        MochiItem(label = optionToString(option), destructive = false, icon = { })
+        // 无 leading：icon 必须缺省（null），空 lambda 会让整张菜单预留前导空间。
+        MochiItem(label = optionToString(option), destructive = false)
     }.toImmutableList()
 
     MochiDropdown(
