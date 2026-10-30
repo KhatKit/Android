@@ -37,17 +37,34 @@ class ColorModeMappingTest {
         assertTrue(ColorMode.DARK.resolveDark(systemDark = false))
     }
 
+    /**
+     * 逐档把「SYSTEM 跟随 / LIGHT 固定浅 / DARK 固定深」钉死，且与映射出来的 mochi 模式一一对应。
+     *
+     * 这里**不调用** mochi 的 `ColorSchemeMode.isDark(...)`：那是 `ui.feice.mochi.theme` 的
+     * 顶层扩展函数（不是枚举成员），早先直接当成员调用导致 :app:compileDebugUnitTestKotlin 编译不过。
+     * 语义一致性改用「映射到哪个常量 + 该档的期望明暗」来锁：常量名就是 mochi 的契约。
+     */
     @Test
-    fun resolveDarkMatchesMochiModeSemantics() {
-        // mochi 侧 isDark(systemDark) 的语义必须与本仓 resolveDark 一致
+    fun resolveDarkIsConsistentForEveryMode() {
+        val expectedMochiMode = mapOf(
+            ColorMode.SYSTEM to ColorSchemeMode.System,
+            ColorMode.LIGHT to ColorSchemeMode.Light,
+            ColorMode.DARK to ColorSchemeMode.Dark,
+        )
         ColorMode.entries.forEach { mode ->
-            val mochiMode = mode.toMochiColorSchemeMode()
+            assertEquals(expectedMochiMode[mode], mode.toMochiColorSchemeMode())
+            val expectedDark = when (mode) {
+                ColorMode.SYSTEM -> null // 跟随系统：两种输入各得其所
+                ColorMode.LIGHT -> false
+                ColorMode.DARK -> true
+            }
             booleanArrayOf(true, false).forEach { systemDark ->
-                assertEquals(
-                    "$mode 在 systemDark=$systemDark 下两处判定不一致",
-                    mode.resolveDark(systemDark),
-                    mochiMode.isDark(systemDark),
-                )
+                val actual = mode.resolveDark(systemDark)
+                if (expectedDark == null) {
+                    assertEquals("SYSTEM 应跟随系统 systemDark=$systemDark", systemDark, actual)
+                } else {
+                    assertEquals("$mode 应强覆盖系统 systemDark=$systemDark", expectedDark, actual)
+                }
             }
         }
     }
