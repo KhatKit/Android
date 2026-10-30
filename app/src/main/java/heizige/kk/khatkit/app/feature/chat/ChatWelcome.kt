@@ -14,6 +14,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import ui.feice.mochi.basic.mochiSheetBackdrop
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -148,7 +150,8 @@ private fun ChatWelcome(
     onSuggestionClick: (String) -> Unit,
 ) {
     var variation by rememberSaveable(sessionKey) { mutableIntStateOf(0) }
-    var manageWidgets by rememberSaveable { mutableStateOf(false) }
+    // U7b-2：显隐交给 MochiSheetState（show/hide），页面根挂 mochiSheetBackdrop 才能有全屏档背景后缩。
+    val widgetSheet = rememberMochiSheetState()
     // 静态兜底：AI 还没回来（或快速模型不可用/请求失败）时先摆这几条。
     // 只 remember 打乱后的**下标**，因为文案是 stringResource，必须在组合里取。
     val staticIdeas = listOf(
@@ -177,7 +180,7 @@ private fun ChatWelcome(
     // 只留「卡片的小组件」和 AI 提示两种内容：用户自己装的卡片（原「我的卡片」区）不再出现在欢迎页。
     val widgets = remember(state.widgets) { state.widgets.filter { it.enabled } }
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().mochiSheetBackdrop(widgetSheet),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -191,12 +194,12 @@ private fun ChatWelcome(
                 WelcomeSection(
                     stringResource(R.string.chat_widgets),
                     edit, stringResource(R.string.chat_widgets_manage),
-                    onClick = { manageWidgets = true },
+                    onClick = { widgetSheet.show() },
                 )
             }
             if (widgets.isEmpty()) {
                 item(key = "widgets_add", contentType = "widget") {
-                    AddWidgetRow(Modifier.welcomeReveal(1)) { manageWidgets = true }
+                    AddWidgetRow(Modifier.welcomeReveal(1)) { widgetSheet.show() }
                 }
             } else {
                 // 整组拼成一张卡：圆角与项间距全交给 [listCardStyle]（软件口径），脚本只提供内容。
@@ -236,10 +239,10 @@ private fun ChatWelcome(
         }
     }
     PrimaryBottomSheet(
-        visible = manageWidgets,
+        state = widgetSheet,
         title = stringResource(R.string.chat_widgets_manage),
         imageVector = edit,
-        onDismiss = { manageWidgets = false },
+        onDismiss = { widgetSheet.hide() },
         scrollable = false,
     ) {
         Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {

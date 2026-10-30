@@ -21,6 +21,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import ui.feice.mochi.basic.mochiSheetBackdrop
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -108,7 +110,8 @@ internal fun AssistantBasicContent(
     onUpdate: (Assistant) -> Unit,
     vm: AssistantDetailViewModel
 ) {
-    var showShapeSheet by remember { mutableStateOf(false) }
+    // U7b-2：头像形状弹层走 MochiSheetState，页面根挂 mochiSheetBackdrop（全屏档背景后缩）。
+    val shapeSheet = rememberMochiSheetState()
     // 头像底色的取色弹窗：与主题页共用 ThemeCustomColorSheet（内含 SquareColorPicker）。
     var showAvatarColorSheet by remember { mutableStateOf(false) }
     val providerName = providers
@@ -117,6 +120,7 @@ internal fun AssistantBasicContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .mochiSheetBackdrop(shapeSheet)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
             .padding(innerPadding)
@@ -200,7 +204,7 @@ internal fun AssistantBasicContent(
                 },
             )
             item(
-                onClick = { showShapeSheet = true },
+                onClick = { shapeSheet.show() },
                 headlineContent = { Text("头像形状") },
                 supportingContent = { Text(assistant.avatarShape) },
                 trailingContent = { Icon(arrowForward, contentDescription = null) },
@@ -677,10 +681,10 @@ internal fun AssistantBasicContent(
     }
 
     PrimaryBottomSheet(
-        visible = showShapeSheet,
+        state = shapeSheet,
         title = "头像形状",
         imageVector = palette,
-        onDismiss = { showShapeSheet = false },
+        onDismiss = { shapeSheet.hide() },
     ) { dismiss ->
         ShapeSelectionGrid(
             options = roleAvatarShapeNames.map { key ->
