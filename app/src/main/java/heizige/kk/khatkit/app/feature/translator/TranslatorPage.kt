@@ -64,8 +64,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.platform.LocalDensity
-import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.kedge.theme.KedgeStyle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.layout.onGloballyPositioned

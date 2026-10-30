@@ -127,8 +127,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormRowLabel
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import androidx.compose.foundation.layout.ColumnScope
 
 

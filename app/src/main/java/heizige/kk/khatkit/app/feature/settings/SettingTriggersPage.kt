@@ -25,7 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,8 +70,6 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.Screen
@@ -240,7 +238,7 @@ fun SettingTriggersPage() {
                         trailingContent = {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 (TriggerSettings.MIN_MAX_PARALLEL..TriggerSettings.MAX_MAX_PARALLEL).forEach { value ->
-                                    KedgeFilterChip(
+                                    KkFilterChip(
                                         selected = triggerState.maxParallel == value,
                                         onClick = { controller.setMaxParallel(value) },
                                         label = { Text("$value") },
@@ -531,10 +529,9 @@ private fun FlowOverviewCard(
     onAddAi: () -> Unit,
     onCreate: () -> Unit,
 ) {
-    val style = LocalKedgeStyle.current
     KkCard(
         modifier = Modifier.padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(if (style == KedgeStyle.Miuix) 20.dp else 24.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
         ),
@@ -577,7 +574,7 @@ private fun FlowOverviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                KedgeFilterChip(
+                KkFilterChip(
                     selected = false,
                     onClick = onCreate,
                     label = {
@@ -588,7 +585,7 @@ private fun FlowOverviewCard(
                         }
                     },
                 )
-                KedgeFilterChip(
+                KkFilterChip(
                     selected = false,
                     onClick = onAddAi,
                     label = { Text("AI 介入") },

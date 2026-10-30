@@ -63,8 +63,6 @@ import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
@@ -317,7 +315,7 @@ private fun ColorsPage() {
     )
     // MD3 专有 token（inverse/surfaceTint/Fixed* 等）没有 Miuix 对应项，
     // 只在 MD3Exp 列出，免得在 Miuix 下展示兜底的假色。
-    val colorTokens = if (LocalKedgeStyle.current == KedgeStyle.MD3Exp) {
+    val colorTokens = run {
         val colorScheme = MaterialTheme.colorScheme
         coreTokens + listOf(
             "inversePrimary" to colorScheme.inversePrimary,
@@ -342,8 +340,6 @@ private fun ColorsPage() {
             "onTertiaryFixed" to colorScheme.onTertiaryFixed,
             "onTertiaryFixedVariant" to colorScheme.onTertiaryFixedVariant,
         )
-    } else {
-        coreTokens
     }
     LazyColumn(
         contentPadding = PaddingValues(8.dp),

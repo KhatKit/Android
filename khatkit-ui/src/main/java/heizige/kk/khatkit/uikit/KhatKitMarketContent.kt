@@ -65,12 +65,12 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
-import heizige.kk.kedge.components.KedgeFilterChip
+import androidx.compose.material3.FilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import kotlinx.coroutines.launch
-import heizige.kk.kedge.components.KedgeFilterChip
+import androidx.compose.material3.FilterChip
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 
 /**
@@ -301,7 +301,7 @@ fun KhatKitMarketContent(
                     modifier = Modifier.padding(vertical = 12.dp)
                 ) {
                     items(filterOptions) { (key, label) ->
-                        KedgeFilterChip(
+                        FilterChip(
                             selected = selectedFilter == key,
                             onClick = { selectedFilter = key },
                             label = { Text(label, style = MaterialTheme.typography.labelMedium) }

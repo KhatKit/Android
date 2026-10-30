@@ -54,7 +54,7 @@ fun KhatKitTheme(
 
     val extendColors = if (darkTheme) ExtendDarkColors else ExtendLightColors
 
-    val isMiuix = heizige.kk.kedge.theme.LocalKedgeStyle.current == heizige.kk.kedge.theme.KedgeStyle.Miuix
+    val isMiuix = false
     val listCardStyle = remember(
         settings.listCardLargeCorner,
         settings.listCardSmallCorner,

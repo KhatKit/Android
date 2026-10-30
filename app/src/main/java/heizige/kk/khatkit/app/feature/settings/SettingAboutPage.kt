@@ -60,8 +60,6 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.util.plus
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 /**
  * 关于页（Kedge MD3Exp）。

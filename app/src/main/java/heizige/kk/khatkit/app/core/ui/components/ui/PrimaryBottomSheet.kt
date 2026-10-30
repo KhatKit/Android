@@ -15,7 +15,7 @@ import ui.feice.mochi.basic.Text
 /**
  * 项目统一的底部弹层（P4c 起单树：只剩 Mochi 实现）。
  *
- * 历史：以前按 LocalKedgeStyle 在「Kedge 的 Miuix sheet」与「Khromia PrimaryBottomSheet」
+ * 历史：以前按 旧双风格开关 在「Kedge 的 Miuix sheet」与「Khromia PrimaryBottomSheet」
  * 之间分流。全面切 Mochi 后两条分支都删掉，改用 [MochiModalBottomSheet]
  * （androidx Popup + Mochi 表面色，不引 material3 ModalBottomSheet）。
  *

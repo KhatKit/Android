@@ -34,8 +34,6 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.preferences.KedgeListPreference
 import heizige.kk.kedge.preferences.KedgePreferenceOption
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.LocalInlineCardGroup
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
@@ -47,7 +45,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
  * ⚠️ 本文件**不再自绘选项行**（t11）：[PreferenceSwitch] / [PreferenceArrow] /
  * [PreferenceInfo] / [PreferenceRadio]（以及 [PreferenceSlider] 的 MD3 一支）全部只是
  * **签名转接层**，行布局、卡片底色、圆角、内边距、字阶、按压回弹一律由
- * [MochiOptionItem] 按 `LocalKedgeStyle` 分流决定（与 `Form.kt` 的 `FormItem`、
+ * [MochiOptionItem] 按 旧双风格开关 分流决定（与 `Form.kt` 的 `FormItem`、
  * `miuix/KedgeForm.kt` 的 `KedgeFormRow` 同一条渲染路径）。
  *
  * 以前这里有两条自绘行：旧双风格 一支直接渲染 miuix 原生 `SwitchPreference` /

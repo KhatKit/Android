@@ -25,7 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -208,7 +208,7 @@ internal fun TriggerCardEditorSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ALL_EVENT_TYPES.forEach { type ->
-                        KedgeFilterChip(
+                        KkFilterChip(
                             selected = false,
                             onClick = {
                                 events.add(defaultEventFor(type))
@@ -683,7 +683,7 @@ private fun ChipSelector(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             options.forEach { (value, text) ->
-                KedgeFilterChip(
+                KkFilterChip(
                     selected = value == selected,
                     onClick = { onSelect(value) },
                     label = { Text(text) },

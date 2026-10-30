@@ -114,7 +114,7 @@ private const val ScrimMaxAlpha = 0.32f
  * - 全屏宿主才装得下「从屏幕底部滑上来」的位移，`Dialog`/`Popup` 那种 WRAP_CONTENT
  *   窗口会把入场动画裁掉（`AutomationInAppHost` 的注释里记着这个坑）；
  * - 子组合继承 CompositionLocals，所以弹层里的 Kedge 组件两种风格都取得到
- *   `LocalKedgeStyle`（Miuix / MD3Exp 各走各的）。
+ *   旧双风格开关（Miuix / MD3Exp 各走各的）。
  *
  * 状态：`urlInput` / `urlStage` / `closing` 全在本文件的 remember 里，弹层一卸载就归零，
  * 所以「关了再开」永远是干净态，没有需要手动清的临时 uri/file（旧实现在 UIAvatar 里也是

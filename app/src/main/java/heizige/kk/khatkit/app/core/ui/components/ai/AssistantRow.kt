@@ -24,7 +24,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
  *
  * 以前同一个「头像 + 名称 + 右侧操作」的一行各写一遍（助手页一份 `MochiOptionItem`、
  * 选择器一份 `MochiListItem`、抽屉一份 `KkSurface`），改一处漏两处。现在只有这一份，
- * 容器一律走 [MochiOptionItem]（它自己按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem`
+ * 容器一律走 [MochiOptionItem]（它自己按 旧双风格开关 分流 MD3 的 Khromia `OptionItem`
  * 与 Miuix 的 `KkCard` 行），风格差异全部由组件库决定，调用点不再各自排布。
  *
  * 调用点各自传自己的槽位：

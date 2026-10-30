@@ -17,7 +17,7 @@ import ui.feice.mochi.basic.Text
 import ui.feice.mochi.theme.MochiTheme
 
 /**
- * P4a：Kedge 顶栏族的 Mochi 版（不再按 KedgeStyle 分叉，也不再落到 material3 顶栏）。
+ * P4a：Kedge 顶栏族的 Mochi 版（不再按 旧风格枚举 分叉，也不再落到 material3 顶栏）。
  *
  * 参数名沿用旧 Kedge 组件，调用点只改名字；Miuix/Kedge 专有参数
  * （scrollBehavior / backdrop / colors）只收不用 —— 折叠与毛玻璃由 P6 的

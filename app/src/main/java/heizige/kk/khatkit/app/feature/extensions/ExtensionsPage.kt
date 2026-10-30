@@ -27,8 +27,6 @@ import heizige.kk.khatkit.app.core.ui.icons.book4
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun ExtensionsPage() {

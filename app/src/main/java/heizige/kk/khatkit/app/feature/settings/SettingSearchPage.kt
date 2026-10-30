@@ -57,8 +57,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.search.SearchCommonOptions
 import heizige.kk.khatkit.app.core.data.datastore.Settings

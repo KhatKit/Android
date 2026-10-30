@@ -28,7 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
@@ -168,7 +168,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             actions.forEach { action ->
-                                KedgeFilterChip(
+                                KkFilterChip(
                                     selected = false,
                                     onClick = {
                                         val previous = nodes.lastOrNull()?.id.orEmpty()

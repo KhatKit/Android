@@ -49,7 +49,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.components.KedgeInputChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkInputChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -1029,7 +1029,7 @@ private fun RegexInjectionEditDialog(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     entry.keywords.forEach { keyword ->
-                        KedgeInputChip(
+                        KkInputChip(
                             selected = false,
                             onClick = {},
                             label = { Text(keyword) },

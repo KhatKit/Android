@@ -15,8 +15,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 /**
  * 顶栏底色与滚动的联动：静止态 = 本页底色，折叠/滚动后才渐变到 topBarColors 的
@@ -37,7 +35,7 @@ internal fun scrollLinkedTopBarColors(
     colors: TopAppBarColors,
     scrollBehavior: TopAppBarScrollBehavior?,
 ): TopAppBarColors =
-    if (scrollBehavior != null && LocalKedgeStyle.current != KedgeStyle.Miuix) {
+    if (scrollBehavior != null) {
         colors.copy(containerColor = CustomColors.pageContainerColor)
     } else {
         colors

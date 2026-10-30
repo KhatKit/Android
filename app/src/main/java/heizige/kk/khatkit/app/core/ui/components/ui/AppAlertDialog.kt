@@ -9,8 +9,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import heizige.kk.kedge.overlays.KedgeAlertDialogSlots
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khromia.components.AnimatedAlertDialog
 
 /**
@@ -37,18 +35,7 @@ fun AppAlertDialog(
     tonalElevation: Dp = 0.dp,
     properties: DialogProperties = DialogProperties(),
 ) {
-    when (LocalKedgeStyle.current) {
-        KedgeStyle.Miuix -> KedgeAlertDialogSlots(
-            onDismissRequest = onDismissRequest,
-            confirmButton = confirmButton,
-            modifier = modifier,
-            dismissButton = dismissButton,
-            icon = icon,
-            title = title,
-            text = text,
-        )
-
-        KedgeStyle.MD3Exp -> AnimatedAlertDialog(
+    AnimatedAlertDialog(
             onDismissRequest = onDismissRequest,
             confirmButton = confirmButton,
             modifier = modifier,
@@ -61,5 +48,4 @@ fun AppAlertDialog(
             tonalElevation = tonalElevation,
             properties = properties,
         )
-    }
 }

@@ -35,7 +35,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -222,7 +222,7 @@ private fun AssistantPickerSheet(
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     items(settings.assistantTags, key = { it.id }) { tag ->
-                        KedgeFilterChip(
+                        KkFilterChip(
                             onClick = {
                                 selectedTagIds = if (tag.id in selectedTagIds) {
                                     selectedTagIds - tag.id

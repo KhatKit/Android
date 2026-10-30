@@ -13,8 +13,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
@@ -23,7 +21,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
  *
  * **设置表单行（`FormItem` / `KedgeFormRow` / `Md3SwitchFormRow` 这一系）唯一的行渲染
  * 路径**——本组件只做槽位映射，布局全部交给 [MochiOptionItem]（它自己按
- * `LocalKedgeStyle` 分流：MD3 走 Khromia `OptionItem`，Miuix 走 `KkCard` 行）。这里不再
+ * 旧双风格开关 分流：MD3 走 Khromia `OptionItem`，Miuix 走 `KkCard` 行）。这里不再
  * 手写行布局：以前 Form.kt 与 `miuix/KedgeForm.kt` 各有一份自绘行，同一件事两套实现，
  * 改一处另一处就漏。
  *
@@ -113,11 +111,7 @@ private fun SlotContent(modifier: Modifier, content: @Composable () -> Unit) {
  */
 @Composable
 private fun RowTitleStyle(content: @Composable () -> Unit) {
-    if (LocalKedgeStyle.current == KedgeStyle.MD3Exp) {
         ProvideTextStyle(value = MaterialTheme.typography.titleMedium, content = content)
-    } else {
-        content()
-    }
 }
 
 /**
@@ -128,16 +122,12 @@ private fun RowTitleStyle(content: @Composable () -> Unit) {
  */
 @Composable
 private fun RowSupportingStyle(content: @Composable () -> Unit) {
-    if (LocalKedgeStyle.current == KedgeStyle.MD3Exp) {
         ProvideTextStyle(
             value = MaterialTheme.typography.labelSmall.copy(
                 color = LocalContentColor.current.copy(alpha = 0.6f),
             ),
             content = content,
         )
-    } else {
-        content()
-    }
 }
 
 /**

@@ -39,7 +39,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
@@ -100,8 +100,6 @@ import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
@@ -170,7 +168,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
         // Md3SearchBar 的 16dp 外边距**只在 MD3 分支自带**（Miuix 分支为 0，由调用点给，
         // 见组件里 horizontalPadding / topPadding 的注释）。所以这一页的补白必须按风格给：
         // MD3 再补一层就是 32dp —— 比其它页宽一圈，也和本页 16dp 的列表卡片对不齐。
-        val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+        val isMiuix = false
 
         Column(
             modifier = Modifier
@@ -454,7 +452,7 @@ private fun AssistantTagsFilterRow(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        KedgeFilterChip(
+                        KkFilterChip(
                             onClick = {
                                 onUpdateSelectedTagIds(
                                     if (tag.id in selectedTagIds) {

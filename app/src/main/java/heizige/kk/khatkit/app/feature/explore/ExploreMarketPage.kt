@@ -86,7 +86,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.khatkit.uikit.mochi.MochiBadge
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import androidx.compose.runtime.Composable
@@ -200,8 +200,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.hooks.SearchExpandState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
-import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 import kotlin.math.abs
 
@@ -738,7 +736,7 @@ fun ExploreMarketPage() {
         val featuredKeywords = stringResource(R.string.explore_market_featured_search_keywords)
         // **Miuix 下整项不渲染**（主人判定：这个风格的轮播太丑，宁可不放）。精选卡本身不会消失，
         // 它照旧出现在下面同一筛选条件下的卡片网格里；这一项没有，chip 栏自己就是首项（[chipItemIndex]）。
-        val showFeatured = LocalKedgeStyle.current != KedgeStyle.Miuix &&
+        val showFeatured =
             cardsVisible && matches(featuredKeywords) &&
             (featuredCards.isNotEmpty() || featuredPending)
         // 悬浮筛选栏的位号：它前面只有「精选轮播」这一项；没有轮播时它自己就是首项。
@@ -1987,14 +1985,14 @@ private object ExploreShape {
     /**
      * 筛选 chip：44dp 高的满圆角药丸；选中后收到 12dp。
      *
-     * 按下态那两档（14dp / 8dp）自 t20 起由 `:kedge` 的 `KedgeFilterChip` 内部按统一公式
+     * 按下态那两档（14dp / 8dp）自 t20 起由 `:kedge` 的 `KkFilterChip` 内部按统一公式
      * `max(静止 − 8dp, 8dp)` 算出，本页不再持有这两个常量 —— 这里只留静止两档。
      */
     val chip = 22.dp
     val chipSelected = 12.dp
     val chipHeight = 44.dp
     /** chip 左侧那枚身份色块：30dp 见方、11dp 圆角（距药丸左沿的 6dp 内边距自 t20 起是
-     *  [KedgeFilterChip] 的默认 contentPadding，本页不再单独传）。 */
+     *  [KkFilterChip] 的默认 contentPadding，本页不再单独传）。 */
     val chipTileSize = 30.dp
     val chipTile = 11.dp
 }
@@ -2135,12 +2133,12 @@ private fun MetaChip(text: String, accent: Boolean = false) {
  * 选中是「形状 + 颜色」两件事一起变：圆角 22dp → 12dp（走 spring 回弹），底色中性容器色 →
  * secondaryContainer（走 tween）—— 形状的弹性不该被颜色的线性时长拖慢。
  *
- * 两种风格都只调 [KedgeFilterChip]：MD3 侧把上面这套动画结果分别喂进它的 `shape` /
+ * 两种风格都只调 [KkFilterChip]：MD3 侧把上面这套动画结果分别喂进它的 `shape` /
  * `containerColor`+`selectedContainerColor` / `labelColor`+`selectedLabelColor` /
  * `iconColor`+`selectedIconColor` / `leadingIcon` 槽（动画仍由这里驱动，见下面的注释）；
  * Miuix 侧这些槽一律传 null，维持它自己那套「勾 + 文本」胶囊（该风格此前就是这么渲染的）。
  *
- * t20 起，原来手绘的那几处细节已升级成 [KedgeFilterChip] 的**默认行为**（用户裁定：三个 chip
+ * t20 起，原来手绘的那几处细节已升级成 [KkFilterChip] 的**默认行为**（用户裁定：三个 chip
  * 组件统一，实现落在组件内部），本页不再各写一份：
  *  · 未选中不画描边（此前 MD3 `FilterChip` 未选中会给 1dp `outlineVariant`）；
  *  · 内容内边距默认左 6dp / 右 16dp（此前是固定的 horizontal 8dp）；
@@ -2161,10 +2159,10 @@ private fun MarketFilterChip(
     icon: ImageVector,
     onClick: () -> Unit,
 ) {
-    // Miuix 风格下 [KedgeFilterChip] 自己会切成「勾选框 + 文本」的胶囊，且**不画图标块** ——
+    // Miuix 风格下 [KkFilterChip] 自己会切成「勾选框 + 文本」的胶囊，且**不画图标块** ——
     // 一整排 chip 各带一块彩色图标砖本来就是 MD3 卡片的语言，Miuix 的筛选语言是勾 + 文字，
     // 混在一起两边都不像。所以下面所有 MD3 专用槽位在 Miuix 下都传 null（含 leadingIcon）。
-    val isMd3 = LocalKedgeStyle.current == KedgeStyle.MD3Exp
+    val isMd3 = true
     val colors = MaterialTheme.colorScheme
     val container = colors.surfaceContainerHigh
     val selectedContainer = colors.secondaryContainer
@@ -2197,7 +2195,7 @@ private fun MarketFilterChip(
         label = "market_chip_label",
     )
 
-    KedgeFilterChip(
+    KkFilterChip(
         selected = selected,
         onClick = onClick,
         label = {
@@ -2229,7 +2227,7 @@ private fun MarketFilterChip(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        // 由 KedgeFilterChip 的 iconColor / selectedIconColor 槽注入。
+                        // 由 KkFilterChip 的 iconColor / selectedIconColor 槽注入。
                         tint = LocalContentColor.current,
                         modifier = Modifier.size(18.dp),
                     )
@@ -2238,18 +2236,12 @@ private fun MarketFilterChip(
         } else {
             null
         },
-        // t20：圆角收缩改由 KedgeFilterChip 内部实现（统一公式 max(静止−8dp, 8dp)），
+        // t20：圆角收缩改由 KkFilterChip 内部实现（统一公式 max(静止−8dp, 8dp)），
         // 这里只把静止圆角这一个数传下去 ⇒ 按下仍是 22→14、12→8，默认值/内边距/间距/描边
         // 也不再各站一份显式传参（组件默认已是手绘那套）。
         cornerRadius = if (isMd3) corner else null,
-        // KedgeFilterChip 的容器色是「一个状态一个 Color」：把同一个动画值喂给两个槽，
+        // KkFilterChip 的容器色是「一个状态一个 Color」：把同一个动画值喂给两个槽，
         // tween 就仍由上面那个 animation 驱动，而不是交给 MD3 硬切。
-        containerColor = if (isMd3) background else null,
-        selectedContainerColor = if (isMd3) background else null,
-        labelColor = if (isMd3) labelColor else null,
-        selectedLabelColor = if (isMd3) labelColor else null,
-        iconColor = if (isMd3) tileContent else null,
-        selectedIconColor = if (isMd3) tileContent else null,
     )
 }
 

@@ -5,8 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 interface StyleResolver {
     @Composable fun textStyle(role: String): TextStyle
@@ -50,14 +48,8 @@ object MiuixStyleResolver : StyleResolver {
 }
 
 object StyleResolvers {
-    private val resolvers = java.util.concurrent.ConcurrentHashMap<KedgeStyle, StyleResolver>().apply {
-        put(KedgeStyle.MD3Exp, MaterialStyleResolver)
-        put(KedgeStyle.Miuix, MiuixStyleResolver)
-    }
-    private val warned = java.util.concurrent.ConcurrentHashMap.newKeySet<KedgeStyle>()
-    fun register(style: KedgeStyle, resolver: StyleResolver) { resolvers[style] = resolver }
-    fun resolve(style: KedgeStyle): StyleResolver = resolvers[style] ?: MaterialStyleResolver.also {
-        if (warned.add(style)) java.util.logging.Logger.getLogger("KhatKit.UI").warning("No StyleResolver for $style; using Material")
-    }
-    @Composable fun current(): StyleResolver = resolve(LocalKedgeStyle.current)
+    // U4b：旧风格枚举 双风格已下线，只剩 MD3/Mochi 一套解析器。
+    fun register(@Suppress("UNUSED_PARAMETER") resolver: StyleResolver) = Unit
+    fun resolve(): StyleResolver = MaterialStyleResolver
+    @Composable fun current(): StyleResolver = MaterialStyleResolver
 }

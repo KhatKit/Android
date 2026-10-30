@@ -30,8 +30,6 @@ import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.kedge.components.KedgeMiuixSurface
 import heizige.kk.kedge.components.KedgeSegmentedListSlots
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 private data class CardGroupItem(
     val onClick: (() -> Unit)?,
@@ -218,10 +216,7 @@ fun InlineCardGroup(
  * 没有第二层圆角与内缩；只有不带底色的子项才「透」出这一层。
  */
 @Composable
-private fun inlineGroupContainerColor(): Color = when (LocalKedgeStyle.current) {
-    KedgeStyle.MD3Exp -> CustomColors.cardColorsOnSurfaceContainer.containerColor
-    KedgeStyle.Miuix -> KedgeMiuixSurface.cardContainer
-}
+private fun inlineGroupContainerColor(): Color = CustomColors.cardColorsOnSurfaceContainer.containerColor
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

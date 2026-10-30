@@ -25,13 +25,13 @@ import heizige.kk.kedge.theme.KedgeTheme
  */
 @Composable
 fun KhatKitTheme(
-    style: KhatKitUiStyle = KhatKitUiStyle.MATERIAL,
+    @Suppress("UNUSED_PARAMETER") style: KhatKitUiStyle = KhatKitUiStyle.MATERIAL,
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    KedgeTheme(
-        style = style.toKedgeStyle(),
-        darkTheme = darkTheme,
+    // U4b：旧双风格已下线，KhatKitTheme 直接挂 Mochi 主题（旧 style 参数保留兼容）。
+    ui.feice.mochi.theme.MochiTheme(
+        colors = if (darkTheme) ui.feice.mochi.theme.darkColorScheme() else ui.feice.mochi.theme.lightColorScheme(),
         content = content,
     )
 }

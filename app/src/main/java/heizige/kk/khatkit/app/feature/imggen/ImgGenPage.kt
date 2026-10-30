@@ -49,7 +49,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -111,8 +111,6 @@ import heizige.kk.khatkit.app.core.ui.icons.photo
 import heizige.kk.khatkit.app.core.ui.icons.save
 import heizige.kk.khatkit.app.core.ui.icons.tune
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
@@ -834,7 +832,7 @@ private fun SettingsBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     ImageGenSize.entries.forEach { sizeOption ->
-                        KedgeFilterChip(
+                        KkFilterChip(
                             selected = size == sizeOption.value,
                             onClick = { vm.updateSize(sizeOption.value) },
                             label = { Text(sizeOption.value) }

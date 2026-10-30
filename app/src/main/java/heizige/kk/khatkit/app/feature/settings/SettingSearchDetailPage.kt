@@ -48,8 +48,6 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.HighlightCodeVisualTra
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode

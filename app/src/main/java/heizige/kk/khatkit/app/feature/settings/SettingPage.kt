@@ -46,8 +46,6 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.icons.DiscordIcon
 import heizige.kk.khatkit.app.core.ui.icons.TencentQQIcon
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController

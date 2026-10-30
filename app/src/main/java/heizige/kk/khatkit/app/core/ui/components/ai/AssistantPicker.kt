@@ -25,7 +25,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -178,7 +178,7 @@ fun AssistantPickerSheet(
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     items(settings.assistantTags, key = { tag -> tag.id }) { tag ->
-                        KedgeFilterChip(
+                        KkFilterChip(
                             onClick = {
                                 selectedTagIds = if (tag.id in selectedTagIds) {
                                     selectedTagIds - tag.id

@@ -125,8 +125,6 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 import heizige.kk.khatkit.uikit.mochi.MochiOverlayScaffold
 import heizige.kk.kedge.adaptive.KedgeOverlayBarColor

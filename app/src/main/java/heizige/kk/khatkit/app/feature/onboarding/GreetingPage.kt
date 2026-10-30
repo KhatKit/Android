@@ -147,8 +147,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid

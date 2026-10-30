@@ -27,7 +27,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -345,7 +345,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 ) {
                                     q.options.forEach { option ->
                                         val selectedOptions = multiAnswers[q.id] ?: emptySet()
-                                        KedgeFilterChip(
+                                        KkFilterChip(
                                             selected = if (q.selectionType == "multi") {
                                                 option in selectedOptions
                                             } else {

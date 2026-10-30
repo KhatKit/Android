@@ -100,8 +100,6 @@ import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.components.KedgeMiuixSurface
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
 
@@ -377,10 +375,7 @@ private fun MessagePartsBlock(
     // 思考 / 工具卡片用的是 Miuix 卡片色 `surfaceContainer`（实测 #272A34），所以 Miuix 分支
     // 直接跟卡片同色。MD3 分支维持原来的 `surfaceContainerHigh`：那边页面底色是
     // `surfaceContainer`，`surfaceContainerHigh` 本来就比它亮一档，层次是对的，别一起改。
-    val assistantBubbleColor = when (LocalKedgeStyle.current) {
-        KedgeStyle.Miuix -> KedgeMiuixSurface.cardContainer
-        KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.surfaceContainerHigh
-    }
+    val assistantBubbleColor = MaterialTheme.colorScheme.surfaceContainerHigh
 
     // 消息输出HapticFeedback
     val hapticFeedback = LocalHapticFeedback.current

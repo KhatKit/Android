@@ -29,8 +29,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khromia.components.FancySlider
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlin.math.roundToInt
 
 @Composable

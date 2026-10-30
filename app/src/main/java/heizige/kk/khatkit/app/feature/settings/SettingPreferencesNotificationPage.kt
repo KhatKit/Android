@@ -37,8 +37,6 @@ import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import java.time.Instant
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khromia.components.SegmentedItem

@@ -34,8 +34,6 @@ import heizige.kk.khatkit.app.core.ui.hooks.rememberSharedPreferenceBoolean
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlin.math.roundToInt
 
 @Composable

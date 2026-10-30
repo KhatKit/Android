@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
  * ⚠️ 这个文件**不再自绘行**。设置表单行（`FormItem` / [KedgeFormRow] /
  * [Md3SwitchFormRow] 这一系）的渲染只有一条路径：
  * [heizige.kk.khatkit.app.core.ui.components.ui.FormItem] → `MochiOptionItem`
- * （后者内部按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem` / 旧双风格 的
+ * （后者内部按 旧双风格开关 分流 MD3 的 Khromia `OptionItem` / 旧双风格 的
  * `KkCard` 行）。以前这里有第二份自绘行（MD3 分支转 FormItem、旧双风格 分支又
  * `KkCard` + `Column` 自己排一遍），改一处漏一处；现在 [KedgeFormRow] 与
  * [Md3SwitchFormRow] 只是**签名转接层**，不做任何布局与配色决策。

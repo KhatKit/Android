@@ -82,8 +82,6 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add

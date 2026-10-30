@@ -75,8 +75,6 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.mic
 import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 

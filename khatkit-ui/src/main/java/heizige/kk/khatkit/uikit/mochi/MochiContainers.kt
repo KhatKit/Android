@@ -30,7 +30,7 @@ import ui.feice.mochi.theme.MochiTheme
  * P4a：Kedge 容器族的 Mochi 版。
  *
  * 目标是把 KkSurface / KkCard / MochiWarningCard / 分隔线全部换成 Mochi 的
- * 表面色与圆角（MochiTheme.colorScheme / MochiShapes），**不再按 KedgeStyle 分叉**。
+ * 表面色与圆角（MochiTheme.colorScheme / MochiShapes），**不再按 旧风格枚举 分叉**。
  * 参数名与旧 Kedge 组件保持一致，让调用点只改名字；已知缺口：
  * - `colors`（旧 Miuix/MD3 CardColors）只收不用：Mochi 卡片配色由主题决定，P6 用
  *   Mochi 的角色重做自定义配色；

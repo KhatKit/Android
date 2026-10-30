@@ -33,7 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.AnimatedRadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeFilterChip
+import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,8 +57,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.fileSizeToString
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -281,7 +279,7 @@ private fun FolderRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         folders.forEach { folder ->
-            KedgeFilterChip(
+            KkFilterChip(
                 selected = selectedFolder == folder,
                 onClick = { onFolderSelected(folder) },
                 label = { Text(folderDisplayName(folder)) }
