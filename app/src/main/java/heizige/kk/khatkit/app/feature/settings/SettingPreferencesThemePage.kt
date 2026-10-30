@@ -111,7 +111,6 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     // `enableBlur`）。这里直接读它的 state，不做 remember 缓存，否则别处切风格后本页不同步。
     val khatKitProvider: heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider =
         rememberAppEntryPoint().khatKitToolProvider()
-    val uiStyle = khatKitProvider.uiStyle
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val clipboardManager = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -281,30 +280,6 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
             // 按外观归属迁进主题偏好页：毛玻璃、列表卡片样式。控件与持久化字段
             // 逐字未改 —— 风格/毛玻璃仍写 `KhatKitToolProvider`，卡片样式仍写
             // `Settings.listCardLargeCorner/listCardSmallCorner/listCardGap`。
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.greeting_settings_ui_style)) },
-                        supportingContent = {
-                            Text(if (uiStyle == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix")
-                        },
-                        trailingContent = {
-                            Select(
-                                options = KhatKitUiStyle.entries,
-                                selectedOption = uiStyle,
-                                onOptionSelected = { khatKitProvider.uiStyle = it },
-                                optionToString = { style ->
-                                    if (style == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix"
-                                },
-                                modifier = Modifier.width(150.dp),
-                            )
-                        },
-                    )
-                }
-            }
-
             item {
                 // 毛玻璃开关：MD3 顶栏不做模糊，但该设置对 Miuix 生效，保留可改。
                 // 走 settingItem(SwitchSetting) 而不是手写 trailing：整行可点等价于点开关。

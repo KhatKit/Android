@@ -93,7 +93,6 @@ fun KhatKitSettingsDialog(
     var hubUrl by remember { mutableStateOf(controller.hubBaseUrl) }
     var rootEnabled by remember { mutableStateOf(controller.enableRoot) }
     var concurrency by remember { mutableStateOf(controller.downloadConcurrency.toFloat()) }
-    var style by remember { mutableStateOf(controller.uiStyle) }
     var shizukuAvailable by remember { mutableStateOf(ShizukuPermission.isAvailable()) }
     var shizukuGranted by remember { mutableStateOf(ShizukuPermission.isGranted()) }
     var allFilesGranted by remember { mutableStateOf(AllFilesAccess.isGranted()) }
@@ -112,7 +111,6 @@ fun KhatKitSettingsDialog(
             controller.hubBaseUrl = hubUrl
             controller.enableRoot = rootEnabled
             controller.downloadConcurrency = concurrency.toInt()
-            controller.uiStyle = style
             controller.applySettings()
             onToast(settingsSavedText, false)
             onApplied()
@@ -142,33 +140,7 @@ fun KhatKitSettingsDialog(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.khatkit_settings_ui_style))
-                KhatKitUiStyle.entries.forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = style == option,
-                                role = Role.RadioButton,
-                                onClick = { style = option },
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        MochiRadioButton(
-                            selected = style == option,
-                            onClick = { style = option },
-                        )
-                        Text(
-                            text = when (option) {
-                                KhatKitUiStyle.MATERIAL -> stringResource(R.string.khatkit_style_material)
-                                KhatKitUiStyle.MIUIX -> stringResource(R.string.khatkit_style_miuix)
-                            },
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
-            }
+
 
             SettingRow(
                 when {

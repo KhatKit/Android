@@ -83,7 +83,6 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun KhatKitMarketContent(
     controller: KhatKitController,
     onToast: (String, Boolean) -> Unit,
-    onStyleChanged: (KhatKitUiStyle) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -158,7 +157,6 @@ fun KhatKitMarketContent(
             onDismiss = { showSettings = false },
             onApplied = {
                 showSettings = false
-                onStyleChanged(controller.uiStyle)
                 refresh(query)
             },
             onToast = onToast,

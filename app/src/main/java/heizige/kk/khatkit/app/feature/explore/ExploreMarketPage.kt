@@ -189,7 +189,7 @@ import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
 import heizige.kk.khatkit.hub.HubResourceEntry
 import heizige.kk.khatkit.uikit.KhatKitSecretsDialog
-import heizige.kk.khatkit.uikit.KhatKitUiStyle
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
@@ -629,7 +629,6 @@ fun ExploreMarketPage() {
     var resourceTarget by remember { mutableStateOf<HubResourceEntry?>(null) }
     // P0-5 条目级「配置」：非空时弹复用设置页 MCP 表单的配置抽屉（含缺必填提示）。
     var mcpConfigTarget by remember { mutableStateOf<McpInstallPlan?>(null) }
-    var uiStyle by remember { mutableStateOf(vm.uiStyle) }
 
     val enabledProviders = remember(settings) { settings.providers.filter { it.enabled } }
     val models = remember(enabledProviders) { enabledProviders.flatMap { p -> p.models.map { p.name to it } } }
@@ -1306,7 +1305,6 @@ fun ExploreMarketPage() {
     // （两页都能点开卡片，动作语义必须完全一致）。
     CardMarketOverlays(
         vm = vm,
-        uiStyle = uiStyle,
         installed = installed,
         triggers = triggers,
         hubInfo = hubInfo,
@@ -1401,7 +1399,6 @@ fun ExploreMarketPage() {
 @Composable
 private fun CardMarketOverlays(
     vm: ExploreMarketViewModel,
-    uiStyle: KhatKitUiStyle,
     installed: Map<String, String>,
     triggers: Map<String, List<String>>,
     hubInfo: Map<String, HubCardMarketInfo>,
@@ -1612,7 +1609,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
     val activated by vm.activated.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val busyCard by vm.busyCard.collectAsStateWithLifecycle()
-    val uiStyle = vm.uiStyle
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val density = LocalDensity.current
 
@@ -1774,7 +1770,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
 
     CardMarketOverlays(
         vm = vm,
-        uiStyle = uiStyle,
         installed = installed,
         triggers = triggers,
         hubInfo = hubInfo,
@@ -4176,7 +4171,6 @@ fun ExploreLocalPage() {
     val dependencies by vm.dependencies.collectAsStateWithLifecycle()
     // 已安装卡片声明的依赖包：本地页要连「还没下载的」一起列出来。
     val declaredDependencies by vm.declaredDependencies.collectAsStateWithLifecycle()
-    val uiStyle = vm.uiStyle
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
@@ -4423,7 +4417,6 @@ fun ExploreLocalPage() {
 
     CardMarketOverlays(
         vm = vm,
-        uiStyle = uiStyle,
         installed = installed,
         triggers = triggers,
         hubInfo = hubInfo,

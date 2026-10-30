@@ -124,7 +124,7 @@ import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.khatkit.uikit.KhatKitUiStyle
+
 import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.components.ButtonOption
 import heizige.kk.khromia.components.ExpandableOptionItem
@@ -626,7 +626,6 @@ private fun GreetingSettingsScreen() {
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val colorMode = rememberColorMode()
     val scope = rememberCoroutineScope()
-    var uiStyle by remember { mutableStateOf(provider.uiStyle) }
     var showCustomColor by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf(PresetThemes[0].standardLight.primary) }
     val cards = listCardStyle()

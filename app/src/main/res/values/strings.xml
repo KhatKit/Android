@@ -1653,7 +1653,6 @@
   <string name="greeting_settings_dynamic_color">Dynamic color</string>
   <string name="greeting_settings_dynamic_color_desc">Theme colors from wallpaper (Android 12+)</string>
   <string name="greeting_settings_theme_color">Theme color</string>
-  <string name="greeting_settings_ui_style">Interface style</string>
   <string name="greeting_ai_providers">Providers</string>
   <string name="greeting_ai_configured">Configured</string>
   <string name="greeting_ai_not_configured">API key not set</string>

@@ -218,11 +218,6 @@ class ExploreMarketViewModel @Inject constructor(
             provider.receiveBeta = value
         }
 
-    var uiStyle: heizige.kk.khatkit.uikit.KhatKitUiStyle
-        get() = provider.uiStyle
-        set(value) {
-            provider.uiStyle = value
-        }
 
     // ===== 资源市场：下载并落地技能合集 / MCP 服务 / 合集包 =====
 

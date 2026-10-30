@@ -63,7 +63,6 @@ interface KhatKitController {
     var hubBaseUrl: String
     var enableRoot: Boolean
     var downloadConcurrency: Int
-    var uiStyle: KhatKitUiStyle
 
     /** Miuix 风格的全局模糊开关（顶栏/底栏毛玻璃），照搬 KernelSU 的 enableBlur。 */
     var enableBlur: Boolean

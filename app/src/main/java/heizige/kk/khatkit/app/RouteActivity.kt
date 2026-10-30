@@ -199,7 +199,7 @@ class RouteActivity : ComponentActivity() {
                 // 定义点唯一，放在 Application（KhatKitApp : SingletonImageLoader.Factory）。
                 // 详见 KhatKitApp.newImageLoader 的注释与 CoilImageLoaderSourceGuardTest。
                 // P3b：Kedge/Miuix 的「第二主题根」已删除（原来是
-                // uiStyle==MIUIX → KhatKitTheme(uikit) + ProvideKedgeBlur + MiuixListCardStyle 分支）。
+                // 旧的 Miuix/KhatKitTheme 第二主题根 + ProvideKedgeBlur + MiuixListCardStyle 分支）。
                 // 现在运行期只有 MochiTheme 单树：颜色/字阶/形状/系统栏图标都由
                 // core/ui/theme/Theme.kt 的 MochiTheme 提供，页面不再按风格分叉。
                 val appContent: @Composable () -> Unit = {

@@ -344,20 +344,6 @@ class KhatKitToolProvider(
         get() = settings.getInt(KEY_DOWNLOAD_CONCURRENCY, 3).coerceIn(1, 5)
         set(value) = settings.edit().putInt(KEY_DOWNLOAD_CONCURRENCY, value.coerceIn(1, 5)).apply()
 
-    /** KhatKit 自带界面的风格（MD3Exp / Miuix），见 :khatkit-ui。 */
-    private val uiStyleState = mutableStateOf(
-        runCatching {
-            KhatKitUiStyle.valueOf(settings.getString(KEY_UI_STYLE, null) ?: "")
-        }.getOrDefault(KhatKitUiStyle.MATERIAL)
-    )
-
-    override var uiStyle: KhatKitUiStyle
-        get() = uiStyleState.value
-        set(value) {
-            uiStyleState.value = value
-            settings.edit().putString(KEY_UI_STYLE, value.name).apply()
-        }
-
     /**
      * Miuix 全局毛玻璃开关，默认开（KernelSU 默认关，这里跟随 KhatKit 的观感取向）。
      *
@@ -2481,7 +2467,6 @@ class KhatKitToolProvider(
         private const val KEY_HUB_URL = "hub_base_url"
         private const val KEY_ENABLE_ROOT = "enable_root"
         private const val KEY_DOWNLOAD_CONCURRENCY = "download_concurrency"
-        private const val KEY_UI_STYLE = "ui_style"
         private const val KEY_RECEIVE_BETA = "receive_beta"
         private const val KEY_ENABLE_BLUR = "enable_blur"
         private const val KEY_HANDS_OFF = "hands_off_mode"
