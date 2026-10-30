@@ -1,7 +1,5 @@
 package heizige.kk.khatkit.ui
 
-import java.util.logging.Logger
-
 import heizige.kk.khatkit.bridge.UiBridge
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -489,7 +487,6 @@ class UiBridgeHost(
             return null
         }
         _request.value = request
-        Logger.getLogger("KKPerf").fine("post:${request.javaClass.simpleName} @${System.nanoTime() / 1_000_000}")
         val result = runBlocking { withTimeoutOrNull(budget) { deferred.await() } }
         if (result == null && !deferred.isCompleted && _request.value === request) {
             // 超时，但弹层仍在屏幕上：标记过期，等用户之后提交时续跑
@@ -530,12 +527,10 @@ class UiBridgeHost(
     }
 
     override fun screen(title: String, root: Map<String, Any?>, options: Map<String, Any?>?): Map<String, Any?>? {
-        Logger.getLogger("KKPerf").fine("screen.entry @${System.nanoTime() / 1_000_000}")
         val deferred = CompletableDeferred<Map<String, Any?>?>()
         val parsed = UiNodeParser.parse(root)
         val sheetOptions = UiSheetOptions.from(options)
         val pages = UiScreenPage.parse(options, sheetOptions.navigation)
-        Logger.getLogger("KKPerf").fine("screen.parsed @${System.nanoTime() / 1_000_000}")
         return awaitRequest(
             UiRequest.Screen(title, parsed, sheetOptions, deferred, pages),
             deferred,
@@ -649,7 +644,6 @@ class UiBridgeHost(
     }
 
     fun submitScreen(event: String, values: Map<String, Any?>) {
-        Logger.getLogger("KKPerf").fine("click:$event @${System.nanoTime() / 1_000_000}")
         val screen = _request.value as? UiRequest.Screen ?: return
         val pageId = values[UiScreenPage.PAGE_VALUE_KEY] as? String
         val page = if (screen.pages.isEmpty()) null else screen.pages[pageId] ?: return

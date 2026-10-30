@@ -180,13 +180,6 @@ fun KhatKitUiHost() {
             // 不用 key(current)：换页/触底加载时保持同一份弹层组合，
             // 滚动位置才有连续状态（滚动归零/守卫分别由 scrollKey/contentKey 控制）。
             is UiRequest.Screen -> {
-                remember(current.root) {
-                    android.util.Log.d("KKPerf", "compose @" + (System.nanoTime() / 1_000_000))
-                    current.root
-                }
-                androidx.compose.runtime.LaunchedEffect(current.root) {
-                    android.util.Log.d("KKPerf", "applied @" + (System.nanoTime() / 1_000_000))
-                }
                 TreeSheet(current.title, current.root, current.options, provider, pages = current.pages)
             }
             is UiRequest.ShowTree -> key(current) {

@@ -193,7 +193,6 @@ object UiNodeParser {
             return UiNode(name, copy, parsedChildren)
         }
         val root = visit(raw, 1)
-        java.util.logging.Logger.getLogger("KKPerf").fine("parsed nodes=$count")
         return root
     }
 
