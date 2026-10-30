@@ -299,6 +299,8 @@ class RouteActivity : ComponentActivity() {
         val searchOverlayState = rememberKedgeSearchOverlayState()
 
         val backStack = navViewModel.stack
+        // 返回手势去重：同一次 back 手势内 Nav3 可能回调 onBack 两次（见 onBack 处注释）。
+        val lastBackAt = androidx.compose.runtime.remember { java.util.concurrent.atomic.AtomicLong(0L) }
 
         SharedTransitionLayout {
             CompositionLocalProvider(
@@ -339,12 +341,23 @@ class RouteActivity : ComponentActivity() {
                         //  · 系统 back / 预测性返回手势 → NavDisplay.onBack（本 lambda）；
                         //  · 页内浮层（如 ChatInput 全屏编辑器）先经 PageBackInterceptor 消费，
                         //    它只回答「这次返回我要不要」，**不自己 pop 栈**；
-                        //  · 浮层消费 → popBackStack 由本处统一执行；
+                        //  · 浮层消费 → 弹栈由本处统一执行；
                         //  · 不要再用 BackHandler / PredictiveBackHandler 在页面里抢返回，
                         //    否则会和这里形成两套 navigator（返回两次才退出）。
                         onBack = {
                             if (!PageBackInterceptor.intercept()) {
-                                navViewModel.popBackStack()
+                                // 一次返回手势只允许 pop 一页（P3-fix）：
+                                // Nav3 在预测性返回里会先回调 onBackCompleted、再走一次 onBack，
+                                // 之前这里直接弹栈 ⇒ 一次 back pop 两页，
+                                // 表现为「会话页按 back 跳过角色详情、直接回 launcher」。
+                                // 用 400ms 窗口把同一手势的重复回调折叠成一次；窗口外的返回不受影响。
+                                val now = android.os.SystemClock.uptimeMillis()
+                                if (now - lastBackAt.get() > 400) {
+                                    lastBackAt.set(now)
+                                    // 与 Navigator 的弹栈同一不变量：根页不清空栈，
+                                    // 清空会让 NavDisplay 无 entry、Activity 立刻 finish。
+                                    if (backStack.size > 1) navViewModel.popBackStack() else finish()
+                                }
                             }
                         },
                         transitionSpec = {
