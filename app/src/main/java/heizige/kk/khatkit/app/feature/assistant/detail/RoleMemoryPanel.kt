@@ -209,6 +209,8 @@ internal fun RoleMemoryPanel(
                             }
                         },
                     )
+                    // U6d 保留 MochiMenuPopup（第 2/3 处）：锚点是设置行本身（MochiOptionItem），
+                    // 行尾还嵌着「重新加载/保存」两个图标按钮；MochiDropdown 的按钮槽会吞掉这两个嵌套点击。
                     MochiMenuPopup(expanded = showFiles, onDismissRequest = { showFiles = false }) {
                         files.forEach { path ->
                             MochiMenuRow(

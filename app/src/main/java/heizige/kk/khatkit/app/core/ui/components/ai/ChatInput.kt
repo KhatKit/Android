@@ -1289,6 +1289,8 @@ private fun QuickMessageButton(
         },
              shapes = IconButtonDefaults.shapes(),) {
         Icon(bolt, null)
+        // U6d 保留 MochiMenuPopup（第 1/3 处）：菜单行是富内容卡片（KkSurface + 标题/正文/图标 + 每行独立点击区），
+        // MochiItem 只有 label/icon/trailing 三个槽，表达不了这种整行自绘卡片；且这里要固定宽度 200–360dp。
         MochiMenuPopup(
             expanded = expanded,
             onDismissRequest = { expanded = false },

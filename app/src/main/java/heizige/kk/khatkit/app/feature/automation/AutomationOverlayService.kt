@@ -832,6 +832,8 @@ private fun ApproveButton(
                     onClick = onApprove,
                 ),
         ) {
+            // U6d 保留 MochiMenuPopup（第 3/3 处）：浮层按钮是「单击=本次允许、长按=更多选项」的组合语义，
+            // MochiContextMenu 没有 onClick 槽，套上去会把单击批准吃掉；这里只做长按弹出的行列表。
             MochiMenuPopup(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
