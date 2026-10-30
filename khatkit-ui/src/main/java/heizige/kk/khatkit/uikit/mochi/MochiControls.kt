@@ -295,25 +295,16 @@ fun MochiSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val scheme = MochiTheme.colorScheme
-    Box(
-        modifier = modifier
-            .width(48.dp)
-            .height(28.dp)
-            .background(
-                if (checked) scheme.primary else scheme.surfaceContainerHighest,
-                MochiTheme.shapes.full,
-            )
-            .clickable(enabled = enabled && onCheckedChange != null) { onCheckedChange?.invoke(!checked) },
-        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 3.dp)
-                .size(22.dp)
-                .background(if (checked) scheme.onPrimary else scheme.onSurfaceVariant, CircleShape),
-        )
-    }
+    // 2026-10-30 开关修复：改用 material3 Switch。
+    // 自绘版（P4b）没有 thumb 平移/底色过渡，观感是「硬切」；MD3 Switch 自带
+    // checked 状态动画，且颜色由 U2 的 Bridge（Mochi token → MaterialTheme）决定，
+    // 外观仍是 Mochi 皮肤。这里不再保留自绘分支。
+    androidx.compose.material3.Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+    )
 }
 
 /** 列表行内的选中标记（不是开关；语义见文件头注释）。 */
