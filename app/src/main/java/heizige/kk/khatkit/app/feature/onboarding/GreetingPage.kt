@@ -756,42 +756,7 @@ private fun GreetingSettingsScreen() {
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        OptionsText(stringResource(R.string.greeting_settings_ui_style))
-        Spacer(modifier = Modifier.height(8.dp))
-
-        ExpandableOptionItem(
-            imageVector = tune,
-            title = stringResource(R.string.greeting_settings_ui_style),
-            subtitle = if (uiStyle == KhatKitUiStyle.MATERIAL) "Material 3" else "Miuix",
-            contentColor = Color.Transparent,
-        ) {
-        Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-                listOf(
-                    KhatKitUiStyle.MATERIAL to "Material 3",
-                    KhatKitUiStyle.MIUIX to "Miuix",
-                ).forEach { (style, label) ->
-                    MochiOptionItem(
-                        onClick = {
-                            provider.uiStyle = style
-                            uiStyle = style
-                        },
-                        shape = RoundedCornerShape(4.dp),
-                        titleContent = { Text(label) },
-                        trailingContent = {
-                            MochiRadioButton(
-                                selected = uiStyle == style,
-                                onClick = {
-                                    provider.uiStyle = style
-                                    uiStyle = style
-                                },
-                            )
-                        },
-                    )
-                }
             }
-        }
-    }
 
     ThemeCustomColorSheet(
         visible = showCustomColor,

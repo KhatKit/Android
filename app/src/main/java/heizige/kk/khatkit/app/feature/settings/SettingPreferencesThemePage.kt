@@ -107,7 +107,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var amoledDarkMode by rememberAmoledDarkMode()
     val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()
-    // 界面风格 / 毛玻璃两项的落点是同一个 provider（`KhatKitToolProvider.uiStyle` /
+    // 毛玻璃的落点是 provider（`KhatKitToolProvider.enableBlur` /
     // `enableBlur`）。这里直接读它的 state，不做 remember 缓存，否则别处切风格后本页不同步。
     val khatKitProvider: heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider =
         rememberAppEntryPoint().khatKitToolProvider()
@@ -277,8 +277,8 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                 }
             }
 
-            // 下面三组原先在「设置 → 偏好设置 → 界面」（`SettingPreferencesUIPage.kt`），
-            // 按外观归属迁进主题偏好页：界面风格、毛玻璃、列表卡片样式。控件与持久化字段
+            // 下面两组原先在「设置 → 偏好设置 → 界面」（`SettingPreferencesUIPage.kt`），
+            // 按外观归属迁进主题偏好页：毛玻璃、列表卡片样式。控件与持久化字段
             // 逐字未改 —— 风格/毛玻璃仍写 `KhatKitToolProvider`，卡片样式仍写
             // `Settings.listCardLargeCorner/listCardSmallCorner/listCardGap`。
             item {
