@@ -33,7 +33,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
@@ -94,7 +94,7 @@ fun SettingModelPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState()),
                         ) {
-                            KedgeCard(
+                            MochiCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 // 与 miuixGroup 一致：卡片不带内边距，
                                 // 里面的 PreferenceArrow 自带 InsideMargin。

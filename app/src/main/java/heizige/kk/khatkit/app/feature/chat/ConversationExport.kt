@@ -27,7 +27,7 @@ import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -115,9 +115,9 @@ import heizige.kk.khatkit.common.android.appTempFolder
 import heizige.kk.khatkit.ai.util.encodeBase64
 import heizige.kk.khatkit.ai.ui.isEmptyUIMessage
 import heizige.kk.khatkit.app.core.ui.components.message.groupMessageParts
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
 
@@ -172,7 +172,7 @@ fun ChatExportSheet(
 
                 val markdownSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Markdown")
-                KedgeCard(
+                MochiCard(
                     onClick = {
                         exportToMarkdown(context, conversation, selectedMessages, exportOptions)
                         KhromiaToast.show(markdownSuccessMessage)
@@ -195,7 +195,7 @@ fun ChatExportSheet(
 
                 val imageSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Image")
-                KedgeCard(
+                MochiCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
@@ -211,7 +211,7 @@ fun ChatExportSheet(
                             }
                         )
 
-                        KedgeHorizontalDivider()
+                        MochiHorizontalDivider()
 
                         // 这一行在「导出为图片」这张内容卡内部：外层卡片保留（它同时装着
                         // 图标行、分隔线与底部按钮，不是纯选项组），只把开关行换成 option
@@ -273,7 +273,7 @@ fun ChatExportSheet(
                     }
                 }
 
-                KedgeCard(
+                MochiCard(
                     onClick = {
                         scope.launch {
                             val title = conversation.title.ifBlank { "对话存档" }
@@ -495,7 +495,7 @@ private fun ExportedChatImage(
             LocalNavController provides navigator,
             LocalToaster provides toasterState
         ) {
-            KedgeSurface(
+            MochiSurface(
                 modifier = Modifier.width(540.dp) // like 1080p but with density independence
             ) {
                 Column(
@@ -643,7 +643,7 @@ private fun ExportedChatMessage(
                                 if (part.text.isNotBlank()) {
                                     ProvideTextStyle(KedgeTextStyles.body()) {
                                         if (message.role == MessageRole.USER) {
-                                            KedgeCard(
+                                            MochiCard(
                                                 shape = MaterialTheme.shapes.medium,
                                             ) {
                                                 MarkdownBlock(
@@ -654,7 +654,7 @@ private fun ExportedChatMessage(
                                         } else if (settings.displaySetting.showAssistantBubble) {
                                             // 与 ChatMessage 同口径，跟随同一个开关：导出预览
                                             // 必须和聊天页长得一样，否则用户会以为导出丢了样式。
-                                            KedgeCard(
+                                            MochiCard(
                                                 shape = MaterialTheme.shapes.medium,
                                                 colors = CardDefaults.cardColors(
                                                     containerColor = MaterialTheme.colorScheme.surfaceContainerLow,

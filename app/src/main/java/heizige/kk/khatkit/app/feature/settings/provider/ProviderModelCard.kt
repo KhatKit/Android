@@ -59,7 +59,7 @@ import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 @Composable
@@ -167,7 +167,7 @@ internal fun ModelCard(
         modifier = modifier
     ) {
         // 模型行 = 图标 / 名称 / 标签 / 编辑按钮，正好是 `KedgeOptionItem` 的四个槽。
-        // 以前是 `KedgeCard` + `BorderStroke` 手搓一行（Miuix 的 Card 没有描边变体，
+        // 以前是 `MochiCard` + `BorderStroke` 手搓一行（Miuix 的 Card 没有描边变体，
         // MD3 侧才像 OutlinedCard），现在与提供商行、工具开关行走同一套行渲染：
         // 底色/圆角/内边距/字阶与双风格分流全交给组件，调用点只摆槽位。
         // onClick 传 null：整行本来就不响应点击（只有右侧编辑按钮进弹层），
@@ -177,7 +177,7 @@ internal fun ModelCard(
             modifier = modifier,
             shape = shape,
             leadingContent = {
-                KedgeSurface(
+                MochiSurface(
                     color = KedgeColors.secondaryContainer,
                     shape = MaterialTheme.shapes.small,
                 ) {
@@ -257,7 +257,7 @@ internal fun BuiltInToolsSettings(
             BuiltInTools.ImageGeneration to stringResource(R.string.setting_page_built_in_tools_image_generation),
         )
 
-        // 三个「标题 + 开关」行：不再各自一张 KedgeCard + 手搓 Row，而是同一组的
+        // 三个「标题 + 开关」行：不再各自一张 MochiCard + 手搓 Row，而是同一组的
         // `KedgeOptionItem`（圆角按 index/count、项距取 `listCardStyle().gap`，
         // Miuix 下并成一整块）。整行可点 = 翻转开关，与设置分组里的开关行同款。
         val cards = listCardStyle()

@@ -36,7 +36,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
@@ -75,7 +75,7 @@ import heizige.kk.khatkit.app.core.ui.icons.searchInsights
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 enum class SearchMode {
     OFF,
@@ -122,7 +122,7 @@ fun SearchPickerButton(
     }
 
     if (chip) {
-        KedgeSurface(
+        MochiSurface(
             onClick = { showSearchPicker = true },
             modifier = modifier,
             shape = RoundedCornerShape(50),
@@ -375,7 +375,7 @@ private fun SearchModeCard(
     // 圆角来源统一到 listCardStyle()：这是网格里的独立大卡（不是选项行，结构与内容不动），
     // 只把写死的 m3 大圆角换成与全仓卡片同一套表达式。
     val cards = listCardStyle()
-    KedgeCard(
+    MochiCard(
         onClick = onClick,
         modifier = modifier,
         shape = cards.groupItemShape(isFirst = true, isLast = true),
@@ -514,7 +514,7 @@ private fun SearchProviderPicker(
                         )
                     },
                     supportingContent = {
-                        // 卡片的 contentColor 以前由 KedgeCard 的 colors 下发，走
+                        // 卡片的 contentColor 以前由 MochiCard 的 colors 下发，走
                         // LocalContentColor 落到标签上；KedgeOptionItem 不接管这个，
                         // 这里显式补一层，选中态下标签才跟着变 onPrimaryContainer。
                         CompositionLocalProvider(LocalContentColor provides textColor.value) {

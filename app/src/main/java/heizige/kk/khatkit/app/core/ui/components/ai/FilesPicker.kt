@@ -85,8 +85,8 @@ import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeHorizontalDivider
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 internal fun FilesPicker(
@@ -146,7 +146,7 @@ internal fun FilesPicker(
             }
         }
 
-        KedgeHorizontalDivider(
+        MochiHorizontalDivider(
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -523,7 +523,7 @@ private fun BigIconTextButton(
             .wrapContentWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        KedgeSurface(
+        MochiSurface(
             color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(8.dp)
         ) {
             Box(

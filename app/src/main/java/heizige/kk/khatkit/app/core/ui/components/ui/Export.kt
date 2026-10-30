@@ -20,7 +20,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.export.ExporterState
 import heizige.kk.khatkit.app.core.ui.icons.description
 import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -34,7 +34,7 @@ fun <T> ExportDialog(
         title = { Text(title ?: stringResource(R.string.export_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                KedgeCard(
+                MochiCard(
                     onClick = {
                         exporter.exportToFile()
                         onDismiss()
@@ -62,7 +62,7 @@ fun <T> ExportDialog(
                         }
                     }
                 }
-                KedgeCard(
+                MochiCard(
                     onClick = {
                         exporter.exportAndShare()
                         onDismiss()

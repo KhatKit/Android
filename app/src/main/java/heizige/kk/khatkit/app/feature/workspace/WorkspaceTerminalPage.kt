@@ -64,7 +64,7 @@ import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import heizige.kk.kedge.theme.KedgeStyle
@@ -163,7 +163,7 @@ private fun WorkspaceTerminalContent(
         ?: 0
     val selectedTab = state.tabs.getOrNull(selectedIndex)
 
-    KedgeSurface(
+    MochiSurface(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
@@ -205,7 +205,7 @@ private fun WorkspaceTerminalContent(
                                         R.string.workspace_terminal_close_tab,
                                         tab.number,
                                     )
-                                    KedgeSurface(
+                                    MochiSurface(
                                         onClick = { onSelectTab(tab.id) },
                                         shape = RoundedCornerShape(10.dp),
                                         color = if (isSelected) {

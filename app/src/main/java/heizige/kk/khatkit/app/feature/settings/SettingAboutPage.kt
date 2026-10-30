@@ -51,7 +51,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstHost
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.kedge.adaptive.KedgeSmallTopBar
+import heizige.kk.khatkit.uikit.mochi.MochiSmallTopBar
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.public
@@ -145,7 +145,7 @@ fun SettingAboutPage() {
         topBar = {
             // 小标题栏（KSU AboutMiuix 用 SmallTopAppBar）：没有折叠大标题，
             // 标题不会同时出现在两个位置。
-            KedgeSmallTopBar(
+            MochiSmallTopBar(
                 title = stringResource(R.string.about_page_title),
                 navigationIcon = {
                     BackButton()

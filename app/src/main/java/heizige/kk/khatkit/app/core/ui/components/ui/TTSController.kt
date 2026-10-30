@@ -37,7 +37,7 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.forward
 import heizige.kk.khatkit.app.core.ui.icons.pause
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 @Composable
@@ -69,7 +69,7 @@ fun TTSController() {
     ) {
         val playbackState by ttsState.playbackState.collectAsState()
         var expand by remember { mutableStateOf(false) }
-        KedgeSurface(
+        MochiSurface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 4.dp,

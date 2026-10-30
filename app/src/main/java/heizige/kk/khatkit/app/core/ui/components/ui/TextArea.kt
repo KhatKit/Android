@@ -51,7 +51,7 @@ import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.kedge.components.KedgeTextFieldWithState
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 /**
  * A multi-line text input component with a header and file import functionality.
@@ -210,7 +210,7 @@ private fun FullScreenTextEditor(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Bottom
         ) {
-            KedgeSurface(
+            MochiSurface(
                 modifier = Modifier
                     .widthIn(max = 800.dp)
                     .fillMaxHeight(0.9f),

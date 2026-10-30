@@ -41,7 +41,7 @@ import heizige.kk.khatkit.app.core.ui.icons.folderCopy
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 internal fun MediaFileInputRow(
@@ -81,7 +81,7 @@ internal fun MediaFileInputRow(
                             displayNameByFileName = displayNameByFileName
                         ),
                         leading = {
-                            KedgeSurface(
+                            MochiSurface(
                                 modifier = Modifier.size(34.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -149,7 +149,7 @@ private fun AttachmentChip(
     leading: @Composable () -> Unit,
     onRemove: () -> Unit,
 ) {
-    KedgeSurface(
+    MochiSurface(
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 1.dp,
         shadowElevation = 0.dp,
@@ -193,7 +193,7 @@ private fun AttachmentChip(
 private fun AttachmentLeadingIcon(
     icon: ImageVector,
 ) {
-    KedgeSurface(
+    MochiSurface(
         modifier = Modifier.size(34.dp),
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,

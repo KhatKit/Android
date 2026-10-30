@@ -37,7 +37,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun TagsInput(
@@ -78,7 +78,7 @@ fun TagsInput(
         }
 
         // 添加按钮
-        KedgeSurface(
+        MochiSurface(
             shape = CircleShape,
             tonalElevation = 2.dp,
             modifier = Modifier

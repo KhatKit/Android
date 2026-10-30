@@ -62,7 +62,7 @@ import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 
@@ -341,7 +341,7 @@ private fun SearchResultItem(
         result.updateAt.toLocalDateTime()
     }
 
-    KedgeSurface(
+    MochiSurface(
         onClick = onClick,
         color = CustomColors.listItemColors.containerColor,
         shape = MaterialTheme.shapes.large,

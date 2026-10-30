@@ -208,9 +208,9 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeFloatingActionButton
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -426,7 +426,7 @@ fun ChatInput(
         }
     }
 
-    KedgeSurface(
+    MochiSurface(
         color = Color.Transparent,
     ) {
         Column(
@@ -450,7 +450,7 @@ fun ChatInput(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-            KedgeSurface(
+            MochiSurface(
                 modifier = Modifier
                     .weight(1f)
                     // 收起态「一次上滑」＝ 拉起编辑器（KodeHeap 帖子详情页 FLB 手势模型）。
@@ -597,7 +597,7 @@ fun ChatInput(
                             onStop = onStopVoiceMode,
                             onRetry = { onStartVoiceMode?.invoke() },
                         )
-                        KedgeHorizontalDivider(
+                        MochiHorizontalDivider(
                             color = KedgeColors.outlineVariant.copy(alpha = 0.5f),
                         )
                     }
@@ -692,7 +692,7 @@ fun ChatInput(
                     }
 
 
-                    KedgeSurface(
+                    MochiSurface(
                         shape = RoundedCornerShape(innerRadiusDp.dp),
                         color = hazeTintColor,
                         modifier = Modifier
@@ -936,7 +936,7 @@ private fun SendButton(
                 onLongClick = onLongClick,
             )
     ) {
-        KedgeSurface(
+        MochiSurface(
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(13.dp),
             color = containerColor,
@@ -956,7 +956,7 @@ private fun ActionIconButton(
     onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    KedgeSurface(
+    MochiSurface(
         onClick = onClick,
         modifier = Modifier.size(36.dp),
         shape = CircleShape,
@@ -1000,7 +1000,7 @@ private fun TextInputRow(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (state.isEditing()) {
-            KedgeSurface(
+            MochiSurface(
                 shape = RoundedCornerShape(16.dp),
                 color = KedgeColors.surfaceContainerHigh,
             ) {
@@ -1232,7 +1232,7 @@ private fun CompletionPopup(
     completionList: ChatCompletionList,
     onItemClick: (ChatCompletionItem) -> Unit,
 ) {
-    KedgeSurface(
+    MochiSurface(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 280.dp),
@@ -1250,7 +1250,7 @@ private fun CompletionPopup(
                 items = completionList.items,
                 key = { item -> "${item.label}:${item.insertText}" },
             ) { item ->
-                KedgeSurface(
+                MochiSurface(
                     onClick = { onItemClick(item) },
                     modifier = Modifier.fillMaxWidth(),
                     color = Color.Transparent,
@@ -1327,7 +1327,7 @@ private fun QuickMessageButton(
                 .widthIn(min = 200.dp, max = 360.dp)
         ) {
             quickMessages.forEach { quickMessage ->
-                KedgeSurface(
+                MochiSurface(
                     onClick = {
                         state.appendText(quickMessage.content)
                         expanded = false

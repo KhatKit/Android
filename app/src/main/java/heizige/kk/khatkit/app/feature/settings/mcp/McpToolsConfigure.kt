@@ -41,7 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -167,7 +167,7 @@ internal fun McpToolCard(
     onNeedsApprovalChange: (Boolean) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    KedgeCard(
+    MochiCard(
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
         )

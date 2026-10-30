@@ -16,7 +16,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,7 +50,7 @@ fun UpdateCard(vm: ChatViewModel) {
     val updateCardDownloading = stringResource(R.string.update_card_downloading)
     val toaster = LocalToaster.current
     state.onError {
-        KedgeCard {
+        MochiCard {
             Column(
                 modifier = Modifier
                     .padding(8.dp)
@@ -74,7 +74,7 @@ fun UpdateCard(vm: ChatViewModel) {
         var showDetail by remember { mutableStateOf(false) }
         var dismissed by remember { mutableStateOf(false) }
         if (info.hasUpdate && (!dismissed || info.forceUpdate)) {
-            KedgeCard(
+            MochiCard(
                 onClick = {
                     showDetail = true
                 }
@@ -143,7 +143,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             .verticalScroll(rememberScrollState()),
                         style = KedgeTextStyles.body()
                     )
-                    KedgeCard(
+                    MochiCard(
                         onClick = {
                             dismiss()
                             downloadHandler(info)

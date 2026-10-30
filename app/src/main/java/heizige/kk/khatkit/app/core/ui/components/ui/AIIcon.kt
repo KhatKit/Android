@@ -20,7 +20,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAvatarShape
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.util.computeAIIconByName
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 private fun AIIcon(
@@ -48,7 +48,7 @@ private fun AIIcon(
             .data("file:///android_asset/icons/$path")
             .build()
     }
-    KedgeSurface(
+    MochiSurface(
         modifier = modifier.size(24.dp),
         shape = rememberAvatarShape(loading),
         color = background,

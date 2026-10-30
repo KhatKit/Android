@@ -62,7 +62,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.palette
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.app.core.util.computeAIIconByName
 
 @Composable
@@ -226,7 +226,7 @@ fun UIAvatar(
         if (loading) null else avatarShape
     }
     Box(modifier = modifier.then(Modifier.size(32.dp))) {
-        KedgeSurface(
+        MochiSurface(
             shape = if (shape == null) rememberAvatarShape(loading) else roleAvatarShape(shape),
             modifier = Modifier.fillMaxSize(),
             onClick = {

@@ -22,7 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeExpandableOptionItem
 import heizige.kk.kedge.components.KedgeOptionItem
 import androidx.compose.runtime.Composable
@@ -86,11 +86,11 @@ fun <T> ChainOfThought(
     val canCollapse = steps.size > collapsedVisibleCount
     val shouldFillCollapseControlWidth = expanded || !collapsedAdaptiveWidth
 
-    KedgeCard(
+    MochiCard(
         modifier = modifier,
         colors = cardColors,
         shape = RoundedCornerShape(16.dp),
-        // KedgeCard 默认 contentPadding/insideMargin = 16dp，链式形态靠它 + 下面
+        // MochiCard 默认 contentPadding/insideMargin = 16dp，链式形态靠它 + 下面
         // 的 12dp 缩进凑出 28dp 左边距；无时间线形态必须归零，否则 item 铺不满宽度。
         contentPadding = if (showTimeline) PaddingValues(16.dp) else PaddingValues(0.dp),
     ) {

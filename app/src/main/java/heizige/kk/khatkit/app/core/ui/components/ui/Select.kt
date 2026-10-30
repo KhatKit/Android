@@ -42,7 +42,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun <T> Select(
@@ -63,7 +63,7 @@ fun <T> Select(
 
     // 展开项本来就用 Kedge 的下拉项，只有外层的锚点与菜单容器还是 MD3 的。
     val anchor: @Composable (Modifier) -> Unit = { anchorModifier ->
-        KedgeSurface(
+        MochiSurface(
             modifier = anchorModifier,
             shape = RoundedCornerShape(50),
         ) {

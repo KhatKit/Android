@@ -81,8 +81,8 @@ import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
 import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.kedge.components.KedgeHorizontalDivider
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 // ---- Preprocessing (mirrors Markdown.kt logic) ----
 
@@ -237,7 +237,7 @@ private fun HtmlBlockElement(
             HtmlTable(element = element, onClickCitation = onClickCitation)
         }
 
-        "hr" -> KedgeHorizontalDivider(
+        "hr" -> MochiHorizontalDivider(
             modifier = Modifier.padding(vertical = 16.dp),
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
             thickness = 0.5.dp,
@@ -448,7 +448,7 @@ private fun HtmlListItem(
             ) {
                 if (isTaskItem && checkboxInput != null) {
                     // Checkbox indicator
-                    KedgeSurface(
+                    MochiSurface(
                         shape = RoundedCornerShape(2.dp),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                         modifier = Modifier.padding(end = 4.dp, top = 2.dp),

@@ -99,7 +99,7 @@ import top.yukonga.miuix.kmp.basic.Text
  *
  * 外壳用 `MiuixSettingsPage`；每一行走 `KedgeOptionItem`（插槽版），与 MD3 侧的
  * `ProviderItem` 同一套 leading/title/supporting/trailing —— 组内圆角按 index/count 算、
- * 项距取 `listCardStyle().gap`，Miuix 下就是一整块。以前是 `KedgeCard` + miuix
+ * 项距取 `listCardStyle().gap`，Miuix 下就是一整块。以前是 `MochiCard` + miuix
  * `ArrowPreference`：选它只为拿 `bottomAction` 槽放 `provider.shortDescription()`，
  * 而 `KedgeOptionItem` 的 supporting 槽正好是那个位置。
  */
@@ -297,11 +297,11 @@ private fun ProviderListMiuix(
 /**
  * 单个提供商行。
  *
- * 行的**皮**交给 [KedgeOptionItem]（MD3 走 Khromia `OptionItem`、Miuix 走 `KedgeCard` 行），
+ * 行的**皮**交给 [KedgeOptionItem]（MD3 走 Khromia `OptionItem`、Miuix 走 `MochiCard` 行），
  * 与 MD3 侧的 `ProviderItem` 同一套插槽：`22/28dp` 图标 → leading、名称 → title、
  * 「启用状态 · 模型数」+ `provider.shortDescription()` → supporting、拖柄 → trailing。
  *
- * 以前这里是 `KedgeCard(contentPadding = 0)` + miuix `ArrowPreference` —— 因为
+ * 以前这里是 `MochiCard(contentPadding = 0)` + miuix `ArrowPreference` —— 因为
  * `PreferenceArrow` 没有 `bottomAction` 槽放描述。`KedgeOptionItem` 的 supporting 槽
  * 就是那个位置，于是不必再退回 miuix 的原语；分组圆角由调用点按 index/count 传入。
  */

@@ -21,7 +21,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
@@ -137,7 +137,7 @@ internal fun TriggerCardEditorSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // ------------------------------------------------------------------ 重试配置
-            KedgeCard(
+            MochiCard(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
@@ -259,7 +259,7 @@ private fun EventCard(
     onRemove: () -> Unit,
 ) {
     // 事件卡的表头本来就是一个选项行：整行可点 = 展开/收起，右侧挂开关 + 删除 + 箭头。
-    // 之前是 KedgeCard 里手写的 Row（裸 KedgeSwitch），行皮/圆角/内边距只有这里跟
+    // 之前是 MochiCard 里手写的 Row（裸 KedgeSwitch），行皮/圆角/内边距只有这里跟
     // 其它选项行不一样。改走 KedgeExpandableOptionItem（= KedgeOptionItem + 同卡展开区）
     // 后：折叠区仍在同一张卡内（wrapContent），点击语义 / 开关 / 删除 / 文案全部原样。
     val cards = listCardStyle()

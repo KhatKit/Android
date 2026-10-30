@@ -47,7 +47,7 @@ import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 private enum class AsrDisplayState {
     Idle, Connecting, Active
@@ -90,7 +90,7 @@ internal fun AsrButton(
         ASRStatus.Listening, ASRStatus.Stopping -> AsrDisplayState.Active
     }
 
-    KedgeSurface(
+    MochiSurface(
         onClick = onClick,
         modifier = Modifier
             .height(36.dp)

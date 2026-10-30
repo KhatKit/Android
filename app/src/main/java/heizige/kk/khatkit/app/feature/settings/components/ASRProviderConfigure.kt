@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -770,7 +770,7 @@ private fun SherpaLocalASRConfiguration(
         label = { Text("识别引擎") },
         description = { Text("原生库不进安装包，首次使用需要下载一次；之后完全离线") },
     ) {
-        KedgeCard(
+        MochiCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
@@ -857,7 +857,7 @@ private fun SherpaLocalASRConfiguration(
             SherpaModels.PRESETS.forEach { preset ->
                 val isDownloaded = preset.id in downloadedIds
                 val isSelected = setting.modelId == preset.id
-                KedgeCard(
+                MochiCard(
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected) {
                             MaterialTheme.colorScheme.primaryContainer

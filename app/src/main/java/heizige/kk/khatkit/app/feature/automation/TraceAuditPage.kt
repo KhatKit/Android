@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import java.io.File
@@ -61,7 +61,7 @@ fun TraceAuditPage() {
                 item { Text("还没有轨迹。设备动作执行后会出现在这里。") }
             }
             items(traces, key = { it.id }) { meta ->
-                KedgeCard(
+                MochiCard(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { selectedId = meta.id },
                 ) {
@@ -73,7 +73,7 @@ fun TraceAuditPage() {
             }
             current?.let { step ->
                 item {
-                    KedgeCard(modifier = Modifier.fillMaxWidth()) {
+                    MochiCard(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(step.title, style = MaterialTheme.typography.titleMedium)
                             if (step.detail.isNotBlank()) Text(step.detail)

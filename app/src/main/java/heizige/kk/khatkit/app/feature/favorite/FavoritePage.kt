@@ -54,7 +54,7 @@ import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -178,7 +178,7 @@ private fun FavoriteCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    KedgeCard(
+    MochiCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         ) {

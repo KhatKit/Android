@@ -23,7 +23,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.components.KedgeIconButton
@@ -157,10 +157,10 @@ fun SettingSearchDetailPage(
 /**
  * 「服务参数」分组卡片：标题 + 参数表单 + 能力说明，一整组分段卡片。
  *
- * 改造前是 `KedgeCard { Column(padding 16) { 标题; SearchOptionsEditor; 说明 } }`：
+ * 改造前是 `MochiCard { Column(padding 16) { 标题; SearchOptionsEditor; 说明 } }`：
  * 外壳手搓一张卡，里面的参数行（`KedgeFormRow` → `FormItem` → `KedgeOptionItem`）在组外
- * 各画一张四角全圆的卡 —— 卡里套卡，Miuix 下尤其明显（外壳是 MD3 的 `KedgeCard`，
- * 行是 Miuix 的 `KedgeCard` 行）。现在外壳交给 `KedgeFormCard`（`InlineCardGroup`）：
+ * 各画一张四角全圆的卡 —— 卡里套卡，Miuix 下尤其明显（外壳是 MD3 的 `MochiCard`，
+ * 行是 Miuix 的 `MochiCard` 行）。现在外壳交给 `KedgeFormCard`（`InlineCardGroup`）：
  * 底色与圆角由组统一出，组内行只留内侧小圆角，首项上边、末项下边由整组裁切给出，
  * 两种风格一致，`SearchOptionsEditor` 一行不用改。
  */
@@ -279,7 +279,7 @@ internal fun SearchTestSection(
     var result by remember { mutableStateOf<Result<SearchResult>?>(null) }
     val scope = rememberCoroutineScope()
 
-    KedgeCard(
+    MochiCard(
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
         )
@@ -351,7 +351,7 @@ internal fun SearchTestSection(
                         )
                     }
                     searchResult.items.forEachIndexed { index, item ->
-                        KedgeCard(
+                        MochiCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             )

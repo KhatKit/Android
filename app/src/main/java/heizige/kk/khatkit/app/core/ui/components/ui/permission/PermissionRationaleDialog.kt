@@ -18,7 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -127,7 +127,7 @@ private fun PermissionItem(
     modifier: Modifier = Modifier,
     isPermanentlyDenied: Boolean = false,
 ) {
-    KedgeCard(
+    MochiCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
@@ -153,7 +153,7 @@ private fun PermissionItem(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     if (permissionInfo.required) {
-                        KedgeCard(
+                        MochiCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer
                             ),
@@ -169,7 +169,7 @@ private fun PermissionItem(
                     }
 
                     if (isPermanentlyDenied) {
-                        KedgeCard(
+                        MochiCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                             ),

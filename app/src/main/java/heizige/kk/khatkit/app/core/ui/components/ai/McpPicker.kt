@@ -274,7 +274,7 @@ fun McpPicker(
 ) {
     val mcpManager = rememberAppEntryPoint().mcpManager()
     // 每条服务器 = 一张 option item：圆角/行间距取全局列表卡片样式（首项只圆上边、
-    // 末项只圆下边），不再用裸 KedgeCard 自己排 Row。
+    // 末项只圆下边），不再用裸 MochiCard 自己排 Row。
     val cards = listCardStyle()
     val visibleServers = servers.fastFilter { it.commonOptions.enable }
     LazyColumn(

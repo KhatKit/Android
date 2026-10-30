@@ -131,7 +131,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.kedge.adaptive.KedgeTopAppBar
+import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCheckbox
 import heizige.kk.kedge.components.KedgeOptionItem
@@ -139,9 +139,9 @@ import heizige.kk.kedge.components.KedgeRadioButton
 import heizige.kk.kedge.components.KedgeStatusDefaults
 import heizige.kk.kedge.components.KedgeStatusLevel
 import heizige.kk.kedge.components.KedgeStatusTag
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeWarningCard
+import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -348,7 +348,7 @@ private fun GreetingStepBadge(step: GreetingStep) {
 @Composable
 private fun GreetingTopAppBar(step: GreetingStep) {
     if (isMiuixStyle()) {
-        KedgeTopAppBar(
+        MochiTopAppBar(
             title = greetingTitle(step),
             subtitle = greetingSubtitle(step),
             navigationIcon = { GreetingStepBadge(step) },
@@ -428,7 +428,7 @@ private fun GreetingBottomBar(
     )
 
     if (isMiuixStyle()) {
-        KedgeSurface(modifier = Modifier.fillMaxWidth()) {
+        MochiSurface(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

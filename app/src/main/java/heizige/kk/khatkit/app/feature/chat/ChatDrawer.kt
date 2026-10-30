@@ -141,7 +141,7 @@ import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.statusBars
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 
@@ -285,7 +285,7 @@ fun ChatDrawerContent(
             contentInsetTop = 0.dp,
             contentInsetBottom = 0.dp,
             topBar = {
-                // 这里刻意用裸 MD3 TopAppBar（不分流），不用 KedgeTopAppBar：
+                // 这里刻意用裸 MD3 TopAppBar（不分流），不用 MochiTopAppBar：
                 // Kedge 的 Miuix 分支走 KedgeMiuixCustomTitleBar，标题区套 26dp
                 // TitlePadding 而 actions 侧只有 16dp ActionIconPadding，左右留白
                 // 不对称（实测 43.7dp vs 27.7dp）。抽屉顶栏要的是左右对齐。
@@ -993,7 +993,7 @@ private fun DrawerSearchHitRow(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val snippet = remember(hit.snippet, highlight) { highlightedSnippet(hit.snippet, highlight) }
     val time = remember(hit.updateAt) { drawerSearchTimeLabel(hit.updateAt) }
-    KedgeSurface(
+    MochiSurface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
         color = Color.Transparent,

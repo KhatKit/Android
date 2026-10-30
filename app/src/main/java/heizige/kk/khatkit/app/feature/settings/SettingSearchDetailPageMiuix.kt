@@ -73,7 +73,7 @@ fun SettingSearchDetailPageMiuix(
         item {
             // 参数分组走 KedgeFormCard（InlineCardGroup）：组底色/圆角由组统一出，
             // 行是 SearchServiceOptionsEditor 里的 KedgeFormRow → FormItem → KedgeOptionItem，
-            // 组内只留内侧小圆角。以前这里套的是 MD3 的 KedgeCard + 12dp 间距补丁。
+            // 组内只留内侧小圆角。以前这里套的是 MD3 的 MochiCard + 12dp 间距补丁。
             SearchConfigCard(
                 options = options,
                 onUpdate = ::save,
@@ -81,7 +81,7 @@ fun SettingSearchDetailPageMiuix(
         }
 
         item {
-            // 连通性测试是**内容卡**（输入 + 进度 + 结果），不是选项行：外壳仍是 KedgeCard，
+            // 连通性测试是**内容卡**（输入 + 进度 + 结果），不是选项行：外壳仍是 MochiCard，
             // 组间距在这里补（KSU 每个分组 Card 都带 padding(top = 12.dp)）。
             Box(modifier = Modifier.miuixItemSpacing()) {
                 SearchTestSection(

@@ -46,7 +46,7 @@ import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeCheckbox
@@ -119,7 +119,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.overlays.KedgePullToRefreshBox
 
 @Composable
@@ -430,7 +430,7 @@ private fun InputBar(
             Spacer(modifier = Modifier.weight(1f))
 
             val canSend = prompt.isNotBlank()
-            KedgeSurface(
+            MochiSurface(
                 onClick = {
                     if (!isGenerating) {
                         if (referenceImages.isEmpty()) {
@@ -483,7 +483,7 @@ private fun ReferenceImagesRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         images.forEach { image ->
-            KedgeSurface(
+            MochiSurface(
                 modifier = Modifier.size(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
@@ -497,7 +497,7 @@ private fun ReferenceImagesRow(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    KedgeSurface(
+                    MochiSurface(
                         onClick = { onRemove(image) },
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -665,7 +665,7 @@ private fun ImageGalleryScreen(
                         image?.let {
                             var showPreview by remember { mutableStateOf(false) }
 
-                            KedgeCard(
+                            MochiCard(
                                 modifier = Modifier.fillMaxWidth().combinedClickable(
                                     onClick = {
                                         if (selectionMode) toggleSelection(it) else showPreview = true

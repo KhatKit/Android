@@ -20,7 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeSwitch
 import androidx.compose.runtime.Composable
@@ -178,7 +178,7 @@ private fun RequestLoggingSwitchCard(
 private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
-    KedgeCard(
+    MochiCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
@@ -418,7 +418,7 @@ private fun HeaderItem(key: String, value: String) {
 private fun TextLogCard(log: LogEntry.TextLog) {
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
-    KedgeCard(
+    MochiCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

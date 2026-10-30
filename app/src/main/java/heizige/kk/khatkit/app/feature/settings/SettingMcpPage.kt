@@ -40,7 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -313,7 +313,7 @@ internal fun McpServerItem(
         enableDismissFromEndToStart = true,
         modifier = modifier
     ) {
-        KedgeCard(
+        MochiCard(
             colors = CardDefaults.cardColors(
                 containerColor = CustomColors.listItemColors.containerColor
             )

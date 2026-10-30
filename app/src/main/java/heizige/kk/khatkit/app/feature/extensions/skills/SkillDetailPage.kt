@@ -69,7 +69,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.kedge.components.KedgeFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun SkillDetailPage(skillName: String) {
@@ -210,7 +210,7 @@ private fun FileItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    KedgeSurface(
+    MochiSurface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
     ) {
@@ -270,7 +270,7 @@ private fun DirItem(
 ) {
     var expanded by rememberSaveable(node.relativePath) { mutableStateOf(false) }
 
-    KedgeSurface(
+    MochiSurface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
     ) {

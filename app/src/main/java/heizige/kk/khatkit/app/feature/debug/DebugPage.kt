@@ -62,7 +62,7 @@ import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -242,7 +242,7 @@ private fun MainPage(vm: DebugViewModel) {
             Text("创建 1024 个消息的聊天")
         }
 
-        KedgeHorizontalDivider()
+        MochiHorizontalDivider()
 
         Text("Launch Stats", style = KedgeTextStyles.body())
 

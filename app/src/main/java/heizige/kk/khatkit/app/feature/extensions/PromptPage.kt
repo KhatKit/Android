@@ -47,7 +47,7 @@ import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeInputChip
 import heizige.kk.kedge.components.KedgeSwitch
@@ -911,7 +911,7 @@ private fun RegexInjectionEntryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    KedgeCard(modifier = Modifier.fillMaxWidth()) {
+    MochiCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

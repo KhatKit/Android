@@ -14,7 +14,7 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import heizige.kk.khatkit.app.core.ui.icons.groups
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -165,7 +165,7 @@ internal fun groupExportSuccessMessage(selection: GroupExportSelection): String 
 
 /**
  * 「导出 Tavern 群聊」卡片。形状照 `ConversationExport.kt` 里「存为卡片」那张卡
- * （`KedgeCard(onClick = …) { KedgeListItem(headline / supporting / leading) }`）。
+ * （`MochiCard(onClick = …) { KedgeListItem(headline / supporting / leading) }`）。
  *
  * @param onFinished 导出流程走完（成功或失败）后回调，用来关掉底部面板——与另外几张卡
  *   在 `onClick` 里 `dismiss()` 的做法一致。
@@ -184,7 +184,7 @@ internal fun GroupTavernExportCard(
     // 真为 null 说明调用方绕过了那层判定，宁可什么都不做也不要导出一个没有群配置的半成品。
     val config = conversation.groupConfig ?: return
 
-    KedgeCard(
+    MochiCard(
         onClick = {
             scope.launch {
                 val selection = resolveGroupExportNodes(conversation, selectedMessages)

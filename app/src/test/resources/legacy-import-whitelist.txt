@@ -36,12 +36,9 @@ kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/message/tools/
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/message/tools/WorkspaceToolUIs.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/nav/BackButton.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/permission/PermissionChecklist.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/richtext/Markdown.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/richtext/MarkdownNew.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/richtext/Mermaid.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/richtext/SimpleHtmlBlock.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/table/DataTable.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/AIIcon.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/AppAlertDialog.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/AvatarEditSheet.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/BackupReminderCard.kt
@@ -51,7 +48,6 @@ kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/ConfirmDial
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/Emoji.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/ErrorCard.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/Export.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/ExpressivePopup.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/Form.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/Greeting.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/ImagePreviewDialog.kt
@@ -145,14 +141,12 @@ kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/provider/Provide
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/provider/ProviderModelSelectors.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/search/SearchProviderOptions.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingAboutPage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingAboutPageMiuix.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingDonatePage.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingFilesPage.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingFilesPageMiuix.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingMcpPage.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingMcpPageMiuix.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingModelPage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingModelPageMiuix.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingModelPromptPage.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingModelPromptPageMiuix.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingPackagePage.kt

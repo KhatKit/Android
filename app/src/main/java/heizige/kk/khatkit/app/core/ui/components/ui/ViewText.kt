@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlin.math.roundToInt
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -90,7 +90,7 @@ private fun TextViewPreview() {
                 style = style,
             )
 
-            KedgeHorizontalDivider()
+            MochiHorizontalDivider()
 
             // AndroidView TextView 复刻版本
             // 创建 SpannableString 来复刻 AnnotatedString 的效果

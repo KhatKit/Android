@@ -20,7 +20,7 @@ import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeBadge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -128,7 +128,7 @@ internal fun ModelPicker(
                     contentPadding = PaddingValues(8.dp),
                 ) {
                     items(filteredModels) {
-                        KedgeCard {
+                        MochiCard {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(

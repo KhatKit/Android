@@ -27,10 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeButtonVariant
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -278,7 +278,7 @@ fun UiNode.Render(
             } else Box(m) { content() }
         }
         "Spacer" -> Spacer(m.width(number("width").dp).height(number("height").dp))
-        "Divider" -> KedgeHorizontalDivider(modifier = m, color = style.color("muted"))
+        "Divider" -> MochiHorizontalDivider(modifier = m, color = style.color("muted"))
         "Text" -> {
             val base = style.textStyle(text("style", "body"))
             Text(
@@ -302,7 +302,7 @@ fun UiNode.Render(
         }
         "Markdown" -> markdown(text("text"), m)
         "Image" -> image(text("src"), props["contentDescription"] as? String, m)
-        "Badge" -> KedgeSurface(modifier = m) {
+        "Badge" -> MochiSurface(modifier = m) {
             Text(text("text"), Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 style = style.textStyle("label"),
                 color = nodeColor(text("color")) ?: style.color(text("tone", "default")))

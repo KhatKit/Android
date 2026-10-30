@@ -24,7 +24,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
@@ -402,7 +402,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
 
 @Composable
 internal fun ProviderConfigWarningCard(navController: Navigator) {
-    KedgeCard(
+    MochiCard(
         modifier = Modifier.padding(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer

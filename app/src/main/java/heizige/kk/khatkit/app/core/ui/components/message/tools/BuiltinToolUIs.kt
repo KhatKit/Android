@@ -22,7 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.kedge.components.KedgeIconButton
@@ -89,7 +89,7 @@ import heizige.kk.khatkit.app.core.ui.icons.timer
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
 
 /**
@@ -741,7 +741,7 @@ private fun SearchWebPreview(
                             }
                             else -> value.jsonPrimitiveOrNull?.contentOrNull ?: value.toString()
                         }
-                        KedgeSurface(
+                        MochiSurface(
                             shape = RoundedCornerShape(8.dp),
                             color = KedgeColors.surfaceContainerHigh,
                             contentColor = KedgeColors.onSurfaceVariant,
@@ -759,7 +759,7 @@ private fun SearchWebPreview(
 
         if (answer != null) {
             item {
-                KedgeCard(
+                MochiCard(
                     colors = CardDefaults.cardColors(
                         containerColor = KedgeColors.primaryContainer
                     )
@@ -813,7 +813,7 @@ private fun SearchWebPreview(
                     }
                 }
 
-                KedgeCard(
+                MochiCard(
                     onClick = { context.openUrl(url) },
                     colors = CardDefaults.cardColors(
                         containerColor = KedgeColors.tertiaryContainer,
@@ -900,7 +900,7 @@ private fun ScrapeWebPreview(content: JsonElement) {
                     color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
                     modifier = Modifier.fillMaxWidth()
                 )
-                KedgeCard {
+                MochiCard {
                     MarkdownBlock(
                         content = urlObject["content"]?.jsonPrimitive?.content ?: "",
                         modifier = Modifier

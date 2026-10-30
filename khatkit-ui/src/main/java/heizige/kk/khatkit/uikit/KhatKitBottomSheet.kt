@@ -60,7 +60,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.adaptive.KedgeLargeTopAppBar
+import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
 import heizige.kk.kedge.adaptive.KedgeNavigationBar
 import heizige.kk.kedge.adaptive.KedgeNavigationItem
 import heizige.kk.kedge.adaptive.rememberKedgeExitUntilCollapsedScrollBehavior
@@ -288,7 +288,7 @@ fun KhatKitBottomSheet(
                         ),
                 ) {
                     if (largeTopBar) {
-                        KedgeLargeTopAppBar(
+                        MochiLargeTopAppBar(
                             title = title,
                             scrollBehavior = topBarBehavior,
                             // 不做毛玻璃：弹层是全屏实心页面，透明顶栏会透出下面的聊天页，

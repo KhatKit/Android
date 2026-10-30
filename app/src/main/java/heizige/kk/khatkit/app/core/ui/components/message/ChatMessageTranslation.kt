@@ -31,7 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,7 +52,7 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.translate
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -113,7 +113,7 @@ fun LanguageSelectionDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(languages) { language ->
-                    KedgeCard(
+                    MochiCard(
                         onClick = {
                             onLanguageSelected(language)
                             dismiss()
@@ -141,7 +141,7 @@ fun LanguageSelectionDialog(
                 }
 
                 item {
-                    KedgeCard(
+                    MochiCard(
                         onClick = {
                             onClearTranslation()
                             dismiss()
@@ -181,7 +181,7 @@ fun CollapsibleTranslationText(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        KedgeHorizontalDivider(
+        MochiHorizontalDivider(
             modifier = Modifier.padding(vertical = 8.dp),
             color = KedgeColors.outline.copy(alpha = 0.3f)
         )
@@ -233,7 +233,7 @@ fun CollapsibleTranslationText(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            KedgeCard(
+            MochiCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),

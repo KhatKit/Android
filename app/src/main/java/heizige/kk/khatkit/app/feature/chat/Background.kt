@@ -22,7 +22,7 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
  * `assistant`，从根上不可能再分叉。
  *
  * 没配背景的角色（`background == null` 且没开流光）这里**什么都不画**，底色交给外层
- * `KedgeSurface`（`KedgeColors.surface`），与改造前一致。
+ * `MochiSurface`（`KedgeColors.surface`），与改造前一致。
  */
 @Composable
 fun AssistantBackground(assistant: Assistant, modifier: Modifier) {

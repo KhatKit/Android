@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.onEach
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
@@ -284,7 +284,7 @@ fun SettingAboutPageMiuix() {
                     .fillParentMaxHeight()
                     .padding(bottom = 12.dp)
             ) {
-                KedgeCard(
+                MochiCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = MiuixPageMetrics.GroupSpacing),

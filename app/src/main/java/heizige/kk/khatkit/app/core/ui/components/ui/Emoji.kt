@@ -25,7 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeSearchBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,7 +51,7 @@ import heizige.kk.khatkit.app.core.util.EmojiCategory
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Preview
 @Composable
@@ -197,7 +197,7 @@ private fun EmojiCategoryRow(
             val category = categories[index]
             val isSelected = selectedCategoryIndex == index
 
-            KedgeCard(
+            MochiCard(
                 modifier = Modifier
                     .clickable {
                         onSelect(index)
@@ -315,7 +315,7 @@ private fun EmojiModifierPicker(
             dismissOnClickOutside = true
         )
     ) {
-        KedgeSurface(
+        MochiSurface(
             modifier = Modifier
                 .wrapContentSize()
                 .padding(16.dp),

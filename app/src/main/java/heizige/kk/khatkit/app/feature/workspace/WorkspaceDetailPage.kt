@@ -38,7 +38,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeButton
@@ -794,7 +794,7 @@ private fun WorkspaceFileCard(
         }
     }
 
-    KedgeCard(
+    MochiCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -963,7 +963,7 @@ private fun EmptyDirectoryState() {
 
 @Composable
 private fun ErrorCard(message: String) {
-    KedgeCard(
+    MochiCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

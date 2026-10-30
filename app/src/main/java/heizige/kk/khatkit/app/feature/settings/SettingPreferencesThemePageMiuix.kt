@@ -333,7 +333,7 @@ private fun colorModeLabel(mode: UiColorMode): String = stringResource(
 
 /**
  * 自定义主题行：与 MD3 的 `CustomThemeItem` 同构（四色色轮 + 选中勾 + 复制/编辑/删除），
- * 但底色与圆角交给 [KedgeOptionItem] 的 Miuix 分支（KedgeCard 行），不传 MD3 的卡片色。
+ * 但底色与圆角交给 [KedgeOptionItem] 的 Miuix 分支（MochiCard 行），不传 MD3 的卡片色。
  */
 @Composable
 private fun MiuixCustomThemeItem(

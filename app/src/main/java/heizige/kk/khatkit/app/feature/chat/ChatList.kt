@@ -106,7 +106,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeIconButtonVariant
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
@@ -935,7 +935,7 @@ private fun ChatListPreview(
                             modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
                         )
                     }
-                    KedgeSurface(
+                    MochiSurface(
                         shape = MaterialTheme.shapes.medium,
                         color = if (isUser) KedgeColors.primaryContainer else KedgeColors.secondaryContainer,
                     ) {
@@ -996,7 +996,7 @@ private fun BoxScope.MessageJumper(
             modifier = Modifier.padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            KedgeSurface(
+            MochiSurface(
                 onClick = {
                     scope.launch {
                         state.scrollToItem(0)
@@ -1013,7 +1013,7 @@ private fun BoxScope.MessageJumper(
                         .padding(4.dp)
                 )
             }
-            KedgeSurface(
+            MochiSurface(
                 onClick = {
                     scope.launch {
                         state.animateScrollToItem(
@@ -1034,7 +1034,7 @@ private fun BoxScope.MessageJumper(
                         .padding(4.dp)
                 )
             }
-            KedgeSurface(
+            MochiSurface(
                 onClick = {
                     scope.launch {
                         state.animateScrollToItem(state.firstVisibleItemIndex + 1)
@@ -1050,7 +1050,7 @@ private fun BoxScope.MessageJumper(
                         .padding(4.dp)
                 )
             }
-            KedgeSurface(
+            MochiSurface(
                 onClick = {
                     scope.launch {
                         state.scrollToItem(state.layoutInfo.totalItemsCount - 1)

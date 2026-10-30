@@ -105,9 +105,9 @@ import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -256,7 +256,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                                 assistant.tags.take(2).fastForEach { tagId ->
                                                     val tag = settings.assistantTags.find { it.id == tagId }
                                                         ?: return@fastForEach
-                                                    KedgeSurface(
+                                                    MochiSurface(
                                                         shape = RoundedCornerShape(50),
                                                         color = MaterialTheme.colorScheme.tertiaryContainer,
                                                     ) {
@@ -655,7 +655,7 @@ private fun AssistantActionSheet(
                 )
             }
 
-            KedgeHorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            MochiHorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // 克隆选项
             KedgeListItem(

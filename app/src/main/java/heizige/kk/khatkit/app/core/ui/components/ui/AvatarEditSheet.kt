@@ -46,7 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
@@ -207,7 +207,7 @@ fun AvatarEditSheet(
                     animationSpec = tween(SheetExitMillis, easing = FastOutLinearInEasing),
                 ),
             ) {
-                KedgeSurface(
+                MochiSurface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                     tonalElevation = 6.dp,

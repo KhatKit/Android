@@ -57,7 +57,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeSwitch
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeColors
@@ -576,7 +576,7 @@ internal fun WelcomeWidgetFrame(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    KedgeSurface(
+    MochiSurface(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
         color = KedgeColors.surfaceContainer,

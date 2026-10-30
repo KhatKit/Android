@@ -31,7 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -567,7 +567,7 @@ private fun TTSProviderItem(
     val isSpeaking by tts.isSpeaking.collectAsState()
     val isAvailable by tts.isAvailable.collectAsState()
 
-    KedgeCard(
+    MochiCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
@@ -717,7 +717,7 @@ private fun ASRProviderItem(
 ) {
     var showDropdownMenu by remember { mutableStateOf(false) }
 
-    KedgeCard(
+    MochiCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {

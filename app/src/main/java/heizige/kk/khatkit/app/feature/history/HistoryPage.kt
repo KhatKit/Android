@@ -63,7 +63,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeListItem
 
 @Composable
@@ -221,7 +221,7 @@ private fun ConversationItem(
     onTogglePin: () -> Unit = {},
     onClick: () -> Unit = {},
 ) {
-    KedgeSurface(
+    MochiSurface(
         onClick = onClick,
         tonalElevation = 2.dp,
         shape = RoundedCornerShape(25),

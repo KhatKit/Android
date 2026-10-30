@@ -108,8 +108,8 @@ import kotlin.time.Clock
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
-import heizige.kk.kedge.components.KedgeHorizontalDivider
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 private val flavour by lazy {
     GFMFlavourDescriptor(
@@ -412,7 +412,7 @@ private fun MarkdownNode(
         // Checkbox
         GFMTokenTypes.CHECK_BOX -> {
             val isChecked = node.getTextInNode(content).trim() == "[x]"
-            KedgeSurface(
+            MochiSurface(
                 shape = RoundedCornerShape(2.dp),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 modifier = modifier,
@@ -511,7 +511,7 @@ private fun MarkdownNode(
         }
 
         MarkdownTokenTypes.HORIZONTAL_RULE -> {
-            KedgeHorizontalDivider(
+            MochiHorizontalDivider(
                 modifier = Modifier.padding(vertical = 16.dp),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                 thickness = 0.5.dp

@@ -104,7 +104,7 @@ import heizige.kk.khatkit.app.core.ui.icons.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeAssistChip
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -778,7 +778,7 @@ private fun ModelItem(
         // 选中态沿用改动前的 primaryContainer 底色 + onPrimaryContainer 字色。
         backgroundColor = if (select) MaterialTheme.colorScheme.primaryContainer else Color.Unspecified,
         leadingContent = {
-            KedgeSurface(
+            MochiSurface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = MaterialTheme.shapes.small,
             ) {

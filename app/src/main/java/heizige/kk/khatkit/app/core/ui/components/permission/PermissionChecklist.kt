@@ -63,7 +63,7 @@ import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeStatusLevel
-import heizige.kk.kedge.components.KedgeWarningCard
+import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.kedge.components.KedgeOptionItem
@@ -401,7 +401,7 @@ fun PermissionChecklist(
                 Text(stringResource(R.string.greeting_permission_grant_all, missingRuntime.size))
             }
         } else {
-            KedgeWarningCard(
+            MochiWarningCard(
                 message = stringResource(R.string.greeting_permission_all_granted),
                 level = KedgeStatusLevel.Success,
             )

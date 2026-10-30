@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.core.ui.icons.lightbulb
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSlider
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 private val levels = ReasoningLevel.entries
 private val levelCount = levels.size
@@ -69,7 +69,7 @@ fun ReasoningButton(
     }
 
     if (chip) {
-        KedgeSurface(
+        MochiSurface(
             onClick = { showPicker = true },
             modifier = modifier,
             shape = RoundedCornerShape(50),

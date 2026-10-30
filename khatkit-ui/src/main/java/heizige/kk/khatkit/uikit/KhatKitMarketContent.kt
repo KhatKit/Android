@@ -60,7 +60,7 @@ import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
 import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeCheckbox
 import heizige.kk.kedge.components.KedgeOutlinedTextField
@@ -69,7 +69,7 @@ import heizige.kk.kedge.overlays.KedgeDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import kotlinx.coroutines.launch
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
@@ -418,7 +418,7 @@ private fun FeaturedCard(
     hubInfo: HubCardMarketInfo?,
     onClick: () -> Unit
 ) {
-    KedgeCard(
+    MochiCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
@@ -515,7 +515,7 @@ private fun CompactCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    KedgeCard(
+    MochiCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
@@ -596,7 +596,7 @@ private fun LocalOnlyCompactCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    KedgeCard(
+    MochiCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()

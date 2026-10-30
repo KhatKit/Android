@@ -46,7 +46,7 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun ErrorCardsDisplay(
@@ -67,7 +67,7 @@ fun ErrorCardsDisplay(
         ) {
             // 清除全部按钮（当有多个错误时显示）
             if (errors.size > 1) {
-                KedgeSurface(
+                MochiSurface(
                     onClick = onClearAllErrors,
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
@@ -121,7 +121,7 @@ fun ErrorCard(
         onDismiss()
     }
 
-    KedgeSurface(
+    MochiSurface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.errorContainer,

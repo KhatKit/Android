@@ -32,9 +32,9 @@ import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun ShareHandlerPage(text: String, image: String?) {
@@ -51,7 +51,7 @@ fun ShareHandlerPage(text: String, image: String?) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
-                KedgeCard {
+                MochiCard {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -76,7 +76,7 @@ fun ShareHandlerPage(text: String, image: String?) {
             }
 
             items(settings.assistants) { assistant ->
-                KedgeSurface(
+                MochiSurface(
                     onClick = {
                         scope.launch {
                             vm.updateAssistant(assistant.id)

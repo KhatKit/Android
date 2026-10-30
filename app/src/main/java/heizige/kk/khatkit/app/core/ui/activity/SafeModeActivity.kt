@@ -34,7 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeButton
 import androidx.compose.runtime.Composable
@@ -65,7 +65,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.uuid.Uuid
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.adaptive.KedgeTopAppBar
+import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
 
 @AndroidEntryPoint
 class SafeModeActivity : ComponentActivity() {
@@ -89,7 +89,7 @@ class SafeModeActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
                         // 安全模式也要跟主题走：Miuix 下用 Kedge 的顶栏
-                        KedgeTopAppBar(title = stringResource(R.string.safe_mode_title))
+                        MochiTopAppBar(title = stringResource(R.string.safe_mode_title))
                     }
                 ) { innerPadding ->
                     Column(
@@ -150,7 +150,7 @@ class SafeModeActivity : ComponentActivity() {
                                     Text(stringResource(R.string.safe_mode_copy))
                                 }
                             }
-                            KedgeCard(
+                            MochiCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f),

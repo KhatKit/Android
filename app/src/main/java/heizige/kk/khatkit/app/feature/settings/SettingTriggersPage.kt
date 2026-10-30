@@ -23,7 +23,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -181,7 +181,7 @@ fun SettingTriggersPage() {
                         "根据通知内容生成回复参数",
                         "失败时分析原因并给出重试建议",
                     ).forEach { suggestion ->
-                        KedgeCard(
+                        MochiCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                             ),
@@ -533,7 +533,7 @@ private fun FlowOverviewCard(
     onCreate: () -> Unit,
 ) {
     val style = LocalKedgeStyle.current
-    KedgeCard(
+    MochiCard(
         modifier = Modifier.padding(horizontal = 8.dp),
         shape = RoundedCornerShape(if (style == KedgeStyle.Miuix) 20.dp else 24.dp),
         colors = CardDefaults.cardColors(

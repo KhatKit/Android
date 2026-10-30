@@ -24,7 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeCheckbox
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeRadioButton
 import heizige.kk.kedge.components.KedgeSlider
@@ -183,7 +183,7 @@ internal fun FormWidget(
 
     when (type) {
         "text", "markdown" -> Text(label.ifBlank { item["value"]?.toString().orEmpty() })
-        "divider" -> KedgeHorizontalDivider()
+        "divider" -> MochiHorizontalDivider()
 
         "input" -> KedgeOutlinedTextField(
             value = values[id]?.toString().orEmpty(),

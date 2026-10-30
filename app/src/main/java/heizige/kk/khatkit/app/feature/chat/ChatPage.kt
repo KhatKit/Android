@@ -135,7 +135,7 @@ import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 @Composable
@@ -373,7 +373,7 @@ internal fun ChatScaffold(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val activeNestedScroll = activeNestedScroll(scrollBehavior)
 
-    KedgeSurface(
+    MochiSurface(
         color = heizige.kk.kedge.theme.KedgeColors.surface,
         modifier = Modifier.fillMaxSize()
     ) {
@@ -936,7 +936,7 @@ private fun TopBar(
         val isLargeTitleRow = titleStyle.fontSize > MaterialTheme.typography.titleLarge.fontSize
         Box {
             if (titleVisible) {
-                KedgeSurface(
+                MochiSurface(
                     modifier = Modifier.graphicsLayer {
                         alpha = 1f - searchProgress.value
                         translationX = -searchProgress.value * 24.dp.toPx()

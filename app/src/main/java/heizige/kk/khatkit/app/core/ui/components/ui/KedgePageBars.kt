@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.kedge.adaptive.KedgeLargeTopAppBar
+import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 
@@ -88,7 +88,7 @@ fun KedgePageLargeTopBar(
 ) {
     val alpha = titleAlpha.coerceIn(0f, 1f)
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        KedgeLargeTopAppBar(
+        MochiLargeTopAppBar(
             title = title,
             subtitle = subtitle,
             modifier = modifier,
@@ -148,7 +148,7 @@ fun KedgePageMediumTopBar(
         // Miuix 原生 bar 的 title 是 String 放不下这些交互。
         // Kedge 侧在 titleContent != null 时改走自绘栏；该栏不设独立底色，
         // 与页面背景同为 surface（对齐 KernelSU 顶栏/背景不分色）。
-        heizige.kk.kedge.adaptive.KedgeTopAppBar(
+        heizige.kk.khatkit.uikit.mochi.MochiTopAppBar(
             title = title,
             subtitle = subtitle,
             modifier = modifier,
@@ -182,7 +182,7 @@ fun KedgePageTopBar(
     titleContent: (@Composable () -> Unit)? = null,
 ) {
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        heizige.kk.kedge.adaptive.KedgeTopAppBar(
+        heizige.kk.khatkit.uikit.mochi.MochiTopAppBar(
             title = title,
             subtitle = subtitle,
             modifier = modifier,

@@ -51,7 +51,7 @@ import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun AssistantPicker(
@@ -64,7 +64,7 @@ fun AssistantPicker(
     val defaultAssistantName = stringResource(R.string.assistant_page_default_assistant)
     var showPicker by remember { mutableStateOf(false) }
 
-    KedgeSurface(
+    MochiSurface(
         onClick = {
             showPicker = true
         },

@@ -31,7 +31,7 @@ import heizige.kk.khromia.components.AnimatedRadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -306,7 +306,7 @@ internal fun FileItem(
     fileOnDisk: File,
     onDelete: () -> Unit,
 ) {
-    KedgeCard(
+    MochiCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CustomColors.listItemColors.containerColor)
     ) {

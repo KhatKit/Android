@@ -64,7 +64,7 @@ import java.util.Locale
 import heizige.kk.khatkit.app.core.ui.icons.contentPaste
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.platform.LocalDensity
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -168,7 +168,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     )
                 } else {
                     // Miuix 的分隔线颜色比 MD3 淡，直接用 MD3 会显得过重
-                    KedgeHorizontalDivider()
+                    MochiHorizontalDivider()
                 }
             }
 

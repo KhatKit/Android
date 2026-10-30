@@ -77,7 +77,7 @@ fun SettingMcpPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             val mcpConfig = mcpConfigs[index]
             McpServerItem(
                 item = mcpConfig,
-                // McpServerItem 自己就是一张 KedgeCard（不走 miuixGroup 分组包裹），
+                // McpServerItem 自己就是一张 MochiCard（不走 miuixGroup 分组包裹），
                 // 所以间距得在这里补 —— KSU 的 SettingsMiuix 是每个分组 Card 带
                 // padding(top = 12.dp)，这里同理。
                 modifier = Modifier.miuixItemSpacing(),

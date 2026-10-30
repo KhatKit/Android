@@ -263,7 +263,7 @@ internal fun ModelList(
  * 卡内边距由**这里**给、两种风格都要给：`KedgeFormCard` 只是分段容器 ——
  * `InlineCardGroup` 自己画底色 + 收角，但**不加内边距**（组内是 `KedgeFormRow` 时内边距
  * 由行自己带，见 `FormItem` 的 `modifier` 注释）。本组装的是「标题 + 任意控件」，没有行
- * 组件帮忙撑内边距，所以自己补一层；MD3 下也一样（改造前 MD3 那 16dp 来自旧 `KedgeCard`
+ * 组件帮忙撑内边距，所以自己补一层；MD3 下也一样（改造前 MD3 那 16dp 来自旧 `MochiCard`
  * 的默认 `contentPadding`，现在容器不再提供）。
  */
 @Composable

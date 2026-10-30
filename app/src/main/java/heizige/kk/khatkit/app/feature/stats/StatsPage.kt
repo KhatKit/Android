@@ -52,7 +52,7 @@ import heizige.kk.khatkit.app.core.ui.icons.chat
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -103,7 +103,7 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
 
 @Composable
 private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>, modifier: Modifier = Modifier) {
-    KedgeCard(
+    MochiCard(
         modifier = modifier.fillMaxWidth(),
         ) {
         Column(
@@ -276,7 +276,7 @@ private fun HeatmapCell(alpha: Float, sizeDp: Int) {
 private fun RouteStatsCard(modifier: Modifier = Modifier) {
     val rows = heizige.kk.khatkit.app.core.data.ai.TaskRoutes.snapshot().entries.sortedBy { it.key }
     if (rows.isEmpty()) return
-    KedgeCard(modifier = modifier.fillMaxWidth()) {
+    MochiCard(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -353,7 +353,7 @@ private fun StatCard(
     label: String,
     value: String,
 ) {
-    KedgeCard(modifier = modifier, colors = CustomColors.cardColorsOnSurfaceContainer) {
+    MochiCard(modifier = modifier, colors = CustomColors.cardColorsOnSurfaceContainer) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
 import androidx.compose.foundation.layout.ColumnScope
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -188,13 +188,13 @@ fun LazyListScope.miuixGroup(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     item(key = key) {
-        KedgeCard(
+        MochiCard(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(top = MiuixPageMetrics.GroupSpacing),
             // 分组卡片本身**不再加内边距**：里面的 ArrowPreference / SwitchPreference
             // 等组件自己就带 BasicComponentDefaults.InsideMargin(16dp)。这里再给
-            // KedgeCard 的默认 16dp 的话，单项内边距会叠成 32dp，看着比 KernelSU 松。
+            // MochiCard 的默认 16dp 的话，单项内边距会叠成 32dp，看着比 KernelSU 松。
             contentPadding = PaddingValues(0.dp),
             content = content,
         )
@@ -214,7 +214,7 @@ object MiuixPageMetrics {
  * 给「裸」列表项（自己画卡片、没有 [miuixGroup] 包裹的那种）补上 Miuix 的组间距。
  *
  * [miuixGroup] 自带 12dp 上间距，但 MCP / 文件 / 搜索这几页的卡片是 item 自己画的
- * （`McpServerItem` / `FileItem` / `SearchProviderCard` 内部直接 `KedgeCard`），
+ * （`McpServerItem` / `FileItem` / `SearchProviderCard` 内部直接 `MochiCard`），
  * 不走分组包裹，于是列表里项与项之间**完全贴在一起** —— Miuix 的观感要求每项都是
  * 独立圆角卡片，之间留 12dp。
  *

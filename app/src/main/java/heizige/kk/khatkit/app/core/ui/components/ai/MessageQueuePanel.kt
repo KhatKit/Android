@@ -42,7 +42,7 @@ import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSurface
+import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeTextFieldWithState
 
 @Composable
@@ -59,7 +59,7 @@ internal fun MessageQueuePanel(
     // 正在生成时立即发送必然要打断本回合，先确认再动手。
     var confirmingSendNow by remember { mutableStateOf<QueuedMessage?>(null) }
     if (state.messages.isNotEmpty()) {
-        KedgeSurface(
+        MochiSurface(
             shape = MaterialTheme.shapes.large,
             color = KedgeColors.surfaceContainer,
             modifier = Modifier

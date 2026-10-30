@@ -207,7 +207,7 @@ fun InlineCardGroup(
  * 组卡片的底色。
  *
  * - MD3Exp：`CustomColors.cardColorsOnSurfaceContainer.containerColor`（= `surfaceBright`），
- *   与改造前 `KedgeFormCard` 的 MD3 分支（`KedgeCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
+ *   与改造前 `KedgeFormCard` 的 MD3 分支（`MochiCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
  *   完全一致。
  * - Miuix：`KedgeMiuixSurface.cardContainer`（= `MiuixTheme.colorScheme.surfaceContainer`），
  *   与改造前 Miuix 分支那张卡、以及 `KedgeOptionItem` 自己的行卡片同色。

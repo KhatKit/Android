@@ -10,7 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,7 +40,7 @@ fun BackupReminderCard(
 
     if (!isDue || dismissed) return
 
-    KedgeCard(onClick = onClick) {
+    MochiCard(onClick = onClick) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

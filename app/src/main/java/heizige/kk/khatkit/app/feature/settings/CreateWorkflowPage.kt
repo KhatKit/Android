@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeCard
+import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextButton
@@ -241,7 +241,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                     )
                 }
                 itemsIndexed(execution.steps, key = { index, step -> "${step.nodeId}-$index" }) { index, step ->
-                    KedgeCard(
+                    MochiCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
@@ -294,7 +294,7 @@ private fun WorkflowNodeCard(
     onChange: (WorkflowNode) -> Unit,
     onDuplicate: () -> Unit,
 ) {
-    KedgeCard(
+    MochiCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {

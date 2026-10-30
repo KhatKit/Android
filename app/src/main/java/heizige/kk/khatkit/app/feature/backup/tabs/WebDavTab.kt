@@ -68,7 +68,7 @@ import heizige.kk.khatkit.app.core.ui.icons.settingsBackupRestore
 import heizige.kk.khatkit.app.core.ui.icons.upload
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
-import heizige.kk.kedge.components.KedgeHorizontalDivider
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
@@ -237,7 +237,7 @@ fun WebDavTab(
             }
         }
 
-        KedgeHorizontalDivider()
+        MochiHorizontalDivider()
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
