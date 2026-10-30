@@ -88,10 +88,10 @@ class LegacyImportGuardTest {
     fun whitelistMatchesMeasuredInventory() {
         val whitelist = loadWhitelist()
         val byLib = whitelist.values.flatten().groupingBy { it }.eachCount()
-        assertEquals("kedge 白名单条数", 10, byLib["kedge"] ?: 0)
+        assertEquals("kedge 白名单条数", 0, byLib["kedge"] ?: 0)
         assertEquals("miuix 白名单条数", 0, byLib["miuix"] ?: 0)
         assertEquals("khromia 白名单条数", 72, byLib["khromia"] ?: 0)
-        assertEquals("白名单条目总数（同文件可命中多个库）", 82, whitelist.values.sumOf { it.size })
+        assertEquals("白名单条目总数（同文件可命中多个库）", 72, whitelist.values.sumOf { it.size })
 
         val kedgeRoots = whitelist.count { (path, libs) ->
             "kedge" in libs && (path.startsWith("app/src/main/") || path.startsWith("khatkit-ui/src/main/"))

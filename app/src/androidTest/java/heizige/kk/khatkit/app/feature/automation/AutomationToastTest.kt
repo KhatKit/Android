@@ -31,7 +31,7 @@ import dagger.hilt.android.EntryPointAccessors
 import heizige.kk.khatkit.app.core.di.AppEntryPoint
 import heizige.kk.khatkit.app.feature.automation.data.ApprovalCategory
 import androidx.test.platform.app.InstrumentationRegistry
-import heizige.kk.kedge.theme.KedgeColors
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.uikit.KhatKitTheme
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
@@ -57,7 +57,7 @@ class AutomationToastTest {
         var dismisses = 0
         compose.setContent {
             KhatKitTheme(style, darkTheme = true) {
-                expected = KedgeColors.secondaryContainer
+                expected = MaterialTheme.colorScheme.secondaryContainer
                 AutomationToast(
                     status = AutomationBus.AutomationStatus(label, activeSince = 0),
                     approval = null, onApprove = {}, onDeny = {}, onRemember = {},
@@ -88,7 +88,7 @@ class AutomationToastTest {
         var allowed = 0
         var denied = 0
         compose.setContent {
-            KhatKitTheme(KhatKitUiStyle.MIUIX, darkTheme = true) {
+            KhatKitTheme(darkTheme = true) {
                 AutomationToast(status = null,
                     approval = AutomationBus.ApprovalRequest("test", "测试授权", "", ApprovalCategory.UI_ACTION),
                     onApprove = { allowed++ }, onDeny = { denied++ }, onRemember = {},
@@ -109,15 +109,13 @@ class AutomationToastTest {
         val context = instrumentation.targetContext
         val provider = EntryPointAccessors.fromApplication(context.applicationContext, AppEntryPoint::class.java)
             .khatKitToolProvider()
-        val originalStyle = provider.uiStyle
         var backgroundTaps = 0
         var expected = Color.Unspecified
         var overlay: View? = null
         try {
-            compose.runOnIdle { provider.uiStyle = KhatKitUiStyle.MIUIX }
             compose.setContent {
                 AutomationOverlayTheme {
-                    expected = KedgeColors.secondaryContainer
+                    expected = MaterialTheme.colorScheme.secondaryContainer
                     Box(Modifier.fillMaxSize().background(Color.Black).testTag("page")
                         .clickable { backgroundTaps++ })
                 }
@@ -175,7 +173,6 @@ class AutomationToastTest {
             compose.runOnIdle {
                 AutomationBus.clear()
                 AutomationBus.setAppInForeground(true)
-                provider.uiStyle = originalStyle
             }
         }
     }
@@ -186,7 +183,7 @@ class AutomationToastTest {
         AutomationBus.begin()
         AutomationBus.update("正在执行自动化")
         compose.setContent {
-            KhatKitTheme(KhatKitUiStyle.MIUIX, darkTheme = true) {
+            KhatKitTheme(darkTheme = true) {
                 Box(Modifier.fillMaxSize().background(Color.Black).testTag("underneath")
                     .clickable { taps++ }) { Text("测试页面") }
                 AutomationInAppHost()

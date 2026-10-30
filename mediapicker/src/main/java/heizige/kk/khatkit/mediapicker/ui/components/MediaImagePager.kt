@@ -8,6 +8,8 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -57,9 +59,6 @@ import com.jvziyaoyao.scale.zoomable.pager.PagerGestureScope
 import com.jvziyaoyao.scale.zoomable.pager.rememberZoomablePagerState
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.Media
-import heizige.kk.kedge.components.KedgeSurface
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 上滑关闭的阈值（px）。 */
 private const val DISMISS_DRAG_THRESHOLD = 240f
@@ -193,7 +192,7 @@ private fun MediaImagePagerContent(
                     Text(
                         text = "${pagerState.currentPage + 1}/${media.size}",
                         color = Color.White,
-                        style = KedgeTextStyles.bodyLarge(),
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 MediaCheckBox(
@@ -225,22 +224,22 @@ private fun MediaImagePagerContent(
                         text = item.label,
                         modifier = Modifier.weight(1f, fill = false),
                         color = Color.White,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     if (item.fileSize > 0) {
                         Spacer(Modifier.width(8.dp))
-                        KedgeSurface(
-                            color = KedgeColors.primaryContainer,
-                            contentColor = KedgeColors.onPrimaryContainer,
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             shape = CircleShape,
                         ) {
                             Text(
                                 text = item.humanFileSize,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = KedgeColors.onPrimaryContainer,
-                                style = KedgeTextStyles.footnoteSmall(),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.labelSmall,
                             )
                         }
                     }

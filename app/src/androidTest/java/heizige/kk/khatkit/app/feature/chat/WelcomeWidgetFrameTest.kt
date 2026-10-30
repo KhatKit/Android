@@ -25,7 +25,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import heizige.kk.khatkit.app.R
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineKind
@@ -51,11 +51,15 @@ class WelcomeWidgetFrameTest {
     @Test fun miuixSpinnerDrawsWithinItsSmallIconSlot() {
         var progress by mutableStateOf<Float?>(null)
         compose.setContent {
-            KhatKitTheme(KhatKitUiStyle.MIUIX, darkTheme = true) {
+            KhatKitTheme(darkTheme = true) {
                 Box(Modifier.size(80.dp).background(Color.Black).testTag("indicator"),
                     contentAlignment = Alignment.Center) {
-                    KedgeProgressIndicator(Modifier.size(20.dp), progress = progress,
-                        color = Color.White, trackColor = Color.White)
+                    CircularProgressIndicator(
+                        progress = { progress ?: 0f },
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        trackColor = Color.White,
+                    )
                 }
             }
         }

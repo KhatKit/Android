@@ -5,6 +5,13 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -65,15 +72,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import heizige.kk.kedge.components.KedgeBadge
-import heizige.kk.kedge.components.KedgeButtonDefaults
-import heizige.kk.kedge.components.KedgeBadgedBox
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeIconButtonVariant
-import heizige.kk.kedge.components.KedgeFloatingActionButton
-import heizige.kk.kedge.components.KedgeTextFieldWithSlots
-import heizige.kk.kedge.overlays.KedgeProgressIndicator
+
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
 import heizige.kk.khatkit.mediapicker.domain.AlbumState
@@ -150,7 +149,7 @@ internal fun MediaPickerGridWithOverlays(
                 // 取消选择：40dp 小 FAB（MD3Exp 下原本是 SmallFloatingActionButton，
                 // Miuix 没有小 FAB，用 KedgeFloatingActionButton + size 压到同尺寸）
                 AnimatedVisibility(visible = canPick) {
-                    KedgeFloatingActionButton(
+                    FloatingActionButton(
                         onClick = { selectedMedia.clear() },
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -164,14 +163,14 @@ internal fun MediaPickerGridWithOverlays(
                         )
                     }
                 }
-                KedgeBadgedBox(
+                BadgedBox(
                     badge = {
                         BoxAnimatedVisibility(
                             visible = selectedMedia.isNotEmpty() && allowMultiple,
                             enter = fadeIn() + scaleIn(),
                             exit = fadeOut() + scaleOut(),
                         ) {
-                            KedgeBadge(containerColor = MaterialTheme.colorScheme.primary) {
+                            Badge(containerColor = MaterialTheme.colorScheme.primary) {
                                 Text(text = selectedMedia.size.toString(), fontWeight = FontWeight.Bold)
                             }
                         }
@@ -179,7 +178,7 @@ internal fun MediaPickerGridWithOverlays(
                 ) {
                     // 确认按钮：56dp 标准 FAB（上游 EnhancedFloatingActionButtonType.Primary），
                     // 不是 40dp 的 Small —— 里面还要塞图标 + 文案
-                    KedgeFloatingActionButton(
+                    FloatingActionButton(
                         onClick = { if (canPick) onPicked() },
                         containerColor = containerColor,
                         contentColor = contentColor,
@@ -218,7 +217,7 @@ internal fun MediaPickerGridWithOverlays(
             exit = scaleOut() + fadeOut(),
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                KedgeProgressIndicator()
+                CircularProgressIndicator()
             }
         }
 
@@ -286,7 +285,7 @@ internal fun MediaPickerGridWithOverlays(
                     modifier = Modifier.padding(horizontal = 24.dp),
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                KedgeButton(onClick = onRetry) { Text(stringResource(R.string.media_picker_try_again)) }
+                Button(onClick = onRetry) { Text(stringResource(R.string.media_picker_try_again)) }
                 Spacer(Modifier.weight(1f))
             }
         }
@@ -312,7 +311,7 @@ internal fun MediaPickerGridWithOverlays(
                     contentAlignment = Alignment.BottomStart,
                 ) {
                     if (searchMode) {
-                        KedgeTextFieldWithSlots(
+                        OutlinedTextField(
                             value = searchKeyword,
                             onValueChange = {
                                 searchKeyword = it
@@ -321,7 +320,7 @@ internal fun MediaPickerGridWithOverlays(
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text(stringResource(R.string.media_picker_search_here)) },
                             leadingIcon = {
-                                KedgeIconButton(
+                                IconButton(
                                     onClick = {
                                         searchKeyword = ""
                                         onKeywordChange("")
@@ -342,7 +341,7 @@ internal fun MediaPickerGridWithOverlays(
                                     enter = fadeIn() + scaleIn(),
                                     exit = fadeOut() + scaleOut(),
                                 ) {
-                                    KedgeIconButton(
+                                    IconButton(
                                         onClick = {
                                             searchKeyword = ""
                                             onKeywordChange("")
@@ -389,13 +388,11 @@ internal fun MediaSearchAndFilterButtons(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        KedgeIconButton(
+        IconButton(
             onClick = onSearch,
-            variant = KedgeIconButtonVariant.Filled,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
             ),
-            shapes = KedgeButtonDefaults.md3IconButtonShapes(groupedShape(index = 0, size = 2, vertical = false)),
             modifier = Modifier.size(width = 38.dp, height = 48.dp),
         ) {
             Icon(
@@ -403,13 +400,11 @@ internal fun MediaSearchAndFilterButtons(
                 contentDescription = stringResource(R.string.media_picker_search),
             )
         }
-        KedgeIconButton(
+        IconButton(
             onClick = onFilter,
-            variant = KedgeIconButtonVariant.Filled,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
             ),
-            shapes = KedgeButtonDefaults.md3IconButtonShapes(groupedShape(index = 1, size = 2, vertical = false)),
             modifier = Modifier.size(width = 38.dp, height = 48.dp),
         ) {
             Icon(

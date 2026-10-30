@@ -8,6 +8,7 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
+import androidx.compose.material3.Button
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,9 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.khatkit.mediapicker.R
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun ManageExternalStorageWarning(
@@ -54,7 +53,7 @@ internal fun ManageExternalStorageWarning(
                 Text(
                     text = stringResource(R.string.media_picker_manage_storage_extra_types),
                     color = MaterialTheme.colorScheme.error,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     lineHeight = 18.sp,
                     modifier = Modifier.weight(1f, fill = false),
                 )
@@ -63,13 +62,13 @@ internal fun ManageExternalStorageWarning(
             Text(
                 text = stringResource(R.string.media_picker_manage_storage_extra_types_sub),
                 color = MaterialTheme.colorScheme.onSurface,
-                style = KedgeTextStyles.footnote(),
+                style = MaterialTheme.typography.labelMedium,
                 lineHeight = 16.sp,
                 textAlign = TextAlign.Start,
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        KedgeButton(
+        Button(
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
                 contentColor = MaterialTheme.colorScheme.onError,

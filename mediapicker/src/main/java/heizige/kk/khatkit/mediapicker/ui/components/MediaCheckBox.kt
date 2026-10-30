@@ -7,6 +7,9 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -37,8 +40,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun MediaCheckBox(
@@ -58,7 +59,7 @@ fun MediaCheckBox(
     )
 
     if (onCheck != null) {
-        KedgeIconButton(
+        IconButton(
             onClick = onCheck,
             modifier = modifier,
             colors = IconButtonDefaults.iconButtonColors(
@@ -98,7 +99,7 @@ fun MediaCheckBox(
                     Text(
                         text = (index + 1).toString(),
                         color = contentColorFor(color),
-                        style = KedgeTextStyles.footnoteSmall().copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                     )

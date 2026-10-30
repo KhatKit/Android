@@ -6,6 +6,8 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
+import androidx.compose.material3.Button
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,15 +43,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.MediaDateGroup
 import heizige.kk.khatkit.mediapicker.domain.MediaDisplaySettings
 import heizige.kk.khatkit.mediapicker.domain.MediaGrouping
 import heizige.kk.khatkit.mediapicker.domain.MediaOrder
 import heizige.kk.khatkit.mediapicker.domain.OrderType
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun MediaFilterSheet(
@@ -60,7 +59,7 @@ internal fun MediaFilterSheet(
     var page by rememberSaveable { mutableIntStateOf(0) }
 
     // Kedge 弹层：MD3Exp 下是 ModalBottomSheet，Miuix 下是 Miuix WindowBottomSheet。
-    KedgeModalBottomSheet(show = true, onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Row(
                 modifier = Modifier
@@ -103,7 +102,7 @@ internal fun MediaFilterSheet(
                 }
             }
 
-            KedgeButton(
+            Button(
                 onClick = onDismiss,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,7 +136,7 @@ private fun FilterTab(
     ) {
         Icon(imageVector = icon, contentDescription = null, tint = content)
         Spacer(Modifier.width(6.dp))
-        Text(text = text, color = content, style = KedgeTextStyles.body())
+        Text(text = text, color = content, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -239,7 +238,7 @@ private fun OptionOrderRow(
     onChange: (OrderType) -> Unit,
 ) {
     Column(Modifier.padding(top = 12.dp)) {
-        Text(text = title, style = KedgeTextStyles.title())
+        Text(text = title, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(4.dp))
         listOf(OrderType.Ascending, OrderType.Descending).forEachIndexed { index, type ->
             OptionRow(
@@ -277,7 +276,7 @@ private fun OptionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(text = title, style = KedgeTextStyles.body())
+            Text(text = title, style = MaterialTheme.typography.bodyMedium)
             Icon(
                 imageVector = if (selected) Icons.Rounded.RadioButtonChecked
                 else Icons.Outlined.RadioButtonUnchecked,
@@ -324,7 +323,7 @@ private fun DateGroupSegmented(
             ) {
                 Text(
                     text = stringResource(labelRes),
-                    style = KedgeTextStyles.footnote(),
+                    style = MaterialTheme.typography.labelMedium,
                     color = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )

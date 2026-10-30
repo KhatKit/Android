@@ -10,6 +10,10 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
+import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
@@ -72,10 +76,6 @@ import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeSurface
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
 import heizige.kk.khatkit.mediapicker.domain.Album
@@ -141,7 +141,7 @@ private fun MediaAlbumChips(
                 )
             }
         }
-        KedgeIconButton(onClick = { showAlbumThumbnail = !showAlbumThumbnail }) {
+        IconButton(onClick = { showAlbumThumbnail = !showAlbumThumbnail }) {
             val rotation by animateFloatAsState(if (showAlbumThumbnail) 180f else 0f)
             Icon(
                 imageVector = Icons.Rounded.KeyboardArrowDown,
@@ -175,23 +175,23 @@ private fun MediaAlbumChip(
     // 未选中带 outlineVariant 描边），不是 MD3 的 FilterChip —— FilterChip 自带描边
     // 和更大的内边距，视觉上明显不是一个东西。这里用 Surface 复刻它的形态。
     val containerColor by animateColorAsState(
-        targetValue = if (selected) KedgeColors.secondaryContainer
-        else KedgeColors.surfaceContainerHigh,
+        targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer
+        else MaterialTheme.colorScheme.surfaceContainerHigh,
         label = "albumChipContainer",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) KedgeColors.onSecondaryContainer
-        else KedgeColors.onSurfaceVariant,
+        targetValue = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+        else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "albumChipContent",
     )
     // 上游 `ColorScheme.outlineVariant()` = onSecondaryContainer @30% 叠在 surfaceContainer 上。
     // 直接用配色里的 outlineVariant 不可靠：有些主题（含 Miuix 桥接）给的是接近透明的
     // 值，chip 就完全看不出边界 —— 这里按上游的算法自己算。
-    val borderColor = KedgeColors.onSecondaryContainer
+    val borderColor = MaterialTheme.colorScheme.onSecondaryContainer
         .copy(alpha = 0.3f)
-        .compositeOver(KedgeColors.surfaceContainer)
+        .compositeOver(MaterialTheme.colorScheme.surfaceContainer)
 
-    KedgeSurface(
+    Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
@@ -218,7 +218,7 @@ private fun MediaAlbumChip(
                 text = title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = KedgeTextStyles.footnote().copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = contentColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.onSizeChanged {
@@ -253,13 +253,13 @@ private fun MediaAlbumChip(
                             .height(100.dp)
                             .width(textWidth)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(KedgeColors.surfaceContainer.copy(0.6f)),
+                            .background(MaterialTheme.colorScheme.surfaceContainer.copy(0.6f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = album.count.toString(),
-                            style = KedgeTextStyles.title().copy(
-                                color = KedgeColors.onSurface,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                             ),
                         )

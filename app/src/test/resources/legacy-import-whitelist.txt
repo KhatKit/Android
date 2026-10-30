@@ -1,16 +1,6 @@
 # P1 源码护栏白名单（禁止新增 Kedge / Miuix / Khromia import）
 # 口径：仓库内每个模块的 <module>/src/main 下的 *.kt（不含 androidTest/build/.git）
 # 每行 <lib>\t<仓库相对路径>；U1 系列逐批删除，P7 清空。
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/ManageExternalStorageWarning.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaAlbumRow.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaBadges.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaCheckBox.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaFilterSheet.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaImagePager.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaPickerGridWithOverlays.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaPickerWidgets.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaStickyHeader.kt
-kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/KhatKitMediaPicker.kt
 khromia	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ai/ChatAttachmentPicker.kt
 khromia	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ai/ChatInput.kt
 khromia	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ai/CompressContextDialog.kt

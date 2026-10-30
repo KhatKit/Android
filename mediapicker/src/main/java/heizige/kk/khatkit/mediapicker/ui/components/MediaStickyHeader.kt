@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun MediaStickyHeader(
@@ -46,7 +45,7 @@ fun MediaStickyHeader(
 
         Text(
             text = date,
-            style = KedgeTextStyles.title(),
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
                 .clip(CircleShape)

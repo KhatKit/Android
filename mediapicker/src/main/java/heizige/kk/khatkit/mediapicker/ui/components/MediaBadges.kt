@@ -5,6 +5,7 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -16,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.mediapicker.domain.Media
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 白字，投影下压在图片上才看得清。 */
 internal val OnMediaOverlay = Color.White
@@ -37,7 +37,7 @@ fun MediaExtensionHeader(
     ) {
         Text(
             text = media.fileExtension.uppercase(),
-            style = KedgeTextStyles.footnote(),
+            style = MaterialTheme.typography.labelMedium,
             color = OnMediaOverlay,
             maxLines = 1,
             overflow = TextOverflow.Clip,
@@ -61,7 +61,7 @@ fun MediaSizeFooter(
     ) {
         Text(
             text = media.humanFileSize,
-            style = KedgeTextStyles.footnote(),
+            style = MaterialTheme.typography.labelMedium,
             color = OnMediaOverlay,
             maxLines = 1,
             overflow = TextOverflow.Clip,

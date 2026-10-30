@@ -8,6 +8,11 @@
 
 package heizige.kk.khatkit.mediapicker.ui
 
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ButtonDefaults
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -48,12 +53,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.kedge.adaptive.KedgePageScaffold
-import heizige.kk.kedge.adaptive.KedgeTopAppBar
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
 
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
@@ -122,10 +121,7 @@ fun KhatKitMediaPicker(
  * （Miuix 主题只桥接了配色，`MaterialTheme.colorScheme` 仍是 MD3 那套）。
  */
 @Composable
-private fun barSurfaceColor(): Color = when (LocalKedgeStyle.current) {
-    KedgeStyle.Miuix -> MaterialTheme.colorScheme.surface
-    KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.surfaceContainer
-}
+private fun barSurfaceColor(): Color = MaterialTheme.colorScheme.surfaceContainer
 
 @Composable
 internal fun MediaPickerRootContent(
@@ -176,7 +172,7 @@ internal fun MediaPickerRootContent(
     // 骨架与顶栏都走 Kedge：MD3Exp 下与原来的 MD3 Scaffold + TopAppBar 等价，
     // Miuix 下换成 Miuix Scaffold + Miuix 顶栏（此前整页是 MD3，AGENTS.md 里
     // 「Miuix 分支待补」指的就是这一块）。
-    KedgePageScaffold(
+    Scaffold(
         modifier = modifier,
         topBar = {
             // 顶栏与相册行共用一块 surfaceContainer（上游是两个嵌套 Scaffold 的
@@ -188,15 +184,18 @@ internal fun MediaPickerRootContent(
                     .background(barSurfaceColor())
                     .drawBottomHairline(if (hasAlbums || isRefreshing) 1.dp else 0.dp),
             ) {
-                KedgeTopAppBar(
-                    // Kedge 顶栏的标题收 String（Miuix 原版 TopAppBar 也只收 String），
-                    // 两边共用同一个字符串，标题的字阶/基线由 Kedge 按风格给。
-                    title = title ?: stringResource(
-                        if (allowMultiple) R.string.media_picker_pick_multiple
-                        else R.string.media_picker_pick_single
-                    ),
+                TopAppBar(
+                    // U4e：material3 TopAppBar 的 title 收 composable 槽。
+                    title = {
+                        Text(
+                            title ?: stringResource(
+                                if (allowMultiple) R.string.media_picker_pick_multiple
+                                else R.string.media_picker_pick_single
+                            )
+                        )
+                    },
                     navigationIcon = {
-                        KedgeIconButton(
+                        IconButton(
                             onClick = onDismiss,
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = Color.Transparent,
@@ -308,7 +307,7 @@ private fun PermissionRationale(
                 .padding(16.dp),
         )
         Spacer(Modifier.height(16.dp))
-        KedgeButton(onClick = onRequestPermission) {
+        Button(onClick = onRequestPermission) {
             Text(stringResource(R.string.media_picker_request))
         }
     }
