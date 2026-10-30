@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.webview
 
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
@@ -101,38 +103,31 @@ fun WebViewPage(url: String, contentId: String) {
                     }
 
                     val urlHandler = LocalUriHandler.current
-                    MochiIconButton(
-                        onClick = { showDropdown = true },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(moreVert, contentDescription = "More options")
-
-                        MochiMenuPopup(
-                            expanded = showDropdown,
-                            onDismissRequest = { showDropdown = false }
-                        ) {
-                            MochiMenuRow(
-                                text = { Text("Open in Browser") },
-                                leadingIcon = { Icon(public, contentDescription = null) },
-                                onClick = {
-                                    showDropdown = false
-                                    state.currentUrl?.let { url ->
-                                        if (url.isNotBlank()) {
-                                            urlHandler.openUri(url)
-                                        }
-                                    }
+                    MochiDropdown(
+                        expanded = showDropdown,
+                        onExpandedChange = { showDropdown = it },
+                        items = kotlinx.collections.immutable.persistentListOf(
+                            MochiItem(
+                                label = "Open in Browser",
+                                icon = { color -> Icon(public, contentDescription = null, tint = color) },
+                            ),
+                            MochiItem(
+                                label = "Console Logs",
+                                icon = { color -> Icon(bugReport, contentDescription = null, tint = color) },
+                            ),
+                        ),
+                        onItemClick = { index ->
+                            showDropdown = false
+                            when (index) {
+                                0 -> state.currentUrl?.let { url ->
+                                    if (url.isNotBlank()) urlHandler.openUri(url)
                                 }
-                            )
-                            MochiMenuRow(
-                                text = { Text("Console Logs") },
-                                leadingIcon = { Icon(bugReport, contentDescription = null) },
-                                onClick = {
-                                    showDropdown = false
-                                    showConsoleSheet = true
-                                }
-                            )
-                        }
-                    }
+                                1 -> showConsoleSheet = true
+                            }
+                        },
+                        onClick = { showDropdown = !showDropdown },
+                        buttonContent = { Icon(moreVert, contentDescription = "More options") },
+                    )
                 }
             )
         },

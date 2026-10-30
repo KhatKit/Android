@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
@@ -474,38 +476,36 @@ internal fun SearchProviderCard(
             SearchAbilityTagLine(options = service)
         },
         trailingContent = {
-            MochiIconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                Icon(
-                    imageVector = moreVert,
-                    contentDescription = null
-                )
-                MochiMenuPopup(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    MochiMenuRow(
-                        text = { Text(stringResource(R.string.edit)) },
-                        onClick = {
-                            showMenu = false
-                            onEdit()
-                        },
-                        leadingIcon = {
-                            Icon(edit, contentDescription = null)
-                        }
+            MochiDropdown(
+                expanded = showMenu,
+                onExpandedChange = { showMenu = it },
+                items = kotlinx.collections.immutable.persistentListOf(
+                    MochiItem(
+                        label = stringResource(R.string.edit),
+                        icon = { color -> Icon(edit, contentDescription = null, tint = color) },
+                    ),
+                    MochiItem(
+                        label = stringResource(R.string.delete),
+                        destructive = true,
+                        enabled = canDelete,
+                        icon = { color -> Icon(delete, contentDescription = null, tint = color) },
+                    ),
+                ),
+                onItemClick = { index ->
+                    showMenu = false
+                    when (index) {
+                        0 -> onEdit()
+                        1 -> onDelete()
+                    }
+                },
+                onClick = { showMenu = !showMenu },
+                buttonContent = {
+                    Icon(
+                        imageVector = moreVert,
+                        contentDescription = null,
                     )
-                    MochiMenuRow(
-                        text = { Text(stringResource(R.string.delete)) },
-                        onClick = {
-                            showMenu = false
-                            onDelete()
-                        },
-                        leadingIcon = {
-                            Icon(delete, contentDescription = null)
-                        },
-                        enabled = canDelete
-                    )
-                }
-            }
+                },
+            )
         },
     )
 }

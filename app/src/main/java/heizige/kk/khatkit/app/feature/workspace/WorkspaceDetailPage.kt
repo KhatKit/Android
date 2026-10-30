@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -882,56 +884,39 @@ private fun WorkspaceFileCard(
                 )
             }
             if (!selecting) Box {
-                MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(moreVert, contentDescription = null)
-                }
-                MochiMenuPopup(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
+                val menuItems = buildList {
                     if (!entry.isDirectory) {
-                        MochiMenuRow(
-                            text = { Text(stringResource(R.string.common_export)) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = uploadFile,
-                                    contentDescription = null,
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onExport()
-                            },
-                        )
-                        MochiMenuRow(
-                            text = { Text(stringResource(R.string.common_share)) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = share,
-                                    contentDescription = null,
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onShare()
-                            },
-                        )
+                        add(MochiItem(
+                            label = stringResource(R.string.common_export),
+                            icon = { color -> Icon(uploadFile, contentDescription = null, tint = color) },
+                        ))
+                        add(MochiItem(
+                            label = stringResource(R.string.common_share),
+                            icon = { color -> Icon(share, contentDescription = null, tint = color) },
+                        ))
                     }
-                    MochiMenuRow(
-                        text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onDelete()
-                        },
-                    )
+                    add(MochiItem(
+                        label = stringResource(R.string.common_delete),
+                        destructive = true,
+                        icon = { color -> Icon(delete, contentDescription = null, tint = color) },
+                    ))
                 }
+                MochiDropdown(
+                    expanded = menuExpanded,
+                    onExpandedChange = { menuExpanded = it },
+                    items = kotlinx.collections.immutable.persistentListOf(*menuItems.toTypedArray()),
+                    onItemClick = { index ->
+                        menuExpanded = false
+                        val deleteIndex = menuItems.lastIndex
+                        when {
+                            index == deleteIndex -> onDelete()
+                            index == 0 -> onExport()
+                            else -> onShare()
+                        }
+                    },
+                    onClick = { menuExpanded = !menuExpanded },
+                    buttonContent = { Icon(moreVert, contentDescription = null) },
+                )
             }
         }
     }

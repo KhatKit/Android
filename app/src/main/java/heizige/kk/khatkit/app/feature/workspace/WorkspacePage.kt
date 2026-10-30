@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -216,36 +218,30 @@ private fun WorkspaceItem(
         },
         trailingContent = {
             Box {
-                MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(moreVert, contentDescription = null)
-                }
-                MochiMenuPopup(
+                MochiDropdown(
                     expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    MochiMenuRow(
-                        text = { Text(stringResource(R.string.common_rename)) },
-                        leadingIcon = { Icon(edit, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onRename()
-                        },
-                    )
-                    MochiMenuRow(
-                        text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        onClick = {
-                            menuExpanded = false
-                            onDelete()
-                        },
-                    )
-                }
+                    onExpandedChange = { menuExpanded = it },
+                    items = kotlinx.collections.immutable.persistentListOf(
+                        MochiItem(
+                            label = stringResource(R.string.common_rename),
+                            icon = { color -> Icon(edit, contentDescription = null, tint = color) },
+                        ),
+                        MochiItem(
+                            label = stringResource(R.string.common_delete),
+                            destructive = true,
+                            icon = { color -> Icon(delete, contentDescription = null, tint = color) },
+                        ),
+                    ),
+                    onItemClick = { index ->
+                        menuExpanded = false
+                        when (index) {
+                            0 -> onRename()
+                            1 -> onDelete()
+                        }
+                    },
+                    onClick = { menuExpanded = !menuExpanded },
+                    buttonContent = { Icon(moreVert, contentDescription = null) },
+                )
             }
         },
     )
