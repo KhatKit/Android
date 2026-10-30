@@ -586,7 +586,7 @@ private fun PermissionActionItem(
             " · " + stringResource(item.actionLabelRes)
     }
     val subtitle = stringResource(item.descRes) + " · " + statusLabel
-        KkAnimatedRadioItem(
+    KkAnimatedRadioItem(
         text = stringResource(item.titleRes),
         subtitle = subtitle,
         isSelected = item.granted,
@@ -607,7 +607,7 @@ private fun PermissionRadioItem(
 ) {
     val colors = MaterialTheme.colorScheme
     val alpha = if (enabled) 1f else 0.6f
-        KkAnimatedRadioItem(
+    KkAnimatedRadioItem(
         text = title,
         subtitle = subtitle,
         isSelected = selected,

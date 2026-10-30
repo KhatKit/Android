@@ -81,7 +81,7 @@ fun KedgePageLargeTopBar(
     titleAlpha: Float = 1f,
 ) {
     val alpha = titleAlpha.coerceIn(0f, 1f)
-        LargeFlexibleTopAppBar(
+    LargeFlexibleTopAppBar(
         // 用 graphicsLayer 而不是 colors，才能压住 LargeFlexibleTopAppBar
         // 内部自绘的大标题 + 收起后的小标题（两者同一 slot）。
         title = titleContent ?: {

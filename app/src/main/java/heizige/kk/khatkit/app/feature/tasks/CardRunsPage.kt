@@ -55,6 +55,10 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
     val runs by vm.runs.collectAsStateWithLifecycle()
     val artifacts by vm.artifacts.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    // 文案在组合期解析（LocalContext.getString 不是配置感知的，lint 会报）。
+    val artifactOpenFailed = stringResource(R.string.card_runs_artifact_open_failed)
+    val rerunStarted = stringResource(R.string.card_runs_rerun_started)
+    val rerunFailed = stringResource(R.string.card_runs_rerun_failed)
     val scope = rememberCoroutineScope()
     var pendingRerun by remember { mutableStateOf<CardRunEntity?>(null) }
     var pendingText by remember { mutableStateOf<CardArtifactEntity?>(null) }
@@ -82,14 +86,14 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
                             } else {
                                 scope.launch {
                                     runCatching { openArtifact(context, artifact) }
-                                        .onFailure { Toast.show(context.getString(R.string.card_runs_artifact_open_failed), true) }
+                                        .onFailure { Toast.show(artifactOpenFailed, true) }
                                 }
                             }
                         },
                         onShareArtifact = { artifact ->
                             scope.launch {
                                 runCatching { shareArtifact(context, artifact) }
-                                    .onFailure { Toast.show(context.getString(R.string.card_runs_artifact_open_failed), true) }
+                                    .onFailure { Toast.show(artifactOpenFailed, true) }
                             }
                         },
                         onRerun = { pendingRerun = run },
@@ -108,11 +112,7 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
                     pendingRerun = null
                     vm.rerun(run) { result ->
                         Toast.show(
-                            result.message.ifBlank {
-                                context.getString(
-                                    if (result.ok) R.string.card_runs_rerun_started else R.string.card_runs_rerun_failed,
-                                )
-                            },
+                            result.message.ifBlank { if (result.ok) rerunStarted else rerunFailed },
                             !result.ok,
                         )
                     }

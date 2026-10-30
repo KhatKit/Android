@@ -103,6 +103,7 @@ fun UIAvatar(
 ) {
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val context = LocalContext.current
+    val cameraDeniedMsg = stringResource(R.string.avatar_camera_permission_denied)
     // 编辑头像的入口开关：内容与转场都在 AvatarEditSheet 里，这里只控制挂载。
     var showEditSheet by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
@@ -202,7 +203,7 @@ fun UIAvatar(
         if (granted) {
             launchCameraCapture()
         } else {
-            Toast.makeText(context, context.getString(R.string.avatar_camera_permission_denied), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, cameraDeniedMsg, Toast.LENGTH_SHORT).show()
         }
     }
 

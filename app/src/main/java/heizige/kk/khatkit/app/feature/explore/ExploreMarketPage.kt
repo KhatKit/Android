@@ -2272,7 +2272,10 @@ private fun MarketContentSwap(
         targetState = key,
         modifier = modifier,
         label = "explore_market_content_swap",
-    ) { content() }
+    ) { target ->
+        // 用 target 作为 key：状态切换时重建内容子树，同时满足 lint 对未用参数的检查。
+        androidx.compose.runtime.key(target) { content() }
+    }
 }
 
 /**
