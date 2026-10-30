@@ -1,41 +1,25 @@
 package heizige.kk.khatkit.app.core.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import kotlinx.serialization.Serializable
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberUserSettingsState
-import heizige.kk.khatkit.app.core.util.getActivity
 import heizige.kk.khromia.components.LocalOptionSwitchExpressiveEnabled
 import heizige.kk.khromia.components.LocalOptionSwitchScale
 
 private val ExtendLightColors = lightExtendColors()
 private val ExtendDarkColors = darkExtendColors()
-val LocalExtendColors = compositionLocalOf { ExtendLightColors }
 
 val LocalDarkMode = compositionLocalOf { false }
-
-private val AMOLED_DARK_BACKGROUND = Color(0xFF000000)
 
 @Serializable
 enum class ColorMode {
@@ -44,6 +28,16 @@ enum class ColorMode {
     DARK
 }
 
+/**
+ * 组合根主题（P2 起 theme 目录只讲 mochi 词汇）。
+ *
+ * 顺序：数据（调色板/字阶）→ [MochiTheme]（颜色/字阶/形状/系统栏图标对比度来源）→
+ * 本仓自有 CompositionLocal（暗色标记、扩展色、卡片圆角、回弹、khromia 开关）→
+ * material3 兼容层（见 `themecompat/CompatMaterial3.kt`，P6/P7 删除）。
+ *
+ * 系统栏图标对比度（原 `WindowCompat` 的 InsetsController 那段）已交给
+ * [MochiTheme] 的 `systemBarAppearance`，本文件不再碰 Window/InsetsController。
+ */
 @Composable
 fun KhatKitTheme(
     colorMode: ColorMode = rememberCurrentColorMode(),
@@ -58,50 +52,7 @@ fun KhatKitTheme(
     }
     val amoledDarkMode by rememberAmoledDarkMode()
 
-    val colorScheme = when {
-        settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        else -> {
-            val theme = findThemeById(settings.themeId, settings.customThemes)
-                ?: findPresetTheme(settings.themeId)
-            theme.getColorScheme(dark = darkTheme)
-        }
-    }
-    val colorSchemeConverted = remember(darkTheme, amoledDarkMode, colorScheme) {
-        if (darkTheme && amoledDarkMode) {
-            colorScheme.copy(
-                background = AMOLED_DARK_BACKGROUND,
-                surface = AMOLED_DARK_BACKGROUND,
-            )
-        } else {
-            colorScheme
-        }
-    }
     val extendColors = if (darkTheme) ExtendDarkColors else ExtendLightColors
-
-    // 更新状态栏图标颜色
-    val view = LocalView.current
-    val activity = view.context.getActivity()
-    // 浮窗可能使用 Application Context，没有可更新系统栏的 Activity。
-    if (!view.isInEditMode && activity != null) {
-        DisposableEffect(view, activity, darkTheme) {
-            val window = activity.window
-            val controller = WindowCompat.getInsetsController(window, view)
-            val previousLightStatusBars = controller.isAppearanceLightStatusBars
-            val previousLightNavigationBars = controller.isAppearanceLightNavigationBars
-            controller.apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
-            }
-            onDispose {
-                // 嵌套主题（如终端的深色主题）退出时恢复原有系统栏图标颜色。
-                controller.isAppearanceLightStatusBars = previousLightStatusBars
-                controller.isAppearanceLightNavigationBars = previousLightNavigationBars
-            }
-        }
-    }
 
     val isMiuix = heizige.kk.kedge.theme.LocalKedgeStyle.current == heizige.kk.kedge.theme.KedgeStyle.Miuix
     val listCardStyle = remember(
@@ -144,38 +95,20 @@ fun KhatKitTheme(
     //  ⇒ 所以「把当前值原样转发下去」就等于本层不 provide，取的正是平台默认工厂。
     val overscrollFactory = LocalOverscrollFactory.current
 
-    // 内容色必须显式给，不能吃 Compose 的默认值。
-    //
-    // `MaterialTheme` / `MaterialExpressiveTheme` 只 provide colorScheme / typography /
-    // shapes，**不 provide `LocalContentColor`**；它的默认值是纯黑（`Color.Black`）。
-    // 只有 `Surface` / `Scaffold` / `Card` 这类容器会在自己内部 provide 一次。
-    // 于是「没有包在 Surface 里、又没写 `color =` 的 `Text`」在深色模式下就是黑字配
-    // 深底 —— 实测卡片弹窗标题（`ExploreMarketPage` 的 `PopupHead`）1.0:1，肉眼
-    // 只能看到一点点笔画。浅色模式下黑字配浅底是对的，所以这个缺陷只在深色出现。
-    //
-    // 与 Kedge 的 Miuix 分支同口径：`MiuixMaterialThemeBridge`
-    //（Kedge/…/theme/MiuixMaterialBridge.kt）也是把 `LocalContentColor` 桥成
-    // `onBackground`；这里补的是 MD3 分支漏掉的那一半。内层 `Surface`/`Card`
-    // 仍会用 `contentColorFor()` 覆盖本值，不受影响。
-    CompositionLocalProvider(
-        LocalContentColor provides colorSchemeConverted.onBackground,
-        LocalDarkMode provides darkTheme,
-        LocalExtendColors provides extendColors,
-        LocalOverscrollFactory provides if (isMiuix) null else overscrollFactory,
-        LocalListCardStyle provides listCardStyle,
-        LocalOptionSwitchScale provides 1f,
-        LocalOptionSwitchExpressiveEnabled provides false,
-    ) {
-        MaterialExpressiveTheme(
-            colorScheme = colorSchemeConverted,
-            typography = Typography,
-            content = content,
-            motionScheme = MotionScheme.expressive()
-        )
+    // 2026-10-30 口径：全面切 Mochi，不搬旧色板/字阶 ⇒ 只用 Mochi 默认
+    // colorScheme / textStyles / shapes，由 MochiTheme 独家管理系统栏图标对比度。
+    MochiTheme(systemBarAppearance = !darkTheme) {
+        CompositionLocalProvider(
+            LocalDarkMode provides darkTheme,
+            LocalExtendColors provides extendColors,
+            LocalOverscrollFactory provides if (isMiuix) null else overscrollFactory,
+            LocalListCardStyle provides listCardStyle,
+            LocalOptionSwitchScale provides 1f,
+            LocalOptionSwitchExpressiveEnabled provides false,
+        ) {
+            ProvideMaterial3Theme(dark = darkTheme, amoled = amoledDarkMode) {
+                content()
+            }
+        }
     }
 }
-
-val MaterialTheme.extendColors
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalExtendColors.current
