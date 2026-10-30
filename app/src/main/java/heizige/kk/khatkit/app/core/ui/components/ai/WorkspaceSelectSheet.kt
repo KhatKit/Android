@@ -12,9 +12,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,7 +86,7 @@ internal fun WorkspaceSelectSheet(
             MochiHorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // 管理工作区
-            KedgeListItem(
+            MochiListItem(
                 leadingContent = {
                     Icon(deployedCode, contentDescription = null)
                 },
@@ -116,7 +116,7 @@ private fun WorkspaceSelectRow(
     onClick: () -> Unit,
     status: String? = null,
 ) {
-    KedgeListItem(
+    MochiListItem(
         leadingContent = {
             Icon(deployedCode, contentDescription = null)
         },

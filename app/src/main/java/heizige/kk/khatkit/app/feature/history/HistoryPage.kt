@@ -50,9 +50,9 @@ import heizige.kk.khatkit.app.core.ui.icons.keepOff
 import heizige.kk.khatkit.app.core.ui.icons.pushPin
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.overlays.rememberKedgeSnackbarHostState
-import heizige.kk.kedge.overlays.KedgeSnackbarHost
-import heizige.kk.kedge.overlays.KedgeSnackbarResult
+import heizige.kk.khatkit.uikit.mochi.rememberMochiSnackbarHostState
+import heizige.kk.khatkit.uikit.mochi.MochiSnackbarHost
+import heizige.kk.khatkit.uikit.mochi.MochiSnackbarResult
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissState
@@ -64,13 +64,13 @@ import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 
 @Composable
 fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = rememberKedgeSnackbarHostState()
+    val snackbarHostState = rememberMochiSnackbarHostState()
     var showDeleteAllDialog by remember { mutableStateOf(false) }
 
     val conversations by vm.conversations.collectAsStateWithLifecycle()
@@ -116,7 +116,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
                                 actionLabel = snackMessageUndo,
                                 withDismissAction = true,
                             )
-                            if (result == KedgeSnackbarResult.ActionPerformed) {
+                            if (result == MochiSnackbarResult.ActionPerformed) {
                                 vm.restoreConversation(fullConversation)
                             }
                         }
@@ -130,7 +130,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
         }
     }
 
-        KedgeSnackbarHost(state = snackbarHostState)
+        MochiSnackbarHost(state = snackbarHostState)
     }
 
     if (showDeleteAllDialog) {
@@ -227,7 +227,7 @@ private fun ConversationItem(
         shape = RoundedCornerShape(25),
         modifier = modifier
     ) {
-        KedgeListItem(
+        MochiListItem(
             headlineContent = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

@@ -14,8 +14,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
@@ -33,7 +33,7 @@ import heizige.kk.khatkit.app.core.ui.components.webview.WEB_VIEW_BASE_URL
 import heizige.kk.khatkit.app.core.ui.components.webview.WebView
 import heizige.kk.khatkit.app.core.ui.components.webview.WebViewContentCache
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.bugReport
@@ -108,11 +108,11 @@ fun WebViewPage(url: String, contentId: String) {
                     ) {
                         Icon(moreVert, contentDescription = "More options")
 
-                        KedgeDropdownMenuSlots(
+                        MochiDropdownMenuSlots(
                             expanded = showDropdown,
                             onDismissRequest = { showDropdown = false }
                         ) {
-                            KedgeDropdownItemSlot(
+                            MochiDropdownItemSlot(
                                 text = { Text("Open in Browser") },
                                 leadingIcon = { Icon(public, contentDescription = null) },
                                 onClick = {
@@ -124,7 +124,7 @@ fun WebViewPage(url: String, contentId: String) {
                                     }
                                 }
                             )
-                            KedgeDropdownItemSlot(
+                            MochiDropdownItemSlot(
                                 text = { Text("Console Logs") },
                                 leadingIcon = { Icon(bugReport, contentDescription = null) },
                                 onClick = {

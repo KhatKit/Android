@@ -44,7 +44,7 @@ import heizige.kk.khatkit.app.core.data.datastore.RECOMMENDED_PROVIDERS
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.decodeProviderSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixPageMetrics
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
@@ -89,7 +89,7 @@ import top.yukonga.miuix.kmp.basic.Text
  *
  * - `MochiSearchBar`（自带 MD3/Miuix 分流）、`MochiOptionItem`、`MochiIconButton`、`MochiButton`、
  *   `MochiTextButton`、`AppAlertDialog`（Miuix 下走 `KedgeAlertDialogSlots`）、
- *   `PrimaryBottomSheet`（Miuix 下走 `KedgePrimaryBottomSheet`）；
+ *   `PrimaryBottomSheet`（Miuix 下走 `MochiPrimaryBottomSheet`）；
  * - `ProviderConfigure`（表单本身已双风格化：`KedgeSingleChoiceSegmentedRow` +
  *   `MochiOutlinedTextField` + `MochiSwitchFormRow`），新增/编辑提供商**不重写表单**；
  * - `AutoAIIcon`、`Screen.SettingProviderDetail`、`Toast`、`ImageHelper.decodeQRCodeFromUri`、
@@ -566,7 +566,7 @@ private fun AddProviderButtonMiuix(
         // 表单仍是 ProviderConfigure，不重写。
         //
         // scrollable = false + 内容自带 verticalScroll：表单 7 行会顶破弹层高度，而
-        // KedgePrimaryBottomSheet 的 Miuix 分支没有滚动容器（内容超长只能被裁），
+        // MochiPrimaryBottomSheet 的 Miuix 分支没有滚动容器（内容超长只能被裁），
         // 所以这里内容自己滚；MD3 分支据该参数不叠第二层滚动
         // （见 BottomSheetScrollSourceGuardTest）。
         PrimaryBottomSheet(

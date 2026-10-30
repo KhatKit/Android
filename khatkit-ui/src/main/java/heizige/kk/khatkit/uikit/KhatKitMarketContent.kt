@@ -65,7 +65,7 @@ import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.kedge.overlays.KedgeDialog
+import heizige.kk.khatkit.uikit.mochi.MochiDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import kotlinx.coroutines.launch
@@ -696,7 +696,7 @@ private fun CardDetailDialog(
     val scope = rememberCoroutineScope()
     val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
 
-    KedgeDialog(
+    MochiDialog(
         show = true,
         onDismissRequest = onDismiss,
         title = entry.name
@@ -904,7 +904,7 @@ private fun PublishCardDialog(
     val invalidPrice = stringResource(R.string.khatkit_market_publish_invalid_price)
     val failedFallback = stringResource(R.string.khatkit_market_publish_failed)
 
-    KedgeDialog(
+    MochiDialog(
         show = true,
         onDismissRequest = { if (!submitting) onDismiss() },
         title = stringResource(R.string.khatkit_market_publish_title, cardName),
@@ -1003,7 +1003,7 @@ private fun ForkCardDialog(
     val needChangelog = stringResource(R.string.khatkit_market_fork_need_changelog)
     val failedFallback = stringResource(R.string.khatkit_market_fork_failed)
 
-    KedgeDialog(
+    MochiDialog(
         show = true,
         onDismissRequest = { if (!submitting) onDismiss() },
         title = stringResource(R.string.khatkit_market_fork_title, cardName),

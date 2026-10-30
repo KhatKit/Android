@@ -44,7 +44,7 @@ import heizige.kk.kedge.overlays.KedgeEditDialog
 import heizige.kk.khromia.components.EditFieldConfig
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.BottomAppBar
@@ -134,10 +134,10 @@ import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiTextField
-import heizige.kk.kedge.components.KedgeTextTooltipBox
+import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.statusBars
@@ -463,7 +463,7 @@ fun ChatDrawerContent(
                         },
                     )
 
-                    KedgeTextTooltipBox(stringResource(R.string.chat_drawer_plan)) {
+                    MochiTextTooltipBox(stringResource(R.string.chat_drawer_plan)) {
                         MochiButton(
                             onClick = {
                                 navController.navigate(Screen.SettingPackage)
@@ -703,7 +703,7 @@ private fun DrawerAction(
     label: String,
     onClick: () -> Unit,
 ) {
-    KedgeTextTooltipBox(label) {
+    MochiTextTooltipBox(label) {
         MochiIconButton(
             onClick = onClick,
             modifier = modifier,

@@ -70,7 +70,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.GlassPopup
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import heizige.kk.khatkit.app.core.ui.components.ui.popupBackdropBlur
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.kedge.overlays.KedgeModalBottomSheet
+import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -204,7 +204,7 @@ import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.overlays.KedgePullToRefreshBox
+import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 import kotlin.math.abs
 
 private enum class ExploreFilter {
@@ -1317,7 +1317,7 @@ fun ExploreMarketPage() {
         Box(modifier = Modifier.fillMaxSize()) {
             // 搜索结果就在这同一个列表里（marketList 本来就按 query 过滤各分区），
             // 不像以前那样把正文抽掉、搬进搜索框的全屏槽。
-            KedgePullToRefreshBox(
+            MochiPullToRefreshBox(
                 isRefreshing = loading,
                 onRefresh = { vm.refresh(query) },
                 modifier = Modifier.fillMaxSize(),

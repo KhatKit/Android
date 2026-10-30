@@ -46,9 +46,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.overlays.rememberKedgeSnackbarHostState
-import heizige.kk.kedge.overlays.KedgeSnackbarHost
-import heizige.kk.kedge.overlays.KedgeSnackbarResult
+import heizige.kk.khatkit.uikit.mochi.rememberMochiSnackbarHostState
+import heizige.kk.khatkit.uikit.mochi.MochiSnackbarHost
+import heizige.kk.khatkit.uikit.mochi.MochiSnackbarResult
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
@@ -62,7 +62,7 @@ fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = rememberKedgeSnackbarHostState()
+    val snackbarHostState = rememberMochiSnackbarHostState()
     val favorites = vm.nodeFavorites.collectAsStateWithLifecycle().value
     val favoriteRemovedText = stringResource(R.string.favorite_page_removed)
     val undoText = stringResource(R.string.history_page_undo)
@@ -105,7 +105,7 @@ fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
                                 actionLabel = undoText,
                                 withDismissAction = true,
                             )
-                            if (result == KedgeSnackbarResult.ActionPerformed) {
+                            if (result == MochiSnackbarResult.ActionPerformed) {
                                 vm.restoreFavorite(entity)
                             }
                         }
@@ -119,7 +119,7 @@ fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
         }
     }
 
-        KedgeSnackbarHost(state = snackbarHostState)
+        MochiSnackbarHost(state = snackbarHostState)
     }
 }
 

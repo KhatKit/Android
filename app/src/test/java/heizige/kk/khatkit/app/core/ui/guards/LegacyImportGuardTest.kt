@@ -88,15 +88,15 @@ class LegacyImportGuardTest {
     fun whitelistMatchesMeasuredInventory() {
         val whitelist = loadWhitelist()
         val byLib = whitelist.values.flatten().groupingBy { it }.eachCount()
-        assertEquals("kedge 白名单条数", 181, byLib["kedge"] ?: 0)
+        assertEquals("kedge 白名单条数", 177, byLib["kedge"] ?: 0)
         assertEquals("miuix 白名单条数", 36, byLib["miuix"] ?: 0)
-        assertEquals("khromia 白名单条数", 79, byLib["khromia"] ?: 0)
-        assertEquals("白名单条目总数（同文件可命中多个库）", 296, whitelist.values.sumOf { it.size })
+        assertEquals("khromia 白名单条数", 78, byLib["khromia"] ?: 0)
+        assertEquals("白名单条目总数（同文件可命中多个库）", 291, whitelist.values.sumOf { it.size })
 
         val kedgeRoots = whitelist.count { (path, libs) ->
             "kedge" in libs && (path.startsWith("app/src/main/") || path.startsWith("khatkit-ui/src/main/"))
         }
-        assertEquals("kedge 在 app+khatkit-ui 内的条数（§10 口径）", 171, kedgeRoots)
+        assertEquals("kedge 在 app+khatkit-ui 内的条数（§10 口径）", 167, kedgeRoots)
         assertTrue(
             "白名单只应收 src/main 路径",
             whitelist.keys.all { "/src/main/" in it },

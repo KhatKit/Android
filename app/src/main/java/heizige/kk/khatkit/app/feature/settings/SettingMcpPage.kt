@@ -82,7 +82,7 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpTool
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khromia.components.OptionSwitch
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.hooks.EditState
@@ -106,7 +106,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.feature.settings.mcp.McpServerConfigModal
 import heizige.kk.khatkit.app.feature.settings.mcp.McpImportModal
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.overlays.KedgePullToRefreshBox
+import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 
 @Composable
 fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
@@ -165,7 +165,7 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
         val state = rememberPullToRefreshState()
         val loading = status.values.any { it == McpStatus.Connecting || it is McpStatus.Reconnecting }
         val layoutDirection = LocalLayoutDirection.current
-        KedgePullToRefreshBox(
+        MochiPullToRefreshBox(
             isRefreshing = loading,
             onRefresh = {
                 scope.launch {

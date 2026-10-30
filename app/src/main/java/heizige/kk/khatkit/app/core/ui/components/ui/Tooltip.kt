@@ -3,7 +3,7 @@ package heizige.kk.khatkit.app.core.ui.components.ui
 import androidx.compose.material3.TooltipBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import heizige.kk.kedge.components.KedgeTextTooltipBox
+import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
 
 /**
  * 悬浮提示，按风格分流：Miuix 下走 Miuix 的 TooltipBox，MD3Exp 走原生。
@@ -19,7 +19,7 @@ fun Tooltip(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    KedgeTextTooltipBox(
+    MochiTextTooltipBox(
         text = text,
         modifier = modifier,
         content = content,

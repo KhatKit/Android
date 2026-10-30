@@ -26,11 +26,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import heizige.kk.khromia.components.AnimatedRadioButton
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
@@ -463,11 +463,11 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
         ) {
             Icon(add, stringResource(R.string.setting_asr_page_add_provider))
         }
-        KedgeDropdownMenuSlots(
+        MochiDropdownMenuSlots(
             expanded = showTypeMenu,
             onDismissRequest = { showTypeMenu = false }
         ) {
-            KedgeDropdownItemSlot(
+            MochiDropdownItemSlot(
                 text = { Text("OpenAI Realtime") },
                 onClick = {
                     currentProvider = ASRProviderSetting.OpenAIRealtime()
@@ -475,7 +475,7 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            KedgeDropdownItemSlot(
+            MochiDropdownItemSlot(
                 text = { Text("DashScope") },
                 onClick = {
                     currentProvider = ASRProviderSetting.DashScope()
@@ -483,7 +483,7 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            KedgeDropdownItemSlot(
+            MochiDropdownItemSlot(
                 text = { Text("Volcengine") },
                 onClick = {
                     currentProvider = ASRProviderSetting.Volcengine()
@@ -491,7 +491,7 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            KedgeDropdownItemSlot(
+            MochiDropdownItemSlot(
                 text = { Text("MiMo") },
                 onClick = {
                     currentProvider = ASRProviderSetting.MiMo()
@@ -499,7 +499,7 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            KedgeDropdownItemSlot(
+            MochiDropdownItemSlot(
                 text = { Text("Step") },
                 onClick = {
                     currentProvider = ASRProviderSetting.Step()
@@ -507,7 +507,7 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                     showBottomSheet = true
                 }
             )
-            KedgeDropdownItemSlot(
+            MochiDropdownItemSlot(
                 text = { Text("本地识别 (sherpa-onnx)") },
                 onClick = {
                     currentProvider = ASRProviderSetting.SherpaLocal()
@@ -673,11 +673,11 @@ private fun TTSProviderItem(
                         imageVector = build,
                         contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
                     )
-                    KedgeDropdownMenuSlots(
+                    MochiDropdownMenuSlots(
                         expanded = showDropdownMenu,
                         onDismissRequest = { showDropdownMenu = false }
                     ) {
-                        KedgeDropdownItemSlot(
+                        MochiDropdownItemSlot(
                             text = { Text(stringResource(R.string.edit)) },
                             onClick = {
                                 showDropdownMenu = false
@@ -687,7 +687,7 @@ private fun TTSProviderItem(
                                 Icon(edit, contentDescription = null)
                             }
                         )
-                        KedgeDropdownItemSlot(
+                        MochiDropdownItemSlot(
                             text = { Text(stringResource(R.string.delete)) },
                             onClick = {
                                 showDropdownMenu = false
@@ -797,11 +797,11 @@ private fun ASRProviderItem(
                         imageVector = build,
                         contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
                     )
-                    KedgeDropdownMenuSlots(
+                    MochiDropdownMenuSlots(
                         expanded = showDropdownMenu,
                         onDismissRequest = { showDropdownMenu = false }
                     ) {
-                        KedgeDropdownItemSlot(
+                        MochiDropdownItemSlot(
                             text = { Text(stringResource(R.string.edit)) },
                             onClick = {
                                 showDropdownMenu = false
@@ -811,7 +811,7 @@ private fun ASRProviderItem(
                                 Icon(edit, contentDescription = null)
                             }
                         )
-                        KedgeDropdownItemSlot(
+                        MochiDropdownItemSlot(
                             text = { Text(stringResource(R.string.delete)) },
                             onClick = {
                                 showDropdownMenu = false

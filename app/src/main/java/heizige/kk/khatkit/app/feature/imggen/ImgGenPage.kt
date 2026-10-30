@@ -79,7 +79,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.ui.ImageGenSize
@@ -120,7 +120,7 @@ import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.overlays.KedgePullToRefreshBox
+import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 
 @Composable
 fun ImageGenPage(
@@ -621,7 +621,7 @@ private fun ImageGalleryScreen(
             }
         }
 
-        KedgePullToRefreshBox(
+        MochiPullToRefreshBox(
             isRefreshing = false,
             onRefresh = { generatedImages.refresh() },
         ) {

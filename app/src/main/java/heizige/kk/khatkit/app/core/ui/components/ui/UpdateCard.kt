@@ -12,10 +12,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
@@ -149,7 +149,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             downloadHandler(info)
                         },
                     ) {
-                        KedgeListItem(
+                        MochiListItem(
                             headlineContent = {
                                 Text(
                                     text = "KhatKit-${info.latestVersion}.apk",

@@ -15,7 +15,7 @@ import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
 import heizige.kk.khatkit.app.core.ui.icons.groups
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -165,7 +165,7 @@ internal fun groupExportSuccessMessage(selection: GroupExportSelection): String 
 
 /**
  * 「导出 Tavern 群聊」卡片。形状照 `ConversationExport.kt` 里「存为卡片」那张卡
- * （`MochiCard(onClick = …) { KedgeListItem(headline / supporting / leading) }`）。
+ * （`MochiCard(onClick = …) { MochiListItem(headline / supporting / leading) }`）。
  *
  * @param onFinished 导出流程走完（成功或失败）后回调，用来关掉底部面板——与另外几张卡
  *   在 `onClick` 里 `dismiss()` 的做法一致。
@@ -231,7 +231,7 @@ internal fun GroupTavernExportCard(
         },
         modifier = modifier,
     ) {
-        KedgeListItem(
+        MochiListItem(
             headlineContent = { Text("导出 Tavern 群聊") },
             supportingContent = {
                 Text("把选中的群聊导出成酒馆群聊文件（.jsonl），可在 SillyTavern 打开并回导")

@@ -36,8 +36,8 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
@@ -886,12 +886,12 @@ private fun WorkspaceFileCard(
                 MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
-                KedgeDropdownMenuSlots(
+                MochiDropdownMenuSlots(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     if (!entry.isDirectory) {
-                        KedgeDropdownItemSlot(
+                        MochiDropdownItemSlot(
                             text = { Text(stringResource(R.string.common_export)) },
                             leadingIcon = {
                                 Icon(
@@ -904,7 +904,7 @@ private fun WorkspaceFileCard(
                                 onExport()
                             },
                         )
-                        KedgeDropdownItemSlot(
+                        MochiDropdownItemSlot(
                             text = { Text(stringResource(R.string.common_share)) },
                             leadingIcon = {
                                 Icon(
@@ -918,7 +918,7 @@ private fun WorkspaceFileCard(
                             },
                         )
                     }
-                    KedgeDropdownItemSlot(
+                    MochiDropdownItemSlot(
                         text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(

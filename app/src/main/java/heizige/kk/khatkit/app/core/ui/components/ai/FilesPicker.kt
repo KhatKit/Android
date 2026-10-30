@@ -25,10 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
@@ -192,7 +192,7 @@ internal fun FilesPicker(
             assistant.quickMessageIds.size +
                 modeAndLorebookCount +
                 assistant.enabledSkills.size
-        KedgeListItem(
+        MochiListItem(
             leadingContent = {
                 Icon(
                     imageVector = inventory2,
@@ -222,7 +222,7 @@ internal fun FilesPicker(
         )
 
         // Compress History Button
-        KedgeListItem(
+        MochiListItem(
             leadingContent = {
                 Icon(
                     imageVector = package2,
@@ -328,7 +328,7 @@ private fun WorkspacePickerListItem(
         workspaces.find { it.id == assistant.workspaceId?.toString() }
     }
 
-    KedgeListItem(
+    MochiListItem(
         leadingContent = {
             Icon(
                 imageVector = deployedCode,

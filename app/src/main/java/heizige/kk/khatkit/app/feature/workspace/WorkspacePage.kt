@@ -21,8 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
@@ -220,11 +220,11 @@ private fun WorkspaceItem(
                 MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
-                KedgeDropdownMenuSlots(
+                MochiDropdownMenuSlots(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
-                    KedgeDropdownItemSlot(
+                    MochiDropdownItemSlot(
                         text = { Text(stringResource(R.string.common_rename)) },
                         leadingIcon = { Icon(edit, contentDescription = null) },
                         onClick = {
@@ -232,7 +232,7 @@ private fun WorkspaceItem(
                             onRename()
                         },
                     )
-                    KedgeDropdownItemSlot(
+                    MochiDropdownItemSlot(
                         text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(

@@ -28,13 +28,13 @@ import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
@@ -658,7 +658,7 @@ private fun AssistantActionSheet(
             MochiHorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // 克隆选项
-            KedgeListItem(
+            MochiListItem(
                 headlineContent = { Text(stringResource(R.string.assistant_page_clone)) },
                 leadingContent = {
                     Icon(
@@ -676,7 +676,7 @@ private fun AssistantActionSheet(
 
             // 删除选项（仅非默认助手显示）
             if (assistant.id !in DEFAULT_ASSISTANTS_IDS) {
-                KedgeListItem(
+                MochiListItem(
                     headlineContent = {
                         Text(
                             stringResource(R.string.assistant_page_delete),

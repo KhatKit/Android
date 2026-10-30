@@ -85,7 +85,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
@@ -146,7 +146,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khromia.layout.FullscreenPopup
 import heizige.kk.khatkit.ai.provider.ModelAbility
@@ -1320,7 +1320,7 @@ private fun QuickMessageButton(
         },
              shapes = IconButtonDefaults.shapes(),) {
         Icon(bolt, null)
-        KedgeDropdownMenuSlots(
+        MochiDropdownMenuSlots(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier

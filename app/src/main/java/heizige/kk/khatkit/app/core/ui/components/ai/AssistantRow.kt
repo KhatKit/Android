@@ -21,7 +21,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
  * 助手选择器（[AssistantPicker]）与抽屉的「移动到助手」都渲染它。
  *
  * 以前同一个「头像 + 名称 + 右侧操作」的一行各写一遍（助手页一份 `MochiOptionItem`、
- * 选择器一份 `KedgeListItem`、抽屉一份 `MochiSurface`），改一处漏两处。现在只有这一份，
+ * 选择器一份 `MochiListItem`、抽屉一份 `MochiSurface`），改一处漏两处。现在只有这一份，
  * 容器一律走 [MochiOptionItem]（它自己按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem`
  * 与 Miuix 的 `MochiCard` 行），风格差异全部由组件库决定，调用点不再各自排布。
  *

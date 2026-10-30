@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.app.R
 import androidx.compose.material3.DropdownMenuItem
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
@@ -36,7 +36,7 @@ data class ItemAction(
 )
 
 /**
- * Miuix 下用 OverlayListPopup 拼菜单行（KedgeDropdownItemSlot 内部已按风格分派），
+ * Miuix 下用 OverlayListPopup 拼菜单行（MochiDropdownItemSlot 内部已按风格分派），
  * MD3Exp 下保持 DropdownMenuItem。破坏性操作的文字与图标统一取 error 色。
  */
 @Composable
@@ -52,14 +52,14 @@ fun ItemActionMenu(
                 contentDescription = stringResource(R.string.more_options),
             )
         }
-        KedgeDropdownMenuSlots(
+        MochiDropdownMenuSlots(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
             actions.forEach { action ->
                 val errorColor = MaterialTheme.colorScheme.error
                 val tint = if (action.destructive) errorColor else MaterialTheme.colorScheme.onSurface
-                KedgeDropdownItemSlot(
+                MochiDropdownItemSlot(
                     text = {
                         Text(
                             text = action.text,

@@ -23,8 +23,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -484,11 +484,11 @@ internal fun SearchProviderCard(
                     imageVector = moreVert,
                     contentDescription = null
                 )
-                KedgeDropdownMenuSlots(
+                MochiDropdownMenuSlots(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
-                    KedgeDropdownItemSlot(
+                    MochiDropdownItemSlot(
                         text = { Text(stringResource(R.string.edit)) },
                         onClick = {
                             showMenu = false
@@ -498,7 +498,7 @@ internal fun SearchProviderCard(
                             Icon(edit, contentDescription = null)
                         }
                     )
-                    KedgeDropdownItemSlot(
+                    MochiDropdownItemSlot(
                         text = { Text(stringResource(R.string.delete)) },
                         onClick = {
                             showMenu = false

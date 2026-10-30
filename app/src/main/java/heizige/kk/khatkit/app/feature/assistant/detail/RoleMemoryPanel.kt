@@ -40,9 +40,9 @@ import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextTooltipBox
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryConflict
@@ -127,10 +127,10 @@ internal fun RoleMemoryPanel(
             }, enabled = !busy) { Icon(arrowBack, "返回") }
         },
         actions = {
-                KedgeTextTooltipBox("新建主题笔记") {
+                MochiTextTooltipBox("新建主题笔记") {
                     MochiIconButton(onClick = { newTopic = "" }, enabled = !busy) { Icon(add, "新建主题笔记") }
                 }
-                KedgeTextTooltipBox("打开记忆文件夹") {
+                MochiTextTooltipBox("打开记忆文件夹") {
                     MochiIconButton(onClick = {
                         val uri = DocumentsContract.buildDocumentUri(context.packageName + ".memory.documents", assistant.id.toString())
                         val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
@@ -197,22 +197,22 @@ internal fun RoleMemoryPanel(
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(keyboardArrowDown, "选择记忆文件", Modifier.size(18.dp))
-                                KedgeTextTooltipBox("重新加载") {
+                                MochiTextTooltipBox("重新加载") {
                                     MochiIconButton(onClick = {
                                         val path = document?.path ?: "MEMORY.md"
                                         if (dirty) pendingOpen = path
                                         else scope.launch { files = vm.roleMemoryFiles(); open(path) }
                                     }, enabled = !busy) { Icon(refresh, "重新加载") }
                                 }
-                                KedgeTextTooltipBox("保存") {
+                                MochiTextTooltipBox("保存") {
                                     MochiIconButton(onClick = { save() }, enabled = !busy && dirty) { Icon(saveIcon, "保存") }
                                 }
                             }
                         },
                     )
-                    KedgeDropdownMenuSlots(expanded = showFiles, onDismissRequest = { showFiles = false }) {
+                    MochiDropdownMenuSlots(expanded = showFiles, onDismissRequest = { showFiles = false }) {
                         files.forEach { path ->
-                            KedgeDropdownItemSlot(
+                            MochiDropdownItemSlot(
                                 text = { Text(path, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 trailingIcon = if (path == document?.path) { { Icon(check, null) } } else null,
                                 onClick = {

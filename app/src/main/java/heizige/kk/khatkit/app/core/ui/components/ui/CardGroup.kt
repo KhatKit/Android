@@ -161,7 +161,7 @@ val LocalInlineCardGroup = compositionLocalOf<InlineCardGroupMarker?> { null }
  * 三件事都在这一层定下来，所以组内放什么都不影响外形：
  *
  * 1. **组底色**（F1）：`clip(indexedShape(0, 1))` + 底色铺在整组底下。组内那些自己不
- *    画底色的子项（Miuix 的 `ArrowPreference`、MD3 的 `KedgeListItem`、
+ *    画底色的子项（Miuix 的 `ArrowPreference`、MD3 的 `MochiListItem`、
  *    `KedgeFormCard` 里混进来的标题 `Text` 与任意控件）靠这层才有卡片底；自带底色的行
  *    （`MochiOptionItem`）盖在它上面。配色来源见 [inlineGroupContainerColor] —— 与改造前
  *    `KedgeFormCard` 那张卡逐值相同，就是 t1 统一行渲染时弄丢的那一层。

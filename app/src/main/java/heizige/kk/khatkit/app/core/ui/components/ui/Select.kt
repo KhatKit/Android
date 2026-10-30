@@ -19,8 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
@@ -93,7 +93,7 @@ fun <T> Select(
 
     val menuItems: @Composable () -> Unit = {
         options.fastForEach { option ->
-            KedgeDropdownItemSlot(
+            MochiDropdownItemSlot(
                 onClick = {
                     onOptionSelected(option)
                     expanded = false
@@ -139,7 +139,7 @@ fun <T> Select(
                         ) { expanded = !expanded }
                         .onGloballyPositioned { anchorWidth = it.size.width }
                 )
-                KedgeDropdownMenuSlots(
+                MochiDropdownMenuSlots(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
                     modifier = Modifier
@@ -209,7 +209,7 @@ fun <T> SelectTextField(
             )
         }
 
-        KedgeDropdownMenuSlots(
+        MochiDropdownMenuSlots(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier
@@ -217,7 +217,7 @@ fun <T> SelectTextField(
                 .heightIn(max = 240.dp)
         ) {
             options.fastForEach { option ->
-                KedgeDropdownItemSlot(
+                MochiDropdownItemSlot(
                     text = { Text(text = optionToString(option), maxLines = 1) },
                     onClick = {
                         expanded = false

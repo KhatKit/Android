@@ -12,7 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -90,7 +90,7 @@ fun ShareHandlerPage(text: String, image: String?) {
                     tonalElevation = 4.dp,
                     shape = MaterialTheme.shapes.medium
                 ) {
-                    KedgeListItem(
+                    MochiListItem(
                         headlineContent = {
                             Text(
                                 text = assistant.name.ifEmpty {

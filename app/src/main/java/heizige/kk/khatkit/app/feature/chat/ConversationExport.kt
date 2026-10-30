@@ -20,11 +20,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeListItem
+import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiCard
@@ -180,7 +180,7 @@ fun ChatExportSheet(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    KedgeListItem(
+                    MochiListItem(
                         headlineContent = {
                             Text(stringResource(id = R.string.chat_page_export_markdown))
                         },
@@ -199,7 +199,7 @@ fun ChatExportSheet(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
-                        KedgeListItem(
+                        MochiListItem(
                             headlineContent = {
                                 Text(stringResource(id = R.string.chat_page_export_image))
                             },
@@ -288,7 +288,7 @@ fun ChatExportSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    KedgeListItem(
+                    MochiListItem(
                         headlineContent = { Text("存为卡片") },
                         supportingContent = { Text("把选中的对话保存成本地卡片，运行后用卡片展示内容") },
                         leadingContent = { Icon(insertDriveFile, contentDescription = null) },

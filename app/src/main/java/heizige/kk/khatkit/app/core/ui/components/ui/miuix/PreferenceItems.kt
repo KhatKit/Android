@@ -49,7 +49,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
  * `miuix/KedgeForm.kt` 的 `KedgeFormRow` 同一条渲染路径）。
  *
  * 以前这里有两条自绘行：Miuix 一支直接渲染 miuix 原生 `SwitchPreference` /
- * `ArrowPreference`（自带 `BasicComponent` 行），MD3 一支渲染 `KedgeListItem` +
+ * `ArrowPreference`（自带 `BasicComponent` 行），MD3 一支渲染 `MochiListItem` +
  * `Modifier.clickable`。两套行各自算一遍内边距/字阶/卡片，改一处漏一处；同一个
  * 「选项行」在 16-17 个 `*Miuix` 设置页里长成两种样子。现在 95 处调用点**零改动**，
  * 只是里面的行换成了统一的那一个。
@@ -232,8 +232,8 @@ fun PreferenceArrow(
  *
  * - Miuix 一支仍是 `SliderPreference`（`PreferenceItems.kt:213`）：Miuix 的滑块带拖动
  *   值气泡、刻度绘制与无障碍 setProgress 语义，自己用 `MochiSlider` 拼一遍会丢这些；
- *   而且它本来就是 Miuix 自带的 `BasicComponent` 行，不是「裸 `KedgeListItem` + clickable」。
- * - MD3 一支原来是裸 `KedgeListItem`（透明无底色、无卡片圆角），现在换成
+ *   而且它本来就是 Miuix 自带的 `BasicComponent` 行，不是「裸 `MochiListItem` + clickable」。
+ * - MD3 一支原来是裸 `MochiListItem`（透明无底色、无卡片圆角），现在换成
  *   `MochiOptionItem(onClick = null)`：纯信息行不可点、无按压回弹，滑块仍是唯一交互元素。
  */
 @Composable
@@ -266,7 +266,7 @@ fun PreferenceSlider(
         )
     } else {
         // MD3Exp：外壳走 MochiOptionItem（纯信息行，onClick = null），滑块用 :kedge 的
-        // MochiSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 KedgeListItem 相同，
+        // MochiSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 MochiListItem 相同，
         // 只多了卡片底色/圆角。
         MochiOptionItem(
             onClick = null,

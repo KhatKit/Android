@@ -1,28 +1,29 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
 import heizige.kk.khatkit.uikit.mochi.MochiSearchSheetHost
-import heizige.kk.kedge.overlays.KedgePrimaryBottomSheet
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.khromia.components.PrimaryBottomSheet as KhromiaPrimaryBottomSheet
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import ui.feice.mochi.basic.Text
 
 /**
- * 项目统一的底部弹层，**按风格分流**，签名对齐 Khromia 的 `PrimaryBottomSheet`。
+ * 项目统一的底部弹层（P4c 起单树：只剩 Mochi 实现）。
  *
- * - Miuix：[KedgePrimaryBottomSheet]（Miuix WindowBottomSheet + MochiButton 按钮行）
- * - MD3Exp：Khromia 原组件，行为与视觉不变
+ * 历史：以前按 LocalKedgeStyle 在「Kedge 的 Miuix sheet」与「Khromia PrimaryBottomSheet」
+ * 之间分流。全面切 Mochi 后两条分支都删掉，改用 [MochiModalBottomSheet]
+ * （androidx Popup + Mochi 表面色，不引 material3 ModalBottomSheet）。
  *
- * 为什么不改 Khromia：Khromia 不依赖 Kedge，而 Kedge 已依赖 Khromia —— 在 Khromia 里
- * 引入 Kedge 会成环。所以分流放在这里，调用点只需把 import 从
- * `heizige.kk.khromia.components.PrimaryBottomSheet` 换成本文件的。
+ * 签名保持不变，57 个调用点零改动；[painter]/[imageVector]/[scrollable] 只为兼容
+ * 旧调用方保留，Mochi 侧不用（图标槽在 P6 按 Mochi 形态重做）。
  *
- * @param dismissable 是否允许点击遮罩/返回手势关闭；[KhromiaPrimaryBottomSheet] 用
- *   `dismissible`，Kedge 版暂不支持，忽略该参数。
- * @param scrollable 内容是否可滚动；Kedge 版靠内容自身滚动，忽略该参数。
+ * 卡片弹层的 pager/nav/load_more 全部在 [content] 里，本包装只负责壳、标题与按钮行，
+ * 因此这些行为逐行未变。
  */
 @Composable
 fun PrimaryBottomSheet(
@@ -39,57 +40,25 @@ fun PrimaryBottomSheet(
     dismissible: Boolean = true,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
 ) {
-    when (LocalKedgeStyle.current) {
-        KedgeStyle.Miuix -> KedgePrimaryBottomSheet(
-            visible = visible,
-            title = title,
-            imageVector = imageVector,
-            confirmText = confirmText,
-            onConfirm = onConfirm,
-            dismissText = dismissText,
-            onDismiss = onDismiss,
-            modifier = modifier,
-        ) {
-            // 包在**传给 sheet 的 content lambda 内部**：CompositionLocal 只向子树传播，
-            // 而两个分支的 sheet 都会把内容重新组合进自己的窗口/子组合里，包在 lambda
-            // 外面覆盖不到那份内容。宿主内部布局中立（Box 尺寸仍由 content 决定），
-            // 所以对不含搜索框的 sheet 没有影响；sheet 里的 MochiSearchBar 会自动走
-            // 「在 sheet 内展开」而不是窗口级全屏层。
-            MochiSearchSheetHost { content(onDismiss) }
+    MochiModalBottomSheet(
+        show = visible,
+        onDismissRequest = { if (dismissible) onDismiss() },
+        title = title,
+        modifier = modifier,
+    ) {
+        MochiSearchSheetHost { content(onDismiss) }
+        if (confirmText != null && onConfirm != null) {
+            MochiButton(
+                onClick = { onConfirm() },
+                modifier = Modifier.padding(top = 12.dp),
+            ) {
+                Text(text = confirmText)
+            }
         }
-
-        // Khromia 有两个重载：painter 版和 imageVector 版，二选一必填，
-        // 这里按实际给了哪个委派给对应重载。
-        KedgeStyle.MD3Exp -> if (painter != null) {
-            KhromiaPrimaryBottomSheet(
-                modifier = modifier,
-                visible = visible,
-                title = title,
-                painter = painter,
-                dismissText = dismissText,
-                confirmText = confirmText,
-                onConfirm = onConfirm,
-                onDismiss = onDismiss,
-                scrollable = scrollable,
-                dismissible = dismissible,
-                content = { onDismiss -> MochiSearchSheetHost { content(onDismiss) } },
-            )
-        } else {
-            KhromiaPrimaryBottomSheet(
-                modifier = modifier,
-                visible = visible,
-                title = title,
-                imageVector = requireNotNull(imageVector) {
-                    "PrimaryBottomSheet 需要 painter 或 imageVector 之一"
-                },
-                dismissText = dismissText,
-                confirmText = confirmText,
-                onConfirm = onConfirm,
-                onDismiss = onDismiss,
-                scrollable = scrollable,
-                dismissible = dismissible,
-                content = { onDismiss -> MochiSearchSheetHost { content(onDismiss) } },
-            )
+        if (dismissText != null) {
+            MochiTextButton(onClick = onDismiss, modifier = Modifier.padding(top = 8.dp)) {
+                Text(text = dismissText)
+            }
         }
     }
 }

@@ -40,7 +40,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * （[heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup]）出：底色按
  * `indexedShape(0, 1)` 收角后铺在整组**底下**、不额外加内边距，所以不是「卡套卡」——
  * 自带底色的行（`MochiOptionItem`）直接盖住它，没有第二层圆角与内缩；反向地，组里那些
- * 不带底色的子项（Miuix 的 `ArrowPreference`、MD3 的 `KedgeListItem`、本组混进来的标题
+ * 不带底色的子项（Miuix 的 `ArrowPreference`、MD3 的 `MochiListItem`、本组混进来的标题
  * `Text`）就是靠这一层才有卡片底 —— t1 统一行渲染时弄丢的正是它。
  *
  * 组内子项是**就地渲染**的，而且**不限于行组件**：调用点里常常混着 `BackgroundPicker`、
