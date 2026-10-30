@@ -8,14 +8,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import heizige.kk.kedge.overlays.KedgeAlertDialogSlots
 import heizige.kk.khromia.components.AnimatedAlertDialog
 
 /**
  * 标准确认弹窗。**按风格分流**，所以调用点无需改动：
  *
  * - MD3Exp：Khromia 的 `AnimatedAlertDialog`（28dp 圆角 + surfaceContainerHigh），与原实现一致。
- * - Miuix：[KedgeAlertDialogSlots]，走 Miuix 的 WindowDialog，icon/title/text 竖排、
+ * - 旧双风格（已下线）：曾走 Miuix 的 WindowDialog；现在统一走 Khromia AnimatedAlertDialog。
  *   按钮右下横排，形态对齐 KernelSU。
  *
  * 原来的注释只描述 MD3 形态，容易让人以为它在两种风格下表现一致 —— 实际上此前

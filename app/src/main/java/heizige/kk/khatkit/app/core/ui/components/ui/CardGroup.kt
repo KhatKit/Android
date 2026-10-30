@@ -28,8 +28,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.kedge.components.KedgeMiuixSurface
-import heizige.kk.kedge.components.KedgeSegmentedListSlots
 
 private data class CardGroupItem(
     val onClick: (() -> Unit)?,
@@ -114,31 +112,27 @@ fun CardGroup(
     scope.content()
     val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
 
-    KedgeSegmentedListSlots(
+    Column(
         modifier = modifier,
-        itemGap = cards.gap,
-        title = title?.let { t ->
-            {
-                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary.copy(alpha = 0.54f)) {
-                    ProvideTextStyle(
-                        MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 14.sp,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                            lineHeight = 20.sp,
-                        )
-                    ) {
-                        Box(modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp)) {
-                            t()
-                        }
+        verticalArrangement = Arrangement.spacedBy(cards.gap),
+    ) {
+        title?.let { t ->
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary.copy(alpha = 0.54f)) {
+                ProvideTextStyle(
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 14.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                        lineHeight = 20.sp,
+                    )
+                ) {
+                    Box(modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp)) {
+                        t()
                     }
                 }
             }
-        },
-    ) {
-        scope.items.forEach { entry ->
-            item { itemIndex, itemCount ->
-                CardGroupListItem(item = entry, count = itemCount, index = itemIndex)
-            }
+        }
+        scope.items.forEachIndexed { index, entry ->
+            CardGroupListItem(item = entry, count = scope.items.size, index = index)
         }
     }
 }
@@ -209,7 +203,7 @@ fun InlineCardGroup(
  * - MD3Exp：`CustomColors.cardColorsOnSurfaceContainer.containerColor`（= `surfaceBright`），
  *   与改造前 `KedgeFormCard` 的 MD3 分支（`KkCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
  *   完全一致。
- * - Miuix：`KedgeMiuixSurface.cardContainer`（= `MochiTheme.colorScheme.surfaceContainer`），
+ * - Miuix：`MaterialTheme.colorScheme.surfaceContainer`（= `MochiTheme.colorScheme.surfaceContainer`），
  *   与改造前 Miuix 分支那张卡、以及 `MochiOptionItem` 自己的行卡片同色。
  *
  * 底色画在整组底下、不额外加内边距，所以不存在「卡套卡」：自带底色的行直接盖住它，

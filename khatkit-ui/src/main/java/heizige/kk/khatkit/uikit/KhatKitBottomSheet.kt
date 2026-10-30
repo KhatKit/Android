@@ -64,7 +64,6 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
-import heizige.kk.kedge.adaptive.rememberKedgeExitUntilCollapsedScrollBehavior
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khromia.components.LocalBottomSheetDismiss
@@ -152,7 +151,7 @@ fun KhatKitBottomSheet(
     }
     // 大标题栏用 Kedge 的折叠行为：顶栏观察的是喂给内容滚动的这个实例。
     val largeTopBar = !options.hideTopBar && options.largeTopBar
-    val topBarBehavior = if (largeTopBar) rememberKedgeExitUntilCollapsedScrollBehavior() else null
+    val topBarBehavior = if (largeTopBar) androidx.compose.material3.TopAppBarDefaults.exitUntilCollapsedScrollBehavior() else null
 
     val draggableState = rememberDraggableState { delta ->
         scope.launch {

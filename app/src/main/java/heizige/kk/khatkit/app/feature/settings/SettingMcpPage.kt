@@ -46,8 +46,8 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
-import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissBox
+import heizige.kk.khatkit.uikit.mochi.rememberKkSwipeToDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -236,7 +236,7 @@ internal fun McpServerItem(
 ) {
     val mcpManager = rememberAppEntryPoint().mcpManager()
     val status by mcpManager.getStatus(item).collectAsStateWithLifecycle(McpStatus.Idle)
-    val dismissBoxState = rememberKedgeSwipeToDismissState()
+    val dismissBoxState = rememberKkSwipeToDismissState()
     val scope = rememberCoroutineScope()
     var errorDetail by remember { mutableStateOf<McpStatus.Error?>(null) }
 
@@ -275,7 +275,7 @@ internal fun McpServerItem(
             },
         )
     }
-    KedgeSwipeToDismissBox(
+    KkSwipeToDismissBox(
         state = dismissBoxState,
         backgroundContent = {
             Row(

@@ -46,8 +46,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
-import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissBox
+import heizige.kk.khatkit.uikit.mochi.rememberKkSwipeToDismissState
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.app.core.ui.components.ui.KkInputChip
 import androidx.compose.runtime.Composable
@@ -306,12 +306,12 @@ private fun ModeInjectionCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val swipeState = rememberKedgeSwipeToDismissState()
+    val swipeState = rememberKkSwipeToDismissState()
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
     val exporter = rememberExporter(injection, ModeInjectionSerializer)
 
-    KedgeSwipeToDismissBox(
+    KkSwipeToDismissBox(
         state = swipeState,
         backgroundContent = {
             Row(
@@ -699,12 +699,12 @@ private fun LorebookCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val swipeState = rememberKedgeSwipeToDismissState()
+    val swipeState = rememberKkSwipeToDismissState()
     val scope = rememberCoroutineScope()
     var showExportDialog by remember { mutableStateOf(false) }
     val exporter = rememberExporter(book, LorebookSerializer)
 
-    KedgeSwipeToDismissBox(
+    KkSwipeToDismissBox(
         state = swipeState,
         backgroundContent = {
             Row(

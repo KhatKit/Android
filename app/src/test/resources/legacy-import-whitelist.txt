@@ -1,21 +1,6 @@
 # P1 源码护栏白名单（禁止新增 Kedge / Miuix / Khromia import）
 # 口径：仓库内每个模块的 <module>/src/main 下的 *.kt（不含 androidTest/build/.git）
 # 每行 <lib>\t<仓库相对路径>；U1 系列逐批删除，P7 清空。
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/message/ChatMessage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/AppAlertDialog.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/CardGroup.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/PreferenceItems.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatDrawer.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/explore/ExploreMarketPage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/extensions/PromptPage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/favorite/FavoritePage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/history/HistoryPage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/onboarding/GreetingPage.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/components/ThemePickers.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/provider/ProviderModelCard.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/feature/settings/SettingMcpPage.kt
-kedge	khatkit-ui/src/main/java/heizige/kk/khatkit/uikit/KhatKitBottomSheet.kt
-kedge	khatkit-ui/src/main/java/heizige/kk/khatkit/uikit/KhatKitTheme.kt
 kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/ManageExternalStorageWarning.kt
 kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaAlbumRow.kt
 kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaBadges.kt

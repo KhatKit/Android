@@ -57,11 +57,11 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.khatkit.uikit.mochi.rememberMochiSnackbarHostState
 import heizige.kk.khatkit.uikit.mochi.MochiSnackbarHost
 import heizige.kk.khatkit.uikit.mochi.MochiSnackbarResult
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissState
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
-import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissBox
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissDefaults
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissState
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissValue
+import heizige.kk.khatkit.uikit.mochi.rememberKkSwipeToDismissState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 
@@ -164,17 +164,17 @@ private fun SwipeableConversationItem(
     onTogglePin: () -> Unit = {},
     onClick: () -> Unit = {},
 ) {
-    val positionThreshold = KedgeSwipeToDismissDefaults.positionalThreshold
+    val positionThreshold = KkSwipeToDismissDefaults.positionalThreshold
     val dismissState = remember {
-        KedgeSwipeToDismissState(
-            initialValue = KedgeSwipeToDismissValue.Settled,
+        KkSwipeToDismissState(
+            initialValue = KkSwipeToDismissValue.Settled,
             positionalThreshold = positionThreshold,
         )
     }
 
     LaunchedEffect(dismissState.currentValue) {
         when (dismissState.currentValue) {
-            KedgeSwipeToDismissValue.EndToStart -> {
+            KkSwipeToDismissValue.EndToStart -> {
                 onDelete()
             }
 
@@ -182,14 +182,14 @@ private fun SwipeableConversationItem(
         }
     }
 
-    KedgeSwipeToDismissBox(
+    KkSwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        KedgeSwipeToDismissDefaults.containerColor,
+                        KkSwipeToDismissDefaults.containerColor,
                         RoundedCornerShape(25)
                     )
                     .padding(horizontal = 20.dp),
@@ -198,7 +198,7 @@ private fun SwipeableConversationItem(
                 Icon(
                     imageVector = delete,
                     contentDescription = stringResource(R.string.history_page_delete),
-                    tint = KedgeSwipeToDismissDefaults.onContainerColor
+                    tint = KkSwipeToDismissDefaults.onContainerColor
                 )
             }
         },

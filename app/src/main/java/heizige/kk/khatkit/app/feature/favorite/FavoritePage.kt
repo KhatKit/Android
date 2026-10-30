@@ -50,10 +50,10 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.khatkit.uikit.mochi.rememberMochiSnackbarHostState
 import heizige.kk.khatkit.uikit.mochi.MochiSnackbarHost
 import heizige.kk.khatkit.uikit.mochi.MochiSnackbarResult
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
-import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissBox
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissDefaults
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissValue
+import heizige.kk.khatkit.uikit.mochi.rememberKkSwipeToDismissState
 
 @Composable
 fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
@@ -128,26 +128,26 @@ private fun SwipeableFavoriteCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dismissState = rememberKedgeSwipeToDismissState(
-        initialValue = KedgeSwipeToDismissValue.Settled,
+    val dismissState = rememberKkSwipeToDismissState(
+        initialValue = KkSwipeToDismissValue.Settled,
     )
 
     // Key on settledValue: currentValue flips to the closest anchor mid-animation,
     // which would restart this effect and cancel it before onDelete() runs.
     LaunchedEffect(dismissState.settledValue) {
-        if (dismissState.settledValue == KedgeSwipeToDismissValue.EndToStart) {
+        if (dismissState.settledValue == KkSwipeToDismissValue.EndToStart) {
             onDelete()
         }
     }
 
-    KedgeSwipeToDismissBox(
+    KkSwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        KedgeSwipeToDismissDefaults.containerColor,
+                        KkSwipeToDismissDefaults.containerColor,
                         RoundedCornerShape(12.dp)
                     )
                     .padding(horizontal = 20.dp),
@@ -156,7 +156,7 @@ private fun SwipeableFavoriteCard(
                 Icon(
                     imageVector = delete,
                     contentDescription = stringResource(R.string.assistant_page_remove),
-                    tint = KedgeSwipeToDismissDefaults.onContainerColor,
+                    tint = KkSwipeToDismissDefaults.onContainerColor,
                 )
             }
         },

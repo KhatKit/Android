@@ -140,7 +140,6 @@ import heizige.kk.khromia.text.OptionsText
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.components.KedgeStatusDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiStatusTag
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard

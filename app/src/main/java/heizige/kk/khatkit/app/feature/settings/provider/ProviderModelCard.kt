@@ -24,8 +24,8 @@ import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
-import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
+import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissBox
+import heizige.kk.khatkit.uikit.mochi.rememberKkSwipeToDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,7 +76,7 @@ internal fun ModelCard(
     val dialogState = useEditState<Model> {
         onEdit(it.copy(displayName = it.displayName.trim()))
     }
-    val swipeToDismissBoxState = rememberKedgeSwipeToDismissState()
+    val swipeToDismissBoxState = rememberKkSwipeToDismissState()
     val scope = rememberCoroutineScope()
 
     if (dialogState.isEditing) {
@@ -124,7 +124,7 @@ internal fun ModelCard(
         }
     }
 
-    KedgeSwipeToDismissBox(
+    KkSwipeToDismissBox(
         state = swipeToDismissBoxState,
         backgroundContent = {
             Row(
@@ -162,7 +162,6 @@ internal fun ModelCard(
             }
         },
         enableDismissFromStartToEnd = false,
-        gesturesEnabled = true,
         modifier = modifier
     ) {
         // 模型行 = 图标 / 名称 / 标签 / 编辑按钮，正好是 `MochiOptionItem` 的四个槽。

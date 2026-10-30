@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import androidx.compose.foundation.clickable
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.Md3RadioButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSlider
@@ -32,8 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.preferences.KedgeListPreference
-import heizige.kk.kedge.preferences.KedgePreferenceOption
 import heizige.kk.khatkit.app.core.ui.components.ui.LocalInlineCardGroup
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
@@ -338,15 +339,27 @@ fun PreferenceDropdown(
 ) {
         // MD3Exp：走 :kedge 的 KedgeListPreference（行 + 选项弹窗都是双风格组件）。
     // 旧双风格 的下拉行会显示当前选中项，所以没有 summary 时用选中项标签兜底。
-    KedgeListPreference(
-        title = title,
-        options = items.mapIndexed { index, label -> KedgePreferenceOption(index, label) },
-        selectedValue = selectedIndex,
-        onValueSelected = onSelectedIndexChange,
-        modifier = modifier,
-        summary = summary ?: items.getOrNull(selectedIndex),
-        icon = icon,
+    val expanded = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.material3.ListItem(
+        modifier = modifier.clickable { expanded.value = true },
+        headlineContent = { androidx.compose.material3.Text(title) },
+        supportingContent = (summary ?: items.getOrNull(selectedIndex))?.let {
+            { androidx.compose.material3.Text(it) }
+        },
+        leadingContent = icon?.let { { androidx.compose.material3.Icon(it, contentDescription = null) } },
+        trailingContent = { androidx.compose.material3.Text(items.getOrNull(selectedIndex) ?: "") },
     )
+    MochiMenuPopup(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
+        items.forEachIndexed { index, label ->
+            MochiMenuRow(
+                onClick = {
+                    expanded.value = false
+                    onSelectedIndexChange(index)
+                },
+                text = { androidx.compose.material3.Text(label) },
+            )
+        }
+    }
 }
 
 

@@ -45,8 +45,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import heizige.kk.kedge.overlays.KedgeEditDialog
-import heizige.kk.khromia.components.EditFieldConfig
+import heizige.kk.khatkit.uikit.mochi.KkEditDialog
+import heizige.kk.khatkit.uikit.mochi.KkEditField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
@@ -127,10 +127,6 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
 import heizige.kk.khatkit.uikit.mochi.MochiOverlayScaffold
-import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
-import heizige.kk.kedge.adaptive.KedgeBlurredBar
-import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
-import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
 import heizige.kk.khatkit.uikit.mochi.MochiButtonDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
@@ -255,9 +251,10 @@ fun ChatDrawerContent(
         // 顶栏/底栏叠在内容之上，毛玻璃才有东西可透（见 MochiOverlayScaffold）。
         // 毛玻璃只有 Miuix 风格有；MD3Exp 下把 backdrop 置空，各层就退化成
         // 不透明底色，不会出现 MD3 主题上的半透明糊层。
-        val blurEnabled = LocalKedgeEnableBlur.current &&
-            false
-        val backdrop = rememberKedgeBlurBackdrop(blurEnabled)
+        // U4d：Kedge 的 LayerBackdrop 毛玻璃下线。抽屉是 overlay 层，MochiGlassSurface 的
+        // backdrop 采样在 NavDisplay 重建时不稳定，这里退回 MD3 不透明底色：
+        // 视觉差异 = 顶栏/底栏没有背景模糊，只靠层次色（surfaceContainer）区分。
+        val backdrop: Any? = null
 
         // 搜索展开进度：预测返回手势跟手收起。组合位置在 ModalDrawerSheet 内容里，
         // 晚于抽屉自身的预测返回处理器，因此搜索展开时返回手势优先收起搜索。
@@ -286,7 +283,7 @@ fun ChatDrawerContent(
                 // Kedge 的 Miuix 分支走 KedgeMiuixCustomTitleBar，标题区套 26dp
                 // TitlePadding 而 actions 侧只有 16dp ActionIconPadding，左右留白
                 // 不对称（实测 43.7dp vs 27.7dp）。抽屉顶栏要的是左右对齐。
-                KedgeBlurredBar(backdrop = backdrop) {
+                Box {
                 TopAppBar(
                     colors =                     // MD3Exp：走 CustomColors.topBarColors（surfaceContainer），但把
                     // **静止态**换成页面底色（surface）—— 与页面顶栏同一条
@@ -414,13 +411,8 @@ fun ChatDrawerContent(
                 // Miuix surface；MD3Exp 用 BottomAppBar 的默认容器色
                 // （BottomAppBarTokens.ContainerColor = surfaceContainer），
                 // 不再靠抽屉底色透出来。
-                val bottomBarColor = KedgeOverlayBarColor(
-                    backdrop = backdrop,
-                    fallback =                     MaterialTheme.colorScheme.surfaceContainer
-                ,
-                )
-                KedgeBlurredBar(
-                    backdrop = backdrop,
+                val bottomBarColor = MaterialTheme.colorScheme.surfaceContainer
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .background(bottomBarColor),

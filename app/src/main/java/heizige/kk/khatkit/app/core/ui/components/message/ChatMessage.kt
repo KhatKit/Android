@@ -99,7 +99,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
-import heizige.kk.kedge.components.KedgeMiuixSurface
 
 private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
 

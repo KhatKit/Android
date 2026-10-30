@@ -2,7 +2,6 @@ package heizige.kk.khatkit.uikit
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import heizige.kk.kedge.theme.KedgeTheme
 
 /**
  * KhatKit UI 的统一主题入口。

@@ -193,8 +193,6 @@ import heizige.kk.khatkit.uikit.KhatKitSecretsDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior
-import heizige.kk.kedge.adaptive.miuixScrollBehavior
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -1259,17 +1257,11 @@ fun ExploreMarketPage() {
         // 于是只用这两个现成的量，不写死 64dp / 88dp：拖动顶栏时 current 与 heightOffset
         // 反向等量变化，结果是个常量（本就该是常量）。heightOffset 每帧都在动，所以放在
         // LaunchedEffect 里读 —— 组合期读它会让整页跟着每一次滚动重组。
-        val miuixBarState = LocalKedgePageScrollBehavior.current?.miuixScrollBehavior?.state
         LaunchedEffect(innerPadding) {
             val offset: Float
             val limit: Float
-            if (miuixBarState != null) {
-                offset = miuixBarState.heightOffset
-                limit = miuixBarState.heightOffsetLimit
-            } else {
-                offset = scrollBehavior.state.heightOffset
-                limit = scrollBehavior.state.heightOffsetLimit
-            }
+            offset = scrollBehavior.state.heightOffset
+            limit = scrollBehavior.state.heightOffsetLimit
             // limit 没被顶栏量过时是 -Float.MAX_VALUE（TopAppBarState 的初值）：
             // 那种情况下退回 0，也就是改动前的行为，绝不把列表凭空推下去。
             val pinPx = if (limit.isFinite() && limit < 0f && limit > -10_000f) {
@@ -1705,17 +1697,11 @@ fun ExploreCardsPage(initialQuery: String = "") {
     ) { innerPadding ->
         // 钉线 = 折叠态顶栏下沿：stickyHeader 只钉在 LazyColumn 自己的顶边上，
         // 不下移就钉在屏幕顶端（正好在顶栏背后）。推导见一级页同名那段注释。
-        val miuixBarState = LocalKedgePageScrollBehavior.current?.miuixScrollBehavior?.state
         LaunchedEffect(innerPadding) {
             val offset: Float
             val limit: Float
-            if (miuixBarState != null) {
-                offset = miuixBarState.heightOffset
-                limit = miuixBarState.heightOffsetLimit
-            } else {
-                offset = scrollBehavior.state.heightOffset
-                limit = scrollBehavior.state.heightOffsetLimit
-            }
+            offset = scrollBehavior.state.heightOffset
+            limit = scrollBehavior.state.heightOffsetLimit
             val pinPx = if (limit.isFinite() && limit < 0f && limit > -10_000f) {
                 (with(density) { innerPadding.calculateTopPadding().toPx() } - offset + limit)
                     .coerceAtLeast(0f)

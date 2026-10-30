@@ -68,7 +68,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.core.graphics.toColorInt
-import heizige.kk.kedge.overlays.KedgeEditDialog
+import heizige.kk.khatkit.uikit.mochi.KkEditDialog
+import heizige.kk.khatkit.uikit.mochi.KkEditField
 import heizige.kk.khromia.components.EditFieldConfig
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.components.SquareColorPicker
@@ -476,11 +477,11 @@ fun ThemeCustomColorSheet(
 
     // 始终调用并用 visible 控制显隐，不要用 if (showHexDialog) 包一层：
 // 那样退场动画播不出来（组件会在 visible 变 false 的瞬间被卸载）。
-KedgeEditDialog(
+KkEditDialog(
     visible = showHexDialog,
     title = stringResource(R.string.greeting_settings_custom_color),
     fields = listOf(
-        EditFieldConfig(
+        KkEditField(
             label = "Hex Code",
             initialValue = String.format("%08X", customColor.toArgb()),
             placeholder = "#AARRGGBB, #RRGGBB, AARRGGBB, RRGGBB",
