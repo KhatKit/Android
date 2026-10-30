@@ -24,8 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -220,11 +220,11 @@ private fun WorkspaceItem(
                 MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
-                MochiDropdownMenuSlots(
+                MochiMenuPopup(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
-                    MochiDropdownItemSlot(
+                    MochiMenuRow(
                         text = { Text(stringResource(R.string.common_rename)) },
                         leadingIcon = { Icon(edit, contentDescription = null) },
                         onClick = {
@@ -232,7 +232,7 @@ private fun WorkspaceItem(
                             onRename()
                         },
                     )
-                    MochiDropdownItemSlot(
+                    MochiMenuRow(
                         text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(

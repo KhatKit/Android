@@ -137,8 +137,8 @@ import heizige.kk.khatkit.uikit.mochi.MochiButtonDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.statusBars

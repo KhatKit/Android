@@ -15,8 +15,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -108,11 +108,11 @@ fun WebViewPage(url: String, contentId: String) {
                     ) {
                         Icon(moreVert, contentDescription = "More options")
 
-                        MochiDropdownMenuSlots(
+                        MochiMenuPopup(
                             expanded = showDropdown,
                             onDismissRequest = { showDropdown = false }
                         ) {
-                            MochiDropdownItemSlot(
+                            MochiMenuRow(
                                 text = { Text("Open in Browser") },
                                 leadingIcon = { Icon(public, contentDescription = null) },
                                 onClick = {
@@ -124,7 +124,7 @@ fun WebViewPage(url: String, contentId: String) {
                                     }
                                 }
                             )
-                            MochiDropdownItemSlot(
+                            MochiMenuRow(
                                 text = { Text("Console Logs") },
                                 leadingIcon = { Icon(bugReport, contentDescription = null) },
                                 onClick = {

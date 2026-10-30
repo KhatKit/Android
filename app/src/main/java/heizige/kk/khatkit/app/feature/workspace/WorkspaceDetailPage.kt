@@ -43,8 +43,8 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
@@ -886,12 +886,12 @@ private fun WorkspaceFileCard(
                 MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
-                MochiDropdownMenuSlots(
+                MochiMenuPopup(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     if (!entry.isDirectory) {
-                        MochiDropdownItemSlot(
+                        MochiMenuRow(
                             text = { Text(stringResource(R.string.common_export)) },
                             leadingIcon = {
                                 Icon(
@@ -904,7 +904,7 @@ private fun WorkspaceFileCard(
                                 onExport()
                             },
                         )
-                        MochiDropdownItemSlot(
+                        MochiMenuRow(
                             text = { Text(stringResource(R.string.common_share)) },
                             leadingIcon = {
                                 Icon(
@@ -918,7 +918,7 @@ private fun WorkspaceFileCard(
                             },
                         )
                     }
-                    MochiDropdownItemSlot(
+                    MochiMenuRow(
                         text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(

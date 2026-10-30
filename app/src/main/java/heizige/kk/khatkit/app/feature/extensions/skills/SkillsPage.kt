@@ -28,8 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
@@ -357,11 +357,11 @@ private fun SkillCard(
                             contentDescription = stringResource(R.string.skills_page_more_actions),
                         )
                     }
-                    MochiDropdownMenuSlots(
+                    MochiMenuPopup(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                     ) {
-                        MochiDropdownItemSlot(
+                        MochiMenuRow(
                             text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
                             leadingIcon = {
                                 Icon(

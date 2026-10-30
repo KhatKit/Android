@@ -1,48 +1,43 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
-import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEach
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
+import heizige.kk.khatkit.uikit.mochi.KkSurface
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
+import ui.feice.mochi.basic.MochiContextMenu
+import ui.feice.mochi.basic.MochiItem
 
+/**
+ * 通用下拉选择（U3c）：菜单统一换成 mochi-compose 的 MochiContextMenu。
+ *
+ * 对外签名与旧版完全一致，调用点零改动；定位/展开/关闭交给 Mochi 的 context menu 引擎
+ * （自带按屏幕左右半屏对齐与融球过渡）。
+ */
 @Composable
 fun <T> Select(
     options: List<T>,
@@ -59,12 +54,26 @@ fun <T> Select(
         targetValue = if (expanded) 180f else 0f,
         label = "selectArrowRotation",
     )
+    val items: ImmutableList<MochiItem> = options.map { option ->
+        MochiItem(
+            label = optionToString(option),
+            destructive = false,
+            icon = { _ -> optionLeading?.invoke(option) },
+        )
+    }.toImmutableList()
 
-    // 展开项本来就用 Kedge 的下拉项，只有外层的锚点与菜单容器还是 MD3 的。
-    val anchor: @Composable (Modifier) -> Unit = { anchorModifier ->
+    MochiContextMenu(
+        items = items,
+        onItemClick = { index ->
+            options.getOrNull(index)?.let(onOptionSelected)
+            expanded = false
+        },
+        modifier = modifier,
+    ) {
         KkSurface(
-            modifier = anchorModifier,
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50),
+            onClick = { expanded = !expanded },
         ) {
             Row(
                 modifier = Modifier
@@ -72,14 +81,10 @@ fun <T> Select(
                     .clip(RoundedCornerShape(4.dp))
                     .padding(vertical = 8.dp, horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 leading()
-                Text(
-                    text = optionToString(selectedOption),
-                    style = KedgeTextStyles.body(),
-                    modifier = Modifier.weight(1f)
-                )
+                Text(text = optionToString(selectedOption), modifier = Modifier.weight(1f))
                 trailing()
                 Icon(
                     imageVector = keyboardArrowDown,
@@ -89,75 +94,13 @@ fun <T> Select(
             }
         }
     }
-
-    val menuItems: @Composable () -> Unit = {
-        options.fastForEach { option ->
-            MochiDropdownItemSlot(
-                onClick = {
-                    onOptionSelected(option)
-                    expanded = false
-                },
-                text = {
-                    Text(text = optionToString(option), maxLines = 1)
-                },
-                leadingIcon = optionLeading?.let {
-                    { it(option) }
-                }
-            )
-        }
-    }
-
-    when (LocalKedgeStyle.current) {
-        // MD3Exp 保持原来的 ExposedDropdownMenuBox 定位行为。
-        KedgeStyle.MD3Exp -> ExposedDropdownMenuBox(
-            modifier = modifier,
-            expanded = expanded,
-            onExpandedChange = { expanded = it }
-        ) {
-            anchor(Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable))
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                shape = RoundedCornerShape(20.dp),
-            ) {
-                menuItems()
-            }
-        }
-
-        // Miuix：改用基于锚点宽度的弹出菜单，容器与菜单都是 Miuix 形态。
-        KedgeStyle.Miuix -> {
-            var anchorWidth by remember { mutableIntStateOf(0) }
-            val density = LocalDensity.current
-            Box(modifier = modifier) {
-                anchor(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { expanded = !expanded }
-                        .onGloballyPositioned { anchorWidth = it.size.width }
-                )
-                MochiDropdownMenuSlots(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier
-                        .width(with(density) { anchorWidth.toDp() })
-                        .heightIn(max = 240.dp),
-                    content = menuItems,
-                )
-            }
-        }
-    }
 }
 
 /**
- * 文本框 + 预设选项下拉菜单
+ * 文本框 + 预设选项下拉菜单（U3c）：同样用 MochiContextMenu。
  *
- * 刻意不使用 ExposedDropdownMenuBox: 它的 ExposedDropdownMenuPositionProvider 在
- * "菜单高度 > 可见窗口高度 - 96dp" 时会 coerceIn(min > max) 直接抛异常 (issue #1549),
- * 小屏设备上点击底部的可编辑输入框会同时弹出输入法, 极易触发。
- * 普通 DropdownMenu 的定位逻辑对这种情况有兜底, 不会崩溃。
+ * 不用 ExposedDropdownMenuBox 的原因保留：它在「菜单高度 > 可见窗口 − 96dp」时会
+ * coerceIn(min > max) 抛异常（issue #1549），小屏 + 输入法同时弹极易触发。
  */
 @Composable
 fun <T> SelectTextField(
@@ -172,56 +115,44 @@ fun <T> SelectTextField(
     optionToString: @Composable (T) -> String = { it.toString() },
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var anchorWidth by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
+    val items: ImmutableList<MochiItem> = options.map { option ->
+        MochiItem(label = optionToString(option), destructive = false, icon = { })
+    }.toImmutableList()
 
-    Box(modifier = modifier) {
-        Md3OutlinedTextFieldWithSlots(
-            value = value,
-            onValueChange = onValueChange,
-            readOnly = readOnly,
-            label = label,
-            placeholder = placeholder,
-            modifier = Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { anchorWidth = it.size.width },
-            trailingIcon = {
-                MochiIconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(
-                        imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
-                        contentDescription = "expand"
-                    )
-                }
-            },
-            shape = RoundedCornerShape(16.dp)
-        )
-
-        // 只读时整个输入框都可点击展开, 且不会抢焦点弹出输入法
-        if (readOnly) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { expanded = !expanded }
-            )
-        }
-
-        MochiDropdownMenuSlots(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .width(with(density) { anchorWidth.toDp() })
-                .heightIn(max = 240.dp)
-        ) {
-            options.fastForEach { option ->
-                MochiDropdownItemSlot(
-                    text = { Text(text = optionToString(option), maxLines = 1) },
-                    onClick = {
-                        expanded = false
-                        onOptionSelected(option)
+    MochiContextMenu(
+        items = items,
+        onItemClick = { index ->
+            options.getOrNull(index)?.let(onOptionSelected)
+            expanded = false
+        },
+        modifier = modifier,
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Md3OutlinedTextFieldWithSlots(
+                value = value,
+                onValueChange = onValueChange,
+                readOnly = readOnly,
+                label = label,
+                placeholder = placeholder,
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    MochiIconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(
+                            imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
+                            contentDescription = "expand",
+                        )
                     }
+                },
+                shape = RoundedCornerShape(16.dp),
+            )
+            if (readOnly) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { expanded = !expanded },
                 )
             }
         }

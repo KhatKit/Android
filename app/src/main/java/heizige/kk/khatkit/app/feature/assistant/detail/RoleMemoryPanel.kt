@@ -41,8 +41,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryConflict
@@ -210,9 +210,9 @@ internal fun RoleMemoryPanel(
                             }
                         },
                     )
-                    MochiDropdownMenuSlots(expanded = showFiles, onDismissRequest = { showFiles = false }) {
+                    MochiMenuPopup(expanded = showFiles, onDismissRequest = { showFiles = false }) {
                         files.forEach { path ->
-                            MochiDropdownItemSlot(
+                            MochiMenuRow(
                                 text = { Text(path, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 trailingIcon = if (path == document?.path) { { Icon(check, null) } } else null,
                                 onClick = {

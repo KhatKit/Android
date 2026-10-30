@@ -33,7 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,7 +74,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.kedge.components.KedgeFloatingActionButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -292,7 +292,7 @@ private fun LanguageItems(
     onDismiss: () -> Unit,
 ) {
     Locales.forEach { language ->
-        MochiDropdownItemSlot(
+        MochiMenuRow(
             text = { Text(getLanguageDisplayName(language)) },
             onClick = {
                 onLanguageSelected(language)

@@ -26,8 +26,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -482,11 +482,11 @@ internal fun SearchProviderCard(
                     imageVector = moreVert,
                     contentDescription = null
                 )
-                MochiDropdownMenuSlots(
+                MochiMenuPopup(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
-                    MochiDropdownItemSlot(
+                    MochiMenuRow(
                         text = { Text(stringResource(R.string.edit)) },
                         onClick = {
                             showMenu = false
@@ -496,7 +496,7 @@ internal fun SearchProviderCard(
                             Icon(edit, contentDescription = null)
                         }
                     )
-                    MochiDropdownItemSlot(
+                    MochiMenuRow(
                         text = { Text(stringResource(R.string.delete)) },
                         onClick = {
                             showMenu = false

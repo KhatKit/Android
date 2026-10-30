@@ -64,8 +64,8 @@ import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
 import heizige.kk.kedge.adaptive.rememberKedgeExitUntilCollapsedScrollBehavior
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khromia.components.LocalBottomSheetDismiss
 import heizige.kk.khromia.layout.FullscreenPopup
 import heizige.kk.khatkit.ui.UiSheetOptions
@@ -421,12 +421,12 @@ internal fun SheetTopBar(
                             contentDescription = stringResource(R.string.khatkit_sheet_more_actions),
                         )
                     }
-                    MochiDropdownMenuSlots(
+                    MochiMenuPopup(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
                     ) {
                         overflowActions.forEach { action ->
-                            MochiDropdownItemSlot(
+                            MochiMenuRow(
                                 text = { Text(action.label) },
                                 leadingIcon = { Icon(action.imageVector, contentDescription = null) },
                                 onClick = {

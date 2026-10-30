@@ -35,7 +35,7 @@ import androidx.compose.material3.Icon
  * 参数名沿用旧 Kedge 组件，调用点只改名字。弹层用 androidx.compose.ui.window.Popup
  * （不是 material3 Dialog/ModalBottomSheet，也不是 Kedge 的 Miuix sheet）：
  *  - [MochiModalBottomSheet] / [MochiDialog]：Popup + Mochi 表面色 + 圆角，点外部关闭；
- *  - [MochiDropdownMenuSlots] / [MochiDropdownItemSlot]：Popup 内的菜单列表；
+ *  - [MochiMenuPopup] / [MochiMenuRow]：Popup 内的菜单列表；
  *  - [MochiSnackbarHost]：底部 Mochi 胶囊条。
  * 弹层里的滚动容器一律由调用方给（BottomSheetScrollSourceGuardTest 仍按原约束校验）。
  */
@@ -195,7 +195,7 @@ fun MochiListPopup(
 
 /** 菜单容器（槽位版）：Popup + 自定义内容。 */
 @Composable
-fun MochiDropdownMenuSlots(
+fun MochiMenuPopup(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -214,7 +214,7 @@ fun MochiDropdownMenuSlots(
 
 /** 菜单项（槽位版）。 */
 @Composable
-fun MochiDropdownItemSlot(
+fun MochiMenuRow(
     onClick: () -> Unit,
     text: @Composable () -> Unit,
     modifier: Modifier = Modifier,

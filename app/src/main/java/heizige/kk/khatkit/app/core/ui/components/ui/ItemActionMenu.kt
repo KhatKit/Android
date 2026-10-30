@@ -1,24 +1,19 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.app.R
-import androidx.compose.material3.DropdownMenuItem
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
+import ui.feice.mochi.basic.MochiContextMenu
+import ui.feice.mochi.basic.MochiItem
 
 /**
  * 列表 item 的次要操作（复制、导出、重命名、删除等）。
@@ -36,48 +31,39 @@ data class ItemAction(
 )
 
 /**
- * Miuix 下用 OverlayListPopup 拼菜单行（MochiDropdownItemSlot 内部已按风格分派），
- * MD3Exp 下保持 DropdownMenuItem。破坏性操作的文字与图标统一取 error 色。
+ * U3c：菜单换成 mochi-compose 的 MochiContextMenu（锚点=右上角更多按钮）。
+ *
+ * 对外签名不变、调用点零改动。ItemAction.enabled 在 MochiItem 里没有对应能力，
+ * 现有调用点都传 enabled=true，先按全可点击渲染（已列入 MochiItem 表达不了的清单）。
  */
 @Composable
 fun ItemActionMenu(
     actions: List<ItemAction>,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val items: ImmutableList<MochiItem> = actions.map { action ->
+        MochiItem(
+            label = action.text,
+            destructive = action.destructive,
+            icon = { color ->
+                androidx.compose.material3.Icon(
+                    imageVector = action.icon,
+                    contentDescription = null,
+                    tint = color,
+                )
+            },
+        )
+    }.toImmutableList()
+
     Box(modifier = modifier) {
-        MochiIconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = moreVert,
-                contentDescription = stringResource(R.string.more_options),
-            )
-        }
-        MochiDropdownMenuSlots(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
+        MochiContextMenu(
+            items = items,
+            onItemClick = { index -> actions.getOrNull(index)?.onClick?.invoke() },
         ) {
-            actions.forEach { action ->
-                val errorColor = MaterialTheme.colorScheme.error
-                val tint = if (action.destructive) errorColor else MaterialTheme.colorScheme.onSurface
-                MochiDropdownItemSlot(
-                    text = {
-                        Text(
-                            text = action.text,
-                            color = if (action.destructive) errorColor else MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = action.icon,
-                            contentDescription = null,
-                            tint = tint,
-                        )
-                    },
-                    enabled = action.enabled,
-                    onClick = {
-                        expanded = false
-                        action.onClick()
-                    },
+            MochiIconButton(onClick = { }) {
+                androidx.compose.material3.Icon(
+                    imageVector = moreVert,
+                    contentDescription = stringResource(R.string.more_options),
                 )
             }
         }

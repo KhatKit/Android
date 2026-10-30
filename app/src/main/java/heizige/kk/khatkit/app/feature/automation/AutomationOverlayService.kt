@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.automation
 
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -44,8 +46,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
@@ -835,43 +835,23 @@ private fun ApproveButton(
                     onClick = onApprove,
                 ),
         ) {
-            DropdownMenu(
+            MochiMenuPopup(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
-                shape = RoundedCornerShape(12.dp),
-                containerColor = menuContainerColor.copy(alpha = ToastDefaults.Alpha),
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = "仅本次允许",
-                            style = ToastDefaults.textStyle,
-                            maxLines = 1,
-                        )
-                    },
+                MochiMenuRow(
+                    text = { Text(text = "仅本次允许", color = ToastDefaults.contentColor, maxLines = 1) },
                     onClick = {
                         menuExpanded = false
                         onApprove()
                     },
-                    colors = itemColors,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    modifier = Modifier.height(32.dp),
                 )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = "10 分钟内自动允许",
-                            style = ToastDefaults.textStyle,
-                            maxLines = 1,
-                        )
-                    },
+                MochiMenuRow(
+                    text = { Text(text = "10 分钟内自动允许", color = ToastDefaults.contentColor, maxLines = 1) },
                     onClick = {
                         menuExpanded = false
                         onRemember()
                     },
-                    colors = itemColors,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    modifier = Modifier.height(32.dp),
                 )
             }
         }

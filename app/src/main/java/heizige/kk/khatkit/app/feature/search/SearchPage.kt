@@ -28,8 +28,8 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import androidx.compose.runtime.Composable
@@ -273,12 +273,12 @@ private fun SortMenuButton(
                 contentDescription = stringResource(R.string.search_page_sort)
             )
         }
-        MochiDropdownMenuSlots(
+        MochiMenuPopup(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
             MessageSearchSort.entries.forEach { sort ->
-                MochiDropdownItemSlot(
+                MochiMenuRow(
                     text = {
                         Text(
                             stringResource(
