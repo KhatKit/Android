@@ -105,7 +105,6 @@ import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.feature.settings.mcp.McpServerConfigModal
 import heizige.kk.khatkit.app.feature.settings.mcp.McpImportModal
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 
 @Composable
@@ -209,7 +208,7 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
                     Text(text = stringResource(R.string.setting_mcp_page_no_mcp_servers_found))
                     Text(
                         text = stringResource(R.string.setting_mcp_page_add_one_to_get_started),
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
@@ -253,7 +252,7 @@ internal fun McpServerItem(
                 SelectionContainer {
                     Text(
                         text = fullText,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier
                             .heightIn(max = 320.dp)
                             .verticalScroll(rememberScrollState()),
@@ -351,7 +350,7 @@ internal fun McpServerItem(
                     ) {
                         Text(
                             text = item.commonOptions.name,
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                         val dotColor =
                             if (item.commonOptions.enable) MaterialTheme.extendColors.green6 else MaterialTheme.extendColors.red6
@@ -380,7 +379,7 @@ internal fun McpServerItem(
                         val error = status as McpStatus.Error
                         Text(
                             text = error.message,
-                            style = KedgeTextStyles.footnoteSmall(),
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
@@ -391,7 +390,7 @@ internal fun McpServerItem(
                         val context = LocalContext.current
                         Text(
                             text = "需要 OAuth 授权",
-                            style = KedgeTextStyles.footnoteSmall(),
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )
                         MochiButton(
@@ -405,7 +404,7 @@ internal fun McpServerItem(
                     if (status == McpStatus.Authorizing) {
                         Text(
                             text = "正在授权，请在浏览器中完成…",
-                            style = KedgeTextStyles.footnoteSmall(),
+                            style = MaterialTheme.typography.labelSmall,
                         )
                         MochiTextButton(
                             onClick = { mcpManager.cancelAuthorization(item) },

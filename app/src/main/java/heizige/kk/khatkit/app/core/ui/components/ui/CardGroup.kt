@@ -31,7 +31,6 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.kedge.components.KedgeMiuixSurface
 import heizige.kk.kedge.components.KedgeSegmentedListSlots
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 
 private data class CardGroupItem(
@@ -124,7 +123,7 @@ fun CardGroup(
             {
                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary.copy(alpha = 0.54f)) {
                     ProvideTextStyle(
-                        KedgeTextStyles.title().copy(
+                        MaterialTheme.typography.titleMedium.copy(
                             fontSize = 14.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                             lineHeight = 20.sp,

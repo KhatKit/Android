@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,7 +24,6 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.util.copyMessageToClipboard
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ChatMessageCopySheet(
@@ -66,8 +64,8 @@ fun ChatMessageCopySheet(
                 ) {
                     Text(
                         text = stringResource(R.string.no_text_content_to_copy),
-                        style = KedgeTextStyles.body(),
-                        color = KedgeColors.onSurface.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -82,7 +80,7 @@ fun ChatMessageCopySheet(
                         textParts.fastForEach { textPart ->
                             Text(
                                 text = textPart.text,
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                     }

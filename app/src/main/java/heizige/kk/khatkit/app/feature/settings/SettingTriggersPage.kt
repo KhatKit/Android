@@ -70,7 +70,6 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
@@ -174,7 +173,7 @@ fun SettingTriggersPage() {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         "让 AI 在流程中负责识别、判断或生成参数。执行前仍会遵循当前自动化授权策略。",
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                     listOf(
                         "识别当前页面并选择下一步",
@@ -190,7 +189,7 @@ fun SettingTriggersPage() {
                             Text(
                                 suggestion,
                                 modifier = Modifier.padding(12.dp),
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                     }
@@ -514,7 +513,7 @@ fun SettingTriggersPage() {
                         headlineContent = {
                             Text(
                                 text = "触发器服务是常驻前台服务，会显示一条低优先级通知；关闭总开关即可停止。",
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
@@ -548,23 +547,23 @@ private fun FlowOverviewCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("自动化工作流", style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
+                    Text("自动化工作流", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
                         if (enabled) "监听事件 → 执行动作 → 记录结果" else "总开关已关闭，工作流暂不监听系统事件",
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
                     "${cards.count { it.events.isNotEmpty() }} 个流程",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
             if (cards.isEmpty()) {
                 Text(
                     "从卡片市场安装一个工作流，或先录制一组操作。",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
@@ -597,7 +596,7 @@ private fun FlowOverviewCard(
                 Text(
                     "节点可在下方逐个展开编辑",
                     modifier = Modifier.align(Alignment.CenterVertically),
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -614,7 +613,7 @@ private fun FlowNodeStrip(
     if (events.isEmpty()) {
         Text(
             "未配置触发节点",
-            style = KedgeTextStyles.footnoteSmall(),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         return
@@ -671,7 +670,7 @@ private fun FlowNodeStrip(
                 if (showLabels) {
                     Text(
                         eventTypeLabel(event.type),
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = if (active) {
                             MaterialTheme.colorScheme.onSurface
                         } else {
@@ -685,7 +684,7 @@ private fun FlowNodeStrip(
         if (events.size > 5) {
             Text(
                 "+${events.size - 5}",
-                style = KedgeTextStyles.footnoteSmall(),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

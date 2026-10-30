@@ -62,7 +62,6 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 
@@ -210,7 +209,7 @@ private fun SearchResultSection(
                                 current,
                                 total
                             ) else stringResource(R.string.search_page_rebuilding_simple),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -222,7 +221,7 @@ private fun SearchResultSection(
                     ) {
                         Text(
                             text = stringResource(R.string.search_page_hint),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -235,7 +234,7 @@ private fun SearchResultSection(
                     ) {
                         Text(
                             text = stringResource(R.string.search_page_no_results),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -354,17 +353,17 @@ private fun SearchResultItem(
         ) {
             Text(
                 text = result.title.ifBlank { untitled },
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = snippetText,
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = formattedTime,
-                style = KedgeTextStyles.footnoteSmall(),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

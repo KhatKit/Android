@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -60,8 +61,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.Greeting
@@ -259,12 +258,12 @@ private fun ChatWelcome(
                         modifier = Modifier.fillMaxWidth(),
                         shape = cards.indexedShape(index, state.widgets.size),
                         leadingContent = {
-                            Icon(dashboard, null, Modifier.size(24.dp), tint = KedgeColors.onSurfaceVariant)
+                            Icon(dashboard, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         },
                         titleContent = {
                             Text(
                                 strings.widgetTitle,
-                                style = KedgeTextStyles.title(),
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -274,8 +273,8 @@ private fun ChatWelcome(
                             {
                                 Text(
                                     description,
-                                    style = KedgeTextStyles.body(),
-                                    color = KedgeColors.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -303,12 +302,12 @@ private fun ChatWelcome(
 @Composable
 private fun WelcomeHero(modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp)) {
-        Greeting(style = KedgeTextStyles.displayTitle())
+        Greeting(style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(8.dp))
         Text(
             stringResource(R.string.chat_welcome_question),
-            style = KedgeTextStyles.bodyLarge(),
-            color = KedgeColors.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -343,8 +342,8 @@ private fun WelcomeSection(
         Text(
             title,
             Modifier.weight(1f),
-            style = KedgeTextStyles.title().copy(fontWeight = FontWeight.Medium),
-            color = KedgeColors.onSurface,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurface,
         )
         WelcomeRefreshButton(action, icon, loading, onClick, Modifier.size(24.dp))
     }
@@ -368,7 +367,7 @@ private fun WelcomeRefreshButton(
             if (loading) {
                 KedgeProgressIndicator(modifier = Modifier.size(20.dp))
             } else {
-                Icon(icon, null, Modifier.size(20.dp), tint = KedgeColors.onSurfaceVariant)
+                Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -388,17 +387,17 @@ private fun AddWidgetRow(modifier: Modifier = Modifier, onClick: () -> Unit) {
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = cards.indexedShape(0, 1),
-        leadingContent = { Icon(add, null, Modifier.size(24.dp), tint = KedgeColors.onSurfaceVariant) },
+        leadingContent = { Icon(add, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
         titleContent = {
             Text(
                 label,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        trailingContent = { Icon(chevronRight, null, Modifier.size(18.dp), tint = KedgeColors.onSurfaceVariant) },
+        trailingContent = { Icon(chevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
     )
 }
 
@@ -470,12 +469,12 @@ private fun WelcomeIdeaRow(
         modifier = Modifier.fillMaxWidth().welcomeReveal(order),
         shape = shape,
         leadingContent = {
-            Icon(idea.icon, null, Modifier.size(24.dp), tint = KedgeColors.onSurfaceVariant)
+            Icon(idea.icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         },
         titleContent = {
             Text(
                 idea.title,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -484,14 +483,14 @@ private fun WelcomeIdeaRow(
         supportingContent = {
             Text(
                 idea.subtitle,
-                style = KedgeTextStyles.body(),
-                color = KedgeColors.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         },
         trailingContent = {
-            Icon(chevronRight, null, Modifier.size(18.dp), tint = KedgeColors.onSurfaceVariant)
+            Icon(chevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         },
     )
 }
@@ -522,8 +521,8 @@ private fun WelcomeWidgetView(
     ) {
         if (widget.error != null) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(R.string.chat_widget_failed), style = KedgeTextStyles.footnote(), color = KedgeColors.error)
-                Text(widget.error, style = KedgeTextStyles.footnoteSmall(), color = KedgeColors.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(stringResource(R.string.chat_widget_failed), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                Text(widget.error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
             }
         }
         AnimatedVisibility(
@@ -557,8 +556,8 @@ private fun WelcomeWidgetView(
             Text(
                 stringResource(R.string.chat_widget_empty),
                 Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
-                style = KedgeTextStyles.footnote(),
-                color = KedgeColors.onSurfaceVariant,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -578,7 +577,7 @@ internal fun WelcomeWidgetFrame(
     KkSurface(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
-        color = KedgeColors.surfaceContainer,
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(Modifier.fillMaxWidth().animateContentSize(tween(260))) {
             MochiOptionItem(
@@ -587,14 +586,14 @@ internal fun WelcomeWidgetFrame(
                 shape = RectangleShape,
                 backgroundColor = Color.Transparent,
                 leadingContent = {
-                    Icon(dashboard, null, Modifier.size(24.dp), tint = KedgeColors.onSurfaceVariant)
+                    Icon(dashboard, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 titleContent = {
                     Text(
                         title,
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
-                        color = KedgeColors.onSurface,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -603,8 +602,8 @@ internal fun WelcomeWidgetFrame(
                     {
                         Text(
                             description,
-                            style = KedgeTextStyles.body(),
-                            color = KedgeColors.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )

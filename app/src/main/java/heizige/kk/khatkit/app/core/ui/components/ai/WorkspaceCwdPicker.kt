@@ -42,7 +42,6 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.undo
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun WorkspaceCwdPickerSheet(
@@ -95,7 +94,7 @@ fun WorkspaceCwdPickerSheet(
         ) {
             Text(
                 text = stringResource(R.string.workspace_cwd_select_desc),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
@@ -116,7 +115,7 @@ fun WorkspaceCwdPickerSheet(
                 Text(
                     text = toAbsolutePath(browsePath),
                     modifier = Modifier.weight(1f),
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -159,7 +158,7 @@ fun WorkspaceCwdPickerSheet(
                         Text(
                             text = stringResource(R.string.workspace_cwd_no_subdirectories),
                             modifier = Modifier.padding(16.dp),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }

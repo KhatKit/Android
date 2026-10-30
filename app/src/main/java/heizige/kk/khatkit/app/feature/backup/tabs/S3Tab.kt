@@ -70,7 +70,6 @@ import heizige.kk.khatkit.app.core.ui.icons.upload
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
@@ -445,7 +444,7 @@ private fun S3BackupItemCard(
             headlineContent = {
                 Text(
                     text = item.displayName,
-                    style = KedgeTextStyles.title()
+                    style = MaterialTheme.typography.titleMedium
                 )
             },
             supportingContent = {
@@ -460,11 +459,11 @@ private fun S3BackupItemCard(
                     ) {
                         Text(
                             text = item.lastModified.toLocalDateTime(),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
                             text = item.size.fileSizeToString(),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                     Row(

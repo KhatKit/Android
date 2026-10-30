@@ -63,9 +63,7 @@ import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
@@ -125,7 +123,7 @@ private fun RecoveryPage(vm: DebugViewModel) {
             Text("恢复缺失的助手")
         }
         missing.entries.sortedByDescending { it.value }.forEach { (id, count) ->
-            Text("$id: $count 条对话", style = KedgeTextStyles.body())
+            Text("$id: $count 条对话", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -244,7 +242,7 @@ private fun MainPage(vm: DebugViewModel) {
 
         MochiHorizontalDivider()
 
-        Text("Launch Stats", style = KedgeTextStyles.body())
+        Text("Launch Stats", style = MaterialTheme.typography.bodyMedium)
 
         var launchCountInput by remember(settings.launchCount) {
             mutableStateOf(settings.launchCount.toString())
@@ -285,37 +283,37 @@ private fun MainPage(vm: DebugViewModel) {
 
 @Composable
 private fun ColorsPage() {
-    // 必须走 KedgeColors：Miuix 模式下 KedgeTheme 只包了 MiuixTheme，直读
+    // 必须走主题色：Miuix 模式下 KedgeTheme 只包了 MiuixTheme，直读
     // MaterialTheme.colorScheme 拿到的是 Compose 兜底的亮色方案，暗色主题下
     // 这一页会白得发光。
     val coreTokens = listOf(
-        "primary" to KedgeColors.primary,
-        "onPrimary" to KedgeColors.onPrimary,
-        "primaryContainer" to KedgeColors.primaryContainer,
-        "onPrimaryContainer" to KedgeColors.onPrimaryContainer,
-        "secondary" to KedgeColors.secondary,
-        "onSecondary" to KedgeColors.onSecondary,
-        "secondaryContainer" to KedgeColors.secondaryContainer,
-        "onSecondaryContainer" to KedgeColors.onSecondaryContainer,
-        "tertiary" to KedgeColors.tertiary,
-        "onTertiary" to KedgeColors.onTertiary,
-        "tertiaryContainer" to KedgeColors.tertiaryContainer,
-        "onTertiaryContainer" to KedgeColors.onTertiaryContainer,
-        "background" to KedgeColors.background,
-        "onBackground" to KedgeColors.onBackground,
-        "surface" to KedgeColors.surface,
-        "onSurface" to KedgeColors.onSurface,
-        "surfaceVariant" to KedgeColors.surfaceVariant,
-        "onSurfaceVariant" to KedgeColors.onSurfaceVariant,
-        "surfaceContainer" to KedgeColors.surfaceContainer,
-        "surfaceContainerHigh" to KedgeColors.surfaceContainerHigh,
-        "surfaceContainerHighest" to KedgeColors.surfaceContainerHighest,
-        "error" to KedgeColors.error,
-        "onError" to KedgeColors.onError,
-        "errorContainer" to KedgeColors.errorContainer,
-        "onErrorContainer" to KedgeColors.onErrorContainer,
-        "outline" to KedgeColors.outline,
-        "outlineVariant" to KedgeColors.outlineVariant,
+        "primary" to MaterialTheme.colorScheme.primary,
+        "onPrimary" to MaterialTheme.colorScheme.onPrimary,
+        "primaryContainer" to MaterialTheme.colorScheme.primaryContainer,
+        "onPrimaryContainer" to MaterialTheme.colorScheme.onPrimaryContainer,
+        "secondary" to MaterialTheme.colorScheme.secondary,
+        "onSecondary" to MaterialTheme.colorScheme.onSecondary,
+        "secondaryContainer" to MaterialTheme.colorScheme.secondaryContainer,
+        "onSecondaryContainer" to MaterialTheme.colorScheme.onSecondaryContainer,
+        "tertiary" to MaterialTheme.colorScheme.tertiary,
+        "onTertiary" to MaterialTheme.colorScheme.onTertiary,
+        "tertiaryContainer" to MaterialTheme.colorScheme.tertiaryContainer,
+        "onTertiaryContainer" to MaterialTheme.colorScheme.onTertiaryContainer,
+        "background" to MaterialTheme.colorScheme.background,
+        "onBackground" to MaterialTheme.colorScheme.onBackground,
+        "surface" to MaterialTheme.colorScheme.surface,
+        "onSurface" to MaterialTheme.colorScheme.onSurface,
+        "surfaceVariant" to MaterialTheme.colorScheme.surfaceVariant,
+        "onSurfaceVariant" to MaterialTheme.colorScheme.onSurfaceVariant,
+        "surfaceContainer" to MaterialTheme.colorScheme.surfaceContainer,
+        "surfaceContainerHigh" to MaterialTheme.colorScheme.surfaceContainerHigh,
+        "surfaceContainerHighest" to MaterialTheme.colorScheme.surfaceContainerHighest,
+        "error" to MaterialTheme.colorScheme.error,
+        "onError" to MaterialTheme.colorScheme.onError,
+        "errorContainer" to MaterialTheme.colorScheme.errorContainer,
+        "onErrorContainer" to MaterialTheme.colorScheme.onErrorContainer,
+        "outline" to MaterialTheme.colorScheme.outline,
+        "outlineVariant" to MaterialTheme.colorScheme.outlineVariant,
     )
     // MD3 专有 token（inverse/surfaceTint/Fixed* 等）没有 Miuix 对应项，
     // 只在 MD3Exp 列出，免得在 Miuix 下展示兜底的假色。
@@ -363,7 +361,7 @@ private fun ColorTokenItem(name: String, color: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, KedgeColors.outlineVariant, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
             .clip(shape)
             .padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -375,15 +373,15 @@ private fun ColorTokenItem(name: String, color: Color) {
                 .weight(1f)
                 .clip(RoundedCornerShape(4.dp))
                 .background(color)
-                .border(1.dp, KedgeColors.outlineVariant, RoundedCornerShape(4.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
         )
         Column(modifier = Modifier.weight(2f)) {
-            Text(name, style = KedgeTextStyles.body())
+            Text(name, style = MaterialTheme.typography.bodyMedium)
             Text(
                 color.toHexString(),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 fontFamily = JetbrainsMono,
-                color = KedgeColors.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

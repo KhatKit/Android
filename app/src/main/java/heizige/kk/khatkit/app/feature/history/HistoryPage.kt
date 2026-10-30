@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.history;
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -62,8 +63,6 @@ import heizige.kk.kedge.overlays.KedgeSwipeToDismissState
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 
 @Composable
@@ -237,7 +236,7 @@ private fun ConversationItem(
                         Icon(
                             imageVector = pushPin,
                             contentDescription = null,
-                            tint = KedgeColors.primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -246,7 +245,7 @@ private fun ConversationItem(
                             .trim(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                     )
                 }
             },

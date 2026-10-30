@@ -36,7 +36,6 @@ import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.theme.PresetTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun PresetThemeButton(
@@ -108,7 +107,7 @@ fun PresetThemeButton(
             }
         }
         ProvideTextStyle(
-            value = KedgeTextStyles.body().copy(
+            value = MaterialTheme.typography.bodyMedium.copy(
                 color = scheme.primary,
                 textAlign = TextAlign.Center,
             )

@@ -32,7 +32,6 @@ import kotlinx.coroutines.Job
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
@@ -90,7 +89,7 @@ fun CompressContextDialog(
                     // Token size selector
                     Text(
                         text = stringResource(R.string.chat_page_compress_target_tokens),
-                        style = KedgeTextStyles.body()
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     KedgeSingleChoiceSegmentedRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -129,7 +128,7 @@ fun CompressContextDialog(
                     // Warning text
                     Text(
                         text = stringResource(R.string.chat_page_compress_warning),
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error
                     )
                 }

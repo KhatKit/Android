@@ -45,7 +45,6 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
-import heizige.kk.kedge.theme.KedgeTextStyles
 import kotlinx.collections.immutable.persistentListOf
 import ui.feice.mochi.basic.MochiTabItem
 import ui.feice.mochi.navigation.MochiTabScaffold
@@ -183,7 +182,7 @@ private fun ModelSettingItem(
                         Text(
                             text = state.currentModel?.displayName
                                 ?: stringResource(R.string.model_list_select_model),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -211,7 +210,7 @@ private fun ModelSettingItem(
         if (description != null) {
             Text(
                 text = description,
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )

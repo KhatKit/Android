@@ -7,7 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 备份状态卡：S3Tab 与 WebDavTab 共用的同一份实现。
@@ -23,7 +22,7 @@ internal fun BackupStatusCard(
             headlineContent = {
                 Text(
                     text = title,
-                    style = KedgeTextStyles.title()
+                    style = MaterialTheme.typography.titleMedium
                 )
             },
             supportingContent = {
@@ -32,12 +31,12 @@ internal fun BackupStatusCard(
                 ) {
                     Text(
                         text = lastBackupText,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = fileSummaryText,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

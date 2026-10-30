@@ -57,7 +57,6 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.theme.KedgeTextStyles
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -273,7 +272,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                 item {
                     Text(
                         text = stringResource(R.string.chat_role_panel_role_missing),
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
                     )
@@ -338,7 +337,7 @@ private fun RolePanelSectionTitle(text: String) {
         Text(
             text = text,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.54f),
-            style = KedgeTextStyles.title().copy(
+            style = MaterialTheme.typography.titleMedium.copy(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 20.sp,
@@ -375,13 +374,13 @@ private fun RolePanelHeader(
         )
         Text(
             text = roleName,
-            style = KedgeTextStyles.displayTitle(),
+            style = MaterialTheme.typography.headlineMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = modelName,
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -389,7 +388,7 @@ private fun RolePanelHeader(
         if (systemPrompt.isNotBlank()) {
             Text(
                 text = systemPrompt.take(120) + if (systemPrompt.length > 120) "..." else "",
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

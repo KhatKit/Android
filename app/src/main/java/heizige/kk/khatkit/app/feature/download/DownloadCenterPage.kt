@@ -37,7 +37,6 @@ import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 全局下载中心：KhatKit bridge 下载（含脚本创建）与更新包下载都汇总到这里。 */
 @Composable
@@ -63,7 +62,7 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
                 )
                 Text(
                     text = "暂无下载任务",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp),
                 )
@@ -127,7 +126,7 @@ private fun DownloadTaskRow(
                 ) {
                     Text(
                         text = task.name,
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -154,7 +153,7 @@ private fun DownloadTaskRow(
                                 append(it)
                             }
                         },
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = if (task.state == "failed") {
                             MaterialTheme.colorScheme.error
                         } else {
@@ -206,7 +205,7 @@ private fun DownloadTaskRow(
             task.file?.let { path ->
                 Text(
                     text = path,
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

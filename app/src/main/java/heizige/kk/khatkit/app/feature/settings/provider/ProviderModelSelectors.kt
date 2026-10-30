@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.provider
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -48,7 +49,6 @@ import heizige.kk.khatkit.app.core.ui.icons.package2
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 
 
@@ -150,7 +150,7 @@ internal fun ModelPicker(
                                 ) {
                                     Text(
                                         text = it.modelId,
-                                        style = KedgeTextStyles.title(),
+                                        style = MaterialTheme.typography.titleMedium,
                                     )
 
                                     Row(

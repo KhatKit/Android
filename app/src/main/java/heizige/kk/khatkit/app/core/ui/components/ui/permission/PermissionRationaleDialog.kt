@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.error
 import heizige.kk.khromia.components.AnimatedAlertDialog
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 权限请求说明对话框
@@ -61,7 +60,7 @@ internal fun PermissionRationaleDialog(
             // 标题
             Text(
                 text = stringResource(R.string.permission_diaog_title),
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
@@ -75,7 +74,7 @@ internal fun PermissionRationaleDialog(
                     } else {
                         stringResource(R.string.permission_desc_require_permission)
                     },
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
@@ -144,7 +143,7 @@ private fun PermissionItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    ProvideTextStyle(value = KedgeTextStyles.title().copy(fontWeight = FontWeight.Medium)) {
+                    ProvideTextStyle(value = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium)) {
                         permissionInfo.displayName()
                     }
                 }
@@ -161,7 +160,7 @@ private fun PermissionItem(
                         ) {
                             Text(
                                 text = stringResource(R.string.permission_required),
-                                style = KedgeTextStyles.footnoteSmall(),
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -177,7 +176,7 @@ private fun PermissionItem(
                         ) {
                             Text(
                                 text = stringResource(R.string.permission_permanently_denied),
-                                style = KedgeTextStyles.footnoteSmall(),
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onError,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -189,7 +188,7 @@ private fun PermissionItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             // 权限使用说明
-            ProvideTextStyle(value = KedgeTextStyles.body()) {
+            ProvideTextStyle(value = MaterialTheme.typography.bodyMedium) {
                 permissionInfo.usage()
             }
         }

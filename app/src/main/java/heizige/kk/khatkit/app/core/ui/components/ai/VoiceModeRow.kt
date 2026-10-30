@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,7 +21,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.feature.chat.VoicePhase
 import heizige.kk.khatkit.app.feature.chat.VoiceSessionState
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun VoiceModeRow(
@@ -31,7 +29,7 @@ internal fun VoiceModeRow(
     onRetry: () -> Unit,
 ) {
     val isError = state.phase == VoicePhase.Error
-    val statusColor = if (isError) KedgeColors.error else KedgeColors.primary
+    val statusColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -42,7 +40,7 @@ internal fun VoiceModeRow(
         ) {
             Icon(graphicEq, contentDescription = null, tint = statusColor, modifier = Modifier.size(20.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.chat_page_voice_title), style = KedgeTextStyles.body(), color = statusColor)
+                Text(stringResource(R.string.chat_page_voice_title), style = MaterialTheme.typography.bodyMedium, color = statusColor)
                 Text(
                     text = when (state.phase) {
                         VoicePhase.Off -> ""
@@ -53,20 +51,20 @@ internal fun VoiceModeRow(
                         VoicePhase.Speaking -> stringResource(R.string.chat_page_voice_speaking)
                         VoicePhase.Error -> stringResource(R.string.chat_page_voice_paused)
                     },
-                    style = KedgeTextStyles.body(),
-                    color = KedgeColors.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (isError) MochiTextButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_retry)) }
             MochiTextButton(onClick = onStop, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_end)) }
         }
         if (isError && !state.error.isNullOrBlank()) {
-            Text(state.error, style = KedgeTextStyles.body(), color = statusColor)
+            Text(state.error, style = MaterialTheme.typography.bodyMedium, color = statusColor)
         }
         if (state.transcript.isNotBlank()) {
             Text(
                 text = state.transcript,
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

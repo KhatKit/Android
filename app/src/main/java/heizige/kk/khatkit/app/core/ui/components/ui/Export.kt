@@ -21,7 +21,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.export.ExporterState
 import heizige.kk.khatkit.app.core.ui.icons.description
 import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun <T> ExportDialog(
@@ -52,11 +51,11 @@ fun <T> ExportDialog(
                         Column {
                             Text(
                                 text = stringResource(R.string.export_to_file),
-                                style = KedgeTextStyles.title()
+                                style = MaterialTheme.typography.titleMedium
                             )
                             Text(
                                 text = stringResource(R.string.export_to_file_desc),
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -80,11 +79,11 @@ fun <T> ExportDialog(
                         Column {
                             Text(
                                 text = stringResource(R.string.export_share),
-                                style = KedgeTextStyles.title()
+                                style = MaterialTheme.typography.titleMedium
                             )
                             Text(
                                 text = stringResource(R.string.export_share_desc),
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

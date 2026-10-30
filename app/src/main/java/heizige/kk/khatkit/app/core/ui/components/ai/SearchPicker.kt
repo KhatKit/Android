@@ -75,7 +75,6 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.searchInsights
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 enum class SearchMode {
     OFF,
@@ -144,7 +143,7 @@ fun SearchPickerButton(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 iconContent(18.dp)
-                Text("搜索", style = KedgeTextStyles.body())
+                Text("搜索", style = MaterialTheme.typography.bodyMedium)
             }
         }
     } else {
@@ -419,12 +418,12 @@ private fun SearchModeCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = title,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = description,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -466,7 +465,7 @@ private fun SearchProviderPicker(
             }
             Text(
                 text = stringResource(R.string.search_picker_select_provider),
-                style = KedgeTextStyles.displayTitle(),
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -509,7 +508,7 @@ private fun SearchProviderPicker(
                     titleContent = {
                         Text(
                             text = service.displayName,
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                             color = textColor.value,
                         )
                     },

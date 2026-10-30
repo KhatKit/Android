@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -56,7 +55,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 enum class ReasoningCardState(val expanded: Boolean) {
     Collapsed(false),
@@ -132,7 +130,7 @@ private fun ReasoningContent(
     loading: Boolean,
 ) {
     val isPreview = expandState == ReasoningCardState.Preview
-    val reasoningTextStyle = KedgeTextStyles.body().copy(
+    val reasoningTextStyle = MaterialTheme.typography.bodyMedium.copy(
         fontFamily = LocalTextStyle.current.fontFamily,
     )
     Column(
@@ -215,7 +213,7 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
         icon = {
             // 与工具调用行逐项对齐（ChatMessageTools.kt:78-83 / :149-156）：尺寸 20dp、
             // 着色 `LocalContentColor@0.7`。图标底衬按内容包裹，尺寸或着色任一项不同，
-            // 同一块链里就会出现两种大小/两种颜色；标题仍各自用 KedgeColors.secondary。
+            // 同一块链里就会出现两种大小/两种颜色；标题仍各自用 MaterialTheme.colorScheme.secondary。
             Icon(
                 imageVector = emojiObjects,
                 contentDescription = null,
@@ -232,8 +230,8 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
                         R.string.deep_thinking_seconds,
                         state.duration.toDouble(DurationUnit.SECONDS).toFloat()
                     ),
-                    style = KedgeTextStyles.title().copy(fontFamily = chatFontFamily),
-                    color = KedgeColors.secondary,
+                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = chatFontFamily),
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.shimmer(isLoading = loading),
                 )
             }
@@ -242,8 +240,8 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
             if (showThinkingTitle && state.duration > 0.seconds) {
                 Text(
                     text = state.duration.toString(DurationUnit.SECONDS, 1),
-                    style = KedgeTextStyles.footnoteSmall().copy(fontFamily = chatFontFamily),
-                    color = KedgeColors.secondary,
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = chatFontFamily),
+                    color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.shimmer(isLoading = loading),
                 )
             }
@@ -276,8 +274,8 @@ private fun ReasoningTitle(title: String) {
     ) {
         Text(
             text = it,
-            style = KedgeTextStyles.title().copy(fontFamily = chatFontFamily),
-            color = KedgeColors.secondary,
+            style = MaterialTheme.typography.titleMedium.copy(fontFamily = chatFontFamily),
+            color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier
                 .padding(horizontal = 4.dp)
                 .shimmer(true),

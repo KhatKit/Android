@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,7 +59,6 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 @Composable
@@ -179,7 +177,7 @@ internal fun ModelCard(
             shape = shape,
             leadingContent = {
                 KkSurface(
-                    color = KedgeColors.secondaryContainer,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = MaterialTheme.shapes.small,
                 ) {
                     AutoAIIcon(
@@ -191,7 +189,7 @@ internal fun ModelCard(
             titleContent = {
                 Text(
                     text = model.displayName,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -243,13 +241,13 @@ internal fun BuiltInToolsSettings(
     ) {
         Text(
             text = stringResource(R.string.setting_page_built_in_tools),
-            style = KedgeTextStyles.title()
+            style = MaterialTheme.typography.titleMedium
         )
 
         Text(
             text = stringResource(R.string.setting_page_built_in_tools_desc),
-            style = KedgeTextStyles.body(),
-            color = KedgeColors.onSurfaceVariant
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         val availableTools = listOf(
@@ -277,7 +275,7 @@ internal fun BuiltInToolsSettings(
                     titleContent = {
                         Text(
                             text = title,
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     },
                     trailingContent = {
@@ -312,13 +310,13 @@ internal fun ProviderOverrideSettings(
     ) {
         Text(
             text = stringResource(R.string.setting_provider_page_provider_override),
-            style = KedgeTextStyles.title()
+            style = MaterialTheme.typography.titleMedium
         )
 
         Text(
             text = stringResource(R.string.setting_provider_page_provider_override_desc),
-            style = KedgeTextStyles.body(),
-            color = KedgeColors.onSurfaceVariant
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         if (providerOverride != null) {
@@ -337,7 +335,7 @@ internal fun ProviderOverrideSettings(
                 titleContent = {
                     Text(
                         text = "${providerOverride.name} (Override)",
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                     )
                 },
                 trailingContent = {

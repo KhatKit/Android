@@ -74,7 +74,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -618,8 +617,8 @@ internal fun AutomationToast(
 
     val miuix = false
     Surface(
-        color = if (miuix) KedgeColors.secondaryContainer else ToastDefaults.color,
-        contentColor = if (miuix) KedgeColors.onSecondaryContainer else ToastDefaults.contentColor,
+        color = if (miuix) MaterialTheme.colorScheme.secondaryContainer else ToastDefaults.color,
+        contentColor = if (miuix) MaterialTheme.colorScheme.onSecondaryContainer else ToastDefaults.contentColor,
         shape = RoundedCornerShape(24.dp),
         modifier = modifier
             .widthIn(max = ToastDefaults.screenSizeMin() * 0.85f)

@@ -73,7 +73,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.kedge.components.KedgeFloatingActionButton
-import heizige.kk.kedge.theme.KedgeTextStyles
 import androidx.compose.foundation.layout.navigationBarsPadding
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -135,7 +134,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                         disabledBorderColor = Color.Transparent
                     ),
                     maxLines = 10,
-                    textStyle = KedgeTextStyles.displayTitle(),
+                    textStyle = MaterialTheme.typography.headlineMedium,
                     shape = RoundedCornerShape(16.dp)
                 )
 
@@ -175,7 +174,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     text = translatedText.ifEmpty {
                         stringResource(R.string.translator_page_result_placeholder)
                     },
-                    style = KedgeTextStyles.displayTitle(),
+                    style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp)

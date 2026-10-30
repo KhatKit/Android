@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
@@ -126,7 +125,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 )
             }
             item {
-                Text("流程节点", style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
+                Text("流程节点", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
             itemsIndexed(nodes, key = { index, node -> "${node.title}-$index" }) { index, node ->
                 WorkflowNodeCard(
@@ -148,7 +147,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 )
             }
             item {
-                Text("添加模块", style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
+                Text("添加模块", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
             item {
                 MochiTextButton(
@@ -163,7 +162,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             presets.groupBy { it.category }.forEach { (category, actions) ->
                 item(key = category) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(category, style = KedgeTextStyles.body(), color = MaterialTheme.colorScheme.primary)
+                        Text(category, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth(),
@@ -198,7 +197,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             item {
                 Text(
                     "规范形态是可视化 JSON，执行时编译成现有 FlowSpec。触发器只引用已有的 18 种事件。",
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -236,7 +235,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 item {
                     Text(
                         "运行 ${execution.status}",
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -252,8 +251,8 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                                 Text("${index + 1}. ${step.nodeId} · ${step.kind} · ${step.status}")
                             }
                             if (expandedStep == index) {
-                                Text("输入 ${step.input}", style = KedgeTextStyles.footnoteSmall())
-                                Text("输出 ${step.output}", style = KedgeTextStyles.footnoteSmall())
+                                Text("输入 ${step.input}", style = MaterialTheme.typography.labelSmall)
+                                Text("输出 ${step.output}", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -306,14 +305,14 @@ private fun WorkflowNodeCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("${index + 1}", style = KedgeTextStyles.title(), color = MaterialTheme.colorScheme.primary)
+                Text("${index + 1}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 12.dp),
                 ) {
-                    Text(node.title, style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
-                    Text("${node.category} · ${node.detail}", style = KedgeTextStyles.footnoteSmall())
+                    Text(node.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("${node.category} · ${node.detail}", style = MaterialTheme.typography.labelSmall)
                 }
                 KkSwitch(checked = node.enabled, onCheckedChange = { onChange(node.copy(enabled = it)) })
             }

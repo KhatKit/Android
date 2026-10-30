@@ -43,7 +43,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryConflict
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryDocument
@@ -161,7 +160,7 @@ internal fun RoleMemoryPanel(
                     onClick = { vm.update(assistant.copy(enableMemory = !assistant.enableMemory, useGlobalMemory = false)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = cards.groupItemShape(isFirst = true, isLast = false),
-                    titleContent = { Text("角色记忆", style = KedgeTextStyles.body()) },
+                    titleContent = { Text("角色记忆", style = MaterialTheme.typography.bodyMedium) },
                     trailingContent = {
                         KkSwitch(checked = assistant.enableMemory, onCheckedChange = {
                             vm.update(assistant.copy(enableMemory = it, useGlobalMemory = false))
@@ -172,7 +171,7 @@ internal fun RoleMemoryPanel(
                     onClick = { vm.update(assistant.copy(autoExtractMemory = !assistant.autoExtractMemory)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = cards.groupItemShape(isFirst = false, isLast = true),
-                    titleContent = { Text("自动整理", style = KedgeTextStyles.body()) },
+                    titleContent = { Text("自动整理", style = MaterialTheme.typography.bodyMedium) },
                     trailingContent = {
                         KkSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
                             vm.update(assistant.copy(autoExtractMemory = it))
@@ -192,7 +191,7 @@ internal fun RoleMemoryPanel(
                         },
                         titleContent = {
                             Text(document?.path ?: "MEMORY.md", maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                style = KedgeTextStyles.title())
+                                style = MaterialTheme.typography.titleMedium)
                         },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -229,8 +228,8 @@ internal fun RoleMemoryPanel(
                 if (current.path == "MEMORY.md") {
                     val loaded = minOf(draft.length, RoleMemoryRepository.CURATED_BUDGET)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("加载预算", style = KedgeTextStyles.footnoteSmall())
-                        Text("$loaded / ${RoleMemoryRepository.CURATED_BUDGET} 字符", style = KedgeTextStyles.footnoteSmall())
+                        Text("加载预算", style = MaterialTheme.typography.labelSmall)
+                        Text("$loaded / ${RoleMemoryRepository.CURATED_BUDGET} 字符", style = MaterialTheme.typography.labelSmall)
                     }
                     LinearProgressIndicator(
                         progress = { loaded.toFloat() / RoleMemoryRepository.CURATED_BUDGET },
@@ -252,7 +251,7 @@ internal fun RoleMemoryPanel(
                 }
                 Text(
                     if (busy) "正在保存…" else if (dirty) "未保存" else "${current.content.length} 字符",
-                    style = KedgeTextStyles.footnoteSmall(), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -285,8 +284,8 @@ internal fun RoleMemoryPanel(
             title = { Text("文件已被修改") },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text("磁盘版本", style = KedgeTextStyles.title())
-                    Text(latest.content, style = KedgeTextStyles.body())
+                    Text("磁盘版本", style = MaterialTheme.typography.titleMedium)
+                    Text(latest.content, style = MaterialTheme.typography.bodyMedium)
                 }
             },
             confirmButton = { MochiTextButton(onClick = {

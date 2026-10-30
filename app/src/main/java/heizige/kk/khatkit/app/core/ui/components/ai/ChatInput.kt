@@ -184,7 +184,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -212,7 +211,6 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeFloatingActionButton
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -248,7 +246,7 @@ fun ChatInput(
 ) {
     val toaster = LocalToaster.current
     val assistant = settings.getCurrentAssistant()
-    val hazeTintColor = KedgeColors.surfaceContainerHigh
+    val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val inputHazeStyle = HazeBlurStyle.Material3 {
         blurRadius(20.dp)
     }
@@ -581,7 +579,7 @@ fun ChatInput(
                 border = if (easedProgress() > 0.05f) {
                     BorderStroke(
                         width = (2f * easedProgress()).dp,
-                        color = KedgeColors.outlineVariant.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
                     )
                 } else null,
             ) {
@@ -600,7 +598,7 @@ fun ChatInput(
                             onRetry = { onStartVoiceMode?.invoke() },
                         )
                         MochiHorizontalDivider(
-                            color = KedgeColors.outlineVariant.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
                     }
                     if (state.messageContent.isNotEmpty()) {
@@ -815,12 +813,12 @@ fun ChatInput(
                     // 事件只观察不消费 ⇒ 短按仍走按钮自己的 onClick。
                     .longPressOnly { startVoiceInput() },
                 containerColor = when (fabState) {
-                    FabState.Recording -> KedgeColors.errorContainer
-                    FabState.Send -> KedgeColors.primary
+                    FabState.Recording -> MaterialTheme.colorScheme.errorContainer
+                    FabState.Send -> MaterialTheme.colorScheme.primary
                 },
                 contentColor = when (fabState) {
-                    FabState.Recording -> KedgeColors.onErrorContainer
-                    FabState.Send -> KedgeColors.onPrimary
+                    FabState.Recording -> MaterialTheme.colorScheme.onErrorContainer
+                    FabState.Send -> MaterialTheme.colorScheme.onPrimary
                 },
             ) {
                 AnimatedContent(
@@ -916,14 +914,14 @@ private fun SendButton(
 ) {
     val showStop = loading && empty
     val containerColor = when {
-        showStop -> KedgeColors.errorContainer
-        empty -> KedgeColors.surfaceContainerHigh
-        else -> KedgeColors.primary
+        showStop -> MaterialTheme.colorScheme.errorContainer
+        empty -> MaterialTheme.colorScheme.surfaceContainerHigh
+        else -> MaterialTheme.colorScheme.primary
     }
     val contentColor = when {
-        showStop -> KedgeColors.onErrorContainer
-        empty -> KedgeColors.onSurface.copy(alpha = 0.38f)
-        else -> KedgeColors.onPrimary
+        showStop -> MaterialTheme.colorScheme.onErrorContainer
+        empty -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        else -> MaterialTheme.colorScheme.onPrimary
     }
     Box(
         contentAlignment = Alignment.Center,
@@ -969,7 +967,7 @@ private fun ActionIconButton(
             modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
         ) {
             CompositionLocalProvider(
-                LocalContentColor provides KedgeColors.onSurfaceVariant
+                LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
             ) {
                 content()
             }
@@ -1004,7 +1002,7 @@ private fun TextInputRow(
         if (state.isEditing()) {
             KkSurface(
                 shape = RoundedCornerShape(16.dp),
-                color = KedgeColors.surfaceContainerHigh,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Row(
                     modifier = Modifier
@@ -1182,7 +1180,7 @@ private fun ChatInputTextField(
         state = state.textContent,
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        textStyle = KedgeTextStyles.bodyLarge(),
+        textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = {
             Text(placeholder)
         },
@@ -1211,8 +1209,8 @@ private fun CompletionPopup(
             .heightIn(max = 280.dp),
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 2.dp,
-        border = BorderStroke(1.dp, KedgeColors.outlineVariant.copy(alpha = 0.5f)),
-        color = KedgeColors.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         LazyColumn(
             modifier = Modifier
@@ -1238,7 +1236,7 @@ private fun CompletionPopup(
                                 imageVector = icon,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = KedgeColors.primary,
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
                         Column(
@@ -1247,15 +1245,15 @@ private fun CompletionPopup(
                         ) {
                             Text(
                                 text = item.label,
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             item.detail?.let { detail ->
                                 Text(
                                     text = detail,
-                                    style = KedgeTextStyles.footnoteSmall(),
-                                    color = KedgeColors.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -1313,13 +1311,13 @@ private fun QuickMessageButton(
                     ) {
                         Text(
                             text = quickMessage.title,
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = quickMessage.content,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -1478,13 +1476,13 @@ private fun FullScreenEditor(
                 .clip(windowShape)
                 .background(
                     // surface alpha 0.94 → 0.78（KodeHeap Post.kt:2864 同式）
-                    KedgeColors.surface.copy(alpha = windowSurfaceAlpha)
+                    MaterialTheme.colorScheme.surface.copy(alpha = windowSurfaceAlpha)
                 )
                 .then(
                     if (windowBorderWidth > 0.001.dp) {
                         Modifier.border(
                             width = windowBorderWidth,
-                            color = KedgeColors.outline,
+                            color = MaterialTheme.colorScheme.outline,
                             shape = windowShape,
                         )
                     } else {
@@ -1525,7 +1523,7 @@ private fun FullScreenEditor(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 180.dp),
-                                textStyle = KedgeTextStyles.bodyLarge(),
+                                textStyle = MaterialTheme.typography.bodyLarge,
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                 singleLine = false,
                             )
@@ -1581,7 +1579,7 @@ private fun FullScreenEditor(
                             }
                         }
                         .background(
-                            KedgeColors.surfaceContainerHigh.copy(alpha = toolbarMorph.containerAlpha),
+                            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = toolbarMorph.containerAlpha),
                             // reveal = 1 时 cornerRadiusPx == 18.dp.toPx()，与改动前的
                             // RoundedCornerShape(18.dp) 像素级相同
                             RoundedCornerShape(toolbarMorph.cornerRadiusPx),
@@ -1768,8 +1766,8 @@ private fun PanelAction(
         }
         Text(
             text = label,
-            style = KedgeTextStyles.footnoteSmall(),
-            color = KedgeColors.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

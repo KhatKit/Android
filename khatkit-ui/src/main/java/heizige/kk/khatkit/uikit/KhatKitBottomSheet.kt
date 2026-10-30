@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.animation.core.Animatable
@@ -73,8 +74,6 @@ import heizige.kk.khatkit.ui.UiNode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.theme.KedgeColors
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /** 自绘弹层的默认高度：与 Khromia `PrimaryBottomSheet` 的 0.9 屏上限对齐。 */
@@ -269,7 +268,7 @@ fun KhatKitBottomSheet(
                     ),
                 // 大标题栏用的是 Miuix/M3 的 surface；弹层如果还是 surfaceContainerLow，
                 // 状态栏区域（= 弹层底色）会比顶栏亮一档，看起来像两截。统一到 surface。
-                color = KedgeColors.surface,
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 8.dp,
             ) {
                 // 大标题栏自己会消费状态栏 inset 并把底色画到状态栏后面（和聊天抽屉同一套做法：
@@ -303,7 +302,7 @@ fun KhatKitBottomSheet(
                                             imageVector = item.icon?.let { UiIconVectors.vector(it) }
                                                 ?: Icons.Filled.Circle,
                                             contentDescription = item.label,
-                                            tint = KedgeColors.onSurface,
+                                            tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
                                 }
@@ -393,7 +392,7 @@ internal fun SheetTopBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(KedgeColors.surfaceVariant.copy(alpha = 0.54f)),
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f)),
     ) {
         Box(
             modifier = Modifier
@@ -455,7 +454,7 @@ internal fun SheetTopBar(
         ) {
             Text(
                 text = title,
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -469,7 +468,7 @@ internal fun SheetDragHandle() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(KedgeColors.surfaceVariant.copy(alpha = 0.54f))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f))
             .padding(vertical = 24.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -486,7 +485,7 @@ private fun SheetGrabber() {
             .height(4.dp)
             .width(64.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(KedgeColors.onSurfaceVariant.copy(alpha = 0.87f)),
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f)),
     )
 }
 
@@ -504,7 +503,7 @@ internal fun SheetCloseBar(dismissText: String?, onDismiss: (() -> Unit)? = null
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(KedgeColors.surfaceVariant.copy(alpha = 0.26f))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f))
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
@@ -532,7 +531,7 @@ private fun SheetBottomBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(KedgeColors.surfaceVariant.copy(alpha = 0.26f))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -542,14 +541,14 @@ private fun SheetBottomBar(
             contentDescription = null,
             modifier = Modifier
                 .size(24.dp)
-                .background(KedgeColors.surfaceVariant.copy(alpha = 0.54f), CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f), CircleShape)
                 .padding(8.dp),
-            tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
         )
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        Text(text = title, style = KedgeTextStyles.body())
+        Text(text = title, style = MaterialTheme.typography.bodyMedium)
 
         Spacer(modifier = Modifier.weight(1f))
 

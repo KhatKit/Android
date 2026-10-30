@@ -6,7 +6,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -61,7 +60,6 @@ import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.questionAnswer
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 internal const val ASK_USER_TOOL_NAME = "ask_user"
@@ -86,8 +84,8 @@ fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool
         label = {
             Text(
                 text = stringResource(R.string.chat_message_tool_call_generic, tool.toolName),
-                style = KedgeTextStyles.title(),
-                color = KedgeColors.secondary,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -159,8 +157,8 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
         label = {
             Text(
                 text = renderer.title(context),
-                style = KedgeTextStyles.title(),
-                color = KedgeColors.secondary,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -226,8 +224,8 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                         Text(
                             text = stringResource(R.string.chat_message_tool_denied) +
                                 if (reason.isNotBlank()) ": $reason" else "",
-                            style = KedgeTextStyles.footnoteSmall(),
-                            color = KedgeColors.error,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -319,8 +317,8 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                     R.string.chat_message_tool_ask_questions,
                     questions.size
                 ),
-                style = KedgeTextStyles.title(),
-                color = KedgeColors.secondary,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -335,8 +333,8 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = q.question,
-                            style = KedgeTextStyles.body(),
-                            color = KedgeColors.onSurface,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
 
                         if (isPending && onToolAnswer != null) {
@@ -367,7 +365,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                             label = {
                                                 Text(
                                                     text = option,
-                                                    style = KedgeTextStyles.footnoteSmall(),
+                                                    style = MaterialTheme.typography.labelSmall,
                                                 )
                                             },
                                         )
@@ -379,7 +377,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 value = answers[q.id] ?: "",
                                 onValueChange = { answers[q.id] = it },
                                 modifier = Modifier.fillMaxWidth(),
-                                textStyle = KedgeTextStyles.body(),
+                                textStyle = MaterialTheme.typography.bodyMedium,
                                 singleLine = false,
                                 minLines = 1,
                                 maxLines = 3,
@@ -396,8 +394,8 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 ?: answeredState.answer
                             Text(
                                 text = answerText,
-                                style = KedgeTextStyles.body(),
-                                color = KedgeColors.primary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }

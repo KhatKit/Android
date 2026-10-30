@@ -64,7 +64,6 @@ import heizige.kk.khatkit.app.core.util.CrashHandler
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.uuid.Uuid
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
 
 @AndroidEntryPoint
@@ -101,7 +100,7 @@ class SafeModeActivity : ComponentActivity() {
                     ) {
                         Text(
                             text = stringResource(R.string.safe_mode_description),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
@@ -109,7 +108,7 @@ class SafeModeActivity : ComponentActivity() {
                             text = stringResource(
                                 R.string.safe_mode_current_assistant,
                                 settings.getCurrentAssistant().name.ifEmpty { stringResource(R.string.safe_mode_default_assistant) }),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                         )
 
                         MochiButton(
@@ -138,7 +137,7 @@ class SafeModeActivity : ComponentActivity() {
                             ) {
                                 Text(
                                     text = stringResource(R.string.safe_mode_crash_report),
-                                    style = KedgeTextStyles.title(),
+                                    style = MaterialTheme.typography.titleMedium,
                                 )
                                 MochiButton(
                                     onClick = {
@@ -166,7 +165,7 @@ class SafeModeActivity : ComponentActivity() {
                                         .padding(12.dp)
                                         .verticalScroll(vScroll)
                                         .horizontalScroll(hScroll),
-                                    style = KedgeTextStyles.body(),
+                                    style = MaterialTheme.typography.bodyMedium,
                                     fontFamily = FontFamily.Monospace,
                                 )
                             }
@@ -263,7 +262,7 @@ private fun AssistantPickerSheet(
                         titleContent = {
                             Text(
                                 text = assistant.name.ifEmpty { stringResource(R.string.safe_mode_default_assistant) },
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = if (checked) MaterialTheme.colorScheme.onPrimaryContainer
                                 else MaterialTheme.colorScheme.onSurface,
                             )

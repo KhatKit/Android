@@ -69,7 +69,6 @@ import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.kedge.components.KedgeExtendedFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 
@@ -354,14 +353,14 @@ fun SettingWebPage() {
                         headlineContent = {
                             Text(
                                 text = stringResource(R.string.setting_page_web_server_address_note),
-                                style = KedgeTextStyles.title(),
+                                style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         },
                         supportingContent = {
                             Text(
                                 text = stringResource(R.string.setting_page_web_server_address_note_desc),
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },

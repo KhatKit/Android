@@ -135,7 +135,6 @@ import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
 import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
 import heizige.kk.khatkit.uikit.mochi.MochiButtonDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
@@ -321,7 +320,7 @@ fun ChatDrawerContent(
                 title = {
                     // 标题与搜索输入框共用 topBarTitle()，保证两边字号严格相等
                     // （MD3 22sp / Miuix 24sp）。
-                    val topBarStyle = KedgeTextStyles.topBarTitle()
+                    val topBarStyle = MaterialTheme.typography.titleLarge
                     Box {
                         if (titleVisible) {
                             Text(
@@ -465,7 +464,7 @@ fun ChatDrawerContent(
                         ) {
                             Text(
                                 text = subscriptionLabel,
-                                style = KedgeTextStyles.footnoteSmall(),
+                                style = MaterialTheme.typography.labelSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -586,7 +585,7 @@ fun ChatDrawerContent(
 
     // 抽屉底色不能依赖 ModalDrawerSheet 的默认值：material3 1.5.0-alpha29 改了
     // DrawerDefaults 的容器色，MD3Exp 下会漏出灰紫底。
-    // 这里显式给色，且两种风格都与聊天页同底色（页面用 KedgeColors.surface）：
+    // 这里显式给色，且两种风格都与聊天页同底色（页面用 MaterialTheme.colorScheme.surface）：
     // 有色的一档只留给顶/底栏，抽屉本身跟正文同色。
     val drawerContainerColor =     MaterialTheme.colorScheme.surfaceContainerLow
 
@@ -655,7 +654,7 @@ fun ChatDrawerContent(
                                 {
                                     Text(
                                         text = stringResource(R.string.assistant_page_current_assistant),
-                                        style = KedgeTextStyles.body(),
+                                        style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -800,8 +799,8 @@ private fun DrawerMessageSearchList(
 ) {
     val highlight = MaterialTheme.colorScheme.tertiaryContainer
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val bodyStyle = KedgeTextStyles.body()
-    val footnote = KedgeTextStyles.footnoteSmall()
+    val bodyStyle = MaterialTheme.typography.bodyMedium
+    val footnote = MaterialTheme.typography.labelSmall
     val grouped = remember(state.hits) { state.hits.groupBy { it.conversationId } }
     val pending = state.searching || state.keyword != keyword
     val hasAny = grouped.isNotEmpty() || state.titleFallback.isNotEmpty()
@@ -883,7 +882,7 @@ private fun DrawerMessageSearchList(
                                 ) {
                                     Text(
                                         text = head.title.ifBlank { "未命名会话" },
-                                        style = KedgeTextStyles.title(),
+                                        style = MaterialTheme.typography.titleMedium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f),
@@ -989,21 +988,21 @@ private fun DrawerSearchHitRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = hit.title.ifBlank { "未命名会话" },
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = time,
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = muted,
                         maxLines = 1,
                     )
                 }
                 Text(
                     text = snippet,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1011,14 +1010,14 @@ private fun DrawerSearchHitRow(
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
                         text = snippet,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = time,
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = muted,
                         maxLines = 1,
                         modifier = Modifier.padding(start = 8.dp),

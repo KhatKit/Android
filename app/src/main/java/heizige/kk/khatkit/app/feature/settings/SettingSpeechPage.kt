@@ -77,7 +77,6 @@ import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 
@@ -592,7 +591,7 @@ private fun TTSProviderItem(
                 ) {
                     Text(
                         text = provider.name.ifEmpty { stringResource(R.string.setting_tts_page_default_name) },
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         color = if (isSelected) {
                             MaterialTheme.colorScheme.onPrimaryContainer
                         } else {
@@ -615,7 +614,7 @@ private fun TTSProviderItem(
                             is TTSProviderSetting.FishAudio -> "Fish Audio"
                             is TTSProviderSetting.Volcengine -> "火山引擎"
                         },
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -742,7 +741,7 @@ private fun ASRProviderItem(
                 ) {
                     Text(
                         text = provider.name.ifEmpty { stringResource(R.string.setting_asr_page_default_name) },
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         color = if (isSelected) {
                             MaterialTheme.colorScheme.onPrimaryContainer
                         } else {
@@ -761,7 +760,7 @@ private fun ASRProviderItem(
                             is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
                             is ASRProviderSetting.SherpaLocal -> "本地识别 (sherpa-onnx)"
                         },
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

@@ -50,7 +50,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * A multi-line text input component with a header and file import functionality.
@@ -129,7 +128,7 @@ fun TextArea(
             ) {
                 Text(
                     text = label,
-                    style = KedgeTextStyles.body()
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),

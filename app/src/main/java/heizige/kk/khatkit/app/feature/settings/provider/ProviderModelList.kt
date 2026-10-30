@@ -122,7 +122,6 @@ import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
@@ -182,12 +181,12 @@ internal fun ModelList(
                     ) {
                         Text(
                             text = stringResource(R.string.setting_provider_page_no_models),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = stringResource(R.string.setting_provider_page_add_models_hint),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
@@ -278,7 +277,7 @@ internal fun ModelFormGroup(
             modifier = Modifier.padding(FormMetrics.ItemPadding + 2.dp),
             verticalArrangement = Arrangement.spacedBy(FormMetrics.ItemSpacing),
         ) {
-                        Text(title, style = KedgeTextStyles.title())
+                        Text(title, style = MaterialTheme.typography.titleMedium)
         
             content()
         }
@@ -555,7 +554,7 @@ internal fun AddModelButton(
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(
                         stringResource(R.string.setting_provider_page_add_new_model),
-                        style = KedgeTextStyles.body()
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }

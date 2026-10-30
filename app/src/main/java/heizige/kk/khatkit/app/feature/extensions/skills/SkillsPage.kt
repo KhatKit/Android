@@ -69,7 +69,6 @@ import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
@@ -284,12 +283,12 @@ private fun SkillsEmptyState() {
         )
         Text(
             text = stringResource(R.string.skills_page_empty_title),
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = stringResource(R.string.skills_page_empty_hint),
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -321,21 +320,21 @@ private fun SkillCard(
         titleContent = {
             Text(
                 text = skill.name,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
             )
         },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = skill.description,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                 )
                 if (!skill.compatibility.isNullOrBlank()) {
                     Text(
                         text = skill.compatibility,
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                 }
@@ -345,7 +344,7 @@ private fun SkillCard(
             if (skill.builtin) {
                 Text(
                     text = stringResource(R.string.skills_page_builtin_badge),
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.secondary,
                 )
             } else {
@@ -491,7 +490,7 @@ private fun AddSkillDialog(
                 isError = nameError,
                 minLines = 8,
                 maxLines = 14,
-                textStyle = KedgeTextStyles.body().copy(fontFamily = FontFamily.Monospace),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -526,7 +525,7 @@ private fun ImportSkillDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = stringResource(R.string.skills_page_import_description),
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Md3OutlinedTextFieldWithSlots(
@@ -549,7 +548,7 @@ private fun ImportSkillDialog(
                         KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Text(
                             stringResource(R.string.skills_page_downloading),
-                            style = KedgeTextStyles.body()
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }

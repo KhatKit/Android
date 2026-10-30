@@ -38,7 +38,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
@@ -155,7 +154,7 @@ private fun PromptSettingItem(
             ) {
                 Text(
                     text = promptDescription,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Md3OutlinedTextField(

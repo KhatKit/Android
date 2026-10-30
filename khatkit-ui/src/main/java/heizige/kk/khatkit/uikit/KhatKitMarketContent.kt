@@ -72,7 +72,6 @@ import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import kotlinx.coroutines.launch
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * KhatKit 卡片市场 - 现代探索页面风格
@@ -226,10 +225,10 @@ fun KhatKitMarketContent(
                 modifier = Modifier.weight(1f),
             )
             MochiIconButton(onClick = { refresh(query) }) {
-                Text("🔍", style = KedgeTextStyles.title())
+                Text("🔍", style = MaterialTheme.typography.titleMedium)
             }
             MochiIconButton(onClick = { showSettings = true }) {
-                Text("⚙️", style = KedgeTextStyles.title())
+                Text("⚙️", style = MaterialTheme.typography.titleMedium)
             }
         }
 
@@ -247,7 +246,7 @@ fun KhatKitMarketContent(
                     Column(modifier = Modifier.padding(vertical = 8.dp)) {
                         Text(
                             text = "✨ 精选推荐",
-                            style = KedgeTextStyles.displayTitle(),
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
@@ -305,7 +304,7 @@ fun KhatKitMarketContent(
                         KedgeFilterChip(
                             selected = selectedFilter == key,
                             onClick = { selectedFilter = key },
-                            label = { Text(label, style = KedgeTextStyles.footnote()) }
+                            label = { Text(label, style = MaterialTheme.typography.labelMedium) }
                         )
                     }
                 }
@@ -316,7 +315,7 @@ fun KhatKitMarketContent(
                 item(key = "card_count") {
                     Text(
                         text = "共 ${filteredCards.size} 个卡片",
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
@@ -334,12 +333,12 @@ fun KhatKitMarketContent(
                     ) {
                         Text(
                             text = "🔍",
-                            style = KedgeTextStyles.displayTitle()
+                            style = MaterialTheme.typography.headlineMedium
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.khatkit_market_empty),
-                            style = KedgeTextStyles.bodyLarge(),
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -376,7 +375,7 @@ fun KhatKitMarketContent(
                 item(key = "local_only_header") {
                     Text(
                         text = stringResource(R.string.khatkit_market_local_only_title),
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
@@ -446,7 +445,7 @@ private fun FeaturedCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = entry.name,
-                            style = KedgeTextStyles.displayTitle(),
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -460,7 +459,7 @@ private fun FeaturedCard(
                             ) {
                                 Text(
                                     text = "已安装",
-                                    style = KedgeTextStyles.footnoteSmall(),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
@@ -472,7 +471,7 @@ private fun FeaturedCard(
 
                     Text(
                         text = entry.summary.ifBlank { entry.description },
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -532,7 +531,7 @@ private fun CompactCard(
                 ) {
                     Text(
                         text = entry.name,
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -552,7 +551,7 @@ private fun CompactCard(
 
                 Text(
                     text = entry.summary.ifBlank { entry.description },
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -609,7 +608,7 @@ private fun LocalOnlyCompactCard(
             Column {
                 Text(
                     text = name,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -617,7 +616,7 @@ private fun LocalOnlyCompactCard(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "v${version.ifBlank { "?" }} · 本地卡片",
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -646,7 +645,7 @@ private fun SmallBadge(text: String, primary: Boolean = false) {
     ) {
         Text(
             text = text,
-            style = KedgeTextStyles.footnoteSmall(),
+            style = MaterialTheme.typography.labelSmall,
             color = if (primary) MaterialTheme.colorScheme.onPrimaryContainer
                     else MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -664,7 +663,7 @@ private fun BadgeChip(text: String, primary: Boolean = false) {
     ) {
         Text(
             text = text,
-            style = KedgeTextStyles.footnote(),
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = if (primary) FontWeight.Bold else FontWeight.Normal,
             color = if (primary) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -710,7 +709,7 @@ private fun CardDetailDialog(
             ) {
                 Text(
                     text = "v${entry.version}",
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 if (installedVersion != null) {
@@ -720,7 +719,7 @@ private fun CardDetailDialog(
                     ) {
                         Text(
                             text = stringResource(R.string.khatkit_market_installed_version, installedVersion),
-                            style = KedgeTextStyles.footnote(),
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
@@ -733,7 +732,7 @@ private fun CardDetailDialog(
             if (description.isNotBlank()) {
                 Text(
                     text = description,
-                    style = KedgeTextStyles.body()
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
 
@@ -774,7 +773,7 @@ private fun CardDetailDialog(
             // 元信息
             Text(
                 text = "${entry.engine} · ${entry.privilege} · ${entry.bridges.joinToString(", ").ifBlank { "L0" }}",
-                style = KedgeTextStyles.footnote(),
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
@@ -936,7 +935,7 @@ private fun PublishCardDialog(
                 Md3Checkbox(checked = confirmed, onCheckedChange = { confirmed = it })
                 Text(
                     text = stringResource(R.string.khatkit_market_publish_license_confirm),
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                 )
             }
             Row(

@@ -105,7 +105,6 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 
 
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -255,14 +254,14 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                                         Text(
                                                             text = tag.name,
                                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                                            style = KedgeTextStyles.footnoteSmall(),
+                                                            style = MaterialTheme.typography.labelSmall,
                                                         )
                                                     }
                                                 }
                                                 if (assistant.tags.size > 2) {
                                                     Text(
                                                         text = "+${assistant.tags.size - 2}",
-                                                        style = KedgeTextStyles.footnoteSmall(),
+                                                        style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
@@ -321,7 +320,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             titleContent = {
                                 Text(
                                     text = stringResource(R.string.assistant_page_new),
-                                    style = KedgeTextStyles.title(),
+                                    style = MaterialTheme.typography.titleMedium,
                                 )
                             },
                         )
@@ -556,7 +555,7 @@ private fun AssistantCreationSheet(
                         titleContent = {
                             Text(
                                 text = stringResource(R.string.assistant_page_name),
-                                style = KedgeTextStyles.title(),
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         },
                         supportingContent = {
@@ -643,7 +642,7 @@ private fun AssistantActionSheet(
                 )
                 Text(
                     text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    style = KedgeTextStyles.title()
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
 

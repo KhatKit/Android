@@ -9,8 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ToggleSurface(
@@ -21,7 +19,7 @@ fun ToggleSurface(
     content: @Composable () -> Unit
 ) {
     val contentColor =
-        if (checked) KedgeColors.primary else KedgeColors.onSurface
+        if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
     KkSurface(
         onClick = onClick,
         color = Color.Transparent,
@@ -31,7 +29,7 @@ fun ToggleSurface(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
-        ProvideTextStyle(KedgeTextStyles.body()) {
+        ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
             content()
         }
     }

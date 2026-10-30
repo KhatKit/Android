@@ -3,7 +3,6 @@ package heizige.kk.khatkit.app.core.ui.components.message.tools
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.KkSurface
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -89,7 +88,6 @@ import heizige.kk.khatkit.app.core.ui.icons.sms
 import heizige.kk.khatkit.app.core.ui.icons.timer
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 /**
@@ -127,8 +125,8 @@ object MemoryToolUI : ToolUIRenderer {
         context.content.getStringContent("content")?.let { memoryContent ->
             Text(
                 text = memoryContent,
-                style = KedgeTextStyles.footnoteSmall(),
-                color = KedgeColors.onPrimaryContainer,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.shimmer(isLoading = context.loading),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -193,8 +191,8 @@ object SearchWebToolUI : ToolUIRenderer {
         context.content.getStringContent("answer")?.let { answer ->
             Text(
                 text = answer,
-                style = KedgeTextStyles.footnoteSmall(),
-                color = KedgeColors.onPrimaryContainer,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.shimmer(isLoading = context.loading),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -212,8 +210,8 @@ object SearchWebToolUI : ToolUIRenderer {
                 )
                 Text(
                     text = stringResource(R.string.chat_message_tool_search_results_count, items.size),
-                    style = KedgeTextStyles.footnoteSmall(),
-                    color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 )
             }
         }
@@ -249,8 +247,8 @@ object ScrapeWebToolUI : ToolUIRenderer {
     override fun Summary(context: ToolUIContext) {
         Text(
             text = context.arguments.getStringContent("url") ?: "",
-            style = KedgeTextStyles.footnoteSmall(),
-            color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
         )
     }
 
@@ -329,8 +327,8 @@ object TextToSpeechToolUI : ToolUIRenderer {
         ) {
             Text(
                 text = text,
-                style = KedgeTextStyles.footnoteSmall(),
-                color = KedgeColors.onPrimaryContainer,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -390,8 +388,8 @@ object RecentChatsToolUI : ToolUIRenderer {
         if (titles.isEmpty()) return
         Text(
             text = titles.joinToString(", "),
-            style = KedgeTextStyles.footnoteSmall(),
-            color = KedgeColors.onPrimaryContainer,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.shimmer(isLoading = context.loading),
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -424,8 +422,8 @@ object ConversationSearchToolUI : ToolUIRenderer {
         if (results.isEmpty()) return
         Text(
             text = stringResource(R.string.chat_message_tool_search_results_count, results.size),
-            style = KedgeTextStyles.footnoteSmall(),
-            color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
         )
     }
 }
@@ -459,8 +457,8 @@ object GetScreenTimeToolUI : ToolUIRenderer {
         if (isNoPermission(context)) {
             Text(
                 text = stringResource(R.string.assistant_page_local_tools_screen_time_permission_required),
-                style = KedgeTextStyles.footnoteSmall(),
-                color = KedgeColors.error,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
             )
             return
         }
@@ -478,14 +476,14 @@ object GetScreenTimeToolUI : ToolUIRenderer {
             ) {
                 Text(
                     text = stringResource(R.string.tool_ui_screen_time_total),
-                    style = KedgeTextStyles.footnoteSmall(),
-                    color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = formatMinutes(totalMinutes),
-                    style = KedgeTextStyles.footnoteSmall(),
-                    color = KedgeColors.onPrimaryContainer,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
             apps.take(SUMMARY_MAX_APPS).forEach { app ->
@@ -496,16 +494,16 @@ object GetScreenTimeToolUI : ToolUIRenderer {
                     Text(
                         text = app.getStringContent("app_name")
                             ?: app.getStringContent("package") ?: "",
-                        style = KedgeTextStyles.footnoteSmall(),
-                        color = KedgeColors.onPrimaryContainer,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = formatMinutes(app.appMinutes()),
-                        style = KedgeTextStyles.footnoteSmall(),
-                        color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                     )
                 }
             }
@@ -547,15 +545,15 @@ object CalendarQueryToolUI : ToolUIRenderer {
         ) {
             Text(
                 text = stringResource(R.string.chat_message_tool_search_results_count, events.size),
-                style = KedgeTextStyles.footnoteSmall(),
-                color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
             )
             events.take(3).forEach { event ->
                 val title = event.getStringContent("title") ?: return@forEach
                 Text(
                     text = title,
-                    style = KedgeTextStyles.footnoteSmall(),
-                    color = KedgeColors.onPrimaryContainer,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -617,13 +615,13 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                 ) {
                     Text(
                         text = stringResource(R.string.tool_ui_screen_time_total),
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = formatMinutes(totalMinutes),
-                        style = KedgeTextStyles.title(),
-                        color = KedgeColors.primary,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 val begin = content.getStringContent("start")
@@ -631,8 +629,8 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                 if (begin != null && finish != null) {
                     Text(
                         text = "${formatRangeTime(begin)} → ${formatRangeTime(finish)}",
-                        style = KedgeTextStyles.body(),
-                        color = KedgeColors.onSurface.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     )
                 }
             }
@@ -647,15 +645,15 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
                 ) {
                     Text(
                         text = name,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = formatMinutes(app.appMinutes()),
-                        style = KedgeTextStyles.body(),
-                        color = KedgeColors.onSurface.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     )
                 }
                 KedgeProgressIndicator(type = KedgeProgressIndicatorType.Linear,
@@ -743,13 +741,13 @@ private fun SearchWebPreview(
                         }
                         KkSurface(
                             shape = RoundedCornerShape(8.dp),
-                            color = KedgeColors.surfaceContainerHigh,
-                            contentColor = KedgeColors.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ) {
                             Text(
                                 text = "$name: $displayValue",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = KedgeTextStyles.footnoteSmall(),
+                                style = MaterialTheme.typography.labelSmall,
                             )
                         }
                     }
@@ -761,7 +759,7 @@ private fun SearchWebPreview(
             item {
                 KkCard(
                     colors = CardDefaults.cardColors(
-                        containerColor = KedgeColors.primaryContainer
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
                     MarkdownBlock(
@@ -769,7 +767,7 @@ private fun SearchWebPreview(
                         modifier = Modifier
                             .padding(16.dp)
                             .fillMaxWidth(),
-                        style = KedgeTextStyles.body()
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
@@ -816,7 +814,7 @@ private fun SearchWebPreview(
                 KkCard(
                     onClick = { context.openUrl(url) },
                     colors = CardDefaults.cardColors(
-                        containerColor = KedgeColors.tertiaryContainer,
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     )
                 ) {
                     Row(
@@ -837,21 +835,21 @@ private fun SearchWebPreview(
                                     text = dateLabel,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = KedgeTextStyles.footnoteSmall(),
-                                    color = KedgeColors.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Text(
                                 text = text,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
-                                style = KedgeTextStyles.body()
+                                style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 text = url,
                                 maxLines = 1,
-                                style = KedgeTextStyles.footnoteSmall(),
-                                color = KedgeColors.onSurface.copy(alpha = 0.6f)
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
                     }
@@ -896,8 +894,8 @@ private fun ScrapeWebPreview(content: JsonElement) {
             ) {
                 Text(
                     text = urlObject["url"]?.jsonPrimitive?.content ?: "",
-                    style = KedgeTextStyles.body(),
-                    color = KedgeColors.onPrimaryContainer.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                     modifier = Modifier.fillMaxWidth()
                 )
                 KkCard {

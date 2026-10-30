@@ -202,7 +202,6 @@ import heizige.kk.khatkit.app.core.ui.hooks.SearchExpandState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 import kotlin.math.abs
 
@@ -342,7 +341,7 @@ private fun TagChip(
         if (icon != null) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(13.dp), tint = foreground)
         }
-        Text(label, style = KedgeTextStyles.footnoteSmall(), color = foreground)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = foreground)
     }
 }
 
@@ -478,7 +477,7 @@ private fun ExploreSearchTopBar(
                         if (subtitle != null) {
                             Text(
                                 text = subtitle,
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = LocalContentColor.current.copy(0.65f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -1956,7 +1955,7 @@ private fun MarketMoreRow(
         titleContent = {
             Text(
                 text = label,
-                style = KedgeTextStyles.title().copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -2043,7 +2042,7 @@ private fun GroupActionRow(
         titleContent = {
             Text(
                 text = label,
-                style = KedgeTextStyles.title().copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -2121,7 +2120,7 @@ private fun MetaChip(text: String, accent: Boolean = false) {
         contentColor = if (accent) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
-        Text(text = text, style = KedgeTextStyles.footnoteSmall().tabular())
+        Text(text = text, style = MaterialTheme.typography.labelSmall.tabular())
     }
 }
 
@@ -2207,7 +2206,7 @@ private fun MarketFilterChip(
                 // 的 LocalContentColor，色值与容器色同源（同一个动画值）。
                 Text(
                     text = label,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                 )
@@ -2489,7 +2488,7 @@ private fun ExploreFooterSync(loading: Boolean, modifier: Modifier = Modifier) {
         }
         Text(
             text = if (loading) stringResource(R.string.explore_market_footer_syncing) else stringResource(R.string.explore_market_footer_end),
-            style = KedgeTextStyles.footnoteSmall(),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
         )
     }
@@ -2526,7 +2525,7 @@ private fun ExploreEmptyState(
         }
         Text(
             text = if (query.isBlank()) stringResource(R.string.explore_market_empty_title) else stringResource(R.string.explore_market_empty_no_match_title, query),
-            style = KedgeTextStyles.title().copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             textAlign = TextAlign.Center,
         )
         Text(
@@ -2535,7 +2534,7 @@ private fun ExploreEmptyState(
             } else {
                 stringResource(R.string.explore_market_empty_search_hint)
             },
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp),
@@ -2561,12 +2560,12 @@ private fun ToolRow(
         shape = shape,
         leadingContent = { RowIcon(tool.icon) },
         titleContent = {
-            Text(text = stringResource(tool.titleRes), style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = stringResource(tool.titleRes), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         supportingContent = {
             Text(
                 text = stringResource(tool.descRes),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2601,12 +2600,12 @@ private fun SkillRow(
         shape = shape,
         leadingContent = { RowIcon(school) },
         titleContent = {
-            Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         supportingContent = {
             Text(
                 text = description,
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2634,12 +2633,12 @@ private fun McpRow(
         shape = shape,
         leadingContent = { RowIcon(dns) },
         titleContent = {
-            Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         supportingContent = {
             Text(
                 text = displayUrl,
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2749,7 +2748,7 @@ private fun ResourceRow(
         titleContent = {
             Text(
                 text = entry.name,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2758,7 +2757,7 @@ private fun ResourceRow(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = entry.description.ifBlank { entry.items.take(3).joinToString(" · ") },
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -2767,7 +2766,7 @@ private fun ResourceRow(
                 if (meta.isNotBlank()) {
                     Text(
                         text = meta,
-                        style = KedgeTextStyles.footnoteSmall().tabular(),
+                        style = MaterialTheme.typography.labelSmall.tabular(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -2890,7 +2889,7 @@ private fun ResourceDetailSheet(
             if (entry.description.isNotBlank()) {
                 Text(
                     text = entry.description,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -2899,7 +2898,7 @@ private fun ResourceDetailSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = stringResource(R.string.explore_market_includes),
-                        style = KedgeTextStyles.footnote().copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     PopupActionGroup {
@@ -2917,14 +2916,14 @@ private fun ResourceDetailSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.explore_market_processing), style = KedgeTextStyles.body())
+                    Text(stringResource(R.string.explore_market_processing), style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
             if (entry.author.isNotBlank()) {
                 Text(
                     text = stringResource(R.string.explore_market_provided_by, entry.author),
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -2985,7 +2984,7 @@ private fun ModelRow(
         titleContent = {
             Text(
                 text = model.displayName.ifBlank { model.modelId },
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2999,7 +2998,7 @@ private fun ModelRow(
                     providerName.takeIf { it.isNotBlank() },
                     badges.takeIf { it.isNotEmpty() }?.joinToString(" · "),
                 ).joinToString(" · "),
-                style = KedgeTextStyles.footnoteSmall(),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -3035,12 +3034,12 @@ private fun LocalCardRow(
         shape = shape,
         leadingContent = { RowIcon(extension) },
         titleContent = {
-            Text(text = name, style = KedgeTextStyles.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         supportingContent = {
             Text(
                 text = stringResource(R.string.explore_market_local_card_meta, version),
-                style = KedgeTextStyles.body().tabular(),
+                style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -3080,7 +3079,7 @@ private fun DependencyRow(
         titleContent = {
             Text(
                 text = stringResource(R.string.explore_market_name_version, name, version),
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -3092,7 +3091,7 @@ private fun DependencyRow(
                 } else {
                     stringResource(R.string.explore_market_dependency_pending)
                 },
-                style = KedgeTextStyles.footnoteSmall().tabular(),
+                style = MaterialTheme.typography.labelSmall.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -3213,21 +3212,21 @@ private fun FeaturedCard(
                 // 已安装时显示本机装着的那个版本，否则显示市场版本。
                 Text(
                     text = "v${installedVersion ?: entry.version}",
-                    style = KedgeTextStyles.footnoteSmall().tabular(),
+                    style = MaterialTheme.typography.labelSmall.tabular(),
                     color = onPoster.copy(alpha = 0.85f),
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = entry.name,
-                    style = KedgeTextStyles.displayTitle().copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = onPoster,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = entry.summary.ifBlank { entry.description }.ifBlank { entry.author },
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = onPoster.copy(alpha = 0.78f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -3252,7 +3251,7 @@ private fun FeaturedCard(
                             busy -> installState.busyLabel()
                             else -> installState.label()
                         },
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -3260,7 +3259,7 @@ private fun FeaturedCard(
                 // 元信息让位给按钮：宽度不够时省略号收尾，绝不把按钮挤扁或顶出卡片。
                 Text(
                     text = featuredMetaLine(entry, hubInfo),
-                    style = KedgeTextStyles.footnoteSmall().tabular(),
+                    style = MaterialTheme.typography.labelSmall.tabular(),
                     color = onPoster.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -3468,7 +3467,7 @@ private fun CompactCard(
         titleContent = {
             Text(
                 text = entry.name,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -3478,7 +3477,7 @@ private fun CompactCard(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = entry.summary.ifBlank { entry.description },
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -3490,7 +3489,7 @@ private fun CompactCard(
                         hubInfo = hubInfo,
                         stateLabel = null,
                     ),
-                    style = KedgeTextStyles.footnoteSmall().tabular(),
+                    style = MaterialTheme.typography.labelSmall.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -3626,7 +3625,7 @@ private fun CardDetailSheet(
             if (description.isNotBlank()) {
                 Text(
                     text = description,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -3693,7 +3692,7 @@ private fun CardDetailSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = stringResource(R.string.explore_market_section_dependencies),
-                        style = KedgeTextStyles.footnote().copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     FlowRow(
@@ -3717,7 +3716,7 @@ private fun CardDetailSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     KedgeProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.explore_market_processing), style = KedgeTextStyles.body())
+                    Text(stringResource(R.string.explore_market_processing), style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
@@ -3804,7 +3803,7 @@ private fun PopupHead(
         ) {
             Text(
                 text = title,
-                style = KedgeTextStyles.title().copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 // 显式取色，不依赖 LocalContentColor：弹窗卡面是 Color.alpha 的半透明底，
                 // 一旦上层没人 provide 内容色（MD3 分支的默认值是纯黑），标题就是黑底黑字。
                 color = MaterialTheme.colorScheme.onSurface,
@@ -3818,21 +3817,21 @@ private fun PopupHead(
                 if (!badge.isNullOrBlank()) {
                     Text(
                         text = badge,
-                        style = KedgeTextStyles.footnoteSmall().tabular(),
+                        style = MaterialTheme.typography.labelSmall.tabular(),
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 if (!badge.isNullOrBlank() && !kicker.isNullOrBlank()) {
                     Text(
                         text = "·",
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 if (!kicker.isNullOrBlank()) {
                     Text(
                         text = kicker,
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -3896,7 +3895,7 @@ private fun PopupActionRow(action: PopupAction) {
         )
         Text(
             text = action.label,
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
@@ -3927,7 +3926,7 @@ private fun PopupBulletRow(text: String) {
         )
         Text(
             text = text,
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -3987,7 +3986,7 @@ private fun BigActionButton(
     ) {
         Text(
             text = text,
-            style = KedgeTextStyles.title(),
+            style = MaterialTheme.typography.titleMedium,
             color = contentColor,
         )
     }
@@ -4034,7 +4033,7 @@ private fun PublishCardDialog(
                 )
                 Text(
                     text = stringResource(R.string.explore_market_publish_note),
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ChatMessageBranchSelector(
@@ -36,7 +34,7 @@ fun ChatMessageBranchSelector(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (node.messages.size > 1) {
-            val actionColor = KedgeColors.onSurfaceVariant
+            val actionColor = MaterialTheme.colorScheme.onSurfaceVariant
 
             Icon(
                 imageVector = arrowBack,
@@ -64,7 +62,7 @@ fun ChatMessageBranchSelector(
 
             Text(
                 text = "${node.selectIndex + 1}/${node.messages.size}",
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = actionColor
             )
 

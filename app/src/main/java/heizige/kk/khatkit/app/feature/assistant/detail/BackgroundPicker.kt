@@ -32,7 +32,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
 import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
 import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun BackgroundPicker(
@@ -86,7 +85,7 @@ fun BackgroundPicker(
                             ) {
                                 Text(
                                     text = stringResource(R.string.assistant_page_background_set),
-                                    style = KedgeTextStyles.body(),
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )

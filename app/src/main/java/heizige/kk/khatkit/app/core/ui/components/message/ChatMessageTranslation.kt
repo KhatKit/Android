@@ -2,7 +2,6 @@ package heizige.kk.khatkit.app.core.ui.components.message
 
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
@@ -53,7 +52,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun LanguageSelectionDialog(
@@ -134,7 +132,7 @@ fun LanguageSelectionDialog(
                             )
                             Text(
                                 text = getLanguageDisplayName(language),
-                                style = KedgeTextStyles.title(),
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         }
                     }
@@ -161,7 +159,7 @@ fun LanguageSelectionDialog(
                             )
                             Text(
                                 text = stringResource(R.string.translation_clear),
-                                style = KedgeTextStyles.title(),
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         }
                     }
@@ -183,7 +181,7 @@ fun CollapsibleTranslationText(
 
         MochiHorizontalDivider(
             modifier = Modifier.padding(vertical = 8.dp),
-            color = KedgeColors.outline.copy(alpha = 0.3f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
         )
 
         // Translation title and collapse button
@@ -200,12 +198,12 @@ fun CollapsibleTranslationText(
                     imageVector = translate,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = KedgeColors.primary
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = stringResource(R.string.translation_text),
-                    style = KedgeTextStyles.title(),
-                    color = KedgeColors.primary,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -222,7 +220,7 @@ fun CollapsibleTranslationText(
                         R.string.collapse_translation
                     ),
                     modifier = Modifier.size(16.dp),
-                    tint = KedgeColors.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -238,7 +236,7 @@ fun CollapsibleTranslationText(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = KedgeColors.primaryContainer.copy(alpha = 0.3f)
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 ),
                 shape = MaterialTheme.shapes.medium
             ) {
@@ -257,7 +255,7 @@ fun CollapsibleTranslationText(
                         KedgeProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
-                            color = KedgeColors.primary
+                            color = MaterialTheme.colorScheme.primary
                         )
 
                         val infiniteTransition = rememberInfiniteTransition(label = "loading")
@@ -273,8 +271,8 @@ fun CollapsibleTranslationText(
 
                         Text(
                             text = stringResource(R.string.translating),
-                            style = KedgeTextStyles.body(),
-                            color = KedgeColors.onSurface,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.graphicsLayer(alpha = alpha)
                         )
                     }

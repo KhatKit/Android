@@ -48,7 +48,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.error
 import heizige.kk.khatkit.app.core.ui.icons.link
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 
@@ -237,7 +236,7 @@ private fun TestResultItem(
     ) {
         Text(
             text = label,
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.width(120.dp),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -245,7 +244,7 @@ private fun TestResultItem(
         when (state) {
             is UiState.Idle -> Text(
                 text = "—",
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             is UiState.Loading -> KedgeProgressIndicator(
@@ -256,13 +255,13 @@ private fun TestResultItem(
             ) {
                 Text(
                     text = "✓",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.extendColors.green6
                 )
                 if (resultText.isNotBlank()) {
                     Text(
                         text = resultText,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis
@@ -271,7 +270,7 @@ private fun TestResultItem(
             }
             is UiState.Error -> Text(
                 text = state.error.message ?: "Error",
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.extendColors.red6,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -303,12 +302,12 @@ private fun TestResultItem(
             ) {
                 Text(
                     text = state.error.message ?: "Error",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.extendColors.red6
                 )
                 Text(
                     text = stackTrace,
-                    style = KedgeTextStyles.body().copy(fontFamily = FontFamily.Monospace),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

@@ -64,7 +64,6 @@ import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.kedge.theme.KedgeTextStyles
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import heizige.kk.kedge.theme.KedgeStyle
@@ -236,7 +235,7 @@ private fun WorkspaceTerminalContent(
                                             } else {
                                                 TextOverflow.Ellipsis
                                             },
-                                            style = KedgeTextStyles.body(),
+                                            style = MaterialTheme.typography.bodyMedium,
                                         )
                                         val closeDescription = stringResource(
                                             R.string.workspace_terminal_close_tab,
@@ -297,7 +296,7 @@ private fun WorkspaceTerminalContent(
                             }
                             else -> stringResource(R.string.workspace_terminal_no_tabs)
                         },
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     )
                 }
@@ -374,7 +373,7 @@ private fun WorkspaceTerminalTabContent(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(12.dp),
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 )
             }
@@ -441,7 +440,7 @@ private fun TerminalExtraKey(
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        style = KedgeTextStyles.body(),
+        style = MaterialTheme.typography.bodyMedium,
         color = if (selected) {
             MaterialTheme.colorScheme.onPrimary
         } else {

@@ -54,8 +54,6 @@ import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
@@ -191,20 +189,20 @@ private fun FavoriteCard(
                     text = item.conversationTitle.ifBlank { stringResource(R.string.favorite_page_untitled_conversation) },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 val dateText = Instant.ofEpochMilli(item.createdAt).toLocalDateTime()
                 Text(
                     text = item.preview,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
                     text = dateText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline,
                 )
             }

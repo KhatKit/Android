@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -27,7 +26,6 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
 import heizige.kk.khatkit.app.core.ui.icons.schedule
 import heizige.kk.khatkit.app.core.ui.icons.upload
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 显示消息的技术统计信息（如 token 使用量）
@@ -36,11 +34,11 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun ChatMessageNerdLine(
     message: UIMessage,
     modifier: Modifier = Modifier,
-    color: Color = KedgeColors.secondary.copy(alpha = 0.5f),
+    color: Color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
 ) {
     val settings = LocalSettings.current.displaySetting
 
-    ProvideTextStyle(KedgeTextStyles.footnoteSmall().copy(color = color)) {
+    ProvideTextStyle(MaterialTheme.typography.labelSmall.copy(color = color)) {
         CompositionLocalProvider(LocalContentColor provides color) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

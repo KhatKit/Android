@@ -101,7 +101,6 @@ import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantPromptPage(id: String) {
@@ -175,7 +174,7 @@ private fun AssistantPromptContent(
                         Column {
                             Text(
                                 text = stringResource(R.string.assistant_page_available_variables),
-                                style = KedgeTextStyles.footnoteSmall()
+                                style = MaterialTheme.typography.labelSmall
                             )
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -345,7 +344,7 @@ private fun AssistantPromptContent(
         ) {
             Text(
                 text = stringResource(R.string.assistant_page_template_preview),
-                style = KedgeTextStyles.title()
+                style = MaterialTheme.typography.titleMedium
             )
             val rawMessages = listOf(
                 UIMessage.user("你好啊"),
@@ -710,7 +709,7 @@ private fun AssistantRegexCard(
                         Column {
                             Text(
                                 text = stringResource(R.string.assistant_page_regex_affecting_scopes),
-                                style = KedgeTextStyles.body()
+                                style = MaterialTheme.typography.bodyMedium
                             )
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing)
@@ -743,7 +742,7 @@ private fun AssistantRegexCard(
                                         )
                                         Text(
                                             text = scope.name.lowercase().replaceFirstChar { it.uppercase() },
-                                            style = KedgeTextStyles.body()
+                                            style = MaterialTheme.typography.bodyMedium
                                         )
                                     }
                                 }
@@ -772,7 +771,7 @@ private fun AssistantRegexCard(
                             )
                             Text(
                                 text = stringResource(R.string.assistant_page_regex_visual_only),
-                                style = KedgeTextStyles.body()
+                                style = MaterialTheme.typography.bodyMedium
                             )
                         }
 

@@ -5,7 +5,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,7 +42,6 @@ import heizige.kk.khatkit.app.feature.chat.data.MessageQueueState
 import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun MessageQueuePanel(
@@ -61,7 +59,7 @@ internal fun MessageQueuePanel(
     if (state.messages.isNotEmpty()) {
         KkSurface(
             shape = MaterialTheme.shapes.large,
-            color = KedgeColors.surfaceContainer,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("chat_message_queue"),
@@ -74,8 +72,8 @@ internal fun MessageQueuePanel(
                             else R.string.chat_page_queue_pending_count,
                             state.messages.size,
                         ),
-                        style = KedgeTextStyles.body(),
-                        color = KedgeColors.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .weight(1f)
                             .padding(vertical = 8.dp),
@@ -110,7 +108,7 @@ internal fun MessageQueuePanel(
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )

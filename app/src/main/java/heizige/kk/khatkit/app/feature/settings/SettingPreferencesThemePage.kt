@@ -83,7 +83,6 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
@@ -227,7 +226,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                         ) {
                             Text(
                                 text = stringResource(R.string.setting_theme_page_no_custom_themes),
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -589,7 +588,7 @@ private fun CustomThemeEditSheet(
 
                 Text(
                     text = stringResource(R.string.setting_theme_page_primary_color),
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 ColorPickerRow(
                     color = Color(currentTheme.primaryColorArgb.toInt()),
@@ -600,7 +599,7 @@ private fun CustomThemeEditSheet(
 
                 Text(
                     text = stringResource(R.string.setting_theme_page_secondary_color),
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 ColorPickerRow(
                     color = if (currentTheme.secondaryColorArgb != null) {
@@ -615,7 +614,7 @@ private fun CustomThemeEditSheet(
 
                 Text(
                     text = stringResource(R.string.setting_theme_page_tertiary_color),
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 ColorPickerRow(
                     color = if (currentTheme.tertiaryColorArgb != null) {
@@ -728,7 +727,7 @@ private fun ColorPickerRow(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("H", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
+                    Text("H", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
                     KkSlider(
                         value = hue,
                         onValueChange = {
@@ -739,7 +738,7 @@ private fun ColorPickerRow(
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("S", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
+                    Text("S", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
                     KkSlider(
                         value = saturation,
                         onValueChange = {
@@ -750,7 +749,7 @@ private fun ColorPickerRow(
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("L", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
+                    Text("L", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(16.dp))
                     KkSlider(
                         value = lightness,
                         onValueChange = {
@@ -838,7 +837,7 @@ private fun ThemePreview(theme: CustomTheme) {
     ) {
         Text(
             text = stringResource(R.string.setting_theme_page_preview),
-            style = KedgeTextStyles.title(),
+            style = MaterialTheme.typography.titleMedium,
         )
         Row(
             modifier = Modifier
@@ -873,7 +872,7 @@ private fun ColorSwatch(color: Color, label: String) {
         }
         Text(
             text = label,
-            style = KedgeTextStyles.footnoteSmall(),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

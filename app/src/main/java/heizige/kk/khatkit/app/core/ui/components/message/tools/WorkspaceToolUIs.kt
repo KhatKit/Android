@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.message.tools
 
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,7 +44,6 @@ import heizige.kk.khatkit.app.core.ui.icons.editDocument
 import heizige.kk.khatkit.app.core.ui.icons.noteAdd
 import heizige.kk.khatkit.app.core.ui.icons.preview
 import heizige.kk.khatkit.app.core.ui.icons.terminal
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 工作空间编辑文件: 摘要显示增删统计与精简 diff, 详情为完整 diff view
@@ -89,12 +87,12 @@ object EditFileToolUI : ToolUIRenderer {
         ) {
             Text(
                 text = "+${stats.additions}",
-                style = KedgeTextStyles.footnoteSmall(),
+                style = MaterialTheme.typography.labelSmall,
                 color = DiffAddedColor,
             )
             Text(
                 text = "-${stats.deletions}",
-                style = KedgeTextStyles.footnoteSmall(),
+                style = MaterialTheme.typography.labelSmall,
                 color = DiffRemovedColor,
             )
         }
@@ -128,19 +126,19 @@ object EditFileToolUI : ToolUIRenderer {
             ) {
                 Text(
                     text = context.arguments.getStringContent("path") ?: toolName,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = "+${stats.additions}",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = DiffAddedColor,
                 )
                 Text(
                     text = "-${stats.deletions}",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = DiffRemovedColor,
                 )
             }
@@ -243,7 +241,7 @@ private fun FileContentSummary(text: String, path: String?, loading: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
-            .background(KedgeColors.surfaceContainer)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .shimmer(isLoading = loading),
     ) {
@@ -271,7 +269,7 @@ private fun FileContentPreview(path: String?, code: String) {
     ) {
         Text(
             text = path ?: stringResource(R.string.tool_ui_file),
-            style = KedgeTextStyles.title(),
+            style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
@@ -315,19 +313,19 @@ object ShellToolUI : ToolUIRenderer {
                 .trim()
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            ShellExitStatus(content, KedgeTextStyles.footnoteSmall())
+            ShellExitStatus(content, MaterialTheme.typography.labelSmall)
             if (combined.isNotEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.small)
-                        .background(KedgeColors.surfaceContainer)
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
                         .padding(horizontal = 8.dp, vertical = 6.dp)
                         .shimmer(isLoading = context.loading),
                 ) {
                     Text(
                         text = combined.lineSequence().take(SUMMARY_MAX_LINES).joinToString("\n"),
-                        style = KedgeTextStyles.footnoteSmall().copy(fontFamily = FontFamily.Monospace),
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                         fontSize = 11.sp,
                         lineHeight = 14.sp,
                         maxLines = SUMMARY_MAX_LINES,
@@ -363,10 +361,10 @@ object ShellToolUI : ToolUIRenderer {
             ) {
                 Text(
                     text = stringResource(R.string.tool_ui_shell_default),
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                ShellExitStatus(content, KedgeTextStyles.body())
+                ShellExitStatus(content, MaterialTheme.typography.bodyMedium)
             }
             HighlightCodeBlock(
                 code = if (cwd.isNullOrBlank()) command else "# cwd: $cwd\n$command",
@@ -374,7 +372,7 @@ object ShellToolUI : ToolUIRenderer {
                 modifier = Modifier.fillMaxWidth(),
             )
             if (stdout.isNotEmpty()) {
-                Text(text = "stdout", style = KedgeTextStyles.body())
+                Text(text = "stdout", style = MaterialTheme.typography.bodyMedium)
                 HighlightCodeBlock(
                     code = stdout,
                     language = "plaintext",
@@ -384,8 +382,8 @@ object ShellToolUI : ToolUIRenderer {
             if (stderr.isNotEmpty()) {
                 Text(
                     text = "stderr",
-                    style = KedgeTextStyles.body(),
-                    color = KedgeColors.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
                 )
                 HighlightCodeBlock(
                     code = stderr,
@@ -409,7 +407,7 @@ private fun ShellExitStatus(content: JsonElement, style: androidx.compose.ui.tex
             else -> stringResource(R.string.tool_ui_shell_exit, exitCode?.toString() ?: "?")
         },
         style = style,
-        color = if (ok) DiffAddedColor else KedgeColors.error,
+        color = if (ok) DiffAddedColor else MaterialTheme.colorScheme.error,
     )
 }
 

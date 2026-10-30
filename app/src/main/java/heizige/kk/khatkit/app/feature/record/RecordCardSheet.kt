@@ -32,7 +32,6 @@ import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.record.RecordingCardFactory
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 录制操作面板：开始/停止录制、实时步数、命名并保存为 Lua 卡片。
@@ -99,7 +98,7 @@ fun RecordCardSheet(
         ) {
             Text(
                 text = "开始录制后去手动操作手机，KhatKit 会记录点击、输入、滑动与切换应用；停止后可保存为可回放的 Lua 卡片。",
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
@@ -108,13 +107,13 @@ fun RecordCardSheet(
                     append("已录制 ${state.steps.size} / ${RecordingCardFactory.MAX_STEPS} 步")
                     if (state.full) append("（已达上限，后续操作不再记录）")
                 },
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
             )
 
             if (state.recording) {
                 Text(
                     text = "录制中：可以离开本页去操作其他应用，通知栏有「停止」按钮。",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -162,11 +161,11 @@ fun RecordCardSheet(
             }
 
             if (state.steps.isNotEmpty()) {
-                Text("最近步骤：", style = KedgeTextStyles.body())
+                Text("最近步骤：", style = MaterialTheme.typography.bodyMedium)
                 state.steps.takeLast(5).forEach { step ->
                     Text(
                         text = "· ${step.comment()}",
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

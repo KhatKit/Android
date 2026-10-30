@@ -94,13 +94,11 @@ import heizige.kk.khatkit.app.core.ui.theme.extendColors
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.util.urlDecode
-import heizige.kk.kedge.theme.KedgeColors
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeMiuixSurface
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -268,9 +266,9 @@ fun ChatMessage(
             // 字号/字重沿用助手侧名字槽那套（脚注 + 半粗），否则两行名字一眼就能看出大小差。
             Text(
                 text = settings.userNickname.ifEmpty { stringResource(R.string.user_default_name) },
-                style = KedgeTextStyles.footnoteSmall(),
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = KedgeColors.onSurface,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -299,9 +297,9 @@ fun ChatMessage(
                     label?.let { name ->
                         Text(
                             text = name,
-                            style = KedgeTextStyles.footnoteSmall(),
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = KedgeColors.onSurface,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -372,7 +370,7 @@ private fun MessagePartsBlock(
     onUserMessageClick: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val contentColor = KedgeColors.onSurface.copy(alpha = 0.65f)
+    val contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
 
     // 助手气泡底色。**Miuix 下必须用卡片色**：那边 `surfaceContainerHigh` 只比页面底色亮一档
     // （深色实测 #1D202B vs 页面 #10131C，Δ13），真机上肉眼就是「没有气泡」；而同一屏的
@@ -381,7 +379,7 @@ private fun MessagePartsBlock(
     // `surfaceContainer`，`surfaceContainerHigh` 本来就比它亮一档，层次是对的，别一起改。
     val assistantBubbleColor = when (LocalKedgeStyle.current) {
         KedgeStyle.Miuix -> KedgeMiuixSurface.cardContainer
-        KedgeStyle.MD3Exp -> KedgeColors.surfaceContainerHigh
+        KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     // 消息输出HapticFeedback
@@ -441,7 +439,7 @@ private fun MessagePartsBlock(
                             containerColor = if (hasOptionItemStep) {
                                 Color.Transparent
                             } else {
-                                KedgeColors.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity)
+                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity)
                             },
                         ),
                     ) { step ->
@@ -485,7 +483,7 @@ private fun MessagePartsBlock(
                                 KkSurface(
                                     modifier = Modifier.animateContentSize(),
                                     shape = RoundedCornerShape(16.dp),
-                                    color = KedgeColors.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
                                     onClick = { onUserMessageClick?.invoke() },
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
@@ -586,9 +584,9 @@ private fun MessagePartsBlock(
                             },
                             modifier = Modifier,
                             shape = RoundedCornerShape(50),
-                            color = KedgeColors.secondaryContainer
+                            color = MaterialTheme.colorScheme.secondaryContainer
                         ) {
-                            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
+                            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -612,7 +610,7 @@ private fun MessagePartsBlock(
                                 modifier = Modifier
                                     .size(72.dp)
                                     .clip(MaterialTheme.shapes.medium)
-                                    .background(KedgeColors.surfaceVariant)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .shimmer(isLoading = true)
                             )
                         } else {
@@ -642,9 +640,9 @@ private fun MessagePartsBlock(
                             },
                             modifier = Modifier,
                             shape = RoundedCornerShape(50),
-                            color = KedgeColors.tertiaryContainer
+                            color = MaterialTheme.colorScheme.tertiaryContainer
                         ) {
-                            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
+                            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -703,7 +701,7 @@ private fun MessagePartsBlock(
             var expand by remember { mutableStateOf(false) }
             if (expand) {
                 ProvideTextStyle(
-                    KedgeTextStyles.body().copy(
+                    MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.extendColors.gray8.copy(alpha = 0.65f)
                     )
                 ) {
@@ -765,15 +763,15 @@ private fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
     KkSurface(
         shape = RoundedCornerShape(6.dp),
         color = if (isError) {
-            KedgeColors.errorContainer.copy(alpha = 0.7f)
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
         } else {
-            KedgeColors.surfaceContainerHigh
+            MaterialTheme.colorScheme.surfaceContainerHigh
         },
     ) {
         Text(
             text = text,
-            style = KedgeTextStyles.footnoteSmall(),
-            color = if (isError) KedgeColors.onErrorContainer else KedgeColors.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
         )

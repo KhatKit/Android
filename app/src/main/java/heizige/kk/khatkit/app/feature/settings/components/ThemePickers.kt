@@ -61,7 +61,6 @@ import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.MorphPolygonShape
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
@@ -74,7 +73,6 @@ import heizige.kk.khromia.components.EditFieldConfig
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.components.SquareColorPicker
 import heizige.kk.khromia.text.OptionsText
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /** 主题配色设置块：与引导页样式一致（动态取色行 + 配色圆点面板）。 */
 @Composable
@@ -104,7 +102,7 @@ fun ThemeColorSettingGroup(
                 Icon(
                     imageVector = palette,
                     contentDescription = null,
-                    tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
                 )
             },
             titleContent = { Text(stringResource(R.string.greeting_settings_theme_color)) },
@@ -122,7 +120,7 @@ fun ThemeColorSettingGroup(
                         Icon(
                             imageVector = palette,
                             contentDescription = null,
-                            tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
                         )
                     },
                     titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
@@ -244,7 +242,7 @@ fun MorphThemeModeSelector(
                                 ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
                                 ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
                             },
-                            style = KedgeTextStyles.footnoteSmall(),
+                            style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(4.dp)
@@ -312,14 +310,14 @@ fun PresetThemeColorDots(
                     .aspectRatio(1f)
                     .weight(1f, fill = false)
                     .clip(RoundedCornerShape(50))
-                    .background(KedgeColors.surfaceVariant.copy(alpha = 0.54f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f))
                     .clickable { onCustomColorClick() },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = palette,
                     contentDescription = stringResource(R.string.greeting_settings_custom_color),
-                    tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -368,7 +366,7 @@ fun ThemeCustomColorSheet(
                 Text(
                     text = String.format("#%08X", customColor.toArgb()),
                     color = if (customColor.luminance() > 0.5f) Color.Black else Color.White,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                 )
             }
 
@@ -404,7 +402,7 @@ fun ThemeCustomColorSheet(
                         Text(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             text = stringResource(R.string.greeting_settings_history_colors),
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(8.dp))

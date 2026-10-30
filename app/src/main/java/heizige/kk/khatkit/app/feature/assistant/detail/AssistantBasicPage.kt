@@ -71,7 +71,6 @@ import heizige.kk.khatkit.app.core.data.model.Tag as DataTag
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantBasicPage(id: String) {
@@ -175,7 +174,7 @@ internal fun AssistantBasicContent(
                 headlineContent = { Text("角色 UID") },
                 supportingContent = {
                     SelectionContainer {
-                        Text(assistant.id.toString(), style = KedgeTextStyles.footnoteSmall())
+                        Text(assistant.id.toString(), style = MaterialTheme.typography.labelSmall)
                     }
                 },
             )
@@ -522,7 +521,7 @@ internal fun AssistantBasicContent(
                             if (assistant.contextMessageLimit > 0) {
                                 Text(
                                     text = stringResource(R.string.assistant_page_context_message_limit_warning),
-                                    style = KedgeTextStyles.footnoteSmall(),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
                             }
@@ -666,7 +665,7 @@ internal fun AssistantBasicContent(
                                         R.string.assistant_page_background_opacity_value,
                                         (backgroundOpacity * 100).roundToInt()
                                     ),
-                                    style = KedgeTextStyles.footnoteSmall(),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.75f),
                                 )
                             },

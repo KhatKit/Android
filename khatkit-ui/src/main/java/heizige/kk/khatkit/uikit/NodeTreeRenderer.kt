@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -38,7 +39,6 @@ import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiNodeParser
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.ui.UiScreenPage
-import heizige.kk.kedge.theme.KedgeColors
 
 @Composable
 fun NodeTreeSheet(
@@ -174,18 +174,18 @@ private fun hex(value: String): Color? {
 
 @Composable
 private fun nodeColor(value: String): Color? = when (value) {
-    "surface" -> KedgeColors.surface
-    "on_surface" -> KedgeColors.onSurface
-    "on_surface_variant" -> KedgeColors.onSurfaceVariant
-    "surface_container" -> KedgeColors.surfaceContainer
-    "surface_container_high" -> KedgeColors.surfaceContainerHigh
-    "surface_container_highest" -> KedgeColors.surfaceContainerHighest
-    "outline_variant" -> KedgeColors.outlineVariant
-    "primary" -> KedgeColors.primary
-    "on_primary" -> KedgeColors.onPrimary
-    "error" -> KedgeColors.error
-    "error_container" -> KedgeColors.errorContainer
-    "on_error_container" -> KedgeColors.onErrorContainer
+    "surface" -> MaterialTheme.colorScheme.surface
+    "on_surface" -> MaterialTheme.colorScheme.onSurface
+    "on_surface_variant" -> MaterialTheme.colorScheme.onSurfaceVariant
+    "surface_container" -> MaterialTheme.colorScheme.surfaceContainer
+    "surface_container_high" -> MaterialTheme.colorScheme.surfaceContainerHigh
+    "surface_container_highest" -> MaterialTheme.colorScheme.surfaceContainerHighest
+    "outline_variant" -> MaterialTheme.colorScheme.outlineVariant
+    "primary" -> MaterialTheme.colorScheme.primary
+    "on_primary" -> MaterialTheme.colorScheme.onPrimary
+    "error" -> MaterialTheme.colorScheme.error
+    "error_container" -> MaterialTheme.colorScheme.errorContainer
+    "on_error_container" -> MaterialTheme.colorScheme.onErrorContainer
     else -> hex(value)
 }
 

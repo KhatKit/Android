@@ -44,7 +44,6 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionCamera
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionStatus
@@ -339,14 +338,14 @@ fun QrScannerSheet(
                 }
                 Text(
                     text = "将二维码放入框内即可自动识别",
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp),
                 )
             } else {
                 Text(
                     text = "当前无法使用相机扫码，请改用手动粘贴",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

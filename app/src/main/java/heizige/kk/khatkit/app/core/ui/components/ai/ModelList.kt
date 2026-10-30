@@ -98,11 +98,9 @@ import heizige.kk.khatkit.app.core.ui.icons.favorite as favoriteIcon
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.photo
 import heizige.kk.khatkit.app.core.ui.icons.psychology
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeAssistChip
 
 class ModelListState internal constructor(
@@ -233,7 +231,7 @@ internal fun ModelSelectorButton(
                     text = model?.displayName ?: stringResource(R.string.model_list_select_model),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = KedgeTextStyles.body()
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
             if (allowClear && model != null) {
@@ -256,7 +254,7 @@ internal fun ModelSelectorButton(
             shapes = IconButtonDefaults.shapes(),
         ) {
             CompositionLocalProvider(
-                LocalContentColor provides KedgeColors.onSurfaceVariant
+                LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
             ) {
                 if (model != null) {
                     AutoAIIcon(
@@ -483,7 +481,7 @@ private fun ColumnScope.ModelList(
                 item {
                     Text(
                         text = stringResource(R.string.model_list_no_providers),
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.extendColors.gray6,
                         modifier = Modifier.padding(8.dp)
                     )
@@ -494,7 +492,7 @@ private fun ColumnScope.ModelList(
                 stickyHeader {
                     Text(
                         text = stringResource(R.string.model_list_favorite),
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .padding(bottom = 4.dp, top = 8.dp)
@@ -589,14 +587,14 @@ private fun ColumnScope.ModelList(
                         titleContent = {
                             Text(
                                 text = providerSetting.name,
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         },
                         trailingContent = {
                             ProviderBalanceText(
                                 providerSetting = providerSetting,
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         },
@@ -792,7 +790,7 @@ private fun ModelItem(
         titleContent = {
             Text(
                 text = model.displayName,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 color = if (select) MaterialTheme.colorScheme.onPrimaryContainer else Color.Unspecified,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

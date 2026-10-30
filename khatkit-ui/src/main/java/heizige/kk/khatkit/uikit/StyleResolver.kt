@@ -5,9 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 
 interface StyleResolver {
@@ -35,19 +33,19 @@ object MaterialStyleResolver : StyleResolver {
 
 object MiuixStyleResolver : StyleResolver {
     @Composable override fun textStyle(role: String): TextStyle = when (role) {
-        "title" -> KedgeTextStyles.displayTitle()
-        "subtitle" -> KedgeTextStyles.title()
-        "label" -> KedgeTextStyles.footnote()
-        "code" -> KedgeTextStyles.body().copy(fontFamily = FontFamily.Monospace)
-        else -> KedgeTextStyles.body()
+        "title" -> MaterialTheme.typography.headlineMedium
+        "subtitle" -> MaterialTheme.typography.titleMedium
+        "label" -> MaterialTheme.typography.labelMedium
+        "code" -> MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
+        else -> MaterialTheme.typography.bodyMedium
     }
     @Composable override fun color(tone: String): Color = when (tone) {
-        "primary" -> KedgeColors.primary
-        "muted" -> KedgeColors.onSurfaceVariant
-        "error" -> KedgeColors.error
-        "success" -> KedgeColors.tertiary
-        "warning" -> KedgeColors.secondary
-        else -> KedgeColors.onSurface
+        "primary" -> MaterialTheme.colorScheme.primary
+        "muted" -> MaterialTheme.colorScheme.onSurfaceVariant
+        "error" -> MaterialTheme.colorScheme.error
+        "success" -> MaterialTheme.colorScheme.tertiary
+        "warning" -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.onSurface
     }
 }
 

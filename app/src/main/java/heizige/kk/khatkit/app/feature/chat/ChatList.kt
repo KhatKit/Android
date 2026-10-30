@@ -96,7 +96,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
 import heizige.kk.khatkit.app.core.ui.hooks.ImeLazyListAutoScroller
 import heizige.kk.khatkit.app.core.ui.theme.ChatFontProvider
-import heizige.kk.kedge.theme.KedgeColors
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.adsClick
@@ -106,7 +105,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
@@ -570,8 +568,8 @@ private fun ChatListNormal(
                         ) {
                             Text(
                                 text = processingStatus ?: "",
-                                style = KedgeTextStyles.body(),
-                                color = KedgeColors.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -924,11 +922,11 @@ private fun ChatListPreview(
                     speaker?.let { who ->
                         Text(
                             text = who.badge?.let { "${who.displayName} · $it" } ?: who.displayName,
-                            style = KedgeTextStyles.footnoteSmall(),
+                            style = MaterialTheme.typography.labelSmall,
                             color = if (who.isError) {
-                                KedgeColors.error
+                                MaterialTheme.colorScheme.error
                             } else {
-                                KedgeColors.onSurfaceVariant
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -937,7 +935,7 @@ private fun ChatListPreview(
                     }
                     KkSurface(
                         shape = MaterialTheme.shapes.medium,
-                        color = if (isUser) KedgeColors.primaryContainer else KedgeColors.secondaryContainer,
+                        color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
                     ) {
                         Row(
                             modifier = Modifier
@@ -948,7 +946,7 @@ private fun ChatListPreview(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val highlightColor = KedgeColors.tertiaryContainer
+                            val highlightColor = MaterialTheme.colorScheme.tertiaryContainer
                             val highlightedText = remember(searchQuery, message) {
                                 val fullText = message.toText().trim().ifBlank { "[...]" }
                                 val messageText = extractMatchingSnippet(
@@ -963,7 +961,7 @@ private fun ChatListPreview(
                             }
                             Text(
                                 text = highlightedText,
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -1004,7 +1002,7 @@ private fun BoxScope.MessageJumper(
                 },
                 shape = CircleShape,
                 tonalElevation = 4.dp,
-                color = KedgeColors.surfaceContainerHigh.copy(alpha = 0.65f)
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
             ) {
                 Icon(
                     imageVector = keyboardDoubleArrowUp,
@@ -1025,7 +1023,7 @@ private fun BoxScope.MessageJumper(
                 },
                 shape = CircleShape,
                 tonalElevation = 4.dp,
-                color = KedgeColors.surfaceContainerHigh.copy(alpha = 0.65f)
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
             ) {
                 Icon(
                     imageVector = keyboardArrowUp,
@@ -1041,7 +1039,7 @@ private fun BoxScope.MessageJumper(
                     }
                 },
                 shape = CircleShape,
-                color = KedgeColors.surfaceContainerHigh.copy(alpha = 0.65f)
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
             ) {
                 Icon(
                     imageVector = keyboardArrowDown,
@@ -1057,7 +1055,7 @@ private fun BoxScope.MessageJumper(
                     }
                 },
                 shape = CircleShape,
-                color = KedgeColors.surfaceContainerHigh.copy(alpha = 0.65f),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f),
             ) {
                 Icon(
                     imageVector = keyboardDoubleArrowDown,

@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
 import heizige.kk.khatkit.uikit.mochi.KkCard
-import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -62,7 +61,6 @@ import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.khatkit.app.core.ui.icons.web
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ColumnScope.ChatMessageActionButtons(
@@ -120,7 +118,7 @@ fun ColumnScope.ChatMessageActionButtons(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        val actionIconColor = KedgeColors.onSurfaceVariant
+        val actionIconColor = MaterialTheme.colorScheme.onSurfaceVariant
 
         Icon(
             imageVector = contentCopy,
@@ -251,8 +249,8 @@ fun ColumnScope.ChatMessageActionButtons(
         if (settings.displaySetting.showDateTimeInMessage) {
             Text(
                 text = message.createdAt.toJavaLocalDateTime().toMessageTimeString(),
-                style = KedgeTextStyles.footnoteSmall(),
-                color = KedgeColors.onSurfaceVariant.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 maxLines = 1,
             )
         }
@@ -347,7 +345,7 @@ fun ChatMessageActionsSheet(
                     )
                     Text(
                         text = stringResource(R.string.select_and_copy),
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                     )
                 }
             }
@@ -378,7 +376,7 @@ fun ChatMessageActionsSheet(
                         )
                         Text(
                             text = stringResource(R.string.render_with_webview),
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
                 }
@@ -407,7 +405,7 @@ fun ChatMessageActionsSheet(
                         )
                         Text(
                             text = stringResource(R.string.edit),
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
                 }
@@ -435,7 +433,7 @@ fun ChatMessageActionsSheet(
                     )
                     Text(
                         text = stringResource(R.string.share),
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                     )
                 }
             }
@@ -463,7 +461,7 @@ fun ChatMessageActionsSheet(
                         )
                         Text(
                             text = stringResource(R.string.create_fork),
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
                 }
@@ -478,7 +476,7 @@ fun ChatMessageActionsSheet(
                     },
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
-                        containerColor = KedgeColors.errorContainer
+                        containerColor = MaterialTheme.colorScheme.errorContainer
                     )
                 ) {
                     Row(
@@ -495,14 +493,14 @@ fun ChatMessageActionsSheet(
                         )
                         Text(
                             text = stringResource(R.string.delete),
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
                 }
             }
 
             // Message Info
-            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
+            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
                 Text(message.createdAt.toJavaLocalDateTime().toLocalString())
                 if (model != null) {
                     Text(model.displayName)

@@ -2,7 +2,6 @@ package heizige.kk.khatkit.app.core.ui.components.message
 
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.KkSurface
-import heizige.kk.kedge.theme.KedgeColors
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,7 +46,6 @@ import java.io.File
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val DEFAULT_VISIBLE_COUNT = 3
 private val WORKSPACE_FILE_TOOL_NAMES = setOf("workspace_write_file", "workspace_edit_file")
@@ -103,7 +101,7 @@ internal fun EditedFilesList(
             KkSurface(
                 onClick = { selectedPath = path },
                 shape = RoundedCornerShape(50),
-                color = KedgeColors.tertiaryContainer,
+                color = MaterialTheme.colorScheme.tertiaryContainer,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -117,7 +115,7 @@ internal fun EditedFilesList(
                     )
                     Text(
                         text = fileName,
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 200.dp),
@@ -129,11 +127,11 @@ internal fun EditedFilesList(
             KkSurface(
                 onClick = { expanded = true },
                 shape = RoundedCornerShape(50),
-                color = KedgeColors.surfaceContainerHigh,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Text(
                     text = "+${editedFiles.size - DEFAULT_VISIBLE_COUNT}",
-                    style = KedgeTextStyles.footnoteSmall(),
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                 )
             }
@@ -176,7 +174,7 @@ internal fun EditedFilesList(
                         )
                         Text(
                             text = stringResource(R.string.common_export),
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
                 }
@@ -222,7 +220,7 @@ internal fun EditedFilesList(
                         )
                         Text(
                             text = stringResource(R.string.common_share),
-                            style = KedgeTextStyles.title(),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
                 }

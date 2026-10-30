@@ -147,7 +147,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import kotlinx.coroutines.launch
@@ -181,7 +180,6 @@ import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
@@ -330,7 +328,7 @@ private fun GreetingStepBadge(step: GreetingStep) {
         modifier = Modifier
             .padding(8.dp)
             .background(
-                KedgeColors.surfaceVariant.copy(alpha = 0.54f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f),
                 CircleShape,
             )
             .padding(8.dp),
@@ -338,7 +336,7 @@ private fun GreetingStepBadge(step: GreetingStep) {
         Icon(
             imageVector = stepIcon(step),
             contentDescription = null,
-            tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
         )
     }
 }
@@ -372,8 +370,8 @@ private fun GreetingTopAppBar(step: GreetingStep) {
                     if (subtitle != null) {
                         Text(
                             text = subtitle,
-                            style = KedgeTextStyles.footnoteSmall(),
-                            color = KedgeColors.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.alpha(0.87f),
                         )
                     }
@@ -526,7 +524,7 @@ private fun GreetingWelcomeScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(KedgeColors.background)
+            .background(MaterialTheme.colorScheme.background)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -553,18 +551,18 @@ private fun GreetingWelcomeScreen() {
         )
 
         val gradientColors = listOf(
-            KedgeColors.primary.copy(alpha = glowAlpha),
-            KedgeColors.primaryContainer.copy(alpha = glowAlpha),
-            KedgeColors.secondary.copy(alpha = glowAlpha),
-            KedgeColors.secondaryContainer.copy(alpha = glowAlpha),
-            KedgeColors.tertiary.copy(alpha = glowAlpha),
-            KedgeColors.tertiaryContainer.copy(alpha = glowAlpha),
+            MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = glowAlpha),
+            MaterialTheme.colorScheme.secondary.copy(alpha = glowAlpha),
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = glowAlpha),
+            MaterialTheme.colorScheme.tertiary.copy(alpha = glowAlpha),
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = glowAlpha),
         )
 
         Text(
             text = stringResource(R.string.app_name),
             onTextLayout = { textWidth = it.size.width.toFloat() },
-            style = KedgeTextStyles.displayTitle().copy(
+            style = MaterialTheme.typography.headlineMedium.copy(
                 brush = Brush.linearGradient(
                     colors = gradientColors,
                     start = Offset(glowOffset, 0f),
@@ -586,15 +584,15 @@ private fun GreetingAgreementScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(KedgeColors.background)
+            .background(MaterialTheme.colorScheme.background)
             .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
             .verticalScroll(scrollState)
             .padding(16.dp),
     ) {
         Text(
             text = stringResource(R.string.greeting_agreement_text),
-            style = KedgeTextStyles.body(),
-            color = KedgeColors.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -612,7 +610,7 @@ private fun GreetingAgreementScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.greeting_agreement_accept),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
@@ -639,7 +637,7 @@ private fun GreetingSettingsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(KedgeColors.background)
+            .background(MaterialTheme.colorScheme.background)
             .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
@@ -703,7 +701,7 @@ private fun GreetingSettingsScreen() {
                         Icon(
                             imageVector = palette,
                             contentDescription = null,
-                            tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
                         )
                     },
                     titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
@@ -841,7 +839,7 @@ private fun GreetingAiSetupScreen() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(KedgeColors.background)
+            .background(MaterialTheme.colorScheme.background)
             .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(cards.gap),
@@ -895,7 +893,7 @@ private fun GreetingAiSetupScreen() {
                     Icon(
                         imageVector = add,
                         contentDescription = null,
-                        tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
                     )
                 },
                 titleContent = { Text(stringResource(R.string.greeting_ai_custom_key)) },
@@ -1062,7 +1060,7 @@ private fun AiProviderItem(
             Icon(
                 imageVector = neurology,
                 contentDescription = null,
-                tint = KedgeColors.onSurfaceVariant.copy(alpha = 0.87f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
             )
         },
         titleContent = { Text(provider.name) },

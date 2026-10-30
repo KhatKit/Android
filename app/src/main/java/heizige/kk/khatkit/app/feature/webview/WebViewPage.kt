@@ -41,7 +41,6 @@ import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.public
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,7 +166,7 @@ fun WebViewPage(url: String, contentId: String) {
                             Text(
                                 text = "${message.messageLevel().name}: ${message.message()}\n" +
                                     "Source: ${message.sourceId()}:${message.lineNumber()}",
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontFamily = JetbrainsMono,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -185,7 +184,7 @@ fun WebViewPage(url: String, contentId: String) {
                 if (state.consoleMessages.isEmpty()) {
                     Text(
                         text = "No console messages",
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)
                     )

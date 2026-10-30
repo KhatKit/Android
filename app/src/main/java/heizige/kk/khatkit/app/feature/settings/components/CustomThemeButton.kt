@@ -30,7 +30,6 @@ import androidx.compose.ui.util.fastForEach
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun CustomThemeButtonGroup(
@@ -116,7 +115,7 @@ private fun CustomThemeButton(
         }
         Text(
             text = theme.name.ifEmpty { "?" },
-            style = KedgeTextStyles.body().copy(color = scheme.primary),
+            style = MaterialTheme.typography.bodyMedium.copy(color = scheme.primary),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

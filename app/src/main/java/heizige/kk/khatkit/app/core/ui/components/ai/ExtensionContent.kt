@@ -29,7 +29,6 @@ import heizige.kk.khatkit.app.core.data.model.QuickMessage
 import heizige.kk.khatkit.app.core.ui.icons.link
 import heizige.kk.khatkit.app.core.ui.icons.openInNew
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ModeInjectionsContent(
@@ -91,7 +90,7 @@ fun LorebooksContent(
                     {
                         Text(
                             text = lorebook.description,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
@@ -134,7 +133,7 @@ fun SkillsContent(
                     {
                         Text(
                             text = skill.description,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
@@ -179,7 +178,7 @@ fun QuickMessagesContent(
                     {
                         Text(
                             text = quickMessage.content,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             maxLines = 2,
                         )
@@ -209,7 +208,7 @@ private fun ManageButton(onClick: () -> Unit) {
             Text(
                 text = stringResource(R.string.extension_content_manage),
                 modifier = Modifier.padding(start = 4.dp),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
@@ -230,7 +229,7 @@ fun ExtensionEmptyState(
     ) {
         Text(
             text = message,
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
         )
         if (buttonText != null && onAction != null) {

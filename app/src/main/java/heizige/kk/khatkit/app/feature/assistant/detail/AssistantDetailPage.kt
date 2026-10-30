@@ -43,7 +43,6 @@ import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.sms
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun AssistantDetailPage(id: String) {
@@ -158,7 +157,7 @@ private fun AssistantHeader(
 
         Text(
             text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-            style = KedgeTextStyles.displayTitle(),
+            style = MaterialTheme.typography.headlineMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -166,7 +165,7 @@ private fun AssistantHeader(
         if (assistant.systemPrompt.isNotBlank()) {
             Text(
                 text = assistant.systemPrompt.take(100) + if (assistant.systemPrompt.length > 100) "..." else "",
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

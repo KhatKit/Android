@@ -48,8 +48,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
  * 以时间线/步骤卡片的形式展示一组思考过程。
@@ -74,7 +72,7 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 fun <T> ChainOfThought(
     modifier: Modifier = Modifier,
     cardColors: CardColors = CardDefaults.cardColors(
-        containerColor = KedgeColors.surfaceContainerHigh,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     ),
     steps: List<T>,
     collapsedVisibleCount: Int = 2,
@@ -120,7 +118,7 @@ fun <T> ChainOfThought(
                         imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = KedgeColors.primary,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
                 Row(
@@ -160,13 +158,13 @@ fun <T> ChainOfThought(
                                 steps.size - collapsedVisibleCount
                             )
                         },
-                        style = KedgeTextStyles.body(),
-                        color = KedgeColors.primary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
 
-            val lineColor = KedgeColors.outlineVariant
+            val lineColor = MaterialTheme.colorScheme.outlineVariant
             // 每个步骤只绘制自己的连线分段并在节点处留空，
             // 避免使用离屏合成 + BlendMode.Clear（离屏层过大时部分设备会退化，节点区域被清成黑块）。
             val cards = listCardStyle()
@@ -619,7 +617,7 @@ private class ChainOfThoughtScopeImpl(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .clip(CircleShape)
-                                    .background(KedgeColors.onSurfaceVariant)
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant)
                             )
                         }
                     }
@@ -649,7 +647,7 @@ private class ChainOfThoughtScopeImpl(
                         imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = KedgeColors.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -743,19 +741,19 @@ private fun ChainOfThoughtPreview() {
                                 imageVector = it,
                                 contentDescription = null,
                                 modifier = Modifier.fillMaxSize(),
-                                tint = KedgeColors.primary,
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }
                     val labelComposable: @Composable () -> Unit = {
-                        Text(step.label, style = KedgeTextStyles.body())
+                        Text(step.label, style = MaterialTheme.typography.bodyMedium)
                     }
                     val extraComposable: (@Composable () -> Unit)? = step.status?.let {
                         {
                             Text(
                                 it,
-                                style = KedgeTextStyles.footnoteSmall(),
-                                color = KedgeColors.onSurfaceVariant
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -775,8 +773,8 @@ private fun ChainOfThoughtPreview() {
                                     ).forEach { result ->
                                         Text(
                                             text = "• $result",
-                                            style = KedgeTextStyles.body(),
-                                            color = KedgeColors.onSurfaceVariant
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 } else {
@@ -784,7 +782,7 @@ private fun ChainOfThoughtPreview() {
                                         text = "This is expandable content showing detailed analysis. " +
                                             "It can contain multiple lines of text, code snippets, " +
                                             "or any other composable content.",
-                                        style = KedgeTextStyles.body(),
+                                        style = MaterialTheme.typography.bodyMedium,
                                     )
                                 }
                             }

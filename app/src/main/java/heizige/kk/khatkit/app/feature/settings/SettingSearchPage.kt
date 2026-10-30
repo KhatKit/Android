@@ -77,7 +77,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.feature.settings.data.addSearchRepository
 import heizige.kk.khatkit.app.feature.settings.data.moveSearchRepository
 import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
@@ -365,7 +364,7 @@ internal fun AddProviderSheet(
                     item {
                         Text(
                             text = stringResource(R.string.search_page_no_results),
-                            style = KedgeTextStyles.footnote(),
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
@@ -394,7 +393,7 @@ internal fun AddProviderSheet(
                         titleContent = {
                             Text(
                                 text = name,
-                                style = KedgeTextStyles.body(),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = if (isSelected) {
                                     MaterialTheme.colorScheme.onPrimaryContainer
                                 } else {
@@ -468,7 +467,7 @@ internal fun SearchProviderCard(
         titleContent = {
             Text(
                 text = service.displayName,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -566,7 +565,7 @@ internal fun CommonOptions(
         ) {
             Text(
                 text = stringResource(R.string.setting_page_search_common_options),
-                style = KedgeTextStyles.title()
+                style = MaterialTheme.typography.titleMedium
             )
         }
 

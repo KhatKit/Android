@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +15,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 
@@ -93,7 +93,7 @@ fun AssistantItem(
         titleContent = {
             Text(
                 text = displayName,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 // Unspecified 时 Text 会回落到 LocalContentColor，与不传等价；
                 // 选中态显式给 onPrimaryContainer，两种风格下都不会漏出默认字色。
                 color = contentColor,
@@ -109,7 +109,7 @@ fun AssistantItem(
                             text = assistant.description,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            style = KedgeTextStyles.footnoteSmall(),
+                            style = MaterialTheme.typography.labelSmall,
                         )
                     }
                     supportingContent?.invoke()

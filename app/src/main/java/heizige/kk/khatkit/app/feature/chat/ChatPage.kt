@@ -139,7 +139,6 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 
 
 
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 @Composable
@@ -378,7 +377,7 @@ internal fun ChatScaffold(
     val activeNestedScroll = activeNestedScroll(scrollBehavior)
 
     KkSurface(
-        color = heizige.kk.kedge.theme.KedgeColors.surface,
+        color = androidx.compose.material3.MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxSize()
     ) {
         // 用 MochiPageScaffold：Miuix 下自动建立 backdrop 并只包住内容槽，
@@ -392,7 +391,7 @@ internal fun ChatScaffold(
             if (archived) {
                 Text(
                     "历史群聊已归档",
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
                 )
@@ -940,7 +939,7 @@ private fun TopBar(
                     if (roleModelName.isNotBlank()) {
                         Text(
                             roleModelName,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = LocalContentColor.current.copy(0.65f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

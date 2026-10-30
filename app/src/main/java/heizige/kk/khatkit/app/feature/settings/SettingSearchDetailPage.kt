@@ -82,7 +82,6 @@ import heizige.kk.khatkit.app.feature.settings.search.KhatKitOptions
 import heizige.kk.khatkit.app.feature.settings.search.TinyfishOptions
 import heizige.kk.khatkit.app.feature.settings.search.GrokOptions
 import heizige.kk.khatkit.app.feature.settings.search.CustomJsOptions
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
 
 @Composable
@@ -177,7 +176,7 @@ internal fun SearchConfigCard(
         ) {
             Text(
                 text = stringResource(R.string.setting_page_search_config),
-                style = KedgeTextStyles.title()
+                style = MaterialTheme.typography.titleMedium
             )
         }
 
@@ -191,7 +190,7 @@ internal fun SearchConfigCard(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            ProvideTextStyle(KedgeTextStyles.footnote()) {
+            ProvideTextStyle(MaterialTheme.typography.labelMedium) {
                 SearchRepository.get(options).Description()
             }
         }
@@ -290,7 +289,7 @@ internal fun SearchTestSection(
         ) {
             Text(
                 text = stringResource(R.string.setting_page_search_test),
-                style = KedgeTextStyles.title()
+                style = MaterialTheme.typography.titleMedium
             )
 
             Row(
@@ -343,7 +342,7 @@ internal fun SearchTestSection(
                     searchResult.answer?.let { answer ->
                         Text(
                             text = answer,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -361,16 +360,16 @@ internal fun SearchTestSection(
                             ) {
                                 Text(
                                     text = "${index + 1}. ${item.title}",
-                                    style = KedgeTextStyles.title()
+                                    style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
                                     text = item.url,
-                                    style = KedgeTextStyles.body(),
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = item.text.take(200),
-                                    style = KedgeTextStyles.body(),
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -380,7 +379,7 @@ internal fun SearchTestSection(
                 res.onFailure { error ->
                     Text(
                         text = error.message ?: stringResource(R.string.search_detail_unknown_error),
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error
                     )
                 }

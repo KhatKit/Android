@@ -41,7 +41,6 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.folderCopy
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun MediaFileInputRow(
@@ -168,7 +167,7 @@ private fun AttachmentChip(
                 text = title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.widthIn(min = 40.dp, max = 180.dp),
             )
             Box(

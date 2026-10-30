@@ -67,7 +67,6 @@ import java.util.concurrent.TimeUnit
 import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.image
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -239,7 +238,7 @@ internal fun CleanFilesSheet(
     ) {
         Text(
             text = stringResource(R.string.setting_files_page_clean_range_description),
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
         )
@@ -260,7 +259,7 @@ internal fun CleanFilesSheet(
                     text = range.days?.let {
                         stringResource(R.string.setting_files_page_clean_older_than_days, it)
                     } ?: stringResource(R.string.setting_files_page_clean_all),
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
@@ -354,18 +353,18 @@ internal fun FileItem(
             ) {
                 Text(
                     text = file.displayName,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = file.mimeType,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = file.sizeBytes.fileSizeToString(),
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

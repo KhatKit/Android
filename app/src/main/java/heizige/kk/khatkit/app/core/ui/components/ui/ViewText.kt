@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlin.math.roundToInt
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun ViewText(
@@ -78,7 +77,7 @@ private fun TextViewPreview() {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val style = KedgeTextStyles.body()
+            val style = MaterialTheme.typography.bodyMedium
             Text(
                 text = buildAnnotatedString {
                     append("How many roads must a man walk down How many roads must a man walk downHow many roads must a man walk down")

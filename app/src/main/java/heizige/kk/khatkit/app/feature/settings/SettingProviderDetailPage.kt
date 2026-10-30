@@ -123,7 +123,6 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.feature.settings.provider.ModelList
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 
@@ -336,7 +335,7 @@ internal fun SettingProviderConfigPage(
                 balanceOption = internalProvider.balanceOption,
                 onEdit = { commit(internalProvider.copyProvider(balanceOption = it)) }
             )
-            ProviderBalanceText(providerSetting = provider, style = KedgeTextStyles.footnoteSmall())
+            ProviderBalanceText(providerSetting = provider, style = MaterialTheme.typography.labelSmall)
         }
 
         Row(

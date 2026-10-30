@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 import heizige.kk.khromia.components.PrimaryBottomSheet
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -63,7 +62,7 @@ fun KhatKitSecretsDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(key, style = KedgeTextStyles.body())
+                        Text(key, style = MaterialTheme.typography.bodyMedium)
                         MochiTextButton(
                             onClick = {
                                 controller.removeCardSecret(cardName, key)

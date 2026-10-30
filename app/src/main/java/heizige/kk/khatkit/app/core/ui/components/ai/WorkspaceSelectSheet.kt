@@ -30,7 +30,6 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.doneAll
 import heizige.kk.khatkit.app.core.ui.icons.terminal
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 
 @Composable
@@ -131,7 +130,7 @@ private fun WorkspaceSelectRow(
             {
                 Text(
                     text = it,
-                    style = KedgeTextStyles.body(),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

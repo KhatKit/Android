@@ -35,7 +35,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.preferences.KedgeListPreference
 import heizige.kk.kedge.preferences.KedgePreferenceOption
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.LocalInlineCardGroup
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
@@ -106,7 +105,7 @@ private fun preferenceRowShape(): Shape {
 }
 
 /**
- * 行标题。字阶取 [KedgeTextStyles.title]（旧双风格 = `headline1 + Medium`，与
+ * 行标题。字阶取 [textStyles.title]（旧双风格 = `headline1 + Medium`，与
  * [MochiOptionItem] 自己那层 `旧行样式作用域` 同值；MD3 = `titleMedium`）。
  *
  * 取色不能省：旧双风格 一支原来由 `SwitchPreference` 的 `BasicComponent` 给
@@ -117,7 +116,7 @@ private fun preferenceRowShape(): Shape {
 private fun PreferenceTitle(text: String) {
     Text(
         text = text,
-        style = KedgeTextStyles.title(),
+        style = MaterialTheme.typography.titleMedium,
         color = Color.Unspecified,
     )
 }
@@ -130,7 +129,7 @@ private fun PreferenceTitle(text: String) {
 private fun PreferenceSummary(text: String) {
     Text(
         text = text,
-        style = KedgeTextStyles.body(),
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
@@ -253,7 +252,7 @@ fun PreferenceSlider(
                     if (valueText != null) {
                         Text(
                             text = valueText,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }

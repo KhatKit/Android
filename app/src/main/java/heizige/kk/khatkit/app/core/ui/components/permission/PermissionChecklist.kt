@@ -64,14 +64,12 @@ import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -377,7 +375,7 @@ fun PermissionChecklist(
                     Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 } else {
                     Modifier
-                        .background(KedgeColors.background)
+                        .background(MaterialTheme.colorScheme.background)
                         .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp)
@@ -420,8 +418,8 @@ fun PermissionChecklist(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.greeting_permissions_hint),
-            style = KedgeTextStyles.body(),
-            color = KedgeColors.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
@@ -540,7 +538,7 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
         ) {
             Text(
                 text = stringResource(R.string.approval_sheet_desc),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ApprovalCategory.entries.forEach { category ->
@@ -550,7 +548,7 @@ private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = stringResource(category.labelRes),
-                        style = KedgeTextStyles.title(),
+                        style = MaterialTheme.typography.titleMedium,
                     )
                     KedgeSingleChoiceSegmentedRow(
                         items = ApprovalPolicy.entries.map { option ->

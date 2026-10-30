@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -26,7 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
-import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.ui.UiNode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -145,7 +145,7 @@ internal fun CounterButton(
     Box(modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth()
-                .background(KedgeColors.surfaceContainerHigh, RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(20.dp))
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -181,7 +181,7 @@ internal fun CounterButton(
                                 label = "counter digit",
                             ) {
                                 Text(it.toString(), fontSize = 27.sp, fontWeight = FontWeight.SemiBold,
-                                    color = KedgeColors.onSurface)
+                                    color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -190,12 +190,12 @@ internal fun CounterButton(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.size(7.dp).background(Color(0xFF67BC61), CircleShape))
                     Text(node.props["caption"] as? String ?: "", style = style.textStyle("label"),
-                        color = KedgeColors.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text("本机 ${state.optimisticLocalCount} 次", style = style.textStyle("label"),
-                    color = KedgeColors.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 (node.props["hint"] as? String)?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = style.textStyle("label"), color = KedgeColors.error)
+                    Text(it, style = style.textStyle("label"), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -207,7 +207,7 @@ internal fun CounterButton(
                     particles.remove(particle)
                 }
                 Text("+1", fontSize = 22.sp, fontWeight = FontWeight.Medium,
-                    color = KedgeColors.onSurface,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(start = 30.dp).graphicsLayer {
                         val p = progress.value
                         translationX = ((particle % 7) * 7 - 28) * density * p

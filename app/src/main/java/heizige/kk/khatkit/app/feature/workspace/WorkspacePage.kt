@@ -57,7 +57,6 @@ import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.kedge.components.KedgeFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
@@ -163,12 +162,12 @@ private fun EmptyWorkspaceState() {
         )
         Text(
             text = stringResource(R.string.workspace_page_empty),
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = stringResource(R.string.workspace_page_empty_desc),
-            style = KedgeTextStyles.body(),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -201,7 +200,7 @@ private fun WorkspaceItem(
         titleContent = {
             Text(
                 text = workspace.name,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -209,7 +208,7 @@ private fun WorkspaceItem(
         supportingContent = {
             Text(
                 text = workspace.shellStatus.toShellStatusLabel(),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

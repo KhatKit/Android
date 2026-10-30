@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -13,7 +14,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
@@ -108,20 +108,20 @@ private fun SlotContent(modifier: Modifier, content: @Composable () -> Unit) {
  * 同字号字重）。Miuix 分支**不动**：`MochiOptionItem` 已经用
  * `MiuixTextStyleScope(headline1 + Medium)` 包了标题槽，这里再包一层会改掉 Miuix 的字阶。
  *
- * 值取自 [KedgeTextStyles.title]（MD3 = `titleMedium`），与统一前的 `FormItem` 一致；
+ * 值取自 [textStyles.title]（MD3 = `titleMedium`），与统一前的 `FormItem` 一致；
  * 调用点显式写了 `style` 的像素不变 —— 组件自带的样式优先于这里提供的。
  */
 @Composable
 private fun RowTitleStyle(content: @Composable () -> Unit) {
     if (LocalKedgeStyle.current == KedgeStyle.MD3Exp) {
-        ProvideTextStyle(value = KedgeTextStyles.title(), content = content)
+        ProvideTextStyle(value = MaterialTheme.typography.titleMedium, content = content)
     } else {
         content()
     }
 }
 
 /**
- * 行描述的字阶（F2）：MD3 = `KedgeTextStyles.footnoteSmall()`（`labelSmall`，12sp）叠
+ * 行描述的字阶（F2）：MD3 = `MaterialTheme.typography.labelSmall`（`labelSmall`，12sp）叠
  * `0.6` alpha 的前景色，与统一前的 `FormItem` 逐值相同。
  *
  * 与 [RowTitleStyle] 同样只在 MD3 下生效（Miuix 由 `MochiOptionItem` 给 `body2`）。
@@ -130,7 +130,7 @@ private fun RowTitleStyle(content: @Composable () -> Unit) {
 private fun RowSupportingStyle(content: @Composable () -> Unit) {
     if (LocalKedgeStyle.current == KedgeStyle.MD3Exp) {
         ProvideTextStyle(
-            value = KedgeTextStyles.footnoteSmall().copy(
+            value = MaterialTheme.typography.labelSmall.copy(
                 color = LocalContentColor.current.copy(alpha = 0.6f),
             ),
             content = content,

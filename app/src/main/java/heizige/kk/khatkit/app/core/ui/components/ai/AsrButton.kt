@@ -46,8 +46,6 @@ import heizige.kk.khatkit.asr.ASRState
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
-import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 private enum class AsrDisplayState {
     Idle, Connecting, Active
@@ -61,17 +59,17 @@ internal fun AsrButton(
     val isIdle = state.status == ASRStatus.Idle
     val targetContainerColor = when (state.status) {
         ASRStatus.Idle -> Color.Transparent
-        ASRStatus.Connecting -> KedgeColors.secondaryContainer
-        ASRStatus.Listening -> KedgeColors.primaryContainer
-        ASRStatus.Stopping -> KedgeColors.tertiaryContainer
-        ASRStatus.Error -> KedgeColors.errorContainer
+        ASRStatus.Connecting -> MaterialTheme.colorScheme.secondaryContainer
+        ASRStatus.Listening -> MaterialTheme.colorScheme.primaryContainer
+        ASRStatus.Stopping -> MaterialTheme.colorScheme.tertiaryContainer
+        ASRStatus.Error -> MaterialTheme.colorScheme.errorContainer
     }
     val targetContentColor = when (state.status) {
         ASRStatus.Idle -> LocalContentColor.current
-        ASRStatus.Connecting -> KedgeColors.onSecondaryContainer
-        ASRStatus.Listening -> KedgeColors.onPrimaryContainer
-        ASRStatus.Stopping -> KedgeColors.onTertiaryContainer
-        ASRStatus.Error -> KedgeColors.onErrorContainer
+        ASRStatus.Connecting -> MaterialTheme.colorScheme.onSecondaryContainer
+        ASRStatus.Listening -> MaterialTheme.colorScheme.onPrimaryContainer
+        ASRStatus.Stopping -> MaterialTheme.colorScheme.onTertiaryContainer
+        ASRStatus.Error -> MaterialTheme.colorScheme.onErrorContainer
     }
     val containerColor by animateColorAsState(
         targetValue = targetContainerColor,
@@ -162,7 +160,7 @@ internal fun AsrButton(
                         Text(
                             text = stringResource(R.string.asr_button_stop),
                             color = contentColor,
-                            style = KedgeTextStyles.body(),
+                            style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1
                         )
                     }

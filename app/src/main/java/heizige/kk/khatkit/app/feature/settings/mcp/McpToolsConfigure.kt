@@ -104,7 +104,6 @@ import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
-import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
 internal fun McpToolsConfigure(
@@ -187,7 +186,7 @@ internal fun McpToolCard(
             ) {
                 Text(
                     text = tool.name,
-                    style = KedgeTextStyles.title(),
+                    style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -199,7 +198,7 @@ internal fun McpToolCard(
                 ) {
                     Text(
                         text = stringResource(R.string.setting_mcp_page_needs_approval),
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                     )
                     OptionSwitch(
                         checked = tool.needsApproval,
@@ -213,7 +212,7 @@ internal fun McpToolCard(
                 ) {
                     Text(
                         text = "启用",
-                        style = KedgeTextStyles.footnoteSmall(),
+                        style = MaterialTheme.typography.labelSmall,
                     )
                     OptionSwitch(
                         checked = tool.enable,
@@ -239,7 +238,7 @@ internal fun McpToolCard(
                 if (!tool.description.isNullOrBlank()) {
                     Text(
                         text = tool.description,
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     )
                 }
@@ -256,7 +255,7 @@ internal fun McpToolCard(
                                 ) {
                                     Text(
                                         text = key,
-                                        style = KedgeTextStyles.body(),
+                                        style = MaterialTheme.typography.bodyMedium,
                                     )
                                 }
                             }
@@ -330,7 +329,7 @@ internal fun McpImportModal(
         ) {
             Text(
                 stringResource(R.string.setting_mcp_page_import_desc),
-                style = KedgeTextStyles.body(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Md3OutlinedTextFieldWithSlots(

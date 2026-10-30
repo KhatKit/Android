@@ -90,7 +90,6 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 
 @Composable
@@ -340,13 +339,13 @@ private fun RecommendProviderItem(
         titleContent = {
             Text(
                 text = provider.name,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         },
         supportingContent = {
-            ProvideTextStyle(KedgeTextStyles.footnoteSmall()) {
+            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
                 CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
                     provider.description()
                 }
@@ -391,7 +390,7 @@ private fun ImportProviderButton(
             title = {
                 Text(
                     text = stringResource(R.string.setting_provider_page_import_dialog_title),
-                    style = KedgeTextStyles.title()
+                    style = MaterialTheme.typography.titleMedium
                 )
             },
             text = {
@@ -400,7 +399,7 @@ private fun ImportProviderButton(
                 ) {
                     Text(
                         text = stringResource(R.string.setting_provider_page_import_dialog_message),
-                        style = KedgeTextStyles.body(),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
@@ -437,7 +436,7 @@ private fun ImportProviderButton(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = stringResource(R.string.setting_provider_page_select_from_gallery),
-                                    style = KedgeTextStyles.footnoteSmall()
+                                    style = MaterialTheme.typography.labelSmall
                                 )
                             }
                         }
@@ -452,7 +451,7 @@ private fun ImportProviderButton(
                 ) {
                     Text(
                         text = stringResource(R.string.cancel),
-                        style = KedgeTextStyles.footnote()
+                        style = MaterialTheme.typography.labelMedium
                     )
                 }
             }
@@ -573,14 +572,14 @@ private fun ProviderItem(
         titleContent = {
             Text(
                 text = provider.name,
-                style = KedgeTextStyles.title(),
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                ProvideTextStyle(KedgeTextStyles.footnote()) {
+                ProvideTextStyle(MaterialTheme.typography.labelMedium) {
                     CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
                         provider.shortDescription()
                     }
