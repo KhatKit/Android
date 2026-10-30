@@ -80,11 +80,6 @@
       android:label="@string/title_activity_safe_mode"
       android:theme="@style/Theme.KhatKit" />
     <activity
-      android:name=".core.ui.mochispike.MochiSpikeActivity"
-      android:exported="true"
-      android:label="Mochi Spike"
-      android:theme="@style/Theme.KhatKit" />
-    <activity
       android:name=".RouteActivity"
       android:configChanges="keyboardHidden|orientation|screenSize"
       android:exported="true"
