@@ -155,18 +155,13 @@ fun ImageGenPage(
                 actions = {
                     // 顶栏按钮统一用 Miuix IconButton（MD3 下 KedgePageTopBar 会自行分支，
                     // 这里显式给 Miuix 分支原生控件）
-                    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                        MiuixIconButton(onClick = vm::startNewSession) {
-                            MiuixIcon(imageVector = add, contentDescription = "New session")
-                        }
-                    } else {
-                        MochiIconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                imageVector = add,
-                                contentDescription = "New session"
-                            )
-                        }
+                                        MochiIconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
+                        Icon(
+                            imageVector = add,
+                            contentDescription = "New session"
+                        )
                     }
+                
                 }
             )
         },

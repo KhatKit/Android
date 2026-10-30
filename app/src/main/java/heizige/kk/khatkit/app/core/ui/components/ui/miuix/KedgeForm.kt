@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import ui.feice.mochi.theme.MochiTheme
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
@@ -207,7 +209,7 @@ object MiuixFormMetrics {
 internal fun MiuixRowLabel(content: @Composable () -> Unit) {
     CompositionLocalProvider(
         androidx.compose.material3.LocalTextStyle provides
-            MiuixTheme.textStyles.headline1.copy(
+            MochiTheme.textStyles.headlineMedium.copy(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
             ),
         content = content,

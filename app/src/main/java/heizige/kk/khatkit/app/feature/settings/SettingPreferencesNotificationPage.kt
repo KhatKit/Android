@@ -51,10 +51,7 @@ internal const val MILLIS_PER_DAY = 24 * 60 * 60 * 1_000L
 
 @Composable
 fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesNotificationPageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var showUpdatePauseDialog by remember { mutableStateOf(false) }

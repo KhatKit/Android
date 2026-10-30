@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import ui.feice.mochi.theme.MochiTheme
+
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -291,30 +293,17 @@ fun ChatDrawerContent(
                 // 不对称（实测 43.7dp vs 27.7dp）。抽屉顶栏要的是左右对齐。
                 KedgeBlurredBar(backdrop = backdrop) {
                 TopAppBar(
-                    colors = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                        TopAppBarDefaults.topAppBarColors(
-                            // 有 backdrop 时透明，让 KedgeBlurredBar 的模糊透出来；
-                            // 没有 backdrop 时退回 surface，避免出现无底的栏。
-                            containerColor = KedgeOverlayBarColor(
-                                backdrop = backdrop,
-                                fallback = MiuixTheme.colorScheme.surface,
-                            ),
-                        )
-                    } else {
-                        // MD3Exp：走 CustomColors.topBarColors（surfaceContainer），但把
-                        // **静止态**换成页面底色（surface）—— 与页面顶栏同一条
-                        // [scrollLinkedTopBarColors]：顶栏静止时与抽屉内容连成一片，
-                        // 列表滚上来才渐变到 surfaceContainer 分出层次。
-                        // 若这里仍写死 surfaceContainer，两色相同 ⇒ M3 的插值空转，
-                        // 就回到「顶栏永远一个颜色、跟下面的滚动无关」。
-                        scrollLinkedTopBarColors(CustomColors.topBarColors, drawerBarScrollBehavior)
-                    },
+                    colors =                     // MD3Exp：走 CustomColors.topBarColors（surfaceContainer），但把
+                    // **静止态**换成页面底色（surface）—— 与页面顶栏同一条
+                    // [scrollLinkedTopBarColors]：顶栏静止时与抽屉内容连成一片，
+                    // 列表滚上来才渐变到 surfaceContainer 分出层次。
+                    // 若这里仍写死 surfaceContainer，两色相同 ⇒ M3 的插值空转，
+                    // 就回到「顶栏永远一个颜色、跟下面的滚动无关」。
+                    scrollLinkedTopBarColors(CustomColors.topBarColors, drawerBarScrollBehavior)
+                ,
                     // Miuix 不接 MD3 的滚动行为（那边由毛玻璃 + backdrop 负责外观）。
-                    scrollBehavior = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                        null
-                    } else {
-                        drawerBarScrollBehavior
-                    },
+                    scrollBehavior =                     drawerBarScrollBehavior
+                ,
                 navigationIcon = {
                     if (searchVisible) {
                         MochiIconButton(
@@ -432,11 +421,8 @@ fun ChatDrawerContent(
                 // 不再靠抽屉底色透出来。
                 val bottomBarColor = KedgeOverlayBarColor(
                     backdrop = backdrop,
-                    fallback = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                        MiuixTheme.colorScheme.surface
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    },
+                    fallback =                     MaterialTheme.colorScheme.surfaceContainer
+                ,
                 )
                 KedgeBlurredBar(
                     backdrop = backdrop,
@@ -604,11 +590,7 @@ fun ChatDrawerContent(
     // DrawerDefaults 的容器色，MD3Exp 下会漏出灰紫底。
     // 这里显式给色，且两种风格都与聊天页同底色（页面用 KedgeColors.surface）：
     // 有色的一档只留给顶/底栏，抽屉本身跟正文同色。
-    val drawerContainerColor = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        MiuixTheme.colorScheme.surface
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
-    }
+    val drawerContainerColor =     MaterialTheme.colorScheme.surfaceContainerLow
 
     // 有 drawerState 时用带预测返回的 ModalDrawerSheet（返回手势跟手关闭抽屉）
     if (drawerState != null) {

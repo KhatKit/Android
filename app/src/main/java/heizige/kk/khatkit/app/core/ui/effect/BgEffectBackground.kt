@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.effect
 
+import ui.feice.mochi.theme.MochiTheme
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
@@ -14,8 +16,6 @@ import androidx.compose.ui.Modifier
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import top.yukonga.miuix.kmp.shader.isRuntimeShaderSupported
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * 流光（极光）动态背景，移植自词幕（Kifranei/lyricon）`app/compose/effect/BgEffectBackground.kt`。
@@ -27,7 +27,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * 与原项目的差异：
  * - 原版按 HyperOS 大版本在 OS2/OS3 之间切换，并把选择存进 SharedPreferences。本项目
  *   关于页固定用 OS3，不引入这套偏好。
- * - 原版的深浅色取 `MiuixTheme.colorScheme.background` 的亮度；这里改用本项目的
+ * - 原版的深浅色取 `MochiTheme.colorScheme.background` 的亮度；这里改用本项目的
  *   [rememberIsDarkTheme]，以尊重应用内的「颜色模式」设置（仅 Miuix 主题下二者才一致）。
  *
  * @param dynamicBackground 是否持续推进动画。
@@ -46,13 +46,13 @@ fun BgEffectBackground(
     // Android 13 以下没有 RuntimeShader，直接退化成纯背景，不画流光。
     // 这里必须是「显式版本比较 + 提前 return」：BgEffectPainter 标了 @RequiresApi(33)，
     // lint 的 NewApi 只认同函数内的 SDK_INT 分支。
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !isRuntimeShaderSupported()) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)) {
         Box(modifier = modifier, content = content)
         return
     }
 
     Box(modifier = modifier) {
-        val surface = MiuixTheme.colorScheme.surface
+        val surface = MochiTheme.colorScheme.surface
         val painter = remember { BgEffectPainter() }
         val animTime = rememberFrameTimeSeconds(dynamicBackground)
         val isDark = rememberIsDarkTheme()

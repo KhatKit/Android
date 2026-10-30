@@ -277,11 +277,8 @@ internal fun ModelFormGroup(
             modifier = Modifier.padding(MiuixFormMetrics.ItemPadding + 2.dp),
             verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.ItemSpacing),
         ) {
-            if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                MiuixRowLabel { Text(title) }
-            } else {
-                Text(title, style = KedgeTextStyles.title())
-            }
+                        Text(title, style = KedgeTextStyles.title())
+        
             content()
         }
     }

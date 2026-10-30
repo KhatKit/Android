@@ -32,7 +32,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.ButtonDefaults as MiuixButtonDefaults
 import java.text.NumberFormat
 
 /** One request at a time; taps made during a request remain queued until its acknowledgement. */
@@ -143,8 +142,6 @@ internal fun CounterButton(
     val accent = node.props["tone"] == "primary"
     val colors = if (accent) ButtonDefaults.buttonColors(containerColor = orange, contentColor = ink)
         else ButtonDefaults.filledTonalButtonColors()
-    val miuixColors = if (accent) MiuixButtonDefaults.buttonColors(color = orange, contentColor = ink)
-        else MiuixButtonDefaults.buttonColors()
     Box(modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -164,7 +161,6 @@ internal fun CounterButton(
                 enabled = !readOnly && node.props["disabled"] != true,
                 variant = if (accent) MochiButtonVariant.Primary else MochiButtonVariant.Secondary,
                 colors = colors,
-                miuixColors = miuixColors,
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
             ) {
                 Text(node.props["label"] as? String ?: "+1", style = style.textStyle("body"))

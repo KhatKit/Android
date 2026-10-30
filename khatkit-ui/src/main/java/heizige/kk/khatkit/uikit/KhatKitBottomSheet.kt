@@ -64,7 +64,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
 import heizige.kk.kedge.adaptive.rememberKedgeExitUntilCollapsedScrollBehavior
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khromia.components.LocalBottomSheetDismiss
@@ -293,7 +292,7 @@ fun KhatKitBottomSheet(
                             scrollBehavior = topBarBehavior,
                             // 不做毛玻璃：弹层是全屏实心页面，透明顶栏会透出下面的聊天页，
                             // 状态栏与顶栏也会因此串色。
-                            backdrop = null as LayerBackdrop?,
+                            backdrop = null,
                             actions = {
                                 options.topActions.forEach { item ->
                                     MochiIconButton(

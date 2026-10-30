@@ -58,10 +58,7 @@ import java.io.File
 
 @Composable
 fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesUIFontPageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     val context = LocalContext.current

@@ -83,10 +83,7 @@ import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 
 @Composable
 fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingSpeechPageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }

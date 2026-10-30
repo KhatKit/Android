@@ -91,10 +91,7 @@ import heizige.kk.khatkit.app.core.ui.icons.inventory2
 
 @Composable
 fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPageMiuix(vm)
-        return
-    }
+    
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     val settings by vm.settings.collectAsStateWithLifecycle()

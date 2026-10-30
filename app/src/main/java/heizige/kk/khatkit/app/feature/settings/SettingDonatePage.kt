@@ -21,10 +21,7 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
  */
 @Composable
 fun SettingDonatePage() {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingDonatePageMiuix()
-        return
-    }
+    
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     KedgeSettingsPageScaffold(

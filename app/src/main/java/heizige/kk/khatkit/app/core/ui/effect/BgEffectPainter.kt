@@ -3,8 +3,6 @@ package heizige.kk.khatkit.app.core.ui.effect
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Brush
-import top.yukonga.miuix.kmp.shader.RuntimeShader
-import top.yukonga.miuix.kmp.shader.asBrush
 
 /**
  * 流光背景绘制器，移植自词幕 `app/compose/effect/BgEffectPainter.kt`。
@@ -20,10 +18,10 @@ import top.yukonga.miuix.kmp.shader.asBrush
 class BgEffectPainter {
 
     val runtimeShader by lazy {
-        RuntimeShader(OS3_BG_FRAG).also { initStaticUniforms(it) }
+        android.graphics.RuntimeShader(OS3_BG_FRAG).also { initStaticUniforms(it) }
     }
 
-    val brush: Brush by lazy { runtimeShader.asBrush() }
+    val brush: Brush by lazy { LocalShaderBrush(runtimeShader) }
 
     private val resolution = FloatArray(2)
     private val bound = FloatArray(4)
@@ -31,7 +29,7 @@ class BgEffectPainter {
     private var isDarkCached: Boolean? = null
     private var presetApplied = false
 
-    private fun initStaticUniforms(shader: RuntimeShader) {
+    private fun initStaticUniforms(shader: android.graphics.RuntimeShader) {
         shader.setFloatUniform("uTranslateY", 0f)
         shader.setFloatUniform("uNoiseScale", 1.5f)
         shader.setFloatUniform("uPointRadiusMulti", 1f)
@@ -89,4 +87,12 @@ class BgEffectPainter {
             bound[3] = aspectRatio
         }
     }
+}
+
+
+/** miuix asBrush 的等价物：Android RuntimeShader -> Compose ShaderBrush。 */
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private class LocalShaderBrush(private val shader: android.graphics.RuntimeShader) :
+    androidx.compose.ui.graphics.ShaderBrush() {
+    override fun createShader(size: androidx.compose.ui.geometry.Size) = shader
 }

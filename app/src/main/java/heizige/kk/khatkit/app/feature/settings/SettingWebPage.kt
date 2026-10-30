@@ -75,10 +75,7 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 
 @Composable
 fun SettingWebPage() {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingWebPageMiuix()
-        return
-    }
+    
     val webServerManager: WebServerManager = rememberAppEntryPoint().webServerManager()
     val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
     val settings = LocalSettings.current

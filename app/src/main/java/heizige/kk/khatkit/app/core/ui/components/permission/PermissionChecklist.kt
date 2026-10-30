@@ -591,31 +591,13 @@ private fun PermissionActionItem(
             " · " + stringResource(item.actionLabelRes)
     }
     val subtitle = stringResource(item.descRes) + " · " + statusLabel
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        // Miuix 下用设置页同款 OptionItem：白底圆角块 + Miuix 字阶，
-        // 勾选态靠右上角的 MochiRadioButton 表示（KSU 的权限页就是这个形态）。
-        MochiOptionItem(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { if (!item.granted) item.onAction?.invoke() },
-            shape = shape,
-            titleContent = { Text(stringResource(item.titleRes)) },
-            supportingContent = { Text(subtitle) },
-            trailingContent = {
-                MochiRadioButton(
-                    selected = item.granted,
-                    onClick = { if (!item.granted) item.onAction?.invoke() },
-                )
-            },
-        )
-    } else {
         AnimatedRadioItem(
-            text = stringResource(item.titleRes),
-            subtitle = subtitle,
-            isSelected = item.granted,
-            onClick = { if (!item.granted) item.onAction?.invoke() },
-            shape = shape,
-        )
-    }
+        text = stringResource(item.titleRes),
+        subtitle = subtitle,
+        isSelected = item.granted,
+        onClick = { if (!item.granted) item.onAction?.invoke() },
+        shape = shape,
+    )
 }
 
 @Composable
@@ -630,35 +612,19 @@ private fun PermissionRadioItem(
 ) {
     val colors = MaterialTheme.colorScheme
     val alpha = if (enabled) 1f else 0.6f
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        MochiOptionItem(
-            modifier = Modifier.fillMaxWidth().alpha(alpha),
-            onClick = { if (enabled) onClick() },
-            shape = shape,
-            titleContent = { Text(title) },
-            supportingContent = { Text(subtitle) },
-            trailingContent = {
-                MochiRadioButton(
-                    selected = selected,
-                    onClick = { if (enabled) onClick() },
-                )
-            },
-        )
-    } else {
         AnimatedRadioItem(
-            text = title,
-            subtitle = subtitle,
-            isSelected = selected,
-            onClick = { if (enabled) onClick() },
-            selectedBackground = if (dangerous) colors.errorContainer.copy(alpha = 0.54f)
-            else colors.primaryContainer.copy(alpha = 0.54f),
-            unselectedBackground = colors.surfaceVariant.copy(alpha = if (enabled) 0.26f else 0.12f),
-            checkIconTint = if (dangerous) colors.error else colors.primary,
-            textColor = if (enabled) colors.onSurface else colors.onSurface.copy(alpha = 0.38f),
-            shape = shape,
-            modifier = Modifier.alpha(alpha),
-        )
-    }
+        text = title,
+        subtitle = subtitle,
+        isSelected = selected,
+        onClick = { if (enabled) onClick() },
+        selectedBackground = if (dangerous) colors.errorContainer.copy(alpha = 0.54f)
+        else colors.primaryContainer.copy(alpha = 0.54f),
+        unselectedBackground = colors.surfaceVariant.copy(alpha = if (enabled) 0.26f else 0.12f),
+        checkIconTint = if (dangerous) colors.error else colors.primary,
+        textColor = if (enabled) colors.onSurface else colors.onSurface.copy(alpha = 0.38f),
+        shape = shape,
+        modifier = Modifier.alpha(alpha),
+    )
 }
 
 private fun hasPermission(context: Context, permission: String): Boolean =

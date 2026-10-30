@@ -90,10 +90,7 @@ fun SettingSearchDetailPage(
     serviceId: Uuid,
     vm: SettingViewModel = hiltViewModel()
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingSearchDetailPageMiuix(serviceId, vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val nav = LocalNavController.current

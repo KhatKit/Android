@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import ui.feice.mochi.theme.MochiTheme
+
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -58,7 +60,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 /**
  * 前置图标，样式对齐 KernelSU（`SettingsMiuix.kt` 里每个 startAction 都是
  * `Icon(..., Modifier.padding(end = 6.dp), tint = colorScheme.onBackground)`）：
- * 24dp 尺寸、右侧 6dp 间距、禁用时用 disabledOnSecondaryVariant 着色。
+ * 24dp 尺寸、右侧 6dp 间距、禁用时用 onSurfaceVariant 着色。
  */
 @Composable
 fun PreferenceIcon(
@@ -72,9 +74,9 @@ fun PreferenceIcon(
             imageVector = imageVector,
             contentDescription = contentDescription,
             tint = if (enabled) {
-                MiuixTheme.colorScheme.onBackground
+                MochiTheme.colorScheme.onBackground
             } else {
-                MiuixTheme.colorScheme.disabledOnSecondaryVariant
+                MochiTheme.colorScheme.onSurfaceVariant
             },
             // 照搬 KernelSU：SettingsMiuix.kt 里每个 startAction 都是
             // `Icon(..., Modifier.padding(end = 6.dp), tint = colorScheme.onBackground)`，
@@ -133,7 +135,7 @@ private fun PreferenceTitle(text: String) {
         text = text,
         style = KedgeTextStyles.title(),
         color = when (LocalKedgeStyle.current) {
-            KedgeStyle.Miuix -> MiuixTheme.colorScheme.onSurfaceContainer
+            KedgeStyle.Miuix -> MochiTheme.colorScheme.onSurface
             KedgeStyle.MD3Exp -> Color.Unspecified
         },
     )
@@ -149,7 +151,7 @@ private fun PreferenceSummary(text: String) {
         text = text,
         style = KedgeTextStyles.body(),
         color = when (LocalKedgeStyle.current) {
-            KedgeStyle.Miuix -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+            KedgeStyle.Miuix -> MochiTheme.colorScheme.onSurfaceVariant
             KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.onSurfaceVariant
         },
     )
@@ -216,7 +218,7 @@ fun PreferenceArrow(
                     contentDescription = null,
                     tint = when (LocalKedgeStyle.current) {
                         // Miuix 的 `ArrowPreference` 自己画的那个箭头就是这个色。
-                        KedgeStyle.Miuix -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        KedgeStyle.Miuix -> MochiTheme.colorScheme.onSurfaceVariant
                         KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
@@ -420,11 +422,11 @@ fun MiuixEmptyHint(
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = text, color = MiuixTheme.colorScheme.onBackground)
+        Text(text = text, color = MochiTheme.colorScheme.onBackground)
         if (secondary != null) {
             Text(
                 text = secondary,
-                color = MiuixTheme.colorScheme.onBackgroundVariant,
+                color = MochiTheme.colorScheme.onBackground,
                 fontSize = 13.sp,
             )
         }

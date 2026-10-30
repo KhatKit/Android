@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import ui.feice.mochi.theme.MochiTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeStyle
 import androidx.compose.ui.draw.clip
@@ -54,11 +55,11 @@ fun Tag(
     }
     // Miuix 下这套 MD3 的 labelSmall + tertiaryContainer 观感不对：换成 Miuix 的
     // 表面色层级与文字样式，形状保持胶囊（Miuix 也是胶囊）。
-    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
-    val finalBackground = if (isMiuix) MiuixTheme.colorScheme.surfaceContainer else background
-    val finalTextColor = if (isMiuix) MiuixTheme.colorScheme.onSurfaceVariantSummary else textColor
+    val isMiuix = false
+    val finalBackground = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else background
+    val finalTextColor = if (isMiuix) MochiTheme.colorScheme.onSurfaceVariant else textColor
     val finalTextStyle = if (isMiuix) {
-        MiuixTheme.textStyles.footnote1.copy(color = finalTextColor)
+        MochiTheme.textStyles.footnote.copy(color = finalTextColor)
     } else {
         KedgeTextStyles.footnoteSmall().copy(color = textColor)
     }

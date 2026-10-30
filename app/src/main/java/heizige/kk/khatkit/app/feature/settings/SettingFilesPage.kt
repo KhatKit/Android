@@ -72,10 +72,7 @@ import heizige.kk.kedge.theme.KedgeTextStyles
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingFilesPage() {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingFilesPageMiuix()
-        return
-    }
+    
     val filesManager = rememberAppEntryPoint().filesManager()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyStaggeredGridState()

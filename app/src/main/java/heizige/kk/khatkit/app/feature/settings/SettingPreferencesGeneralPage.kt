@@ -40,10 +40,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesGeneralPageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
     var ttsPlaybackSpeed by remember(settings.defaultTTSPlaybackSpeed) {

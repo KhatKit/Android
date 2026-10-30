@@ -150,20 +150,14 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     BackButton()
                 },
                 actions = {
-                    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                        MiuixIconButton(onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id,
-                            enableMemory = true, autoExtractMemory = true, enableRecentChatsReference = true)) }) {
-                            MiuixIcon(add, contentDescription = stringResource(R.string.assistant_page_add))
-                        }
-                    } else {
-                        MochiIconButton(
-                            onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id,
-                                enableMemory = true, autoExtractMemory = true, enableRecentChatsReference = true)) },
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(add, stringResource(R.string.assistant_page_add))
-                        }
+                                        MochiIconButton(
+                        onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id,
+                            enableMemory = true, autoExtractMemory = true, enableRecentChatsReference = true)) },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(add, stringResource(R.string.assistant_page_add))
                     }
+                
                 },
                 scrollBehavior = scrollBehavior,
                 colors = CustomColors.topBarColors,

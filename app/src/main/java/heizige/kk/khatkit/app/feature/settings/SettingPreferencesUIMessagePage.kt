@@ -35,10 +35,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesUIMessagePageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
 

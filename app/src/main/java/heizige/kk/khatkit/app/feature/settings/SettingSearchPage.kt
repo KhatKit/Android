@@ -83,10 +83,7 @@ import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
 
 @Composable
 fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingSearchPageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val lazyListState = rememberLazyListState()

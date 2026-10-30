@@ -617,7 +617,7 @@ internal fun AutomationToast(
         else -> BoardContent.Status
     }
 
-    val miuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+    val miuix = false
     Surface(
         color = if (miuix) KedgeColors.secondaryContainer else ToastDefaults.color,
         contentColor = if (miuix) KedgeColors.onSecondaryContainer else ToastDefaults.contentColor,
@@ -733,32 +733,7 @@ private fun ApprovalButtonGroup(
     onDeny: () -> Unit,
     onRemember: () -> Unit,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            MochiIconButton(onClick = onDeny, modifier = Modifier.size(32.dp)) {
-                Icon(close, "拒绝", Modifier.size(16.dp))
-            }
-            Box {
-                var expanded by remember { mutableStateOf(false) }
-                MochiIconButton(
-                    onClick = onApprove,
-                    variant = MochiIconButtonVariant.Filled,
-                    modifier = Modifier.size(32.dp),
-                ) { Icon(check, "允许", Modifier.size(16.dp)) }
-                Box(Modifier.matchParentSize().combinedClickable(
-                    onClick = onApprove,
-                    onLongClick = { expanded = true },
-                ))
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    DropdownMenuItem(text = { Text("10 分钟内自动允许") }, onClick = {
-                        expanded = false
-                        onRemember()
-                    })
-                }
-            }
-        }
-        return
-    }
+    
     val leadingShapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
     val trailingShapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {

@@ -195,7 +195,6 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior
 import heizige.kk.kedge.adaptive.miuixScrollBehavior
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -387,10 +386,9 @@ private fun ExploreSearchTopBar(
     // 落在先注册的那份 = 收起态小标题行 = 看不见的那行），所以打开搜索时记下当时
     // 可见的是哪一行，只把 requester 挂到那一行，光标才不会落进隐藏副本。
     var focusLargeTitleRow by remember { mutableStateOf(true) }
-    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
     LaunchedEffect(expanded) {
         if (expanded) {
-            if (!isMiuix) {
+            if (true) {
                 focusLargeTitleRow = scrollBehavior.state.collapsedFraction < 0.5f
             }
             delay(100)
@@ -444,120 +442,93 @@ private fun ExploreSearchTopBar(
         )
     }
 
-    if (isMiuix) {
-        // Miuix：交给现成的 morphing 顶栏（ChatPage 用的同一个），标题/副标题
-        // 与输入框按同一进度 morph。
-        KedgeMiuixMorphingTitleBar(
-            title = title,
-            subtitle = subtitle,
-            expanded = expanded,
-            keyword = query,
-            onKeywordChange = onQueryChange,
-            dragProgress = searchProgress.value,
-            // 不传 dragging，组件内部的 snapTo 会被门控掉（只剩 tween），
-            // 返回手势拖动就没有跟手反馈。
-            dragging = searchExpand.dragging.value,
-            onExitSearch = onExitSearch,
-            placeholder = stringResource(R.string.history_page_search),
-            navigationIcon = navigationIcon,
-            actions = {
-                extraAction?.invoke()
-                searchAction()
-            },
-            focusRequester = searchFocus,
-        )
-    } else {
         KedgePageLargeTopBar(
-            title = title,
-            subtitle = subtitle,
-            navigationIcon = navigationIcon,
-            actions = {
-                extraAction?.invoke()
-                searchAction()
-            },
-            scrollBehavior = scrollBehavior,
-            colors = CustomColors.topBarColors,
-            titleContent = {
-                // 标题与输入框共用同一个字阶：MD3 下不覆盖，沿用栏内行字阶
-                // （展开 displaySmall / 收起 titleLarge）；Miuix 自绘栏不下发行字阶，
-                // 仍取 title3。理由同 ChatPage：显式覆盖会把标题钉死在一档。
-                val titleStyle = if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                    KedgeTextStyles.displayTitle()
-                } else {
-                    LocalTextStyle.current
-                }
-                // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行
-                val isLargeTitleRow = LocalTextStyle.current.fontSize >
-                    MaterialTheme.typography.titleLarge.fontSize
-                Box {
-                    if (titleVisible) {
-                        Column(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = 1f - searchProgress.value
-                                translationX = -searchProgress.value * 24.dp.toPx()
-                            },
-                        ) {
+        title = title,
+        subtitle = subtitle,
+        navigationIcon = navigationIcon,
+        actions = {
+            extraAction?.invoke()
+            searchAction()
+        },
+        scrollBehavior = scrollBehavior,
+        colors = CustomColors.topBarColors,
+        titleContent = {
+            // 标题与输入框共用同一个字阶：MD3 下不覆盖，沿用栏内行字阶
+            // （展开 displaySmall / 收起 titleLarge）；Miuix 自绘栏不下发行字阶，
+            // 仍取 title3。理由同 ChatPage：显式覆盖会把标题钉死在一档。
+            val titleStyle =                 LocalTextStyle.current
+        
+            // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行
+            val isLargeTitleRow = LocalTextStyle.current.fontSize >
+                MaterialTheme.typography.titleLarge.fontSize
+            Box {
+                if (titleVisible) {
+                    Column(
+                        modifier = Modifier.graphicsLayer {
+                            alpha = 1f - searchProgress.value
+                            translationX = -searchProgress.value * 24.dp.toPx()
+                        },
+                    ) {
+                        Text(
+                            text = title,
+                            style = titleStyle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (subtitle != null) {
                             Text(
-                                text = title,
-                                style = titleStyle,
+                                text = subtitle,
+                                style = KedgeTextStyles.body(),
+                                color = LocalContentColor.current.copy(0.65f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            if (subtitle != null) {
-                                Text(
-                                    text = subtitle,
-                                    style = KedgeTextStyles.body(),
-                                    color = LocalContentColor.current.copy(0.65f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                    if (searchVisible) {
-                        // 用 searchVisible 而不是 expanded：布尔先变 false、
-                        // 进度还在补间时若已卸载输入框，退场动画会被腰斩。
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
-                                .graphicsLayer {
-                                    alpha = searchProgress.value
-                                    translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                                },
-                        ) {
-                            if (query.isBlank()) {
-                                Text(
-                                    text = stringResource(R.string.history_page_search),
-                                    style = titleStyle,
-                                    maxLines = 1,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                )
-                            }
-                            BasicTextField(
-                                value = query,
-                                onValueChange = onQueryChange,
-                                singleLine = true,
-                                textStyle = titleStyle.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    // 只挂到打开搜索那一刻可见的那一行
-                                    .then(
-                                        if (isLargeTitleRow == focusLargeTitleRow) {
-                                            Modifier.focusRequester(searchFocus)
-                                        } else {
-                                            Modifier
-                                        }
-                                    ),
-                            )
                         }
                     }
                 }
-            },
-        )
-    }
+                if (searchVisible) {
+                    // 用 searchVisible 而不是 expanded：布尔先变 false、
+                    // 进度还在补间时若已卸载输入框，退场动画会被腰斩。
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
+                            .graphicsLayer {
+                                alpha = searchProgress.value
+                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
+                            },
+                    ) {
+                        if (query.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.history_page_search),
+                                style = titleStyle,
+                                maxLines = 1,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            )
+                        }
+                        BasicTextField(
+                            value = query,
+                            onValueChange = onQueryChange,
+                            singleLine = true,
+                            textStyle = titleStyle.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                // 只挂到打开搜索那一刻可见的那一行
+                                .then(
+                                    if (isLargeTitleRow == focusLargeTitleRow) {
+                                        Modifier.focusRequester(searchFocus)
+                                    } else {
+                                        Modifier
+                                    }
+                                ),
+                        )
+                    }
+                }
+            }
+        },
+    )
 }
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable

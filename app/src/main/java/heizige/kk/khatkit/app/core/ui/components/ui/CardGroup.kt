@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import ui.feice.mochi.theme.MochiTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -209,7 +211,7 @@ fun InlineCardGroup(
  * - MD3Exp：`CustomColors.cardColorsOnSurfaceContainer.containerColor`（= `surfaceBright`），
  *   与改造前 `KedgeFormCard` 的 MD3 分支（`MochiCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
  *   完全一致。
- * - Miuix：`KedgeMiuixSurface.cardContainer`（= `MiuixTheme.colorScheme.surfaceContainer`），
+ * - Miuix：`KedgeMiuixSurface.cardContainer`（= `MochiTheme.colorScheme.surfaceContainer`），
  *   与改造前 Miuix 分支那张卡、以及 `MochiOptionItem` 自己的行卡片同色。
  *
  * 底色画在整组底下、不额外加内边距，所以不存在「卡套卡」：自带底色的行直接盖住它，

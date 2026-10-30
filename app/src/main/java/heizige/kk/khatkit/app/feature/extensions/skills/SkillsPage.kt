@@ -139,7 +139,7 @@ fun SkillsPage() {
         title = stringResource(R.string.skills_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
-        val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
+        val isMiuix = false
         // Scaffold 的 innerPadding 挂在**整列**上（助手列表 / 提供商列表 / 搜索页同款），
         // 不再塞进列表自己的 padding：以前搜索框留在 y=0 被顶栏压住，列表却整体下移了
         // 一个顶栏高度，于是「搜索框下方到首项」空出一大块（顶栏高 + 16dp）。

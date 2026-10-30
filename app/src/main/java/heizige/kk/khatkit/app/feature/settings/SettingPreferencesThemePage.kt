@@ -103,10 +103,7 @@ private val themeJson = Json {
 @Composable
 fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     // Miuix 走双文件（KernelSU SettingsMaterial/SettingsMiuix 架构）
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesThemePageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     var amoledDarkMode by rememberAmoledDarkMode()
     val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()

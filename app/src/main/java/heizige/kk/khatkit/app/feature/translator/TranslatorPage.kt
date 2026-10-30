@@ -254,64 +254,34 @@ private fun LanguageSelector(
     ) {
         // Miuix 下不用 ExposedDropdownMenuBox：锚点与菜单容器都是 MD3 的，
         // 改成记录锚点宽度 + Kedge 弹出菜单（与 Select/SelectTextField 一致）。
-        if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-            MochiOutlinedTextField(
-                value = getLanguageDisplayName(targetLanguage),
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { expanded = !expanded }
-                    .onGloballyPositioned { anchorWidth = it.size.width },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            MochiDropdownMenuSlots(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .width(with(density) { anchorWidth.toDp() })
-                    .heightIn(max = 320.dp),
-            ) {
-                LanguageItems(onLanguageSelected) { expanded = false }
-            }
-        } else {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it }
-        ) {
-            MochiOutlinedTextField(
-                value = getLanguageDisplayName(targetLanguage),
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
-                    .fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
+            ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        MochiOutlinedTextField(
+            value = getLanguageDisplayName(targetLanguage),
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
+                .fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                disabledBorderColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(16.dp)
+        )
 
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                LanguageItems(onLanguageSelected) { expanded = false }
-            }
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            LanguageItems(onLanguageSelected) { expanded = false }
         }
-        }
+    }
+    
     }
 }
 

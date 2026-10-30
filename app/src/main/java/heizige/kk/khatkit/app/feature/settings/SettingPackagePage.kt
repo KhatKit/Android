@@ -63,10 +63,7 @@ private val GATEWAY_PROVIDER_ID: Uuid = Uuid.parse("7e2a9c1e-6b5f-4a3d-9c8e-1f2b
 fun SettingPackagePage(
     vm: SettingViewModel = hiltViewModel(),
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPackagePageMiuix(vm)
-        return
-    }
+    
     val uriHandler = LocalUriHandler.current
     val provider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by vm.settings.collectAsStateWithLifecycle()

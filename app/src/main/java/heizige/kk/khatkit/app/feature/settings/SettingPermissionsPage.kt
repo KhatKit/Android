@@ -27,10 +27,7 @@ import heizige.kk.khatkit.app.core.util.plus
  */
 @Composable
 fun SettingPermissionsPage() {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPermissionsPageMiuix()
-        return
-    }
+    
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     KedgeSettingsPageScaffold(

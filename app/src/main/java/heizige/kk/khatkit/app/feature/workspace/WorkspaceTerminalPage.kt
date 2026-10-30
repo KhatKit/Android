@@ -187,141 +187,77 @@ private fun WorkspaceTerminalContent(
                         val tabTitles = state.tabs.map { tab ->
                             tab.title ?: stringResource(R.string.workspace_terminal_tab, tab.number)
                         }
-                        if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-                            // Miuix 没有「可滚动 TabRow + 关闭按钮」这形态（那是浏览器
-                            // 标签页），自己用 LazyRow 画一排卡片：选中项用主色容器，
-                            // 关闭按钮沿用 MochiIconButton。
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp),
-                            ) {
-                                items(state.tabs, key = { it.id }) { tab ->
-                                    val tabTitle = tab.title
-                                        ?: stringResource(R.string.workspace_terminal_tab, tab.number)
-                                    val isSelected = selectedTab.id == tab.id
-                                    val closeDescription = stringResource(
-                                        R.string.workspace_terminal_close_tab,
-                                        tab.number,
-                                    )
-                                    MochiSurface(
-                                        onClick = { onSelectTab(tab.id) },
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = if (isSelected) {
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceContainer
+                                                SecondaryScrollableTabRow(
+                            selectedTabIndex = selectedIndex,
+                            modifier = Modifier.fillMaxWidth(),
+                            edgePadding = 0.dp,
+                            minTabWidth = 160.dp,
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ) {
+                            state.tabs.forEach { tab ->
+                                val tabDescription = stringResource(
+                                    R.string.workspace_terminal_tab,
+                                    tab.number,
+                                )
+                                val tabTitle = tab.title ?: tabDescription
+                                val isSelected = selectedTab.id == tab.id
+                                Tab(
+                                    selected = isSelected,
+                                    onClick = { onSelectTab(tab.id) },
+                                    modifier = Modifier
+                                        .height(48.dp)
+                                        .widthIn(min = 160.dp, max = 240.dp)
+                                        .semantics {
+                                            contentDescription = tabTitle
                                         },
+                                ) {
+                                    Row(
                                         modifier = Modifier
-                                            .widthIn(min = 120.dp, max = 200.dp)
-                                            .semantics { contentDescription = tabTitle },
+                                            .fillMaxWidth()
+                                            .padding(start = 16.dp, end = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(start = 12.dp, end = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        ) {
-                                            Text(
-                                                text = tabTitle,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                style = KedgeTextStyles.body(),
-                                                modifier = Modifier
-                                                    .weight(1f, fill = false)
-                                                    .then(
-                                                        if (isSelected) {
-                                                            Modifier.basicMarquee(iterations = Int.MAX_VALUE)
-                                                        } else {
-                                                            Modifier
-                                                        },
-                                                    ),
-                                            )
-                                            MochiIconButton(
-                                                onClick = { onCloseTab(tab.id) },
-                                                modifier = Modifier
-                                                    .size(32.dp)
-                                                    .semantics { contentDescription = closeDescription },
-                                                shapes = IconButtonDefaults.shapes(),
-                                            ) {
-                                                Text(text = "×", fontSize = 16.sp)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            SecondaryScrollableTabRow(
-                                selectedTabIndex = selectedIndex,
-                                modifier = Modifier.fillMaxWidth(),
-                                edgePadding = 0.dp,
-                                minTabWidth = 160.dp,
-                                containerColor = MaterialTheme.colorScheme.surface,
-                            ) {
-                                state.tabs.forEach { tab ->
-                                    val tabDescription = stringResource(
-                                        R.string.workspace_terminal_tab,
-                                        tab.number,
-                                    )
-                                    val tabTitle = tab.title ?: tabDescription
-                                    val isSelected = selectedTab.id == tab.id
-                                    Tab(
-                                        selected = isSelected,
-                                        onClick = { onSelectTab(tab.id) },
-                                        modifier = Modifier
-                                            .height(48.dp)
-                                            .widthIn(min = 160.dp, max = 240.dp)
-                                            .semantics {
-                                                contentDescription = tabTitle
-                                            },
-                                    ) {
-                                        Row(
+                                        Text(
+                                            text = tabTitle,
                                             modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(start = 16.dp, end = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        ) {
-                                            Text(
-                                                text = tabTitle,
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .then(
-                                                        if (isSelected) {
-                                                            Modifier.basicMarquee(iterations = Int.MAX_VALUE)
-                                                        } else {
-                                                            Modifier
-                                                        },
-                                                    ),
-                                                maxLines = 1,
-                                                softWrap = false,
-                                                overflow = if (isSelected) {
-                                                    TextOverflow.Clip
-                                                } else {
-                                                    TextOverflow.Ellipsis
-                                                },
-                                                style = KedgeTextStyles.body(),
-                                            )
-                                            val closeDescription = stringResource(
-                                                R.string.workspace_terminal_close_tab,
-                                                tab.number,
-                                            )
-                                            MochiIconButton(
-                                                onClick = { onCloseTab(tab.id) },
-                                                modifier = Modifier
-                                                    .size(48.dp)
-                                                    .semantics {
-                                                        contentDescription = closeDescription
+                                                .weight(1f)
+                                                .then(
+                                                    if (isSelected) {
+                                                        Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+                                                    } else {
+                                                        Modifier
                                                     },
-                                                shapes = IconButtonDefaults.shapes(),
-                                            ) {
-                                                Text(text = "×", fontSize = 18.sp)
-                                            }
+                                                ),
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = if (isSelected) {
+                                                TextOverflow.Clip
+                                            } else {
+                                                TextOverflow.Ellipsis
+                                            },
+                                            style = KedgeTextStyles.body(),
+                                        )
+                                        val closeDescription = stringResource(
+                                            R.string.workspace_terminal_close_tab,
+                                            tab.number,
+                                        )
+                                        MochiIconButton(
+                                            onClick = { onCloseTab(tab.id) },
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .semantics {
+                                                    contentDescription = closeDescription
+                                                },
+                                            shapes = IconButtonDefaults.shapes(),
+                                        ) {
+                                            Text(text = "×", fontSize = 18.sp)
                                         }
                                     }
                                 }
                             }
                         }
+                    
                     }
                 }
                 val newTabDescription = stringResource(R.string.workspace_terminal_new_tab)

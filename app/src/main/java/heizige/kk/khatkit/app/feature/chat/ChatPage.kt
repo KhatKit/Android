@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import ui.feice.mochi.theme.MochiTheme
+
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
@@ -13,7 +15,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.LocalMorphingTitleLarge
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -128,7 +129,6 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.menu
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
@@ -766,7 +766,7 @@ private fun RoleTitlePlaceholder(largeRow: Boolean) {
  * 为什么在页面侧覆主题色、而不是给顶栏传颜色：`KedgeMiuixMorphingTitleBar` 没有颜色入参，
  * 底色在组件内部按 `LocalKedgePageBackdrop` 决定 —— 有 backdrop（毛玻璃开着，本页由
  * `MochiPageScaffold` 建立）时用 `Color.Transparent`，否则退回
- * `MiuixTheme.colorScheme.surface`。**关掉毛玻璃时 backdrop 为 null**，顶栏就是一块实色，
+ * `MochiTheme.colorScheme.surface`。**关掉毛玻璃时 backdrop 为 null**，顶栏就是一块实色，
  * 角色自定义背景被它盖住 —— 这里只在「角色有自定义背景」时把 `surface` 换成透明。
  *
  * 只改 `surface` 一个槽位，`onSurface` / `primary` / `textStyles` 全部沿用当前主题
@@ -782,12 +782,7 @@ private fun MiuixMorphingBarSurface(
         content()
         return
     }
-    MiuixTheme(
-        colors = MiuixTheme.colorScheme.copy(surface = Color.Transparent),
-        textStyles = MiuixTheme.textStyles,
-    ) {
-        content()
-    }
+    content()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -815,7 +810,6 @@ private fun TopBar(
 ) {
     val scope = rememberCoroutineScope()
     val navController = LocalNavController.current
-    val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
 
     // 搜索（预览）展开进度：预测返回手势跟手收起
     val searchExpand = rememberSearchExpandState(
@@ -830,7 +824,7 @@ private fun TopBar(
     var focusLargeTitleRow by remember { mutableStateOf(true) }
     LaunchedEffect(previewMode) {
         if (previewMode) {
-            if (!isMiuix) {
+            if (true) {
                 focusLargeTitleRow = scrollBehavior.state.collapsedFraction < 0.5f
             }
             delay(100)
@@ -885,7 +879,7 @@ private fun TopBar(
      * 点击仍走 onRoleClick（Miuix 靠组件自带的透明点击覆盖层，MD3 靠下面 combinedClickable）。
      */
     val roleTitleContent: @Composable () -> Unit = {
-        val largeRow = LocalMorphingTitleLarge.current ||
+        val largeRow = false ||
             LocalTextStyle.current.fontSize > MaterialTheme.typography.titleLarge.fontSize
         if (settings.init) {
             RoleTitlePlaceholder(largeRow = largeRow)
@@ -980,103 +974,7 @@ private fun TopBar(
     // 会话重命名弹窗已随「长按标题改名」一起移到角色聊天面板（ChatRolePanelPage 的
     // 「重命名当前聊天」option item），顶栏不再持有 EditState。
 
-    if (isMiuix) {
-        // Miuix 顶栏的底色不由本页传参：`KedgeMiuixMorphingTitleBar` 内部按
-        // `LocalKedgePageBackdrop` 决定 —— 有 backdrop（毛玻璃开着，本页由
-        // `MochiPageScaffold` 建立）就是 `Color.Transparent`，否则取
-        // `MiuixTheme.colorScheme.surface`（全站统一的页面色，不是 MD3 的
-        // surfaceContainer）。所以「角色有自定义背景图/流光」时这里只把主题里的
-        // `surface` 换成透明，让正文那张背景在两态（展开 / 折叠）都透上来；
-        // 没有自定义背景时不包这层，顶栏颜色与现状逐像素一致。
-        MiuixMorphingBarSurface(transparent = roleHasCustomBackground) {
-            KedgeMiuixMorphingTitleBar(
-                // 字符串标题只是「量具」：titleContent 非 null 时组件把它的颜色透明度归零，
-                // 折叠区间/栏高仍按同一段文本度量，所以照传角色名，不要换成空串。
-                title = roleName,
-                expanded = previewMode,
-                keyword = searchQuery,
-                onKeywordChange = onSearchQueryChange,
-                dragProgress = searchProgress.value,
-                dragging = searchExpand.dragging.value,
-                onExitSearch = onCollapseSearch,
-                placeholder = stringResource(R.string.history_page_search),
-                subtitle = roleModelName,
-                focusRequester = searchFocus,
-                titleContent = roleTitleContent,
-                onTitleClick = { if (!settings.init) onRoleClick() },
-                navigationIcon = {
-                    // 一个按钮槽内做「菜单 ↔ 返回」交叉淡化：返回箭头**替换**菜单图标，
-                    // 手法照侧边栏（只 alpha + 横移，不叠 scale）。大屏常驻返回箭头，
-                    // 只是点击动作从「上一页」切成「退出搜索」。
-                    val p = searchProgress.value
-                    MiuixIconButton(
-                        onClick = {
-                            when {
-                                p >= 0.5f -> onCollapseSearch()
-                                bigScreen -> navController.popBackStack()
-                                else -> scope.launch { drawerState.open() }
-                            }
-                        },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            if (!bigScreen) {
-                                MiuixIcon(
-                                    imageVector = menu,
-                                    contentDescription = "Messages",
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = 1f - p
-                                        translationX = p * 24.dp.toPx()
-                                    },
-                                )
-                            }
-                            MiuixIcon(
-                                imageVector = arrowBack,
-                                contentDescription = null,
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = p
-                                    translationX = (1f - p) * -24.dp.toPx()
-                                },
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    // 搜索图标切「聊天内容预览搜索」(previewMode)；与 MD3 版一致，
-                    // 判定同样照 ImageToolbox SettingsContent（搜索态无输入时留空）。
-                    val searching = searchProgress.value >= 0.5f
-                    val hasQuery = searchProgress.value >= 0.5f && searchQuery.isNotEmpty()
-                    MiuixIconButton(onClick = onClickMenu) {
-                        Box(contentAlignment = Alignment.Center) {
-                            if (!searching) {
-                                MiuixIcon(
-                                    imageVector = search,
-                                    contentDescription = "Chat Options",
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = 1f - searchProgress.value
-                                    },
-                                )
-                            }
-                            if (searching && hasQuery) {
-                                MiuixIcon(
-                                    imageVector = close,
-                                    contentDescription = "Chat Options",
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = searchProgress.value
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    // 右上角：原来这里是「新建会话」(addComment)。改成三横杠，
-                    // 打开角色聊天面板（角色配置 / 历史聊天 / 新建聊天 / 重命名当前聊天）。
-                    MiuixIconButton(onClick = { if (!settings.init) onOpenRolePanel(topBarRole.id) }) {
-                        MiuixIcon(menu, contentDescription = stringResource(R.string.chat_role_panel_title))
-                    }
-                },
-            )
-        }
-        return
-    }
+    
 
     // MD3 顶栏走 M3 的 LargeFlexibleTopAppBar，而不是 `KedgePageLargeTopBar`：
     // 后者内部用 `scrollLinkedTopBarColors` 把 containerColor 硬写成

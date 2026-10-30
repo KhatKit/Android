@@ -153,14 +153,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
         navController.popBackStack()
     }
 
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingProviderDetailPageMiuix(
-            provider = provider,
-            onEdit = onEdit,
-            onDelete = onDelete,
-        )
-        return
-    }
+    
 
     val pager = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()

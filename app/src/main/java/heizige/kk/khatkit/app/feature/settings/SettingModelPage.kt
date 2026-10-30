@@ -55,10 +55,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingModelPageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pagerState = rememberPagerState { 2 }

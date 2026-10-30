@@ -37,10 +37,7 @@ import heizige.kk.khatkit.app.core.util.plus
  */
 @Composable
 fun SettingPreferencesUIPage() {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesUIPageMiuix()
-        return
-    }
+    
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
 

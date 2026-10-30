@@ -110,10 +110,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 
 @Composable
 fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingMcpPageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     val mcpConfigs = settings.mcpServers
     val creationState = useEditState<McpServerConfig> {

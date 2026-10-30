@@ -78,10 +78,7 @@ import heizige.kk.kedge.theme.KedgeTextStyles
  */
 @Composable
 fun SettingAboutPage() {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingAboutPageMiuix()
-        return
-    }
+    
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
     val soundOptions = remember { listOf(R.raw.bingbingbing, R.raw.gangguan) }

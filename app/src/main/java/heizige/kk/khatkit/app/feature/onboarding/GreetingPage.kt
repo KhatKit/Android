@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.onboarding
 
+import ui.feice.mochi.theme.MochiTheme
+
 import android.Manifest
 import android.app.Activity
 import android.app.AlarmManager
@@ -228,7 +230,7 @@ fun GreetingPage(onFinish: () -> Unit) {
         // 顶栏/底栏已经按 isMiuixStyle() 分流；Scaffold 自身的底色默认取 MD3 的
         // background，Miuix 下会漏出 MD3 配色，所以这里显式给 Miuix 的 surface。
         containerColor = if (isMiuixStyle()) {
-            MiuixTheme.colorScheme.surface
+            MochiTheme.colorScheme.surface
         } else {
             MaterialTheme.colorScheme.background
         },

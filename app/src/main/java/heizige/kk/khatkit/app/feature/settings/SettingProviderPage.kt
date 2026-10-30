@@ -95,10 +95,7 @@ import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 
 @Composable
 fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingProviderPageMiuix(vm = vm)
-        return
-    }
+    
 
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current

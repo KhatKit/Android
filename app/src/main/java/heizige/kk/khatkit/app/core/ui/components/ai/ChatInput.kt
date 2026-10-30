@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import ui.feice.mochi.theme.MochiTheme
+
 import android.os.Build
 import android.view.RoundedCorner
 import androidx.compose.material3.ButtonDefaults
@@ -1176,55 +1178,26 @@ private fun ChatInputTextField(
             onSendMessage()
         }
     }
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        MiuixTextField(
-            state = state.textContent,
-            modifier = modifier,
-            insideMargin = DpSize(8.dp, 8.dp),
-            // 不传 textStyle 时 Miuix 用 textStyles.main，与抽屉里「新建文件夹」
-            // 等按钮字号不一致；这里显式给 bodyLarge()，两种风格同一套字号。
-            textStyle = KedgeTextStyles.bodyLarge(),
-            colors = MiuixTextFieldDefaults.textFieldColors(
-                backgroundColor = Color.Transparent,
-                labelColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                // borderColor 同时驱动聚焦描边与「光标默认 brush」：
-                // Miuix 的 cursorBrush 默认值是 SolidColor(colors.borderColor)（miuix-ui
-                // basic/TextField.kt:101），所以这里必须显式给 cursorBrush，否则光标解析成
-                // Transparent，聚焦后字面不可见（#3 的根因）。
-                borderColor = Color.Transparent,
-            ),
-            cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
-            cornerRadius = 16.dp,
-            label = placeholder,
-            useLabelAsPlaceholder = true,
-            keyboardOptions = keyboardOptions,
-            onKeyboardAction = { keyboardAction() },
-            lineLimits = if (multiline) TextFieldLineLimits.MultiLine() else TextFieldLineLimits.SingleLine,
-            leadingIcon = leadingContent,
-            trailingIcon = trailingContent,
-        )
-    } else {
         TextField(
-            state = state.textContent,
-            modifier = modifier,
-            shape = RoundedCornerShape(16.dp),
-            textStyle = KedgeTextStyles.bodyLarge(),
-            placeholder = {
-                Text(placeholder)
-            },
-            lineLimits = if (multiline) TextFieldLineLimits.MultiLine() else TextFieldLineLimits.SingleLine,
-            keyboardOptions = keyboardOptions,
-            onKeyboardAction = { keyboardAction() },
-            colors = TextFieldDefaults.colors().copy(
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-            ),
-            trailingIcon = trailingContent,
-            leadingIcon = leadingContent,
-        )
-    }
+        state = state.textContent,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        textStyle = KedgeTextStyles.bodyLarge(),
+        placeholder = {
+            Text(placeholder)
+        },
+        lineLimits = if (multiline) TextFieldLineLimits.MultiLine() else TextFieldLineLimits.SingleLine,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = { keyboardAction() },
+        colors = TextFieldDefaults.colors().copy(
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+        ),
+        trailingIcon = trailingContent,
+        leadingIcon = leadingContent,
+    )
 }
 
 @Composable

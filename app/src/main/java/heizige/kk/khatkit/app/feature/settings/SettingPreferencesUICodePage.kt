@@ -29,10 +29,7 @@ import heizige.kk.khatkit.app.core.util.plus
 
 @Composable
 fun SettingPreferencesUICodePage(vm: SettingViewModel = hiltViewModel()) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SettingPreferencesUICodePageMiuix(vm)
-        return
-    }
+    
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
 

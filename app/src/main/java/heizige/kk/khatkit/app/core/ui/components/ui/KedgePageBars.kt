@@ -60,11 +60,7 @@ internal fun scrollLinkedTopBarColors(
  */
 @Composable
 fun activeNestedScroll(scrollBehavior: TopAppBarScrollBehavior): Modifier =
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        Modifier
-    } else {
         Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-    }
 
 /**
  * 页面大标题栏：Miuix 走 Kedge，MD3Exp 保持原样。
@@ -87,46 +83,29 @@ fun KedgePageLargeTopBar(
     titleAlpha: Float = 1f,
 ) {
     val alpha = titleAlpha.coerceIn(0f, 1f)
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        MochiLargeTopAppBar(
-            title = title,
-            subtitle = subtitle,
-            modifier = modifier,
-            navigationIcon = navigationIcon,
-            actions = actions,
-            titleContent = titleContent,
-            titleAlpha = alpha,
-            // Miuix 下必须用 MochiPageScaffold 下发的那个行为（KedgeLargeTopAppBar
-            // 内部会回退到 LocalKedgePageScrollBehavior）。传进来的 MD3 behavior
-            // 在 Miuix 下不可用；以前这里自己 remember 一个，等于顶栏观察的是
-            // 一个没人喂滚动的实例 -> 列表能滚但大标题不收缩。
-            scrollBehavior = null,
-        )
-    } else {
         LargeFlexibleTopAppBar(
-            // 用 graphicsLayer 而不是 colors，才能压住 LargeFlexibleTopAppBar
-            // 内部自绘的大标题 + 收起后的小标题（两者同一 slot）。
-            title = titleContent ?: {
-                Text(
-                    text = title,
-                    modifier = Modifier.graphicsLayer { this.alpha = alpha },
-                )
-            },
-            modifier = modifier,
-            // 调用方传了 titleContent 时，副标题由 titleContent 自行渲染
-            // （ChatPage 的 titleContent 内含「助手/模型/提供商」一行）。
-            // 此处再传 subtitle 会出现两个副标题。
-            subtitle = if (titleContent != null) {
-                null
-            } else {
-                subtitle?.let { { Text(it) } }
-            },
-            navigationIcon = navigationIcon,
-            actions = actions,
-            scrollBehavior = scrollBehavior,
-            colors = scrollLinkedTopBarColors(colors, scrollBehavior),
-        )
-    }
+        // 用 graphicsLayer 而不是 colors，才能压住 LargeFlexibleTopAppBar
+        // 内部自绘的大标题 + 收起后的小标题（两者同一 slot）。
+        title = titleContent ?: {
+            Text(
+                text = title,
+                modifier = Modifier.graphicsLayer { this.alpha = alpha },
+            )
+        },
+        modifier = modifier,
+        // 调用方传了 titleContent 时，副标题由 titleContent 自行渲染
+        // （ChatPage 的 titleContent 内含「助手/模型/提供商」一行）。
+        // 此处再传 subtitle 会出现两个副标题。
+        subtitle = if (titleContent != null) {
+            null
+        } else {
+            subtitle?.let { { Text(it) } }
+        },
+        navigationIcon = navigationIcon,
+        actions = actions,
+        scrollBehavior = scrollBehavior,
+        colors = scrollLinkedTopBarColors(colors, scrollBehavior),
+    )
 }
 
 
@@ -143,29 +122,14 @@ fun KedgePageMediumTopBar(
     subtitle: String? = null,
     titleContent: (@Composable () -> Unit)? = null,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        // 传 titleContent：ChatPage 的标题要承载「点标题选模型 / 长按改名 / 搜索 morph」，
-        // Miuix 原生 bar 的 title 是 String 放不下这些交互。
-        // Kedge 侧在 titleContent != null 时改走自绘栏；该栏不设独立底色，
-        // 与页面背景同为 surface（对齐 KernelSU 顶栏/背景不分色）。
-        heizige.kk.khatkit.uikit.mochi.MochiTopAppBar(
-            title = title,
-            subtitle = subtitle,
-            modifier = modifier,
-            navigationIcon = navigationIcon,
-            actions = actions,
-            titleContent = titleContent,
-        )
-    } else {
         MediumTopAppBar(
-            title = titleContent ?: { Text(title) },
-            modifier = modifier,
-            navigationIcon = navigationIcon,
-            actions = actions,
-            scrollBehavior = scrollBehavior,
-            colors = scrollLinkedTopBarColors(colors, scrollBehavior),
-        )
-    }
+        title = titleContent ?: { Text(title) },
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        actions = actions,
+        scrollBehavior = scrollBehavior,
+        colors = scrollLinkedTopBarColors(colors, scrollBehavior),
+    )
 }
 
 /** 页面小标题栏。 */
@@ -181,23 +145,12 @@ fun KedgePageTopBar(
     subtitle: String? = null,
     titleContent: (@Composable () -> Unit)? = null,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        heizige.kk.khatkit.uikit.mochi.MochiTopAppBar(
-            title = title,
-            subtitle = subtitle,
-            modifier = modifier,
-            navigationIcon = navigationIcon,
-            actions = actions,
-            titleContent = titleContent,
-        )
-    } else {
         TopAppBar(
-            title = titleContent ?: { Text(title) },
-            modifier = modifier,
-            navigationIcon = navigationIcon,
-            actions = actions,
-            scrollBehavior = scrollBehavior,
-            colors = scrollLinkedTopBarColors(colors, scrollBehavior),
-        )
-    }
+        title = titleContent ?: { Text(title) },
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        actions = actions,
+        scrollBehavior = scrollBehavior,
+        colors = scrollLinkedTopBarColors(colors, scrollBehavior),
+    )
 }
