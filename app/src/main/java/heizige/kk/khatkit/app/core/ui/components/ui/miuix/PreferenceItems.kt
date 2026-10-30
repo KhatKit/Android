@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import heizige.kk.khatkit.app.core.ui.icons.check
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiItem
 import androidx.compose.foundation.clickable
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
@@ -340,25 +343,46 @@ fun PreferenceDropdown(
         // MD3Exp：走 :kedge 的 KedgeListPreference（行 + 选项弹窗都是双风格组件）。
     // 旧双风格 的下拉行会显示当前选中项，所以没有 summary 时用选中项标签兜底。
     val expanded = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    androidx.compose.material3.ListItem(
-        modifier = modifier.clickable { expanded.value = true },
-        headlineContent = { androidx.compose.material3.Text(title) },
-        supportingContent = (summary ?: items.getOrNull(selectedIndex))?.let {
-            { androidx.compose.material3.Text(it) }
-        },
-        leadingContent = icon?.let { { androidx.compose.material3.Icon(it, contentDescription = null) } },
-        trailingContent = { androidx.compose.material3.Text(items.getOrNull(selectedIndex) ?: "") },
-    )
-    MochiMenuPopup(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
-        items.forEachIndexed { index, label ->
-            MochiMenuRow(
-                onClick = {
-                    expanded.value = false
-                    onSelectedIndexChange(index)
-                },
-                text = { androidx.compose.material3.Text(label) },
-            )
-        }
+    // U6c：下拉行直接是 MochiDropdown 的按钮槽，选中项用 selectedIndex + 勾选 icon 表达。
+    androidx.compose.foundation.layout.Box(modifier = modifier) {
+        MochiDropdown(
+            expanded = expanded.value,
+            onExpandedChange = { expanded.value = it },
+            items = kotlinx.collections.immutable.persistentListOf(
+                *items.map { label ->
+                    MochiItem(
+                        label = label,
+                        icon = { color ->
+                            if (items.indexOf(label) == selectedIndex) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = heizige.kk.khatkit.app.core.ui.icons.check,
+                                    contentDescription = null,
+                                    tint = color,
+                                )
+                            }
+                        },
+                    )
+                }.toTypedArray()
+            ),
+            onItemClick = { index ->
+                expanded.value = false
+                onSelectedIndexChange(index)
+            },
+            selectedIndex = selectedIndex,
+            onClick = { expanded.value = !expanded.value },
+            buttonContent = {
+                androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
+                    androidx.compose.material3.Text(title)
+                    (summary ?: items.getOrNull(selectedIndex))?.let {
+                        androidx.compose.material3.Text(
+                            it,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+        )
     }
 }
 

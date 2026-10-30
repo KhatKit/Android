@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.uikit
 
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiItem
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -410,30 +412,29 @@ internal fun SheetTopBar(
                 }
                 if (overflowIcon != null && overflowActions.isNotEmpty()) {
                     var expanded by remember { mutableStateOf(false) }
-                    MochiIconButton(
-                        onClick = { expanded = true },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = overflowIcon,
-                            contentDescription = stringResource(R.string.khatkit_sheet_more_actions),
-                        )
-                    }
-                    MochiMenuPopup(
+                    MochiDropdown(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                    ) {
-                        overflowActions.forEach { action ->
-                            MochiMenuRow(
-                                text = { Text(action.label) },
-                                leadingIcon = { Icon(action.imageVector, contentDescription = null) },
-                                onClick = {
-                                    expanded = false
-                                    onAction(action)
-                                },
+                        onExpandedChange = { expanded = it },
+                        items = kotlinx.collections.immutable.persistentListOf(
+                            *overflowActions.map { action ->
+                                MochiItem(
+                                    label = action.label,
+                                    icon = { color -> Icon(action.imageVector, contentDescription = null, tint = color) },
+                                )
+                            }.toTypedArray()
+                        ),
+                        onItemClick = { index ->
+                            expanded = false
+                            overflowActions.getOrNull(index)?.let(onAction)
+                        },
+                        onClick = { expanded = !expanded },
+                        buttonContent = {
+                            Icon(
+                                imageVector = overflowIcon,
+                                contentDescription = stringResource(R.string.khatkit_sheet_more_actions),
                             )
-                        }
-                    }
+                        },
+                    )
                 }
                 headerActions.forEach { action ->
                     MochiIconButton(

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
@@ -451,65 +453,32 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
     var currentProvider: ASRProviderSetting by remember { mutableStateOf(ASRProviderSetting.OpenAIRealtime()) }
 
     Box {
-        MochiIconButton(
-            onClick = { showTypeMenu = true },
-            shapes = IconButtonDefaults.shapes(),
-        ) {
-            Icon(add, stringResource(R.string.setting_asr_page_add_provider))
-        }
-        MochiMenuPopup(
+        MochiDropdown(
             expanded = showTypeMenu,
-            onDismissRequest = { showTypeMenu = false }
-        ) {
-            MochiMenuRow(
-                text = { Text("OpenAI Realtime") },
-                onClick = {
-                    currentProvider = ASRProviderSetting.OpenAIRealtime()
-                    showTypeMenu = false
-                    showBottomSheet = true
+            onExpandedChange = { showTypeMenu = it },
+            items = kotlinx.collections.immutable.persistentListOf(
+                MochiItem(label = "OpenAI Realtime"),
+                MochiItem(label = "DashScope"),
+                MochiItem(label = "Volcengine"),
+                MochiItem(label = "MiMo"),
+                MochiItem(label = "Step"),
+                MochiItem(label = "本地识别 (sherpa-onnx)"),
+            ),
+            onItemClick = { index ->
+                when (index) {
+                    0 -> currentProvider = ASRProviderSetting.OpenAIRealtime()
+                    1 -> currentProvider = ASRProviderSetting.DashScope()
+                    2 -> currentProvider = ASRProviderSetting.Volcengine()
+                    3 -> currentProvider = ASRProviderSetting.MiMo()
+                    4 -> currentProvider = ASRProviderSetting.Step()
+                    5 -> currentProvider = ASRProviderSetting.SherpaLocal()
                 }
-            )
-            MochiMenuRow(
-                text = { Text("DashScope") },
-                onClick = {
-                    currentProvider = ASRProviderSetting.DashScope()
-                    showTypeMenu = false
-                    showBottomSheet = true
-                }
-            )
-            MochiMenuRow(
-                text = { Text("Volcengine") },
-                onClick = {
-                    currentProvider = ASRProviderSetting.Volcengine()
-                    showTypeMenu = false
-                    showBottomSheet = true
-                }
-            )
-            MochiMenuRow(
-                text = { Text("MiMo") },
-                onClick = {
-                    currentProvider = ASRProviderSetting.MiMo()
-                    showTypeMenu = false
-                    showBottomSheet = true
-                }
-            )
-            MochiMenuRow(
-                text = { Text("Step") },
-                onClick = {
-                    currentProvider = ASRProviderSetting.Step()
-                    showTypeMenu = false
-                    showBottomSheet = true
-                }
-            )
-            MochiMenuRow(
-                text = { Text("本地识别 (sherpa-onnx)") },
-                onClick = {
-                    currentProvider = ASRProviderSetting.SherpaLocal()
-                    showTypeMenu = false
-                    showBottomSheet = true
-                }
-            )
-        }
+                showTypeMenu = false
+                showBottomSheet = true
+            },
+            onClick = { showTypeMenu = !showTypeMenu },
+            buttonContent = { Icon(add, stringResource(R.string.setting_asr_page_add_provider)) },
+        )
     }
 
     if (showBottomSheet) {
@@ -659,41 +628,36 @@ private fun TTSProviderItem(
                     }
                 }
 
-                MochiIconButton(
-                    onClick = { showDropdownMenu = true },
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        imageVector = build,
-                        contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
-                    )
-                    MochiMenuPopup(
-                        expanded = showDropdownMenu,
-                        onDismissRequest = { showDropdownMenu = false }
-                    ) {
-                        MochiMenuRow(
-                            text = { Text(stringResource(R.string.edit)) },
-                            onClick = {
-                                showDropdownMenu = false
-                                onEdit()
-                            },
-                            leadingIcon = {
-                                Icon(edit, contentDescription = null)
-                            }
+                MochiDropdown(
+                    expanded = showDropdownMenu,
+                    onExpandedChange = { showDropdownMenu = it },
+                    items = kotlinx.collections.immutable.persistentListOf(
+                        MochiItem(
+                            label = stringResource(R.string.edit),
+                            icon = { color -> Icon(edit, contentDescription = null, tint = color) },
+                        ),
+                        MochiItem(
+                            label = stringResource(R.string.delete),
+                            destructive = true,
+                            enabled = provider.id != DEFAULT_SYSTEM_TTS_ID,
+                            icon = { color -> Icon(delete, contentDescription = null, tint = color) },
+                        ),
+                    ),
+                    onItemClick = { index ->
+                        showDropdownMenu = false
+                        when (index) {
+                            0 -> onEdit()
+                            1 -> if (provider.id != DEFAULT_SYSTEM_TTS_ID) onDelete()
+                        }
+                    },
+                    onClick = { showDropdownMenu = !showDropdownMenu },
+                    buttonContent = {
+                        Icon(
+                            imageVector = build,
+                            contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
                         )
-                        MochiMenuRow(
-                            text = { Text(stringResource(R.string.delete)) },
-                            onClick = {
-                                showDropdownMenu = false
-                                onDelete()
-                            },
-                            leadingIcon = {
-                                Icon(delete, contentDescription = null)
-                            },
-                            enabled = provider.id != DEFAULT_SYSTEM_TTS_ID
-                        )
-                    }
-                }
+                    },
+                )
             }
         }
     }
@@ -783,40 +747,35 @@ private fun ASRProviderItem(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                MochiIconButton(
-                    onClick = { showDropdownMenu = true },
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        imageVector = build,
-                        contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
-                    )
-                    MochiMenuPopup(
-                        expanded = showDropdownMenu,
-                        onDismissRequest = { showDropdownMenu = false }
-                    ) {
-                        MochiMenuRow(
-                            text = { Text(stringResource(R.string.edit)) },
-                            onClick = {
-                                showDropdownMenu = false
-                                onEdit()
-                            },
-                            leadingIcon = {
-                                Icon(edit, contentDescription = null)
-                            }
+                MochiDropdown(
+                    expanded = showDropdownMenu,
+                    onExpandedChange = { showDropdownMenu = it },
+                    items = kotlinx.collections.immutable.persistentListOf(
+                        MochiItem(
+                            label = stringResource(R.string.edit),
+                            icon = { color -> Icon(edit, contentDescription = null, tint = color) },
+                        ),
+                        MochiItem(
+                            label = stringResource(R.string.delete),
+                            destructive = true,
+                            icon = { color -> Icon(delete, contentDescription = null, tint = color) },
+                        ),
+                    ),
+                    onItemClick = { index ->
+                        showDropdownMenu = false
+                        when (index) {
+                            0 -> onEdit()
+                            1 -> onDelete()
+                        }
+                    },
+                    onClick = { showDropdownMenu = !showDropdownMenu },
+                    buttonContent = {
+                        Icon(
+                            imageVector = build,
+                            contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
                         )
-                        MochiMenuRow(
-                            text = { Text(stringResource(R.string.delete)) },
-                            onClick = {
-                                showDropdownMenu = false
-                                onDelete()
-                            },
-                            leadingIcon = {
-                                Icon(delete, contentDescription = null)
-                            }
-                        )
-                    }
-                }
+                    },
+                )
             }
         }
     }
