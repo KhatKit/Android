@@ -579,8 +579,9 @@ merge base 已经找不到有意义的共同祖先，任何 `git merge upstream/
    `heizige.kk.khatkit.common.http.okhttp.OkHttpClient`），不是上游那个库。
 4. **图标**：上游 2.5.5 起改用 HugeIcons/Lucide，本 fork 走自绘图标
    `core/ui/icons/`（150 个 kt，小驼峰符号名），**不引入** Maven 坐标。
-5. **Miuix / Kedge**：页面组件以 Kedge 组件库为准，上游的 MD3 组件要落到 Kedge 上
-   （`ItemActionMenu` → `KedgeIconButton` + `KedgeDropdownMenuSlots` 等）。
+5. **UI 栈（Mochi × MD3）**：骨架/列表/表单/弹层/反馈用 material3，主题 token 与 overscroll 等
+   交互走 mochi-compose（`MochiTheme` / `ProvideMochiOverscroll`）；Kedge/Miuix/Khromia 已从
+   依赖树删除，`khatkit-ui/uikit/mochi/` 的 Kk 壳承接旧调用形态。**不要重新引入三库。**
 
 ---
 
