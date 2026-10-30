@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 
 /**
  * U4c：把最后一批 Kedge 专有组件换成 material3 骨架的本地壳。

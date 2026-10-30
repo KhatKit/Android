@@ -282,8 +282,8 @@ class PrimaryBottomSheetIconSourceGuardTest {
         assertEquals(
             "扫描到的 PrimaryBottomSheet 调用点数量变了：" +
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
-            // ChatWelcome widget manager supplies imageVector = edit.
-            65,
+            // U4f2：3 处 uikit 内部转发（KhatKitDialogs/KhatKitSheet → KkSheetShell）不再计入 PrimaryBottomSheet 调用点，65 → 62。
+            62,
             sites.size,
         )
         assertTrue("群配置面板已移除", sites.none { it.file.endsWith("feature/chat/GroupChatPage.kt") })

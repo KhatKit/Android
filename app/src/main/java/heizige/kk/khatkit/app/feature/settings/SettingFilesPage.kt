@@ -30,7 +30,7 @@ import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khromia.components.AnimatedRadioButton
+import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
@@ -249,7 +249,7 @@ internal fun CleanFilesSheet(
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AnimatedRadioButton(
+                KkAnimatedRadioButton(
                     selected = selectedRange == range,
                     onClick = { onRangeSelected(range) },
                 )

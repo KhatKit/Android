@@ -56,12 +56,12 @@ import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.khromia.components.AnimatedRadioItem
-import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioItem
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.uikit.mochi.fadingEdge
-import heizige.kk.khromia.text.OptionsText
+import heizige.kk.khatkit.uikit.mochi.KkOptionsText
 import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -380,7 +380,7 @@ fun PermissionChecklist(
                 }
             ),
     ) {
-        OptionsText(stringResource(R.string.greeting_permissions_normal))
+        KkOptionsText(stringResource(R.string.greeting_permissions_normal))
         Spacer(modifier = Modifier.height(8.dp))
         if (missingRuntime.isNotEmpty()) {
             MochiButton(
@@ -412,7 +412,7 @@ fun PermissionChecklist(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        OptionsText(stringResource(R.string.greeting_permissions_special))
+        KkOptionsText(stringResource(R.string.greeting_permissions_special))
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.greeting_permissions_hint),
@@ -430,7 +430,7 @@ fun PermissionChecklist(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        OptionsText(stringResource(R.string.greeting_permissions_dangerous))
+        KkOptionsText(stringResource(R.string.greeting_permissions_dangerous))
         Spacer(modifier = Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
             PermissionRadioItem(
@@ -586,7 +586,7 @@ private fun PermissionActionItem(
             " · " + stringResource(item.actionLabelRes)
     }
     val subtitle = stringResource(item.descRes) + " · " + statusLabel
-        AnimatedRadioItem(
+        KkAnimatedRadioItem(
         text = stringResource(item.titleRes),
         subtitle = subtitle,
         isSelected = item.granted,
@@ -607,7 +607,7 @@ private fun PermissionRadioItem(
 ) {
     val colors = MaterialTheme.colorScheme
     val alpha = if (enabled) 1f else 0.6f
-        AnimatedRadioItem(
+        KkAnimatedRadioItem(
         text = title,
         subtitle = subtitle,
         isSelected = selected,

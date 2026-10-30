@@ -29,7 +29,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.uikit.mochi.KkSheetShell
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -43,7 +43,7 @@ fun KhatKitSecretsDialog(
 ) {
     var secrets by remember(cardName) { mutableStateOf(controller.listCardSecrets(cardName)) }
 
-    PrimaryBottomSheet(
+    KkSheetShell(
         visible = true,
         title = stringResource(R.string.khatkit_secrets_title, cardName),
         imageVector = Icons.Filled.Lock,
@@ -100,7 +100,7 @@ fun KhatKitSettingsDialog(
     val shizukuDeniedText = stringResource(R.string.khatkit_toast_shizuku_denied)
     val settingsSavedText = stringResource(R.string.khatkit_settings_saved)
 
-    PrimaryBottomSheet(
+    KkSheetShell(
         visible = true,
         title = stringResource(R.string.khatkit_settings_title),
         imageVector = Icons.Filled.Settings,

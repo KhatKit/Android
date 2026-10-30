@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khromia.components.FancySlider
+import heizige.kk.khatkit.uikit.mochi.KkFancySlider
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
@@ -188,7 +188,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    FancySlider(
+                                    KkFancySlider(
                                         value = displaySetting.pasteLongTextThreshold.toFloat(),
                                         onValueChange = {
                                             updateDisplaySetting(displaySetting.copy(pasteLongTextThreshold = it.toInt()))
@@ -218,7 +218,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    FancySlider(
+                                    KkFancySlider(
                                         value = displaySetting.volumeKeyScrollRatio,
                                         onValueChange = {
                                             updateDisplaySetting(displaySetting.copy(volumeKeyScrollRatio = it))
@@ -252,7 +252,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    FancySlider(
+                                    KkFancySlider(
                                         value = ttsPlaybackSpeed,
                                         onValueChange = {
                                             ttsPlaybackSpeed = (it * 10).roundToInt() / 10f

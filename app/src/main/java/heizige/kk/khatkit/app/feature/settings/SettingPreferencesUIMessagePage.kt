@@ -28,7 +28,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
-import heizige.kk.khromia.components.FancySlider
+import heizige.kk.khatkit.uikit.mochi.KkFancySlider
 import kotlin.math.roundToInt
 
 @Composable
@@ -87,7 +87,7 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                FancySlider(
+                                KkFancySlider(
                                     value = displaySetting.bubbleOpacity,
                                     onValueChange = {
                                         updateDisplaySetting(displaySetting.copy(bubbleOpacity = it))

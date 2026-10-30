@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.onboarding
 
+import heizige.kk.khatkit.uikit.mochi.ExpandableOptionItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -130,13 +131,10 @@ import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 
-import heizige.kk.khromia.components.AnimatedRadioItem
-import heizige.kk.khromia.components.ButtonOption
-import heizige.kk.khromia.components.ExpandableOptionItem
-import heizige.kk.khromia.components.OptionItem
+import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioItem
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.uikit.mochi.fadingEdge
-import heizige.kk.khromia.text.OptionsText
+import heizige.kk.khatkit.uikit.mochi.KkOptionsText
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
@@ -179,7 +177,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
-import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -639,7 +637,7 @@ private fun GreetingSettingsScreen() {
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        OptionsText(stringResource(R.string.greeting_settings_theme_mode))
+        KkOptionsText(stringResource(R.string.greeting_settings_theme_mode))
         Spacer(modifier = Modifier.height(8.dp))
 
         ExpandableOptionItem(
@@ -676,7 +674,7 @@ private fun GreetingSettingsScreen() {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        OptionsText(stringResource(R.string.greeting_settings_theme_color))
+        KkOptionsText(stringResource(R.string.greeting_settings_theme_color))
         Spacer(modifier = Modifier.height(8.dp))
 
         ExpandableOptionItem(
@@ -842,7 +840,7 @@ private fun GreetingAiSetupScreen() {
         verticalArrangement = Arrangement.spacedBy(cards.gap),
     ) {
         item(key = "custom_header") {
-            OptionsText(stringResource(R.string.greeting_ai_enabled_models))
+            KkOptionsText(stringResource(R.string.greeting_ai_enabled_models))
         }
         items(configuredProviders, key = { it.id }) { provider ->
             AiProviderItem(
@@ -900,7 +898,7 @@ private fun GreetingAiSetupScreen() {
 
         item(key = "providers_header") {
             Spacer(modifier = Modifier.height(10.dp))
-            OptionsText(stringResource(R.string.greeting_ai_providers))
+            KkOptionsText(stringResource(R.string.greeting_ai_providers))
         }
         items(unconfiguredProviders, key = { it.id }) { provider ->
             AiProviderItem(

@@ -71,7 +71,7 @@ import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
-import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 

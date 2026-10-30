@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khromia.components.FancySlider
+import heizige.kk.khatkit.uikit.mochi.KkFancySlider
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
@@ -198,7 +198,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    FancySlider(
+                                    KkFancySlider(
                                         value = displaySetting.fontSizeRatio,
                                         onValueChange = {
                                             updateDisplaySetting(displaySetting.copy(fontSizeRatio = it))

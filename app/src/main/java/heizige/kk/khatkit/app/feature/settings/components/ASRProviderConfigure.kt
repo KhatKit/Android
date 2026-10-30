@@ -37,7 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import heizige.kk.khatkit.asr.sherpa.SherpaModelManager
 import heizige.kk.khatkit.asr.sherpa.SherpaModels
 import kotlinx.coroutines.launch
-import heizige.kk.khromia.components.AnimatedRadioButton
+import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
 
@@ -943,7 +943,7 @@ private fun SherpaLocalASRConfiguration(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                AnimatedRadioButton(
+                                KkAnimatedRadioButton(
                                     selected = isSelected,
                                     onClick = {
                                         onValueChange(

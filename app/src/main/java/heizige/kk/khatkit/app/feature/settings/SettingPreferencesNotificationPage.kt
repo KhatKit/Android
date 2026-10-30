@@ -13,7 +13,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
@@ -39,8 +39,8 @@ import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
-import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 

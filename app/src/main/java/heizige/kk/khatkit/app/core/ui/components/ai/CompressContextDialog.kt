@@ -34,7 +34,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
 import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
-import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 
 @Composable
 fun CompressContextDialog(

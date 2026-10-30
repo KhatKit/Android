@@ -27,7 +27,7 @@ import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import java.time.Instant
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
-import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 
 @Composable
 fun ReminderTab(vm: BackupViewModel) {

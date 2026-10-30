@@ -41,7 +41,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
-import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
@@ -119,9 +119,9 @@ import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.package2
 import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.sync
-import heizige.kk.khromia.components.MultiChoiceSegmentedRow
-import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics

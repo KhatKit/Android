@@ -5,9 +5,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import heizige.kk.khromia.components.BasicBottomSheet
-import heizige.kk.khromia.components.LocalBottomSheetDismiss
-import heizige.kk.khromia.components.PrimaryBottomSheet
+import heizige.kk.khatkit.uikit.mochi.BasicBottomSheet
+import heizige.kk.khatkit.uikit.mochi.LocalBottomSheetDismiss
+import heizige.kk.khatkit.uikit.mochi.KkSheetShell
 import heizige.kk.khatkit.ui.UiSheetOptions
 
 /**
@@ -86,7 +86,7 @@ fun KhatKitSheet(
     }
 
     if (!hasTopBar) {
-        PrimaryBottomSheet(
+        KkSheetShell(
             visible = true,
             title = title,
             imageVector = imageVector,

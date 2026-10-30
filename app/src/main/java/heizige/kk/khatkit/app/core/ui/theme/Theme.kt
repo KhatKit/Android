@@ -14,8 +14,8 @@ import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberUserSettingsState
-import heizige.kk.khromia.components.LocalOptionSwitchExpressiveEnabled
-import heizige.kk.khromia.components.LocalOptionSwitchScale
+import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchExpressiveEnabled
+import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchScale
 
 private val ExtendLightColors = lightExtendColors()
 private val ExtendDarkColors = darkExtendColors()

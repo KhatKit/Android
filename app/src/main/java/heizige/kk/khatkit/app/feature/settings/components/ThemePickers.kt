@@ -70,10 +70,9 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.core.graphics.toColorInt
 import heizige.kk.khatkit.uikit.mochi.KkEditDialog
 import heizige.kk.khatkit.uikit.mochi.KkEditField
-import heizige.kk.khromia.components.EditFieldConfig
 import heizige.kk.khatkit.uikit.mochi.fadingEdge
-import heizige.kk.khromia.components.SquareColorPicker
-import heizige.kk.khromia.text.OptionsText
+import heizige.kk.khatkit.uikit.mochi.SquareColorPicker
+import heizige.kk.khatkit.uikit.mochi.KkOptionsText
 
 /** 主题配色设置块：与引导页样式一致（动态取色行 + 配色圆点面板）。 */
 @Composable
@@ -90,7 +89,7 @@ fun ThemeColorSettingGroup(
     // Kedge 版展开行是受控的（Khromia 那版自己持状态）；默认收起，与旧行为一致。
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
-        OptionsText(stringResource(R.string.greeting_settings_theme_color))
+        KkOptionsText(stringResource(R.string.greeting_settings_theme_color))
         Spacer(Modifier.height(8.dp))
         // 之前这里用的是 Khromia 的 `ExpandableOptionItem`（形参是 String + ImageVector、
         // 自带内层底色）——**本页唯一一张不是 Kedge 皮的行**。换成 Kedge 的可展开选项行后，

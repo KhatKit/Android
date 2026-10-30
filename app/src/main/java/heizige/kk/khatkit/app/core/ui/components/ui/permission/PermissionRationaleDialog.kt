@@ -29,7 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.error
-import heizige.kk.khromia.components.AnimatedAlertDialog
+import androidx.compose.material3.AlertDialog
 
 /**
  * 权限请求说明对话框
@@ -44,7 +44,7 @@ internal fun PermissionRationaleDialog(
     modifier: Modifier = Modifier
 ) {
     val hasPermanentlyDenied = permanentlyDeniedPermissions.isNotEmpty()
-    AnimatedAlertDialog(
+    AlertDialog(
         onDismissRequest = onCancel,
         modifier = modifier,
         icon = {

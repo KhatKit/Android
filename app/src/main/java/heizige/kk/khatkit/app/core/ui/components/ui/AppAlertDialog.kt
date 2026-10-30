@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import heizige.kk.khromia.components.AnimatedAlertDialog
+import androidx.compose.material3.AlertDialog
 
 /**
  * 标准确认弹窗。**按风格分流**，所以调用点无需改动：
@@ -34,7 +34,7 @@ fun AppAlertDialog(
     tonalElevation: Dp = 0.dp,
     properties: DialogProperties = DialogProperties(),
 ) {
-    AnimatedAlertDialog(
+    AlertDialog(
             onDismissRequest = onDismissRequest,
             confirmButton = confirmButton,
             modifier = modifier,

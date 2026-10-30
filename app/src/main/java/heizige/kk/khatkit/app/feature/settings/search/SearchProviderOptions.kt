@@ -20,8 +20,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable

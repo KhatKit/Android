@@ -81,7 +81,7 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpTool
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
-import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType

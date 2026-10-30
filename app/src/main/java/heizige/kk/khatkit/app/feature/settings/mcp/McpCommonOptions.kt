@@ -100,8 +100,8 @@ import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
-import heizige.kk.khromia.components.SegmentedItem
-import heizige.kk.khromia.components.SingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow

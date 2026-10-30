@@ -63,7 +63,7 @@ import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khromia.components.SegmentedItem
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 
 @Composable
 fun SearchPage(vm: SearchViewModel = hiltViewModel()) {

@@ -58,8 +58,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShape
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShapeNames
 import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
 import heizige.kk.khatkit.app.feature.settings.components.parseHexColor
-import heizige.kk.khromia.components.ShapeSelectionGrid
-import heizige.kk.khromia.components.ShapeSelectionOption
+import heizige.kk.khatkit.uikit.mochi.ShapeSelectionGrid
+import heizige.kk.khatkit.uikit.mochi.ShapeSelectionOption
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation

@@ -66,7 +66,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiNavigationBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
-import heizige.kk.khromia.components.LocalBottomSheetDismiss
+import heizige.kk.khatkit.uikit.mochi.LocalBottomSheetDismiss
 import heizige.kk.khatkit.uikit.mochi.KkFullscreenPopup
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.ui.UiNode

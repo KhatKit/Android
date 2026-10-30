@@ -23,7 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import heizige.kk.khromia.components.OptionSwitch
+import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator

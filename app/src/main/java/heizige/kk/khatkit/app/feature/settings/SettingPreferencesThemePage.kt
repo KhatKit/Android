@@ -5,9 +5,9 @@ import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSlider
-import heizige.kk.khromia.components.AnimatedRadioItem
-import heizige.kk.khromia.components.FancySlider
-import heizige.kk.khromia.text.OptionsText
+import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioItem
+import heizige.kk.khatkit.uikit.mochi.KkFancySlider
+import heizige.kk.khatkit.uikit.mochi.KkOptionsText
 import android.content.ClipData
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -189,7 +189,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        OptionsText(stringResource(R.string.setting_theme_page_custom_themes))
+                        KkOptionsText(stringResource(R.string.setting_theme_page_custom_themes))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             MochiButton(
                                 onClick = { showImportDialog = true },
@@ -307,7 +307,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                FancySlider(
+                                KkFancySlider(
                                     value = settings.listCardLargeCorner,
                                     onValueChange = {
                                         val large = it.roundToInt().toFloat()
@@ -335,7 +335,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                FancySlider(
+                                KkFancySlider(
                                     value = settings.listCardSmallCorner,
                                     onValueChange = {
                                         vm.updateSettings(
@@ -359,7 +359,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                FancySlider(
+                                KkFancySlider(
                                     value = settings.listCardGap,
                                     onValueChange = {
                                         vm.updateSettings(

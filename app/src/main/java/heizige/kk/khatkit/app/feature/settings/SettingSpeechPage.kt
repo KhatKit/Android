@@ -27,7 +27,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import heizige.kk.khromia.components.AnimatedRadioButton
+import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioButton
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -617,7 +617,7 @@ private fun TTSProviderItem(
                     )
                 }
 
-                AnimatedRadioButton(
+                KkAnimatedRadioButton(
                     selected = isSelected,
                     onClick = onSelect
                 )
@@ -763,7 +763,7 @@ private fun ASRProviderItem(
                     )
                 }
 
-                AnimatedRadioButton(
+                KkAnimatedRadioButton(
                     selected = isSelected,
                     onClick = onSelect
                 )

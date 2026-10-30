@@ -180,9 +180,9 @@ import heizige.kk.khatkit.app.core.util.minus
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import heizige.kk.khatkit.uikit.mochi.Toast
-import heizige.kk.khromia.components.pressBounce
-import heizige.kk.khromia.components.shape.AutoCornersShape
-import heizige.kk.khromia.data.harmonizeWithPrimary
+import heizige.kk.khatkit.uikit.mochi.pressBounce
+import heizige.kk.khatkit.uikit.mochi.AutoCornersShape
+import heizige.kk.khatkit.uikit.mochi.harmonizeWithPrimary
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.Semver
 import heizige.kk.khatkit.hub.CardIndexEntry
