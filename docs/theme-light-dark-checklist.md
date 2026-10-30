@@ -18,14 +18,17 @@
 - AMOLED 是唯一的例外，理由见上表 C：它不是在「派生语义」，而是**同一条阶梯换锚点**（纯黑为 0 点），档位相对顺序不变。
 - `surfaceBright/surfaceDim` **保留 1:1**（它们是 Mochi/MD3 的合法角色，DebugPage 要读），只禁止页面把它们当卡片底色用——这条纪律落在 `themecompat/Color.kt` 的唯一出口上，不逐页打补丁。
 
-## 3. 硬编码颜色盘点（`grep -rn 'Color(0x' --include=*.kt app/src/main | wc -l` = **548**）
+## 3. 硬编码颜色盘点（`grep -rn 'Color(0x' --include=*.kt app/src/main | wc -l` = **548 → 545**）
+
+（改后 545 = 548 − JsonTree 3 行）
 
 | 分类 | 行数 | 位置 | 处理 |
 |---|---:|---|---|
 | 预设主题 | 490 | `themecompat/presets/*Theme.kt`（7 × 70） | **保留**。`SettingsRepository.kt:299,582` 只把 `PresetThemes[0].id` 当默认 `themeId` 与 picker 展示用，运行期不注入主题（与迁移计划「中间态」一致）。 |
 | 语法高亮 | 30 | `core/ui/theme/CodeColor.kt:8-22`（One Dark）/ `:27-41`（One Light） | **保留**：本就是明暗成对的两套，选择由 `LocalDarkMode`（已随根因 A 修正为真实明暗）。 |
 | 图表调色板 | 12+1 | `components/charts/ChartScale.kt:15-26`、`ChartSpec.kt:117` | 保留：中明度系列色，深浅底都可读。 |
-| Diff/JSON/头像/HTML 命名色 | 2+3+2+4 | `DiffView.kt:24-25`、`JsonTree.kt:293-301`、`RoleAvatarStyle.kt:14-15`、`HtmlStyleParsing.kt:73-76` | 保留：语义色/品牌色，非主题角色。 |
+| Diff/头像/HTML 命名色 | 2+2+4 | `DiffView.kt:24-25`、`RoleAvatarStyle.kt:14-15`、`HtmlStyleParsing.kt:73-76` | 保留：语义色/品牌色，非主题角色（Diff 的 4CAF50/EF5350 为中等明度，深浅底都可读）。 |
+| JSON 树着色 **（已改）** | 3 → 0 | `JsonTree.kt:293,297,301`（旧：`Color(0xFF6A8759/0xFFCC7832/0xFF6897BB)`，Darcula 深色三色） | **已改为 theme token**：`JsonTree.kt:292` `if (LocalDarkMode.current) AtomOneDarkPalette else AtomOneLightPalette`，`:300,304,308` 取 `palette.string/keyword/number`。原三色在白底上绿/橙对比度不足，是真实浅色缺陷。 |
 | 品牌图标 | 4 | `icons/{Discord,Heart,TencentQQ}Icon.kt` | 保留：`Color(0xFF000000)` 只是 `SolidColor` 的 fill 占位，实际由 tint 上色。 |
 
 `Color.White`/\`Color.Black\` 共 11/182 处：品牌图标、二维码留白、海报遮罩、玻璃高光/暗角、头像文字（压在品牌色或图片上），均非主题角色，保留。

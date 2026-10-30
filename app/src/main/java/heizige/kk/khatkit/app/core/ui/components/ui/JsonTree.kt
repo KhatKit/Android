@@ -17,6 +17,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
+import heizige.kk.khatkit.app.core.ui.theme.AtomOneDarkPalette
+import heizige.kk.khatkit.app.core.ui.theme.AtomOneLightPalette
+import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -283,6 +286,10 @@ private fun KeyText(key: String) {
 
 @Composable
 private fun ValueText(primitive: JsonPrimitive, onClick: (() -> Unit)? = null) {
+    // JSON 着色与语法高亮共用同一套明暗色板。以前这里写死 Darcula 深色三色
+    // （#6A8759 绿 / #CC7832 橙 / #6897BB 蓝），浅色主题下白底上绿和橙几乎糊掉。
+    // 现在按 LocalDarkMode 取 Atom One Dark/Light —— 明暗只出现在颜色取值处。
+    val palette = if (LocalDarkMode.current) AtomOneDarkPalette else AtomOneLightPalette
     val (text, color) = when {
         primitive.isString -> {
             val content = (primitive.contentOrNull ?: "")
@@ -290,15 +297,15 @@ private fun ValueText(primitive: JsonPrimitive, onClick: (() -> Unit)? = null) {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t")
-            "\"$content\"" to Color(0xFF6A8759)
+            "\"$content\"" to palette.string
         }
 
         primitive.booleanOrNull != null -> {
-            primitive.content to Color(0xFFCC7832)
+            primitive.content to palette.keyword
         }
 
         primitive.longOrNull != null || primitive.doubleOrNull != null -> {
-            primitive.content to Color(0xFF6897BB)
+            primitive.content to palette.number
         }
 
         else -> {
