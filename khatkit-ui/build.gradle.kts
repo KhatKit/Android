@@ -26,9 +26,6 @@ dependencies {
     // 卡片运行时（UiRequest / bridge 实现）
     api(project(":khatkit"))
 
-    // 多风格 UI 桥接（MD3Exp / Miuix）与 MD3 组件库
-    api(libs.kedge)
-    api(libs.khromia)
     // mochi-compose：P4 起 UI 组件由 Mochi 提供（api：app 侧页面直接用同一套）
     api(libs.mochi.compose)
 

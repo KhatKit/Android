@@ -34,7 +34,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     // 图标：khatkit-ui 已把 material-icons-extended 带进最终 APK，这里不额外增大包体
     implementation(libs.androidx.material.icons.extended)
-    implementation(libs.kedge)
 
     testImplementation(libs.junit)
 }
