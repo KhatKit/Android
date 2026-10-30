@@ -70,7 +70,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.data.model.Tag as DataTag
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -122,13 +122,13 @@ internal fun AssistantBasicContent(
             .padding(horizontal = 16.dp)
             .padding(innerPadding)
             .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing)
+        verticalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+            verticalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             UIAvatar(

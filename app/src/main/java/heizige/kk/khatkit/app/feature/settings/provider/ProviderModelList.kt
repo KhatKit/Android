@@ -124,8 +124,8 @@ import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixRowLabel
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormRowLabel
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -258,7 +258,7 @@ internal fun ModelList(
  * 之前这张表单是「裸标题 Text + 控件」平铺在 sheet 底色上，彼此之间只有 16dp 间距，
  * 没有任何分组边界看着很散（用户反馈）。这里改回本仓 Miuix 表单的通用形态：一张圆角
  * `surfaceContainer` 卡片装一组，卡片之间靠间距分隔、没有分割线 —— 与设置页
- * （`KedgeFormCard` / `MiuixFormMetrics`）以及 KernelSU 的分组偏好一致。
+ * （`KedgeFormCard` / `FormMetrics`）以及 KernelSU 的分组偏好一致。
  *
  * 卡内边距由**这里**给、两种风格都要给：`KedgeFormCard` 只是分段容器 ——
  * `InlineCardGroup` 自己画底色 + 收角，但**不加内边距**（组内是 `KedgeFormRow` 时内边距
@@ -274,8 +274,8 @@ internal fun ModelFormGroup(
 ) {
     KedgeFormCard(modifier = modifier) {
         Column(
-            modifier = Modifier.padding(MiuixFormMetrics.ItemPadding + 2.dp),
-            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.ItemSpacing),
+            modifier = Modifier.padding(FormMetrics.ItemPadding + 2.dp),
+            verticalArrangement = Arrangement.spacedBy(FormMetrics.ItemSpacing),
         ) {
                         Text(title, style = KedgeTextStyles.title())
         
@@ -340,7 +340,7 @@ internal fun ModelSettingsForm(
                 0 -> {
                     // 基本设置页面
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+                        verticalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing),
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())

@@ -101,7 +101,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixFormMetrics
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -408,7 +408,7 @@ private fun AssistantPromptContent(
         }
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+            verticalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing),
         ) {
             assistant.presetMessages.fastForEachIndexed { index, presetMessage ->
                 Column(
@@ -510,7 +510,7 @@ private fun AssistantPromptContent(
         }
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+            verticalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing),
             modifier = Modifier.padding(horizontal = 8.dp)
         ) {
             val haptic = LocalHapticFeedback.current
@@ -522,7 +522,7 @@ private fun AssistantPromptContent(
                     }
                     onUpdate(assistant.copy(regexes = regexes))
                 },
-                verticalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing),
+                verticalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing),
             ) { index, regex, isDragging ->
                 key(regex.id) {
                     ReorderableItem(
@@ -714,7 +714,7 @@ private fun AssistantRegexCard(
                                 style = KedgeTextStyles.body()
                             )
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(MiuixFormMetrics.GroupSpacing)
+                                horizontalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing)
                             ) {
                                 AssistantAffectScope.entries.forEach { scope ->
                                     Row(

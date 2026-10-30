@@ -19,14 +19,15 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.SliderPreference
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+
+
+
+
 import androidx.compose.material3.Icon as MdIcon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text as MdText
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.khatkit.uikit.mochi.MochiSlider
@@ -41,7 +42,7 @@ import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
 /**
- * KhatKit Miuix 偏好项的薄包装：统一图标样式与常用默认值，
+ * KhatKit 旧双风格 偏好项的薄包装：统一图标样式与常用默认值，
  * 免得每个页面重复写 KernelSU 那套 `startAction = { Icon(..., Modifier.padding(end = 6.dp)) }`。
  *
  * ⚠️ 本文件**不再自绘选项行**（t11）：[PreferenceSwitch] / [PreferenceArrow] /
@@ -50,15 +51,15 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
  * [MochiOptionItem] 按 `LocalKedgeStyle` 分流决定（与 `Form.kt` 的 `FormItem`、
  * `miuix/KedgeForm.kt` 的 `KedgeFormRow` 同一条渲染路径）。
  *
- * 以前这里有两条自绘行：Miuix 一支直接渲染 miuix 原生 `SwitchPreference` /
+ * 以前这里有两条自绘行：旧双风格 一支直接渲染 miuix 原生 `SwitchPreference` /
  * `ArrowPreference`（自带 `BasicComponent` 行），MD3 一支渲染 `MochiListItem` +
  * `Modifier.clickable`。两套行各自算一遍内边距/字阶/卡片，改一处漏一处；同一个
- * 「选项行」在 16-17 个 `*Miuix` 设置页里长成两种样子。现在 95 处调用点**零改动**，
+ * 「选项行」在 16-17 个 `*旧双风格` 设置页里长成两种样子。现在 95 处调用点**零改动**，
  * 只是里面的行换成了统一的那一个。
  */
 
 /**
- * 前置图标，样式对齐 KernelSU（`SettingsMiuix.kt` 里每个 startAction 都是
+ * 前置图标，样式对齐 KernelSU（`Settings旧双风格.kt` 里每个 startAction 都是
  * `Icon(..., Modifier.padding(end = 6.dp), tint = colorScheme.onBackground)`）：
  * 24dp 尺寸、右侧 6dp 间距、禁用时用 onSurfaceVariant 着色。
  */
@@ -69,35 +70,18 @@ fun PreferenceIcon(
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            tint = if (enabled) {
-                MochiTheme.colorScheme.onBackground
-            } else {
-                MochiTheme.colorScheme.onSurfaceVariant
-            },
-            // 照搬 KernelSU：SettingsMiuix.kt 里每个 startAction 都是
-            // `Icon(..., Modifier.padding(end = 6.dp), tint = colorScheme.onBackground)`，
-            // **不写 size**，尺寸由 Miuix Icon 按 painter 内在尺寸决定。我们之前钉了
-            // size(24.dp)，内在尺寸更大的图标会被压小，和 KSU 不一致。
-            modifier = modifier.padding(end = 6.dp),
-        )
-    } else {
         // MD3Exp：onBackground → onSurfaceVariant（MD3 行内前置图标的语义色），
-        // 禁用态按 MD3 惯例降到 38% 透明度。
-        MdIcon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            tint = if (enabled) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            },
-            modifier = modifier.padding(end = 6.dp),
-        )
-    }
+    // 禁用态按 MD3 惯例降到 38% 透明度。
+    Icon(
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        tint = if (enabled) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+        },
+        modifier = modifier.padding(end = 6.dp),
+    )
 }
 
 /**
@@ -106,7 +90,7 @@ fun PreferenceIcon(
  * - 组外（单行）：按「整组只有一行」算，四角都是大圆角（`listCardStyle().indexedShape(0, 1)`）。
  * - 组内（[LocalInlineCardGroup] 非空，即 `KedgeFormCard` / `InlineCardGroup` 里）：一律按
  *   「中间项」算，只留内侧小圆角；首项上边 / 末项下边的大圆角由整组 `clip` 裁出来。
- *   Miuix 下 `smallCorner = 0`，组内就是直角矩形拼一张卡 —— 正是 KernelSU 的分组观感。
+ *   旧双风格 下 `smallCorner = 0`，组内就是直角矩形拼一张卡 —— 正是 KernelSU 的分组观感。
  *
  * 这条路径**不需要知道自己是组里第几个**，所以 95 处调用点不必传 index/count；
  * 组内混着 `PreferenceSlider`、条件行、标题 `Text` 也一样正确。
@@ -122,38 +106,32 @@ private fun preferenceRowShape(): Shape {
 }
 
 /**
- * 行标题。字阶取 [KedgeTextStyles.title]（Miuix = `headline1 + Medium`，与
- * [MochiOptionItem] 自己那层 `MiuixTextStyleScope` 同值；MD3 = `titleMedium`）。
+ * 行标题。字阶取 [KedgeTextStyles.title]（旧双风格 = `headline1 + Medium`，与
+ * [MochiOptionItem] 自己那层 `旧行样式作用域` 同值；MD3 = `titleMedium`）。
  *
- * 取色不能省：Miuix 一支原来由 `SwitchPreference` 的 `BasicComponent` 给
+ * 取色不能省：旧双风格 一支原来由 `SwitchPreference` 的 `BasicComponent` 给
  * `onSurfaceContainer`，MD3 一支原来吃 `LocalContentColor`；现在两边都从这里出，
- * 免得 Miuix 页面里标题跟着 MD3 的 `LocalContentColor` 走成黑/白。
+ * 免得 旧双风格 页面里标题跟着 MD3 的 `LocalContentColor` 走成黑/白。
  */
 @Composable
 private fun PreferenceTitle(text: String) {
-    MdText(
+    Text(
         text = text,
         style = KedgeTextStyles.title(),
-        color = when (LocalKedgeStyle.current) {
-            KedgeStyle.Miuix -> MochiTheme.colorScheme.onSurface
-            KedgeStyle.MD3Exp -> Color.Unspecified
-        },
+        color = Color.Unspecified,
     )
 }
 
 /**
- * 行摘要。Miuix 取 `onSurfaceVariantSummary`（= `BasicComponent` 给 summary 的那个角色），
+ * 行摘要。旧双风格 取 `onSurfaceVariantSummary`（= `BasicComponent` 给 summary 的那个角色），
  * MD3 保持改造前的 `onSurfaceVariant`。
  */
 @Composable
 private fun PreferenceSummary(text: String) {
-    MdText(
+    Text(
         text = text,
         style = KedgeTextStyles.body(),
-        color = when (LocalKedgeStyle.current) {
-            KedgeStyle.Miuix -> MochiTheme.colorScheme.onSurfaceVariant
-            KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.onSurfaceVariant
-        },
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -213,14 +191,10 @@ fun PreferenceArrow(
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 endAction?.invoke(this)
-                MdIcon(
+                Icon(
                     imageVector = chevronRight,
                     contentDescription = null,
-                    tint = when (LocalKedgeStyle.current) {
-                        // Miuix 的 `ArrowPreference` 自己画的那个箭头就是这个色。
-                        KedgeStyle.Miuix -> MochiTheme.colorScheme.onSurfaceVariant
-                        KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         },
@@ -232,9 +206,9 @@ fun PreferenceArrow(
  *
  * 两种风格都保留**原生滑块**，只把外壳收进 [MochiOptionItem]：
  *
- * - Miuix 一支仍是 `SliderPreference`（`PreferenceItems.kt:213`）：Miuix 的滑块带拖动
+ * - 旧双风格 一支仍是 `SliderPreference`（`PreferenceItems.kt:213`）：旧双风格 的滑块带拖动
  *   值气泡、刻度绘制与无障碍 setProgress 语义，自己用 `MochiSlider` 拼一遍会丢这些；
- *   而且它本来就是 Miuix 自带的 `BasicComponent` 行，不是「裸 `MochiListItem` + clickable」。
+ *   而且它本来就是 旧双风格 自带的 `BasicComponent` 行，不是「裸 `MochiListItem` + clickable」。
  * - MD3 一支原来是裸 `MochiListItem`（透明无底色、无卡片圆角），现在换成
  *   `MochiOptionItem(onClick = null)`：纯信息行不可点、无按压回弹，滑块仍是唯一交互元素。
  */
@@ -252,57 +226,41 @@ fun PreferenceSlider(
     onValueChangeFinished: (() -> Unit)? = null,
     enabled: Boolean = true,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        SliderPreference(
-            title = title,
-            summary = summary,
-            value = value,
-            valueRange = valueRange,
-            steps = steps,
-            valueText = valueText,
-            onValueChange = onValueChange,
-            onValueChangeFinished = onValueChangeFinished,
-            enabled = enabled,
-            modifier = modifier.fillMaxWidth(),
-            startAction = icon?.let { { PreferenceIcon(it, title, enabled) } },
-        )
-    } else {
         // MD3Exp：外壳走 MochiOptionItem（纯信息行，onClick = null），滑块用 :kedge 的
-        // MochiSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 MochiListItem 相同，
-        // 只多了卡片底色/圆角。
-        MochiOptionItem(
-            onClick = null,
-            modifier = modifier,
-            shape = preferenceRowShape(),
-            leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
-            titleContent = { PreferenceTitle(title) },
-            supportingContent = {
-                Column {
-                    if (summary != null) {
-                        PreferenceSummary(summary)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        MochiSlider(
-                            value = value,
-                            onValueChange = onValueChange,
-                            modifier = Modifier.weight(1f),
-                            enabled = enabled,
-                            valueRange = valueRange,
-                            steps = steps,
-                            onValueChangeFinished = onValueChangeFinished,
+    // MochiSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 MochiListItem 相同，
+    // 只多了卡片底色/圆角。
+    MochiOptionItem(
+        onClick = null,
+        modifier = modifier,
+        shape = preferenceRowShape(),
+        leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
+        titleContent = { PreferenceTitle(title) },
+        supportingContent = {
+            Column {
+                if (summary != null) {
+                    PreferenceSummary(summary)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MochiSlider(
+                        value = value,
+                        onValueChange = onValueChange,
+                        modifier = Modifier.weight(1f),
+                        enabled = enabled,
+                        valueRange = valueRange,
+                        steps = steps,
+                        onValueChangeFinished = onValueChangeFinished,
+                    )
+                    if (valueText != null) {
+                        Text(
+                            text = valueText,
+                            style = KedgeTextStyles.body(),
+                            modifier = Modifier.padding(start = 8.dp),
                         )
-                        if (valueText != null) {
-                            MdText(
-                                text = valueText,
-                                style = KedgeTextStyles.body(),
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
                     }
                 }
-            },
-        )
-    }
+            }
+        },
+    )
 }
 
 /**
@@ -381,36 +339,23 @@ fun PreferenceDropdown(
     icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        OverlayDropdownPreference(
-            title = title,
-            summary = summary,
-            items = items,
-            selectedIndex = selectedIndex,
-            onSelectedIndexChange = onSelectedIndexChange,
-            enabled = enabled,
-            modifier = modifier.fillMaxWidth(),
-            startAction = icon?.let { { PreferenceIcon(it, title, enabled) } },
-        )
-    } else {
         // MD3Exp：走 :kedge 的 KedgeListPreference（行 + 选项弹窗都是双风格组件）。
-        // Miuix 的下拉行会显示当前选中项，所以没有 summary 时用选中项标签兜底。
-        KedgeListPreference(
-            title = title,
-            options = items.mapIndexed { index, label -> KedgePreferenceOption(index, label) },
-            selectedValue = selectedIndex,
-            onValueSelected = onSelectedIndexChange,
-            modifier = modifier,
-            summary = summary ?: items.getOrNull(selectedIndex),
-            icon = icon,
-        )
-    }
+    // 旧双风格 的下拉行会显示当前选中项，所以没有 summary 时用选中项标签兜底。
+    KedgeListPreference(
+        title = title,
+        options = items.mapIndexed { index, label -> KedgePreferenceOption(index, label) },
+        selectedValue = selectedIndex,
+        onValueSelected = onSelectedIndexChange,
+        modifier = modifier,
+        summary = summary ?: items.getOrNull(selectedIndex),
+        icon = icon,
+    )
 }
 
 
-/** 空状态提示（居中标题 + 副标题），放在 [MiuixSettingsPage] 的 item 里。 */
+/** 空状态提示（居中标题 + 副标题），放在 [旧设置页骨架] 的 item 里。 */
 @Composable
-fun MiuixEmptyHint(
+fun 旧空态(
     text: String,
     modifier: Modifier = Modifier,
     secondary: String? = null,

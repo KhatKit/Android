@@ -11,17 +11,9 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 
 /**
- * 「顶栏 + Tab 条 + Pager」三段式页面的统一骨架。
+ * 「顶栏 + Tab 条 + Pager」三段式页面的统一骨架（U1b 起单树：MD3）。
  *
- * 两种风格都走 [MochiPageScaffold]：它在 Miuix 下已经是 Miuix `Scaffold` + 页面级
- * backdrop（顶栏毛玻璃）+ 唯一一份折叠滚动行为（大标题随滚动收起），MD3 下则是原生
- * `Scaffold`。Tab 条由 [KedgeTabRow] 内部按风格分流，因此 pager 内容两边共用。
- *
- * 之前这里为 Miuix 单独手写了一份 `MiuixScaffold`，代价是既没建立 backdrop
- * （顶栏没有毛玻璃）也没下发滚动行为（大标题永远不收缩），所以改成统一入口。
- *
- * @param titles Tab 标题。
- * @param scrollableTab Tab 数量多时用可滚动形态（Miuix 侧会自动走 WithContour）。
+ * 顶栏与 Tab 条都走 MD3 形态；pager 内容由 [pageContent] 提供。
  */
 @Composable
 fun KedgeTabPageScaffold(

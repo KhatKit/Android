@@ -10,9 +10,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiSwitch
-import heizige.kk.kedge.theme.KedgeStyle
-import heizige.kk.kedge.theme.LocalKedgeStyle
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+
+
 
 /**
  * 「表单分组 / 表单项 / 分隔线」的双风格版本。
@@ -20,8 +20,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * ⚠️ 这个文件**不再自绘行**。设置表单行（`FormItem` / [KedgeFormRow] /
  * [MochiSwitchFormRow] 这一系）的渲染只有一条路径：
  * [heizige.kk.khatkit.app.core.ui.components.ui.FormItem] → `MochiOptionItem`
- * （后者内部按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem` / Miuix 的
- * `MochiCard` 行）。以前这里有第二份自绘行（MD3 分支转 FormItem、Miuix 分支又
+ * （后者内部按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem` / 旧双风格 的
+ * `MochiCard` 行）。以前这里有第二份自绘行（MD3 分支转 FormItem、旧双风格 分支又
  * `MochiCard` + `Column` 自己排一遍），改一处漏一处；现在 [KedgeFormRow] 与
  * [MochiSwitchFormRow] 只是**签名转接层**，不做任何布局与配色决策。
  *
@@ -37,12 +37,12 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * 表单分组：**一整组分段卡片**。
  *
  * 两种风格下都是「组内子项各占一段、整组看是一张卡」：组内间距走
- * [heizige.kk.khatkit.app.core.ui.theme.ListCardStyle.gap]（Miuix 0dp 贴成一张、
+ * [heizige.kk.khatkit.app.core.ui.theme.ListCardStyle.gap]（旧双风格 0dp 贴成一张、
  * MD3 2dp），整组的底色与外形都由这一层
  * （[heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup]）出：底色按
  * `indexedShape(0, 1)` 收角后铺在整组**底下**、不额外加内边距，所以不是「卡套卡」——
  * 自带底色的行（`MochiOptionItem`）直接盖住它，没有第二层圆角与内缩；反向地，组里那些
- * 不带底色的子项（Miuix 的 `ArrowPreference`、MD3 的 `MochiListItem`、本组混进来的标题
+ * 不带底色的子项（旧双风格 的 `ArrowPreference`、MD3 的 `MochiListItem`、本组混进来的标题
  * `Text`）就是靠这一层才有卡片底 —— t1 统一行渲染时弄丢的正是它。
  *
  * 组内子项是**就地渲染**的，而且**不限于行组件**：调用点里常常混着 `BackgroundPicker`、
@@ -59,16 +59,13 @@ fun KedgeFormCard(
     modifier: Modifier = Modifier,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
-    // 组顶间距（**Miuix 专属**）：基线 HEAD `KedgeForm.kt:53` 只给 Miuix 那一支的组卡片
-    // 写了 `.padding(top = MiuixFormMetrics.ItemSpacing)`（= `:159` 的 10dp），t1 把
+    // 组顶间距（**旧双风格 专属**）：基线 HEAD `KedgeForm.kt:53` 只给 旧双风格 那一支的组卡片
+    // 写了 `.padding(top = FormMetrics.ItemSpacing)`（= `:159` 的 10dp），t1 把
     // 表单统一进单一渲染路径时，它随着那张 `MochiCard` 一起丢了。这里把**同一个常量**加回
     // 组容器：整组（含底色、含圆角）整体下移 10dp，不新增第二张卡、不新增第二套行渲染。
     // MD3 那一支基线是 `MochiCard(modifier = modifier.fillMaxWidth())`，没有这一层间距，
     // 所以 `when` 的 MD3 分支恒返回 `this` —— 数值逐值不变（0dp 额外间距）。
-    val groupModifier = when (LocalKedgeStyle.current) {
-        KedgeStyle.MD3Exp -> modifier
-        KedgeStyle.Miuix -> modifier.padding(top = MiuixFormMetrics.ItemSpacing)
-    }
+    val groupModifier = modifier
     heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup(
         modifier = groupModifier,
         content = content,
@@ -105,7 +102,7 @@ fun MochiSwitchFormRow(
 
 /**
  * 表单里的一行。签名与 [heizige.kk.khatkit.app.core.ui.components.ui.FormItem] 一致，
- * 可以直接替换——实际上现在就是直接转调它，两种风格下的差异（MD3 圆角行 / Miuix
+ * 可以直接替换——实际上现在就是直接转调它，两种风格下的差异（MD3 圆角行 / 旧双风格
  * 圆角卡片行、字阶、内边距）全部由 `MochiOptionItem` 决定，本文件不再参与。
  *
  * 槽位对照：`label` → 标题，`description` + `content` → supporting（描述在上、输入框在下），
@@ -164,18 +161,17 @@ internal fun KedgeRowSupport(
  *
  * **分段卡片组里不渲染**（[KedgeFormCard] 内）：组的分段形态本身就是分隔，行与行之间
  * 只留 `ListCardStyle.gap` 的间距；再画一条线就正好落在两张卡中间，变成「卡片之间浮
- * 一条分隔线」，比不画差得多。组外（日志页那种分段排版）保持原样：MD3 画线、Miuix 不画。
+ * 一条分隔线」，比不画差得多。组外（日志页那种分段排版）保持原样：MD3 画线、旧双风格 不画。
  */
 @Composable
 fun KedgeFormDivider(modifier: Modifier = Modifier) {
     if (heizige.kk.khatkit.app.core.ui.components.ui.LocalInlineCardGroup.current != null) return
-    if (LocalKedgeStyle.current == KedgeStyle.Miuix) return
     HorizontalDivider(modifier = modifier)
 }
 
-/** Miuix 表单行的度量，与设置页（ArrowPreference）保持一致。 */
+/** 旧双风格 表单行的度量，与设置页（ArrowPreference）保持一致。 */
 @Suppress("unused")
-object MiuixFormMetrics {
+object FormMetrics {
     /** 行之间的间距，与设置页（miuixGroup 的 GroupSpacing）保持一致。 */
     val ItemSpacing = 10.dp
 
@@ -185,7 +181,7 @@ object MiuixFormMetrics {
     /** 行卡片内边距。 */
     val ItemPadding = 10.dp
 
-    /** 组内纵向间距，Miuix 下比 MD3 紧。 */
+    /** 组内纵向间距，旧双风格 下比 MD3 紧。 */
     val GroupSpacing = 10.dp
 
     /**
@@ -200,13 +196,13 @@ object MiuixFormMetrics {
 }
 
 /**
- * 行标题：用 Miuix 的 headline1 + Medium，和设置页一致。
+ * 行标题：用 旧双风格 的 headline1 + Medium，和设置页一致。
  *
  * 只在少数调用点自己排版时使用（[KedgeFormRow] 内部**不用**它——行标题的排版现在
  * 由 `MochiOptionItem` 负责）。
  */
 @Composable
-internal fun MiuixRowLabel(content: @Composable () -> Unit) {
+internal fun FormRowLabel(content: @Composable () -> Unit) {
     CompositionLocalProvider(
         androidx.compose.material3.LocalTextStyle provides
             MochiTheme.textStyles.headlineMedium.copy(
