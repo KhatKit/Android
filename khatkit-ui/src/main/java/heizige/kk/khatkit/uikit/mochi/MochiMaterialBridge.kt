@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.theme.MochiColorScheme
 import ui.feice.mochi.theme.MochiShapes
@@ -33,9 +34,30 @@ data class MochiMaterialTokens(
     val motionScheme: MotionScheme,
 )
 
-/** AMOLED 纯黑只压 background/surface，其余角色沿用 Mochi。 */
+/**
+ * AMOLED：把**整条表面阶梯**重锚到纯黑，而不是只把 background/surface 打黑。
+ *
+ * 只压那两个角色会留两个洞：
+ *  · surface 变 #000、而 surfaceContainer 仍是 N12 的灰 ⇒ 黑底上突然浮一层明显灰块，
+ *    卡片不再像「一档」，像一个异物；
+ *  · 顶栏取 surfaceContainer（N12）⇒ 黑页上一条灰带，浅/深都像配色反了。
+ * 重锚后阶梯仍**单调**（Low < Container < High < Highest 逐档变亮约 2~5 个 tone），
+ * 纯黑底上层次还在，且整页真正纯黑。
+ *
+ * 只在深色配色上生效：`amoledDark` 是独立开关，浅色下打开它不能把界面打成黑块。
+ */
 fun MochiColorScheme.withAmoledBackground(amoled: Boolean): MochiColorScheme =
-    if (amoled) copy(background = Color(0xFF000000), surface = Color(0xFF000000)) else this
+    if (!amoled || !isDark) this
+    else copy(
+        background = Color.Black,
+        surface = Color.Black,
+        surfaceDim = Color.Black,
+        surfaceContainerLowest = Color.Black,
+        surfaceContainerLow = lerp(surfaceContainerLow, Color.Black, 0.55f),
+        surfaceContainer = lerp(surfaceContainer, Color.Black, 0.40f),
+        surfaceContainerHigh = lerp(surfaceContainerHigh, Color.Black, 0.25f),
+        surfaceContainerHighest = lerp(surfaceContainerHighest, Color.Black, 0.10f),
+    )
 
 @Composable
 fun rememberMochiMaterialTokens(amoled: Boolean = false): MochiMaterialTokens {
