@@ -38,6 +38,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
+import heizige.kk.khatkit.uikit.mochi.fadingEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -52,8 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -446,7 +446,7 @@ private fun ColumnScope.ModelList(
             }
         }
     }
-    val haptic = LocalHapticFeedback.current
+    val haptics = rememberKkHaptics()
 
     val providerPositions = remember(providers, favoriteModels, visibleModelsByProvider) {
         var currentIndex = 0
@@ -475,7 +475,8 @@ private fun ColumnScope.ModelList(
             state = lazyListState,
             verticalArrangement = Arrangement.spacedBy(cards.gap),
             contentPadding = PaddingValues(8.dp),
-            modifier = listModifier,
+            // U8：长列表底部淡出，和 Mochi 的滚动边缘观感一致（顶部有 sticky 分组标题，不加顶边淡出）。
+            modifier = listModifier.fadingEdge(bottom = 8.dp),
         ) {
             if (providers.isEmpty()) {
                 item {
@@ -546,10 +547,10 @@ private fun ColumnScope.ModelList(
                                     contentDescription = null,
                                     modifier = Modifier.longPressDraggableHandle(
                                         onDragStarted = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                            haptics.longPress()
                                         },
                                         onDragStopped = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                            haptics.confirm()
                                         }
                                     )
                                 )

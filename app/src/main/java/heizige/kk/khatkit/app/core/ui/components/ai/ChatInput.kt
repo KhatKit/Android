@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
@@ -114,12 +115,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -368,7 +367,7 @@ fun ChatInput(
 
     val asr = LocalASRState.current
     val asrState by asr.state.collectAsState()
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberKkHaptics()
     val soundEffectPlayer: SoundEffectPlayer = rememberAppEntryPoint().soundEffectPlayer()
     LaunchedEffect(Unit) {
         soundEffectPlayer.preload(R.raw.asr_start, R.raw.asr_stop)
@@ -379,12 +378,12 @@ fun ChatInput(
     LaunchedEffect(asrState.status) {
         when (asrState.status) {
             ASRStatus.Listening -> {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                haptics.longPress()
                 soundEffectPlayer.play(R.raw.asr_start)
             }
 
             ASRStatus.Stopping -> {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                haptics.confirm()
                 soundEffectPlayer.play(R.raw.asr_stop)
             }
 

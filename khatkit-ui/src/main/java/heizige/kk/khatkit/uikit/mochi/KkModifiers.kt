@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import ui.feice.mochi.effect.overscroll.ProvideMochiOverscroll
 
 /**
  * U4f1：替代 Khromia 的 `Modifier.fadingEdge`。用 DstIn 的 alpha 渐变把上下边缘擦淡，
@@ -72,7 +73,11 @@ fun KkFullscreenPopup(
         onDismissRequest = { onDismiss?.invoke() },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        Box(modifier = modifier.fillMaxSize()) { content() }
+        // Dialog 是独立窗口，组合根的 ProvideMochiOverscroll 传不进来：在窗口内再 provide 一次，
+        // 全屏弹层里的列表才有 Mochi 的橡皮筋越界（否则只有平台默认拉伸）。
+        ProvideMochiOverscroll {
+            Box(modifier = modifier.fillMaxSize()) { content() }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.theme
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -7,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
@@ -67,6 +70,7 @@ enum class ColorMode {
  * 系统栏图标对比度（原 `WindowCompat` 的 InsetsController 那段）已交给
  * [MochiTheme] 的 `systemBarAppearance`，本文件不再碰 Window/InsetsController。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KhatKitTheme(
     colorMode: ColorMode = rememberCurrentColorMode(),
@@ -135,19 +139,27 @@ fun KhatKitTheme(
         CompositionLocalProvider(
             LocalDarkMode provides darkTheme,
             LocalExtendColors provides extendColors,
-            LocalOverscrollFactory provides if (isMiuix) null else overscrollFactory,
+            // U8：Miuix 已删，回弹一律走 Mochi 的工厂（根 ProvideMochiOverscroll 提供），不再有置空分支。
+            LocalOverscrollFactory provides overscrollFactory,
             LocalListCardStyle provides listCardStyle,
             LocalOptionSwitchScale provides 1f,
             LocalOptionSwitchExpressiveEnabled provides false,
         ) {
             ProvideMaterial3Theme(amoled = amoledDarkMode) {
-                // U4f1：全局 Toast 宿主（Mochi 胶囊）。Toast.show() 的跨页面提示都落在这里，
-                // 新的提示替换旧的，不堆叠；host 只吃胶囊区域的触摸。
-                androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
-                    content()
-                    heizige.kk.khatkit.uikit.mochi.KkToastHost(
-                        modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
-                    )
+                // U8：把 MD3 的默认水波换成 Mochi 的浅高光（onSurface 10%），
+                // 配合 core/ui/modifier/Clickable.kt 的 kkPressState 就是「高光 + 轻形变」一层效果，
+                // 不是水波叠缩放。MaterialTheme 在里层 provide LocalIndication，所以这里必须在它内侧覆盖。
+                CompositionLocalProvider(
+                    LocalIndication provides ripple(color = MochiTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
+                ) {
+                    // U4f1：全局 Toast 宿主（Mochi 胶囊）。Toast.show() 的跨页面提示都落在这里，
+                    // 新的提示替换旧的，不堆叠；host 只吃胶囊区域的触摸。
+                    androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+                        content()
+                        heizige.kk.khatkit.uikit.mochi.KkToastHost(
+                            modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
+                        )
+                    }
                 }
             }
         }

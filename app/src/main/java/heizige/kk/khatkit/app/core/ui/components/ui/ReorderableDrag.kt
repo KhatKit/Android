@@ -5,9 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableListItemScope
 
@@ -28,13 +26,13 @@ fun ReorderableCollectionItemScope.longPressReorder(
     isDragging: Boolean,
     enabled: Boolean = true,
 ): Modifier {
-    val haptic = LocalHapticFeedback.current
+    val haptics = rememberKkHaptics()
     return Modifier
         .draggingScale(isDragging)
         .longPressDraggableHandle(
             enabled = enabled,
-            onDragStarted = { haptic.dragStarted() },
-            onDragStopped = { haptic.dragStopped() },
+            onDragStarted = { haptics.longPress() },
+            onDragStopped = { haptics.confirm() },
         )
 }
 
@@ -46,13 +44,13 @@ fun ReorderableListItemScope.longPressReorder(
     isDragging: Boolean,
     enabled: Boolean = true,
 ): Modifier {
-    val haptic = LocalHapticFeedback.current
+    val haptics = rememberKkHaptics()
     return Modifier
         .draggingScale(isDragging)
         .longPressDraggableHandle(
             enabled = enabled,
-            onDragStarted = { haptic.dragStarted() },
-            onDragStopped = { haptic.dragStopped() },
+            onDragStarted = { haptics.longPress() },
+            onDragStopped = { haptics.confirm() },
         )
 }
 
@@ -64,7 +62,3 @@ private fun Modifier.draggingScale(isDragging: Boolean): Modifier {
         scaleY = scale
     }
 }
-
-private fun HapticFeedback.dragStarted() = performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-
-private fun HapticFeedback.dragStopped() = performHapticFeedback(HapticFeedbackType.GestureEnd)

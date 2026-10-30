@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
+import ui.feice.mochi.effect.overscroll.ProvideMochiOverscroll
 
 /** U4f2：替代 Khromia 的开关缩放/展开开关（运行期恒为默认值）。 */
 val LocalOptionSwitchScale = compositionLocalOf { 1f }
@@ -38,9 +39,12 @@ fun BasicBottomSheet(
 ) {
     if (!visible) return
     ModalBottomSheet(modifier = modifier, onDismissRequest = { onDismiss?.invoke() ?: onDismissRequest() }) {
-        dragHandle?.invoke()
-        Box(modifier = Modifier.fillMaxWidth()) { content {} }
-        bottomBar?.invoke()
+        // ModalBottomSheet 走独立窗口，组合根的 ProvideMochiOverscroll 传不进来（U8）。
+        ProvideMochiOverscroll {
+            dragHandle?.invoke()
+            Box(modifier = Modifier.fillMaxWidth()) { content {} }
+            bottomBar?.invoke()
+        }
     }
 }
 
@@ -63,8 +67,11 @@ fun KkSheetShell(
 ) {
     if (!visible) return
     ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
-        androidx.compose.material3.Text(title, modifier = Modifier.fillMaxWidth())
-        Box(modifier = Modifier.fillMaxWidth()) { content {} }
+        // 同上：独立窗口里要自己 provide 才有 Mochi 越界回弹。
+        ProvideMochiOverscroll {
+            androidx.compose.material3.Text(title, modifier = Modifier.fillMaxWidth())
+            Box(modifier = Modifier.fillMaxWidth()) { content {} }
+        }
     }
 }
 

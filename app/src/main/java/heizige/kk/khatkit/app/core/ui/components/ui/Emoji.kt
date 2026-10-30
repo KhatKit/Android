@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.core.ui.components.ui
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.KkSurface
+import heizige.kk.khatkit.uikit.mochi.fadingEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -189,6 +190,8 @@ private fun EmojiCategoryRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
+            // U8：分类横向滚动两侧淡出，和 Mochi 示例的滚动边缘一致。
+            .fadingEdge(left = 12.dp, right = 12.dp)
             .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {

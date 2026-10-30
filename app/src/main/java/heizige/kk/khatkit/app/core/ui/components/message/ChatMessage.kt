@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -45,9 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
@@ -377,7 +376,7 @@ private fun MessagePartsBlock(
     val assistantBubbleColor = MaterialTheme.colorScheme.surfaceContainerHigh
 
     // 消息输出HapticFeedback
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberKkHaptics()
     val settings = LocalSettings.current
     val partsState by rememberUpdatedState(parts)
 
@@ -406,7 +405,7 @@ private fun MessagePartsBlock(
             .debounce(50.milliseconds)
             .collect { parts ->
                 if (parts.isNotEmpty() && loading && settings.displaySetting.enableMessageGenerationHapticEffect) {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+                    haptics.tick()
                 }
             }
     }
