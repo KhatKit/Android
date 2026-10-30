@@ -619,38 +619,9 @@ internal fun AssistantBasicContent(
             )
         }
 
-        CardGroup {
-            item(
-                headlineContent = {
-                    Text(stringResource(R.string.assistant_page_gradient_background))
-                },
-                supportingContent = {
-                    Text(stringResource(R.string.assistant_page_gradient_background_desc))
-                },
-                trailingContent = {
-                    MochiSwitch(
-                        checked = assistant.useGradientBackground,
-                        onCheckedChange = {
-                            onUpdate(
-                                assistant.copy(
-                                    useGradientBackground = it
-                                )
-                            )
-                        }
-                    )
-                },
-                // 开关行整行可点（与 MochiSwitchFormRow 一致）。
-                onClick = {
-                    onUpdate(
-                        assistant.copy(
-                            useGradientBackground = !assistant.useGradientBackground
-                        )
-                    )
-                },
-            )
-        }
 
-        if (!assistant.useGradientBackground) {
+
+        run {
             BackgroundPicker(
                 background = assistant.background,
                 backgroundOpacity = assistant.backgroundOpacity,
@@ -664,7 +635,7 @@ internal fun AssistantBasicContent(
             )
         }
 
-        if (!assistant.useGradientBackground && assistant.background != null) {
+        if (assistant.background != null) {
             val backgroundOpacity = assistant.backgroundOpacity.coerceIn(0f, 1f)
             CardGroup {
                 item(

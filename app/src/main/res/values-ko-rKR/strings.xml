@@ -1061,8 +1061,6 @@
   <string name="setting_provider_page_include_history_reasoning">이전 추론 내용 전송</string>
   <string name="setting_model_page_fast_model">빠른 모델</string>
   <string name="setting_model_page_fast_model_desc">제목, 제안, 백그라운드 작업</string>
-  <string name="assistant_page_gradient_background">그라데이션 배경</string>
-  <string name="assistant_page_gradient_background_desc">채팅 페이지에서 동적 그라데이션 배경 사용</string>
   <string name="assistant_page_workspace">작업 공간</string>
   <string name="assistant_page_workspace_desc">바인딩 후, 에이전트는 이 작업 공간의 파일 및 샌드박스 기능을 사용할 수 있습니다.</string>
   <string name="assistant_page_workspace_unbound">연결되지 않음</string>

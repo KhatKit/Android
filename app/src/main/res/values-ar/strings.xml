@@ -87,8 +87,6 @@
   <string name="assistant_page_enter_image_url">أدخل رابط الصورة</string>
   <string name="assistant_page_global_memory">الذاكرة العامة</string>
   <string name="assistant_page_global_memory_desc">استخدم الذاكرة المشتركة العامة بدلاً من الذاكرة المعزولة للمساعد. عند التفعيل، تتشارك جميع المساعدين نفس مساحة تخزين الذاكرة</string>
-  <string name="assistant_page_gradient_background">خلفية متدرجة</string>
-  <string name="assistant_page_gradient_background_desc">استخدم خلفية متدرجة ديناميكية في صفحة الدردشة</string>
   <string name="assistant_page_header_name">اسم الترويسة</string>
   <string name="assistant_page_header_value">قيمة الترويسة</string>
   <string name="assistant_page_image_url">رابط الصورة</string>

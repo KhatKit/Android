@@ -72,7 +72,7 @@ import heizige.kk.kedge.theme.KedgeTextStyles
  * 区间映射与顶栏淡入曲线。
  *
  * 与 Miuix 版（[SettingAboutPageMiuix]）**有意的差异**：
- * - 本页**不**铺流光着色器背景：动态流光只属于 Miuix 风格的观感，MD3 下页面底色
+ * - 本页不铺动态背景：页面底色
  *   用不透明的 `MaterialTheme.colorScheme.background`。
  * - 彩蛋：这里保留点击 logo 撒 emoji 的 [EmojiBurstHost]。
  */
@@ -135,9 +135,9 @@ fun SettingAboutPage() {
 
     var logoCenterPx by remember { mutableStateOf(Offset.Zero) }
     Scaffold(
-        // MD3 风格不该有流光背景（流光只属于 Miuix 分支的观感），所以这里用
-        // 不透明的 MD3 页面底色。原先是 Color.Transparent，靠外层的
-        // BgEffectBackground 兜底；留透明会直接露出下一层（NavDisplay / Activity 根）。
+        // 页面底色用不透明的 MD3 background，避免透出下一层。
+        // 原先是 Color.Transparent，靠外层动态背景兜底；
+        // 留透明会直接露出下一层（NavDisplay / Activity 根）。
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             // 小标题栏（KSU AboutMiuix 用 SmallTopAppBar）：没有折叠大标题，

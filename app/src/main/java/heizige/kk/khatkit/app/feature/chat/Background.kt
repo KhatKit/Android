@@ -13,7 +13,7 @@ import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.core.data.model.Assistant
 
 /**
- * 聊天页正文底色：角色自定义背景图 / 流光渐变。
+ * 聊天页正文底色：角色自定义背景图。
  *
  * **角色由调用方传入，这里不再自己 `setting.getCurrentAssistant()`**。这正是本任务修的
  * 那个 bug：顶栏按 `conversation.assistantId` 解析角色（`ChatScaffold` 的 `assistant`），
@@ -21,15 +21,11 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
  * 顶栏显示 A、正文画的是 B 的图。现在两边共用 `ChatScaffold` 里解析好的**同一个**
  * `assistant`，从根上不可能再分叉。
  *
- * 没配背景的角色（`background == null` 且没开流光）这里**什么都不画**，底色交给外层
+ * 没配背景的角色（`background == null`）这里**什么都不画**，底色交给外层
  * `MochiSurface`（`KedgeColors.surface`），与改造前一致。
  */
 @Composable
 fun AssistantBackground(assistant: Assistant, modifier: Modifier) {
-    if (assistant.useGradientBackground) {
-        MeshGradientBackground(modifier = modifier)
-        return
-    }
     if (assistant.background != null) {
         val backgroundColor = MaterialTheme.colorScheme.background
         val backgroundOpacity = assistant.backgroundOpacity.coerceIn(0f, 1f)

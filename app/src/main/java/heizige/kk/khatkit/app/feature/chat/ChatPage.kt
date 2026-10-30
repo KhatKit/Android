@@ -845,7 +845,7 @@ private fun TopBar(
     // 正文里的 AssistantBackground 是按整页铺的（Scaffold 的 content 从 (0,0) 起布局，
     // innerPadding 只是传给列表当 contentPadding），顶栏只要画了实色就是「盖住角色背景」，
     // 也正是用户说的「顶栏和正文不是一个角色」的观感来源之一。
-    val roleHasCustomBackground = role.background != null || role.useGradientBackground
+    val roleHasCustomBackground = role.background != null
     // MD3 顶栏底色：
     //  - 无自定义背景 → 与改造前逐像素一致（静止态 pageContainerColor，滚动后渐变到
     //    CustomColors.topBarColors 的 surfaceContainer）；

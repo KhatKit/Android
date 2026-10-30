@@ -1316,8 +1316,6 @@
   <string name="setting_provider_page_include_history_reasoning">回传历史思考过程</string>
   <string name="setting_model_page_fast_model">快速模型</string>
   <string name="setting_model_page_fast_model_desc">标题、建议、后台任务</string>
-  <string name="assistant_page_gradient_background">渐变背景</string>
-  <string name="assistant_page_gradient_background_desc">在聊天页面使用动态渐变背景</string>
   <string name="assistant_page_workspace">工作区</string>
   <string name="assistant_page_workspace_desc">绑定后，Agent 可以使用此工作区的文件和沙盒功能</string>
   <string name="assistant_page_workspace_unbound">未绑定</string>
