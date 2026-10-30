@@ -40,7 +40,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bugReport
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.public
 import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,7 +80,7 @@ fun WebViewPage(url: String, contentId: String) {
         state.goBack()
     }
 
-    KedgePageScaffold(
+    MochiPageScaffold(
        topBar = {
             KedgePageTopBar(
                 title = state.pageTitle?.takeIf { it.isNotEmpty() } ?: state.currentUrl

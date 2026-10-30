@@ -127,7 +127,7 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.menu
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -364,7 +364,7 @@ internal fun ChatScaffold(
 
     // 滚动消息列表时折叠/展开顶栏。
     //
-    // Miuix 下由 KedgePageScaffold 建立**唯一**一个 Miuix 折叠行为，同时接上
+    // Miuix 下由 MochiPageScaffold 建立**唯一**一个 Miuix 折叠行为，同时接上
     // nestedScroll 并通过 LocalKedgePageScrollBehavior 下发给顶栏（顶栏读同一个
     // 实例才能折叠大标题）。这里不要再自己 remember 一个，否则会出现多个实例、
     // 顶栏观察的那个没人喂滚动。
@@ -377,11 +377,11 @@ internal fun ChatScaffold(
         color = heizige.kk.kedge.theme.KedgeColors.surface,
         modifier = Modifier.fillMaxSize()
     ) {
-        // 用 KedgePageScaffold：Miuix 下自动建立 backdrop 并只包住内容槽，
+        // 用 MochiPageScaffold：Miuix 下自动建立 backdrop 并只包住内容槽，
         // 顶栏作为兄弟节点采样（KernelSU MainActivity.kt:306 同构）。
         // 助手背景要画在**内容槽里面**（见下面），不能留在 Scaffold 外面：
         // backdrop 只录制内容槽那棵子树，画在槽外就不在模糊源里，顶栏会糊不到它。
-        KedgePageScaffold(
+        MochiPageScaffold(
             modifier = activeNestedScroll,
             topBar = {
                     TopBar(
@@ -765,7 +765,7 @@ private fun RoleTitlePlaceholder(largeRow: Boolean) {
  *
  * 为什么在页面侧覆主题色、而不是给顶栏传颜色：`KedgeMiuixMorphingTitleBar` 没有颜色入参，
  * 底色在组件内部按 `LocalKedgePageBackdrop` 决定 —— 有 backdrop（毛玻璃开着，本页由
- * `KedgePageScaffold` 建立）时用 `Color.Transparent`，否则退回
+ * `MochiPageScaffold` 建立）时用 `Color.Transparent`，否则退回
  * `MiuixTheme.colorScheme.surface`。**关掉毛玻璃时 backdrop 为 null**，顶栏就是一块实色，
  * 角色自定义背景被它盖住 —— 这里只在「角色有自定义背景」时把 `surface` 换成透明。
  *
@@ -983,7 +983,7 @@ private fun TopBar(
     if (isMiuix) {
         // Miuix 顶栏的底色不由本页传参：`KedgeMiuixMorphingTitleBar` 内部按
         // `LocalKedgePageBackdrop` 决定 —— 有 backdrop（毛玻璃开着，本页由
-        // `KedgePageScaffold` 建立）就是 `Color.Transparent`，否则取
+        // `MochiPageScaffold` 建立）就是 `Color.Transparent`，否则取
         // `MiuixTheme.colorScheme.surface`（全站统一的页面色，不是 MD3 的
         // surfaceContainer）。所以「角色有自定义背景图/流光」时这里只把主题里的
         // `surface` 换成透明，让正文那张背景在两态（展开 / 折叠）都透上来；

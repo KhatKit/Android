@@ -98,7 +98,7 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.components.KedgeTextField
 import heizige.kk.kedge.theme.KedgeStyle
@@ -142,7 +142,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
         }
     }
 
-    KedgePageScaffold(
+    MochiPageScaffold(
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.assistant_page_title),
@@ -169,7 +169,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 colors = CustomColors.topBarColors,
             )
         },
-        // Miuix 下 KedgePageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
+        // Miuix 下 MochiPageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
         // 滚动增量（整页滑不动），所以按风格取。
         modifier = activeNestedScroll(scrollBehavior),
         containerColor = CustomColors.pageContainerColor,

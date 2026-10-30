@@ -110,14 +110,14 @@ import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.photo
 import heizige.kk.khatkit.app.core.ui.icons.save
 import heizige.kk.khatkit.app.core.ui.icons.tune
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.kedge.adaptive.KedgeBottomBar
-import heizige.kk.kedge.adaptive.KedgeNavItem
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSurface
 import heizige.kk.kedge.overlays.KedgePullToRefreshBox
@@ -145,7 +145,7 @@ fun ImageGenPage(
         )
     }
 
-    KedgePageScaffold(
+    MochiPageScaffold(
        topBar = {
             KedgePageTopBar(
                 title = stringResource(R.string.imggen_page_title),
@@ -217,15 +217,15 @@ private fun BottomBar(
     pagerState: PagerState,
     scope: CoroutineScope
 ) {
-    KedgeBottomBar(
+    MochiNavBottomBar(
         items = listOf(
-            KedgeNavItem(
+            MochiNavTab(
                 selected = 0 == pagerState.currentPage,
                 icon = palette,
                 label = stringResource(R.string.imggen_page_title),
                 onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
             ),
-            KedgeNavItem(
+            MochiNavTab(
                 selected = 1 == pagerState.currentPage,
                 icon = photo,
                 label = stringResource(R.string.imggen_page_gallery),

@@ -6,7 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -15,10 +15,10 @@ import androidx.compose.material3.TopAppBarScrollBehavior
  * 页面骨架的统一入口：按当前风格在 MD3 / Miuix 之间分流。
  *
  * 绝大多数设置与助手子页的结构都是「顶栏 + 一块自己管滚动的内容」，原本每页都要
- * 写一遍 `if (Miuix) ... else KedgePageScaffold(...)`。这里收口成一个入口，
+ * 写一遍 `if (Miuix) ... else MochiPageScaffold(...)`。这里收口成一个入口，
  * 页面只提供 [title] 与 [content]。
  *
- * Miuix 下仍走 [KedgePageScaffold]：它内部已经是 Miuix `Scaffold` + 页面级 backdrop
+ * Miuix 下仍走 [MochiPageScaffold]：它内部已经是 Miuix `Scaffold` + 页面级 backdrop
  * + Miuix 折叠行为，顶栏由 [content] 之外的 `topBar` 槽提供，控件形态与毛玻璃都
  * 是 Miuix 的，而**内容布局完全交给页面自己**。
  *
@@ -37,7 +37,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
  * @param bottomBar 底部栏（如工作区详情页的导航栏）。两种风格都透传给 Scaffold。
  * @param largeTitle Miuix 下用大标题栏（默认）还是小标题栏（如 WebView 这类工具页）。
  * @param scrollBehavior MD3 的折叠滚动行为。仅 MD3 分支使用：Miuix 下改用
- *   KedgePageScaffold 建立的 Miuix 行为，否则两套行为会互相抢滚动增量。
+ *   MochiPageScaffold 建立的 Miuix 行为，否则两套行为会互相抢滚动增量。
  */
 @Composable
 fun KedgeSettingsPageScaffold(
@@ -56,7 +56,7 @@ fun KedgeSettingsPageScaffold(
 ) {
     // MD3 的 Scaffold 不会自己接滚动行为，页面原本都是手动写
     // `modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)`。
-    // 这里统一补上，但只在 MD3 下补：Miuix 下 KedgePageScaffold 已经接了 Miuix 行为，
+    // 这里统一补上，但只在 MD3 下补：Miuix 下 MochiPageScaffold 已经接了 Miuix 行为，
     // 再挂一个 MD3 连接会抢走增量，导致大标题不折叠。
     val md3NestedScroll = if (scrollBehavior != null &&
         LocalKedgeStyle.current == KedgeStyle.MD3Exp
@@ -66,7 +66,7 @@ fun KedgeSettingsPageScaffold(
         Modifier
     }
 
-    KedgePageScaffold(
+    MochiPageScaffold(
         modifier = modifier.then(md3NestedScroll),
         topBar = {
             if (largeTitle) {

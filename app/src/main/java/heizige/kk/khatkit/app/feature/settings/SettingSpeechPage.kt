@@ -78,8 +78,8 @@ import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.adaptive.KedgeBottomBar
-import heizige.kk.kedge.adaptive.KedgeNavItem
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 
 @Composable
 fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
@@ -121,15 +121,15 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
             }
         },
         bottomBar = {
-            KedgeBottomBar(
+            MochiNavBottomBar(
                 items = listOf(
-                    KedgeNavItem(
+                    MochiNavTab(
                         selected = selectedPage == 0,
                         icon = volumeUp,
                         label = stringResource(R.string.speech_tab_tts),
                         onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
                     ),
-                    KedgeNavItem(
+                    MochiNavTab(
                         selected = selectedPage == 1,
                         icon = mic,
                         label = stringResource(R.string.speech_tab_asr),

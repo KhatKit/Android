@@ -184,12 +184,12 @@ fun KedgeMiuixMorphingTitleBar(
     }
     val p = progress.value
 
-    // 页面级 backdrop（KedgePageScaffold 在 Miuix 下建立并下发）。
+    // 页面级 backdrop（MochiPageScaffold 在 Miuix 下建立并下发）。
     // 模糊生效时顶栏底色必须透明，否则模糊无从透出。
     val backdrop = heizige.kk.kedge.adaptive.LocalKedgePageBackdrop.current
     val barColor = if (backdrop != null) Color.Transparent else MiuixTheme.colorScheme.surface
 
-    // 大标题折叠必须观察「本屏那个」Miuix 行为：KedgePageScaffold 建了唯一一个实例，
+    // 大标题折叠必须观察「本屏那个」Miuix 行为：MochiPageScaffold 建了唯一一个实例，
     // 接上 nestedScroll 并下发到这里。页面不用（也不该）自己再 remember 一个。
     val effectiveScroll = scrollBehavior
         ?: heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior.current

@@ -193,7 +193,7 @@ import heizige.kk.khatkit.uikit.KhatKitTheme
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.kedge.adaptive.LocalKedgePageScrollBehavior
 import heizige.kk.kedge.adaptive.miuixScrollBehavior
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeMiuixMorphingTitleBar
@@ -616,7 +616,7 @@ fun ExploreMarketPage() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val density = LocalDensity.current
     // 悬浮筛选栏的钉线（px→dp）：折叠态顶栏的下沿。含义、算法与为什么必须这么做见
-    // KedgePageScaffold content 里的那段注释；marketList 里靠它把 stickyHeader 的钉线
+    // MochiPageScaffold content 里的那段注释；marketList 里靠它把 stickyHeader 的钉线
     // 从屏幕顶端挪到顶栏下面。初值 0 = 改动前的行为。
     var filterPinLine by remember { mutableStateOf(0.dp) }
     // 页面列表的滚动状态。唯一用途是判断悬浮筛选栏有没有「钉住」（见 marketList 里的
@@ -1221,7 +1221,7 @@ fun ExploreMarketPage() {
     // 所以整页（Scaffold + 所有浮层）收进同一个 Box 里。模糊只挂在 Scaffold 自己的
     // modifier 上（见下面 [popupBackdropBlur]），popup 保持清晰。
     Box(modifier = Modifier.fillMaxSize()) {
-    KedgePageScaffold(
+    MochiPageScaffold(
         // 顶栏不再常驻搜索药丸：入口是右上角那个搜索图标，点开后才在**标题槽位**里
         // morph 出输入框（逻辑照 ChatPage）。所以这里只有一行大标题栏。
         topBar = {
@@ -1265,7 +1265,7 @@ fun ExploreMarketPage() {
                 extraAction = localAction,
             )
         },
-        // Miuix 下 KedgePageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
+        // Miuix 下 MochiPageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
         // 滚动增量（整页滑不动），所以按风格取。
         // 详情 popup 打开时整页高斯模糊：模糊挂在 Scaffold 上，popup 是它的兄弟节点。
         modifier = activeNestedScroll(scrollBehavior)
@@ -1720,7 +1720,7 @@ fun ExploreCardsPage(initialQuery: String = "") {
 
     // 同声明的玻璃 popup 宿主：整页收进 Box，模糊只挂在 Scaffold 上。
     Box(modifier = Modifier.fillMaxSize()) {
-    KedgePageScaffold(
+    MochiPageScaffold(
         topBar = {
             ExploreSearchTopBar(
                 title = stringResource(R.string.explore_market_cards_page_title),

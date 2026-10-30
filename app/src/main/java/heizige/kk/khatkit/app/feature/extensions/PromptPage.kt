@@ -106,8 +106,8 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.kedge.adaptive.KedgeBottomBar
-import heizige.kk.kedge.adaptive.KedgeNavItem
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
 import heizige.kk.kedge.components.KedgeIconButtonVariant
@@ -123,15 +123,15 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
         title = stringResource(R.string.prompt_page_title),
         scrollBehavior = scrollBehavior,
         bottomBar = {
-            KedgeBottomBar(
+            MochiNavBottomBar(
                 items = listOf(
-                    KedgeNavItem(
+                    MochiNavTab(
                         selected = pagerState.currentPage == 0,
                         icon = autoFixHigh,
                         label = stringResource(R.string.prompt_page_mode_injection_tab),
                         onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
                     ),
-                    KedgeNavItem(
+                    MochiNavTab(
                         selected = pagerState.currentPage == 1,
                         icon = book2,
                         label = stringResource(R.string.prompt_page_lorebook_tab),

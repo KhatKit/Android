@@ -46,8 +46,12 @@ import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.adaptive.KedgeBottomBar
-import heizige.kk.kedge.adaptive.KedgeNavItem
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiTabItem
+import ui.feice.mochi.navigation.MochiTabScaffold
+import ui.feice.mochi.navigation.rememberMochiTabScaffoldState
+import ui.feice.mochi.navigation.MochiLargeTitleScaffold
+import androidx.compose.foundation.layout.fillMaxWidth
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
@@ -60,35 +64,36 @@ fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
 
-    KedgeSettingsPageScaffold(
-        title = stringResource(R.string.setting_model_page_title),
-        scrollBehavior = scrollBehavior,
-        bottomBar = {
-            KedgeBottomBar(
-                items = listOf(
-                    KedgeNavItem(
-                        selected = pagerState.currentPage == 0,
-                        icon = neurology,
-                        label = stringResource(R.string.setting_model_page_tab_model),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                    ),
-                    KedgeNavItem(
-                        selected = pagerState.currentPage == 1,
-                        icon = editNote,
-                        label = stringResource(R.string.setting_model_page_tab_prompt),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                    ),
-                ),
-            )
-        },
-    ) { contentPadding ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            when (page) {
-                0 -> ModelSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
-                1 -> PromptSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
+    // P3a：页面骨架直接换成 Mochi 的 TabScaffold（底部 Tab 栏由 Mochi 自己画），
+    // 标题/返回走 MochiLargeTitleScaffold 的标题管线。
+    val tabItems = persistentListOf(
+        MochiTabItem(
+            label = stringResource(R.string.setting_model_page_tab_model),
+            icon = { tint -> Icon(neurology, contentDescription = null, tint = tint) },
+        ),
+        MochiTabItem(
+            label = stringResource(R.string.setting_model_page_tab_prompt),
+            icon = { tint -> Icon(editNote, contentDescription = null, tint = tint) },
+        ),
+    )
+    MochiTabScaffold(
+        items = tabItems,
+        state = rememberMochiTabScaffoldState(pagerState.currentPage),
+        onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } },
+    ) {
+        MochiLargeTitleScaffold(
+            title = stringResource(R.string.setting_model_page_title),
+            navigationIcon = { heizige.kk.khatkit.app.core.ui.components.nav.BackButton() },
+        ) {
+            val contentPadding = PaddingValues(0.dp)
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) { page ->
+                when (page) {
+                    0 -> ModelSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
+                    1 -> PromptSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
+                }
             }
         }
     }

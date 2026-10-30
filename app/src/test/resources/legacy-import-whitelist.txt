@@ -65,7 +65,6 @@ kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/Kedge
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/KedgeMiuixHomeTopBar.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/KedgeMiuixMorphingTitleBar.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/KedgeSettingsPageScaffold.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/KedgeTabPageScaffold.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/KedgeTabRow.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/MiuixSettingsPage.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/PreferenceItems.kt

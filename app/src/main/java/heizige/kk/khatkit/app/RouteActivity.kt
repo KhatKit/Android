@@ -191,6 +191,9 @@ class RouteActivity : ComponentActivity() {
         }
         setContent {
             KhatKitTheme {
+                // P3a：Mochi 的 overscroll（拉伸/回弹）接管全 app 的滚动容器。
+                // 放在主题内、路由外 —— 所有页面共享同一份效果，不再各自 remember。
+                ui.feice.mochi.effect.overscroll.ProvideMochiOverscroll {
                 // Coil 的单例 ImageLoader 不在这里配置：那是进程级单例，
                 // 而这里只是其中一个 Activity 的组合，任何先跑的 Coil 用法
                 // （AsyncImage / rememberAsyncImagePainter）都会把内置默认 loader 钉死，
@@ -228,6 +231,7 @@ class RouteActivity : ComponentActivity() {
                     }
                 } else {
                     appContent()
+                }
                 }
                 heizige.kk.khromia.components.GlobalToastHost()
             }

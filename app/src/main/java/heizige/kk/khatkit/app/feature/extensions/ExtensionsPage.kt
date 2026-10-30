@@ -26,7 +26,7 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.book4
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.folder
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
@@ -76,7 +76,7 @@ fun ExtensionsPage() {
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgePageScaffold(
+    MochiPageScaffold(
         topBar = {
             KedgePageLargeTopBar(
                 title = stringResource(R.string.extensions_page_title),

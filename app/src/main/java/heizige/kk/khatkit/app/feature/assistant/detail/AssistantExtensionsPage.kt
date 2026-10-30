@@ -46,7 +46,7 @@ fun AssistantExtensionsPage(id: String) {
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState { 4 }
 
-    // Tab 页统一骨架：MD3 下 KedgePageScaffold + SecondaryTabRow（原行为），
+    // Tab 页统一骨架：MD3 下 MochiPageScaffold + SecondaryTabRow（原行为），
     // Miuix 下 Miuix Scaffold + Miuix 顶栏 + KedgeTabRow（原生 TabRow/WithContour）。
     KedgeTabPageScaffold(
         title = stringResource(R.string.assistant_extensions_page_title),

@@ -27,7 +27,7 @@ fun AssistantRequestPage(id: String) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     // 页面外壳统一走 KedgeSettingsPageScaffold（内部按风格分流：Miuix 走 Miuix
-    // Scaffold + 页面级毛玻璃，MD3 走 KedgePageScaffold）。内容**直接透传**给页面
+    // Scaffold + 页面级毛玻璃，MD3 走 MochiPageScaffold）。内容**直接透传**给页面
     // 自己滚动。
     //
     // 不能写成 MiuixSettingsPage { item { ... } }：AssistantRequestContent 自己是

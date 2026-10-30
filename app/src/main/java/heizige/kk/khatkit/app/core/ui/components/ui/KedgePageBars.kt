@@ -48,7 +48,7 @@ internal fun scrollLinkedTopBarColors(
  *
  * MD3 的 Scaffold 自己不接滚动行为，页面历来手写
  * `Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)`；但 Miuix 下
- * [heizige.kk.kedge.adaptive.KedgePageScaffold] 已经接上了 Miuix 的折叠行为，
+ * [heizige.kk.kedge.adaptive.MochiPageScaffold] 已经接上了 Miuix 的折叠行为，
  * 两个连接会同时挂在同一棵树上。
  *
  * 更糟的是 MD3 那个行为的 `heightOffsetLimit` 只由 MD3 顶栏写入，Miuix 下 MD3 顶栏
@@ -96,7 +96,7 @@ fun KedgePageLargeTopBar(
             actions = actions,
             titleContent = titleContent,
             titleAlpha = alpha,
-            // Miuix 下必须用 KedgePageScaffold 下发的那个行为（KedgeLargeTopAppBar
+            // Miuix 下必须用 MochiPageScaffold 下发的那个行为（KedgeLargeTopAppBar
             // 内部会回退到 LocalKedgePageScrollBehavior）。传进来的 MD3 behavior
             // 在 Miuix 下不可用；以前这里自己 remember 一个，等于顶栏观察的是
             // 一个没人喂滚动的实例 -> 列表能滚但大标题不收缩。

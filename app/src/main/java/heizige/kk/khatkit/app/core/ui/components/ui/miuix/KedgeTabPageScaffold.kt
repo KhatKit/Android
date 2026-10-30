@@ -8,12 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 
 /**
  * 「顶栏 + Tab 条 + Pager」三段式页面的统一骨架。
  *
- * 两种风格都走 [KedgePageScaffold]：它在 Miuix 下已经是 Miuix `Scaffold` + 页面级
+ * 两种风格都走 [MochiPageScaffold]：它在 Miuix 下已经是 Miuix `Scaffold` + 页面级
  * backdrop（顶栏毛玻璃）+ 唯一一份折叠滚动行为（大标题随滚动收起），MD3 下则是原生
  * `Scaffold`。Tab 条由 [KedgeTabRow] 内部按风格分流，因此 pager 内容两边共用。
  *
@@ -35,7 +35,7 @@ fun KedgeTabPageScaffold(
     scrollBehavior: TopAppBarScrollBehavior? = null,
     pageContent: @Composable (Modifier) -> Unit,
 ) {
-    KedgePageScaffold(
+    MochiPageScaffold(
         modifier = modifier,
         topBar = {
             heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar(

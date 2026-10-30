@@ -122,10 +122,10 @@ import heizige.kk.khromia.components.MultiChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.feature.settings.provider.ModelList
-import heizige.kk.kedge.adaptive.KedgePageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.adaptive.KedgeBottomBar
-import heizige.kk.kedge.adaptive.KedgeNavItem
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 
 @Composable
 fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) {
@@ -169,7 +169,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
 
     val settingProviderPageSaveSuccess = stringResource(R.string.setting_provider_page_save_success)
 
-    KedgePageScaffold(
+    MochiPageScaffold(
        containerColor = CustomColors.pageContainerColor,
         topBar = {
             KedgePageTopBar(
@@ -202,21 +202,21 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
             )
         },
         bottomBar = {
-            KedgeBottomBar(
+            MochiNavBottomBar(
                 items = listOf(
-                    KedgeNavItem(
+                    MochiNavTab(
                         selected = pager.currentPage == 0,
                         icon = build,
                         label = stringResource(id = R.string.setting_provider_page_configuration),
                         onClick = { scope.launch { pager.animateScrollToPage(0) } },
                     ),
-                    KedgeNavItem(
+                    MochiNavTab(
                         selected = pager.currentPage == 2,
                         icon = build,
                         label = stringResource(R.string.setting_provider_page_advanced_settings),
                         onClick = { scope.launch { pager.animateScrollToPage(2) } },
                     ),
-                    KedgeNavItem(
+                    MochiNavTab(
                         selected = pager.currentPage == 1,
                         icon = package2,
                         label = stringResource(id = R.string.setting_provider_page_models),
