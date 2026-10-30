@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.provider
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
@@ -44,7 +45,6 @@ import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -348,7 +348,7 @@ internal fun ModelSettingsForm(
                             .padding(16.dp)
                     ) {
                         ModelFormGroup(stringResource(R.string.setting_provider_page_model_info)) {
-                            MochiOutlinedTextFieldWithSlots(
+                            Md3OutlinedTextFieldWithSlots(
                                 value = model.modelId,
                                 onValueChange = {
                                     if (!isEdit) {
@@ -369,7 +369,7 @@ internal fun ModelSettingsForm(
                                 shape = RoundedCornerShape(16.dp)
                             )
 
-                            MochiOutlinedTextFieldWithSlots(
+                            Md3OutlinedTextFieldWithSlots(
                                 value = model.displayName,
                                 onValueChange = {
                                     onModelChange(model.copy(displayName = it))

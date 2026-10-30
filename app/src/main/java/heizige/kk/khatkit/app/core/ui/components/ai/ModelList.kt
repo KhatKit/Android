@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -36,8 +37,6 @@ import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -666,7 +665,7 @@ private fun ColumnScope.ModelList(
 
     // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，展开成
     // 铺满全屏的搜索页 + 取消键；返回键收起，关键词同时清空。
-    MochiSearchBar(
+    Md3SearchBar(
         value = searchKeywords,
         onValueChange = { searchKeywords = it },
         placeholder = stringResource(R.string.model_list_search_placeholder),

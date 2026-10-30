@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.animateContentSize
@@ -25,7 +26,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -297,7 +297,7 @@ internal fun SearchTestSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.weight(1f),

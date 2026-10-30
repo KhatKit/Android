@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -26,9 +28,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -375,7 +375,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 }
                             }
 
-                            MochiOutlinedTextField(
+                            Md3OutlinedTextField(
                                 value = answers[q.id] ?: "",
                                 onValueChange = { answers[q.id] = it },
                                 modifier = Modifier.fillMaxWidth(),
@@ -468,7 +468,7 @@ private fun ToolDenyReasonDialog(
             Text(stringResource(R.string.chat_message_tool_deny_dialog_title))
         },
         text = {
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = reason,
                 onValueChange = { reason = it },
                 label = { Text(stringResource(R.string.chat_message_tool_deny_dialog_hint)) },

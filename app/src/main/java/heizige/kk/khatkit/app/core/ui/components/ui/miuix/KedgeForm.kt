@@ -19,12 +19,12 @@ import androidx.compose.ui.unit.dp
  * 「表单分组 / 表单项 / 分隔线」的双风格版本。
  *
  * ⚠️ 这个文件**不再自绘行**。设置表单行（`FormItem` / [KedgeFormRow] /
- * [MochiSwitchFormRow] 这一系）的渲染只有一条路径：
+ * [Md3SwitchFormRow] 这一系）的渲染只有一条路径：
  * [heizige.kk.khatkit.app.core.ui.components.ui.FormItem] → `MochiOptionItem`
  * （后者内部按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem` / 旧双风格 的
  * `KkCard` 行）。以前这里有第二份自绘行（MD3 分支转 FormItem、旧双风格 分支又
  * `KkCard` + `Column` 自己排一遍），改一处漏一处；现在 [KedgeFormRow] 与
- * [MochiSwitchFormRow] 只是**签名转接层**，不做任何布局与配色决策。
+ * [Md3SwitchFormRow] 只是**签名转接层**，不做任何布局与配色决策。
  *
  * ⚠️ 上面那句只覆盖这一系，不是全仓结论：`miuix/PreferenceItems.kt:194-235` 与
  * `ProviderModelList.kt:264-277` 至今仍在自绘行 / 自绘分组，本次没有动它们。
@@ -80,7 +80,7 @@ fun KedgeFormCard(
  * 于是「点卡片不动、只能点右侧那个小开关」。这里统一收口，别再逐处接 onClick。
  */
 @Composable
-fun MochiSwitchFormRow(
+fun Md3SwitchFormRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,

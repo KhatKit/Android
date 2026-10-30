@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -12,9 +14,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,7 +73,7 @@ fun SettingProviderBalanceOption(
                             contentDescription = null,
                         )
                     }
-                    MochiCheckbox(
+                    Md3Checkbox(
                         checked = balanceOption.enabled,
                         onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
                     )
@@ -85,7 +84,7 @@ fun SettingProviderBalanceOption(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = balanceOption.apiPath,
                     onValueChange = { onEdit(balanceOption.copy(apiPath = it)) },
                     label = { Text(stringResource(R.string.setting_provider_page_balance_api_path)) },
@@ -93,7 +92,7 @@ fun SettingProviderBalanceOption(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = balanceOption.resultPath,
                     onValueChange = { onEdit(balanceOption.copy(resultPath = it)) },
                     label = { Text(stringResource(R.string.setting_provider_page_balance_json_key)) },

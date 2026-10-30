@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +17,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -179,7 +179,7 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
             label = { Text(stringResource(R.string.assistant_page_header_name)) },
             modifier = Modifier.fillMaxWidth(),
         )
-        MochiOutlinedTextFieldWithSlots(
+        Md3OutlinedTextFieldWithSlots(
             value = headerValue,
             onValueChange = {
                 headerValue = it
@@ -210,7 +210,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
         }
         var jsonParseError by remember { mutableStateOf<String?>(null) }
 
-        MochiOutlinedTextFieldWithSlots(
+        Md3OutlinedTextFieldWithSlots(
             value = bodyKey,
             onValueChange = {
                 bodyKey = it
@@ -220,7 +220,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp)
         )
-        MochiOutlinedTextFieldWithSlots(
+        Md3OutlinedTextFieldWithSlots(
             value = bodyValueString,
             onValueChange = { newString ->
                 bodyValueString = newString

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.core.animateFloatAsState
@@ -23,8 +24,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -177,7 +176,7 @@ fun <T> SelectTextField(
     val density = LocalDensity.current
 
     Box(modifier = modifier) {
-        MochiOutlinedTextFieldWithSlots(
+        Md3OutlinedTextFieldWithSlots(
             value = value,
             onValueChange = onValueChange,
             readOnly = readOnly,

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.mcp
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.animateContentSize
@@ -43,7 +44,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -333,7 +333,7 @@ internal fun McpImportModal(
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = jsonText,
                 onValueChange = {
                     jsonText = it

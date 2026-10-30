@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextField
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -150,7 +150,7 @@ fun TTSProviderConfigure(
         KedgeFormRow(
             label = { Text(stringResource(R.string.setting_tts_page_name)) },
         ) {
-            MochiTextField(
+            Md3TextField(
                 value = setting.name,
                 onValueChange = { newName ->
                     onValueChange(setting.copyProvider(name = newName))
@@ -188,7 +188,7 @@ private fun OpenAITTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -203,7 +203,7 @@ private fun OpenAITTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -218,7 +218,7 @@ private fun OpenAITTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
@@ -259,7 +259,7 @@ private fun MiMoTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -274,7 +274,7 @@ private fun MiMoTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -289,7 +289,7 @@ private fun MiMoTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
@@ -340,7 +340,7 @@ private fun MiniMaxTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -354,7 +354,7 @@ private fun MiniMaxTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -369,7 +369,7 @@ private fun MiniMaxTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
@@ -438,7 +438,7 @@ private fun GeminiTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -453,7 +453,7 @@ private fun GeminiTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -468,7 +468,7 @@ private fun GeminiTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
@@ -483,7 +483,7 @@ private fun GeminiTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_name)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.voiceName,
             onValueChange = { newVoiceName ->
                 onValueChange(setting.copy(voiceName = newVoiceName))
@@ -544,7 +544,7 @@ private fun QwenTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -559,7 +559,7 @@ private fun QwenTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -673,7 +673,7 @@ private fun GroqTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -688,7 +688,7 @@ private fun GroqTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -703,7 +703,7 @@ private fun GroqTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_model)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { newModel ->
                 onValueChange(setting.copy(model = newModel))
@@ -743,7 +743,7 @@ private fun XAITTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -758,7 +758,7 @@ private fun XAITTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -845,7 +845,7 @@ private fun ElevenLabsTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -860,7 +860,7 @@ private fun ElevenLabsTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -899,7 +899,7 @@ private fun ElevenLabsTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.voiceId,
             onValueChange = { newVoiceId ->
                 onValueChange(setting.copy(voiceId = newVoiceId))
@@ -950,7 +950,7 @@ private fun FishAudioTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -965,7 +965,7 @@ private fun FishAudioTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -1005,7 +1005,7 @@ private fun FishAudioTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_voice_id)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.referenceId,
             onValueChange = { newReferenceId ->
                 onValueChange(setting.copy(referenceId = newReferenceId))
@@ -1057,7 +1057,7 @@ private fun StepTTSConfiguration(
         label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
         description = { Text("从阶跃星辰官网获取密钥: platform.stepfun.com/interface-key") }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { newApiKey ->
                 onValueChange(setting.copy(apiKey = newApiKey))
@@ -1072,7 +1072,7 @@ private fun StepTTSConfiguration(
     KedgeFormRow(
         label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { newBaseUrl ->
                 onValueChange(setting.copy(baseUrl = newBaseUrl))
@@ -1240,7 +1240,7 @@ private fun StepTTSConfiguration(
         label = { Text("Instruction") },
         description = { Text("全局语境指令, 仅 stepaudio-2.5-tts 生效 (≤200 字符, 留空不下发)") }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.instruction,
             onValueChange = { newInstruction ->
                 // 服务端上限 200 字符, 客户端做一层保护
@@ -1268,7 +1268,7 @@ private fun VolcengineTTSConfiguration(
         label = { Text("API Key") },
         description = { Text("请填写豆包语音控制台的 API Key，不是火山方舟控制台的 API Key。") }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -1286,7 +1286,7 @@ private fun VolcengineTTSConfiguration(
         )
     }
     KedgeFormRow(label = { Text(stringResource(R.string.setting_tts_page_base_url)) }) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             placeholder = "https://openspeech.bytedance.com",
@@ -1299,7 +1299,7 @@ private fun VolcengineTTSConfiguration(
         label = { Text("资源 ID") },
         description = { Text("需与已开通的服务和音色匹配，默认 seed-tts-2.0。") }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.resourceId,
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
             singleLine = true,
@@ -1311,7 +1311,7 @@ private fun VolcengineTTSConfiguration(
         label = { Text("音色 ID") },
         description = { Text("填写控制台中的音色 ID，默认使用 VV 音色。") }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.speaker,
             onValueChange = { onValueChange(setting.copy(speaker = it)) },
             singleLine = true,

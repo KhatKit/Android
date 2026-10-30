@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import android.net.Uri
@@ -13,7 +14,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -183,7 +183,7 @@ fun BackgroundPicker(
                 Text(stringResource(R.string.assistant_page_enter_image_url))
             },
             text = {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = urlInput,
                     onValueChange = { urlInput = it },
                     label = { Text(stringResource(R.string.assistant_page_image_url)) },

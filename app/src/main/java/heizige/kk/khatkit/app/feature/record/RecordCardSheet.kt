@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.record
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +13,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -119,7 +119,7 @@ fun RecordCardSheet(
                 )
             }
 
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("卡片名称（如：每日签到）") },

@@ -1,13 +1,13 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +26,7 @@ fun <T : Number> OutlinedNumberInput(
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
 ) {
     var textFieldValue by remember(value) { mutableStateOf(value.toString()) }
-    MochiOutlinedTextFieldWithSlots(
+    Md3OutlinedTextFieldWithSlots(
         modifier = modifier,
         value = textFieldValue,
         onValueChange = { newValue ->
@@ -63,7 +63,7 @@ fun <T : Number> NumberInput(
     colors: TextFieldColors = TextFieldDefaults.colors()
 ) {
     var textFieldValue by remember(value) { mutableStateOf(value.toString()) }
-    MochiTextFieldWithSlots(
+    Md3TextFieldWithSlots(
         modifier = modifier,
         value = textFieldValue,
         onValueChange = { newValue ->

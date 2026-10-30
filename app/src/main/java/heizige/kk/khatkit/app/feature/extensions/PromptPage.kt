@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -48,7 +49,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeInputChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -103,7 +103,7 @@ import heizige.kk.khatkit.app.core.ui.icons.iosShare
 import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
@@ -424,7 +424,7 @@ private fun ModeInjectionEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = injection.name,
                     onValueChange = { onEdit(injection.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -432,13 +432,13 @@ private fun ModeInjectionEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                MochiSwitchFormRow(
+                Md3SwitchFormRow(
                     checked = injection.enabled,
                     onCheckedChange = { onEdit(injection.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
                 )
 
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = injection.priority.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(injection.copy(priority = p)) }
@@ -459,7 +459,7 @@ private fun ModeInjectionEditSheet(
                 )
 
                 AnimatedVisibility(visible = injection.position == InjectionPosition.AT_DEPTH) {
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = injection.injectDepth.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(injection.copy(injectDepth = d)) }
@@ -484,7 +484,7 @@ private fun ModeInjectionEditSheet(
                     }
                 }
 
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = injection.content,
                     onValueChange = { onEdit(injection.copy(content = it)) },
                     label = { Text(stringResource(R.string.prompt_page_injection_content)) },
@@ -839,7 +839,7 @@ private fun LorebookEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = book.name,
                     onValueChange = { onEdit(book.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -847,7 +847,7 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = book.description,
                     onValueChange = { onEdit(book.copy(description = it)) },
                     label = { Text(stringResource(R.string.prompt_page_description)) },
@@ -855,7 +855,7 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                MochiSwitchFormRow(
+                Md3SwitchFormRow(
                     checked = book.enabled,
                     onCheckedChange = { onEdit(book.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
@@ -976,7 +976,7 @@ private fun RegexInjectionEditDialog(
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = entry.name,
                     onValueChange = { onEdit(entry.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -984,13 +984,13 @@ private fun RegexInjectionEditDialog(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                MochiSwitchFormRow(
+                Md3SwitchFormRow(
                     checked = entry.enabled,
                     onCheckedChange = { onEdit(entry.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
                 )
 
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = entry.priority.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(entry.copy(priority = p)) }
@@ -1011,7 +1011,7 @@ private fun RegexInjectionEditDialog(
                 )
 
                 AnimatedVisibility(visible = entry.position == InjectionPosition.AT_DEPTH) {
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = entry.injectDepth.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
@@ -1053,7 +1053,7 @@ private fun RegexInjectionEditDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = newKeyword,
                         onValueChange = { newKeyword = it },
                         label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
@@ -1074,26 +1074,26 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                MochiSwitchFormRow(
+                Md3SwitchFormRow(
                     checked = entry.useRegex,
                     onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
                     label = { Text(stringResource(R.string.prompt_page_use_regex)) },
                 )
 
-                MochiSwitchFormRow(
+                Md3SwitchFormRow(
                     checked = entry.caseSensitive,
                     onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
                 )
 
-                MochiSwitchFormRow(
+                Md3SwitchFormRow(
                     checked = entry.constantActive,
                     onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_constant_active)) },
                     description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
                 )
 
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = entry.scanDepth.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { d -> onEdit(entry.copy(scanDepth = d)) }
@@ -1117,7 +1117,7 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = entry.content,
                     onValueChange = { onEdit(entry.copy(content = it)) },
                     label = { Text(stringResource(R.string.prompt_page_injection_content)) },

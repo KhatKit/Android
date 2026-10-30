@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
+import heizige.kk.khatkit.uikit.mochi.Md3RadioButton
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
@@ -26,10 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.ui.UiSheetOptions
@@ -185,7 +185,7 @@ internal fun FormWidget(
         "text", "markdown" -> Text(label.ifBlank { item["value"]?.toString().orEmpty() })
         "divider" -> MochiHorizontalDivider()
 
-        "input" -> MochiOutlinedTextField(
+        "input" -> Md3OutlinedTextField(
             value = values[id]?.toString().orEmpty(),
             onValueChange = { values[id] = it },
             label = label,
@@ -195,7 +195,7 @@ internal fun FormWidget(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        "number" -> MochiOutlinedTextField(
+        "number" -> Md3OutlinedTextField(
             value = values[id]?.toString().orEmpty(),
             onValueChange = { values[id] = it.toDoubleOrNull() ?: it },
             label = label,
@@ -212,7 +212,7 @@ internal fun FormWidget(
         }
 
         "checkbox" -> FormRow(label) {
-            MochiCheckbox(checked = values[id] as? Boolean ?: false, onCheckedChange = { values[id] = it })
+            Md3Checkbox(checked = values[id] as? Boolean ?: false, onCheckedChange = { values[id] = it })
         }
 
         "slider" -> {
@@ -241,7 +241,7 @@ internal fun FormWidget(
                 Text(label)
                 options.forEach { option ->
                     FormRow(option) {
-                        MochiRadioButton(
+                        Md3RadioButton(
                             selected = values[id] == option,
                             onClick = { values[id] = option },
                         )
@@ -254,7 +254,7 @@ internal fun FormWidget(
             val kind = if (type == "dir_picker") FormPickKind.DIR else FormPickKind.FILE
             val request = pickerHost?.let { FormPickRequest.from(item, kind) }
             val field: @Composable () -> Unit = {
-                MochiOutlinedTextField(
+                Md3OutlinedTextField(
                     value = values[id]?.toString().orEmpty(),
                     onValueChange = { values[id] = it },
                     label = stringResource(R.string.khatkit_form_path_label, label),
@@ -313,7 +313,7 @@ internal fun FormWidget(
         }
 
         else -> {
-            MochiCheckbox(checked = false, onCheckedChange = null)
+            Md3Checkbox(checked = false, onCheckedChange = null)
             Text(stringResource(R.string.khatkit_form_widget_unsupported, label, type))
         }
     }

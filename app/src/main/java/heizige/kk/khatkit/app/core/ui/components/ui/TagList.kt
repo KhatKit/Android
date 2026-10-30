@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.clickable
@@ -19,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeInputChip
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -151,7 +151,7 @@ fun TagsInput(
                 }
 
                 // 输入新标签名称
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = tagName,
                     onValueChange = {
                         tagName = it

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -40,7 +41,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -578,7 +578,7 @@ private fun CustomThemeEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = currentTheme.name,
                     onValueChange = { currentTheme = currentTheme.copy(name = it) },
                     label = { Text(stringResource(R.string.setting_theme_page_theme_name)) },
@@ -649,7 +649,7 @@ private fun ImportThemeDialog(
         title = { Text(stringResource(R.string.setting_theme_page_import_theme)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = jsonText,
                     onValueChange = {
                         jsonText = it
@@ -763,7 +763,7 @@ private fun ColorPickerRow(
             }
         }
 
-        MochiOutlinedTextFieldWithSlots(
+        Md3OutlinedTextFieldWithSlots(
             value = hslCode,
             onValueChange = { value ->
                 hslCode = value

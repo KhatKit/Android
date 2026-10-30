@@ -52,7 +52,7 @@ import ui.feice.mochi.theme.MochiTheme
  *
  * 语义重定（合同 §5，Mochi 无独立 checkbox/radio）：
  *  - [KkSwitch]：开关，保持「即时生效」语义；
- *  - [MochiCheckbox] / [MochiRadioButton]：列表行内的**选中标记**（勾/圆点），
+ *  - [Md3Checkbox] / [Md3RadioButton]：列表行内的**选中标记**（勾/圆点），
  *    不做成开关 —— 点一下立即生效的设置项应改用开关，单选列表应改用
  *    MochiListPickerRow（P6 提供）；这里保留标记形态是为了不改变现有交互语义。
  */
@@ -234,7 +234,7 @@ private fun MochiBasicField(
 }
 
 @Composable
-fun MochiTextField(
+fun Md3TextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -281,7 +281,7 @@ fun MochiTextField(
 }
 
 @Composable
-fun MochiOutlinedTextField(
+fun Md3OutlinedTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -346,46 +346,24 @@ fun KkSwitch(
 
 /** 列表行内的选中标记（不是开关；语义见文件头注释）。 */
 @Composable
-fun MochiCheckbox(
+fun Md3Checkbox(
     checked: Boolean,
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val scheme = MochiTheme.colorScheme
-    Box(
-        modifier = modifier
-            .size(22.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (checked) scheme.primary else Color.Transparent, RoundedCornerShape(6.dp))
-            .border(1.5.dp, if (checked) scheme.primary else scheme.outlineVariant, RoundedCornerShape(6.dp))
-            .clickable(enabled = enabled && onCheckedChange != null) { onCheckedChange?.invoke(!checked) },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (checked) Text(text = "✓", color = scheme.onPrimary, style = MochiTheme.textStyles.footnote)
-    }
+    androidx.compose.material3.Checkbox(checked = checked, onCheckedChange = onCheckedChange, modifier = modifier, enabled = enabled)
 }
 
 /** 单选标记（不是开关；语义见文件头注释）。 */
 @Composable
-fun MochiRadioButton(
+fun Md3RadioButton(
     selected: Boolean,
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val scheme = MochiTheme.colorScheme
-    Box(
-        modifier = modifier
-            .size(22.dp)
-            .border(1.5.dp, if (selected) scheme.primary else scheme.outlineVariant, CircleShape)
-            .clickable(enabled = enabled && onClick != null) { onClick?.invoke() },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selected) {
-            Box(modifier = Modifier.size(11.dp).background(scheme.primary, CircleShape))
-        }
-    }
+    androidx.compose.material3.RadioButton(selected = selected, onClick = onClick, modifier = modifier, enabled = enabled)
 }
 
 /** 滑杆：Mochi 圆角轨道 + 拖动/点击改值（不引 material3 Slider）。 */
@@ -553,7 +531,7 @@ fun MochiBadgedBox(
 }
 /** 带 composable 槽位的文本框（label/placeholder/supportingText 都是槽）。 */
 @Composable
-fun MochiOutlinedTextFieldWithSlots(
+fun Md3OutlinedTextFieldWithSlots(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -602,7 +580,7 @@ fun MochiOutlinedTextFieldWithSlots(
 
 /** 由 TextFieldState 驱动的文本框（新的 foundation state API）。 */
 @Composable
-fun MochiTextFieldWithState(
+fun Md3TextFieldWithState(
     state: androidx.compose.foundation.text.input.TextFieldState,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
@@ -628,7 +606,7 @@ fun MochiTextFieldWithState(
 
 /** 带 composable 槽位的填充式文本框（旧 Kedge 的 TextFieldWithSlots）。 */
 @Composable
-fun MochiTextFieldWithSlots(
+fun Md3TextFieldWithSlots(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,

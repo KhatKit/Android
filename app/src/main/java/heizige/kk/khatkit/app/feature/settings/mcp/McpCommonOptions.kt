@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.mcp
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.animation.animateContentSize
@@ -41,7 +42,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,7 +104,7 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 
@@ -123,7 +123,7 @@ internal fun McpCommonOptionsConfigure(
     ) {
         // 启用/禁用开关。标题只由行自己画一次 —— 之前这里套 KedgeFormRow 又在 content
         // 里写了个 Text(启用)，屏幕上「启用」出现两遍；开关也是 MD3 的 OptionSwitch。
-        MochiSwitchFormRow(
+        Md3SwitchFormRow(
             checked = config.commonOptions.enable,
             onCheckedChange = { enabled ->
                 update(
@@ -152,7 +152,7 @@ internal fun McpCommonOptionsConfigure(
             }
         ) {
             val nameInvalid = !isValidMcpName(config.commonOptions.name)
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = config.commonOptions.name,
                 onValueChange = { name ->
                     update(
@@ -247,7 +247,7 @@ internal fun McpCommonOptionsConfigure(
                 )
             }
         ) {
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = when (config) {
                     is McpServerConfig.SseTransportServer -> config.url
                     is McpServerConfig.StreamableHTTPServer -> config.url
@@ -298,7 +298,7 @@ internal fun McpCommonOptionsConfigure(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            MochiOutlinedTextFieldWithSlots(
+                            Md3OutlinedTextFieldWithSlots(
                                 value = headerName,
                                 onValueChange = {
                                     headerName = it
@@ -324,7 +324,7 @@ internal fun McpCommonOptionsConfigure(
                                 shape = RoundedCornerShape(16.dp)
                             )
                             Spacer(Modifier.height(8.dp))
-                            MochiOutlinedTextFieldWithSlots(
+                            Md3OutlinedTextFieldWithSlots(
                                 value = headerValue,
                                 onValueChange = {
                                     headerValue = it

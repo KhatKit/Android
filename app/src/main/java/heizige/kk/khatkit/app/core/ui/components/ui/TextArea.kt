@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithState
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.net.Uri
@@ -26,8 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiTextField
-import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +50,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithState
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 /**
@@ -162,7 +161,7 @@ fun TextArea(
             }
 
             // Multi-line text input
-            MochiTextFieldWithState(
+            Md3TextFieldWithState(
                 state = state,
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -234,7 +233,7 @@ private fun FullScreenTextEditor(
                             Text(stringResource(R.string.text_area_save))
                         }
                     }
-                    MochiTextFieldWithSlots(
+                    Md3TextFieldWithSlots(
                         value = editingText,
                         onValueChange = { editingText = it },
                         modifier = Modifier

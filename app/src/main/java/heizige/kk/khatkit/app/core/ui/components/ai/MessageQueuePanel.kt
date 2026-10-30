@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithState
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -43,7 +44,6 @@ import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithState
 
 @Composable
 internal fun MessageQueuePanel(
@@ -166,7 +166,7 @@ internal fun MessageQueuePanel(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (input.messageContent.isNotEmpty()) MediaFileInputRow(input)
-                    MochiTextFieldWithState(
+                    Md3TextFieldWithState(
                         state = input.textContent,
                         modifier = Modifier
                             .fillMaxWidth()

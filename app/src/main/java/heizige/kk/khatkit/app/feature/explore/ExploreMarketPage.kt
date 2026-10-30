@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.explore
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -83,7 +85,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.khatkit.uikit.mochi.MochiBadge
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
@@ -354,7 +355,7 @@ private fun TagChip(
  * 两者不同字阶时展开会看到「标题跳了一下」。展开进度由 [rememberSearchExpandState] 提供
  * （含预测性返回跟手收起）。
  *
- * 抽成一份的原因：两页的手感必须逐帧同形。此前二级页用的是常驻搜索药丸（MochiSearchBar），
+ * 抽成一份的原因：两页的手感必须逐帧同形。此前二级页用的是常驻搜索药丸（Md3SearchBar），
  * 一级页是顶栏 morph，同一个市场两种搜索形态。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -4008,7 +4009,7 @@ private fun PublishCardDialog(
         title = { Text(stringResource(R.string.explore_market_publish_dialog_title, entry.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = license,
                     onValueChange = { license = it },
                     label = { Text(stringResource(R.string.explore_market_license_label)) },
@@ -4016,7 +4017,7 @@ private fun PublishCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text(stringResource(R.string.explore_market_price_label)) },
@@ -4024,7 +4025,7 @@ private fun PublishCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
                     label = { Text(stringResource(R.string.explore_market_changelog_label)) },
@@ -4076,7 +4077,7 @@ private fun ForkCardDialog(
         title = { Text(stringResource(R.string.explore_market_fork_dialog_title, entry.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = parent,
                     onValueChange = { parent = it },
                     label = { Text(stringResource(R.string.explore_market_parent_version)) },
@@ -4084,7 +4085,7 @@ private fun ForkCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = newVersion,
                     onValueChange = { newVersion = it },
                     label = { Text(stringResource(R.string.explore_market_new_version)) },
@@ -4092,7 +4093,7 @@ private fun ForkCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
                     label = { Text(stringResource(R.string.explore_market_changelog_required)) },

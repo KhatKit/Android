@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -43,10 +45,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -573,7 +573,7 @@ private fun InstallRootfsDialog(
                     style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = url,
                     onValueChange = { url = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -811,7 +811,7 @@ private fun WorkspaceFileCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (selecting && !entry.isDirectory) {
-                MochiCheckbox(checked = selected, onCheckedChange = { onToggleSelection() })
+                Md3Checkbox(checked = selected, onCheckedChange = { onToggleSelection() })
             }
             if (isImage) {
                 val context = LocalContext.current

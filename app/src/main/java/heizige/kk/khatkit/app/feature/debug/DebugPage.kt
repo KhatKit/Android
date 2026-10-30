@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.debug
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,8 +29,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -253,7 +253,7 @@ private fun MainPage(vm: DebugViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = launchCountInput,
                 onValueChange = { launchCountInput = it },
                 label = { Text("launchCount (current: ${settings.launchCount})") },
@@ -274,7 +274,7 @@ private fun MainPage(vm: DebugViewModel) {
         var markdown by remember { mutableStateOf("") }
         MarkdownBlock(markdown, modifier = Modifier.fillMaxWidth())
         MathBlock(markdown)
-        MochiOutlinedTextField(
+        Md3OutlinedTextField(
             value = markdown,
             onValueChange = { markdown = it },
             modifier = Modifier.fillMaxWidth(),

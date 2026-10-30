@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -47,7 +48,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -352,7 +352,7 @@ private fun UrlInputStage(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 4.dp),
         )
-        MochiOutlinedTextFieldWithSlots(
+        Md3OutlinedTextFieldWithSlots(
             value = urlInput,
             onValueChange = onUrlInputChange,
             label = { Text(stringResource(R.string.avatar_url_hint)) },

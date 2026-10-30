@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.context
 
+import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -16,7 +17,7 @@ val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { nu
 /**
  * 让一段内容不参与 shared element 转场。
  *
- * 搜索框的全屏层（[heizige.kk.khatkit.uikit.mochi.MochiSearchBar] 展开后的结果区）是
+ * 搜索框的全屏层（[heizige.kk.khatkit.uikit.mochi.Md3SearchBar] 展开后的结果区）是
  * **独立窗口**（MD3 是 Dialog，Miuix 现在也是 Dialog）。而结果列表里的头像带着
  * `.heroAnimation(...)`，那是 `sharedElement`：`SharedElement` 在 lookahead 阶段
  * 会拿匹配到的另一端做 `localLookaheadPositionOf`，两个端点一旦分属不同 ViewRoot，

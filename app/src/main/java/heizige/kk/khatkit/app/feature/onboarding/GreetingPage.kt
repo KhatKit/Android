@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.onboarding
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
@@ -75,7 +77,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -138,9 +139,7 @@ import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
-import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.kedge.components.KedgeStatusDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiStatusTag
@@ -606,7 +605,7 @@ private fun GreetingAgreementScreen(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MochiCheckbox(
+            Md3Checkbox(
                 checked = accepted,
                 onCheckedChange = null,
             )
@@ -986,7 +985,7 @@ private fun GreetingAiSetupScreen() {
                             )
                         },
                     )
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = draftName,
                         onValueChange = { draftName = it },
                         label = { Text(stringResource(R.string.greeting_ai_custom_name)) },
@@ -995,7 +994,7 @@ private fun GreetingAiSetupScreen() {
                         shape = RoundedCornerShape(16.dp)
                     )
                 }
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = draftKey,
                     onValueChange = { draftKey = it },
                     label = { Text(stringResource(R.string.greeting_ai_api_key)) },
@@ -1003,7 +1002,7 @@ private fun GreetingAiSetupScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = draftBaseUrl,
                     onValueChange = { draftBaseUrl = it },
                     label = { Text(stringResource(R.string.greeting_ai_base_url)) },

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +27,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -272,7 +272,7 @@ private fun EditQuickMessageDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = quickMessageTitle,
                     onValueChange = { quickMessageTitle = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -280,7 +280,7 @@ private fun EditQuickMessageDialog(
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp)
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = quickMessageContent,
                     onValueChange = { quickMessageContent = it },
                     modifier = Modifier.fillMaxWidth(),

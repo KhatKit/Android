@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -37,7 +38,6 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -159,7 +159,7 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
             // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
             // 展开成铺满全屏的搜索页；取消键/返回键收起，关键词同时清空。
             // 展开期间页面正文整个抽掉（KSU 的 SearchBox 同款），列表只在全屏槽里出现一次。
-            MochiSearchBar(
+            Md3SearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.setting_provider_page_search_providers),

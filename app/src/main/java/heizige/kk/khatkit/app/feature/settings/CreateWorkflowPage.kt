@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkCard
@@ -28,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -115,7 +115,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("工作流名称") },
@@ -203,7 +203,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 )
             }
             item {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = classification,
                     onValueChange = { classification = it },
                     label = { Text("预览分类结果") },
@@ -320,7 +320,7 @@ private fun WorkflowNodeCard(
             MochiTextButton(onClick = onExpand) { Text(if (expanded) "收起参数" else "编辑参数") }
             if (expanded) {
                 node.params.forEach { (key, value) ->
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = value,
                         onValueChange = { onChange(node.copy(params = node.params + (key to it))) },
                         label = { Text(key) },

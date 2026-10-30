@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -31,8 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -332,7 +331,7 @@ private fun EditFileDialog(
         onDismissRequest = onDismiss,
         title = { Text(skillFile.relativePath, fontFamily = FontFamily.Monospace) },
         text = {
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = content,
                 onValueChange = { if (!readOnly) content = it },
                 label = { Text(stringResource(R.string.skill_detail_page_content)) },
@@ -372,7 +371,7 @@ private fun AddFileDialog(
         title = { Text(stringResource(R.string.skill_detail_page_new_file)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = fileName,
                     onValueChange = { fileName = it },
                     label = { Text(stringResource(R.string.skill_detail_page_file_name)) },
@@ -390,7 +389,7 @@ private fun AddFileDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text(stringResource(R.string.skill_detail_page_content)) },

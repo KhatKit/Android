@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSlider
 import androidx.compose.foundation.background
@@ -23,8 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -156,7 +156,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_name))
                 },
                 supportingContent = {
-                    MochiOutlinedTextField(
+                    Md3OutlinedTextField(
                         value = assistant.name,
                         onValueChange = {
                             onUpdate(
@@ -182,7 +182,7 @@ internal fun AssistantBasicContent(
             item(
                 headlineContent = { Text("职责描述") },
                 supportingContent = {
-                    MochiOutlinedTextField(
+                    Md3OutlinedTextField(
                         value = assistant.description,
                         onValueChange = { onUpdate(assistant.copy(description = it)) },
                         modifier = Modifier.fillMaxWidth(),
@@ -352,7 +352,7 @@ internal fun AssistantBasicContent(
                                     mutableStateOf(assistant.temperature.toString())
                                 }
                                 val temperatureValue = temperatureInput.toFloatOrNull()
-                                MochiOutlinedTextFieldWithSlots(
+                                Md3OutlinedTextFieldWithSlots(
                                     value = temperatureInput,
                                     onValueChange = { value ->
                                         temperatureInput = value
@@ -409,7 +409,7 @@ internal fun AssistantBasicContent(
                                     mutableStateOf(topP.toString())
                                 }
                                 val topPValue = topPInput.toFloatOrNull()
-                                MochiOutlinedTextFieldWithSlots(
+                                Md3OutlinedTextFieldWithSlots(
                                     value = topPInput,
                                     onValueChange = { value ->
                                         topPInput = value
@@ -483,7 +483,7 @@ internal fun AssistantBasicContent(
                                 }
                             }
 
-                            MochiOutlinedTextFieldWithSlots(
+                            Md3OutlinedTextFieldWithSlots(
                                 value = contextMessageLimitInput,
                                 onValueChange = { input ->
                                     if (input.all(Char::isDigit) &&
@@ -586,7 +586,7 @@ internal fun AssistantBasicContent(
                             Text(stringResource(R.string.assistant_page_max_tokens_desc))
                         },
                         content = {
-                            MochiOutlinedTextFieldWithSlots(
+                            Md3OutlinedTextFieldWithSlots(
                                 value = assistant.maxTokens?.toString() ?: "",
                                 onValueChange = { text ->
                                     val tokens = if (text.isBlank()) {

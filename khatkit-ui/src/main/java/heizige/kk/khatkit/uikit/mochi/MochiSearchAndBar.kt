@@ -33,7 +33,7 @@ import androidx.compose.material3.Icon
 
 /** 搜索框：Mochi 圆角胶囊底 + material3 TextField（U3：输入类回 MD3）。 */
 @Composable
-fun MochiSearchBar(
+fun Md3SearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,

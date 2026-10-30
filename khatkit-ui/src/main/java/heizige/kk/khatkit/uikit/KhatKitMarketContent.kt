@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -64,8 +66,6 @@ import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -218,7 +218,7 @@ fun KhatKitMarketContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 label = stringResource(R.string.khatkit_market_search_hint),
@@ -910,14 +910,14 @@ private fun PublishCardDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = license,
                 onValueChange = { license = it },
                 label = stringResource(R.string.khatkit_market_license_label),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = priceText,
                 onValueChange = { priceText = it },
                 label = stringResource(R.string.khatkit_market_publish_price),
@@ -925,7 +925,7 @@ private fun PublishCardDialog(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = changelog,
                 onValueChange = { changelog = it },
                 label = stringResource(R.string.khatkit_market_publish_changelog),
@@ -933,7 +933,7 @@ private fun PublishCardDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                MochiCheckbox(checked = confirmed, onCheckedChange = { confirmed = it })
+                Md3Checkbox(checked = confirmed, onCheckedChange = { confirmed = it })
                 Text(
                     text = stringResource(R.string.khatkit_market_publish_license_confirm),
                     style = KedgeTextStyles.footnoteSmall(),
@@ -1009,21 +1009,21 @@ private fun ForkCardDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = parent,
                 onValueChange = { parent = it },
                 label = stringResource(R.string.khatkit_market_fork_parent),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = newVersion,
                 onValueChange = { newVersion = it },
                 label = stringResource(R.string.khatkit_market_fork_version),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = changelog,
                 onValueChange = { changelog = it },
                 label = stringResource(R.string.khatkit_market_fork_changelog),

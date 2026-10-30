@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import heizige.kk.khatkit.uikit.mochi.Md3RadioButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSlider
 import ui.feice.mochi.theme.MochiTheme
@@ -31,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.kedge.preferences.KedgeListPreference
 import heizige.kk.kedge.preferences.KedgePreferenceOption
 import heizige.kk.kedge.theme.KedgeStyle
@@ -318,7 +318,7 @@ fun PreferenceRadio(
         titleContent = { PreferenceTitle(title) },
         supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
         trailingContent = {
-            MochiRadioButton(
+            Md3RadioButton(
                 selected = selected,
                 onClick = onClick,
                 enabled = enabled,

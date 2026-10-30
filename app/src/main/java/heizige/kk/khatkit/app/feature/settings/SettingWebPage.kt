@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextField
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import android.content.Intent
 import android.os.Build
@@ -24,7 +25,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -212,7 +212,7 @@ fun SettingWebPage() {
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_port)) },
                         supportingContent = { Text(stringResource(R.string.setting_page_web_server_port_desc)) },
                         trailingContent = {
-                            MochiTextField(
+                            Md3TextField(
                                 value = portText,
                                 onValueChange = { value ->
                                     portText = value.filter { it.isDigit() }
@@ -271,7 +271,7 @@ fun SettingWebPage() {
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_password)) },
                         trailingContent = {
-                            MochiTextField(
+                            Md3TextField(
                                 value = accessPasswordText,
                                 onValueChange = { value ->
                                     accessPasswordText = value

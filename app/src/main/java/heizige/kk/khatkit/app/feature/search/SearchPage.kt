@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.search
 
+import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
+import heizige.kk.khatkit.uikit.mochi.Md3RadioButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -28,10 +30,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
-import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -137,7 +137,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
             // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
             // 展开成铺满全屏的搜索页 + 取消键；返回键收起。展开期间结果区整个搬进
             // 全屏槽，折叠态才平铺在页面里。
-            MochiSearchBar(
+            Md3SearchBar(
                 value = vm.searchQuery,
                 onValueChange = { vm.onQueryChange(it) },
                 placeholder = stringResource(R.string.search_page_placeholder),
@@ -291,7 +291,7 @@ private fun SortMenuButton(
                         )
                     },
                     leadingIcon = {
-                        MochiRadioButton(
+                        Md3RadioButton(
                             selected = sort == current,
                             onClick = null,
                         )

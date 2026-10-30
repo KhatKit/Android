@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.imggen
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
@@ -47,10 +49,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -373,7 +372,7 @@ private fun InputBar(
             )
         }
 
-        MochiOutlinedTextFieldWithSlots(
+        Md3OutlinedTextFieldWithSlots(
             value = prompt,
             onValueChange = vm::updatePrompt,
             placeholder = { Text(stringResource(R.string.imggen_page_prompt_placeholder)) },
@@ -688,7 +687,7 @@ private fun ImageGalleryScreen(
                                             contentScale = ContentScale.Crop
                                         )
                                         if (selectionMode) {
-                                            MochiCheckbox(
+                                            Md3Checkbox(
                                                 checked = it.id in selectedImages,
                                                 onCheckedChange = { _ -> toggleSelection(it) },
                                                 enabled = !isDeleting,
@@ -846,7 +845,7 @@ private fun SettingsBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = size,
                     onValueChange = vm::updateSize,
                     label = { Text("Custom size") },

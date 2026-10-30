@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.translator
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import android.content.ClipData
 import androidx.compose.animation.AnimatedVisibility
@@ -32,8 +34,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -127,7 +127,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
         ) {
             // 输入区域
             Column {
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = inputText,
                     onValueChange = { vm.updateInputText(it) },
                     modifier = Modifier.fillMaxWidth(),
@@ -258,7 +258,7 @@ private fun LanguageSelector(
         expanded = expanded,
         onExpandedChange = { expanded = it }
     ) {
-        MochiOutlinedTextField(
+        Md3OutlinedTextField(
             value = getLanguageDisplayName(targetLanguage),
             onValueChange = {},
             readOnly = true,

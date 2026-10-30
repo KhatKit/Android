@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSlider
@@ -28,8 +29,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -118,7 +117,7 @@ fun KhatKitSettingsDialog(
         onDismiss = onDismiss,
     ) { _ ->
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            MochiOutlinedTextField(
+            Md3OutlinedTextField(
                 value = hubUrl,
                 onValueChange = { hubUrl = it },
                 label = stringResource(R.string.khatkit_settings_hub_url),

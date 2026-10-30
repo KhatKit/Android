@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.background
@@ -27,7 +28,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
-import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -126,7 +126,7 @@ fun EmojiPicker(
                 }
 
                 if (showSearch) {
-                    MochiSearchBar(
+                    Md3SearchBar(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = stringResource(R.string.emoji_picker_search_placeholder),

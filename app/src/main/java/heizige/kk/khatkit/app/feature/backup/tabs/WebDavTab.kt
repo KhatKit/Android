@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.backup.tabs
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -33,8 +35,6 @@ import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -141,7 +141,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_webdav_server_address)) },
                     supportingContent = {
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.url,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(url = it.trim())) },
@@ -154,7 +154,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_username)) },
                     supportingContent = {
-                        MochiOutlinedTextField(
+                        Md3OutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.username,
                             onValueChange = {
@@ -173,7 +173,7 @@ fun WebDavTab(
                     headlineContent = { Text(stringResource(R.string.backup_page_password)) },
                     supportingContent = {
                         var passwordVisible by remember { mutableStateOf(false) }
-                        MochiOutlinedTextField(
+                        Md3OutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.password,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(password = it.trim())) },
@@ -196,7 +196,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_path)) },
                     supportingContent = {
-                        MochiOutlinedTextField(
+                        Md3OutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.path,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(path = it.trim())) },

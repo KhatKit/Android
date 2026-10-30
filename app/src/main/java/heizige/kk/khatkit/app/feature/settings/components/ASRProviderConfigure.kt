@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextField
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +13,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.asr.ASRProviderSetting
@@ -39,7 +39,7 @@ import heizige.kk.khatkit.asr.sherpa.SherpaModels
 import kotlinx.coroutines.launch
 import heizige.kk.khromia.components.AnimatedRadioButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -56,7 +56,7 @@ fun ASRProviderConfigure(
             label = { Text(stringResource(R.string.setting_asr_configure_provider_type)) },
             description = { Text(stringResource(R.string.setting_asr_configure_provider_type_desc)) }
         ) {
-            MochiTextField(
+            Md3TextField(
                 value = when (setting) {
                     is ASRProviderSetting.OpenAIRealtime -> "OpenAI Realtime"
                     is ASRProviderSetting.DashScope -> "DashScope"
@@ -78,7 +78,7 @@ fun ASRProviderConfigure(
             label = { Text(stringResource(R.string.setting_asr_configure_name)) },
             description = { Text(stringResource(R.string.setting_asr_configure_name_desc)) }
         ) {
-            MochiTextField(
+            Md3TextField(
                 value = setting.name,
                 onValueChange = { onValueChange(setting.copyProvider(name = it)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -109,7 +109,7 @@ private fun GeminiTranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_gemini_api_key_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -122,7 +122,7 @@ private fun GeminiTranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_gemini_base_url_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -135,7 +135,7 @@ private fun GeminiTranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -148,7 +148,7 @@ private fun GeminiTranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -183,7 +183,7 @@ private fun OpenAITranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_api_key_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -196,7 +196,7 @@ private fun OpenAITranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_transcribe_base_url_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -209,7 +209,7 @@ private fun OpenAITranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -222,7 +222,7 @@ private fun OpenAITranscribeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -257,7 +257,7 @@ private fun OpenAIRealtimeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_api_key_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -270,7 +270,7 @@ private fun OpenAIRealtimeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_websocket_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_openai_websocket_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -283,7 +283,7 @@ private fun OpenAIRealtimeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -296,7 +296,7 @@ private fun OpenAIRealtimeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -309,7 +309,7 @@ private fun OpenAIRealtimeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_prompt)) },
         description = { Text(stringResource(R.string.setting_asr_configure_prompt_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.prompt,
             onValueChange = { onValueChange(setting.copy(prompt = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -377,7 +377,7 @@ private fun DashScopeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_dashscope_api_key_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -390,7 +390,7 @@ private fun DashScopeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_websocket_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_dashscope_websocket_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -403,7 +403,7 @@ private fun DashScopeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_model_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -416,7 +416,7 @@ private fun DashScopeASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_iso_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -467,7 +467,7 @@ private fun VolcengineASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_volcengine_api_key_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -480,7 +480,7 @@ private fun VolcengineASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_websocket_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_volcengine_websocket_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.websocketUrl,
             onValueChange = { onValueChange(setting.copy(websocketUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -493,7 +493,7 @@ private fun VolcengineASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_resource_id)) },
         description = { Text(stringResource(R.string.setting_asr_configure_resource_id_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.resourceId,
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -506,7 +506,7 @@ private fun VolcengineASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_language_code_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -539,7 +539,7 @@ private fun MiMoASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_api_key_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -552,7 +552,7 @@ private fun MiMoASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_base_url_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -565,7 +565,7 @@ private fun MiMoASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_model_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -578,7 +578,7 @@ private fun MiMoASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_mimo_language_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -629,7 +629,7 @@ private fun StepASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_api_key)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_api_key_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -642,7 +642,7 @@ private fun StepASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_base_url)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_base_url_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -655,7 +655,7 @@ private fun StepASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_model)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_model_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.model,
             onValueChange = { onValueChange(setting.copy(model = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -668,7 +668,7 @@ private fun StepASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_language)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_language_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             value = setting.language,
             onValueChange = { onValueChange(setting.copy(language = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -709,14 +709,14 @@ private fun StepASRConfiguration(
         )
     }
 
-    MochiSwitchFormRow(
+    Md3SwitchFormRow(
         checked = setting.enableItn,
         onCheckedChange = { onValueChange(setting.copy(enableItn = it)) },
         label = { Text(stringResource(R.string.setting_asr_configure_step_itn)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_itn_desc)) },
     )
 
-    MochiSwitchFormRow(
+    Md3SwitchFormRow(
         checked = setting.enableTimestamp,
         onCheckedChange = { onValueChange(setting.copy(enableTimestamp = it)) },
         label = { Text(stringResource(R.string.setting_asr_configure_step_timestamp)) },
@@ -727,7 +727,7 @@ private fun StepASRConfiguration(
         label = { Text(stringResource(R.string.setting_asr_configure_step_hotwords)) },
         description = { Text(stringResource(R.string.setting_asr_configure_step_hotwords_desc)) }
     ) {
-        MochiTextField(
+        Md3TextField(
             // 用逗号分隔展示, 输入时按逗号 split 回 List
             value = setting.hotwords.joinToString(","),
             onValueChange = { text ->
@@ -994,7 +994,7 @@ private fun SherpaLocalASRConfiguration(
             label = { Text("识别语言") },
             description = { Text("auto 自动检测；也可填 zh / en 等") },
         ) {
-            MochiTextField(
+            Md3TextField(
                 value = setting.language,
                 onValueChange = { onValueChange(setting.copy(language = it)) },
                 modifier = Modifier.fillMaxWidth(),

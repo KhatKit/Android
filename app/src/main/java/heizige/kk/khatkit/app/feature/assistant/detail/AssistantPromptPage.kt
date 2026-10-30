@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -33,9 +35,6 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -307,7 +306,7 @@ private fun AssistantPromptContent(
                         },
                         content = {
                             val missingMessage = "{{ message }}" !in assistant.messageTemplate
-                            MochiOutlinedTextFieldWithSlots(
+                            Md3OutlinedTextFieldWithSlots(
                                 value = assistant.messageTemplate,
                                 onValueChange = {
                                     onUpdate(
@@ -453,7 +452,7 @@ private fun AssistantPromptContent(
                             Icon(close, null)
                         }
                     }
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = presetMessage.toText(),
                         onValueChange = { text ->
                             onUpdate(
@@ -646,7 +645,7 @@ private fun AssistantRegexCard(
 
                     if (expanded) {
 
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             value = regex.name,
                             onValueChange = { name ->
                                 onUpdate(
@@ -666,7 +665,7 @@ private fun AssistantRegexCard(
                             shape = RoundedCornerShape(16.dp)
                         )
 
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             value = regex.findRegex,
                             onValueChange = { findRegex ->
                                 onUpdate(
@@ -687,7 +686,7 @@ private fun AssistantRegexCard(
                             shape = RoundedCornerShape(16.dp)
                         )
 
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             value = regex.replaceString,
                             onValueChange = { replaceString ->
                                 onUpdate(
@@ -721,7 +720,7 @@ private fun AssistantRegexCard(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        MochiCheckbox(
+                                        Md3Checkbox(
                                             checked = scope in regex.affectingScope,
                                             onCheckedChange = { checked ->
                                                 val newScopes = if (checked) {
@@ -755,7 +754,7 @@ private fun AssistantRegexCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            MochiCheckbox(
+                            Md3Checkbox(
                                 checked = regex.visualOnly,
                                 onCheckedChange = { visualOnly ->
                                     onUpdate(

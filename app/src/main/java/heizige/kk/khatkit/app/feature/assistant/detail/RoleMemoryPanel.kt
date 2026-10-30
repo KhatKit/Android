@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
@@ -39,7 +40,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
@@ -239,7 +239,7 @@ internal fun RoleMemoryPanel(
                 }
                 val editorStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
                 CompositionLocalProvider(LocalTextStyle provides editorStyle) {
-                    MochiTextFieldWithSlots(
+                    Md3TextFieldWithSlots(
                         value = draft, onValueChange = { draft = it },
                         modifier = Modifier.fillMaxWidth(), textStyle = editorStyle,
                         minLines = 12, maxLines = 22, enabled = !busy, shape = RoundedCornerShape(8.dp),
@@ -299,7 +299,7 @@ internal fun RoleMemoryPanel(
         AppAlertDialog(
             onDismissRequest = { newTopic = null },
             title = { Text("新建主题笔记") },
-            text = { MochiTextFieldWithSlots(value = name, onValueChange = { newTopic = it },
+            text = { Md3TextFieldWithSlots(value = name, onValueChange = { newTopic = it },
                 singleLine = true, label = { Text("文件名") }) },
             confirmButton = { MochiTextButton(onClick = {
                 val path = "topics/$name.md"

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
@@ -25,7 +26,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -156,7 +156,7 @@ internal fun TriggerCardEditorSheet(
                         onSelect = { maxRetries = it.toIntOrNull() ?: 0 },
                     )
                     if (maxRetries > 0) {
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             value = retryDelay,
                             onValueChange = { retryDelay = it.filter { c -> c.isDigit() }.take(4) },
                             label = { Text("重试间隔（秒）") },
@@ -701,7 +701,7 @@ private fun TextStateField(
     onValueChange: (String) -> Unit,
     placeholder: String? = null,
 ) {
-    MochiOutlinedTextFieldWithSlots(
+    Md3OutlinedTextFieldWithSlots(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -720,7 +720,7 @@ private fun IntStateField(
     allowNegative: Boolean = false,
 ) {
     var text by remember { mutableStateOf(value.toString()) }
-    MochiOutlinedTextFieldWithSlots(
+    Md3OutlinedTextFieldWithSlots(
         value = text,
         onValueChange = { raw ->
             val filtered = buildString {
@@ -748,7 +748,7 @@ private fun DoubleStateField(
     onValueChange: (Double?) -> Unit,
 ) {
     var text by remember { mutableStateOf(value?.toString().orEmpty()) }
-    MochiOutlinedTextFieldWithSlots(
+    Md3OutlinedTextFieldWithSlots(
         value = text,
         onValueChange = { raw ->
             val filtered = raw.filter { it.isDigit() || it == '.' || it == '-' }

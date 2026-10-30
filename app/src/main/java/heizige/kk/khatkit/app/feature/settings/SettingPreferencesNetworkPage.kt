@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +23,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -178,7 +178,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = proxyUrlDraft,
                         onValueChange = { proxyUrlDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -202,7 +202,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = proxyUsernameDraft,
                         onValueChange = { proxyUsernameDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -210,7 +210,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    MochiOutlinedTextFieldWithSlots(
+                    Md3OutlinedTextFieldWithSlots(
                         value = proxyPasswordDraft,
                         onValueChange = { proxyPasswordDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -318,7 +318,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                 horizontalAlignment = Alignment.End,
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                MochiOutlinedTextFieldWithSlots(
+                                Md3OutlinedTextFieldWithSlots(
                                     value = userAgent,
                                     onValueChange = ::updateUserAgent,
                                     modifier = Modifier.fillMaxWidth(),

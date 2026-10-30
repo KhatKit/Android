@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithState
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,7 +43,6 @@ import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithState
 
 /**
  * 工作区文本文件编辑/预览页.
@@ -149,7 +149,7 @@ fun WorkspaceFileEditorPage(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
 
-            else -> MochiTextFieldWithState(
+            else -> Md3TextFieldWithState(
                 state = textState,
                 modifier = Modifier
                     .fillMaxSize()

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.backup.tabs
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -34,8 +36,6 @@ import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -142,7 +142,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_endpoint)) },
                     supportingContent = {
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.endpoint,
                             onValueChange = { updateS3Config(s3Config.copy(endpoint = it.trim())) },
@@ -155,7 +155,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_access_key_id)) },
                     supportingContent = {
-                        MochiOutlinedTextField(
+                        Md3OutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.accessKeyId,
                             onValueChange = { updateS3Config(s3Config.copy(accessKeyId = it.trim())) },
@@ -168,7 +168,7 @@ fun S3Tab(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_secret_access_key)) },
                     supportingContent = {
                         var passwordVisible by remember { mutableStateOf(false) }
-                        MochiOutlinedTextField(
+                        Md3OutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.secretAccessKey,
                             onValueChange = { updateS3Config(s3Config.copy(secretAccessKey = it.trim())) },
@@ -191,7 +191,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_bucket)) },
                     supportingContent = {
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.bucket,
                             onValueChange = { updateS3Config(s3Config.copy(bucket = it.trim())) },
@@ -214,7 +214,7 @@ fun S3Tab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_region)) },
                     supportingContent = {
-                        MochiOutlinedTextFieldWithSlots(
+                        Md3OutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = s3Config.region,
                             onValueChange = { updateS3Config(s3Config.copy(region = it.trim())) },

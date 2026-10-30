@@ -21,7 +21,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 /**
  * 表单行：左侧标题 + 描述，行内输入框 / 开关放 [tail]。
  *
- * **设置表单行（`FormItem` / `KedgeFormRow` / `MochiSwitchFormRow` 这一系）唯一的行渲染
+ * **设置表单行（`FormItem` / `KedgeFormRow` / `Md3SwitchFormRow` 这一系）唯一的行渲染
  * 路径**——本组件只做槽位映射，布局全部交给 [MochiOptionItem]（它自己按
  * `LocalKedgeStyle` 分流：MD3 走 Khromia `OptionItem`，Miuix 走 `KkCard` 行）。这里不再
  * 手写行布局：以前 Form.kt 与 `miuix/KedgeForm.kt` 各有一份自绘行，同一件事两套实现，

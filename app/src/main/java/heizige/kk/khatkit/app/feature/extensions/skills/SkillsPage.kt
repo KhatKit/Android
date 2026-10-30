@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,11 +28,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -71,7 +71,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 
 @Composable
 fun SkillsPage() {
@@ -156,11 +155,11 @@ fun SkillsPage() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                // MD3 的 MochiSearchBar 自带 16dp 顶距，Miuix 分支为 0，由调用点补
+                // MD3 的 Md3SearchBar 自带 16dp 顶距，Miuix 分支为 0，由调用点补
                 // （与 AssistantPage 的补偿同款），两种风格搜索框上方都是 16dp。
                 .padding(top = if (isMiuix) 16.dp else 0.dp),
         ) {
-            MochiSearchBar(
+            Md3SearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.skills_page_search_placeholder),
@@ -471,7 +470,7 @@ private fun AddSkillDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.skills_page_add_title)) },
         text = {
-            MochiOutlinedTextFieldWithSlots(
+            Md3OutlinedTextFieldWithSlots(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.skills_page_skill_content_label)) },
@@ -530,7 +529,7 @@ private fun ImportSkillDialog(
                     style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                MochiOutlinedTextFieldWithSlots(
+                Md3OutlinedTextFieldWithSlots(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text(stringResource(R.string.skills_page_repo_url_label)) },
