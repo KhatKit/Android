@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -26,7 +28,6 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -100,7 +101,6 @@ import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeMiuixSurface
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -482,7 +482,7 @@ private fun MessagePartsBlock(
                     is UIMessagePart.Text -> {
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
-                                MochiSurface(
+                                KkSurface(
                                     modifier = Modifier.animateContentSize(),
                                     shape = RoundedCornerShape(16.dp),
                                     color = KedgeColors.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
@@ -505,7 +505,7 @@ private fun MessagePartsBlock(
                                 // 一起落盘），由 `PreferenceStoreV6Migration` 一次性翻成 true，
                                 // 所以「装完看不见气泡」不会再复发。关掉后退回裸 Markdown 是
                                 // 用户主动选择，与用户侧 primaryContainer 气泡左右不对称属预期。
-                                MochiSurface(
+                                KkSurface(
                                     modifier = Modifier.animateContentSize(),
                                     shape = RoundedCornerShape(16.dp),
                                     color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
@@ -548,7 +548,7 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Video -> {
-                        MochiSurface(
+                        KkSurface(
                             tonalElevation = 2.dp,
                             onClick = {
                                 val intent = Intent(Intent.ACTION_VIEW)
@@ -571,7 +571,7 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Audio -> {
-                        MochiSurface(
+                        KkSurface(
                             tonalElevation = 2.dp,
                             onClick = {
                                 val intent = Intent(Intent.ACTION_VIEW)
@@ -627,7 +627,7 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Document -> {
-                        MochiSurface(
+                        KkSurface(
                             tonalElevation = 2.dp,
                             onClick = {
                                 val intent = Intent(Intent.ACTION_VIEW)
@@ -762,7 +762,7 @@ private fun MessagePartsBlock(
  */
 @Composable
 private fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
-    MochiSurface(
+    KkSurface(
         shape = RoundedCornerShape(6.dp),
         color = if (isError) {
             KedgeColors.errorContainer.copy(alpha = 0.7f)

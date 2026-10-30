@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,8 +18,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +50,7 @@ fun UpdateCard(vm: ChatViewModel) {
     val updateCardDownloading = stringResource(R.string.update_card_downloading)
     val toaster = LocalToaster.current
     state.onError {
-        MochiCard {
+        KkCard {
             Column(
                 modifier = Modifier
                     .padding(8.dp)
@@ -74,7 +74,7 @@ fun UpdateCard(vm: ChatViewModel) {
         var showDetail by remember { mutableStateOf(false) }
         var dismissed by remember { mutableStateOf(false) }
         if (info.hasUpdate && (!dismissed || info.forceUpdate)) {
-            MochiCard(
+            KkCard(
                 onClick = {
                     showDetail = true
                 }
@@ -143,7 +143,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             .verticalScroll(rememberScrollState()),
                         style = KedgeTextStyles.body()
                     )
-                    MochiCard(
+                    KkCard(
                         onClick = {
                             dismiss()
                             downloadHandler(info)

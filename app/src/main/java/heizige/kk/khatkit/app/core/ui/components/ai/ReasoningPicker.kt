@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.KkSurface
+import heizige.kk.khatkit.uikit.mochi.KkSlider
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -44,8 +46,6 @@ import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
 import heizige.kk.khatkit.app.core.ui.icons.lightbulb
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSlider
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 private val levels = ReasoningLevel.entries
 private val levelCount = levels.size
@@ -69,7 +69,7 @@ fun ReasoningButton(
     }
 
     if (chip) {
-        MochiSurface(
+        KkSurface(
             onClick = { showPicker = true },
             modifier = modifier,
             shape = RoundedCornerShape(50),
@@ -197,9 +197,9 @@ fun ReasoningPicker(
                 )
             }
 
-            // Miuix 没有自定义 thumb 槽的 value 版Slider，这里用 MochiSlider：
+            // Miuix 没有自定义 thumb 槽的 value 版Slider，这里用 KkSlider：
             // MD3Exp 保持原生外观，Miuix 走 Miuix 自己的滑块样式。等级吸附逻辑不变。
-            MochiSlider(
+            KkSlider(
                 value = sliderState.value,
                 onValueChange = { sliderState.value = it },
                 onValueChangeFinished = {

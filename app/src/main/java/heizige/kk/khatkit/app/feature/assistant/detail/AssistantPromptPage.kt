@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -31,11 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -217,7 +217,7 @@ private fun AssistantPromptContent(
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt_desc))
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = checked,
                         onCheckedChange = onCheckedChange,
                     )
@@ -243,7 +243,7 @@ private fun AssistantPromptContent(
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection_desc))
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = checked,
                         onCheckedChange = onCheckedChange,
                     )
@@ -614,7 +614,7 @@ private fun AssistantRegexCard(
                                 .weight(1f)
                                 .widthIn(max = 200.dp)
                         )
-                        MochiSwitch(
+                        KkSwitch(
                             checked = regex.enabled,
                             onCheckedChange = { enabled ->
                                 onUpdate(

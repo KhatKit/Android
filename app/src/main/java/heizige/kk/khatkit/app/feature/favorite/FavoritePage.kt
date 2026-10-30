@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.favorite
 
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +55,6 @@ import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -178,7 +178,7 @@ private fun FavoriteCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MochiCard(
+    KkCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         ) {

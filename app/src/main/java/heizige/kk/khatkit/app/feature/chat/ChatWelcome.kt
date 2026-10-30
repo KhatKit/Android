@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -55,10 +58,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -245,7 +245,7 @@ private fun ChatWelcome(
     ) {
         Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
             // 行照抄欢迎页那批选项行（[MochiOptionItem] + [listCardStyle] 的整组圆角）：
-            // 24dp 裸图标、title 字阶的标题、body 的说明、尾部一颗 MochiSwitch。
+            // 24dp 裸图标、title 字阶的标题、body 的说明、尾部一颗 KkSwitch。
             // 外面不再套 InlineCardGroup —— 圆角要按 index/count 自己算成「一张卡」。
             val cards = listCardStyle()
             Column(
@@ -282,7 +282,7 @@ private fun ChatWelcome(
                             }
                         },
                         trailingContent = {
-                            MochiSwitch(
+                            KkSwitch(
                                 checked = widget.enabled,
                                 onCheckedChange = { manager.setEnabled(widget.card.manifest.name, it) },
                             )
@@ -575,7 +575,7 @@ internal fun WelcomeWidgetFrame(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    MochiSurface(
+    KkSurface(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
         color = KedgeColors.surfaceContainer,

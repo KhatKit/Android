@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.khatkit
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
@@ -51,8 +53,6 @@ import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.core.ui.components.webview.WebView
 import heizige.kk.khatkit.app.core.ui.components.webview.applyScriptWebOptions
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -209,7 +209,7 @@ fun KhatKitUiHost() {
 
         progress?.let { (ratio, label) ->
             Popup(alignment = Alignment.BottomCenter) {
-                MochiSurface(
+                KkSurface(
                     modifier = Modifier
                         .systemBarsPadding()
                         .padding(bottom = 48.dp)

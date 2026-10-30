@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkSlider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,14 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
-import heizige.kk.khatkit.uikit.mochi.MochiSlider
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.ui.UiSheetOptions
@@ -205,7 +205,7 @@ internal fun FormWidget(
         )
 
         "switch" -> FormRow(label) {
-            MochiSwitch(
+            KkSwitch(
                 checked = values[id] as? Boolean ?: false,
                 onCheckedChange = { values[id] = it },
             )
@@ -222,7 +222,7 @@ internal fun FormWidget(
                 ?: (item["default"] as? Number)?.toFloat() ?: min
             Column {
                 Text("$label: ${current.toInt()}")
-                MochiSlider(
+                KkSlider(
                     value = current,
                     onValueChange = { value ->
                         val step = (item["step"] as? Number)?.toFloat()

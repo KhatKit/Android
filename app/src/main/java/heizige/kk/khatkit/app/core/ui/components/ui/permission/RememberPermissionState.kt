@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.permission
 
-import androidx.activity.ComponentActivity
 import heizige.kk.khatkit.uikit.mochi.MochiButton
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable

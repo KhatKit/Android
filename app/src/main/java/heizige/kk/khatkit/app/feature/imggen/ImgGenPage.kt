@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.imggen
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
@@ -46,9 +50,6 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -119,7 +120,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 
 @Composable
@@ -425,7 +425,7 @@ private fun InputBar(
             Spacer(modifier = Modifier.weight(1f))
 
             val canSend = prompt.isNotBlank()
-            MochiSurface(
+            KkSurface(
                 onClick = {
                     if (!isGenerating) {
                         if (referenceImages.isEmpty()) {
@@ -478,7 +478,7 @@ private fun ReferenceImagesRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         images.forEach { image ->
-            MochiSurface(
+            KkSurface(
                 modifier = Modifier.size(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
@@ -492,7 +492,7 @@ private fun ReferenceImagesRow(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    MochiSurface(
+                    KkSurface(
                         onClick = { onRemove(image) },
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -660,7 +660,7 @@ private fun ImageGalleryScreen(
                         image?.let {
                             var showPreview by remember { mutableStateOf(false) }
 
-                            MochiCard(
+                            KkCard(
                                 modifier = Modifier.fillMaxWidth().combinedClickable(
                                     onClick = {
                                         if (selectionMode) toggleSelection(it) else showPreview = true

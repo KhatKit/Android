@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +23,7 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
  * `assistant`，从根上不可能再分叉。
  *
  * 没配背景的角色（`background == null`）这里**什么都不画**，底色交给外层
- * `MochiSurface`（`KedgeColors.surface`），与改造前一致。
+ * `KkSurface`（`KedgeColors.surface`），与改造前一致。
  */
 @Composable
 fun AssistantBackground(assistant: Assistant, modifier: Modifier) {

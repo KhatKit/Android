@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.richtext
 
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -82,7 +83,6 @@ import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 // ---- Preprocessing (mirrors Markdown.kt logic) ----
 
@@ -448,7 +448,7 @@ private fun HtmlListItem(
             ) {
                 if (isTaskItem && checkboxInput != null) {
                     // Checkbox indicator
-                    MochiSurface(
+                    KkSurface(
                         shape = RoundedCornerShape(2.dp),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                         modifier = Modifier.padding(end = 4.dp, top = 2.dp),

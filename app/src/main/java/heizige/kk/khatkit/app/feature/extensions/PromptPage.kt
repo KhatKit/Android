@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,12 +49,7 @@ import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.components.KedgeInputChip
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -911,7 +910,7 @@ private fun RegexInjectionEntryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    MochiCard(modifier = Modifier.fillMaxWidth()) {
+    KkCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

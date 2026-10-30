@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -23,8 +26,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.app.feature.automation.data.CardTriggerOverride
 import heizige.kk.khatkit.app.feature.automation.KhatKitNotificationListenerService
 import heizige.kk.khatkit.app.feature.automation.TriggerController
@@ -181,7 +181,7 @@ fun SettingTriggersPage() {
                         "根据通知内容生成回复参数",
                         "失败时分析原因并给出重试建议",
                     ).forEach { suggestion ->
-                        MochiCard(
+                        KkCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                             ),
@@ -229,7 +229,7 @@ fun SettingTriggersPage() {
                             Text("按事件自动运行卡片")
                         },
                         trailingContent = {
-                            MochiSwitch(
+                            KkSwitch(
                                 checked = triggerState.masterEnabled,
                                 onCheckedChange = { applyMaster(it) },
                             )
@@ -332,7 +332,7 @@ fun SettingTriggersPage() {
                                 )
                             },
                             trailingContent = {
-                                MochiSwitch(
+                                KkSwitch(
                                     checked = cardEnabled,
                                     enabled = triggerState.masterEnabled,
                                     onCheckedChange = { checked ->
@@ -533,7 +533,7 @@ private fun FlowOverviewCard(
     onCreate: () -> Unit,
 ) {
     val style = LocalKedgeStyle.current
-    MochiCard(
+    KkCard(
         modifier = Modifier.padding(horizontal = 8.dp),
         shape = RoundedCornerShape(if (style == KedgeStyle.Miuix) 20.dp else 24.dp),
         colors = CardDefaults.cardColors(

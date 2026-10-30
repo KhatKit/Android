@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
 
 import heizige.kk.khatkit.app.Screen
@@ -46,7 +48,6 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.foundation.text.BasicTextField
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -135,7 +136,6 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 
 
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 @Composable
@@ -373,7 +373,7 @@ internal fun ChatScaffold(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val activeNestedScroll = activeNestedScroll(scrollBehavior)
 
-    MochiSurface(
+    KkSurface(
         color = heizige.kk.kedge.theme.KedgeColors.surface,
         modifier = Modifier.fillMaxSize()
     ) {
@@ -930,7 +930,7 @@ private fun TopBar(
         val isLargeTitleRow = titleStyle.fontSize > MaterialTheme.typography.titleLarge.fontSize
         Box {
             if (titleVisible) {
-                MochiSurface(
+                KkSurface(
                     modifier = Modifier.graphicsLayer {
                         alpha = 1f - searchProgress.value
                         translationX = -searchProgress.value * 24.dp.toPx()

@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
 
 import androidx.compose.foundation.text.BasicTextField
@@ -131,19 +134,15 @@ import heizige.kk.kedge.adaptive.KedgeBlurredBar
 import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
 import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
 import heizige.kk.khatkit.uikit.mochi.MochiButtonDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.statusBars
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 
@@ -975,7 +974,7 @@ private fun DrawerSearchHitRow(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val snippet = remember(hit.snippet, highlight) { highlightedSnippet(hit.snippet, highlight) }
     val time = remember(hit.updateAt) { drawerSearchTimeLabel(hit.updateAt) }
-    MochiSurface(
+    KkSurface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
         color = Color.Transparent,

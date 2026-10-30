@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import android.content.Intent
 import android.os.Build
 
@@ -25,7 +26,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue

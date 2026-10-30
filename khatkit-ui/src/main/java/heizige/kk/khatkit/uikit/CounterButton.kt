@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -24,7 +25,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.ui.UiNode

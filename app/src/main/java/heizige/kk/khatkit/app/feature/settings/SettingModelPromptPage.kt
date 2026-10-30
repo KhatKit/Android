@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,7 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

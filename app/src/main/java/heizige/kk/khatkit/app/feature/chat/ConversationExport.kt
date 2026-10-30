@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
@@ -26,9 +30,6 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -117,7 +118,6 @@ import heizige.kk.khatkit.ai.ui.isEmptyUIMessage
 import heizige.kk.khatkit.app.core.ui.components.message.groupMessageParts
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
 
@@ -161,7 +161,7 @@ fun ChatExportSheet(
                     shape = cards.indexedShape(0, 1),
                     titleContent = { Text(stringResource(R.string.chat_page_export_include_reasoning)) },
                     trailingContent = {
-                        MochiSwitch(
+                        KkSwitch(
                             checked = exportOptions.includeReasoning,
                             onCheckedChange = {
                                 exportOptions = exportOptions.copy(includeReasoning = it)
@@ -172,7 +172,7 @@ fun ChatExportSheet(
 
                 val markdownSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Markdown")
-                MochiCard(
+                KkCard(
                     onClick = {
                         exportToMarkdown(context, conversation, selectedMessages, exportOptions)
                         KhromiaToast.show(markdownSuccessMessage)
@@ -195,7 +195,7 @@ fun ChatExportSheet(
 
                 val imageSuccessMessage =
                     stringResource(id = R.string.chat_page_export_success, "Image")
-                MochiCard(
+                KkCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
@@ -222,7 +222,7 @@ fun ChatExportSheet(
                             backgroundColor = Color.Transparent,
                             titleContent = { Text(stringResource(R.string.chat_page_export_image_expand_reasoning)) },
                             trailingContent = {
-                                MochiSwitch(
+                                KkSwitch(
                                     checked = exportOptions.expandReasoning,
                                     enabled = exportOptions.includeReasoning,
                                     onCheckedChange = {
@@ -273,7 +273,7 @@ fun ChatExportSheet(
                     }
                 }
 
-                MochiCard(
+                KkCard(
                     onClick = {
                         scope.launch {
                             val title = conversation.title.ifBlank { "对话存档" }
@@ -495,7 +495,7 @@ private fun ExportedChatImage(
             LocalNavController provides navigator,
             LocalToaster provides toasterState
         ) {
-            MochiSurface(
+            KkSurface(
                 modifier = Modifier.width(540.dp) // like 1080p but with density independence
             ) {
                 Column(
@@ -643,7 +643,7 @@ private fun ExportedChatMessage(
                                 if (part.text.isNotBlank()) {
                                     ProvideTextStyle(KedgeTextStyles.body()) {
                                         if (message.role == MessageRole.USER) {
-                                            MochiCard(
+                                            KkCard(
                                                 shape = MaterialTheme.shapes.medium,
                                             ) {
                                                 MarkdownBlock(
@@ -654,7 +654,7 @@ private fun ExportedChatMessage(
                                         } else if (settings.displaySetting.showAssistantBubble) {
                                             // 与 ChatMessage 同口径，跟随同一个开关：导出预览
                                             // 必须和聊天页长得一样，否则用户会以为导出丢了样式。
-                                            MochiCard(
+                                            KkCard(
                                                 shape = MaterialTheme.shapes.medium,
                                                 colors = CardDefaults.cardColors(
                                                     containerColor = MaterialTheme.colorScheme.surfaceContainerLow,

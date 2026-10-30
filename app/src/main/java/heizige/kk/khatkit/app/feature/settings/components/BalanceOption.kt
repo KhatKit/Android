@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,7 +14,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

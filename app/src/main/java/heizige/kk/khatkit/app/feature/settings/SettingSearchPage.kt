@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,7 +29,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -433,7 +434,7 @@ internal fun AddProviderSheet(
 /**
  * 搜索服务的一行：图标 + 名称 + 能力徽标 + ⋮ 菜单，全部走 `MochiOptionItem` 插槽。
  *
- * 改造前是手搓的 `MochiCard { Row(...) }`：外壳与行布局自己排，两种风格各写一份，
+ * 改造前是手搓的 `KkCard { Row(...) }`：外壳与行布局自己排，两种风格各写一份，
  * 且**整行不可点**（只能点右侧 ⋮ 才进详情）。现在 [onClick] 整行进编辑页，
  * 尾部控件留在 `trailingContent` 里，⋮ 自己消费点击不会冒泡到整行。
  *
@@ -540,9 +541,9 @@ fun SearchAbilityTagLine(
 /**
  * 通用选项分组：标题 + 结果数量行，一整组分段卡片。
  *
- * 改造前是 `MochiCard { Column(padding 16) { 标题; KedgeFormRow } }` —— 外壳自己画卡，
+ * 改造前是 `KkCard { Column(padding 16) { 标题; KedgeFormRow } }` —— 外壳自己画卡，
  * 行又自己画一张四角全圆的卡（`FormItem` 在组外按「整组只有一行」算），Miuix 下更明显：
- * 分组底色与圆角都来自 MD3 的 `MochiCard`，与同页其它分组不同源。
+ * 分组底色与圆角都来自 MD3 的 `KkCard`，与同页其它分组不同源。
  * 现在外壳交给 `KedgeFormCard`（InlineCardGroup）：底色/圆角由组统一出，组内行只留内侧
  * 小圆角，首项上边、末项下边由整组裁切给出，两种风格一致。
  */

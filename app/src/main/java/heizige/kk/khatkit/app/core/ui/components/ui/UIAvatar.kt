@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.net.Uri
 import android.Manifest
 import android.content.pm.PackageManager
@@ -24,7 +26,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -62,7 +63,6 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.palette
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.app.core.util.computeAIIconByName
 
 @Composable
@@ -226,7 +226,7 @@ fun UIAvatar(
         if (loading) null else avatarShape
     }
     Box(modifier = modifier.then(Modifier.size(32.dp))) {
-        MochiSurface(
+        KkSurface(
             shape = if (shape == null) rememberAvatarShape(loading) else roleAvatarShape(shape),
             modifier = Modifier.fillMaxSize(),
             onClick = {

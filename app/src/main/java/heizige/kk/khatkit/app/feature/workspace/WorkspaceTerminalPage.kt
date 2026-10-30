@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.graphics.Typeface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -31,8 +34,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -64,7 +65,6 @@ import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import heizige.kk.kedge.theme.KedgeStyle
@@ -163,7 +163,7 @@ private fun WorkspaceTerminalContent(
         ?: 0
     val selectedTab = state.tabs.getOrNull(selectedIndex)
 
-    MochiSurface(
+    KkSurface(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)

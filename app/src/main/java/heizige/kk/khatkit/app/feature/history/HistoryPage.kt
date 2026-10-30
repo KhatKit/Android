@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.history;
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,12 +61,9 @@ import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissState
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 
 @Composable
@@ -221,7 +221,7 @@ private fun ConversationItem(
     onTogglePin: () -> Unit = {},
     onClick: () -> Unit = {},
 ) {
-    MochiSurface(
+    KkSurface(
         onClick = onClick,
         tonalElevation = 2.dp,
         shape = RoundedCornerShape(25),

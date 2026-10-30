@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
@@ -10,7 +11,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun ToggleSurface(
@@ -22,7 +22,7 @@ fun ToggleSurface(
 ) {
     val contentColor =
         if (checked) KedgeColors.primary else KedgeColors.onSurface
-    MochiSurface(
+    KkSurface(
         onClick = onClick,
         color = Color.Transparent,
         contentColor = contentColor,

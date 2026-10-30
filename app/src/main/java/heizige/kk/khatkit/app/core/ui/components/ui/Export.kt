@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -20,7 +21,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.export.ExporterState
 import heizige.kk.khatkit.app.core.ui.icons.description
 import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -34,7 +34,7 @@ fun <T> ExportDialog(
         title = { Text(title ?: stringResource(R.string.export_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MochiCard(
+                KkCard(
                     onClick = {
                         exporter.exportToFile()
                         onDismiss()
@@ -62,7 +62,7 @@ fun <T> ExportDialog(
                         }
                     }
                 }
-                MochiCard(
+                KkCard(
                     onClick = {
                         exporter.exportAndShare()
                         onDismiss()

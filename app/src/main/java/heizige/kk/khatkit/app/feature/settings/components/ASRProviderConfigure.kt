@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,8 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import androidx.compose.runtime.getValue
@@ -770,7 +770,7 @@ private fun SherpaLocalASRConfiguration(
         label = { Text("识别引擎") },
         description = { Text("原生库不进安装包，首次使用需要下载一次；之后完全离线") },
     ) {
-        MochiCard(
+        KkCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
@@ -857,7 +857,7 @@ private fun SherpaLocalASRConfiguration(
             SherpaModels.PRESETS.forEach { preset ->
                 val isDownloaded = preset.id in downloadedIds
                 val isSelected = setting.modelId == preset.id
-                MochiCard(
+                KkCard(
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected) {
                             MaterialTheme.colorScheme.primaryContainer

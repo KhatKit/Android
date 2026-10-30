@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,8 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -69,7 +70,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.kedge.components.KedgeFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun SkillDetailPage(skillName: String) {
@@ -210,7 +210,7 @@ private fun FileItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    MochiSurface(
+    KkSurface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
     ) {
@@ -270,7 +270,7 @@ private fun DirItem(
 ) {
     var expanded by rememberSaveable(node.relativePath) { mutableStateOf(false) }
 
-    MochiSurface(
+    KkSurface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
     ) {

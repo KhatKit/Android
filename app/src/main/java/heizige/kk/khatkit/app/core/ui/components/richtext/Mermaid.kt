@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.richtext
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import android.graphics.BitmapFactory
 import android.util.Base64
 import android.webkit.JavascriptInterface
@@ -14,7 +15,6 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment

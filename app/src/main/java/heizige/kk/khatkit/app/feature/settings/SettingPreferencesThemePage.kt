@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSlider
 import heizige.kk.khromia.components.AnimatedRadioItem
 import heizige.kk.khromia.components.FancySlider
 import heizige.kk.khromia.text.OptionsText
@@ -32,15 +36,11 @@ import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.uikit.mochi.MochiSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -729,7 +729,7 @@ private fun ColorPickerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("H", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    MochiSlider(
+                    KkSlider(
                         value = hue,
                         onValueChange = {
                             updateColor(it, saturation, lightness)
@@ -740,7 +740,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("S", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    MochiSlider(
+                    KkSlider(
                         value = saturation,
                         onValueChange = {
                             updateColor(hue, it, lightness)
@@ -751,7 +751,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("L", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    MochiSlider(
+                    KkSlider(
                         value = lightness,
                         onValueChange = {
                             updateColor(hue, saturation, it)

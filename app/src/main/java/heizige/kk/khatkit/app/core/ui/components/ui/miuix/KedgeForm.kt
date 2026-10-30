@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import ui.feice.mochi.theme.MochiTheme
 
 import androidx.compose.foundation.layout.Column
@@ -9,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 
 
 
@@ -21,8 +22,8 @@ import heizige.kk.khatkit.uikit.mochi.MochiSwitch
  * [MochiSwitchFormRow] 这一系）的渲染只有一条路径：
  * [heizige.kk.khatkit.app.core.ui.components.ui.FormItem] → `MochiOptionItem`
  * （后者内部按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem` / 旧双风格 的
- * `MochiCard` 行）。以前这里有第二份自绘行（MD3 分支转 FormItem、旧双风格 分支又
- * `MochiCard` + `Column` 自己排一遍），改一处漏一处；现在 [KedgeFormRow] 与
+ * `KkCard` 行）。以前这里有第二份自绘行（MD3 分支转 FormItem、旧双风格 分支又
+ * `KkCard` + `Column` 自己排一遍），改一处漏一处；现在 [KedgeFormRow] 与
  * [MochiSwitchFormRow] 只是**签名转接层**，不做任何布局与配色决策。
  *
  * ⚠️ 上面那句只覆盖这一系，不是全仓结论：`miuix/PreferenceItems.kt:194-235` 与
@@ -61,9 +62,9 @@ fun KedgeFormCard(
 ) {
     // 组顶间距（**旧双风格 专属**）：基线 HEAD `KedgeForm.kt:53` 只给 旧双风格 那一支的组卡片
     // 写了 `.padding(top = FormMetrics.ItemSpacing)`（= `:159` 的 10dp），t1 把
-    // 表单统一进单一渲染路径时，它随着那张 `MochiCard` 一起丢了。这里把**同一个常量**加回
+    // 表单统一进单一渲染路径时，它随着那张 `KkCard` 一起丢了。这里把**同一个常量**加回
     // 组容器：整组（含底色、含圆角）整体下移 10dp，不新增第二张卡、不新增第二套行渲染。
-    // MD3 那一支基线是 `MochiCard(modifier = modifier.fillMaxWidth())`，没有这一层间距，
+    // MD3 那一支基线是 `KkCard(modifier = modifier.fillMaxWidth())`，没有这一层间距，
     // 所以 `when` 的 MD3 分支恒返回 `this` —— 数值逐值不变（0dp 额外间距）。
     val groupModifier = modifier
     heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup(
@@ -75,7 +76,7 @@ fun KedgeFormCard(
 /**
  * 开关行：整行点击等价于翻转开关。
  *
- * 之前所有这类行都只把 `MochiSwitch` 塞进 [KedgeFormRow] 的 `tail`，行本身不可点，
+ * 之前所有这类行都只把 `KkSwitch` 塞进 [KedgeFormRow] 的 `tail`，行本身不可点，
  * 于是「点卡片不动、只能点右侧那个小开关」。这里统一收口，别再逐处接 onClick。
  */
 @Composable
@@ -91,7 +92,7 @@ fun MochiSwitchFormRow(
         label = label,
         description = description,
         tail = {
-            MochiSwitch(
+            KkSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
             )

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkSlider
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -12,8 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
-import heizige.kk.khatkit.uikit.mochi.MochiSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
 
 /**
@@ -151,7 +151,7 @@ fun SliderRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(stringResource(titleRes))
-        MochiSlider(
+        KkSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
@@ -166,7 +166,7 @@ fun SliderRow(
 private fun CardGroupScope.setItem(item: SettingItem) {
     item(
         // 只有导航行与开关行给整行点击；纯信息行 / 滑块行传 null。
-        // 开关行必须显式带 enabled 门控：enabled=false 时 trailing 的 MochiSwitch
+        // 开关行必须显式带 enabled 门控：enabled=false 时 trailing 的 KkSwitch
         // 不消费点击事件，行级 onClick 会照样触发，禁用的行就变成能被改。
         onClick = when (item) {
             is NavSetting -> item.onClick
@@ -182,7 +182,7 @@ private fun CardGroupScope.setItem(item: SettingItem) {
         trailingContent = when (item) {
             is SwitchSetting -> {
                 {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = item.checked,
                         enabled = item.enabled,
                         onCheckedChange = item.onCheckedChange,
@@ -197,7 +197,7 @@ private fun CardGroupScope.setItem(item: SettingItem) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        MochiSlider(
+                        KkSlider(
                             value = item.value,
                             onValueChange = item.onValueChange,
                             valueRange = item.valueRange,

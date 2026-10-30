@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -24,10 +27,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -399,7 +398,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
 
 @Composable
 internal fun ProviderConfigWarningCard(navController: Navigator) {
-    MochiCard(
+    KkCard(
         modifier = Modifier.padding(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer

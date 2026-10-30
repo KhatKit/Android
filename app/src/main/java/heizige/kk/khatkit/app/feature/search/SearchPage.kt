@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.search
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +29,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
@@ -60,9 +62,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.khromia.components.SegmentedItem
 
@@ -341,7 +341,7 @@ private fun SearchResultItem(
         result.updateAt.toLocalDateTime()
     }
 
-    MochiSurface(
+    KkSurface(
         onClick = onClick,
         color = CustomColors.listItemColors.containerColor,
         shape = MaterialTheme.shapes.large,

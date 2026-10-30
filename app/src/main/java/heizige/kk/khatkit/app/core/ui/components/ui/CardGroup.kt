@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import ui.feice.mochi.theme.MochiTheme
 
 import androidx.compose.foundation.background
@@ -209,7 +210,7 @@ fun InlineCardGroup(
  * 组卡片的底色。
  *
  * - MD3Exp：`CustomColors.cardColorsOnSurfaceContainer.containerColor`（= `surfaceBright`），
- *   与改造前 `KedgeFormCard` 的 MD3 分支（`MochiCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
+ *   与改造前 `KedgeFormCard` 的 MD3 分支（`KkCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
  *   完全一致。
  * - Miuix：`KedgeMiuixSurface.cardContainer`（= `MochiTheme.colorScheme.surfaceContainer`），
  *   与改造前 Miuix 分支那张卡、以及 `MochiOptionItem` 自己的行卡片同色。

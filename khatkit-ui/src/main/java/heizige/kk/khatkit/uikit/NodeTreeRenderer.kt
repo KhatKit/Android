@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,13 +29,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.ui.UiNode
@@ -302,7 +302,7 @@ fun UiNode.Render(
         }
         "Markdown" -> markdown(text("text"), m)
         "Image" -> image(text("src"), props["contentDescription"] as? String, m)
-        "Badge" -> MochiSurface(modifier = m) {
+        "Badge" -> KkSurface(modifier = m) {
             Text(text("text"), Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 style = style.textStyle("label"),
                 color = nodeColor(text("color")) ?: style.color(text("tone", "default")))

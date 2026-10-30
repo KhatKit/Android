@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkSlider
 import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,9 +30,6 @@ import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
-import heizige.kk.khatkit.uikit.mochi.MochiSlider
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -127,12 +127,12 @@ fun KhatKitSettingsDialog(
             )
 
             SettingRow(stringResource(R.string.khatkit_settings_enable_root)) {
-                MochiSwitch(checked = rootEnabled, onCheckedChange = { rootEnabled = it })
+                KkSwitch(checked = rootEnabled, onCheckedChange = { rootEnabled = it })
             }
 
             Column {
                 Text(stringResource(R.string.khatkit_settings_download_concurrency, concurrency.toInt()))
-                MochiSlider(
+                KkSlider(
                     value = concurrency,
                     onValueChange = { concurrency = it },
                     valueRange = 1f..5f,

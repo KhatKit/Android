@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,7 +31,7 @@ import androidx.compose.material3.Icon
  * （毛玻璃由 P6 的 MochiGlassSurface 接手）。
  */
 
-/** 搜索框：Mochi 圆角胶囊底 + BasicTextField（不引 material3 TextField）。 */
+/** 搜索框：Mochi 圆角胶囊底 + material3 TextField（U3：输入类回 MD3）。 */
 @Composable
 fun MochiSearchBar(
     value: String,
@@ -58,24 +56,24 @@ fun MochiSearchBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            BasicTextField(
+            androidx.compose.material3.TextField(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier.weight(1f),
                 enabled = enabled,
                 singleLine = true,
-                cursorBrush = SolidColor(scheme.primary),
                 textStyle = MochiTheme.textStyles.body.copy(color = scheme.onSurface),
-                decorationBox = { inner ->
-                    if (value.isEmpty()) {
-                        Text(
-                            text = placeholder,
-                            color = scheme.onSurfaceVariant,
-                            style = MochiTheme.textStyles.body,
-                        )
-                    }
-                    inner()
+                placeholder = {
+                    Text(text = placeholder, color = scheme.onSurfaceVariant, style = MochiTheme.textStyles.body)
                 },
+                colors = androidx.compose.material3.TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                ),
             )
             trailingIcon?.invoke()
             if (cancelLabel != null && (active || value.isNotEmpty())) {

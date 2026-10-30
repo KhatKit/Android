@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,7 +11,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -115,7 +115,7 @@ fun KhatKitPermissionSheet(
                     )
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = handsOff,
                         onCheckedChange = {
                             handsOff = it

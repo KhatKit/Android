@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings.provider
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +45,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -263,7 +264,7 @@ internal fun ModelList(
  * 卡内边距由**这里**给、两种风格都要给：`KedgeFormCard` 只是分段容器 ——
  * `InlineCardGroup` 自己画底色 + 收角，但**不加内边距**（组内是 `KedgeFormRow` 时内边距
  * 由行自己带，见 `FormItem` 的 `modifier` 注释）。本组装的是「标题 + 任意控件」，没有行
- * 组件帮忙撑内边距，所以自己补一层；MD3 下也一样（改造前 MD3 那 16dp 来自旧 `MochiCard`
+ * 组件帮忙撑内边距，所以自己补一层；MD3 下也一样（改造前 MD3 那 16dp 来自旧 `KkCard`
  * 的默认 `contentPadding`，现在容器不再提供）。
  */
 @Composable

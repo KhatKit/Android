@@ -1,5 +1,10 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.content.Intent
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
@@ -38,14 +43,10 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -99,7 +100,6 @@ import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.undo
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -447,7 +447,7 @@ private fun WorkspaceBasicPage(
                 item(
                     headlineContent = { Text(stringResource(R.string.workspace_detail_compatibility_mode)) },
                     trailingContent = {
-                        MochiSwitch(
+                        KkSwitch(
                             checked = workspace?.shellCompatibilityMode ?: false,
                             onCheckedChange = onShellCompatibilityModeChange,
                             enabled = workspace != null,
@@ -497,7 +497,7 @@ private fun WorkspaceToolApprovalCard(
                     )
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = resolveWorkspaceToolApproval(toolName, overrides),
                         onCheckedChange = { onToolApprovalChange(toolName, it) },
                         enabled = workspace != null,
@@ -794,7 +794,7 @@ private fun WorkspaceFileCard(
         }
     }
 
-    MochiCard(
+    KkCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -963,7 +963,7 @@ private fun EmptyDirectoryState() {
 
 @Composable
 private fun ErrorCard(message: String) {
-    MochiCard(
+    KkCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

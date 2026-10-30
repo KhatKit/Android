@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.stats
 
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -52,7 +53,6 @@ import heizige.kk.khatkit.app.core.ui.icons.chat
 import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -103,7 +103,7 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
 
 @Composable
 private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>, modifier: Modifier = Modifier) {
-    MochiCard(
+    KkCard(
         modifier = modifier.fillMaxWidth(),
         ) {
         Column(
@@ -276,7 +276,7 @@ private fun HeatmapCell(alpha: Float, sizeDp: Int) {
 private fun RouteStatsCard(modifier: Modifier = Modifier) {
     val rows = heizige.kk.khatkit.app.core.data.ai.TaskRoutes.snapshot().entries.sortedBy { it.key }
     if (rows.isEmpty()) return
-    MochiCard(modifier = modifier.fillMaxWidth()) {
+    KkCard(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -353,7 +353,7 @@ private fun StatCard(
     label: String,
     value: String,
 ) {
-    MochiCard(modifier = modifier, colors = CustomColors.cardColorsOnSurfaceContainer) {
+    KkCard(modifier = modifier, colors = CustomColors.cardColorsOnSurfaceContainer) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

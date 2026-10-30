@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.automation
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,8 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import java.io.File
@@ -61,7 +61,7 @@ fun TraceAuditPage() {
                 item { Text("还没有轨迹。设备动作执行后会出现在这里。") }
             }
             items(traces, key = { it.id }) { meta ->
-                MochiCard(
+                KkCard(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { selectedId = meta.id },
                 ) {
@@ -73,7 +73,7 @@ fun TraceAuditPage() {
             }
             current?.let { step ->
                 item {
-                    MochiCard(modifier = Modifier.fillMaxWidth()) {
+                    KkCard(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(step.title, style = MaterialTheme.typography.titleMedium)
                             if (step.detail.isNotBlank()) Text(step.detail)

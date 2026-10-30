@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.layout.Arrangement
@@ -19,8 +22,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +43,6 @@ import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithState
 
 @Composable
@@ -59,7 +59,7 @@ internal fun MessageQueuePanel(
     // 正在生成时立即发送必然要打断本回合，先确认再动手。
     var confirmingSendNow by remember { mutableStateOf<QueuedMessage?>(null) }
     if (state.messages.isNotEmpty()) {
-        MochiSurface(
+        KkSurface(
             shape = MaterialTheme.shapes.large,
             color = KedgeColors.surfaceContainer,
             modifier = Modifier

@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.onboarding
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
 
 import android.Manifest
@@ -134,17 +138,13 @@ import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.kedge.components.KedgeStatusDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiStatusTag
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -427,7 +427,7 @@ private fun GreetingBottomBar(
     )
 
     if (false) {
-        MochiSurface(modifier = Modifier.fillMaxWidth()) {
+        KkSurface(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -710,7 +710,7 @@ private fun GreetingSettingsScreen() {
                     titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
                     supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
                     trailingContent = {
-                        MochiSwitch(
+                        KkSwitch(
                             checked = dynamicColorSupported && settings.dynamicColor,
                             enabled = dynamicColorSupported,
                             onCheckedChange = { enabled ->
@@ -1075,7 +1075,7 @@ private fun AiProviderItem(
             )
         },
         trailingContent = {
-            MochiSwitch(
+            KkSwitch(
                 checked = configured && provider.enabled,
                 enabled = configured,
                 onCheckedChange = onToggle,

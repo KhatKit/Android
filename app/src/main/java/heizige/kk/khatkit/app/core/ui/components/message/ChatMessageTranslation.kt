@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -31,8 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -113,7 +113,7 @@ fun LanguageSelectionDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(languages) { language ->
-                    MochiCard(
+                    KkCard(
                         onClick = {
                             onLanguageSelected(language)
                             dismiss()
@@ -141,7 +141,7 @@ fun LanguageSelectionDialog(
                 }
 
                 item {
-                    MochiCard(
+                    KkCard(
                         onClick = {
                             onClearTranslation()
                             dismiss()
@@ -233,7 +233,7 @@ fun CollapsibleTranslationText(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            MochiCard(
+            KkCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),

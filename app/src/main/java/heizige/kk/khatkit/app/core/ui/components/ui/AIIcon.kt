@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,7 +21,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAvatarShape
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.util.computeAIIconByName
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 private fun AIIcon(
@@ -48,7 +48,7 @@ private fun AIIcon(
             .data("file:///android_asset/icons/$path")
             .build()
     }
-    MochiSurface(
+    KkSurface(
         modifier = modifier.size(24.dp),
         shape = rememberAvatarShape(loading),
         color = background,

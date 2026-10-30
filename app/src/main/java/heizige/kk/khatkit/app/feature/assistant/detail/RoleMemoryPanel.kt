@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import android.content.Intent
 import android.provider.DocumentsContract
 import androidx.activity.compose.BackHandler
@@ -35,10 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
@@ -163,7 +163,7 @@ internal fun RoleMemoryPanel(
                     shape = cards.groupItemShape(isFirst = true, isLast = false),
                     titleContent = { Text("角色记忆", style = KedgeTextStyles.body()) },
                     trailingContent = {
-                        MochiSwitch(checked = assistant.enableMemory, onCheckedChange = {
+                        KkSwitch(checked = assistant.enableMemory, onCheckedChange = {
                             vm.update(assistant.copy(enableMemory = it, useGlobalMemory = false))
                         })
                     },
@@ -174,7 +174,7 @@ internal fun RoleMemoryPanel(
                     shape = cards.groupItemShape(isFirst = false, isLast = true),
                     titleContent = { Text("自动整理", style = KedgeTextStyles.body()) },
                     trailingContent = {
-                        MochiSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
+                        KkSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
                             vm.update(assistant.copy(autoExtractMemory = it))
                         })
                     },

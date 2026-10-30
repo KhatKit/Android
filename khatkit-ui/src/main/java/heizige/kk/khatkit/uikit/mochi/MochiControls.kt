@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,7 +51,7 @@ import ui.feice.mochi.theme.MochiTheme
  * （colors/shapes/variant 等）只收不用 —— 配色与形状全部来自 MochiTheme。
  *
  * 语义重定（合同 §5，Mochi 无独立 checkbox/radio）：
- *  - [MochiSwitch]：开关，保持「即时生效」语义；
+ *  - [KkSwitch]：开关，保持「即时生效」语义；
  *  - [MochiCheckbox] / [MochiRadioButton]：列表行内的**选中标记**（勾/圆点），
  *    不做成开关 —— 点一下立即生效的设置项应改用开关，单选列表应改用
  *    MochiListPickerRow（P6 提供）；这里保留标记形态是为了不改变现有交互语义。
@@ -79,6 +83,7 @@ fun MochiButton(
     val scheme = MochiTheme.colorScheme
     Row(
         modifier = modifier
+            .clip(MochiTheme.shapes.full)
             .background(
                 if (variant == MochiButtonVariant.Primary) scheme.primary else scheme.secondaryContainer,
                 MochiTheme.shapes.full,
@@ -144,6 +149,7 @@ fun MochiIconButton(
     Box(
         modifier = modifier
             .size(40.dp)
+            .clip(CircleShape)
             .background(background, CircleShape)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -251,9 +257,26 @@ fun MochiTextField(
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    MochiBasicField(
-        value, onValueChange, enabled, readOnly, singleLine, maxLines, placeholder, isError, label,
-        supportingText, leadingIcon, trailingIcon, textStyle, shape,
+    // U3：输入类回 material3 TextField（配色/圆角由 U2 Bridge 提供）。
+    androidx.compose.material3.TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
+        label = label?.let { { androidx.compose.material3.Text(it) } },
+        placeholder = placeholder?.let { { androidx.compose.material3.Text(it) } },
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        supportingText = supportingText?.let { { androidx.compose.material3.Text(it) } },
+        isError = isError,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        visualTransformation = visualTransformation,
     )
 }
 
@@ -281,24 +304,38 @@ fun MochiOutlinedTextField(
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    MochiBasicField(
-        value, onValueChange, enabled, readOnly, singleLine, maxLines, placeholder, isError, label,
-        supportingText, leadingIcon, trailingIcon, textStyle, shape,
+    // U3：输入类回 material3 TextField（配色/圆角由 U2 Bridge 提供）。
+    androidx.compose.material3.OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
+        label = label?.let { { androidx.compose.material3.Text(it) } },
+        placeholder = placeholder?.let { { androidx.compose.material3.Text(it) } },
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        supportingText = supportingText?.let { { androidx.compose.material3.Text(it) } },
+        isError = isError,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        visualTransformation = visualTransformation,
+        shape = shape,
     )
 }
 
 /** 开关（即时生效）。 */
 @Composable
-fun MochiSwitch(
+fun KkSwitch(
     checked: Boolean,
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    // 2026-10-30 开关修复：改用 material3 Switch。
-    // 自绘版（P4b）没有 thumb 平移/底色过渡，观感是「硬切」；MD3 Switch 自带
-    // checked 状态动画，且颜色由 U2 的 Bridge（Mochi token → MaterialTheme）决定，
-    // 外观仍是 Mochi 皮肤。这里不再保留自绘分支。
     androidx.compose.material3.Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
@@ -319,6 +356,7 @@ fun MochiCheckbox(
     Box(
         modifier = modifier
             .size(22.dp)
+            .clip(RoundedCornerShape(6.dp))
             .background(if (checked) scheme.primary else Color.Transparent, RoundedCornerShape(6.dp))
             .border(1.5.dp, if (checked) scheme.primary else scheme.outlineVariant, RoundedCornerShape(6.dp))
             .clickable(enabled = enabled && onCheckedChange != null) { onCheckedChange?.invoke(!checked) },
@@ -352,7 +390,7 @@ fun MochiRadioButton(
 
 /** 滑杆：Mochi 圆角轨道 + 拖动/点击改值（不引 material3 Slider）。 */
 @Composable
-fun MochiSlider(
+fun KkSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
@@ -361,41 +399,16 @@ fun MochiSlider(
     steps: Int = 0,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
-    val scheme = MochiTheme.colorScheme
-    val current = rememberUpdatedState(value)
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(32.dp)
-            .pointerInput(enabled, valueRange) {
-                if (!enabled) return@pointerInput
-                detectTapGestures { offset ->
-                    val fraction = (offset.x / size.width).coerceIn(0f, 1f)
-                    onValueChange(valueRange.start + fraction * (valueRange.endInclusive - valueRange.start))
-                    onValueChangeFinished?.invoke()
-                }
-            }
-            .pointerInput(enabled, valueRange) {
-                if (!enabled) return@pointerInput
-                detectHorizontalDragGestures { change, _ ->
-                    val fraction = (change.position.x / size.width).coerceIn(0f, 1f)
-                    onValueChange(valueRange.start + fraction * (valueRange.endInclusive - valueRange.start))
-                }
-            },
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        val fraction = ((current.value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
-        Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(scheme.surfaceContainerHighest, MochiTheme.shapes.full))
-        Box(modifier = Modifier.fillMaxWidth(fraction).height(4.dp).background(scheme.primary, MochiTheme.shapes.full))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction)
-                .height(32.dp),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            Box(modifier = Modifier.size(20.dp).background(scheme.primary, CircleShape))
-        }
-    }
+    // U3：回 MD3 Slider —— 自带拖拽/点击、步进与无障碍语义。
+    androidx.compose.material3.Slider(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.semantics { contentDescription = "slider" },
+        enabled = enabled,
+        valueRange = valueRange,
+        steps = steps,
+        onValueChangeFinished = onValueChangeFinished,
+    )
 }
 
 /** 选项行（列表里的可点行 + 前导/标题/支持文本/尾随槽）。 */
@@ -559,38 +572,32 @@ fun MochiOutlinedTextFieldWithSlots(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     interactionSource: Any? = null,
-    shape: Shape? = null,
+    shape: Shape = MochiTheme.shapes.medium,
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    val scheme = MochiTheme.colorScheme
-    Column(modifier = modifier.fillMaxWidth()) {
-        label?.invoke()
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(scheme.surfaceContainer, shape ?: MochiTheme.shapes.medium)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                leadingIcon?.invoke()
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    modifier = Modifier.weight(1f),
-                    enabled = enabled,
-                    readOnly = readOnly,
-                    singleLine = singleLine,
-                    maxLines = maxLines,
-                    cursorBrush = SolidColor(scheme.primary),
-                    textStyle = (textStyle ?: MochiTheme.textStyles.body).copy(color = scheme.onSurface),
-                    decorationBox = { inner -> placeholder?.invoke(); inner() },
-                )
-                trailingIcon?.invoke()
-            }
-        }
-        supportingText?.invoke()
-    }
+    // U3：带槽位的输入框同样回 material3 OutlinedTextField（槽位直接透传）。
+    androidx.compose.material3.OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
+        label = label,
+        placeholder = placeholder,
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        supportingText = supportingText,
+        isError = isError,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        visualTransformation = visualTransformation,
+        shape = shape,
+    )
 }
 
 /** 由 TextFieldState 驱动的文本框（新的 foundation state API）。 */
@@ -606,35 +613,17 @@ fun MochiTextFieldWithState(
     shape: Shape? = null,
     colors: Any? = null,
 ) {
-    val scheme = MochiTheme.colorScheme
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(scheme.surfaceContainer, shape ?: MochiTheme.shapes.medium)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        BasicTextField(
-            value = state.text.toString(),
-            onValueChange = { newText ->
-                state.edit {
-                    replace(0, length, newText)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = enabled,
-            readOnly = readOnly,
-            singleLine = (lineLimits ?: androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine) ==
-                androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine,
-            cursorBrush = SolidColor(scheme.primary),
-            textStyle = (textStyle ?: MochiTheme.textStyles.body).copy(color = scheme.onSurface),
-            decorationBox = { inner ->
-                if (state.text.isEmpty() && placeholder != null) {
-                    Text(text = placeholder, color = scheme.onSurfaceVariant, style = MochiTheme.textStyles.body)
-                }
-                inner()
-            },
-        )
-    }
+    // U3：state 版输入框走 material3 的 TextFieldState 重载。
+    androidx.compose.material3.OutlinedTextField(
+        state = state,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
+        placeholder = placeholder?.let { { androidx.compose.material3.Text(it) } },
+        lineLimits = lineLimits ?: androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine,
+        shape = shape ?: MochiTheme.shapes.medium,
+    )
 }
 
 /** 带 composable 槽位的填充式文本框（旧 Kedge 的 TextFieldWithSlots）。 */
@@ -662,27 +651,25 @@ fun MochiTextFieldWithSlots(
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    MochiOutlinedTextFieldWithSlots(
+    // U3：填充式带槽位输入框也回 material3 TextField。
+    androidx.compose.material3.TextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        label = label,
-        placeholder = placeholder,
         enabled = enabled,
         readOnly = readOnly,
-        isError = isError,
-        supportingText = supportingText,
+        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
+        label = label,
+        placeholder = placeholder,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
+        supportingText = supportingText,
+        isError = isError,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
-        interactionSource = interactionSource,
-        shape = shape,
-        textStyle = textStyle,
-        colors = colors,
     )
 }

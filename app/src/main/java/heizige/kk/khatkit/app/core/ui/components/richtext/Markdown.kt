@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.richtext
 
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.ClipData
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -109,7 +110,6 @@ import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 private val flavour by lazy {
     GFMFlavourDescriptor(
@@ -412,7 +412,7 @@ private fun MarkdownNode(
         // Checkbox
         GFMTokenTypes.CHECK_BOX -> {
             val isChecked = node.getTextInNode(content).trim() == "[x]"
-            MochiSurface(
+            KkSurface(
                 shape = RoundedCornerShape(2.dp),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 modifier = modifier,

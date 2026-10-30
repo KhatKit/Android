@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.activity
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -34,9 +36,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -150,7 +150,7 @@ class SafeModeActivity : ComponentActivity() {
                                     Text(stringResource(R.string.safe_mode_copy))
                                 }
                             }
-                            MochiCard(
+                            KkCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f),

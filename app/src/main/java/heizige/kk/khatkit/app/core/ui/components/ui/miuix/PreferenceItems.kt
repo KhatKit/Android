@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkSlider
 import ui.feice.mochi.theme.MochiTheme
 
 import androidx.compose.foundation.combinedClickable
@@ -30,8 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
-import heizige.kk.khatkit.uikit.mochi.MochiSlider
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.kedge.preferences.KedgeListPreference
 import heizige.kk.kedge.preferences.KedgePreferenceOption
 import heizige.kk.kedge.theme.KedgeStyle
@@ -159,7 +159,7 @@ fun PreferenceSwitch(
         titleContent = { PreferenceTitle(title) },
         supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
         trailingContent = {
-            MochiSwitch(
+            KkSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 enabled = enabled,
@@ -207,7 +207,7 @@ fun PreferenceArrow(
  * 两种风格都保留**原生滑块**，只把外壳收进 [MochiOptionItem]：
  *
  * - 旧双风格 一支仍是 `SliderPreference`（`PreferenceItems.kt:213`）：旧双风格 的滑块带拖动
- *   值气泡、刻度绘制与无障碍 setProgress 语义，自己用 `MochiSlider` 拼一遍会丢这些；
+ *   值气泡、刻度绘制与无障碍 setProgress 语义，自己用 `KkSlider` 拼一遍会丢这些；
  *   而且它本来就是 旧双风格 自带的 `BasicComponent` 行，不是「裸 `MochiListItem` + clickable」。
  * - MD3 一支原来是裸 `MochiListItem`（透明无底色、无卡片圆角），现在换成
  *   `MochiOptionItem(onClick = null)`：纯信息行不可点、无按压回弹，滑块仍是唯一交互元素。
@@ -227,7 +227,7 @@ fun PreferenceSlider(
     enabled: Boolean = true,
 ) {
         // MD3Exp：外壳走 MochiOptionItem（纯信息行，onClick = null），滑块用 :kedge 的
-    // MochiSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 MochiListItem 相同，
+    // KkSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 MochiListItem 相同，
     // 只多了卡片底色/圆角。
     MochiOptionItem(
         onClick = null,
@@ -241,7 +241,7 @@ fun PreferenceSlider(
                     PreferenceSummary(summary)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    MochiSlider(
+                    KkSlider(
                         value = value,
                         onValueChange = onValueChange,
                         modifier = Modifier.weight(1f),

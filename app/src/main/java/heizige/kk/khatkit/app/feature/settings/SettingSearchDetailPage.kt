@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,10 +25,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -154,10 +154,10 @@ fun SettingSearchDetailPage(
 /**
  * 「服务参数」分组卡片：标题 + 参数表单 + 能力说明，一整组分段卡片。
  *
- * 改造前是 `MochiCard { Column(padding 16) { 标题; SearchOptionsEditor; 说明 } }`：
+ * 改造前是 `KkCard { Column(padding 16) { 标题; SearchOptionsEditor; 说明 } }`：
  * 外壳手搓一张卡，里面的参数行（`KedgeFormRow` → `FormItem` → `MochiOptionItem`）在组外
- * 各画一张四角全圆的卡 —— 卡里套卡，Miuix 下尤其明显（外壳是 MD3 的 `MochiCard`，
- * 行是 Miuix 的 `MochiCard` 行）。现在外壳交给 `KedgeFormCard`（`InlineCardGroup`）：
+ * 各画一张四角全圆的卡 —— 卡里套卡，Miuix 下尤其明显（外壳是 MD3 的 `KkCard`，
+ * 行是 Miuix 的 `KkCard` 行）。现在外壳交给 `KedgeFormCard`（`InlineCardGroup`）：
  * 底色与圆角由组统一出，组内行只留内侧小圆角，首项上边、末项下边由整组裁切给出，
  * 两种风格一致，`SearchOptionsEditor` 一行不用改。
  */
@@ -276,7 +276,7 @@ internal fun SearchTestSection(
     var result by remember { mutableStateOf<Result<SearchResult>?>(null) }
     val scope = rememberCoroutineScope()
 
-    MochiCard(
+    KkCard(
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
         )
@@ -348,7 +348,7 @@ internal fun SearchTestSection(
                         )
                     }
                     searchResult.items.forEachIndexed { index, item ->
-                        MochiCard(
+                        KkCard(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             )

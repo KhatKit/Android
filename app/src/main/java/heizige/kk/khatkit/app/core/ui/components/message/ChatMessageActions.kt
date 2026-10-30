@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.kedge.theme.KedgeColors
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
@@ -19,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -326,7 +326,7 @@ fun ChatMessageActionsSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Select and Copy
-            MochiCard(
+            KkCard(
                 onClick = {
                     dismiss()
                     onSelectAndCopy()
@@ -357,7 +357,7 @@ fun ChatMessageActionsSheet(
                 .any { it.text.isNotBlank() }
 
             if (hasTextContent) {
-                MochiCard(
+                KkCard(
                     onClick = {
                         dismiss()
                         onWebViewPreview()
@@ -386,7 +386,7 @@ fun ChatMessageActionsSheet(
 
             // Archived group messages remain read-only.
             if (!groupChat) {
-                MochiCard(
+                KkCard(
                     onClick = {
                         dismiss()
                         onEdit()
@@ -414,7 +414,7 @@ fun ChatMessageActionsSheet(
             }
 
             // Share
-            MochiCard(
+            KkCard(
                 onClick = {
                     dismiss()
                     onShare()
@@ -442,7 +442,7 @@ fun ChatMessageActionsSheet(
 
             // Create a Fork（群聊下不显示，见 groupChat）
             if (!groupChat) {
-                MochiCard(
+                KkCard(
                     onClick = {
                         dismiss()
                         onFork()
@@ -471,7 +471,7 @@ fun ChatMessageActionsSheet(
 
             // Delete（群聊下不显示，见 groupChat）
             if (!groupChat) {
-                MochiCard(
+                KkCard(
                     onClick = {
                         dismiss()
                         onDelete()

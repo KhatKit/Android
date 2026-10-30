@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -35,8 +38,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -104,7 +105,6 @@ import heizige.kk.khatkit.app.core.ui.icons.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeAssistChip
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -778,7 +778,7 @@ private fun ModelItem(
         // 选中态沿用改动前的 primaryContainer 底色 + onPrimaryContainer 字色。
         backgroundColor = if (select) MaterialTheme.colorScheme.primaryContainer else Color.Unspecified,
         leadingContent = {
-            MochiSurface(
+            KkSurface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = MaterialTheme.shapes.small,
             ) {

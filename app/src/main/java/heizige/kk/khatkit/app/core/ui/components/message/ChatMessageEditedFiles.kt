@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import heizige.kk.khatkit.uikit.mochi.KkCard
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import heizige.kk.kedge.theme.KedgeColors
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -18,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +48,6 @@ import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 private const val DEFAULT_VISIBLE_COUNT = 3
 private val WORKSPACE_FILE_TOOL_NAMES = setOf("workspace_write_file", "workspace_edit_file")
@@ -100,7 +100,7 @@ internal fun EditedFilesList(
     ) {
         visibleFiles.forEach { path ->
             val fileName = remember(path) { path.substringAfterLast('/') }
-            MochiSurface(
+            KkSurface(
                 onClick = { selectedPath = path },
                 shape = RoundedCornerShape(50),
                 color = KedgeColors.tertiaryContainer,
@@ -126,7 +126,7 @@ internal fun EditedFilesList(
             }
         }
         if (hasMore && !expanded) {
-            MochiSurface(
+            KkSurface(
                 onClick = { expanded = true },
                 shape = RoundedCornerShape(50),
                 color = KedgeColors.surfaceContainerHigh,
@@ -155,9 +155,9 @@ internal fun EditedFilesList(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MochiCard(
+                KkCard(
                     onClick = {
-                        val p = selectedPath ?: return@MochiCard
+                        val p = selectedPath ?: return@KkCard
                         exportLauncher.launch(p.substringAfterLast('/'))
                     },
                     shape = MaterialTheme.shapes.medium,
@@ -180,9 +180,9 @@ internal fun EditedFilesList(
                         )
                     }
                 }
-                MochiCard(
+                KkCard(
                     onClick = {
-                        val p = selectedPath ?: return@MochiCard
+                        val p = selectedPath ?: return@KkCard
                         dismiss()
                         scope.launch {
                             runCatching {

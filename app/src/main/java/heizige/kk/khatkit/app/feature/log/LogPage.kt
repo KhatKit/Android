@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.log
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.content.ClipData
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.foundation.clickable
@@ -20,9 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +56,6 @@ import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 
 @Composable
@@ -166,7 +166,7 @@ private fun RequestLoggingSwitchCard(
             )
         },
         trailingContent = {
-            MochiSwitch(
+            KkSwitch(
                 checked = enabled,
                 onCheckedChange = onEnabledChange
             )
@@ -178,7 +178,7 @@ private fun RequestLoggingSwitchCard(
 private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
-    MochiCard(
+    KkCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
@@ -418,7 +418,7 @@ private fun HeaderItem(key: String, value: String) {
 private fun TextLogCard(log: LogEntry.TextLog) {
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
-    MochiCard(
+    KkCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.assistant
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -40,8 +43,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -107,7 +108,6 @@ import heizige.kk.kedge.theme.LocalKedgeStyle
 
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -250,7 +250,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                                 assistant.tags.take(2).fastForEach { tagId ->
                                                     val tag = settings.assistantTags.find { it.id == tagId }
                                                         ?: return@fastForEach
-                                                    MochiSurface(
+                                                    KkSurface(
                                                         shape = RoundedCornerShape(50),
                                                         color = MaterialTheme.colorScheme.tertiaryContainer,
                                                     ) {

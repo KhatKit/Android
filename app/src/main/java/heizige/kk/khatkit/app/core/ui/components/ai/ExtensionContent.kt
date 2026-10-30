@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,8 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +52,7 @@ fun ModeInjectionsContent(
                     Text(injection.name.ifBlank { stringResource(R.string.extension_content_unnamed) })
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = selectedIds.contains(injection.id),
                         onCheckedChange = { checked -> onToggle(injection.id, checked) }
                     )
@@ -97,7 +97,7 @@ fun LorebooksContent(
                     }
                 } else null,
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = selectedIds.contains(lorebook.id),
                         onCheckedChange = { checked -> onToggle(lorebook.id, checked) }
                     )
@@ -140,7 +140,7 @@ fun SkillsContent(
                     }
                 } else null,
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = enabledSkills.contains(skill.name),
                         onCheckedChange = { checked -> onToggle(skill.name, checked) }
                     )
@@ -186,7 +186,7 @@ fun QuickMessagesContent(
                     }
                 } else null,
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = selectedIds.contains(quickMessage.id),
                         onCheckedChange = { checked -> onToggle(quickMessage.id, checked) }
                     )

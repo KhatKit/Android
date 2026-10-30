@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
@@ -86,11 +86,11 @@ fun <T> ChainOfThought(
     val canCollapse = steps.size > collapsedVisibleCount
     val shouldFillCollapseControlWidth = expanded || !collapsedAdaptiveWidth
 
-    MochiCard(
+    KkCard(
         modifier = modifier,
         colors = cardColors,
         shape = RoundedCornerShape(16.dp),
-        // MochiCard 默认 contentPadding/insideMargin = 16dp，链式形态靠它 + 下面
+        // KkCard 默认 contentPadding/insideMargin = 16dp，链式形态靠它 + 下面
         // 的 12dp 缩进凑出 28dp 左边距；无时间线形态必须归零，否则 item 铺不满宽度。
         contentPadding = if (showTimeline) PaddingValues(16.dp) else PaddingValues(0.dp),
     ) {

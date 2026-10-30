@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkSlider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,8 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
-import heizige.kk.khatkit.uikit.mochi.MochiSlider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -194,7 +194,7 @@ internal fun AssistantBasicContent(
                 headlineContent = { Text("主管权限") },
                 supportingContent = { Text("允许 AI 创建、修改和删除团队角色；每次变更仍需确认。") },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = assistant.canManageRoles,
                         onCheckedChange = { onUpdate(assistant.copy(canManageRoles = it)) },
                     )
@@ -292,7 +292,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar_desc))
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = assistant.useAssistantAvatar,
                         onCheckedChange = {
                             onUpdate(
@@ -378,7 +378,7 @@ internal fun AssistantBasicContent(
                     )
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = assistant.temperature != null,
                         onCheckedChange = { enabled ->
                             onUpdate(
@@ -435,7 +435,7 @@ internal fun AssistantBasicContent(
                     )
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = assistant.topP != null,
                         onCheckedChange = { enabled ->
                             onUpdate(
@@ -548,7 +548,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_stream_output_desc))
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = assistant.streamOutput,
                         onCheckedChange = {
                             onUpdate(
@@ -648,7 +648,7 @@ internal fun AssistantBasicContent(
                                 Text(stringResource(R.string.assistant_page_background_opacity_desc))
                             },
                             content = {
-                                MochiSlider(
+                                KkSlider(
                                     value = backgroundOpacity,
                                     onValueChange = {
                                         onUpdate(

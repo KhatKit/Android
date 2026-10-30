@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.clickable
@@ -22,7 +24,6 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,7 +43,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun <T> Select(
@@ -63,7 +63,7 @@ fun <T> Select(
 
     // 展开项本来就用 Kedge 的下拉项，只有外层的锚点与菜单容器还是 MD3 的。
     val anchor: @Composable (Modifier) -> Unit = { anchorModifier ->
-        MochiSurface(
+        KkSurface(
             modifier = anchorModifier,
             shape = RoundedCornerShape(50),
         ) {

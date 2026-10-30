@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.ClipData
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -17,7 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,7 +47,6 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 fun ErrorCardsDisplay(
@@ -67,7 +67,7 @@ fun ErrorCardsDisplay(
         ) {
             // 清除全部按钮（当有多个错误时显示）
             if (errors.size > 1) {
-                MochiSurface(
+                KkSurface(
                     onClick = onClearAllErrors,
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
@@ -121,7 +121,7 @@ fun ErrorCard(
         onDismiss()
     }
 
-    MochiSurface(
+    KkSurface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.errorContainer,

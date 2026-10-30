@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,7 +29,7 @@ import ui.feice.mochi.theme.MochiTheme
 /**
  * P4a：Kedge 容器族的 Mochi 版。
  *
- * 目标是把 MochiSurface / MochiCard / MochiWarningCard / 分隔线全部换成 Mochi 的
+ * 目标是把 KkSurface / KkCard / MochiWarningCard / 分隔线全部换成 Mochi 的
  * 表面色与圆角（MochiTheme.colorScheme / MochiShapes），**不再按 KedgeStyle 分叉**。
  * 参数名与旧 Kedge 组件保持一致，让调用点只改名字；已知缺口：
  * - `colors`（旧 Miuix/MD3 CardColors）只收不用：Mochi 卡片配色由主题决定，P6 用
@@ -35,7 +38,7 @@ import ui.feice.mochi.theme.MochiTheme
  */
 
 @Composable
-fun MochiSurface(
+fun KkSurface(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
@@ -47,55 +50,53 @@ fun MochiSurface(
     border: BorderStroke? = null,
     content: @Composable () -> Unit,
 ) {
-    val container = if (color == Color.Unspecified) MochiTheme.colorScheme.surface else color
-    val contentColorResolved =
-        if (contentColor == Color.Unspecified) MochiTheme.colorScheme.onSurface else contentColor
-    val resolvedShape = shape ?: MochiTheme.shapes.medium
-    val clickable = if (onClick != null) {
-        Modifier.clickable(enabled = enabled, onClick = onClick)
+    val cs = MaterialTheme.colorScheme
+    val c = if (color == Color.Unspecified) cs.surface else color
+    val cc = if (contentColor == Color.Unspecified) cs.onSurface else contentColor
+    val sh = shape ?: MaterialTheme.shapes.medium
+    if (onClick != null) {
+        androidx.compose.material3.Surface(
+            onClick = onClick, modifier = modifier, enabled = enabled, shape = sh, color = c,
+            contentColor = cc, tonalElevation = tonalElevation, shadowElevation = shadowElevation,
+            border = border, content = content,
+        )
     } else {
-        Modifier
-    }
-    CompositionLocalProvider(LocalContentColor provides contentColorResolved) {
-        Box(
-            modifier = modifier
-                .clip(resolvedShape)
-                .background(container)
-                .then(clickable),
-        ) {
-            content()
-        }
+        androidx.compose.material3.Surface(
+            modifier = modifier, shape = sh, color = c, contentColor = cc,
+            tonalElevation = tonalElevation, shadowElevation = shadowElevation,
+            border = border, content = content,
+        )
     }
 }
 
 @Composable
-fun MochiCard(
+fun KkCard(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     color: Color = Color.Unspecified,
     contentColor: Color = Color.Unspecified,
     shape: Shape? = null,
     onClick: (() -> Unit)? = null,
-    /** 旧 Miuix/MD3 CardColors：只收不用，Mochi 卡片配色由主题决定（P6 重做）。 */
     colors: Any? = null,
     border: BorderStroke? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val container =
-        if (color == Color.Unspecified) MochiTheme.colorScheme.surfaceContainer else color
-    val contentColorResolved =
-        if (contentColor == Color.Unspecified) MochiTheme.colorScheme.onSurface else contentColor
-    val resolvedShape = shape ?: MochiTheme.shapes.large
-    val clickable = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
-    CompositionLocalProvider(LocalContentColor provides contentColorResolved) {
-        Box(
-            modifier = modifier
-                .clip(resolvedShape)
-                .background(container)
-                .then(clickable),
-        ) {
-            Column(modifier = Modifier.padding(contentPadding), content = content)
-        }
+    // U3：回 MD3 Card；配色/圆角来自 U2 Bridge（Mochi token）。
+    val cs = MaterialTheme.colorScheme
+    val cardColors = androidx.compose.material3.CardDefaults.cardColors(
+        containerColor = if (color == Color.Unspecified) cs.surfaceContainer else color,
+        contentColor = if (contentColor == Color.Unspecified) cs.onSurface else contentColor,
+    )
+    if (onClick != null) {
+        androidx.compose.material3.Card(
+            onClick = onClick, modifier = modifier, shape = shape ?: MaterialTheme.shapes.large,
+            colors = cardColors, border = border,
+        ) { Column(Modifier.padding(contentPadding), content = content) }
+    } else {
+        androidx.compose.material3.Card(
+            modifier = modifier, shape = shape ?: MaterialTheme.shapes.large,
+            colors = cardColors, border = border,
+        ) { Column(Modifier.padding(contentPadding), content = content) }
     }
 }
 
@@ -110,7 +111,7 @@ fun MochiWarningCard(
     action: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MochiTheme.colorScheme
-    MochiSurface(
+    KkSurface(
         modifier = modifier,
         onClick = onClick,
         color = scheme.errorContainer,

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +25,6 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiBadge
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -274,7 +275,7 @@ fun McpPicker(
 ) {
     val mcpManager = rememberAppEntryPoint().mcpManager()
     // 每条服务器 = 一张 option item：圆角/行间距取全局列表卡片样式（首项只圆上边、
-    // 末项只圆下边），不再用裸 MochiCard 自己排 Row。
+    // 末项只圆下边），不再用裸 KkCard 自己排 Row。
     val cards = listCardStyle()
     val visibleServers = servers.fastFilter { it.commonOptions.enable }
     LazyColumn(
@@ -345,7 +346,7 @@ fun McpPicker(
                     }
                 },
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = server.id in assistant.mcpServers,
                         onCheckedChange = {
                             if (it) {

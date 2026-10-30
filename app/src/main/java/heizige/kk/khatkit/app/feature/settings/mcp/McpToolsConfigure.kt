@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings.mcp
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,9 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -167,7 +167,7 @@ internal fun McpToolCard(
     onNeedsApprovalChange: (Boolean) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    MochiCard(
+    KkCard(
         colors = CardDefaults.cardColors(
             containerColor = CustomColors.listItemColors.containerColor
         )

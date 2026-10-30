@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -44,10 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -207,7 +207,7 @@ fun AvatarEditSheet(
                     animationSpec = tween(SheetExitMillis, easing = FastOutLinearInEasing),
                 ),
             ) {
-                MochiSurface(
+                KkSurface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                     tonalElevation = 6.dp,

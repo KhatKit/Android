@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.backup.tabs
 
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +13,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -51,7 +51,7 @@ fun ReminderTab(vm: BackupViewModel) {
         ) {
             item(
                 trailingContent = {
-                    MochiSwitch(
+                    KkSwitch(
                         checked = config.enabled,
                         onCheckedChange = { updateConfig(config.copy(enabled = it)) },
                     )

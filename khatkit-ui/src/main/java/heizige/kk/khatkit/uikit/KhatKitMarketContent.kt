@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.uikit
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -59,19 +63,14 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -416,7 +415,7 @@ private fun FeaturedCard(
     hubInfo: HubCardMarketInfo?,
     onClick: () -> Unit
 ) {
-    MochiCard(
+    KkCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
@@ -513,7 +512,7 @@ private fun CompactCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    MochiCard(
+    KkCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
@@ -594,7 +593,7 @@ private fun LocalOnlyCompactCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    MochiCard(
+    KkCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()

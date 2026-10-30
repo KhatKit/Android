@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -21,11 +25,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -137,7 +137,7 @@ internal fun TriggerCardEditorSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // ------------------------------------------------------------------ 重试配置
-            MochiCard(
+            KkCard(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
@@ -259,7 +259,7 @@ private fun EventCard(
     onRemove: () -> Unit,
 ) {
     // 事件卡的表头本来就是一个选项行：整行可点 = 展开/收起，右侧挂开关 + 删除 + 箭头。
-    // 之前是 MochiCard 里手写的 Row（裸 MochiSwitch），行皮/圆角/内边距只有这里跟
+    // 之前是 KkCard 里手写的 Row（裸 KkSwitch），行皮/圆角/内边距只有这里跟
     // 其它选项行不一样。改走 MochiExpandableOptionItem（= MochiOptionItem + 同卡展开区）
     // 后：折叠区仍在同一张卡内（wrapContent），点击语义 / 开关 / 删除 / 文案全部原样。
     val cards = listCardStyle()
@@ -292,7 +292,7 @@ private fun EventCard(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                MochiSwitch(
+                KkSwitch(
                     checked = enabled,
                     onCheckedChange = onToggleEnabled,
                 )

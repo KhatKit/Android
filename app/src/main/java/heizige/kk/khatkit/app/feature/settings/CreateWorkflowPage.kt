@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,11 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -241,7 +241,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                     )
                 }
                 itemsIndexed(execution.steps, key = { index, step -> "${step.nodeId}-$index" }) { index, step ->
-                    MochiCard(
+                    KkCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
@@ -294,7 +294,7 @@ private fun WorkflowNodeCard(
     onChange: (WorkflowNode) -> Unit,
     onDuplicate: () -> Unit,
 ) {
-    MochiCard(
+    KkCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
@@ -315,7 +315,7 @@ private fun WorkflowNodeCard(
                     Text(node.title, style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
                     Text("${node.category} · ${node.detail}", style = KedgeTextStyles.footnoteSmall())
                 }
-                MochiSwitch(checked = node.enabled, onCheckedChange = { onChange(node.copy(enabled = it)) })
+                KkSwitch(checked = node.enabled, onCheckedChange = { onChange(node.copy(enabled = it)) })
             }
             MochiTextButton(onClick = onExpand) { Text(if (expanded) "收起参数" else "编辑参数") }
             if (expanded) {

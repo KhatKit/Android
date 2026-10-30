@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.backup.tabs
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,10 +36,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -205,7 +205,7 @@ fun S3Tab(
                     headlineContent = { Text(stringResource(R.string.backup_page_s3_path_style)) },
                     supportingContent = { Text(stringResource(R.string.backup_page_s3_path_style_desc)) },
                     trailingContent = {
-                        MochiSwitch(
+                        KkSwitch(
                             checked = s3Config.pathStyle,
                             onCheckedChange = { updateS3Config(s3Config.copy(pathStyle = it)) },
                         )

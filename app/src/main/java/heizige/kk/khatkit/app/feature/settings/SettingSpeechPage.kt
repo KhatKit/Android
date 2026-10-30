@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -31,8 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownItemSlot
 import heizige.kk.khatkit.uikit.mochi.MochiDropdownMenuSlots
-import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -564,7 +564,7 @@ private fun TTSProviderItem(
     val isSpeaking by tts.isSpeaking.collectAsState()
     val isAvailable by tts.isAvailable.collectAsState()
 
-    MochiCard(
+    KkCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
@@ -714,7 +714,7 @@ private fun ASRProviderItem(
 ) {
     var showDropdownMenu by remember { mutableStateOf(false) }
 
-    MochiCard(
+    KkCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -41,7 +42,6 @@ import heizige.kk.khatkit.app.core.ui.icons.folderCopy
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 @Composable
 internal fun MediaFileInputRow(
@@ -81,7 +81,7 @@ internal fun MediaFileInputRow(
                             displayNameByFileName = displayNameByFileName
                         ),
                         leading = {
-                            MochiSurface(
+                            KkSurface(
                                 modifier = Modifier.size(34.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -149,7 +149,7 @@ private fun AttachmentChip(
     leading: @Composable () -> Unit,
     onRemove: () -> Unit,
 ) {
-    MochiSurface(
+    KkSurface(
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 1.dp,
         shadowElevation = 0.dp,
@@ -193,7 +193,7 @@ private fun AttachmentChip(
 private fun AttachmentLeadingIcon(
     icon: ImageVector,
 ) {
-    MochiSurface(
+    KkSurface(
         modifier = Modifier.size(34.dp),
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,

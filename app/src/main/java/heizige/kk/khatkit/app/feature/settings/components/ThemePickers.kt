@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -57,13 +60,10 @@ import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.MorphPolygonShape
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -128,7 +128,7 @@ fun ThemeColorSettingGroup(
                     titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
                     supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
                     trailingContent = {
-                        MochiSwitch(
+                        KkSwitch(
                             checked = dynamicColorEnabled && dynamicColor,
                             enabled = dynamicColorEnabled,
                             onCheckedChange = { enabled ->
