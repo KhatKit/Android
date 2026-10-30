@@ -333,6 +333,11 @@ dependencies {
     implementation(project(":mediapicker"))
     implementation(project(":khatkit"))
     implementation(project(":khatkit-ui"))
+
+    // mochi-compose 0.2.0（P1 spike：UI 外壳/组件的目标库）
+    implementation(libs.mochi.compose)
+    implementation(libs.mochi.ios)
+    implementation(libs.mochi.icons)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     implementation(kotlin("reflect"))
 

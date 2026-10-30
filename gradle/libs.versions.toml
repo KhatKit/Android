@@ -74,6 +74,7 @@ snakeyaml = "2.7"
 shizuku = "13.1.5"
 kedge = "0.1.2"
 khromia = "1.6.5"
+mochi = "0.2.0"
 richeditorCompose = "1.0.0"
 
 [libraries]
@@ -208,6 +209,10 @@ shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 kedge = { module = "heizige.kk:kedge", version.ref = "kedge" }
 khromia = { module = "heizige.kk:khromia", version.ref = "khromia" }
+# mochi-compose：UI 外壳/组件目标库（Maven Central，io.github.feice11）
+mochi-compose = { module = "io.github.feice11:mochi-compose", version.ref = "mochi" }
+mochi-ios = { module = "io.github.feice11:mochi-ios", version.ref = "mochi" }
+mochi-icons = { module = "io.github.feice11:mochi-icons", version.ref = "mochi" }
 
 # 依赖分组。只收「同一组 >=2 个 artifact」且「各模块配置名与 api/implementation 语义
 # 完全一致」的组合——bundle 会把组内所有成员绑到同一个 configuration 上,只要有一处
