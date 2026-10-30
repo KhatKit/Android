@@ -99,7 +99,7 @@ fun <T> Select(
 /**
  * 文本框 + 预设选项下拉菜单（U3c）：同样用 MochiContextMenu。
  *
- * 不用 ExposedDropdownMenuBox 的原因保留：它在「菜单高度 > 可见窗口 − 96dp」时会
+ * 不用 MD3 的 exposed 下拉实现的原因保留：它在「菜单高度 > 可见窗口 − 96dp」时会
  * coerceIn(min > max) 抛异常（issue #1549），小屏 + 输入法同时弹极易触发。
  */
 @Composable

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.translator
 
+import heizige.kk.khatkit.app.core.ui.components.ui.SelectTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -21,10 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -227,7 +224,6 @@ private fun LanguageSelector(
     targetLanguage: Locale,
     onLanguageSelected: (Locale) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
 
     @Composable
     fun getLanguageDisplayName(locale: Locale): String {
@@ -246,61 +242,23 @@ private fun LanguageSelector(
         }
     }
 
-    var anchorWidth by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
 
     Box(
         modifier = Modifier.padding(horizontal = 4.dp)
     ) {
-        // Miuix 下不用 ExposedDropdownMenuBox：锚点与菜单容器都是 MD3 的，
-        // 改成记录锚点宽度 + Kedge 弹出菜单（与 Select/SelectTextField 一致）。
-            ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        Md3OutlinedTextField(
+        // U3d：语言下拉改用 SelectTextField（内部即 MochiContextMenu），与其余下拉同一套菜单。
+        SelectTextField(
             value = getLanguageDisplayName(targetLanguage),
-            onValueChange = {},
+            options = Locales,
+            onOptionSelected = onLanguageSelected,
+            modifier = Modifier.fillMaxWidth(),
             readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
-                .fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                disabledBorderColor = Color.Transparent
-            ),
-            shape = RoundedCornerShape(16.dp)
+            optionToString = { getLanguageDisplayName(it) },
         )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            LanguageItems(onLanguageSelected) { expanded = false }
-        }
-    }
     
     }
 }
 
-/** 语言下拉项，两种风格共用。 */
-@Composable
-private fun LanguageItems(
-    onLanguageSelected: (Locale) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Locales.forEach { language ->
-        MochiMenuRow(
-            text = { Text(getLanguageDisplayName(language)) },
-            onClick = {
-                onLanguageSelected(language)
-                onDismiss()
-            }
-        )
-    }
-}
 
 /** 语言显示名，与 [LanguageSelector] 内部逻辑一致。 */
 @Composable
