@@ -51,7 +51,7 @@ class MochiSpikeActivity : ComponentActivity() {
 @Composable
 private fun SpikeScreen() {
     var taps by remember { mutableIntStateOf(0) }
-    var sheetVisible by remember { mutableStateOf(false) }
+    var sheetOpen by remember { mutableStateOf(false) }
     val sheetState = rememberMochiSheetState()
 
     MochiLargeTitleScaffold(
@@ -67,21 +67,47 @@ private fun SpikeScreen() {
             )
             MochiListRow(
                 title = "打开 MochiSheet",
+                subtitle = "sheetState.show()",
                 chevron = true,
-                onClick = { sheetVisible = true },
+                onClick = {
+                    sheetOpen = true
+                    sheetState.show()
+                },
             )
         }
         MochiListSection {
-            MochiListButton(text = "打开 Sheet（列内按钮）", onClick = { sheetVisible = true })
+            MochiListButton(
+                text = "打开 Sheet（列内按钮）",
+                onClick = {
+                    sheetOpen = true
+                    sheetState.show()
+                },
+            )
         }
     }
 
-    if (sheetVisible) {
-        MochiSheet(state = sheetState, onDismiss = { sheetVisible = false }) {
-            MochiListSection(header = "Sheet") {
-                MochiListRow(title = "Sheet 内行", subtitle = "点背景或返回关闭", chevron = false)
-            }
-            MochiListButton(text = "关闭", onClick = { sheetVisible = false })
+    // MochiSheet 是常驻组合：是否展开由 MochiSheetState.requested 决定，
+    // 必须调用 sheetState.show() / hide()，不能在外层用 if 条件组合（否则永远不展开）。
+    MochiSheet(
+        state = sheetState,
+        onDismiss = {
+            sheetOpen = false
+            sheetState.hide()
+        },
+    ) {
+        MochiListSection(header = "Sheet") {
+            MochiListRow(
+                title = "Sheet 内行",
+                subtitle = "requested=" + sheetOpen,
+                chevron = false,
+            )
         }
+        MochiListButton(
+            text = "关闭（sheetState.hide()）",
+            onClick = {
+                sheetOpen = false
+                sheetState.hide()
+            },
+        )
     }
 }
