@@ -103,7 +103,6 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khromia.components.ToastDefaults
-import heizige.kk.khatkit.uikit.KhatKitTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -509,12 +508,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
 @Composable
 internal fun AutomationOverlayTheme(content: @Composable () -> Unit) {
     AppTheme {
-        val style = rememberAppEntryPoint().khatKitToolProvider().uiStyle
-        if (style == KhatKitUiStyle.MIUIX) {
-            KhatKitTheme(style = style, darkTheme = rememberIsDarkTheme(), content = content)
-        } else {
-            content()
-        }
+        content()
     }
 }
 

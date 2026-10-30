@@ -34,7 +34,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeOptionItem
@@ -666,7 +666,7 @@ private fun ColumnScope.ModelList(
 
     // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，展开成
     // 铺满全屏的搜索页 + 取消键；返回键收起，关键词同时清空。
-    KedgeSearchBar(
+    MochiSearchBar(
         value = searchKeywords,
         onValueChange = { searchKeywords = it },
         placeholder = stringResource(R.string.model_list_search_placeholder),

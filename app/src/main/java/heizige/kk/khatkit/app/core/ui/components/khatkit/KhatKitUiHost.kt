@@ -37,7 +37,6 @@ import androidx.compose.runtime.key
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.uikit.KhatKitSheet
 import heizige.kk.khatkit.uikit.KhatKitSheetAction
-import heizige.kk.khatkit.uikit.KhatKitTheme
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.icons.checkCircle
@@ -137,10 +136,7 @@ fun KhatKitUiHost() {
         }
     }
 
-    KhatKitTheme(
-        style = provider.uiStyle,
-        darkTheme = heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme(),
-    ) {
+    ui.feice.mochi.theme.MochiTheme {
         when (val current = request) {
             is UiRequest.Sheet -> ActionSheet(
                 title = current.title,

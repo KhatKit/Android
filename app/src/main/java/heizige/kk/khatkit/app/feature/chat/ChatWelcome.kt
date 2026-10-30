@@ -90,7 +90,6 @@ import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.card.CardStrings
-import heizige.kk.khatkit.uikit.KhatKitTheme
 import heizige.kk.khatkit.uikit.Render
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
@@ -533,7 +532,7 @@ private fun WelcomeWidgetView(
             exit = fadeOut(tween(150)),
         ) {
             if (root != null) {
-                KhatKitTheme(style = manager.provider.uiStyle, darkTheme = rememberIsDarkTheme()) {
+                ui.feice.mochi.theme.MochiTheme {
                     Box(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)) {
                         root.Render(
                             values = values, errors = errors, pickerHost = null, readOnly = widget.loading,

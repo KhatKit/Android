@@ -25,7 +25,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -137,7 +137,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
             // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
             // 展开成铺满全屏的搜索页 + 取消键；返回键收起。展开期间结果区整个搬进
             // 全屏槽，折叠态才平铺在页面里。
-            KedgeSearchBar(
+            MochiSearchBar(
                 value = vm.searchQuery,
                 onValueChange = { vm.onQueryChange(it) },
                 placeholder = stringResource(R.string.search_page_placeholder),

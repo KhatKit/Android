@@ -61,8 +61,8 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
-import heizige.kk.kedge.adaptive.KedgeNavigationBar
-import heizige.kk.kedge.adaptive.KedgeNavigationItem
+import heizige.kk.khatkit.uikit.mochi.MochiNavigationBar
+import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
 import heizige.kk.kedge.adaptive.rememberKedgeExitUntilCollapsedScrollBehavior
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
@@ -339,7 +339,7 @@ fun KhatKitBottomSheet(
                         content(onDismiss)
                     }
                     if (navVisible) {
-                        KedgeNavigationBar(
+                        MochiNavigationBar(
                             selectedItem = navSelected ?: navigation.items.first().event,
                             onItemSelected = { event ->
                                 if ((pagerState != null || !navigationPending) && event != navSelected &&
@@ -349,7 +349,7 @@ fun KhatKitBottomSheet(
                                 }
                             },
                             navigationItems = navigation.items.map { item ->
-                                KedgeNavigationItem(
+                                MochiNavigationItem(
                                     key = item.event,
                                     label = item.label,
                                     icon = item.icon?.let { UiIconVectors.vector(it) } ?: Icons.Filled.Circle,

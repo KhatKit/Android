@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -123,7 +123,7 @@ fun SettingSearchPageMiuix(vm: SettingViewModel = hiltViewModel()) {
     ) {
         item(key = "search") {
             // 与提供商页同一份口径：折叠药丸自带 0 留白，间距在这里补（KSU 每个分组 12dp）。
-            KedgeSearchBar(
+            MochiSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.setting_page_search_search_engine),
@@ -136,7 +136,7 @@ fun SettingSearchPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 // 不传 showResultsWhenEmpty（默认 false）：与提供商页一致，点开搜索先空白，
                 // 输入才出列表 —— 服务列表本身就在页面正文里，不需要展开就摊开一份。
                 expandedContent = {
-                    // 结果层挂在窗口级浮层里（KedgeSearchOverlayLayer），不是本页子树，
+                    // 结果层挂在窗口级浮层里，不是本页子树，
                     // 所以不能带 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩。
                     NoHeroTransition {
                         SearchServiceListMiuix(

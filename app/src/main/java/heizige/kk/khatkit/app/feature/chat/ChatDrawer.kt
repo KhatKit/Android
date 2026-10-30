@@ -123,7 +123,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import heizige.kk.kedge.adaptive.KedgeOverlayScaffold
+import heizige.kk.khatkit.uikit.mochi.MochiOverlayScaffold
 import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
 import heizige.kk.kedge.adaptive.KedgeBlurredBar
 import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
@@ -255,7 +255,7 @@ fun ChatDrawerContent(
     // 抽屉不垫状态栏/导航栏 insets：由 TopAppBar / BottomAppBar 自己消费，
     // 这样两条 bar 的背景能画到状态栏/导航栏后面，和系统栏颜色一致。
     val sheetContent: @Composable () -> Unit = {
-        // 顶栏/底栏叠在内容之上，毛玻璃才有东西可透（见 KedgeOverlayScaffold）。
+        // 顶栏/底栏叠在内容之上，毛玻璃才有东西可透（见 MochiOverlayScaffold）。
         // 毛玻璃只有 Miuix 风格有；MD3Exp 下把 backdrop 置空，各层就退化成
         // 不透明底色，不会出现 MD3 主题上的半透明糊层。
         val blurEnabled = LocalKedgeEnableBlur.current &&
@@ -278,7 +278,7 @@ fun ChatDrawerContent(
         // 这个 Compose 版本里 WindowInsets.navigationBars 解析不到，用 systemBars
         // 的底部值减去状态栏顶部值得到导航栏高度（竖屏下等价）。
         val navBarBottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
-        KedgeOverlayScaffold(
+        MochiOverlayScaffold(
             backdrop = backdrop,
             // 不用 contentInset 内缩：那样列表与顶栏之间会留一道死间隙，滚不上去。
             // 改成内容用 Spacer / padding 顶开栏高，列表照样能一路滚到栏下面。
@@ -423,7 +423,7 @@ fun ChatDrawerContent(
                 }
             },
             bottomBar = {
-                // KedgeOverlayScaffold 内部是普通 Box，顶/底栏各自负责对齐；
+                // MochiOverlayScaffold 内部是普通 Box，顶/底栏各自负责对齐；
                 // 不写 align 的话底栏会被摆在 Box 的左上角（表现为"浮在天上"）。
                 //
                 // 底色与顶栏同一套来源：Miuix 有 backdrop 时透明走毛玻璃，否则退回
@@ -535,7 +535,7 @@ fun ChatDrawerContent(
                     // ⚠️ 挂在这层**父节点**而不是列表自己：`Modifier.nestedScroll` 要靠
                     // 节点树找到下面的 scrollable 派发器，父节点这条路径与页面把连接挂在
                     // Scaffold 上（`ExploreMarketPage.kt:1211`）是同一种结构，最稳。
-                    // 也不能挂在 KedgeOverlayScaffold 的 modifier 上：它 MD3 分支会
+                    // 也不能挂在 MochiOverlayScaffold 的 modifier 上：它 MD3 分支会
                     // 把这个 modifier 丢掉（只有 Miuix 分支透传给 MiuixScaffold）。
                     .then(activeNestedScroll(drawerBarScrollBehavior)),
             ) {

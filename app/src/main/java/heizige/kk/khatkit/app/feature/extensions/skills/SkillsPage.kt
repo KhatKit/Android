@@ -71,7 +71,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 
 @Composable
 fun SkillsPage() {
@@ -156,11 +156,11 @@ fun SkillsPage() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                // MD3 的 KedgeSearchBar 自带 16dp 顶距，Miuix 分支为 0，由调用点补
+                // MD3 的 MochiSearchBar 自带 16dp 顶距，Miuix 分支为 0，由调用点补
                 // （与 AssistantPage 的补偿同款），两种风格搜索框上方都是 16dp。
                 .padding(top = if (isMiuix) 16.dp else 0.dp),
         ) {
-            KedgeSearchBar(
+            MochiSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.skills_page_search_placeholder),

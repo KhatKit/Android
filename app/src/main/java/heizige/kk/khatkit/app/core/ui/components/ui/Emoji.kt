@@ -26,7 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -126,7 +126,7 @@ fun EmojiPicker(
                 }
 
                 if (showSearch) {
-                    KedgeSearchBar(
+                    MochiSearchBar(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = stringResource(R.string.emoji_picker_search_placeholder),

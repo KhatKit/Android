@@ -66,7 +66,7 @@ import heizige.kk.khromia.helper.Toast
 import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import kotlin.uuid.Uuid
@@ -87,7 +87,7 @@ import top.yukonga.miuix.kmp.basic.Text
  * 「import + 函数开头早退块」，不能顺手把可见性放宽 —— 所以**行与三个弹窗的动作层**在这里重建，
  * 但下面这些全部按原样复用，没有第二份实现：
  *
- * - `KedgeSearchBar`（自带 MD3/Miuix 分流）、`KedgeOptionItem`、`KedgeIconButton`、`KedgeButton`、
+ * - `MochiSearchBar`（自带 MD3/Miuix 分流）、`KedgeOptionItem`、`KedgeIconButton`、`KedgeButton`、
  *   `KedgeTextButton`、`AppAlertDialog`（Miuix 下走 `KedgeAlertDialogSlots`）、
  *   `PrimaryBottomSheet`（Miuix 下走 `KedgePrimaryBottomSheet`）；
  * - `ProviderConfigure`（表单本身已双风格化：`KedgeSingleChoiceSegmentedRow` +
@@ -173,7 +173,7 @@ fun SettingProviderPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         item(key = "search") {
             // KSU 式药丸搜索框：点一下折叠药丸展开成整屏结果层，取消键/返回键收起并清空关键词。
             // Miuix 下折叠药丸自带 0 留白，间距在这里补（对齐 KSU 每个分组 Card 的 12dp）。
-            KedgeSearchBar(
+            MochiSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.setting_provider_page_search_providers),
@@ -185,7 +185,7 @@ fun SettingProviderPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                     .padding(top = MiuixPageMetrics.GroupSpacing),
                 // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出列表。
                 expandedContent = {
-                    // 结果层挂在窗口级浮层里（KedgeSearchOverlayLayer），不是本页子树，
+                    // 结果层挂在窗口级浮层里，不是本页子树，
                     // 所以不能带 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩。
                     NoHeroTransition {
                         ProviderListMiuix(

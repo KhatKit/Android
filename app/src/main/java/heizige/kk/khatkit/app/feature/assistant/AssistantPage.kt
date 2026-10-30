@@ -39,7 +39,7 @@ import heizige.kk.kedge.components.KedgeOptionItem
 import heizige.kk.kedge.components.KedgeCheckbox
 import heizige.kk.kedge.components.KedgeOutlinedTextField
 import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.kedge.components.KedgeTextButton
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
@@ -176,7 +176,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
     
         md3ScrollBehavior = scrollBehavior,
     ) { it ->
-        // KedgeSearchBar 的 16dp 外边距**只在 MD3 分支自带**（Miuix 分支为 0，由调用点给，
+        // MochiSearchBar 的 16dp 外边距**只在 MD3 分支自带**（Miuix 分支为 0，由调用点给，
         // 见组件里 horizontalPadding / topPadding 的注释）。所以这一页的补白必须按风格给：
         // MD3 再补一层就是 32dp —— 比其它页宽一圈，也和本页 16dp 的列表卡片对不齐。
         val isMiuix = LocalKedgeStyle.current == KedgeStyle.Miuix
@@ -340,7 +340,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
             // 展开成铺满全屏的搜索页 + 取消键；返回键收起，关键词同时清空。
             // 展开期间标签过滤行与助手列表整个抽掉（KSU 的 SearchBox 同款）。
-            KedgeSearchBar(
+            MochiSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.assistant_page_search_placeholder),

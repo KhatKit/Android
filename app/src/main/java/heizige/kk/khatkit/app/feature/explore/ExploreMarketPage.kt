@@ -189,7 +189,6 @@ import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
 import heizige.kk.khatkit.hub.HubResourceEntry
 import heizige.kk.khatkit.uikit.KhatKitSecretsDialog
-import heizige.kk.khatkit.uikit.KhatKitTheme
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -357,7 +356,7 @@ private fun TagChip(
  * 两者不同字阶时展开会看到「标题跳了一下」。展开进度由 [rememberSearchExpandState] 提供
  * （含预测性返回跟手收起）。
  *
- * 抽成一份的原因：两页的手感必须逐帧同形。此前二级页用的是常驻搜索药丸（KedgeSearchBar），
+ * 抽成一份的原因：两页的手感必须逐帧同形。此前二级页用的是常驻搜索药丸（MochiSearchBar），
  * 一级页是顶栏 morph，同一个市场两种搜索形态。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1468,10 +1467,7 @@ private fun CardMarketOverlays(
     val toastAccountRequired = stringResource(R.string.explore_market_toast_account_required)
     val provider = rememberAppEntryPoint().khatKitToolProvider()
 
-    KhatKitTheme(
-        style = uiStyle,
-        darkTheme = heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme(),
-    ) {
+    ui.feice.mochi.theme.MochiTheme {
         secretCard?.let { cardName ->
             KhatKitSecretsDialog(
                 cardName = cardName,

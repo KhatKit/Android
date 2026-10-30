@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import heizige.kk.kedge.components.KedgeSearchSheetHost
+import heizige.kk.khatkit.uikit.mochi.MochiSearchSheetHost
 import heizige.kk.kedge.overlays.KedgePrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -53,9 +53,9 @@ fun PrimaryBottomSheet(
             // 包在**传给 sheet 的 content lambda 内部**：CompositionLocal 只向子树传播，
             // 而两个分支的 sheet 都会把内容重新组合进自己的窗口/子组合里，包在 lambda
             // 外面覆盖不到那份内容。宿主内部布局中立（Box 尺寸仍由 content 决定），
-            // 所以对不含搜索框的 sheet 没有影响；sheet 里的 KedgeSearchBar 会自动走
+            // 所以对不含搜索框的 sheet 没有影响；sheet 里的 MochiSearchBar 会自动走
             // 「在 sheet 内展开」而不是窗口级全屏层。
-            KedgeSearchSheetHost { content(onDismiss) }
+            MochiSearchSheetHost { content(onDismiss) }
         }
 
         // Khromia 有两个重载：painter 版和 imageVector 版，二选一必填，
@@ -72,7 +72,7 @@ fun PrimaryBottomSheet(
                 onDismiss = onDismiss,
                 scrollable = scrollable,
                 dismissible = dismissible,
-                content = { onDismiss -> KedgeSearchSheetHost { content(onDismiss) } },
+                content = { onDismiss -> MochiSearchSheetHost { content(onDismiss) } },
             )
         } else {
             KhromiaPrimaryBottomSheet(
@@ -88,7 +88,7 @@ fun PrimaryBottomSheet(
                 onDismiss = onDismiss,
                 scrollable = scrollable,
                 dismissible = dismissible,
-                content = { onDismiss -> KedgeSearchSheetHost { content(onDismiss) } },
+                content = { onDismiss -> MochiSearchSheetHost { content(onDismiss) } },
             )
         }
     }

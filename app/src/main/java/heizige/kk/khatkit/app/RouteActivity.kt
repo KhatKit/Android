@@ -67,9 +67,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.nav.NavViewModel
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalSharedTransitionScope
-import heizige.kk.kedge.components.KedgeSearchOverlayLayer
-import heizige.kk.kedge.components.LocalKedgeSearchOverlayState
-import heizige.kk.kedge.components.rememberKedgeSearchOverlayState
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
@@ -293,18 +290,13 @@ class RouteActivity : ComponentActivity() {
             )
         }
 
-        // 全屏搜索层（KSU `Scaffold(popupHost)` 的等价物）必须和页面在**同一个
-        // window**，所以只能挂在 NavDisplay 之上 —— 这正是 KSU popupHost 的位置。
-        // 有了它，展开/收起不涉及任何 window 增删，也就没有窗口动画。
-        val searchOverlayState = rememberKedgeSearchOverlayState()
+        // P4a：Kedge 的窗口级全屏搜索层已随 Kedge 搜索框一起下线（Mochi 搜索框
+        // 走页内展开，不再需要 window 级 popupHost）。展开/收起不再涉及 window 增删。
 
         val backStack = navViewModel.stack
-        // 返回手势去重：同一次 back 手势内 Nav3 可能回调 onBack 两次（见 onBack 处注释）。
-        val lastBackAt = androidx.compose.runtime.remember { java.util.concurrent.atomic.AtomicLong(0L) }
 
         SharedTransitionLayout {
             CompositionLocalProvider(
-                LocalKedgeSearchOverlayState provides searchOverlayState,
                 LocalNavController provides Navigator(backStack),
                 LocalSharedTransitionScope provides this,
                 LocalSettings provides settings,
@@ -346,18 +338,13 @@ class RouteActivity : ComponentActivity() {
                         //    否则会和这里形成两套 navigator（返回两次才退出）。
                         onBack = {
                             if (!PageBackInterceptor.intercept()) {
-                                // 一次返回手势只允许 pop 一页（P3-fix）：
-                                // Nav3 在预测性返回里会先回调 onBackCompleted、再走一次 onBack，
-                                // 之前这里直接弹栈 ⇒ 一次 back pop 两页，
-                                // 表现为「会话页按 back 跳过角色详情、直接回 launcher」。
-                                // 用 400ms 窗口把同一手势的重复回调折叠成一次；窗口外的返回不受影响。
-                                val now = android.os.SystemClock.uptimeMillis()
-                                if (now - lastBackAt.get() > 400) {
-                                    lastBackAt.set(now)
-                                    // 与 Navigator 的弹栈同一不变量：根页不清空栈，
-                                    // 清空会让 NavDisplay 无 entry、Activity 立刻 finish。
-                                    if (backStack.size > 1) navViewModel.popBackStack() else finish()
-                                }
+                                // 与 Navigator 的弹栈同一不变量：根页不清空栈 ——
+                                // 清空会让 NavDisplay 无 entry、Activity 立刻 finish
+                                // （表现为「一按 back 直回 launcher」）。
+                                // 注：5efde353a 曾加过 400ms 墙钟节流，P3V 定性 clearAndNavigate
+                                // 不是双 pop 后已删除；双回调根因至今**未实测**，不要再加回来
+                                // （节流会吞掉 400ms 内的第二次真实返回）。
+                                if (backStack.size > 1) navViewModel.popBackStack() else finish()
                             }
                         },
                         transitionSpec = {
@@ -688,9 +675,6 @@ class RouteActivity : ComponentActivity() {
                         }
                     }
 
-                    // 全屏搜索层：必须是这个 Box 的**最后一个**子项，才能盖在 NavDisplay 之上。
-                    // 折叠态它自身全透明、也没有 pointer input，不吃触摸，命中测试落到下面的页面。
-                    KedgeSearchOverlayLayer(searchOverlayState)
                 }
             }
         }

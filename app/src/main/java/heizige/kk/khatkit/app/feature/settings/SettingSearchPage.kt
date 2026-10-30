@@ -26,7 +26,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSearchBar
+import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import heizige.kk.kedge.components.KedgeIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -142,7 +142,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
         ) {
             // 与「提供商」设置页顶部同款：KSU 式药丸搜索框，点一下展开成铺满整屏的结果层。
             // 展开期间页面正文整个抽掉（KSU 的 SearchBox 同款），列表只在展开槽里出现一次。
-            KedgeSearchBar(
+            MochiSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.setting_page_search_search_engine),
@@ -309,8 +309,8 @@ private fun SearchServiceList(
  * （见 `BottomSheetScrollSourceGuardTest`）。高度取 maxHeight 的 68%，20 个引擎在小屏上
  * 也不会把「添加」按钮顶出屏幕外。
  *
- * 顶部是**同款** `KedgeSearchBar`（KSU 药丸搜索框，与提供商页/模型选择器/表情选择器同源）：
- * 20 个引擎要点着找，按名称过滤一下快得多。弹层里展开走 `KedgeSearchSheetHost`
+ * 顶部是**同款** `MochiSearchBar`（KSU 药丸搜索框，与提供商页/模型选择器/表情选择器同源）：
+ * 20 个引擎要点着找，按名称过滤一下快得多。弹层里展开走 `MochiSearchSheetHost`
  * （`PrimaryBottomSheet` 已经包好）→ 展开层画在弹层边界内，而不是窗口级全屏层。
  * 与 `EmojiPicker` / 模型选择器一致：展开期间正文整个抽掉，列表只在搜索框的展开槽里出现一次。
  */
@@ -410,7 +410,7 @@ internal fun AddProviderSheet(
         }
 
         Column(modifier = Modifier.fillMaxWidth()) {
-            KedgeSearchBar(
+            MochiSearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.setting_page_search_search_engine),
