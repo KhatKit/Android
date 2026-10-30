@@ -167,14 +167,6 @@ kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/Med
 kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaPickerWidgets.kt
 kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/components/MediaStickyHeader.kt
 kedge	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/KhatKitMediaPicker.kt
-miuix	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ai/ChatInput.kt
-miuix	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/nav/BackButton.kt
-miuix	app/src/main/java/heizige/kk/khatkit/app/feature/assistant/AssistantPage.kt
-miuix	app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatDrawer.kt
-miuix	app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatPage.kt
-miuix	app/src/main/java/heizige/kk/khatkit/app/feature/imggen/ImgGenPage.kt
-miuix	app/src/main/java/heizige/kk/khatkit/app/feature/onboarding/GreetingPage.kt
-miuix	mediapicker/src/main/java/heizige/kk/khatkit/mediapicker/ui/KhatKitMediaPicker.kt
 khromia	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ai/ChatAttachmentPicker.kt
 khromia	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ai/ChatInput.kt
 khromia	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ai/CompressContextDialog.kt

@@ -181,7 +181,7 @@ import heizige.kk.khatkit.app.core.ui.icons.tune
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
@@ -227,9 +227,9 @@ fun GreetingPage(onFinish: () -> Unit) {
     // windowInsetsPadding 负责，和这两条自定义栏的写法对齐）。
     // 之前用 MD3 Scaffold 只手动分了底色，Miuix 下滚动与 inset 仍是 MD3 那套。
     MochiPageScaffold(
-        // 顶栏/底栏已经按 isMiuixStyle() 分流；Scaffold 自身的底色默认取 MD3 的
+        // 顶栏/底栏已经按 false 分流；Scaffold 自身的底色默认取 MD3 的
         // background，Miuix 下会漏出 MD3 配色，所以这里显式给 Miuix 的 surface。
-        containerColor = if (isMiuixStyle()) {
+        containerColor = if (false) {
             MochiTheme.colorScheme.surface
         } else {
             MaterialTheme.colorScheme.background
@@ -309,9 +309,6 @@ private fun stepIcon(step: GreetingStep): ImageVector = when (step) {
 }
 
 @Composable
-private fun isMiuixStyle(): Boolean = LocalKedgeStyle.current == KedgeStyle.Miuix
-
-@Composable
 private fun greetingTitle(step: GreetingStep): String = when (step) {
     GreetingStep.Agreement -> stringResource(R.string.greeting_title_agreement)
     GreetingStep.Permissions -> stringResource(R.string.greeting_title_permissions)
@@ -349,7 +346,7 @@ private fun GreetingStepBadge(step: GreetingStep) {
 
 @Composable
 private fun GreetingTopAppBar(step: GreetingStep) {
-    if (isMiuixStyle()) {
+    if (false) {
         MochiTopAppBar(
             title = greetingTitle(step),
             subtitle = greetingSubtitle(step),
@@ -429,7 +426,7 @@ private fun GreetingBottomBar(
         label = "progress",
     )
 
-    if (isMiuixStyle()) {
+    if (false) {
         MochiSurface(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
@@ -1060,7 +1057,7 @@ private fun GreetingAiSetupScreen() {
                 }
             }
         }
-        if (isMiuixStyle()) {
+        if (false) {
             MochiModalBottomSheet(
                 show = true,
                 title = sheetTitle,

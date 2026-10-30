@@ -12,8 +12,8 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
-import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
+
+
 
 /**
  * 返回按钮，双风格：
@@ -31,15 +31,9 @@ fun BackButton(
 ) {
     val navController = LocalNavController.current
     val back = { onClick?.invoke() ?: navController.popBackStack() }
-    when (LocalKedgeStyle.current) {
-        KedgeStyle.Miuix -> MiuixIconButton(onClick = back, modifier = modifier) {
-            MiuixIcon(
-                imageVector = arrowBack,
-                contentDescription = stringResource(R.string.back),
-            )
-        }
-
-        KedgeStyle.MD3Exp -> FilledTonalIconButton(
+    // U1c：Miuix 分支已删，只剩 MD3 形态（返回行为不变，仍是 navController.popBackStack）。
+    run {
+        FilledTonalIconButton(
             onClick = back,
             modifier = modifier,
             shapes = IconButtonDefaults.shapes(),

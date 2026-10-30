@@ -46,7 +46,7 @@ fun BgEffectBackground(
     // Android 13 以下没有 RuntimeShader，直接退化成纯背景，不画流光。
     // 这里必须是「显式版本比较 + 提前 return」：BgEffectPainter 标了 @RequiresApi(33)，
     // lint 的 NewApi 只认同函数内的 SDK_INT 分支。
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
         Box(modifier = modifier, content = content)
         return
     }

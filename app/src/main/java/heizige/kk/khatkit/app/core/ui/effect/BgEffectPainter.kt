@@ -90,7 +90,7 @@ class BgEffectPainter {
 }
 
 
-/** miuix asBrush 的等价物：Android RuntimeShader -> Compose ShaderBrush。 */
+/** Android RuntimeShader -> Compose ShaderBrush 的最小包装（U1c 自写，替代原第三方扩展）。 */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 private class LocalShaderBrush(private val shader: android.graphics.RuntimeShader) :
     androidx.compose.ui.graphics.ShaderBrush() {

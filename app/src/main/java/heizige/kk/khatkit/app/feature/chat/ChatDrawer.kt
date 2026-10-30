@@ -124,7 +124,7 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+
 import heizige.kk.khatkit.uikit.mochi.MochiOverlayScaffold
 import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
 import heizige.kk.kedge.adaptive.KedgeBlurredBar
@@ -261,7 +261,7 @@ fun ChatDrawerContent(
         // 毛玻璃只有 Miuix 风格有；MD3Exp 下把 backdrop 置空，各层就退化成
         // 不透明底色，不会出现 MD3 主题上的半透明糊层。
         val blurEnabled = LocalKedgeEnableBlur.current &&
-            LocalKedgeStyle.current == KedgeStyle.Miuix
+            false
         val backdrop = rememberKedgeBlurBackdrop(blurEnabled)
 
         // 搜索展开进度：预测返回手势跟手收起。组合位置在 ModalDrawerSheet 内容里，

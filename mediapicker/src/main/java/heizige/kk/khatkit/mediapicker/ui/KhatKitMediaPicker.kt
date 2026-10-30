@@ -54,7 +54,7 @@ import heizige.kk.kedge.components.KedgeButton
 import heizige.kk.kedge.components.KedgeIconButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
 import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
@@ -123,7 +123,7 @@ fun KhatKitMediaPicker(
  */
 @Composable
 private fun barSurfaceColor(): Color = when (LocalKedgeStyle.current) {
-    KedgeStyle.Miuix -> MiuixTheme.colorScheme.surface
+    KedgeStyle.Miuix -> MaterialTheme.colorScheme.surface
     KedgeStyle.MD3Exp -> MaterialTheme.colorScheme.surfaceContainer
 }
 
