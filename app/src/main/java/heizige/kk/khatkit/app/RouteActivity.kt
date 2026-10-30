@@ -201,37 +201,15 @@ class RouteActivity : ComponentActivity() {
                 // IllegalStateException: The singleton image loader has already been created...
                 // 定义点唯一，放在 Application（KhatKitApp : SingletonImageLoader.Factory）。
                 // 详见 KhatKitApp.newImageLoader 的注释与 CoilImageLoaderSourceGuardTest。
-                val khatKitProvider = rememberAppEntryPoint().khatKitToolProvider()
-                // Miuix 主题只认这个深浅色，必须取应用内「颜色模式」的解析结果，
-                // 否则切浅色对 Miuix 不生效（KedgeTheme 默认按系统深浅色走）。
-                val khatKitDarkTheme = heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme()
+                // P3b：Kedge/Miuix 的「第二主题根」已删除（原来是
+                // uiStyle==MIUIX → KhatKitTheme(uikit) + ProvideKedgeBlur + MiuixListCardStyle 分支）。
+                // 现在运行期只有 MochiTheme 单树：颜色/字阶/形状/系统栏图标都由
+                // core/ui/theme/Theme.kt 的 MochiTheme 提供，页面不再按风格分叉。
                 val appContent: @Composable () -> Unit = {
                     AppRoutes()
                     AutomationInAppHost()
                 }
-                if (khatKitProvider.uiStyle == heizige.kk.khatkit.uikit.KhatKitUiStyle.MIUIX) {
-                    heizige.kk.khatkit.uikit.KhatKitTheme(
-                        style = khatKitProvider.uiStyle,
-                        darkTheme = khatKitDarkTheme,
-                    ) {
-                        // 根部建立一次毛玻璃层（照搬 KernelSU），全 app 顶栏共用，
-                        // 因此每个页面无需各自接线。开关由 khatKitProvider.enableBlur 控制。
-                        heizige.kk.kedge.adaptive.ProvideKedgeBlur(
-                            enabled = khatKitProvider.enableBlur
-                        ) {
-                            // Miuix 下列表卡片走「同组合在一起」的形态：组内不留间距，
-                            // 首项只圆上边、末项只圆下边、中间项直角。
-                            androidx.compose.runtime.CompositionLocalProvider(
-                                heizige.kk.khatkit.app.core.ui.theme.LocalListCardStyle provides
-                                    heizige.kk.khatkit.app.core.ui.theme.MiuixListCardStyle,
-                            ) {
-                                appContent()
-                            }
-                        }
-                    }
-                } else {
-                    appContent()
-                }
+                appContent()
                 }
                 heizige.kk.khromia.components.GlobalToastHost()
             }
@@ -356,8 +334,14 @@ class RouteActivity : ComponentActivity() {
                             rememberViewModelStoreNavEntryDecorator(),
                         ),
                         modifier = Modifier.fillMaxSize(),
-                        // 页内浮层（如 ChatInput 的全屏编辑器）登记的返回拦截先跑：
-                        // 浮层自己消费掉返回时，不再 pop 导航栈。见 PageBackInterceptor。
+                        // ── 返回键：全进程唯一接管点就在这一处 ──────────────────────
+                        // 边界（P3b 定死，别再新增第二个）：
+                        //  · 系统 back / 预测性返回手势 → NavDisplay.onBack（本 lambda）；
+                        //  · 页内浮层（如 ChatInput 全屏编辑器）先经 PageBackInterceptor 消费，
+                        //    它只回答「这次返回我要不要」，**不自己 pop 栈**；
+                        //  · 浮层消费 → popBackStack 由本处统一执行；
+                        //  · 不要再用 BackHandler / PredictiveBackHandler 在页面里抢返回，
+                        //    否则会和这里形成两套 navigator（返回两次才退出）。
                         onBack = {
                             if (!PageBackInterceptor.intercept()) {
                                 navViewModel.popBackStack()
