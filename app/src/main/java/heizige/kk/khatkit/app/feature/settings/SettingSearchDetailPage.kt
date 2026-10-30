@@ -24,9 +24,9 @@ import heizige.kk.khromia.components.OptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -114,7 +114,7 @@ fun SettingSearchDetailPage(
         scrollBehavior = scrollBehavior,
         actions = {
             if (settings.searchServices.size > 1) {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         // 走统一入口：删掉的服务若正好是「当前使用的搜索服务」，选中下标要跟着重绑。
                         removeSearchRepository(vm = vm, settings = settings, service = service)
@@ -158,7 +158,7 @@ fun SettingSearchDetailPage(
  * 「服务参数」分组卡片：标题 + 参数表单 + 能力说明，一整组分段卡片。
  *
  * 改造前是 `MochiCard { Column(padding 16) { 标题; SearchOptionsEditor; 说明 } }`：
- * 外壳手搓一张卡，里面的参数行（`KedgeFormRow` → `FormItem` → `KedgeOptionItem`）在组外
+ * 外壳手搓一张卡，里面的参数行（`KedgeFormRow` → `FormItem` → `MochiOptionItem`）在组外
  * 各画一张四角全圆的卡 —— 卡里套卡，Miuix 下尤其明显（外壳是 MD3 的 `MochiCard`，
  * 行是 Miuix 的 `MochiCard` 行）。现在外壳交给 `KedgeFormCard`（`InlineCardGroup`）：
  * 底色与圆角由组统一出，组内行只留内侧小圆角，首项上边、末项下边由整组裁切给出，
@@ -300,7 +300,7 @@ internal fun SearchTestSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.weight(1f),
@@ -309,7 +309,7 @@ internal fun SearchTestSection(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         if (query.isNotBlank() && !testing) {
                             testing = true

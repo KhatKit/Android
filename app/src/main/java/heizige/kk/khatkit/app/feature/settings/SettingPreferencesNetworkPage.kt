@@ -20,10 +20,10 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaff
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -181,7 +181,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = proxyUrlDraft,
                         onValueChange = { proxyUrlDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -205,7 +205,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = proxyUsernameDraft,
                         onValueChange = { proxyUsernameDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -213,7 +213,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = proxyPasswordDraft,
                         onValueChange = { proxyPasswordDraft = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -224,7 +224,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                             PasswordVisualTransformation()
                         },
                         trailingIcon = {
-                            KedgeIconButton(
+                            MochiIconButton(
                                 onClick = { proxyPasswordVisible = !proxyPasswordVisible },
                                 shapes = IconButtonDefaults.shapes(),
                             ) {
@@ -242,7 +242,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = ::resetProxy,
                         modifier = Modifier.align(Alignment.End),
                         enabled = proxyUrlDraft.isNotEmpty() ||
@@ -255,7 +255,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         saveProxy()
                         proxyDialogVisible = false
@@ -321,7 +321,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                 horizontalAlignment = Alignment.End,
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                KedgeOutlinedTextFieldWithSlots(
+                                MochiOutlinedTextFieldWithSlots(
                                     value = userAgent,
                                     onValueChange = ::updateUserAgent,
                                     modifier = Modifier.fillMaxWidth(),
@@ -340,7 +340,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                     singleLine = true,
                                     shape = RoundedCornerShape(16.dp)
                                 )
-                                KedgeTextButton(
+                                MochiTextButton(
                                     onClick = { updateUserAgent("") },
                                     enabled = userAgent.isNotEmpty(),
                                     shapes = ButtonDefaults.shapes(),
@@ -390,7 +390,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                             Text(stringResource(R.string.setting_provider_page_test_connection))
                         },
                         trailingContent = {
-                            KedgeTextButton(
+                            MochiTextButton(
                                 onClick = ::testProxy,
                                 enabled = proxyUrl.toProxyOrNull() != null && !proxyTesting,
                                 shapes = ButtonDefaults.shapes(),

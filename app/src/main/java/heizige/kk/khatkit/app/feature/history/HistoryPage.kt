@@ -58,9 +58,9 @@ import heizige.kk.kedge.overlays.KedgeSwipeToDismissDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissState
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissValue
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
@@ -79,7 +79,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
         KedgeSettingsPageScaffold(
             title = stringResource(R.string.history_page_title),
             actions = {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         navController.navigate(Screen.MessageSearch)
                     }
@@ -89,7 +89,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
                         contentDescription = stringResource(R.string.history_page_search_messages)
                     )
                 }
-                KedgeIconButton(onClick = { showDeleteAllDialog = true }) {
+                MochiIconButton(onClick = { showDeleteAllDialog = true }) {
                     Icon(delete, contentDescription = stringResource(R.string.history_page_delete_all))
                 }
             },
@@ -139,7 +139,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
             title = { Text(stringResource(R.string.history_page_delete_all_conversations)) },
             text = { Text(stringResource(R.string.history_page_delete_all_confirmation)) },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         vm.deleteAllConversations()
                         showDeleteAllDialog = false
@@ -149,7 +149,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showDeleteAllDialog = false }) {
+                MochiTextButton(onClick = { showDeleteAllDialog = false }) {
                     Text(stringResource(R.string.history_page_cancel))
                 }
             }
@@ -254,7 +254,7 @@ private fun ConversationItem(
                 Text(conversation.createAt.toLocalDateTime())
             },
             trailingContent = {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = onTogglePin
                 ) {
                     Icon(

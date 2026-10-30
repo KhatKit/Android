@@ -35,11 +35,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeTextTooltipBox
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
@@ -122,16 +122,16 @@ internal fun RoleMemoryPanel(
         title = "记忆",
         scrollBehavior = scrollBehavior,
         navigationIcon = {
-            KedgeIconButton(onClick = {
+            MochiIconButton(onClick = {
                 if (dirty) confirmExit = true else navigator.popBackStack()
             }, enabled = !busy) { Icon(arrowBack, "返回") }
         },
         actions = {
                 KedgeTextTooltipBox("新建主题笔记") {
-                    KedgeIconButton(onClick = { newTopic = "" }, enabled = !busy) { Icon(add, "新建主题笔记") }
+                    MochiIconButton(onClick = { newTopic = "" }, enabled = !busy) { Icon(add, "新建主题笔记") }
                 }
                 KedgeTextTooltipBox("打开记忆文件夹") {
-                    KedgeIconButton(onClick = {
+                    MochiIconButton(onClick = {
                         val uri = DocumentsContract.buildDocumentUri(context.packageName + ".memory.documents", assistant.id.toString())
                         val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
                             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -154,27 +154,27 @@ internal fun RoleMemoryPanel(
                 .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // 两个开关成一组：行内容、底色、按压反馈交给 KedgeOptionItem，
+            // 两个开关成一组：行内容、底色、按压反馈交给 MochiOptionItem，
             // 组内圆角与项间距由 listCardStyle() 统一（Miuix 下 gap=0 贴成一整张卡）。
             Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = { vm.update(assistant.copy(enableMemory = !assistant.enableMemory, useGlobalMemory = false)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = cards.groupItemShape(isFirst = true, isLast = false),
                     titleContent = { Text("角色记忆", style = KedgeTextStyles.body()) },
                     trailingContent = {
-                        KedgeSwitch(checked = assistant.enableMemory, onCheckedChange = {
+                        MochiSwitch(checked = assistant.enableMemory, onCheckedChange = {
                             vm.update(assistant.copy(enableMemory = it, useGlobalMemory = false))
                         })
                     },
                 )
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = { vm.update(assistant.copy(autoExtractMemory = !assistant.autoExtractMemory)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = cards.groupItemShape(isFirst = false, isLast = true),
                     titleContent = { Text("自动整理", style = KedgeTextStyles.body()) },
                     trailingContent = {
-                        KedgeSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
+                        MochiSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
                             vm.update(assistant.copy(autoExtractMemory = it))
                         })
                     },
@@ -183,7 +183,7 @@ internal fun RoleMemoryPanel(
             // 文件操作行：整行点按 = 打开文件下拉，尾部放重载/保存两个图标按钮。
             Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
                 Box {
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = { if (!busy) showFiles = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = cards.groupItemShape(isFirst = true, isLast = true),
@@ -198,14 +198,14 @@ internal fun RoleMemoryPanel(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(keyboardArrowDown, "选择记忆文件", Modifier.size(18.dp))
                                 KedgeTextTooltipBox("重新加载") {
-                                    KedgeIconButton(onClick = {
+                                    MochiIconButton(onClick = {
                                         val path = document?.path ?: "MEMORY.md"
                                         if (dirty) pendingOpen = path
                                         else scope.launch { files = vm.roleMemoryFiles(); open(path) }
                                     }, enabled = !busy) { Icon(refresh, "重新加载") }
                                 }
                                 KedgeTextTooltipBox("保存") {
-                                    KedgeIconButton(onClick = { save() }, enabled = !busy && dirty) { Icon(saveIcon, "保存") }
+                                    MochiIconButton(onClick = { save() }, enabled = !busy && dirty) { Icon(saveIcon, "保存") }
                                 }
                             }
                         },
@@ -239,7 +239,7 @@ internal fun RoleMemoryPanel(
                 }
                 val editorStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
                 CompositionLocalProvider(LocalTextStyle provides editorStyle) {
-                    KedgeTextFieldWithSlots(
+                    MochiTextFieldWithSlots(
                         value = draft, onValueChange = { draft = it },
                         modifier = Modifier.fillMaxWidth(), textStyle = editorStyle,
                         minLines = 12, maxLines = 22, enabled = !busy, shape = RoundedCornerShape(8.dp),
@@ -261,22 +261,22 @@ internal fun RoleMemoryPanel(
         AppAlertDialog(
             onDismissRequest = { confirmExit = false },
             title = { Text("放弃未保存的更改？") },
-            confirmButton = { KedgeTextButton(onClick = {
+            confirmButton = { MochiTextButton(onClick = {
                 confirmExit = false
                 navigator.popBackStack()
             }) { Text("放弃并返回") } },
-            dismissButton = { KedgeTextButton(onClick = { confirmExit = false }) { Text("继续编辑") } },
+            dismissButton = { MochiTextButton(onClick = { confirmExit = false }) { Text("继续编辑") } },
         )
     }
     pendingOpen?.let { target ->
         AppAlertDialog(
             onDismissRequest = { pendingOpen = null },
             title = { Text("放弃未保存的更改？") },
-            confirmButton = { KedgeTextButton(onClick = {
+            confirmButton = { MochiTextButton(onClick = {
                 pendingOpen = null
                 scope.launch { open(target) }
             }) { Text("放弃并打开") } },
-            dismissButton = { KedgeTextButton(onClick = { pendingOpen = null }) { Text("取消") } },
+            dismissButton = { MochiTextButton(onClick = { pendingOpen = null }) { Text("取消") } },
         )
     }
     conflict?.let { latest ->
@@ -289,24 +289,24 @@ internal fun RoleMemoryPanel(
                     Text(latest.content, style = KedgeTextStyles.body())
                 }
             },
-            confirmButton = { KedgeTextButton(onClick = {
+            confirmButton = { MochiTextButton(onClick = {
                 document = latest; draft = latest.content; conflict = null
             }) { Text("重新加载") } },
-            dismissButton = { KedgeTextButton(onClick = { save(overwrite = true) }, enabled = !busy) { Text("覆盖磁盘版本") } },
+            dismissButton = { MochiTextButton(onClick = { save(overwrite = true) }, enabled = !busy) { Text("覆盖磁盘版本") } },
         )
     }
     newTopic?.let { name ->
         AppAlertDialog(
             onDismissRequest = { newTopic = null },
             title = { Text("新建主题笔记") },
-            text = { KedgeTextFieldWithSlots(value = name, onValueChange = { newTopic = it },
+            text = { MochiTextFieldWithSlots(value = name, onValueChange = { newTopic = it },
                 singleLine = true, label = { Text("文件名") }) },
-            confirmButton = { KedgeTextButton(onClick = {
+            confirmButton = { MochiTextButton(onClick = {
                 val path = "topics/$name.md"
                 newTopic = null
                 if (document?.content != draft) pendingOpen = path else scope.launch { open(path) }
             }, enabled = Regex("[A-Za-z0-9_-]{1,80}").matches(name)) { Text("创建") } },
-            dismissButton = { KedgeTextButton(onClick = { newTopic = null }) { Text("取消") } },
+            dismissButton = { MochiTextButton(onClick = { newTopic = null }) { Text("取消") } },
         )
     }
 }

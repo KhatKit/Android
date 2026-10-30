@@ -21,8 +21,8 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,7 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,7 +59,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -74,7 +74,7 @@ internal fun TavilyOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -112,7 +112,7 @@ internal fun ExaOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -133,7 +133,7 @@ internal fun ZhipuOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -150,7 +150,7 @@ internal fun DeepSeekOptions(
     onUpdateOptions: (SearchOptions.DeepSeekOptions) -> Unit
 ) {
     KedgeFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = { onUpdateOptions(options.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -165,7 +165,7 @@ internal fun DoubaoOptions(
     onUpdateOptions: (SearchOptions.DoubaoOptions) -> Unit
 ) {
     KedgeFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = { onUpdateOptions(options.copy(apiKey = it)) },
             modifier = Modifier.fillMaxWidth(),
@@ -197,7 +197,7 @@ internal fun SearXNGOptions(
             Text(stringResource(R.string.search_detail_api_url))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.url,
             onValueChange = {
                 onUpdateOptions(options.copy(url = it))
@@ -212,7 +212,7 @@ internal fun SearXNGOptions(
             Text(stringResource(R.string.search_detail_engines))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.engines,
             onValueChange = {
                 onUpdateOptions(options.copy(engines = it))
@@ -227,7 +227,7 @@ internal fun SearXNGOptions(
             Text(stringResource(R.string.search_detail_language))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.language,
             onValueChange = {
                 onUpdateOptions(options.copy(language = it))
@@ -242,7 +242,7 @@ internal fun SearXNGOptions(
             Text(stringResource(R.string.search_detail_username))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.username,
             onValueChange = {
                 onUpdateOptions(options.copy(username = it))
@@ -257,7 +257,7 @@ internal fun SearXNGOptions(
             Text(stringResource(R.string.search_detail_password))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.password,
             onValueChange = {
                 onUpdateOptions(options.copy(password = it))
@@ -278,7 +278,7 @@ internal fun SearchLinkUpOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -316,7 +316,7 @@ internal fun BraveOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -337,7 +337,7 @@ internal fun SerperOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -358,7 +358,7 @@ internal fun MetasoOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -379,7 +379,7 @@ internal fun OllamaOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -400,7 +400,7 @@ internal fun PerplexityOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -415,7 +415,7 @@ internal fun PerplexityOptions(
             Text(stringResource(R.string.search_detail_max_tokens))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.maxTokens?.takeIf { it > 0 }?.toString() ?: "",
             onValueChange = { value ->
                 onUpdateOptions(options.copy(maxTokens = value.toIntOrNull()))
@@ -431,7 +431,7 @@ internal fun PerplexityOptions(
             Text(stringResource(R.string.search_detail_max_tokens_per_page))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.maxTokensPerPage?.takeIf { it > 0 }?.toString() ?: "",
             onValueChange = { value ->
                 onUpdateOptions(options.copy(maxTokensPerPage = value.toIntOrNull()))
@@ -453,7 +453,7 @@ internal fun FirecrawlOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -474,7 +474,7 @@ internal fun JinaOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -489,7 +489,7 @@ internal fun JinaOptions(
             Text(stringResource(R.string.search_detail_search_url))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.searchUrl,
             onValueChange = {
                 onUpdateOptions(options.copy(searchUrl = it.trim()))
@@ -505,7 +505,7 @@ internal fun JinaOptions(
             Text(stringResource(R.string.search_detail_scrape_url))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.scrapeUrl,
             onValueChange = {
                 onUpdateOptions(options.copy(scrapeUrl = it.trim()))
@@ -527,7 +527,7 @@ internal fun BochaOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -537,7 +537,7 @@ internal fun BochaOptions(
         )
     }
 
-    KedgeSwitchFormRow(
+    MochiSwitchFormRow(
         checked = options.summary,
         onCheckedChange = { checked ->
             onUpdateOptions(options.copy(summary = checked))
@@ -561,7 +561,7 @@ internal fun KhatKitOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -599,7 +599,7 @@ internal fun TinyfishOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -620,7 +620,7 @@ internal fun GrokOptions(
             Text(stringResource(R.string.search_detail_api_key))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.apiKey,
             onValueChange = {
                 onUpdateOptions(options.copy(apiKey = it))
@@ -635,7 +635,7 @@ internal fun GrokOptions(
             Text(stringResource(R.string.search_detail_model))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.model,
             onValueChange = {
                 onUpdateOptions(options.copy(model = it))
@@ -650,7 +650,7 @@ internal fun GrokOptions(
             Text(stringResource(R.string.search_detail_custom_url))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.customUrl,
             onValueChange = {
                 onUpdateOptions(options.copy(customUrl = it))
@@ -665,7 +665,7 @@ internal fun GrokOptions(
             Text(stringResource(R.string.search_detail_system_prompt))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.systemPrompt,
             onValueChange = {
                 onUpdateOptions(options.copy(systemPrompt = it))
@@ -687,7 +687,7 @@ internal fun CustomJsOptions(
             Text(stringResource(R.string.search_detail_name))
         }
     ) {
-        KedgeTextField(
+        MochiTextField(
             value = options.name,
             onValueChange = {
                 onUpdateOptions(options.copy(name = it))
@@ -706,7 +706,7 @@ internal fun CustomJsOptions(
             Text(stringResource(R.string.search_detail_search_script))
         }
     ) {
-        KedgeOutlinedTextField(
+        MochiOutlinedTextField(
             value = options.searchScript,
             onValueChange = {
                 onUpdateOptions(options.copy(searchScript = it))
@@ -732,7 +732,7 @@ internal fun CustomJsOptions(
             Text(stringResource(R.string.search_detail_scrape_script_desc))
         }
     ) {
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = options.scrapeScript,
             onValueChange = {
                 onUpdateOptions(options.copy(scrapeScript = it))

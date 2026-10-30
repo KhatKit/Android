@@ -73,8 +73,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -735,14 +735,14 @@ private fun ApprovalButtonGroup(
 ) {
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            KedgeIconButton(onClick = onDeny, modifier = Modifier.size(32.dp)) {
+            MochiIconButton(onClick = onDeny, modifier = Modifier.size(32.dp)) {
                 Icon(close, "拒绝", Modifier.size(16.dp))
             }
             Box {
                 var expanded by remember { mutableStateOf(false) }
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = onApprove,
-                    variant = KedgeIconButtonVariant.Filled,
+                    variant = MochiIconButtonVariant.Filled,
                     modifier = Modifier.size(32.dp),
                 ) { Icon(check, "允许", Modifier.size(16.dp)) }
                 Box(Modifier.matchParentSize().combinedClickable(

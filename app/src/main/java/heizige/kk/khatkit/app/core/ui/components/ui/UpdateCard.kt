@@ -17,7 +17,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -97,7 +97,7 @@ fun UpdateCard(vm: ChatViewModel) {
                             modifier = Modifier.weight(1f)
                         )
                         if (!info.forceUpdate) {
-                            KedgeIconButton(onClick = { dismissed = true }, shapes = IconButtonDefaults.shapes()) {
+                            MochiIconButton(onClick = { dismissed = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = close,
                                     contentDescription = stringResource(R.string.update_card_close),

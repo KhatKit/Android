@@ -22,14 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeRadioButton
-import heizige.kk.kedge.components.KedgeSlider
-import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.ui.UiSheetOptions
@@ -137,7 +137,7 @@ private fun FormContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                KedgeTextButton(onClick = onCancel) {
+                MochiTextButton(onClick = onCancel) {
                     Text(stringResource(R.string.khatkit_form_cancel))
                 }
             }
@@ -185,7 +185,7 @@ internal fun FormWidget(
         "text", "markdown" -> Text(label.ifBlank { item["value"]?.toString().orEmpty() })
         "divider" -> MochiHorizontalDivider()
 
-        "input" -> KedgeOutlinedTextField(
+        "input" -> MochiOutlinedTextField(
             value = values[id]?.toString().orEmpty(),
             onValueChange = { values[id] = it },
             label = label,
@@ -195,7 +195,7 @@ internal fun FormWidget(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        "number" -> KedgeOutlinedTextField(
+        "number" -> MochiOutlinedTextField(
             value = values[id]?.toString().orEmpty(),
             onValueChange = { values[id] = it.toDoubleOrNull() ?: it },
             label = label,
@@ -205,14 +205,14 @@ internal fun FormWidget(
         )
 
         "switch" -> FormRow(label) {
-            KedgeSwitch(
+            MochiSwitch(
                 checked = values[id] as? Boolean ?: false,
                 onCheckedChange = { values[id] = it },
             )
         }
 
         "checkbox" -> FormRow(label) {
-            KedgeCheckbox(checked = values[id] as? Boolean ?: false, onCheckedChange = { values[id] = it })
+            MochiCheckbox(checked = values[id] as? Boolean ?: false, onCheckedChange = { values[id] = it })
         }
 
         "slider" -> {
@@ -222,7 +222,7 @@ internal fun FormWidget(
                 ?: (item["default"] as? Number)?.toFloat() ?: min
             Column {
                 Text("$label: ${current.toInt()}")
-                KedgeSlider(
+                MochiSlider(
                     value = current,
                     onValueChange = { value ->
                         val step = (item["step"] as? Number)?.toFloat()
@@ -241,7 +241,7 @@ internal fun FormWidget(
                 Text(label)
                 options.forEach { option ->
                     FormRow(option) {
-                        KedgeRadioButton(
+                        MochiRadioButton(
                             selected = values[id] == option,
                             onClick = { values[id] = option },
                         )
@@ -254,7 +254,7 @@ internal fun FormWidget(
             val kind = if (type == "dir_picker") FormPickKind.DIR else FormPickKind.FILE
             val request = pickerHost?.let { FormPickRequest.from(item, kind) }
             val field: @Composable () -> Unit = {
-                KedgeOutlinedTextField(
+                MochiOutlinedTextField(
                     value = values[id]?.toString().orEmpty(),
                     onValueChange = { values[id] = it },
                     label = stringResource(R.string.khatkit_form_path_label, label),
@@ -271,7 +271,7 @@ internal fun FormWidget(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(modifier = Modifier.weight(1f)) { field() }
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = { pickerHost.request(request) },
                     ) {
                         Text(stringResource(R.string.khatkit_form_browse))
@@ -290,7 +290,7 @@ internal fun FormWidget(
             )
         }
 
-        "button" -> KedgeButton(
+        "button" -> MochiButton(
             onClick = { },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -313,7 +313,7 @@ internal fun FormWidget(
         }
 
         else -> {
-            KedgeCheckbox(checked = false, onCheckedChange = null)
+            MochiCheckbox(checked = false, onCheckedChange = null)
             Text(stringResource(R.string.khatkit_form_widget_unsupported, label, type))
         }
     }

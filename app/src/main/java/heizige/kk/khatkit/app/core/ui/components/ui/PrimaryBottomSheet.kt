@@ -13,7 +13,7 @@ import heizige.kk.khromia.components.PrimaryBottomSheet as KhromiaPrimaryBottomS
 /**
  * 项目统一的底部弹层，**按风格分流**，签名对齐 Khromia 的 `PrimaryBottomSheet`。
  *
- * - Miuix：[KedgePrimaryBottomSheet]（Miuix WindowBottomSheet + KedgeButton 按钮行）
+ * - Miuix：[KedgePrimaryBottomSheet]（Miuix WindowBottomSheet + MochiButton 按钮行）
  * - MD3Exp：Khromia 原组件，行为与视觉不变
  *
  * 为什么不改 Khromia：Khromia 不依赖 Kedge，而 Kedge 已依赖 Khromia —— 在 Khromia 里

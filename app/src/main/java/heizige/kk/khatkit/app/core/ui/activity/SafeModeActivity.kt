@@ -35,8 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,7 +112,7 @@ class SafeModeActivity : ComponentActivity() {
                             style = KedgeTextStyles.body(),
                         )
 
-                        KedgeButton(
+                        MochiButton(
                             onClick = { showAssistantPicker = true },
                             modifier = Modifier.fillMaxWidth(),
                             shapes = ButtonDefaults.shapes(),
@@ -120,7 +120,7 @@ class SafeModeActivity : ComponentActivity() {
                             Text(stringResource(R.string.safe_mode_switch_assistant))
                         }
 
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 startActivity(Intent(this@SafeModeActivity, RouteActivity::class.java))
                                 finish()
@@ -140,7 +140,7 @@ class SafeModeActivity : ComponentActivity() {
                                     text = stringResource(R.string.safe_mode_crash_report),
                                     style = KedgeTextStyles.title(),
                                 )
-                                KedgeButton(
+                                MochiButton(
                                     onClick = {
                                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         cm.setPrimaryClip(ClipData.newPlainText("crash", stackTrace))
@@ -239,10 +239,10 @@ private fun AssistantPickerSheet(
                 }
             }
 
-            // 助手单选行 = 一张 option item（底色的内边距/按压反馈都交给 KedgeOptionItem），
+            // 助手单选行 = 一张 option item（底色的内边距/按压反馈都交给 MochiOptionItem），
             // 圆角与同页其他行同源：listCardStyle().indexedShape(index, count)，不再直写
             // MaterialTheme.shapes.large。选中态沿用改动前的主色容器 + onPrimaryContainer
-            // 字色（KedgeOptionItem 只有 backgroundColor 槽，字色在 titleContent 里显式给），
+            // 字色（MochiOptionItem 只有 backgroundColor 槽，字色在 titleContent 里显式给），
             // 行尾再补一个勾作为选中标记。
             val cards = listCardStyle()
             LazyColumn(
@@ -251,7 +251,7 @@ private fun AssistantPickerSheet(
             ) {
                 itemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->
                     val checked = assistant.id == settings.assistantId
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = {
                             onAssistantSelected(assistant.id)
                             dismiss()

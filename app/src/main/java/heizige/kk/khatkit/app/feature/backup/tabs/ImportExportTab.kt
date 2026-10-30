@@ -16,7 +16,7 @@ import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -337,7 +337,7 @@ fun ImportExportTab(
             title = { Text(stringResource(R.string.backup_page_local_backup_import)) },
             text = { Text(stringResource(R.string.backup_page_import_overwrite_confirm)) },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         showImportConfirmDialog = false
                         importType = "local"
@@ -349,7 +349,7 @@ fun ImportExportTab(
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showImportConfirmDialog = false }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { showImportConfirmDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },

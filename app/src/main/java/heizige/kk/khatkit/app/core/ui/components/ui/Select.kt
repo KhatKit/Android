@@ -21,9 +21,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -177,7 +177,7 @@ fun <T> SelectTextField(
     val density = LocalDensity.current
 
     Box(modifier = modifier) {
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = value,
             onValueChange = onValueChange,
             readOnly = readOnly,
@@ -187,7 +187,7 @@ fun <T> SelectTextField(
                 .fillMaxWidth()
                 .onGloballyPositioned { anchorWidth = it.size.width },
             trailingIcon = {
-                KedgeIconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
                         contentDescription = "expand"

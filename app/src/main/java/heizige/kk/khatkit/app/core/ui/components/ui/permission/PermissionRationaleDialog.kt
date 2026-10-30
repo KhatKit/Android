@@ -19,7 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,12 +98,12 @@ internal fun PermissionRationaleDialog(
             }
         },
         dismissButton = {
-            KedgeButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
+            MochiButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.cancel))
             }
         },
         confirmButton = {
-            KedgeButton(onClick = onProceed, shapes = ButtonDefaults.shapes()) {
+            MochiButton(onClick = onProceed, shapes = ButtonDefaults.shapes()) {
                 Text(
                     stringResource(
                         if (hasPermanentlyDenied) {

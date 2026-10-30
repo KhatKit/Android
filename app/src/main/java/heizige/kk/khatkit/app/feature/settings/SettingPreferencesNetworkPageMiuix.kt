@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +27,7 @@ import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MiuixSettingsPage
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceSwitch
-import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.miuixGroup
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
@@ -48,7 +48,7 @@ import heizige.kk.khatkit.app.feature.settings.data.rememberProxyTestState
 /**
  * 网络偏好页的 Miuix 风格版。
  *
- * UA 输入框用 Kedge 的双风格 [KedgeTextField]，
+ * UA 输入框用 Kedge 的双风格 [MochiTextField]，
  * 代理配置沿用原有弹窗（内部是 M3 输入框，Miuix 无等价的多行错误态表单）。
  */
 @Composable
@@ -75,7 +75,7 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
             title = { Text(stringResource(R.string.setting_page_preferences_network_proxy)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    KedgeTextField(
+                    MochiTextField(
                         value = proxy.draftUrl,
                         onValueChange = proxy.setDraftUrl,
                         modifier = Modifier.fillMaxWidth(),
@@ -93,14 +93,14 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                         ),
                         singleLine = true,
                     )
-                    KedgeTextField(
+                    MochiTextField(
                         value = proxy.draftUsername,
                         onValueChange = proxy.setDraftUsername,
                         modifier = Modifier.fillMaxWidth(),
                         label = stringResource(R.string.backup_page_username),
                         singleLine = true,
                     )
-                    KedgeTextField(
+                    MochiTextField(
                         value = proxy.draftPassword,
                         onValueChange = proxy.setDraftPassword,
                         modifier = Modifier.fillMaxWidth(),
@@ -108,7 +108,7 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                         singleLine = true,
                     )
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = proxy::resetDraft,
                         enabled = proxy.draftDirty,
                     ) {
@@ -117,7 +117,7 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         val (url, user, pass) = proxy.commit()
                         vm.updateSettings(
@@ -160,7 +160,7 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         }
 
         miuixGroup {
-            KedgeTextField(
+            MochiTextField(
                 label = stringResource(R.string.setting_page_preferences_network_user_agent),
                 value = userAgent,
                 onValueChange = ::updateUserAgent,
@@ -172,7 +172,7 @@ fun SettingPreferencesNetworkPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { updateUserAgent("") },
                 enabled = userAgent.isNotEmpty(),
             ) {

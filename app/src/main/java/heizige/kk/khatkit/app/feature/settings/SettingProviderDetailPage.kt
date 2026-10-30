@@ -42,8 +42,8 @@ import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -190,7 +190,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
                 actions = {
                     val shareSheetState = rememberShareSheetState()
                     ShareSheet(shareSheetState)
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = {
                             shareSheetState.show(provider)
                         },
@@ -358,7 +358,7 @@ internal fun SettingProviderConfigPage(
             Spacer(Modifier.weight(1f))
 
             if (!internalProvider.builtIn) {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         showDeleteDialog = true
                     },
@@ -368,7 +368,7 @@ internal fun SettingProviderConfigPage(
                 }
             }
 
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = {
                     // 立即落库：不再是「只改本地草稿」
                     commit(internalProvider.resetBaseUrlToDefault())
@@ -404,12 +404,12 @@ internal fun SettingProviderConfigPage(
                 Text(stringResource(R.string.setting_provider_page_delete_dialog_text))
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()

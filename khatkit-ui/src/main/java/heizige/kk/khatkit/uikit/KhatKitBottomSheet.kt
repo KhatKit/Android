@@ -58,8 +58,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
@@ -296,7 +296,7 @@ fun KhatKitBottomSheet(
                             backdrop = null as LayerBackdrop?,
                             actions = {
                                 options.topActions.forEach { item ->
-                                    KedgeIconButton(
+                                    MochiIconButton(
                                         onClick = { onNavigate(item.event) },
                                         shapes = IconButtonDefaults.shapes(),
                                     ) {
@@ -413,7 +413,7 @@ internal fun SheetTopBar(
                 }
                 if (overflowIcon != null && overflowActions.isNotEmpty()) {
                     var expanded by remember { mutableStateOf(false) }
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = { expanded = true },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -439,7 +439,7 @@ internal fun SheetTopBar(
                     }
                 }
                 headerActions.forEach { action ->
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = { onAction(action) },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -510,7 +510,7 @@ internal fun SheetCloseBar(dismissText: String?, onDismiss: (() -> Unit)? = null
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
     ) {
-        KedgeButton(
+        MochiButton(
             onClick = { dismiss() },
             shapes = ButtonDefaults.shapes(),
         ) {
@@ -554,7 +554,7 @@ private fun SheetBottomBar(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        KedgeButton(
+        MochiButton(
             onClick = { onConfirm?.invoke() ?: onDismiss() },
             shapes = ButtonDefaults.shapes(),
         ) {

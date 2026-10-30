@@ -26,9 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -88,7 +88,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
         title = "创建工作流",
         navigationIcon = { BackButton() },
         actions = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = {
                     val saved = currentDefinition(editing?.id, name, nodes.toList())
                     WorkflowPreferencesRepository.save(context, saved)
@@ -115,7 +115,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("工作流名称") },
@@ -151,7 +151,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 Text("添加模块", style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
             }
             item {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         val sample = WorkflowSamples.notificationClassify()
                         name = sample.name
@@ -203,7 +203,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 )
             }
             item {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = classification,
                     onValueChange = { classification = it },
                     label = { Text("预览分类结果") },
@@ -214,7 +214,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 )
             }
             item {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         val graph = WorkflowLegacy.fromStored(currentDefinition(editing?.id, name, nodes.toList()))
                         val execution = WorkflowEngine.execute(
@@ -246,7 +246,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            KedgeTextButton(onClick = {
+                            MochiTextButton(onClick = {
                                 expandedStep = if (expandedStep == index) null else index
                             }) {
                                 Text("${index + 1}. ${step.nodeId} · ${step.kind} · ${step.status}")
@@ -315,12 +315,12 @@ private fun WorkflowNodeCard(
                     Text(node.title, style = KedgeTextStyles.title(), fontWeight = FontWeight.SemiBold)
                     Text("${node.category} · ${node.detail}", style = KedgeTextStyles.footnoteSmall())
                 }
-                KedgeSwitch(checked = node.enabled, onCheckedChange = { onChange(node.copy(enabled = it)) })
+                MochiSwitch(checked = node.enabled, onCheckedChange = { onChange(node.copy(enabled = it)) })
             }
-            KedgeTextButton(onClick = onExpand) { Text(if (expanded) "收起参数" else "编辑参数") }
+            MochiTextButton(onClick = onExpand) { Text(if (expanded) "收起参数" else "编辑参数") }
             if (expanded) {
                 node.params.forEach { (key, value) ->
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = value,
                         onValueChange = { onChange(node.copy(params = node.params + (key to it))) },
                         label = { Text(key) },
@@ -331,10 +331,10 @@ private fun WorkflowNodeCard(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                KedgeTextButton(onClick = onUp, enabled = canMoveUp) { Text("上移") }
-                KedgeTextButton(onClick = onDown, enabled = canMoveDown) { Text("下移") }
-                KedgeTextButton(onClick = onDuplicate) { Text("复制") }
-                KedgeTextButton(onClick = onDelete, enabled = index > 0) { Text("删除") }
+                MochiTextButton(onClick = onUp, enabled = canMoveUp) { Text("上移") }
+                MochiTextButton(onClick = onDown, enabled = canMoveDown) { Text("下移") }
+                MochiTextButton(onClick = onDuplicate) { Text("复制") }
+                MochiTextButton(onClick = onDelete, enabled = index > 0) { Text("删除") }
             }
         }
     }

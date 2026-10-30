@@ -22,7 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -86,12 +86,12 @@ fun TraceAuditPage() {
                     }
                 }
                 item {
-                    KedgeButton(onClick = { cursor = cursor.previous() }, enabled = cursor.hasPrevious) {
+                    MochiButton(onClick = { cursor = cursor.previous() }, enabled = cursor.hasPrevious) {
                         Text("上一步")
                     }
                 }
                 item {
-                    KedgeButton(onClick = { cursor = cursor.next() }, enabled = cursor.hasNext) {
+                    MochiButton(onClick = { cursor = cursor.next() }, enabled = cursor.hasNext) {
                         Text("下一步")
                     }
                 }

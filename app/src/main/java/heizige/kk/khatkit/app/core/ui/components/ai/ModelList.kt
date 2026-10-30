@@ -33,11 +33,11 @@ import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -215,7 +215,7 @@ internal fun ModelSelectorButton(
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = {
                     state.open()
                 },
@@ -238,7 +238,7 @@ internal fun ModelSelectorButton(
                 )
             }
             if (allowClear && model != null) {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = onClear,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -250,7 +250,7 @@ internal fun ModelSelectorButton(
             }
         }
     } else {
-        KedgeIconButton(
+        MochiIconButton(
             onClick = {
                 state.open()
             },
@@ -523,7 +523,7 @@ private fun ColumnScope.ModelList(
                                 onDismiss()
                             },
                             tail = {
-                                KedgeIconButton(
+                                MochiIconButton(
                                     onClick = {
                                         coroutineScope.launch {
                                             settingsStore.update { settings ->
@@ -569,7 +569,7 @@ private fun ColumnScope.ModelList(
                 // 底色给 Transparent —— 它是组标题不是一个选项，保持原来「不带卡面」的观感；
                 // 圆角仍按组首项算（标题就是该供应商组的第一行）。
                 stickyHeader(key = "header:${providerSetting.id}") {
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = { toggleCollapsed(providerSetting) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -623,7 +623,7 @@ private fun ColumnScope.ModelList(
                             onDismiss()
                         },
                         tail = {
-                            KedgeIconButton(
+                            MochiIconButton(
                                 onClick = {
                                     coroutineScope.launch {
                                         settingsStore.update { settings ->
@@ -758,7 +758,7 @@ private fun ModelItem(
     // 手势保持原样（整行单击 = 选中，长按 = 进该供应商详情），两件事仍由**同一个**
     // combinedClickable 承担，所以挂在行外层 modifier 上，行组件自身传 onClick = null：
     // 否则会挂两份点击回调，一次点击触发两次。
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = null,
         modifier = modifier.combinedClickable(
             enabled = true,

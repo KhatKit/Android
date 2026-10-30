@@ -11,7 +11,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,7 +71,7 @@ fun BackupReminderCard(
                     style = KedgeTextStyles.body(),
                 )
             }
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { dismissed = true },
                 modifier = Modifier.size(32.dp),
                 shapes = IconButtonDefaults.shapes(),

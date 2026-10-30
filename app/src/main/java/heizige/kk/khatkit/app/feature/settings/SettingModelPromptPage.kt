@@ -14,8 +14,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -161,14 +161,14 @@ private fun PromptSettingItem(
                     style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                KedgeOutlinedTextField(
+                MochiOutlinedTextField(
                     value = promptValue,
                     onValueChange = onPromptChange,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 15,
                     shape = RoundedCornerShape(16.dp)
                 )
-                KedgeTextButton(onClick = onResetPrompt, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = onResetPrompt, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.setting_model_page_reset_to_default))
                 }
             }

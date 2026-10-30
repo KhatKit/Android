@@ -24,7 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.app.feature.automation.data.CardTriggerOverride
 import heizige.kk.khatkit.app.feature.automation.KhatKitNotificationListenerService
 import heizige.kk.khatkit.app.feature.automation.TriggerController
@@ -197,7 +197,7 @@ fun SettingTriggersPage() {
                 }
             },
             confirmButton = {
-                KedgeTextButton(onClick = { showAiDialog = false }) { Text("知道了") }
+                MochiTextButton(onClick = { showAiDialog = false }) { Text("知道了") }
             },
         )
     }
@@ -229,7 +229,7 @@ fun SettingTriggersPage() {
                             Text("按事件自动运行卡片")
                         },
                         trailingContent = {
-                            KedgeSwitch(
+                            MochiSwitch(
                                 checked = triggerState.masterEnabled,
                                 onCheckedChange = { applyMaster(it) },
                             )
@@ -278,7 +278,7 @@ fun SettingTriggersPage() {
                                     Text("${workflow.nodes.size} 个节点 · ${if (workflow.enabled) "已启用" else "已停用"}")
                                 },
                                 trailingContent = {
-                                    KedgeTextButton(
+                                    MochiTextButton(
                                         onClick = {
                                             WorkflowPreferencesRepository.delete(context, workflow.id)
                                             workflows = WorkflowPreferencesRepository.load(context)
@@ -332,7 +332,7 @@ fun SettingTriggersPage() {
                                 )
                             },
                             trailingContent = {
-                                KedgeSwitch(
+                                MochiSwitch(
                                     checked = cardEnabled,
                                     enabled = triggerState.masterEnabled,
                                     onCheckedChange = { checked ->

@@ -11,7 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -112,7 +112,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.JavascriptEngine),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.JavascriptEngine, it) },
                     )
@@ -128,7 +128,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_time_info_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_time_info_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.TimeInfo),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.TimeInfo, it) },
                     )
@@ -144,7 +144,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_clipboard_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_clipboard_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.Clipboard),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.Clipboard, it) },
                     )
@@ -160,7 +160,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_tts_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_tts_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.Tts),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.Tts, it) },
                     )
@@ -176,7 +176,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_ask_user_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_ask_user_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.AskUser),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.AskUser, it) },
                     )
@@ -192,7 +192,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_screen_time_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_screen_time_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.ScreenTime),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.ScreenTime, it) },
                     )
@@ -208,7 +208,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_calendar_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_calendar_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.Calendar),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.Calendar, it) },
                     )
@@ -224,7 +224,7 @@ private fun AssistantLocalToolContent(
                 headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_chart_display_title)) },
                 supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_chart_display_desc)) },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.localTools.contains(LocalToolOption.ChartDisplay),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.ChartDisplay, it) },
                     )

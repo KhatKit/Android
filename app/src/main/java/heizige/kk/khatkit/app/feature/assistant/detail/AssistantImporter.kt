@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -125,7 +125,7 @@ private fun SillyTavernImporter(
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        KedgeButton(
+        MochiButton(
             onClick = {
                 pngPickerLauncher.launch(arrayOf("image/png"))
             },
@@ -136,7 +136,7 @@ private fun SillyTavernImporter(
             Text(text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_png))
         }
 
-        KedgeButton(
+        MochiButton(
             onClick = {
                 jsonPickerLauncher.launch(arrayOf("application/json"))
             },
@@ -178,14 +178,14 @@ private fun SillyTavernImporter(
                     }.onFailure { Toast.show(it.message ?: exportFailed) }
                 }
             }
-            KedgeButton(
+            MochiButton(
                 onClick = { exportJsonLauncher.launch("$exportName.json") },
                 enabled = !isLoading,
                 shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.assistant_importer_export_tavern_json))
             }
-            KedgeButton(
+            MochiButton(
                 onClick = { exportPngLauncher.launch("$exportName.png") },
                 enabled = !isLoading,
                 shapes = ButtonDefaults.shapes(),

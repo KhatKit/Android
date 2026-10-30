@@ -78,17 +78,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.kedge.components.KedgeBadge
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiBadge
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeBadgedBox
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -300,9 +300,9 @@ private val TagChipHeight = 26.dp
  * 详情弹窗里的标签胶囊 —— **整个市场只有这一种胶囊**，五种标签共用同一套高度、内边距、字阶。
  *
  * 为什么要收成一种：原先桥接/依赖是自绘 Row（图标 + 16% 角色色底），触发方式与授权用的是
- * [KedgeBadge]，一行里两种高度、两种圆角，看起来像两套控件拼的。
+ * [MochiBadge]，一行里两种高度、两种圆角，看起来像两套控件拼的。
  *
- * 颜色必须成对显式给，不能靠组件默认值：`KedgeBadge` 在 Miuix 分支的 `contentColor` 取
+ * 颜色必须成对显式给，不能靠组件默认值：`MochiBadge` 在 Miuix 分支的 `contentColor` 取
  * `MiuixBadgeDefaults.contentColor`，配 `surfaceContainerHigh` 底色实测只有 **1.2:1**
  * —— 深灰字压深灰底，就是「标签字看不见」的那一条。这里的口径：
  * - 有色标签（桥接 / 依赖）：16% 角色色打底，文字取「角色色 ←→ onSurface」的中间色，
@@ -404,7 +404,7 @@ private fun ExploreSearchTopBar(
     val searching = searchProgress.value >= 0.5f
     val hasQuery = searching && query.isNotEmpty()
     val searchAction: @Composable () -> Unit = {
-        KedgeIconButton(
+        MochiIconButton(
             onClick = {
                 when {
                     !searching -> onToggleSearch()
@@ -1228,16 +1228,16 @@ fun ExploreMarketPage() {
             // 卡片列表项）。角标报本机卡片数（市场装的 + 仅本机的，与「本地」页顶部分法一致），
             // 0 张时不挂角标 —— 写法照 McpPickerButton。
             val localAction: @Composable () -> Unit = {
-                KedgeBadgedBox(
+                MochiBadgedBox(
                     badge = {
                         if (installed.isNotEmpty()) {
-                            KedgeBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
+                            MochiBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
                                 Text(text = installed.size.toString())
                             }
                         }
                     },
                 ) {
-                    KedgeIconButton(onClick = { navController.navigate(Screen.ExploreLocal) }) {
+                    MochiIconButton(onClick = { navController.navigate(Screen.ExploreLocal) }) {
                         Icon(
                             imageVector = folderManaged,
                             contentDescription = stringResource(R.string.explore_market_local_page_title),
@@ -1984,7 +1984,7 @@ private fun MarketMoreRow(
     onClick: () -> Unit,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         titleContent = {
@@ -2062,7 +2062,7 @@ private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
  * 组尾的「管理」行：分区标题去掉之后，本地页每个分组末尾用一行 option item 承接
  * 原来标题条上的动作（管理本地工具 / 管理技能 / 管理 MCP / 清空依赖缓存）。
  *
- * 形态与组内条目同一套度量（[KedgeOptionItem] + 组内位号给的形状），文字居中，
+ * 形态与组内条目同一套度量（[MochiOptionItem] + 组内位号给的形状），文字居中，
  * 行里不再出现「已安装卡片 / 本地工具」这类分区标题字样。
  */
 @Composable
@@ -2071,7 +2071,7 @@ private fun GroupActionRow(
     onClick: () -> Unit,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         titleContent = {
@@ -2093,7 +2093,7 @@ private fun GroupActionRow(
  * 于是「设置 → 界面 → 列表卡片样式」里改一次，市场页与设置页一起变。
  *
  * 形状按组内位号算好传给条目：条目自己不猜自己在组里的位置（同 `CardGroup`
- * 把 `indexedShape` 算好再交给 `KedgeOptionItem` 的做法）。
+ * 把 `indexedShape` 算好再交给 `MochiOptionItem` 的做法）。
  */
 @Composable
 private fun GroupContainer(
@@ -2129,7 +2129,7 @@ private fun RowChevron() {
 
 /**
  * 行首图标：设置页 option item 的图标槽尺寸（图标 24dp，外层圆形淡底由
- * [KedgeOptionItem] 自己铺）。内容类型就靠这一枚图标区分，行里不再写「技能合集」这类字样。
+ * [MochiOptionItem] 自己铺）。内容类型就靠这一枚图标区分，行里不再写「技能合集」这类字样。
  */
 @Composable
 private fun RowIcon(icon: ImageVector) {
@@ -2149,7 +2149,7 @@ private fun RowIcon(icon: ImageVector) {
 private fun MetaChip(text: String, accent: Boolean = false) {
     // 卡片底是 surfaceContainer，徽标要抬到 surfaceContainerHighest 才有一档可见的层次
     // （参考稿里所有小胶囊都是 `bg-surface-container-highest`）。
-    KedgeBadge(
+    MochiBadge(
         containerColor = if (accent) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
         else MaterialTheme.colorScheme.surfaceContainerHighest,
         contentColor = if (accent) MaterialTheme.colorScheme.primary
@@ -2476,7 +2476,7 @@ private fun FeaturedCarouselSkeleton() {
 }
 
 /**
- * 条目骨架行：底色 / 圆角 / 内边距 / 图标槽与 [KedgeOptionItem] 的 option item 逐项对齐
+ * 条目骨架行：底色 / 圆角 / 内边距 / 图标槽与 [MochiOptionItem] 的 option item 逐项对齐
  * （12dp 内边距、24dp 图标 + 8dp 圆形垫、标题 / 摘要两条灰块）。
  * 形状由调用点按组内位号给出，到货时是「原地填充」而不是整页重排。
  */
@@ -2574,7 +2574,7 @@ private fun ExploreEmptyState(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp),
         )
-        KedgeTextButton(
+        MochiTextButton(
             onClick = if (query.isBlank()) onReload else onClearQuery,
             shapes = ButtonDefaults.shapes(),
         ) {
@@ -2590,7 +2590,7 @@ private fun ToolRow(
     onClick: () -> Unit,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         leadingContent = { RowIcon(tool.icon) },
@@ -2608,7 +2608,7 @@ private fun ToolRow(
         },
         trailingContent = {
             // 状态位和详情弹窗里的标签用同一种胶囊（[TagChip]）：26dp、满圆角、footnoteSmall，
-            // 不再自起一套 KedgeBadge 度量。启用的语义色取 primaryContainer 对
+            // 不再自起一套 MochiBadge 度量。启用的语义色取 primaryContainer 对
             // onPrimaryContainer（与市场「已安装」一致），停用退回中性灰。
             if (enabled) {
                 TagChip(
@@ -2630,7 +2630,7 @@ private fun SkillRow(
     onClick: () -> Unit,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         leadingContent = { RowIcon(school) },
@@ -2663,7 +2663,7 @@ private fun McpRow(
     val displayUrl = maskMcpUrl(server.serverUrl)
     val name = server.commonOptions.name.ifBlank { displayUrl }
     val cardStatus = mcpCardStatus(server, status)
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         leadingContent = { RowIcon(dns) },
@@ -2685,7 +2685,7 @@ private fun McpRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = onConfigure,
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -2774,7 +2774,7 @@ private fun ResourceRow(
     needsConfig: Boolean = false,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         // 行里不再有「技能合集 / MCP 服务 / 合集包」徽标：类型由这枚图标区分
@@ -2818,7 +2818,7 @@ private fun ResourceRow(
                     MetaChip(text = stringResource(R.string.explore_market_mcp_needs_config))
                 }
                 if (!busy && onConfigure != null) {
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = onConfigure,
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -2832,10 +2832,10 @@ private fun ResourceRow(
                     busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
                     // （`onClick` 只是组件签名要求，不会被调到）。
-                    installed -> KedgeIconButton(
+                    installed -> MochiIconButton(
                         onClick = {},
                         enabled = false,
-                        variant = KedgeIconButtonVariant.Tonal,
+                        variant = MochiIconButtonVariant.Tonal,
                         shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
@@ -2843,9 +2843,9 @@ private fun ResourceRow(
                             contentDescription = stringResource(R.string.explore_market_state_installed),
                         )
                     }
-                    else -> KedgeIconButton(
+                    else -> MochiIconButton(
                         onClick = onInstall,
-                        variant = KedgeIconButtonVariant.Filled,
+                        variant = MochiIconButtonVariant.Filled,
                         shapes = IconButtonDefaults.shapes(),
                     ) {
                         Icon(
@@ -3012,7 +3012,7 @@ private fun ModelRow(
     onClick: () -> Unit,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         leadingContent = { RowIcon(memory) },
@@ -3064,7 +3064,7 @@ private fun LocalCardRow(
     onClick: () -> Unit,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         leadingContent = { RowIcon(extension) },
@@ -3107,7 +3107,7 @@ private fun DependencyRow(
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
     // 整行不可点（`onClick = null`）：这一行只报「本机缓存了什么」，唯一的动作是行尾删除。
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = null,
         shape = shape,
         leadingContent = { RowIcon(deployedCode) },
@@ -3134,7 +3134,7 @@ private fun DependencyRow(
         },
         trailingContent = {
             if (cached != null) {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = onDelete,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -3152,7 +3152,7 @@ private fun DependencyRow(
  * 精选卡（轮播唯一单元）：MD3 品牌海报卡。
  *
  * 版面自上而下三档：身份形徽标 + 右上角版本号 → 大标题 + 一行副标题 → 安装药丸。
- * 底部按钮走 [KedgeButton]（两套风格各自的配色都在这里给全），不再是手写的 Row 药丸：
+ * 底部按钮走 [MochiButton]（两套风格各自的配色都在这里给全），不再是手写的 Row 药丸：
  * 一是形状/按压反馈跟全站按钮统一，二是要按需求去掉箭头图标后没必要再自己画一个。
  *
  * **配色由包名哈希生成**（见 [roleAvatarPalette] / [posterTone]）：卡片底色是该卡身份色压暗后的
@@ -3271,7 +3271,7 @@ private fun FeaturedCard(
                 // 按钮换成 Kedge 组件（MD3 / Miuix 两套风格各给一份配色），箭头图标按要求删掉：
                 // 药丸里只留动作词。视觉仍是「海报纸底上的白药丸」，只换实现不换观感。
                 // 「已安装」时这个药丸就是卸载入口（先弹确认框，见页面根部的 [RikkaConfirmDialog]）。
-                KedgeButton(
+                MochiButton(
                     onClick = { if (installState == CardInstallState.INSTALLED) onUninstall() else onInstall() },
                     enabled = !busy,
                     colors = ButtonDefaults.buttonColors(
@@ -3322,7 +3322,7 @@ private fun posterTone(identity: Color, factor: Float = 0.58f): Color = Color(
 
 /**
  * 「安装」药丸的 Miuix 配色。MD3 分支吃 [ButtonDefaults.buttonColors]，
- * Miuix 分支在 [KedgeButton] 里只能靠 `miuixColors` 单独喂 —— 海报卡是满色块，
+ * Miuix 分支在 [MochiButton] 里只能靠 `miuixColors` 单独喂 —— 海报卡是满色块，
  * 两种风格必须都是「白底 + 海报色字」，否则 Miuix 下会变成主题色药丸、和卡片撞色。
  */
 @Composable
@@ -3494,7 +3494,7 @@ private fun CompactCard(
 ) {
     // 状态判定与轮播药丸同一套。
     val installState = installedVersion?.let { cardInstallState(it, entry.version) }
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         modifier = modifier,
         shape = shape,
@@ -3536,10 +3536,10 @@ private fun CompactCard(
                 busy -> KedgeProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
                 // （`onClick` 只是组件签名要求，不会被调到）。卸载入口在详情抽屉里。
-                installState == CardInstallState.INSTALLED -> KedgeIconButton(
+                installState == CardInstallState.INSTALLED -> MochiIconButton(
                     onClick = {},
                     enabled = false,
-                    variant = KedgeIconButtonVariant.Tonal,
+                    variant = MochiIconButtonVariant.Tonal,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
@@ -3547,9 +3547,9 @@ private fun CompactCard(
                         contentDescription = stringResource(R.string.explore_market_state_installed),
                     )
                 }
-                installState == CardInstallState.UPDATE -> KedgeIconButton(
+                installState == CardInstallState.UPDATE -> MochiIconButton(
                     onClick = onUpdate,
-                    variant = KedgeIconButtonVariant.Filled,
+                    variant = MochiIconButtonVariant.Filled,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
@@ -3557,9 +3557,9 @@ private fun CompactCard(
                         contentDescription = stringResource(R.string.explore_market_state_update),
                     )
                 }
-                else -> KedgeIconButton(
+                else -> MochiIconButton(
                     onClick = onInstall,
-                    variant = KedgeIconButtonVariant.Filled,
+                    variant = MochiIconButtonVariant.Filled,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(
@@ -4043,7 +4043,7 @@ private fun PublishCardDialog(
         title = { Text(stringResource(R.string.explore_market_publish_dialog_title, entry.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = license,
                     onValueChange = { license = it },
                     label = { Text(stringResource(R.string.explore_market_license_label)) },
@@ -4051,7 +4051,7 @@ private fun PublishCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text(stringResource(R.string.explore_market_price_label)) },
@@ -4059,7 +4059,7 @@ private fun PublishCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
                     label = { Text(stringResource(R.string.explore_market_changelog_label)) },
@@ -4074,7 +4074,7 @@ private fun PublishCardDialog(
             }
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { onConfirm(license, price, changelog) },
                 enabled = license.isNotBlank() && price >= 0,
                 shapes = ButtonDefaults.shapes(),
@@ -4083,7 +4083,7 @@ private fun PublishCardDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
         },
     )
 }
@@ -4111,7 +4111,7 @@ private fun ForkCardDialog(
         title = { Text(stringResource(R.string.explore_market_fork_dialog_title, entry.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = parent,
                     onValueChange = { parent = it },
                     label = { Text(stringResource(R.string.explore_market_parent_version)) },
@@ -4119,7 +4119,7 @@ private fun ForkCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = newVersion,
                     onValueChange = { newVersion = it },
                     label = { Text(stringResource(R.string.explore_market_new_version)) },
@@ -4127,7 +4127,7 @@ private fun ForkCardDialog(
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
                     label = { Text(stringResource(R.string.explore_market_changelog_required)) },
@@ -4137,7 +4137,7 @@ private fun ForkCardDialog(
             }
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { onConfirm(parent, newVersion, changelog) },
                 enabled = changelog.isNotBlank() && newVersion.isNotBlank(),
                 shapes = ButtonDefaults.shapes(),
@@ -4146,7 +4146,7 @@ private fun ForkCardDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
         },
     )
 }

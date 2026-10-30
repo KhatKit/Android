@@ -90,9 +90,9 @@ private fun CardGroupListItem(
     index: Int,
 ) {
     val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
-    // onClick 原样传下去（可空）：KedgeOptionItem 会按 null 关掉整行的点击与
+    // onClick 原样传下去（可空）：MochiOptionItem 会按 null 关掉整行的点击与
     // 按压回弹。以前这里兜成空 lambda，纯信息行按下也会缩一下，看着像能点。
-    heizige.kk.kedge.components.KedgeOptionItem(
+    heizige.kk.khatkit.uikit.mochi.MochiOptionItem(
         modifier = item.modifier.fillMaxWidth(),
         onClick = item.onClick,
         shape = cards.indexedShape(index, count),
@@ -163,7 +163,7 @@ val LocalInlineCardGroup = compositionLocalOf<InlineCardGroupMarker?> { null }
  * 1. **组底色**（F1）：`clip(indexedShape(0, 1))` + 底色铺在整组底下。组内那些自己不
  *    画底色的子项（Miuix 的 `ArrowPreference`、MD3 的 `KedgeListItem`、
  *    `KedgeFormCard` 里混进来的标题 `Text` 与任意控件）靠这层才有卡片底；自带底色的行
- *    （`KedgeOptionItem`）盖在它上面。配色来源见 [inlineGroupContainerColor] —— 与改造前
+ *    （`MochiOptionItem`）盖在它上面。配色来源见 [inlineGroupContainerColor] —— 与改造前
  *    `KedgeFormCard` 那张卡逐值相同，就是 t1 统一行渲染时弄丢的那一层。
  * 2. **组外形**：位号 0 / 总数 1，也就是「一整组只有一行」的形状（四角大圆角），由
  *    `clip` 裁出首项上边、末项下边的大圆角，中间子项因此只需内侧小圆角。
@@ -210,7 +210,7 @@ fun InlineCardGroup(
  *   与改造前 `KedgeFormCard` 的 MD3 分支（`MochiCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）
  *   完全一致。
  * - Miuix：`KedgeMiuixSurface.cardContainer`（= `MiuixTheme.colorScheme.surfaceContainer`），
- *   与改造前 Miuix 分支那张卡、以及 `KedgeOptionItem` 自己的行卡片同色。
+ *   与改造前 Miuix 分支那张卡、以及 `MochiOptionItem` 自己的行卡片同色。
  *
  * 底色画在整组底下、不额外加内边距，所以不存在「卡套卡」：自带底色的行直接盖住它，
  * 没有第二层圆角与内缩；只有不带底色的子项才「透」出这一层。

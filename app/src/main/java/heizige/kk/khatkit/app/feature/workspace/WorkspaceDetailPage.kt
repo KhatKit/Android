@@ -39,13 +39,13 @@ import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.kedge.components.KedgeCheckbox
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -99,7 +99,7 @@ import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.undo
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -159,18 +159,18 @@ fun WorkspaceDetailPage(id: String) {
         title = state.workspace?.name ?: stringResource(R.string.workspace_detail_title),
         actions = {
             if (pagerState.currentPage == 1) {
-                KedgeIconButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
+                MochiIconButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
                     Icon(
                         uploadFile,
                         contentDescription = stringResource(R.string.workspace_detail_import_file),
                     )
                 }
             }
-            KedgeIconButton(onClick = { vm.refresh() }) {
+            MochiIconButton(onClick = { vm.refresh() }) {
                 Icon(refresh, contentDescription = null)
             }
             if (state.workspace?.shellStatus != WorkspaceShellStatus.DISABLED.name) {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = { navController.navigate(Screen.WorkspaceTerminal(id)) }
                 ) {
                     Icon(terminal, contentDescription = null)
@@ -292,7 +292,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text("导出结果") },
             text = { Text(result, modifier = Modifier.verticalScroll(rememberScrollState())) },
             confirmButton = {
-                KedgeTextButton(onClick = vm::dismissExportResult, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.common_confirm)) }
+                MochiTextButton(onClick = vm::dismissExportResult, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.common_confirm)) }
             },
         )
     }
@@ -316,7 +316,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text(stringResource(R.string.workspace_detail_rootfs_install_failed)) },
             text = { Text(message) },
             confirmButton = {
-                KedgeTextButton(onClick = vm::dismissInstallError, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = vm::dismissInstallError, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.common_confirm))
                 }
             },
@@ -329,7 +329,7 @@ fun WorkspaceDetailPage(id: String) {
             title = { Text(stringResource(R.string.workspace_detail_settings_save_failed)) },
             text = { Text(message.ifBlank { stringResource(R.string.workspace_detail_settings_save_failed) }) },
             confirmButton = {
-                KedgeTextButton(onClick = vm::dismissSettingsError, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = vm::dismissSettingsError, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.common_confirm))
                 }
             },
@@ -412,7 +412,7 @@ private fun WorkspaceBasicPage(
                             modifier = Modifier.padding(top = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            KedgeButton(
+                            MochiButton(
                                 onClick = onInstallRootfs,
                                 enabled = workspace != null && !installing,
                                 modifier = Modifier.fillMaxWidth(),
@@ -447,7 +447,7 @@ private fun WorkspaceBasicPage(
                 item(
                     headlineContent = { Text(stringResource(R.string.workspace_detail_compatibility_mode)) },
                     trailingContent = {
-                        KedgeSwitch(
+                        MochiSwitch(
                             checked = workspace?.shellCompatibilityMode ?: false,
                             onCheckedChange = onShellCompatibilityModeChange,
                             enabled = workspace != null,
@@ -497,7 +497,7 @@ private fun WorkspaceToolApprovalCard(
                     )
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = resolveWorkspaceToolApproval(toolName, overrides),
                         onCheckedChange = { onToolApprovalChange(toolName, it) },
                         enabled = workspace != null,
@@ -573,7 +573,7 @@ private fun InstallRootfsDialog(
                     style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = url,
                     onValueChange = { url = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -584,7 +584,7 @@ private fun InstallRootfsDialog(
             }
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { onConfirm(url.trim()) },
                 enabled = url.isNotBlank(),
                 shapes = ButtonDefaults.shapes(),
@@ -593,7 +593,7 @@ private fun InstallRootfsDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.common_cancel))
             }
         },
@@ -652,18 +652,18 @@ private fun WorkspaceFilesPage(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = {
                             selecting = false
                             selectedPaths = emptySet()
                         },
                         shapes = ButtonDefaults.shapes(),
                     ) { Text("取消多选") }
-                    KedgeTextButton(onClick = {
+                    MochiTextButton(onClick = {
                         selectedPaths = if (selectedFiles.size == files.size) emptySet() else files.map { it.path }.toSet()
                     },
                          shapes = ButtonDefaults.shapes(),) { Text(if (files.isNotEmpty() && selectedFiles.size == files.size) "取消全选" else "全选") }
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = { onBatchExport(selectedFiles) },
                         enabled = selectedFiles.isNotEmpty() && !state.exporting,
                         shapes = ButtonDefaults.shapes(),
@@ -743,7 +743,7 @@ private fun WorkspacePathBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        KedgeIconButton(
+        MochiIconButton(
             enabled = canGoUp,
             onClick = onGoUp,
             shapes = IconButtonDefaults.shapes(),
@@ -811,7 +811,7 @@ private fun WorkspaceFileCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (selecting && !entry.isDirectory) {
-                KedgeCheckbox(checked = selected, onCheckedChange = { onToggleSelection() })
+                MochiCheckbox(checked = selected, onCheckedChange = { onToggleSelection() })
             }
             if (isImage) {
                 val context = LocalContext.current
@@ -883,7 +883,7 @@ private fun WorkspaceFileCard(
                 )
             }
             if (!selecting) Box {
-                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
                 KedgeDropdownMenuSlots(

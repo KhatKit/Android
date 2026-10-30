@@ -25,13 +25,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import heizige.kk.khatkit.ui.UiNode
@@ -141,7 +141,7 @@ internal fun NodeTreeContent(
                 }
                 if (cancelButton) {
                     item {
-                        KedgeTextButton(onClick = onDismiss) {
+                        MochiTextButton(onClick = onDismiss) {
                             Text("取消", style = StyleResolvers.current().textStyle("label"))
                         }
                     }
@@ -151,7 +151,7 @@ internal fun NodeTreeContent(
             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 root.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
                 if (cancelButton) {
-                    KedgeTextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                    MochiTextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
                         Text("取消", style = StyleResolvers.current().textStyle("label"))
                     }
                 }
@@ -274,7 +274,7 @@ fun UiNode.Render(
             if (type == "Card") {
                 // Use the same container as settings. Kedge owns both theme branches,
                 // shape and padding; informational groups have no row click feedback.
-                KedgeOptionItem(onClick = null, modifier = m, titleContent = content)
+                MochiOptionItem(onClick = null, modifier = m, titleContent = content)
             } else Box(m) { content() }
         }
         "Spacer" -> Spacer(m.width(number("width").dp).height(number("height").dp))
@@ -312,11 +312,11 @@ fun UiNode.Render(
             KedgeProgressIndicator(progress = number("ratio"), type = KedgeProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
         }
         "CounterButton" -> CounterButton(this, values, readOnly, onAction, m)
-        "Button" -> KedgeButton(
+        "Button" -> MochiButton(
             onClick = { onAction(text("action")) },
             enabled = !readOnly && props["disabled"] != true,
             modifier = m,
-            variant = if (text("tone") == "primary") KedgeButtonVariant.Primary else KedgeButtonVariant.Secondary,
+            variant = if (text("tone") == "primary") MochiButtonVariant.Primary else MochiButtonVariant.Secondary,
         ) {
             val label = nodeColor(text("color"))
                 ?: if (text("tone") == "danger") style.color("error") else LocalContentColor.current
@@ -329,7 +329,7 @@ fun UiNode.Render(
                 Text(text("label"), style = style.textStyle("label"), color = label)
             }
         }
-        "IconButton" -> KedgeIconButton(
+        "IconButton" -> MochiIconButton(
             onClick = { onAction(text("action")) },
             enabled = !readOnly && props["disabled"] != true,
             modifier = m,

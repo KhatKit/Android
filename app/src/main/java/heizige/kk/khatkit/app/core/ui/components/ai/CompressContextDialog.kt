@@ -15,8 +15,8 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -112,7 +112,7 @@ fun CompressContextDialog(
                     )
 
                     // Additional context input
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = additionalPrompt,
                         onValueChange = { additionalPrompt = it },
                         label = {
@@ -137,7 +137,7 @@ fun CompressContextDialog(
         },
         confirmButton = {
             if (isLoading) {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     currentJob?.cancel()
                     currentJob = null
                 },
@@ -145,7 +145,7 @@ fun CompressContextDialog(
                     Text(stringResource(R.string.cancel))
                 }
             } else {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
                 },
                      shapes = ButtonDefaults.shapes(),) {
@@ -155,7 +155,7 @@ fun CompressContextDialog(
         },
         dismissButton = {
             if (!isLoading) {
-                KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             }

@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import heizige.kk.kedge.components.KedgeCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +23,7 @@ fun ListSelectableItem(
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         if (enabled) {
-            KedgeCheckbox(
+            MochiCheckbox(
                 checked = key in selectedKeys,
                 onCheckedChange = {
                     onSelectChange(key)

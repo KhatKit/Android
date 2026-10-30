@@ -14,9 +14,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -124,7 +124,7 @@ private fun PropertyRow(
                 }
             },
             trailingContent = {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = onDelete,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -141,7 +141,7 @@ private fun PropertyRow(
 /** 列表末尾的新增按钮。 */
 @Composable
 private fun PropertyAddButton(label: String, onClick: () -> Unit) {
-    KedgeButton(
+    MochiButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shapes = ButtonDefaults.shapes(),
@@ -179,7 +179,7 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
             label = { Text(stringResource(R.string.assistant_page_header_name)) },
             modifier = Modifier.fillMaxWidth(),
         )
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = headerValue,
             onValueChange = {
                 headerValue = it
@@ -210,7 +210,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
         }
         var jsonParseError by remember { mutableStateOf<String?>(null) }
 
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = bodyKey,
             onValueChange = {
                 bodyKey = it
@@ -220,7 +220,7 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp)
         )
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = bodyValueString,
             onValueChange = { newString ->
                 bodyValueString = newString

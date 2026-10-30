@@ -17,11 +17,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeBadge
+import heizige.kk.khatkit.uikit.mochi.MochiBadge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,7 +49,7 @@ import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
 import heizige.kk.kedge.components.KedgeMultiChoiceSegmentedRow
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeBadgedBox
+import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 
 
 @Composable
@@ -101,7 +101,7 @@ internal fun ModelPicker(
                         selectedModels.none { it.modelId == model.modelId }
                     }
 
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = {
                             if (unselectedCount > 0) {
                                 onAllModelSelected(filteredModels)
@@ -172,7 +172,7 @@ internal fun ModelPicker(
                                         )
                                     }
                                 }
-                                KedgeIconButton(
+                                MochiIconButton(
                                     onClick = {
                                         if (selectedModels.any { model -> model.modelId == it.modelId }) {
                                             // 从selectedModels中计算出要删除的model，因为删除需要id匹配，而不是ModelId
@@ -194,7 +194,7 @@ internal fun ModelPicker(
                         }
                     }
                 }
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = filterText,
                     onValueChange = {
                         filterText = it
@@ -209,16 +209,16 @@ internal fun ModelPicker(
             }
         }
     }
-    KedgeBadgedBox(
+    MochiBadgedBox(
         badge = {
             if (models.isNotEmpty()) {
-                KedgeBadge {
+                MochiBadge {
                     Text(models.size.toString())
                 }
             }
         }
     ) {
-        KedgeIconButton(
+        MochiIconButton(
             onClick = {
                 showModal = true
             },

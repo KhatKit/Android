@@ -42,8 +42,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -221,7 +221,7 @@ internal fun McpToolCard(
                     )
                 }
                 // 展开/收起按钮
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = { expanded = !expanded },
                     modifier = Modifier.size(32.dp),
                     shapes = IconButtonDefaults.shapes(),
@@ -333,7 +333,7 @@ internal fun McpImportModal(
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            KedgeOutlinedTextFieldWithSlots(
+            MochiOutlinedTextFieldWithSlots(
                 value = jsonText,
                 onValueChange = {
                     jsonText = it

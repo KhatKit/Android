@@ -3,7 +3,7 @@ package heizige.kk.khatkit.app.core.ui.components.ui
 import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -25,12 +25,12 @@ fun RikkaConfirmDialog(
         title = { Text(title) },
         text = text,
         confirmButton = {
-            KedgeTextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
                 Text(confirmText)
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(dismissText)
             }
         }

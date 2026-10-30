@@ -30,11 +30,11 @@ import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -141,7 +141,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_webdav_server_address)) },
                     supportingContent = {
-                        KedgeOutlinedTextFieldWithSlots(
+                        MochiOutlinedTextFieldWithSlots(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.url,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(url = it.trim())) },
@@ -154,7 +154,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_username)) },
                     supportingContent = {
-                        KedgeOutlinedTextField(
+                        MochiOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.username,
                             onValueChange = {
@@ -173,7 +173,7 @@ fun WebDavTab(
                     headlineContent = { Text(stringResource(R.string.backup_page_password)) },
                     supportingContent = {
                         var passwordVisible by remember { mutableStateOf(false) }
-                        KedgeOutlinedTextField(
+                        MochiOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.password,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(password = it.trim())) },
@@ -184,7 +184,7 @@ fun WebDavTab(
                                 } else {
                                     visibility
                                 }
-                                KedgeIconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
+                                MochiIconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(imageVector = image, contentDescription = null)
                                 }
                             },
@@ -196,7 +196,7 @@ fun WebDavTab(
                 item(
                     headlineContent = { Text(stringResource(R.string.backup_page_path)) },
                     supportingContent = {
-                        KedgeOutlinedTextField(
+                        MochiOutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
                             value = webDavConfig.path,
                             onValueChange = { updateWebDavConfig(webDavConfig.copy(path = it.trim())) },
@@ -244,7 +244,7 @@ fun WebDavTab(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
         ) {
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     scope.launch {
                         try {
@@ -266,7 +266,7 @@ fun WebDavTab(
             ) {
                 Text(stringResource(R.string.backup_page_test_connection))
             }
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     vm.loadBackupFileItems()
                     showBackupFiles = true
@@ -275,7 +275,7 @@ fun WebDavTab(
             ) {
                 Text(stringResource(R.string.backup_page_restore))
             }
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     scope.launch {
                         isBackingUp = true
@@ -452,7 +452,7 @@ private fun WebDavBackupItemCard(
                         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 onDelete(item)
                             },
@@ -461,7 +461,7 @@ private fun WebDavBackupItemCard(
                         ) {
                             Text(stringResource(R.string.backup_page_delete))
                         }
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 onRestore(item)
                             },

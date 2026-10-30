@@ -11,9 +11,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,7 +38,7 @@ import heizige.kk.khatkit.app.core.ui.icons.forward
 import heizige.kk.khatkit.app.core.ui.icons.pause
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 @Composable
 fun TTSController() {
@@ -83,8 +83,8 @@ fun TTSController() {
             ) {
                 PlayPauseButton(playbackState = playbackState, ttsState = ttsState)
 
-                KedgeIconButton(
-                    variant = KedgeIconButtonVariant.Tonal,
+                MochiIconButton(
+                    variant = MochiIconButtonVariant.Tonal,
                     onClick = {
                         ttsState.stop()
                         isVisible = false
@@ -108,8 +108,8 @@ fun TTSController() {
                     }
                 }
 
-                KedgeIconButton(
-                    variant = KedgeIconButtonVariant.Tonal,
+                MochiIconButton(
+                    variant = MochiIconButtonVariant.Tonal,
                     onClick = {
                         expand = !expand
                     },
@@ -127,8 +127,8 @@ fun TTSController() {
 
 @Composable
 private fun FastForwardButton(ttsState: CustomTtsState) {
-    KedgeIconButton(
-        variant = KedgeIconButtonVariant.Tonal,
+    MochiIconButton(
+        variant = MochiIconButtonVariant.Tonal,
         onClick = {
             ttsState.fastForward(5000)
         },
@@ -146,8 +146,8 @@ private fun PlayPauseButton(
     playbackState: PlaybackState,
     ttsState: CustomTtsState
 ) {
-    KedgeIconButton(
-        variant = KedgeIconButtonVariant.Tonal,
+    MochiIconButton(
+        variant = MochiIconButtonVariant.Tonal,
         onClick = {
             when (playbackState.status) {
                 PlaybackStatus.Playing -> {
@@ -204,7 +204,7 @@ private fun SpeedButton(
     playbackState: PlaybackState,
     ttsState: CustomTtsState
 ) {
-    KedgeTextButton(
+    MochiTextButton(
         onClick = {
             when (playbackState.speed) {
                 0.8f -> {

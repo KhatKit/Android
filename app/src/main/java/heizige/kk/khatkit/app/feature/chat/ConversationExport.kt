@@ -25,10 +25,10 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -155,13 +155,13 @@ fun ChatExportSheet(
             ) {
                 Text(text = stringResource(id = R.string.chat_page_export_format))
 
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = null,
                     modifier = Modifier.fillMaxWidth(),
                     shape = cards.indexedShape(0, 1),
                     titleContent = { Text(stringResource(R.string.chat_page_export_include_reasoning)) },
                     trailingContent = {
-                        KedgeSwitch(
+                        MochiSwitch(
                             checked = exportOptions.includeReasoning,
                             onCheckedChange = {
                                 exportOptions = exportOptions.copy(includeReasoning = it)
@@ -216,13 +216,13 @@ fun ChatExportSheet(
                         // 这一行在「导出为图片」这张内容卡内部：外层卡片保留（它同时装着
                         // 图标行、分隔线与底部按钮，不是纯选项组），只把开关行换成 option
                         // item，并给 backgroundColor = Transparent，避免卡片里再叠一层卡面。
-                        KedgeOptionItem(
+                        MochiOptionItem(
                             onClick = null,
                             shape = cards.groupItemShape(isFirst = false, isLast = true),
                             backgroundColor = Color.Transparent,
                             titleContent = { Text(stringResource(R.string.chat_page_export_image_expand_reasoning)) },
                             trailingContent = {
-                                KedgeSwitch(
+                                MochiSwitch(
                                     checked = exportOptions.expandReasoning,
                                     enabled = exportOptions.includeReasoning,
                                     onCheckedChange = {
@@ -238,7 +238,7 @@ fun ChatExportSheet(
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            KedgeButton(
+                            MochiButton(
                                 onClick = {
                                     scope.launch {
                                         runCatching {

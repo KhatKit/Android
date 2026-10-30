@@ -24,9 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.kedge.components.KedgeTextField
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,7 +49,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.kedge.components.KedgeTextFieldWithState
+import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithState
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
@@ -162,7 +162,7 @@ fun TextArea(
             }
 
             // Multi-line text input
-            KedgeTextFieldWithState(
+            MochiTextFieldWithState(
                 state = state,
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -224,7 +224,7 @@ private fun FullScreenTextEditor(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row {
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 state.setTextAndPlaceCursorAtEnd(editingText)
                                 onDismiss()
@@ -234,7 +234,7 @@ private fun FullScreenTextEditor(
                             Text(stringResource(R.string.text_area_save))
                         }
                     }
-                    KedgeTextFieldWithSlots(
+                    MochiTextFieldWithSlots(
                         value = editingText,
                         onValueChange = { editingText = it },
                         modifier = Modifier

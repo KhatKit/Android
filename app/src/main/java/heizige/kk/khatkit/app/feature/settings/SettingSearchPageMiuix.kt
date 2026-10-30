@@ -9,7 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,7 +51,7 @@ import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
  * 搜索服务列表页的 Miuix 风格版。
  *
  * 服务行 [SearchProviderCard] 与拖拽排序（sh.calvin.reorderable）本身与风格无关 ——
- * 行走 `KedgeOptionItem`（内部按 `LocalKedgeStyle` 分流），拖拽库独立于 UI 框架 ——
+ * 行走 `MochiOptionItem`（内部按 `LocalKedgeStyle` 分流），拖拽库独立于 UI 框架 ——
  * 这里只换外壳与顶栏操作按钮。
  *
  * 整列服务是**一个分组**：圆角走 `listCardStyle().indexedShape(index, count)`
@@ -110,7 +110,7 @@ fun SettingSearchPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         title = stringResource(R.string.setting_page_search_title),
         navigationIcon = { BackButton() },
         actions = {
-            KedgeIconButton(onClick = { showAddSheet = true }) {
+            MochiIconButton(onClick = { showAddSheet = true }) {
                 Icon(
                     imageVector = add,
                     contentDescription = stringResource(R.string.setting_page_search_add_provider),

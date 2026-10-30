@@ -25,7 +25,7 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -90,7 +90,7 @@ import heizige.kk.khatkit.app.core.ui.icons.travelExplore
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 /**
  * 记忆工具: 按 action 区分标题/图标, 摘要显示记忆内容, 详情附带删除按钮
@@ -145,8 +145,8 @@ object MemoryToolUI : ToolUIRenderer {
             context = context,
             headerActions = if (action(context) in listOf(ACTION_CREATE, ACTION_EDIT) && memoryId != null) {
                 {
-                    KedgeIconButton(
-                        variant = KedgeIconButtonVariant.Tonal,
+                    MochiIconButton(
+                        variant = MochiIconButtonVariant.Tonal,
                         onClick = {
                             scope.launch {
                                 memoryRepo.deleteMemory(memoryId)
@@ -335,8 +335,8 @@ object TextToSpeechToolUI : ToolUIRenderer {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            KedgeIconButton(
-                variant = KedgeIconButtonVariant.Tonal,
+            MochiIconButton(
+                variant = MochiIconButtonVariant.Tonal,
                 onClick = { scope.launch { eventBus.emit(AppEvent.Speak(text)) } },
                 modifier = Modifier.size(28.dp),
                 shapes = IconButtonDefaults.shapes(),

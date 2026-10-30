@@ -41,8 +41,8 @@ import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeTextFieldWithState
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithState
 
 /**
  * 工作区文本文件编辑/预览页.
@@ -89,15 +89,15 @@ fun WorkspaceFileEditorPage(
         title = fileName,
         actions = {
             if (supportsPreview && !loading && loadError == null) {
-                KedgeTextButton(onClick = { showPreview = !showPreview }) {
+                MochiTextButton(onClick = { showPreview = !showPreview }) {
                     Text(if (showPreview) "源码" else "预览")
                 }
             }
             if (editable && !loading && loadError == null) {
-                KedgeTextButton(
+                MochiTextButton(
                     enabled = !saving,
                     onClick = {
-                        if (saving) return@KedgeTextButton
+                        if (saving) return@MochiTextButton
                         saving = true
                         scope.launch {
                             runCatching {
@@ -149,7 +149,7 @@ fun WorkspaceFileEditorPage(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
 
-            else -> KedgeTextFieldWithState(
+            else -> MochiTextFieldWithState(
                 state = textState,
                 modifier = Modifier
                     .fillMaxSize()

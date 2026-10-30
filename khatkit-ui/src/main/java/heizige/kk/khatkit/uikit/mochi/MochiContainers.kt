@@ -104,7 +104,7 @@ fun MochiCard(
 fun MochiWarningCard(
     message: String,
     modifier: Modifier = Modifier,
-    /** 旧 KedgeStatusLevel：只用于选色，传 null 走 warning 默认（error 容器色）。 */
+    /** 旧 MochiStatusLevel：只用于选色，传 null 走 warning 默认（error 容器色）。 */
     level: Any? = null,
     onClick: (() -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,

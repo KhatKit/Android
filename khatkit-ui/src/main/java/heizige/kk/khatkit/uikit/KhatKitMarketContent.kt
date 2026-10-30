@@ -59,19 +59,19 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.HubCardMarketInfo
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeCheckbox
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeDialog
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -221,17 +221,17 @@ fun KhatKitMarketContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 label = stringResource(R.string.khatkit_market_search_hint),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
-            KedgeIconButton(onClick = { refresh(query) }) {
+            MochiIconButton(onClick = { refresh(query) }) {
                 Text("🔍", style = KedgeTextStyles.title())
             }
-            KedgeIconButton(onClick = { showSettings = true }) {
+            MochiIconButton(onClick = { showSettings = true }) {
                 Text("⚙️", style = KedgeTextStyles.title())
             }
         }
@@ -789,7 +789,7 @@ private fun CardDetailDialog(
             ) {
                 if (installedVersion != null) {
                     if (CardManifest.TRIGGER_USER in triggers) {
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 controller.startCard(entry.name) { result ->
                                     onToast(
@@ -803,7 +803,7 @@ private fun CardDetailDialog(
                         ) { Text(stringResource(R.string.khatkit_market_run)) }
                     }
                     if (installedVersion != entry.version) {
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 scope.launch {
                                     val ok = controller.installCard(entry, force = true)
@@ -816,10 +816,10 @@ private fun CardDetailDialog(
                             }
                         ) { Text(stringResource(R.string.khatkit_market_update)) }
                     }
-                    KedgeTextButton(onClick = onSecretsClick) {
+                    MochiTextButton(onClick = onSecretsClick) {
                         Text(stringResource(R.string.khatkit_market_secrets))
                     }
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = {
                             scope.launch {
                                 val ok = controller.uninstallCard(entry.name)
@@ -833,7 +833,7 @@ private fun CardDetailDialog(
                         }
                     ) { Text(stringResource(R.string.khatkit_market_uninstall)) }
                 } else {
-                    KedgeButton(
+                    MochiButton(
                         onClick = {
                             scope.launch {
                                 val ok = controller.installCard(entry)
@@ -849,19 +849,19 @@ private fun CardDetailDialog(
 
                 if (installedVersion != null || hubInfo != null) {
                     if (installedVersion != null) {
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 if (activated) onPublishClick() else onToast("需要先激活账户", true)
                             }
                         ) { Text(stringResource(R.string.khatkit_market_publish)) }
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 if (activated) onForkClick() else onToast("需要先激活账户", true)
                             }
                         ) { Text(stringResource(R.string.khatkit_market_fork)) }
                     }
                     if (hubInfo != null) {
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 if (!activated) {
                                     onToast("需要先激活账户", true)
@@ -913,14 +913,14 @@ private fun PublishCardDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = license,
                 onValueChange = { license = it },
                 label = stringResource(R.string.khatkit_market_license_label),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = priceText,
                 onValueChange = { priceText = it },
                 label = stringResource(R.string.khatkit_market_publish_price),
@@ -928,7 +928,7 @@ private fun PublishCardDialog(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = changelog,
                 onValueChange = { changelog = it },
                 label = stringResource(R.string.khatkit_market_publish_changelog),
@@ -936,7 +936,7 @@ private fun PublishCardDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                KedgeCheckbox(checked = confirmed, onCheckedChange = { confirmed = it })
+                MochiCheckbox(checked = confirmed, onCheckedChange = { confirmed = it })
                 Text(
                     text = stringResource(R.string.khatkit_market_publish_license_confirm),
                     style = KedgeTextStyles.footnoteSmall(),
@@ -946,10 +946,10 @@ private fun PublishCardDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                KedgeTextButton(onClick = { if (!submitting) onDismiss() }) {
+                MochiTextButton(onClick = { if (!submitting) onDismiss() }) {
                     Text(stringResource(R.string.khatkit_action_cancel))
                 }
-                KedgeButton(
+                MochiButton(
                     onClick = {
                         val price = priceText.trim().toDoubleOrNull()
                         when {
@@ -1012,21 +1012,21 @@ private fun ForkCardDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = parent,
                 onValueChange = { parent = it },
                 label = stringResource(R.string.khatkit_market_fork_parent),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = newVersion,
                 onValueChange = { newVersion = it },
                 label = stringResource(R.string.khatkit_market_fork_version),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = changelog,
                 onValueChange = { changelog = it },
                 label = stringResource(R.string.khatkit_market_fork_changelog),
@@ -1037,10 +1037,10 @@ private fun ForkCardDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                KedgeTextButton(onClick = { if (!submitting) onDismiss() }) {
+                MochiTextButton(onClick = { if (!submitting) onDismiss() }) {
                     Text(stringResource(R.string.khatkit_action_cancel))
                 }
-                KedgeButton(
+                MochiButton(
                     onClick = {
                         if (changelog.isBlank()) {
                             onToast(needChangelog, true)

@@ -43,13 +43,13 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -160,7 +160,7 @@ fun ImageGenPage(
                             MiuixIcon(imageVector = add, contentDescription = "New session")
                         }
                     } else {
-                        KedgeIconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
+                        MochiIconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = add,
                                 contentDescription = "New session"
@@ -200,12 +200,12 @@ private fun CancelDialog(
         title = { Text(stringResource(R.string.imggen_page_cancel_generation_title)) },
         text = { Text(stringResource(R.string.imggen_page_cancel_generation_message)) },
         confirmButton = {
-            KedgeTextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onConfirm, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.imggen_page_confirm))
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.imggen_page_cancel))
             }
         }
@@ -378,7 +378,7 @@ private fun InputBar(
             )
         }
 
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = prompt,
             onValueChange = vm::updatePrompt,
             placeholder = { Text(stringResource(R.string.imggen_page_prompt_placeholder)) },
@@ -410,14 +410,14 @@ private fun InputBar(
                 }
             )
 
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = onShowSettings,
                 shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(build, null)
             }
 
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { showImagePicker = true },
                 shapes = IconButtonDefaults.shapes(),
             ) {
@@ -572,7 +572,7 @@ private fun ImageGalleryScreen(
             title = { Text(stringResource(R.string.imggen_page_delete_images_title)) },
             text = { Text(stringResource(R.string.imggen_page_delete_images_message, selectedImages.size)) },
             confirmButton = {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     showDeleteDialog = false
                     isDeleting = true
                     val images = selectedImages.values.toList()
@@ -594,7 +594,7 @@ private fun ImageGalleryScreen(
                      shapes = ButtonDefaults.shapes(),) { Text(stringResource(R.string.imggen_page_delete)) }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.imggen_page_cancel)) }
+                MochiTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.imggen_page_cancel)) }
             }
         )
     }
@@ -606,14 +606,14 @@ private fun ImageGalleryScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                KedgeTextButton(onClick = { clearSelection() }, enabled = !isDeleting, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { clearSelection() }, enabled = !isDeleting, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.imggen_page_cancel))
                 }
                 Text(
                     if (isDeleting) stringResource(R.string.imggen_page_deleting)
                     else stringResource(R.string.imggen_page_selected_count, selectedImages.size)
                 )
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = { showDeleteDialog = true },
                     enabled = selectedImages.isNotEmpty() && !isDeleting,
                     shapes = ButtonDefaults.shapes(),
@@ -693,7 +693,7 @@ private fun ImageGalleryScreen(
                                             contentScale = ContentScale.Crop
                                         )
                                         if (selectionMode) {
-                                            KedgeCheckbox(
+                                            MochiCheckbox(
                                                 checked = it.id in selectedImages,
                                                 onCheckedChange = { _ -> toggleSelection(it) },
                                                 enabled = !isDeleting,
@@ -723,7 +723,7 @@ private fun ImageGalleryScreen(
                                         }
 
                                         if (!selectionMode) Row {
-                                            KedgeIconButton(
+                                            MochiIconButton(
                                                 onClick = {
                                                     clipboardManager.setText(AnnotatedString(it.prompt))
                                                     Toast.show(
@@ -741,7 +741,7 @@ private fun ImageGalleryScreen(
                                                 )
                                             }
 
-                                            KedgeIconButton(
+                                            MochiIconButton(
                                                 onClick = {
                                                     scope.launch {
                                                         try {
@@ -768,7 +768,7 @@ private fun ImageGalleryScreen(
                                                 )
                                             }
 
-                                            KedgeIconButton(
+                                            MochiIconButton(
                                                 onClick = { vm.deleteImage(it) },
                                                 modifier = Modifier.size(32.dp),
                                                 shapes = IconButtonDefaults.shapes(),
@@ -851,7 +851,7 @@ private fun SettingsBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = size,
                     onValueChange = vm::updateSize,
                     label = { Text("Custom size") },

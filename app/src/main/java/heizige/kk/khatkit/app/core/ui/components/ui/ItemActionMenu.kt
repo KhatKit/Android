@@ -13,7 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.khatkit.app.R
@@ -46,7 +46,7 @@ fun ItemActionMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = modifier) {
-        KedgeIconButton(onClick = { expanded = true }) {
+        MochiIconButton(onClick = { expanded = true }) {
             Icon(
                 imageVector = moreVert,
                 contentDescription = stringResource(R.string.more_options),

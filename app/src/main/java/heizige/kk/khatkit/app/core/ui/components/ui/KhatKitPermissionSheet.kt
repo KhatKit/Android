@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -98,7 +98,7 @@ fun KhatKitPermissionSheet(
             // 两张卡中间，改成组间留白。
             Spacer(modifier = Modifier.height(8.dp))
 
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = null,
                 shape = cards.indexedShape(0, 1),
                 titleContent = {
@@ -115,7 +115,7 @@ fun KhatKitPermissionSheet(
                     )
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = handsOff,
                         onCheckedChange = {
                             handsOff = it
@@ -136,7 +136,7 @@ private fun PermissionRow(
     deniedText: String,
     shape: Shape,
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = null,
         shape = shape,
         titleContent = {

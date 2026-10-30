@@ -31,9 +31,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -127,7 +127,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
         ) {
             // 输入区域
             Column {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = inputText,
                     onValueChange = { vm.updateInputText(it) },
                     modifier = Modifier.fillMaxWidth(),
@@ -142,7 +142,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeButton(
+                MochiButton(
                     onClick = {
                         scope.launch {
                             clipboard.getClipEntry()?.clipData?.getText()?.let {
@@ -186,7 +186,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
             }
 
             AnimatedVisibility(translatedText.isNotBlank()) {
-                KedgeButton(
+                MochiButton(
                     onClick = {
                         scope.launch {
                             clipboard.setClipEntry(
@@ -255,7 +255,7 @@ private fun LanguageSelector(
         // Miuix 下不用 ExposedDropdownMenuBox：锚点与菜单容器都是 MD3 的，
         // 改成记录锚点宽度 + Kedge 弹出菜单（与 Select/SelectTextField 一致）。
         if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = getLanguageDisplayName(targetLanguage),
                 onValueChange = {},
                 readOnly = true,
@@ -288,7 +288,7 @@ private fun LanguageSelector(
             expanded = expanded,
             onExpandedChange = { expanded = it }
         ) {
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = getLanguageDisplayName(targetLanguage),
                 onValueChange = {},
                 readOnly = true,

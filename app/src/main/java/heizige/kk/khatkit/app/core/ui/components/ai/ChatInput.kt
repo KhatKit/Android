@@ -86,8 +86,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -1130,7 +1130,7 @@ private fun TextInputRow(
             // 只在聚焦时提供全屏按钮，避免未展示仍占位
             trailingContent = if (isFocused) {
                 {
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = {
                             onFullScreenChange(!isFullScreen)
                         },
@@ -1314,7 +1314,7 @@ private fun QuickMessageButton(
     state: ChatInputState,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {
             expanded = !expanded
         },
@@ -1625,7 +1625,7 @@ private fun FullScreenEditor(
                     RichMarkdownButton(richState, formatListBulleted, "列表") { "- " to "" }
                     RichMarkdownButton(richState, code, "代码") { "`" to "`" }
                     RichMarkdownButton(richState, link, "链接") { "[" to "](url)" }
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = { previewMode = !previewMode },
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -1635,21 +1635,21 @@ private fun FullScreenEditor(
                         )
                     }
                     attachmentActions?.let { actions ->
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = actions.onPickImage,
                             shapes = IconButtonDefaults.shapes(),
                         ) { Icon(image, contentDescription = "图片") }
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = actions.onPickVideo,
                             shapes = IconButtonDefaults.shapes(),
                         ) { Icon(videocam, contentDescription = "视频") }
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = actions.onPickFile,
                             shapes = IconButtonDefaults.shapes(),
                         ) { Icon(insertDriveFile, contentDescription = "文件") }
                     }
                     Spacer(Modifier.weight(1f))
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = {
                             commitRichText()
                             onDone()
@@ -1657,7 +1657,7 @@ private fun FullScreenEditor(
                              shapes = ButtonDefaults.shapes(),) {
                         Text(stringResource(R.string.chat_page_save))
                     }
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = {
                             commitRichText()
                             onSend()
@@ -1666,7 +1666,7 @@ private fun FullScreenEditor(
                     ) {
                         Icon(arrowUpward, contentDescription = stringResource(R.string.send))
                     }
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = onDone,
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -1688,7 +1688,7 @@ private fun RichMarkdownButton(
     label: String,
     wrapper: () -> Pair<String, String>,
 ) {
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {
             val (prefix, suffix) = wrapper()
             val selected = state.toMarkdown(state.selection)
@@ -1707,7 +1707,7 @@ private fun RichStyleButton(
     label: String,
     style: SpanStyle,
 ) {
-    KedgeIconButton(
+    MochiIconButton(
         onClick = { state.toggleSpanStyle(style) },
         shapes = IconButtonDefaults.shapes(),
     ) {
@@ -1726,7 +1726,7 @@ private fun MarkdownEditButton(
     label: String,
     wrapper: () -> Pair<String, String>,
 ) {
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {
             val (prefix, suffix) = wrapper()
             val selectedRange = state.textContent.selection
@@ -1752,7 +1752,7 @@ private fun MarkdownEditTextButton(
     label: String,
     wrapper: () -> Pair<String, String>,
 ) {
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {
             val (prefix, suffix) = wrapper()
             val selectedRange = state.textContent.selection

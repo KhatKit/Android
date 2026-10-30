@@ -23,8 +23,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeExpandableOptionItem
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -264,8 +264,8 @@ interface ChainOfThoughtScope {
 
     /**
      * 声明一个**选项行（OptionItem）样式**的步骤：行的皮换成
-     * [KedgeOptionItem] 的圆角底块（左图标 + 标题 + 尾部，16dp 内边距、minHeight 56dp），
-     * 有内容可展开时再叠 [KedgeExpandableOptionItem] 的「点击整行切换 + 尾部旋转箭头 +
+     * [MochiOptionItem] 的圆角底块（左图标 + 标题 + 尾部，16dp 内边距、minHeight 56dp），
+     * 有内容可展开时再叠 [MochiExpandableOptionItem] 的「点击整行切换 + 尾部旋转箭头 +
      * 展开内容」。时间线、展开/折叠交互与普通步骤完全一致。
      *
      * **整链一块**：同一个 [ChainOfThought] 里的选项行按位号取
@@ -301,7 +301,7 @@ interface ChainOfThoughtScope {
         content: (@Composable () -> Unit)? = null,
         /**
          * 展开内容是否与标题行合成同一张卡（透传给
-         * [KedgeExpandableOptionItem] 的 `wrapContent`）。默认 `false` = 现状：
+         * [MochiExpandableOptionItem] 的 `wrapContent`）。默认 `false` = 现状：
          * 内容渲染在底块下方。聊天页推理行传 `true`，工具行保持默认。
          */
         wrapContent: Boolean = false,
@@ -470,7 +470,7 @@ private class ChainOfThoughtScopeImpl(
     }
 
     /**
-     * 选项行（[KedgeExpandableOptionItem]）版步骤的渲染。
+     * 选项行（[MochiExpandableOptionItem]）版步骤的渲染。
      *
      * 与 [ChainOfThoughtStepContent] 的两点差异，都是「块」形态逼出来的：
      * 1. 左侧仍留 24dp 的**空**时间线槽（图标搬进底块的 leadingContent），
@@ -478,7 +478,7 @@ private class ChainOfThoughtScopeImpl(
      * 2. 底块恒 `fillMaxWidth`：OptionItem 是整行块，不参与折叠态的自适应宽度
      *    （[ChainOfThought] 的 `shouldFillCollapseControlWidth` 只看控制条）。
      *
-     * 展开内容由 [KedgeExpandableOptionItem] 在底块下方渲染，缩进与时间线继续由本文件
+     * 展开内容由 [MochiExpandableOptionItem] 在底块下方渲染，缩进与时间线继续由本文件
      * 负责：内容起点与底块左边缘对齐（32dp 那截已经由外面的空槽 + 8dp 间距占掉了），
      * 竖线则靠上面那条连续画法一路盖过内容区。行距与圆角由 [ChainOfThought] 按位号发下来
      * （[optionRowPadding] / [optionRowShape]），[wrapContent] 时内容改成落进同一张卡。
@@ -515,7 +515,7 @@ private class ChainOfThoughtScopeImpl(
 
             if (content == null) {
                 // 没有展开内容 = 没有可展开性，尾部也就不该有箭头（箭头由组件按内容决定）。
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = onClick,
                     modifier = Modifier.weight(1f),
                     shape = optionRowShape,
@@ -524,7 +524,7 @@ private class ChainOfThoughtScopeImpl(
                     trailingContent = extra,
                 )
             } else {
-                KedgeExpandableOptionItem(
+                MochiExpandableOptionItem(
                     expanded = expanded,
                     onExpandedChange = onExpandedChange,
                     onClick = onClick,

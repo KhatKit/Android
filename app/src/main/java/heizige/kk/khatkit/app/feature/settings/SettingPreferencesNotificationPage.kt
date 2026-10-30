@@ -17,7 +17,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -164,7 +164,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                         },
                     )
                     if (!updateChecksEnabled) {
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 updateDisplaySetting(
                                     displaySetting.copy(updateCheckDisabledUntilEpochMillis = 0L)
@@ -180,7 +180,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         updateDisplaySetting(
                             displaySetting.copy(
@@ -196,7 +196,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showUpdatePauseDialog = false }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { showUpdatePauseDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },

@@ -24,7 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -242,7 +242,7 @@ fun AssistantPickerSheet(
                                         modifier = Modifier.padding(end = 4.dp).size(18.dp),
                                     )
                                 }
-                                KedgeIconButton(
+                                MochiIconButton(
                                     onClick = {
                                         onDismiss()
                                         navController.navigate(Screen.AssistantDetail(assistant.id.toString()))

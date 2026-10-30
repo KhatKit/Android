@@ -32,8 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -102,7 +102,7 @@ fun SettingFilesPage() {
             title = { Text(stringResource(R.string.setting_files_page_delete_file_title)) },
             text = { Text(target.displayName) },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         scope.launch {
                             val ok = filesManager.delete(target.id, deleteFromDisk = true)
@@ -120,7 +120,7 @@ fun SettingFilesPage() {
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { pendingDelete = null }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { pendingDelete = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.setting_files_page_cancel_action))
                 }
             }
@@ -158,7 +158,7 @@ fun SettingFilesPage() {
         title = stringResource(R.string.setting_files_page_title),
         scrollBehavior = scrollBehavior,
         actions = {
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { showCleanSheet = true },
                 enabled = files.isNotEmpty(),
                 shapes = IconButtonDefaults.shapes(),
@@ -338,7 +338,7 @@ internal fun FileItem(
                     }
                 }
 
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = onDelete,
                     modifier = Modifier.align(Alignment.TopEnd),
                     shapes = IconButtonDefaults.shapes(),

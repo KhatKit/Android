@@ -54,9 +54,9 @@ import heizige.kk.khatkit.app.core.ui.icons.sms
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.plus
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import java.time.Instant
 import java.time.LocalDate
@@ -67,7 +67,7 @@ import kotlin.uuid.Uuid
 /**
  * 角色聊天面板：聊天页右上角三横杠的落地页。
  *
- * 三块内容全部是 option item（[CardGroup] + `item(...)` 或逐行 [KedgeOptionItem]，
+ * 三块内容全部是 option item（[CardGroup] + `item(...)` 或逐行 [MochiOptionItem]，
  * Miuix/MD3 由 Kedge 组件分流）：
  * ① 当前角色配置信息（头像 / 名字 / 模型 / 系统提示摘要 + 角色设置入口）；
  * ② 该角色的历史聊天（`assistantId == roleId` 且 direct，**每行是外层 LazyColumn 的独立
@@ -146,7 +146,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
             onDismissRequest = { renameState.dismiss() },
             title = { Text(stringResource(R.string.chat_page_edit_title)) },
             text = {
-                KedgeOutlinedTextField(
+                MochiOutlinedTextField(
                     value = value,
                     onValueChange = onUpdate,
                     modifier = Modifier.fillMaxWidth(),
@@ -155,7 +155,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                 )
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = { renameState.confirm() },
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -163,7 +163,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                 }
             },
             dismissButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = { renameState.dismiss() },
                     shapes = ButtonDefaults.shapes(),
                 ) {
@@ -247,7 +247,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                 }
             } else {
                 itemsIndexed(roleChats, key = { _, conversation -> conversation.id.toString() }) { index, conversation ->
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         modifier = Modifier
                             .padding(horizontal = 8.dp)
                             .padding(bottom = if (index == roleChats.lastIndex) 0.dp else cards.gap),
@@ -302,7 +302,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                         supportingContent = { Text(stringResource(R.string.chat_role_panel_new_chat_desc)) },
                     )
                     // 改名入口**常驻**：不可改时只去掉点击（onClick = null 会让
-                    // KedgeOptionItem 关掉按压回弹），并用与旧文案等价的说明代替动作说明。
+                    // MochiOptionItem 关掉按压回弹），并用与旧文案等价的说明代替动作说明。
                     item(
                         onClick = if (canRename) {
                             { renameState.open(renameTarget?.title.orEmpty()) }

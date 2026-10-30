@@ -24,14 +24,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -305,9 +305,9 @@ private fun SkillCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    // 与助手/提供商列表同一套口径：底色、内边距、按压反馈全交给 KedgeOptionItem，
+    // 与助手/提供商列表同一套口径：底色、内边距、按压反馈全交给 MochiOptionItem，
     // 行内容只走插槽（leading 图标 / 标题 / 摘要 / 尾部徽标或更多菜单）。
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
@@ -352,7 +352,7 @@ private fun SkillCard(
             } else {
                 // 内置技能只读，不提供删除
                 Box {
-                    KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                    MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = moreVert,
                             contentDescription = stringResource(R.string.skills_page_more_actions),
@@ -444,9 +444,9 @@ private fun SkillImportSheetItem(
     text: String,
     onClick: () -> Unit,
 ) {
-    // 与技能卡片同款：底色、内边距、按压反馈都交给 KedgeOptionItem，行内容只走插槽；
+    // 与技能卡片同款：底色、内边距、按压反馈都交给 MochiOptionItem，行内容只走插槽；
     // 圆角由调用点按 index/count 算好传进来（本组件不猜自己在组里的位置）。
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
@@ -471,7 +471,7 @@ private fun AddSkillDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.skills_page_add_title)) },
         text = {
-            KedgeOutlinedTextFieldWithSlots(
+            MochiOutlinedTextFieldWithSlots(
                 value = content,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.skills_page_skill_content_label)) },
@@ -498,7 +498,7 @@ private fun AddSkillDialog(
             )
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { onConfirm(name, content) },
                 enabled = name.isNotBlank() && !nameError,
                 shapes = ButtonDefaults.shapes(),
@@ -507,7 +507,7 @@ private fun AddSkillDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
@@ -530,7 +530,7 @@ private fun ImportSkillDialog(
                     style = KedgeTextStyles.body(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text(stringResource(R.string.skills_page_repo_url_label)) },
@@ -557,7 +557,7 @@ private fun ImportSkillDialog(
             }
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = {
                     loading = true
                     onConfirm(url)
@@ -569,7 +569,7 @@ private fun ImportSkillDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, enabled = !loading, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            MochiTextButton(onClick = onDismiss, enabled = !loading, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

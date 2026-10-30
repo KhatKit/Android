@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.theme.LocalKedgeStyle
@@ -20,8 +20,8 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 /**
  * 表单行：左侧标题 + 描述，行内输入框 / 开关放 [tail]。
  *
- * **设置表单行（`FormItem` / `KedgeFormRow` / `KedgeSwitchFormRow` 这一系）唯一的行渲染
- * 路径**——本组件只做槽位映射，布局全部交给 [KedgeOptionItem]（它自己按
+ * **设置表单行（`FormItem` / `KedgeFormRow` / `MochiSwitchFormRow` 这一系）唯一的行渲染
+ * 路径**——本组件只做槽位映射，布局全部交给 [MochiOptionItem]（它自己按
  * `LocalKedgeStyle` 分流：MD3 走 Khromia `OptionItem`，Miuix 走 `MochiCard` 行）。这里不再
  * 手写行布局：以前 Form.kt 与 `miuix/KedgeForm.kt` 各有一份自绘行，同一件事两套实现，
  * 改一处另一处就漏。
@@ -35,14 +35,14 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
  *   顺序由 [KedgeRowSupport] 统一决定；描述的字阶见 [RowSupportingStyle]）
  * - [tail] → `trailingContent`
  *
- * [onClick] 传 `null` 表示不可点的信息行；`KedgeOptionItem` 会同时关掉整行点击与
+ * [onClick] 传 `null` 表示不可点的信息行；`MochiOptionItem` 会同时关掉整行点击与
  * 按压回弹，所以「纯信息行看着像能点」的问题不会再出现。
  *
  * ⚠️ [modifier] 是**行内容的内边距**，不是卡片外框的尺寸约束。调用点长期写
  * 「`KedgeFormRow` + `modifier = padding(8.dp)`」，那个 8dp 的语义一直是
  * 「组卡片里的内容再往里缩一圈」（改前的 MD3 `FormItem` 就是把它套在卡片**内部**的
  * Row 上）。所以它只落在 [label] / [content] / [tail] 这几个槽位上，卡片外框永远是
- * 满宽：原样交给 `KedgeOptionItem` 会把卡片本身一起缩窄，行卡片就比同页
+ * 满宽：原样交给 `MochiOptionItem` 会把卡片本身一起缩窄，行卡片就比同页
  * [CardGroup] 的卡片窄一圈。
  *
  * 卡片圆角由 [inlineGroupRowShape] 给出：组内一律内侧小圆角，首项上边/末项下边的大圆角
@@ -60,9 +60,9 @@ fun FormItem(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit = {},
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
-        // 卡片外框一律满宽（`Modifier` 空修饰符，KedgeOptionItem 自己 fillMaxWidth）；
+        // 卡片外框一律满宽（`Modifier` 空修饰符，MochiOptionItem 自己 fillMaxWidth）；
         // 调用点的 [modifier] 见上面注释，套槽位不套卡片。
         modifier = Modifier,
         shape = inlineGroupRowShape(),
@@ -101,10 +101,10 @@ private fun SlotContent(modifier: Modifier, content: @Composable () -> Unit) {
 /**
  * 行标题的字阶（F2）。
  *
- * **MD3 下必须由这里补**：`KedgeOptionItem` 的 MD3 分支转给 Khromia `OptionItem`，而它在
+ * **MD3 下必须由这里补**：`MochiOptionItem` 的 MD3 分支转给 Khromia `OptionItem`，而它在
  * `Option.kt:300-302` 直接调 `titleContent()` / `supportingContent()`，不给任何字阶 ——
  * 调用点写的是没带 `style` 的 `Text(...)`，就会漏出 MD3 默认的 `bodyLarge`（标题与描述
- * 同字号字重）。Miuix 分支**不动**：`KedgeOptionItem` 已经用
+ * 同字号字重）。Miuix 分支**不动**：`MochiOptionItem` 已经用
  * `MiuixTextStyleScope(headline1 + Medium)` 包了标题槽，这里再包一层会改掉 Miuix 的字阶。
  *
  * 值取自 [KedgeTextStyles.title]（MD3 = `titleMedium`），与统一前的 `FormItem` 一致；
@@ -123,7 +123,7 @@ private fun RowTitleStyle(content: @Composable () -> Unit) {
  * 行描述的字阶（F2）：MD3 = `KedgeTextStyles.footnoteSmall()`（`labelSmall`，12sp）叠
  * `0.6` alpha 的前景色，与统一前的 `FormItem` 逐值相同。
  *
- * 与 [RowTitleStyle] 同样只在 MD3 下生效（Miuix 由 `KedgeOptionItem` 给 `body2`）。
+ * 与 [RowTitleStyle] 同样只在 MD3 下生效（Miuix 由 `MochiOptionItem` 给 `body2`）。
  */
 @Composable
 private fun RowSupportingStyle(content: @Composable () -> Unit) {
@@ -142,7 +142,7 @@ private fun RowSupportingStyle(content: @Composable () -> Unit) {
 /**
  * 行卡片的圆角。
  *
- * - 组外（单行）：按「整组只有一行」算，也就是四角都是大圆角 —— 与 `KedgeOptionItem`
+ * - 组外（单行）：按「整组只有一行」算，也就是四角都是大圆角 —— 与 `MochiOptionItem`
  *   的默认 20dp 一致。
  * - 组内：一律按「中间项」算（只留内侧小圆角），**不区分首项/末项、不数位号**。
  *

@@ -12,9 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeSlider
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
 
 /**
  * 设置项的声明式描述。
@@ -108,7 +108,7 @@ fun CardGroupScope.settingItem(item: SettingItem) = setItem(item)
  *
  * 整行可点：点行任意位置等价于点开关，与设置分组内的开关行保持一致。
  *
- * 渲染交给双风格的 [KedgeSwitchFormRow]：MD3 还是原来的左标题右开关，
+ * 渲染交给双风格的 [MochiSwitchFormRow]：MD3 还是原来的左标题右开关，
  * Miuix 则自己出一行圆角卡片并换 Miuix 字阶。之前这里是裸 `Row` + 默认字阶，
  * 在 Miuix 页面里就是「唯一一块没做过的那块」，所以别再在这里手写布局。
  *
@@ -125,7 +125,7 @@ fun SwitchRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    KedgeSwitchFormRow(
+    MochiSwitchFormRow(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,
@@ -151,7 +151,7 @@ fun SliderRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(stringResource(titleRes))
-        KedgeSlider(
+        MochiSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
@@ -166,7 +166,7 @@ fun SliderRow(
 private fun CardGroupScope.setItem(item: SettingItem) {
     item(
         // 只有导航行与开关行给整行点击；纯信息行 / 滑块行传 null。
-        // 开关行必须显式带 enabled 门控：enabled=false 时 trailing 的 KedgeSwitch
+        // 开关行必须显式带 enabled 门控：enabled=false 时 trailing 的 MochiSwitch
         // 不消费点击事件，行级 onClick 会照样触发，禁用的行就变成能被改。
         onClick = when (item) {
             is NavSetting -> item.onClick
@@ -182,7 +182,7 @@ private fun CardGroupScope.setItem(item: SettingItem) {
         trailingContent = when (item) {
             is SwitchSetting -> {
                 {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = item.checked,
                         enabled = item.enabled,
                         onCheckedChange = item.onCheckedChange,
@@ -197,7 +197,7 @@ private fun CardGroupScope.setItem(item: SettingItem) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        KedgeSlider(
+                        MochiSlider(
                             value = item.value,
                             onValueChange = item.onValueChange,
                             valueRange = item.valueRange,

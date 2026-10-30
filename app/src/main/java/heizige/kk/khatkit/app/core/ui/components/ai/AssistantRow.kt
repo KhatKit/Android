@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
@@ -20,9 +20,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
  * 助手行的**唯一**实现：助手管理页（[heizige.kk.khatkit.app.feature.assistant.AssistantPage]）、
  * 助手选择器（[AssistantPicker]）与抽屉的「移动到助手」都渲染它。
  *
- * 以前同一个「头像 + 名称 + 右侧操作」的一行各写一遍（助手页一份 `KedgeOptionItem`、
+ * 以前同一个「头像 + 名称 + 右侧操作」的一行各写一遍（助手页一份 `MochiOptionItem`、
  * 选择器一份 `KedgeListItem`、抽屉一份 `MochiSurface`），改一处漏两处。现在只有这一份，
- * 容器一律走 [KedgeOptionItem]（它自己按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem`
+ * 容器一律走 [MochiOptionItem]（它自己按 `LocalKedgeStyle` 分流 MD3 的 Khromia `OptionItem`
  * 与 Miuix 的 `MochiCard` 行），风格差异全部由组件库决定，调用点不再各自排布。
  *
  * 调用点各自传自己的槽位：
@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
  *   以前默认的 20dp 让选择器/抽屉各自漏出硬编码圆角，与同页其他行不一致。
  * @param avatarSize 头像尺寸档：助手页 40dp、选择器 32dp、抽屉 40dp。
  * @param avatarModifier 头像附加 modifier（助手页的共享元素 `heroAnimation`）。
- * @param backgroundColor 行底色；`Color.Unspecified` 交给 [KedgeOptionItem] 取默认
+ * @param backgroundColor 行底色；`Color.Unspecified` 交给 [MochiOptionItem] 取默认
  *   （MD3 是 surfaceVariant@0.26，Miuix 是卡片底色）。
  * @param contentColor 标题色；`Color.Unspecified` 表示跟随 `LocalContentColor`
  *   （选中态需要 primaryContainer 上的 onPrimaryContainer）。
@@ -71,7 +71,7 @@ fun AssistantItem(
 ) {
     val displayName = assistant.name.ifBlank { defaultAssistantName }
 
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = shape,

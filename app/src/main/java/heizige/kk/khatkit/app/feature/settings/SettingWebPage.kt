@@ -23,9 +23,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -215,7 +215,7 @@ fun SettingWebPage() {
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_port)) },
                         supportingContent = { Text(stringResource(R.string.setting_page_web_server_port_desc)) },
                         trailingContent = {
-                            KedgeTextField(
+                            MochiTextField(
                                 value = portText,
                                 onValueChange = { value ->
                                     portText = value.filter { it.isDigit() }
@@ -274,7 +274,7 @@ fun SettingWebPage() {
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_password)) },
                         trailingContent = {
-                            KedgeTextField(
+                            MochiTextField(
                                 value = accessPasswordText,
                                 onValueChange = { value ->
                                     accessPasswordText = value
@@ -294,7 +294,7 @@ fun SettingWebPage() {
                                     PasswordVisualTransformation()
                                 },
                                 trailingIcon = {
-                                    KedgeIconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
+                                    MochiIconButton(onClick = { passwordVisible = !passwordVisible }, shapes = IconButtonDefaults.shapes()) {
                                         Icon(
                                             imageVector = if (passwordVisible) visibilityOff else visibility,
                                             contentDescription = null

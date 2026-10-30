@@ -29,8 +29,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeListItem
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -257,7 +257,7 @@ internal fun FilesPicker(
         }
         if (boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name) {
             var showCwdSheet by remember { mutableStateOf(false) }
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { showCwdSheet = true },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
@@ -350,14 +350,14 @@ private fun WorkspacePickerListItem(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (boundWorkspace != null) {
-                    KedgeIconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
+                    MochiIconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = settings,
                             contentDescription = stringResource(R.string.workspace_detail),
                         )
                     }
                     if (boundWorkspace.shellStatus != WorkspaceShellStatus.DISABLED.name) {
-                        KedgeIconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
+                        MochiIconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = terminal,
                                 contentDescription = stringResource(R.string.workspace_terminal),

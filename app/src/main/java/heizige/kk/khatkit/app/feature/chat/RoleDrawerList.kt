@@ -20,7 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
@@ -48,7 +48,7 @@ private val RoleDateFormatter = DateTimeFormatter.ofPattern("M/d")
  * 全部角色按原顺序排成一组，最后一行是「管理角色」；当前角色不单独置顶、也不分区，
  * 只用行尾一个勾标记。没有角色时，组首是一行不可点的说明（未找到 / 暂无角色）。
  *
- * **样式统一走 option item**：行的容器一律是 [AssistantItem] → [KedgeOptionItem]
+ * **样式统一走 option item**：行的容器一律是 [AssistantItem] → [MochiOptionItem]
  * （Miuix/MD3 由 Kedge 分流），圆角与行间空隙取自 [listCardStyle] 的
  * `indexedShape(index, count)` / `gap` —— 首项只圆上边（大圆角）、末项只圆下边
  * （大圆角）、中间项四角小圆角（MD3 小圆角 4dp / 项间 2dp 轻微间距；Miuix 直角 / 无缝），
@@ -118,7 +118,7 @@ internal fun RoleDrawerList(
 
         if (visibleRoles.isEmpty()) {
             item("roles-empty") {
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = null,
                     modifier = Modifier
                         .padding(horizontal = RoleRowInset)
@@ -151,7 +151,7 @@ internal fun RoleDrawerList(
             }
         }
         item("manage-role") {
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = onManage,
                 modifier = Modifier
                     .padding(horizontal = RoleRowInset)
@@ -197,7 +197,7 @@ private fun RoleRow(
             Text(
                 text = if (active) "正在回复…" else recent?.title?.ifBlank { null }
                     ?: role.description.ifBlank { "暂无消息" },
-                // 不显式给 style/color：option item 的 supporting 槽由 KedgeOptionItem
+                // 不显式给 style/color：option item 的 supporting 槽由 MochiOptionItem
                 // 统一套字阶与取色（Miuix 走 body2，MD3 走 Khromia 的同档），
                 // 与角色面板、设置页那些行逐像素一致。只有「正在回复」用 primary 强调。
                 color = if (active) {

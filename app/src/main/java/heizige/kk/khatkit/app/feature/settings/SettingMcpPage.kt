@@ -41,11 +41,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import androidx.compose.runtime.Composable
@@ -141,7 +141,7 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
         title = stringResource(R.string.setting_mcp_page_title),
         scrollBehavior = scrollBehavior,
         actions = {
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = {
                     showImportDialog = true
                 },
@@ -149,7 +149,7 @@ fun SettingMcpPage(vm: SettingViewModel = hiltViewModel()) {
             ) {
                 Icon(uploadFile, null)
             }
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = {
                     creationState.open(McpServerConfig.StreamableHTTPServer())
                 },
@@ -264,7 +264,7 @@ internal fun McpServerItem(
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         context.writeClipboardText(fullText)
                         errorDetail = null
@@ -275,7 +275,7 @@ internal fun McpServerItem(
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { errorDetail = null }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { errorDetail = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -289,20 +289,20 @@ internal fun McpServerItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         scope.launch { dismissBoxState.reset() }
                     },
-                    variant = KedgeIconButtonVariant.Tonal,
+                    variant = MochiIconButtonVariant.Tonal,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(close, null)
                 }
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         onDelete()
                     },
-                    variant = KedgeIconButtonVariant.Tonal,
+                    variant = MochiIconButtonVariant.Tonal,
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(delete, null)
@@ -397,7 +397,7 @@ internal fun McpServerItem(
                             style = KedgeTextStyles.footnoteSmall(),
                             color = MaterialTheme.colorScheme.error,
                         )
-                        KedgeButton(
+                        MochiButton(
                             onClick = { mcpManager.startAuthorization(item, context) },
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                             shapes = ButtonDefaults.shapes(),
@@ -410,7 +410,7 @@ internal fun McpServerItem(
                             text = "正在授权，请在浏览器中完成…",
                             style = KedgeTextStyles.footnoteSmall(),
                         )
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = { mcpManager.cancelAuthorization(item) },
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                             shapes = ButtonDefaults.shapes(),
@@ -420,7 +420,7 @@ internal fun McpServerItem(
                     }
                 }
 
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         onEdit(item)
                     },

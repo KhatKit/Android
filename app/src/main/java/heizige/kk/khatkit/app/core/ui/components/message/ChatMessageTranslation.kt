@@ -32,7 +32,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -211,7 +211,7 @@ fun CollapsibleTranslationText(
             }
 
             // 折叠/展开按钮
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { isCollapsed = !isCollapsed },
                 modifier = Modifier.size(32.dp),
                 shapes = IconButtonDefaults.shapes(),

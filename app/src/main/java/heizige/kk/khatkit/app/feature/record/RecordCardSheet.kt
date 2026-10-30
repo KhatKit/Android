@@ -10,9 +10,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -119,7 +119,7 @@ fun RecordCardSheet(
                 )
             }
 
-            KedgeOutlinedTextFieldWithSlots(
+            MochiOutlinedTextFieldWithSlots(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("卡片名称（如：每日签到）") },
@@ -130,7 +130,7 @@ fun RecordCardSheet(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (state.recording) {
-                    KedgeButton(onClick = { KhatKitOperationRecorder.stop(context) }, shapes = ButtonDefaults.shapes()) {
+                    MochiButton(onClick = { KhatKitOperationRecorder.stop(context) }, shapes = ButtonDefaults.shapes()) {
                         Icon(stopCircle, contentDescription = null)
                         Text(
                             text = "停止录制",
@@ -138,7 +138,7 @@ fun RecordCardSheet(
                         )
                     }
                 } else {
-                    KedgeButton(
+                    MochiButton(
                         onClick = {
                             if (!KhatKitOperationRecorder.start(context)) {
                                 Toast.show("无障碍服务未开启，请先在系统设置中开启 KhatKit 的无障碍服务", isError = true)
@@ -155,7 +155,7 @@ fun RecordCardSheet(
                 }
 
                 if (!state.recording && state.steps.isNotEmpty()) {
-                    KedgeTextButton(onClick = { KhatKitOperationRecorder.discard(context) }, shapes = ButtonDefaults.shapes()) {
+                    MochiTextButton(onClick = { KhatKitOperationRecorder.discard(context) }, shapes = ButtonDefaults.shapes()) {
                         Text("清空")
                     }
                 }

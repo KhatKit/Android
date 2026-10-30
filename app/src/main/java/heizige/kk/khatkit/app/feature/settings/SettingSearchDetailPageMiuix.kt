@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import androidx.compose.foundation.layout.Box
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,8 +29,8 @@ import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
  * 搜索服务详情页的 Miuix 风格版。
  *
  * 参数表单（[SearchServiceOptionsEditor]）与连通性测试（[SearchTestSection]）本身已双风格化
- * —— 输入框走 KedgeTextField、分段单选走 Khromia SegmentedRow、表单行走
- * `KedgeFormRow` → `FormItem` → `KedgeOptionItem` —— 这里只换外壳与分组容器。
+ * —— 输入框走 MochiTextField、分段单选走 Khromia SegmentedRow、表单行走
+ * `KedgeFormRow` → `FormItem` → `MochiOptionItem` —— 这里只换外壳与分组容器。
  */
 @Composable
 fun SettingSearchDetailPageMiuix(
@@ -57,7 +57,7 @@ fun SettingSearchDetailPageMiuix(
         navigationIcon = { BackButton() },
         actions = {
             if (settings.searchServices.size > 1) {
-                KedgeIconButton(onClick = {
+                MochiIconButton(onClick = {
                     // 走统一入口：删掉的服务若正好是「当前使用的搜索服务」，选中下标要跟着重绑。
                     removeSearchRepository(vm = vm, settings = settings, service = service)
                     nav.popBackStack()
@@ -72,7 +72,7 @@ fun SettingSearchDetailPageMiuix(
     ) {
         item {
             // 参数分组走 KedgeFormCard（InlineCardGroup）：组底色/圆角由组统一出，
-            // 行是 SearchServiceOptionsEditor 里的 KedgeFormRow → FormItem → KedgeOptionItem，
+            // 行是 SearchServiceOptionsEditor 里的 KedgeFormRow → FormItem → MochiOptionItem，
             // 组内只留内侧小圆角。以前这里套的是 MD3 的 MochiCard + 12dp 间距补丁。
             SearchConfigCard(
                 options = options,

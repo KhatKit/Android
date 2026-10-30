@@ -16,9 +16,9 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -104,7 +104,7 @@ fun WorkspaceCwdPickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                KedgeIconButton(
+                MochiIconButton(
                     enabled = browsePath.isNotBlank(),
                     onClick = {
                         browsePath = browsePath.substringBeforeLast('/', missingDelimiterValue = "")
@@ -133,7 +133,7 @@ fun WorkspaceCwdPickerSheet(
             ) {
                 val dirs = entries.filter { it.isDirectory }
                 itemsIndexed(dirs, key = { _, entry -> entry.path }) { index, entry ->
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = { browsePath = entry.path },
                         shape = cards.indexedShape(index, dirs.size),
                         titleContent = {
@@ -169,7 +169,7 @@ fun WorkspaceCwdPickerSheet(
             MochiHorizontalDivider()
 
             if (currentCwd != null) {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     onSelectCwd(null)
                     dismiss()
                 },

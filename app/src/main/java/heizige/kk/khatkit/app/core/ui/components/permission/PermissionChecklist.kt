@@ -61,13 +61,13 @@ import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeStatusLevel
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeRadioButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
@@ -388,7 +388,7 @@ fun PermissionChecklist(
         OptionsText(stringResource(R.string.greeting_permissions_normal))
         Spacer(modifier = Modifier.height(8.dp))
         if (missingRuntime.isNotEmpty()) {
-            KedgeButton(
+            MochiButton(
                 onClick = { permissionLauncher.launch(missingRuntime.toTypedArray()) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -403,7 +403,7 @@ fun PermissionChecklist(
         } else {
             MochiWarningCard(
                 message = stringResource(R.string.greeting_permission_all_granted),
-                level = KedgeStatusLevel.Success,
+                level = MochiStatusLevel.Success,
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -593,15 +593,15 @@ private fun PermissionActionItem(
     val subtitle = stringResource(item.descRes) + " · " + statusLabel
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
         // Miuix 下用设置页同款 OptionItem：白底圆角块 + Miuix 字阶，
-        // 勾选态靠右上角的 KedgeRadioButton 表示（KSU 的权限页就是这个形态）。
-        KedgeOptionItem(
+        // 勾选态靠右上角的 MochiRadioButton 表示（KSU 的权限页就是这个形态）。
+        MochiOptionItem(
             modifier = Modifier.fillMaxWidth(),
             onClick = { if (!item.granted) item.onAction?.invoke() },
             shape = shape,
             titleContent = { Text(stringResource(item.titleRes)) },
             supportingContent = { Text(subtitle) },
             trailingContent = {
-                KedgeRadioButton(
+                MochiRadioButton(
                     selected = item.granted,
                     onClick = { if (!item.granted) item.onAction?.invoke() },
                 )
@@ -631,14 +631,14 @@ private fun PermissionRadioItem(
     val colors = MaterialTheme.colorScheme
     val alpha = if (enabled) 1f else 0.6f
     if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
-        KedgeOptionItem(
+        MochiOptionItem(
             modifier = Modifier.fillMaxWidth().alpha(alpha),
             onClick = { if (enabled) onClick() },
             shape = shape,
             titleContent = { Text(title) },
             supportingContent = { Text(subtitle) },
             trailingContent = {
-                KedgeRadioButton(
+                MochiRadioButton(
                     selected = selected,
                     onClick = { if (enabled) onClick() },
                 )

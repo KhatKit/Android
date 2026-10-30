@@ -13,9 +13,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,14 +45,14 @@ fun ModeInjectionsContent(
         verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
         itemsIndexed(modeInjections) { index, injection ->
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = null,
                 shape = cards.indexedShape(index, modeInjections.size),
                 titleContent = {
                     Text(injection.name.ifBlank { stringResource(R.string.extension_content_unnamed) })
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = selectedIds.contains(injection.id),
                         onCheckedChange = { checked -> onToggle(injection.id, checked) }
                     )
@@ -81,7 +81,7 @@ fun LorebooksContent(
         verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
         itemsIndexed(lorebooks) { index, lorebook ->
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = null,
                 shape = cards.indexedShape(index, lorebooks.size),
                 titleContent = {
@@ -97,7 +97,7 @@ fun LorebooksContent(
                     }
                 } else null,
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = selectedIds.contains(lorebook.id),
                         onCheckedChange = { checked -> onToggle(lorebook.id, checked) }
                     )
@@ -126,7 +126,7 @@ fun SkillsContent(
         verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
         itemsIndexed(skills, key = { _, skill -> skill.skillDir.absolutePath }) { index, skill ->
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = null,
                 shape = cards.indexedShape(index, skills.size),
                 titleContent = { Text(skill.name) },
@@ -140,7 +140,7 @@ fun SkillsContent(
                     }
                 } else null,
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = enabledSkills.contains(skill.name),
                         onCheckedChange = { checked -> onToggle(skill.name, checked) }
                     )
@@ -169,7 +169,7 @@ fun QuickMessagesContent(
         verticalArrangement = Arrangement.spacedBy(cards.gap)
     ) {
         itemsIndexed(quickMessages, key = { _, item -> item.id }) { index, quickMessage ->
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = null,
                 shape = cards.indexedShape(index, quickMessages.size),
                 titleContent = {
@@ -186,7 +186,7 @@ fun QuickMessagesContent(
                     }
                 } else null,
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = selectedIds.contains(quickMessage.id),
                         onCheckedChange = { checked -> onToggle(quickMessage.id, checked) }
                     )
@@ -204,7 +204,7 @@ private fun ManageButton(onClick: () -> Unit) {
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.End,
     ) {
-        KedgeTextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
+        MochiTextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
             Icon(openInNew, contentDescription = null, modifier = Modifier.size(16.dp))
             Text(
                 text = stringResource(R.string.extension_content_manage),
@@ -234,7 +234,7 @@ fun ExtensionEmptyState(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
         )
         if (buttonText != null && onAction != null) {
-            KedgeTextButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
                 Icon(link, contentDescription = null)
                 Text(buttonText)
             }

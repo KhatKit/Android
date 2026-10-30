@@ -32,7 +32,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -276,7 +276,7 @@ internal fun TTSProviderList(
                     provider = provider,
                     dragHandle = {
                         val haptic = LocalHapticFeedback.current
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {},
                             modifier = Modifier
                                 .longPressDraggableHandle(
@@ -354,7 +354,7 @@ internal fun ASRProviderList(
                     provider = provider,
                     dragHandle = {
                         val haptic = LocalHapticFeedback.current
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {},
                             modifier = Modifier
                                 .longPressDraggableHandle(
@@ -406,7 +406,7 @@ internal fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
     var showBottomSheet by remember { mutableStateOf(false) }
     var currentProvider: TTSProviderSetting by remember { mutableStateOf(TTSProviderSetting.SystemTTS()) }
 
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {
             currentProvider = TTSProviderSetting.SystemTTS()
             showBottomSheet = true
@@ -457,7 +457,7 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
     var currentProvider: ASRProviderSetting by remember { mutableStateOf(ASRProviderSetting.OpenAIRealtime()) }
 
     Box {
-        KedgeIconButton(
+        MochiIconButton(
             onClick = { showTypeMenu = true },
             shapes = IconButtonDefaults.shapes(),
         ) {
@@ -647,7 +647,7 @@ private fun TTSProviderItem(
                 // TTS测试播放按钮
                 if (isSelected && isAvailable) {
                     val testText = stringResource(R.string.setting_tts_page_test_text)
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = {
                             if (!isSpeaking) {
                                 tts.speak(testText)
@@ -665,7 +665,7 @@ private fun TTSProviderItem(
                     }
                 }
 
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = { showDropdownMenu = true },
                     shapes = IconButtonDefaults.shapes(),
                 ) {
@@ -789,7 +789,7 @@ private fun ASRProviderItem(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = { showDropdownMenu = true },
                     shapes = IconButtonDefaults.shapes(),
                 ) {

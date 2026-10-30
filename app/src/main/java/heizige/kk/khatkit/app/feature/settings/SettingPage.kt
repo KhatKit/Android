@@ -1,6 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
@@ -25,9 +25,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -323,7 +323,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 var showQQGroupSheet by remember { mutableStateOf(false) }
-                                KedgeIconButton(
+                                MochiIconButton(
                                     onClick = { showQQGroupSheet = true },
                                     shapes = IconButtonDefaults.shapes(),
                                 ) {
@@ -338,7 +338,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                         onDismiss = { showQQGroupSheet = false }
                                     )
                                 }
-                                KedgeIconButton(
+                                MochiIconButton(
                                     onClick = {
                                         context.openUrl("https://discord.gg/9weBqxe5c4")
                                     },
@@ -414,7 +414,7 @@ internal fun ProviderConfigWarningCard(navController: Navigator) {
                 .padding(8.dp),
             horizontalAlignment = Alignment.End
         ) {
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = {},
                 backgroundColor = Color.Transparent,
                 leadingContent = {
@@ -423,7 +423,7 @@ internal fun ProviderConfigWarningCard(navController: Navigator) {
                 titleContent = { Text(stringResource(R.string.setting_page_config_api_title)) },
             )
 
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = {
                     navController.navigate(Screen.SettingProvider)
                 },
@@ -466,7 +466,7 @@ internal fun QQGroupBottomSheet(onDismiss: () -> Unit) {
         ) {
             val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
             QQ_GROUPS.forEachIndexed { index, group ->
-                KedgeOptionItem(
+                MochiOptionItem(
                     shape = cards.indexedShape(index, QQ_GROUPS.size),
                     onClick = {
                         if (group.number != null) {

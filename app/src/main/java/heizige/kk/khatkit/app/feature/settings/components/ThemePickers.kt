@@ -57,13 +57,13 @@ import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.MorphPolygonShape
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeColors
-import heizige.kk.kedge.components.KedgeExpandableOptionItem
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -97,7 +97,7 @@ fun ThemeColorSettingGroup(
         // 自带内层底色）——**本页唯一一张不是 Kedge 皮的行**。换成 Kedge 的可展开选项行后，
         // 行皮/圆角/尾箭头与工具行、推理行、本页其它 CardGroup 行完全同源；
         // 展开内容仍旧不铺底色（Kedge 版默认就不铺，不用再手动传 Transparent）。
-        KedgeExpandableOptionItem(
+        MochiExpandableOptionItem(
             expanded = expanded,
             onExpandedChange = { expanded = it },
             leadingContent = {
@@ -112,7 +112,7 @@ fun ThemeColorSettingGroup(
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 12.dp),
         ) {
             Column {
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = {
                         if (dynamicColorEnabled) onUpdateDynamicColor(!dynamicColor)
                     },
@@ -128,7 +128,7 @@ fun ThemeColorSettingGroup(
                     titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
                     supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
                     trailingContent = {
-                        KedgeSwitch(
+                        MochiSwitch(
                             checked = dynamicColorEnabled && dynamicColor,
                             enabled = dynamicColorEnabled,
                             onCheckedChange = { enabled ->
@@ -393,7 +393,7 @@ fun ThemeCustomColorSheet(
                 verticalAlignment = Alignment.Bottom,
             ) {
                 if (onClear != null) {
-                    KedgeTextButton(onClick = { onClear() }) {
+                    MochiTextButton(onClick = { onClear() }) {
                         Text(stringResource(R.string.avatar_reset))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -467,7 +467,7 @@ fun ThemeCustomColorSheet(
                     }
                 }
 
-                KedgeButton(
+                MochiButton(
                     onClick = { onConfirm(customColor) },
                 ) {
                     Text(stringResource(R.string.greeting_settings_custom_color_confirm))

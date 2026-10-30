@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
@@ -121,7 +121,7 @@ fun SettingPreferencesNotificationPageMiuix(vm: SettingViewModel = hiltViewModel
                         },
                     )
                     if (!updateChecksEnabled) {
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 updateDisplaySetting(
                                     displaySetting.copy(updateCheckDisabledUntilEpochMillis = 0L)
@@ -136,7 +136,7 @@ fun SettingPreferencesNotificationPageMiuix(vm: SettingViewModel = hiltViewModel
                 }
             },
             confirmButton = {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     updateDisplaySetting(
                         displaySetting.copy(
                             updateCheckDisabledUntilEpochMillis =
@@ -149,7 +149,7 @@ fun SettingPreferencesNotificationPageMiuix(vm: SettingViewModel = hiltViewModel
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showUpdatePauseDialog = false }) {
+                MochiTextButton(onClick = { showUpdatePauseDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },

@@ -25,9 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -124,7 +124,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
         title = stringResource(R.string.setting_page_search_title),
         scrollBehavior = scrollBehavior,
         actions = {
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { showAddSheet = true },
                 shapes = IconButtonDefaults.shapes(),
             ) {
@@ -338,7 +338,7 @@ internal fun AddProviderSheet(
         onDismiss = onDismiss,
         scrollable = false,
     ) { _ ->
-        // 引擎选择项也是选项行：KedgeOptionItem 插槽版，圆角/间距与列表页同一份口径
+        // 引擎选择项也是选项行：MochiOptionItem 插槽版，圆角/间距与列表页同一份口径
         // （选中态只换底色，行结构与未选中完全一致）。
         val cards = listCardStyle()
         // 空关键词保留原顺序（TYPES 的插入顺序即展示顺序），有词就按显示名过滤。
@@ -379,7 +379,7 @@ internal fun AddProviderSheet(
                 itemsIndexed(types) { index, type ->
                     val name = SearchOptions.TYPES[type] ?: "Unknown"
                     val isSelected = selectedType == type
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = { selectedType = type },
                         shape = cards.indexedShape(index, types.size),
                         backgroundColor = if (isSelected) {
@@ -434,7 +434,7 @@ internal fun AddProviderSheet(
 }
 
 /**
- * 搜索服务的一行：图标 + 名称 + 能力徽标 + ⋮ 菜单，全部走 `KedgeOptionItem` 插槽。
+ * 搜索服务的一行：图标 + 名称 + 能力徽标 + ⋮ 菜单，全部走 `MochiOptionItem` 插槽。
  *
  * 改造前是手搓的 `MochiCard { Row(...) }`：外壳与行布局自己排，两种风格各写一份，
  * 且**整行不可点**（只能点右侧 ⋮ 才进详情）。现在 [onClick] 整行进编辑页，
@@ -454,7 +454,7 @@ internal fun SearchProviderCard(
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onEdit,
         modifier = modifier.fillMaxWidth(),
         shape = shape,
@@ -479,7 +479,7 @@ internal fun SearchProviderCard(
             SearchAbilityTagLine(options = service)
         },
         trailingContent = {
-            KedgeIconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
+            MochiIconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = moreVert,
                     contentDescription = null

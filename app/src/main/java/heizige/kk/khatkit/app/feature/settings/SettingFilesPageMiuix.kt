@@ -12,8 +12,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,7 +74,7 @@ fun SettingFilesPageMiuix() {
             title = { Text(stringResource(R.string.setting_files_page_delete_file_title)) },
             text = { Text(target.displayName) },
             confirmButton = {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     scope.launch {
                         val ok = filesManager.delete(target.id, deleteFromDisk = true)
                         Toast.show(if (ok) deletedToast else deleteFailedToast)
@@ -83,7 +83,7 @@ fun SettingFilesPageMiuix() {
                 }) { Text(stringResource(R.string.setting_files_page_delete_action)) }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { pendingDelete = null }) {
+                MochiTextButton(onClick = { pendingDelete = null }) {
                     Text(stringResource(R.string.setting_files_page_cancel_action))
                 }
             },
@@ -122,7 +122,7 @@ fun SettingFilesPageMiuix() {
         title = stringResource(R.string.setting_files_page_title),
         navigationIcon = { BackButton() },
         actions = {
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { showCleanSheet = true },
                 enabled = files.isNotEmpty(),
             ) {

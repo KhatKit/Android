@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khromia.helper.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
@@ -122,7 +122,7 @@ fun SettingPreferencesUIFontPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                     ?: stringResource(R.string.setting_display_page_custom_font_not_imported),
                 onClick = { fontPickerLauncher.launch(CustomFontMimeTypes) },
                 endAction = {
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = { fontPickerLauncher.launch(CustomFontMimeTypes) },
                     ) {
                         Icon(
@@ -133,7 +133,7 @@ fun SettingPreferencesUIFontPageMiuix(vm: SettingViewModel = hiltViewModel()) {
                         )
                     }
                     if (displaySetting.chatCustomFontPath.isNotBlank()) {
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {
                                 deleteCustomChatFont(context, displaySetting.chatCustomFontPath)
                                 updateDisplaySetting(

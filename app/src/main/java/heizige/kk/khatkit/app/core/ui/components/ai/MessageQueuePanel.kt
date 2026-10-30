@@ -19,8 +19,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +43,7 @@ import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeTextFieldWithState
+import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithState
 
 @Composable
 internal fun MessageQueuePanel(
@@ -81,7 +81,7 @@ internal fun MessageQueuePanel(
                             .padding(vertical = 8.dp),
                     )
                     if (state.paused) {
-                        KedgeTextButton(onClick = onResume, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_queue_resume)) }
+                        MochiTextButton(onClick = onResume, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_queue_resume)) }
                     }
                 }
                 LazyColumn(modifier = Modifier.heightIn(max = 180.dp)) {
@@ -114,7 +114,7 @@ internal fun MessageQueuePanel(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            KedgeIconButton(
+                            MochiIconButton(
                                 enabled = !message.isEditing,
                                 onClick = {
                                     if (generating) confirmingSendNow = message
@@ -131,12 +131,12 @@ internal fun MessageQueuePanel(
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
-                            KedgeTextButton(
+                            MochiTextButton(
                                 enabled = !message.isEditing,
                                 onClick = { editing = onBeginEdit(message.id) },
                                 shapes = ButtonDefaults.shapes(),
                             ) { Text(if (message.isEditing) stringResource(R.string.chat_page_queue_editing) else stringResource(R.string.edit)) }
-                            KedgeTextButton(
+                            MochiTextButton(
                                 enabled = !message.isEditing,
                                 onClick = { onRemove(message.id) },
                                 shapes = ButtonDefaults.shapes(),
@@ -166,7 +166,7 @@ internal fun MessageQueuePanel(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (input.messageContent.isNotEmpty()) MediaFileInputRow(input)
-                    KedgeTextFieldWithState(
+                    MochiTextFieldWithState(
                         state = input.textContent,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -180,7 +180,7 @@ internal fun MessageQueuePanel(
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     enabled = !input.isEmpty(),
                     onClick = {
                         onFinishEdit(message.id, input.getContents())
@@ -190,7 +190,7 @@ internal fun MessageQueuePanel(
                 ) { Text(stringResource(R.string.chat_page_save)) }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { editing = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+                MochiTextButton(onClick = { editing = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -201,7 +201,7 @@ internal fun MessageQueuePanel(
             title = { Text(stringResource(R.string.chat_page_queue_send_now)) },
             text = { Text(stringResource(R.string.chat_page_queue_send_now_interrupt)) },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         confirmingSendNow = null
                         onSendNow(message.id)
@@ -210,7 +210,7 @@ internal fun MessageQueuePanel(
                 ) { Text(stringResource(R.string.chat_page_queue_send_now_confirm)) }
             },
             dismissButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = { confirmingSendNow = null },
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.cancel)) }

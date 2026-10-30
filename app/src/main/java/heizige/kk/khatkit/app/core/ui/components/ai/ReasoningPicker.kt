@@ -44,7 +44,7 @@ import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
 import heizige.kk.khatkit.app.core.ui.icons.lightbulb
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeSlider
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
 
 private val levels = ReasoningLevel.entries
@@ -197,9 +197,9 @@ fun ReasoningPicker(
                 )
             }
 
-            // Miuix 没有自定义 thumb 槽的 value 版Slider，这里用 KedgeSlider：
+            // Miuix 没有自定义 thumb 槽的 value 版Slider，这里用 MochiSlider：
             // MD3Exp 保持原生外观，Miuix 走 Miuix 自己的滑块样式。等级吸附逻辑不变。
-            KedgeSlider(
+            MochiSlider(
                 value = sliderState.value,
                 onValueChange = { sliderState.value = it },
                 onValueChangeFinished = {

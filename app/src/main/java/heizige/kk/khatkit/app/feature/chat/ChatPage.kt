@@ -45,7 +45,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.foundation.text.BasicTextField
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -1106,7 +1106,7 @@ private fun TopBar(
                 contentAlignment = if (bigScreen) Alignment.CenterStart else Alignment.Center,
             ) {
                 if (!bigScreen || p > 0.001f) {
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = {
                             if (p >= 0.5f) {
                                 onCollapseSearch()
@@ -1144,7 +1144,7 @@ private fun TopBar(
         // `LargeFlexibleTopAppBar` 各渲染一次同一个 lambda，行内字阶由栏下发。
         // roleName / roleModelName 只用于 Miuix 的量具文本与无障碍，不再重复传给 MD3 栏。
         actions = {
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = {
                     onClickMenu()
                 },
@@ -1179,7 +1179,7 @@ private fun TopBar(
             }
 
             // 右上角：原来这里是「新建会话」(addComment)。三横杠打开角色聊天面板。
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = {
                     if (!settings.init) onOpenRolePanel(topBarRole.id)
                 },

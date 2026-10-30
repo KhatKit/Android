@@ -23,10 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -184,9 +184,9 @@ private fun WorkspaceItem(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    // 行内容全部走 KedgeOptionItem 槽位，双风格分流在组件内部（见 KedgeOptionItem.kt），
+    // 行内容全部走 MochiOptionItem 槽位，双风格分流在组件内部（见 MochiOptionItem.kt），
     // 调用点不再写风格分支、也不再自己上 cardColors。
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onOpen,
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
@@ -217,7 +217,7 @@ private fun WorkspaceItem(
         },
         trailingContent = {
             Box {
-                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(moreVert, contentDescription = null)
                 }
                 KedgeDropdownMenuSlots(
@@ -268,7 +268,7 @@ private fun EditWorkspaceDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            KedgeOutlinedTextFieldWithSlots(
+            MochiOutlinedTextFieldWithSlots(
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -282,7 +282,7 @@ private fun EditWorkspaceDialog(
             )
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { onConfirm(trimmedName) },
                 enabled = name.isNotBlank() && !isDuplicate,
                 shapes = ButtonDefaults.shapes(),
@@ -291,7 +291,7 @@ private fun EditWorkspaceDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.common_cancel))
             }
         },

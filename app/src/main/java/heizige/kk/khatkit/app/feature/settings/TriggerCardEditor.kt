@@ -22,11 +22,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeExpandableOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -156,7 +156,7 @@ internal fun TriggerCardEditorSheet(
                         onSelect = { maxRetries = it.toIntOrNull() ?: 0 },
                     )
                     if (maxRetries > 0) {
-                        KedgeOutlinedTextFieldWithSlots(
+                        MochiOutlinedTextFieldWithSlots(
                             value = retryDelay,
                             onValueChange = { retryDelay = it.filter { c -> c.isDigit() }.take(4) },
                             label = { Text("重试间隔（秒）") },
@@ -198,7 +198,7 @@ internal fun TriggerCardEditorSheet(
                 }
             }
 
-            KedgeTextButton(onClick = { showTypePicker = !showTypePicker }, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = { showTypePicker = !showTypePicker }, shapes = ButtonDefaults.shapes()) {
                 Icon(add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(if (showTypePicker) "收起类型" else "添加事件")
@@ -230,7 +230,7 @@ internal fun TriggerCardEditorSheet(
                 )
             }
 
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = {
                     events.clear()
                     events.addAll(card.baseEvents)
@@ -259,11 +259,11 @@ private fun EventCard(
     onRemove: () -> Unit,
 ) {
     // 事件卡的表头本来就是一个选项行：整行可点 = 展开/收起，右侧挂开关 + 删除 + 箭头。
-    // 之前是 MochiCard 里手写的 Row（裸 KedgeSwitch），行皮/圆角/内边距只有这里跟
-    // 其它选项行不一样。改走 KedgeExpandableOptionItem（= KedgeOptionItem + 同卡展开区）
+    // 之前是 MochiCard 里手写的 Row（裸 MochiSwitch），行皮/圆角/内边距只有这里跟
+    // 其它选项行不一样。改走 MochiExpandableOptionItem（= MochiOptionItem + 同卡展开区）
     // 后：折叠区仍在同一张卡内（wrapContent），点击语义 / 开关 / 删除 / 文案全部原样。
     val cards = listCardStyle()
-    KedgeExpandableOptionItem(
+    MochiExpandableOptionItem(
         expanded = expanded,
         onExpandedChange = { onToggle() },
         modifier = Modifier.fillMaxWidth(),
@@ -292,11 +292,11 @@ private fun EventCard(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                KedgeSwitch(
+                MochiSwitch(
                     checked = enabled,
                     onCheckedChange = onToggleEnabled,
                 )
-                KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                     Icon(delete, contentDescription = "删除事件", modifier = Modifier.size(18.dp))
                 }
                 Icon(
@@ -534,7 +534,7 @@ private fun EventFields(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 val context = LocalContext.current
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         TriggerTilePublisher.requestAdd(
                             context = context,
@@ -701,7 +701,7 @@ private fun TextStateField(
     onValueChange: (String) -> Unit,
     placeholder: String? = null,
 ) {
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -720,7 +720,7 @@ private fun IntStateField(
     allowNegative: Boolean = false,
 ) {
     var text by remember { mutableStateOf(value.toString()) }
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = text,
         onValueChange = { raw ->
             val filtered = buildString {
@@ -748,7 +748,7 @@ private fun DoubleStateField(
     onValueChange: (Double?) -> Unit,
 ) {
     var text by remember { mutableStateOf(value?.toString().orEmpty()) }
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = text,
         onValueChange = { raw ->
             val filtered = raw.filter { it.isDigit() || it == '.' || it == '-' }

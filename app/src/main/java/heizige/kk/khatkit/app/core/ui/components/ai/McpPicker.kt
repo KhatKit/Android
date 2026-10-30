@@ -20,10 +20,10 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeBadge
+import heizige.kk.khatkit.uikit.mochi.MochiBadge
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +50,7 @@ import heizige.kk.khatkit.app.core.ui.icons.power
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.kedge.components.KedgeBadgedBox
+import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 
 @Composable
 fun McpPickerButton(
@@ -88,10 +88,10 @@ fun McpPickerButton(
                         modifier = Modifier.size(20.dp)
                     )
                 } else {
-                    KedgeBadgedBox(
+                    MochiBadgedBox(
                         badge = {
                             if (enabledServers.isNotEmpty()) {
-                                KedgeBadge(
+                                MochiBadge(
                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                 ) {
                                     Text(text = enabledServers.size.toString())
@@ -173,7 +173,7 @@ fun McpPickerListItem(
     // 与同文件服务器行的圆角/底色/按压反馈两套写法；现在形状与间距统一取
     // listCardStyle()，单行自成一组（index 0 / count 1）⇒ 四角同大圆角。
     val cards = listCardStyle()
-    KedgeOptionItem(
+    MochiOptionItem(
         // 整行可点（点开 MCP 选择弹层），与改动前 clickable 语义一致。
         onClick = { showMcpPicker = true },
         modifier = modifier.fillMaxWidth(),
@@ -284,7 +284,7 @@ fun McpPicker(
     ) {
         itemsIndexed(visibleServers) { index, server ->
             val status by mcpManager.getStatus(server).collectAsStateWithLifecycle(McpStatus.Idle)
-            KedgeOptionItem(
+            MochiOptionItem(
                 // 行本身不可点，只有行尾开关可点（与改动前一致）。
                 onClick = null,
                 shape = cards.indexedShape(index, visibleServers.size),
@@ -345,7 +345,7 @@ fun McpPicker(
                     }
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = server.id in assistant.mcpServers,
                         onCheckedChange = {
                             if (it) {

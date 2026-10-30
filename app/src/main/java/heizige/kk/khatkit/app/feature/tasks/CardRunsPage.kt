@@ -34,8 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
@@ -104,7 +104,7 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
             title = { Text(stringResource(R.string.card_runs_rerun_confirm_title)) },
             text = { Text(stringResource(R.string.card_runs_rerun_confirm_message, run.cardName)) },
             confirmButton = {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     pendingRerun = null
                     vm.rerun(run) { result ->
                         Toast.show(
@@ -119,7 +119,7 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
                 }) { Text(stringResource(R.string.card_runs_rerun)) }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { pendingRerun = null }) {
+                MochiTextButton(onClick = { pendingRerun = null }) {
                     Text(stringResource(R.string.card_runs_cancel))
                 }
             },
@@ -136,14 +136,14 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
                 )
             },
             confirmButton = {
-                KedgeTextButton(onClick = {
+                MochiTextButton(onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText(artifact.displayName, artifact.textContent))
                     pendingText = null
                 }) { Text(stringResource(R.string.card_runs_artifact_copy)) }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { pendingText = null }) {
+                MochiTextButton(onClick = { pendingText = null }) {
                     Text(stringResource(R.string.card_runs_cancel))
                 }
             },
@@ -163,7 +163,7 @@ private fun CardRunRow(
         run.status == CardRunEntity.FAILED ||
         run.status == CardRunEntity.CANCELLED ||
         run.status == CardRunEntity.INTERRUPTED
-    KedgeOptionItem(
+    MochiOptionItem(
         modifier = Modifier.fillMaxWidth(),
         onClick = {},
         titleContent = { Text(run.cardName, maxLines = 1) },
@@ -195,10 +195,10 @@ private fun CardRunRow(
                             }
                             if (available) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    KedgeTextButton(onClick = { onOpenArtifact(artifact) }) {
+                                    MochiTextButton(onClick = { onOpenArtifact(artifact) }) {
                                         Text(stringResource(R.string.card_runs_artifact_open))
                                     }
-                                    KedgeTextButton(onClick = { onShareArtifact(artifact) }) {
+                                    MochiTextButton(onClick = { onShareArtifact(artifact) }) {
                                         Text(stringResource(R.string.card_runs_artifact_share))
                                     }
                                 }
@@ -213,7 +213,7 @@ private fun CardRunRow(
         },
         trailingContent = {
             if (terminal && run.trigger == "用户") {
-                KedgeTextButton(onClick = onRerun) { Text(stringResource(R.string.card_runs_rerun)) }
+                MochiTextButton(onClick = onRerun) { Text(stringResource(R.string.card_runs_rerun)) }
             }
         },
     )

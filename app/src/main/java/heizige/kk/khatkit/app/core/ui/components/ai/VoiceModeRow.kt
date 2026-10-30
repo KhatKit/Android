@@ -11,7 +11,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,8 +57,8 @@ internal fun VoiceModeRow(
                     color = KedgeColors.onSurfaceVariant,
                 )
             }
-            if (isError) KedgeTextButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_retry)) }
-            KedgeTextButton(onClick = onStop, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_end)) }
+            if (isError) MochiTextButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_retry)) }
+            MochiTextButton(onClick = onStop, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_page_voice_end)) }
         }
         if (isError && !state.error.isNullOrBlank()) {
             Text(state.error, style = KedgeTextStyles.body(), color = statusColor)

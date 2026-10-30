@@ -21,10 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeSlider
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -156,7 +156,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_name))
                 },
                 supportingContent = {
-                    KedgeOutlinedTextField(
+                    MochiOutlinedTextField(
                         value = assistant.name,
                         onValueChange = {
                             onUpdate(
@@ -182,7 +182,7 @@ internal fun AssistantBasicContent(
             item(
                 headlineContent = { Text("职责描述") },
                 supportingContent = {
-                    KedgeOutlinedTextField(
+                    MochiOutlinedTextField(
                         value = assistant.description,
                         onValueChange = { onUpdate(assistant.copy(description = it)) },
                         modifier = Modifier.fillMaxWidth(),
@@ -194,7 +194,7 @@ internal fun AssistantBasicContent(
                 headlineContent = { Text("主管权限") },
                 supportingContent = { Text("允许 AI 创建、修改和删除团队角色；每次变更仍需确认。") },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.canManageRoles,
                         onCheckedChange = { onUpdate(assistant.copy(canManageRoles = it)) },
                     )
@@ -292,7 +292,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar_desc))
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.useAssistantAvatar,
                         onCheckedChange = {
                             onUpdate(
@@ -352,7 +352,7 @@ internal fun AssistantBasicContent(
                                     mutableStateOf(assistant.temperature.toString())
                                 }
                                 val temperatureValue = temperatureInput.toFloatOrNull()
-                                KedgeOutlinedTextFieldWithSlots(
+                                MochiOutlinedTextFieldWithSlots(
                                     value = temperatureInput,
                                     onValueChange = { value ->
                                         temperatureInput = value
@@ -378,7 +378,7 @@ internal fun AssistantBasicContent(
                     )
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.temperature != null,
                         onCheckedChange = { enabled ->
                             onUpdate(
@@ -409,7 +409,7 @@ internal fun AssistantBasicContent(
                                     mutableStateOf(topP.toString())
                                 }
                                 val topPValue = topPInput.toFloatOrNull()
-                                KedgeOutlinedTextFieldWithSlots(
+                                MochiOutlinedTextFieldWithSlots(
                                     value = topPInput,
                                     onValueChange = { value ->
                                         topPInput = value
@@ -435,7 +435,7 @@ internal fun AssistantBasicContent(
                     )
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.topP != null,
                         onCheckedChange = { enabled ->
                             onUpdate(
@@ -483,7 +483,7 @@ internal fun AssistantBasicContent(
                                 }
                             }
 
-                            KedgeOutlinedTextFieldWithSlots(
+                            MochiOutlinedTextFieldWithSlots(
                                 value = contextMessageLimitInput,
                                 onValueChange = { input ->
                                     if (input.all(Char::isDigit) &&
@@ -548,7 +548,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_stream_output_desc))
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.streamOutput,
                         onCheckedChange = {
                             onUpdate(
@@ -586,7 +586,7 @@ internal fun AssistantBasicContent(
                             Text(stringResource(R.string.assistant_page_max_tokens_desc))
                         },
                         content = {
-                            KedgeOutlinedTextFieldWithSlots(
+                            MochiOutlinedTextFieldWithSlots(
                                 value = assistant.maxTokens?.toString() ?: "",
                                 onValueChange = { text ->
                                     val tokens = if (text.isBlank()) {
@@ -628,7 +628,7 @@ internal fun AssistantBasicContent(
                     Text(stringResource(R.string.assistant_page_gradient_background_desc))
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = assistant.useGradientBackground,
                         onCheckedChange = {
                             onUpdate(
@@ -639,7 +639,7 @@ internal fun AssistantBasicContent(
                         }
                     )
                 },
-                // 开关行整行可点（与 KedgeSwitchFormRow 一致）。
+                // 开关行整行可点（与 MochiSwitchFormRow 一致）。
                 onClick = {
                     onUpdate(
                         assistant.copy(
@@ -677,7 +677,7 @@ internal fun AssistantBasicContent(
                                 Text(stringResource(R.string.assistant_page_background_opacity_desc))
                             },
                             content = {
-                                KedgeSlider(
+                                MochiSlider(
                                     value = backgroundOpacity,
                                     onValueChange = {
                                         onUpdate(

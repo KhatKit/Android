@@ -46,8 +46,8 @@ import heizige.kk.khatkit.app.core.ui.icons.stop
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khromia.helper.Toast
@@ -63,7 +63,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * - 启停：MD3 是右下 FAB（`KedgeExtendedFloatingActionButton`），Miuix 换成组内的
  *   [PreferenceArrow] 动作行（与 `SettingPreferencesNetworkPageMiuix` 的「测试连接」同款），
  *   图标仍是 play/stop、加载态在 `endAction` 显示 [KedgeProgressIndicator]
- * - 端口/密码：双风格 [KedgeTextField]（含密码可见性 trailingIcon）
+ * - 端口/密码：双风格 [MochiTextField]（含密码可见性 trailingIcon）
  * - 两个开关：[PreferenceSwitch]
  * - 地址复制行：[PreferenceArrow]（title = 地址类型、summary = 地址、点击复制）
  *
@@ -175,7 +175,7 @@ fun SettingWebPageMiuix() {
         }
 
         miuixGroup {
-            KedgeTextField(
+            MochiTextField(
                 value = portText,
                 onValueChange = { value ->
                     portText = value.filter { it.isDigit() }
@@ -219,7 +219,7 @@ fun SettingWebPageMiuix() {
                 },
                 enabled = settings.webServerJwtEnabled || accessPasswordText.isNotBlank(),
             )
-            KedgeTextField(
+            MochiTextField(
                 value = accessPasswordText,
                 onValueChange = { value ->
                     accessPasswordText = value
@@ -240,7 +240,7 @@ fun SettingWebPageMiuix() {
                     PasswordVisualTransformation()
                 },
                 trailingIcon = {
-                    KedgeIconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    MochiIconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) visibilityOff else visibility,
                             contentDescription = null

@@ -25,10 +25,10 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.material3.Icon as MdIcon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text as MdText
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeRadioButton
-import heizige.kk.kedge.components.KedgeSlider
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.kedge.preferences.KedgeListPreference
 import heizige.kk.kedge.preferences.KedgePreferenceOption
 import heizige.kk.kedge.theme.KedgeStyle
@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
  * ⚠️ 本文件**不再自绘选项行**（t11）：[PreferenceSwitch] / [PreferenceArrow] /
  * [PreferenceInfo] / [PreferenceRadio]（以及 [PreferenceSlider] 的 MD3 一支）全部只是
  * **签名转接层**，行布局、卡片底色、圆角、内边距、字阶、按压回弹一律由
- * [KedgeOptionItem] 按 `LocalKedgeStyle` 分流决定（与 `Form.kt` 的 `FormItem`、
+ * [MochiOptionItem] 按 `LocalKedgeStyle` 分流决定（与 `Form.kt` 的 `FormItem`、
  * `miuix/KedgeForm.kt` 的 `KedgeFormRow` 同一条渲染路径）。
  *
  * 以前这里有两条自绘行：Miuix 一支直接渲染 miuix 原生 `SwitchPreference` /
@@ -121,7 +121,7 @@ private fun preferenceRowShape(): Shape {
 
 /**
  * 行标题。字阶取 [KedgeTextStyles.title]（Miuix = `headline1 + Medium`，与
- * [KedgeOptionItem] 自己那层 `MiuixTextStyleScope` 同值；MD3 = `titleMedium`）。
+ * [MochiOptionItem] 自己那层 `MiuixTextStyleScope` 同值；MD3 = `titleMedium`）。
  *
  * 取色不能省：Miuix 一支原来由 `SwitchPreference` 的 `BasicComponent` 给
  * `onSurfaceContainer`，MD3 一支原来吃 `LocalContentColor`；现在两边都从这里出，
@@ -158,7 +158,7 @@ private fun PreferenceSummary(text: String) {
 /**
  * 开关项。[icon] 为空时不显示前置图标。
  *
- * 整行点击 = 翻转开关（`onClick` 交给 [KedgeOptionItem]，两种风格都既有整行点击、
+ * 整行点击 = 翻转开关（`onClick` 交给 [MochiOptionItem]，两种风格都既有整行点击、
  * 又有按压回弹）；右侧开关自己消费掉它的点击，不会冒泡回来，所以不会翻两次。
  */
 @Composable
@@ -171,7 +171,7 @@ fun PreferenceSwitch(
     icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = if (enabled) ({ onCheckedChange(!checked) }) else null,
         modifier = modifier,
         shape = preferenceRowShape(),
@@ -179,7 +179,7 @@ fun PreferenceSwitch(
         titleContent = { PreferenceTitle(title) },
         supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
         trailingContent = {
-            KedgeSwitch(
+            MochiSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 enabled = enabled,
@@ -200,7 +200,7 @@ fun PreferenceArrow(
     startAction: (@Composable () -> Unit)? = null,
     endAction: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = if (enabled) onClick else null,
         modifier = modifier,
         shape = preferenceRowShape(),
@@ -228,13 +228,13 @@ fun PreferenceArrow(
 /**
  * 滑块项。[valueText] 显示在滑块右侧（如百分比、当前值）。
  *
- * 两种风格都保留**原生滑块**，只把外壳收进 [KedgeOptionItem]：
+ * 两种风格都保留**原生滑块**，只把外壳收进 [MochiOptionItem]：
  *
  * - Miuix 一支仍是 `SliderPreference`（`PreferenceItems.kt:213`）：Miuix 的滑块带拖动
- *   值气泡、刻度绘制与无障碍 setProgress 语义，自己用 `KedgeSlider` 拼一遍会丢这些；
+ *   值气泡、刻度绘制与无障碍 setProgress 语义，自己用 `MochiSlider` 拼一遍会丢这些；
  *   而且它本来就是 Miuix 自带的 `BasicComponent` 行，不是「裸 `KedgeListItem` + clickable」。
  * - MD3 一支原来是裸 `KedgeListItem`（透明无底色、无卡片圆角），现在换成
- *   `KedgeOptionItem(onClick = null)`：纯信息行不可点、无按压回弹，滑块仍是唯一交互元素。
+ *   `MochiOptionItem(onClick = null)`：纯信息行不可点、无按压回弹，滑块仍是唯一交互元素。
  */
 @Composable
 fun PreferenceSlider(
@@ -265,10 +265,10 @@ fun PreferenceSlider(
             startAction = icon?.let { { PreferenceIcon(it, title, enabled) } },
         )
     } else {
-        // MD3Exp：外壳走 KedgeOptionItem（纯信息行，onClick = null），滑块用 :kedge 的
-        // KedgeSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 KedgeListItem 相同，
+        // MD3Exp：外壳走 MochiOptionItem（纯信息行，onClick = null），滑块用 :kedge 的
+        // MochiSlider（valueText 仍显示在滑块右侧）。壳内结构与改造前的 KedgeListItem 相同，
         // 只多了卡片底色/圆角。
-        KedgeOptionItem(
+        MochiOptionItem(
             onClick = null,
             modifier = modifier,
             shape = preferenceRowShape(),
@@ -280,7 +280,7 @@ fun PreferenceSlider(
                         PreferenceSummary(summary)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        KedgeSlider(
+                        MochiSlider(
                             value = value,
                             onValueChange = onValueChange,
                             modifier = Modifier.weight(1f),
@@ -306,9 +306,9 @@ fun PreferenceSlider(
 /**
  * 只读信息项。[onLongClick] 用于「连点版本号进 Debug」这类隐藏入口。
  *
- * 长按在 [KedgeOptionItem] 的 `onClick` 之外补：有 [onLongClick] 时整行点击交给挂上来的
+ * 长按在 [MochiOptionItem] 的 `onClick` 之外补：有 [onLongClick] 时整行点击交给挂上来的
  * `combinedClickable`（`onClick` 传 null，避免两个 clickable 各点一次），没有时直接走
- * [KedgeOptionItem] 的 `onClick`（带按压回弹）。
+ * [MochiOptionItem] 的 `onClick`（带按压回弹）。
  */
 @Composable
 fun PreferenceInfo(
@@ -320,7 +320,7 @@ fun PreferenceInfo(
     onLongClick: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = if (onLongClick == null) onClick else null,
         modifier = if (onLongClick == null) {
             modifier
@@ -350,7 +350,7 @@ fun PreferenceRadio(
     icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = if (enabled) onClick else null,
         modifier = modifier,
         shape = preferenceRowShape(),
@@ -358,7 +358,7 @@ fun PreferenceRadio(
         titleContent = { PreferenceTitle(title) },
         supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
         trailingContent = {
-            KedgeRadioButton(
+            MochiRadioButton(
                 selected = selected,
                 onClick = onClick,
                 enabled = enabled,

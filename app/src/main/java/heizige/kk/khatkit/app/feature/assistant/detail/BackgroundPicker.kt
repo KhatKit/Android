@@ -11,9 +11,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +62,7 @@ fun BackgroundPicker(
                         Text(stringResource(R.string.assistant_page_chat_background_desc))
                     },
                     content = {
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 showPickOption = true
                             },
@@ -90,7 +90,7 @@ fun BackgroundPicker(
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
-                                KedgeTextButton(
+                                MochiTextButton(
                                     onClick = {
                                         onUpdate(null)
                                     },
@@ -126,7 +126,7 @@ fun BackgroundPicker(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    KedgeButton(
+                    MochiButton(
                         onClick = {
                             showPickOption = false
                             showImagePicker = true
@@ -136,7 +136,7 @@ fun BackgroundPicker(
                     ) {
                         Text(stringResource(R.string.assistant_page_select_from_gallery))
                     }
-                    KedgeButton(
+                    MochiButton(
                         onClick = {
                             showPickOption = false
                             urlInput = ""
@@ -148,7 +148,7 @@ fun BackgroundPicker(
                         Text(stringResource(R.string.assistant_page_enter_image_url))
                     }
                     if (background != null) {
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 showPickOption = false
                                 onUpdate(null)
@@ -162,7 +162,7 @@ fun BackgroundPicker(
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         showPickOption = false
                     },
@@ -183,7 +183,7 @@ fun BackgroundPicker(
                 Text(stringResource(R.string.assistant_page_enter_image_url))
             },
             text = {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = urlInput,
                     onValueChange = { urlInput = it },
                     label = { Text(stringResource(R.string.assistant_page_image_url)) },
@@ -194,7 +194,7 @@ fun BackgroundPicker(
                 )
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         if (urlInput.isNotBlank()) {
                             onUpdate(urlInput.trim())
@@ -207,7 +207,7 @@ fun BackgroundPicker(
                 }
             },
             dismissButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         showUrlInput = false
                     },

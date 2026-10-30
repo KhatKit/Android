@@ -26,10 +26,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.kedge.components.KedgeRadioButton
+import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,7 +60,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
 import heizige.kk.kedge.components.KedgeSingleChoiceSegmentedRow
@@ -92,7 +92,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
             title = { Text(stringResource(R.string.search_page_rebuild_index)) },
             text = { Text(stringResource(R.string.search_page_rebuild_index_desc)) },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         showRebuildDialog = false
                         vm.rebuildIndex()
@@ -103,7 +103,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showRebuildDialog = false }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { showRebuildDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -118,7 +118,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                 current = vm.sortOrder,
                 onSortChange = { vm.onSortChange(it) },
             )
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { showRebuildDialog = true },
                 enabled = !vm.isRebuilding,
             ) {
@@ -267,7 +267,7 @@ private fun SortMenuButton(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        KedgeIconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
+        MochiIconButton(onClick = { expanded = true }, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 sort,
                 contentDescription = stringResource(R.string.search_page_sort)
@@ -291,7 +291,7 @@ private fun SortMenuButton(
                         )
                     },
                     leadingIcon = {
-                        KedgeRadioButton(
+                        MochiRadioButton(
                             selected = sort == current,
                             onClick = null,
                         )

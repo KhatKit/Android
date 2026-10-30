@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.khatkit.ui.UiNode
 import kotlinx.coroutines.CoroutineScope
@@ -153,7 +153,7 @@ internal fun CounterButton(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     if (state.tap()) {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -162,7 +162,7 @@ internal fun CounterButton(
                     }
                 },
                 enabled = !readOnly && node.props["disabled"] != true,
-                variant = if (accent) KedgeButtonVariant.Primary else KedgeButtonVariant.Secondary,
+                variant = if (accent) MochiButtonVariant.Primary else MochiButtonVariant.Secondary,
                 colors = colors,
                 miuixColors = miuixColors,
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),

@@ -35,13 +35,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.components.KedgeFilterChip
 import heizige.kk.kedge.components.KedgeListItem
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeCheckbox
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -100,7 +100,7 @@ import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.kedge.theme.KedgeStyle
 import heizige.kk.kedge.theme.LocalKedgeStyle
 import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
@@ -156,7 +156,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             MiuixIcon(add, contentDescription = stringResource(R.string.assistant_page_add))
                         }
                     } else {
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id,
                                 enableMemory = true, autoExtractMemory = true, enableRecentChatsReference = true)) },
                             shapes = IconButtonDefaults.shapes(),
@@ -281,7 +281,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                     null
                                 },
                                 trailingContent = {
-                                    KedgeIconButton(
+                                    MochiIconButton(
                                         onClick = { actionSheetAssistant = assistant },
                                         shapes = IconButtonDefaults.shapes(),
                                     ) {
@@ -320,8 +320,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                         // 「新建角色」是同一个分组的末项（与抽屉里「管理角色」同款）：角色在上时
                         // 只有下圆角是大圆角，角色为空时它自己就是首末项。行间空隙由 LazyColumn
                         // 的 spacedBy(cards.gap) 统一给，不再单独留 16dp 自成一张四角全圆的大卡。
-                        // 双风格的容器仍交给 KedgeOptionItem 内部分流（MD3Exp / Miuix）。
-                        KedgeOptionItem(
+                        // 双风格的容器仍交给 MochiOptionItem 内部分流（MD3Exp / Miuix）。
+                        MochiOptionItem(
                             onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = cards.indexedShape(filteredAssistants.size, filteredAssistants.size + 1),
@@ -427,7 +427,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            KedgeCheckbox(checked = cloneWithMemories, onCheckedChange = null)
+            MochiCheckbox(checked = cloneWithMemories, onCheckedChange = null)
             Text(stringResource(R.string.assistant_page_clone_with_memories))
         }
     }
@@ -557,9 +557,9 @@ private fun AssistantCreationSheet(
                         onUpdate = { update(assistant.copy(avatar = it)) },
                         modifier = Modifier.size(64.dp),
                     )
-                    // 表单行收口到 KedgeOptionItem：标题走 titleContent，输入框走
+                    // 表单行收口到 MochiOptionItem：标题走 titleContent，输入框走
                     // supportingContent（不再经项目内的转接层）。
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = null,
                         titleContent = {
                             Text(
@@ -568,7 +568,7 @@ private fun AssistantCreationSheet(
                             )
                         },
                         supportingContent = {
-                            KedgeOutlinedTextField(
+                            MochiOutlinedTextField(
                                 value = assistant.name, onValueChange = {
                                     update(
                                         assistant.copy(
@@ -581,7 +581,7 @@ private fun AssistantCreationSheet(
                         },
                     )
 
-                    KedgeOutlinedTextField(
+                    MochiOutlinedTextField(
                         value = assistant.description,
                         onValueChange = { update(assistant.copy(description = it)) },
                         label = "职责描述",
@@ -703,7 +703,7 @@ private fun AssistantActionSheet(
             title = { Text(stringResource(R.string.assistant_page_delete)) },
             text = { Text(stringResource(R.string.assistant_page_delete_dialog_text)) },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()
@@ -713,7 +713,7 @@ private fun AssistantActionSheet(
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },

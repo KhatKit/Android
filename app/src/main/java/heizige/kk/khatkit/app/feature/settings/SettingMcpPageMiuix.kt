@@ -3,7 +3,7 @@ package heizige.kk.khatkit.app.feature.settings
 import androidx.compose.ui.Modifier
 
 import androidx.compose.runtime.Composable
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,10 +54,10 @@ fun SettingMcpPageMiuix(vm: SettingViewModel = hiltViewModel()) {
         title = stringResource(R.string.setting_mcp_page_title),
         navigationIcon = { BackButton() },
         actions = {
-            KedgeIconButton(onClick = { showImportDialog = true }) {
+            MochiIconButton(onClick = { showImportDialog = true }) {
                 Icon(imageVector = uploadFile, contentDescription = null)
             }
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = { creationState.open(McpServerConfig.StreamableHTTPServer()) }
             ) {
                 Icon(imageVector = add, contentDescription = null)

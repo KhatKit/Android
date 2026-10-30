@@ -43,14 +43,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiCard
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.kedge.components.KedgeInputChip
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,13 +104,13 @@ import heizige.kk.khatkit.app.core.ui.icons.iosShare
 import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
@@ -266,12 +266,12 @@ private fun ModeInjectionTab(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
             leadingContent = {
-                KedgeIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(uploadFile, null)
                 }
             },
         ) {
-            KedgeButton(onClick = { editState.open(PromptInjection.ModeInjection()) }, shapes = ButtonDefaults.shapes()) {
+            MochiButton(onClick = { editState.open(PromptInjection.ModeInjection()) }, shapes = ButtonDefaults.shapes()) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -323,11 +323,11 @@ private fun ModeInjectionCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                KedgeIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
-                KedgeIconButton(
-                    variant = KedgeIconButtonVariant.Filled,
+                MochiIconButton(
+                    variant = MochiIconButtonVariant.Filled,
                     onClick = {
                     scope.launch {
                         onDelete()
@@ -342,7 +342,7 @@ private fun ModeInjectionCard(
         enableDismissFromStartToEnd = false,
         modifier = modifier
     ) {
-        KedgeOptionItem(
+        MochiOptionItem(
             // 原实现整行不可点（动作只在行尾的导出/编辑按钮上），保持纯信息行，不新增点击行为。
             onClick = null,
             modifier = Modifier.fillMaxWidth(),
@@ -377,10 +377,10 @@ private fun ModeInjectionCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                    MochiIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(iosShare, stringResource(R.string.export_title))
                     }
-                    KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                    MochiIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                         Icon(build, stringResource(R.string.prompt_page_edit))
                     }
                 }
@@ -425,7 +425,7 @@ private fun ModeInjectionEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = injection.name,
                     onValueChange = { onEdit(injection.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -433,13 +433,13 @@ private fun ModeInjectionEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeSwitchFormRow(
+                MochiSwitchFormRow(
                     checked = injection.enabled,
                     onCheckedChange = { onEdit(injection.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
                 )
 
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = injection.priority.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(injection.copy(priority = p)) }
@@ -460,7 +460,7 @@ private fun ModeInjectionEditSheet(
                 )
 
                 AnimatedVisibility(visible = injection.position == InjectionPosition.AT_DEPTH) {
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = injection.injectDepth.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(injection.copy(injectDepth = d)) }
@@ -485,7 +485,7 @@ private fun ModeInjectionEditSheet(
                     }
                 }
 
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = injection.content,
                     onValueChange = { onEdit(injection.copy(content = it)) },
                     label = { Text(stringResource(R.string.prompt_page_injection_content)) },
@@ -659,12 +659,12 @@ private fun LorebookTab(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
             leadingContent = {
-                KedgeIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(uploadFile, null)
                 }
             },
         ) {
-            KedgeButton(onClick = { editState.open(Lorebook()) }, shapes = ButtonDefaults.shapes()) {
+            MochiButton(onClick = { editState.open(Lorebook()) }, shapes = ButtonDefaults.shapes()) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -716,11 +716,11 @@ private fun LorebookCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                KedgeIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { scope.launch { swipeState.reset() } }, shapes = IconButtonDefaults.shapes()) {
                     Icon(close, null)
                 }
-                KedgeIconButton(
-                    variant = KedgeIconButtonVariant.Filled,
+                MochiIconButton(
+                    variant = MochiIconButtonVariant.Filled,
                     onClick = {
                     scope.launch {
                         onDelete()
@@ -735,7 +735,7 @@ private fun LorebookCard(
         enableDismissFromStartToEnd = false,
         modifier = modifier
     ) {
-        KedgeOptionItem(
+        MochiOptionItem(
             // 原实现整行不可点（动作只在行尾的导出/编辑按钮上），保持纯信息行，不新增点击行为。
             onClick = null,
             modifier = Modifier.fillMaxWidth(),
@@ -783,10 +783,10 @@ private fun LorebookCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    KedgeIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                    MochiIconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(iosShare, stringResource(R.string.export_title))
                     }
-                    KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                    MochiIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                         Icon(build, stringResource(R.string.prompt_page_edit))
                     }
                 }
@@ -840,7 +840,7 @@ private fun LorebookEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = book.name,
                     onValueChange = { onEdit(book.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -848,7 +848,7 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = book.description,
                     onValueChange = { onEdit(book.copy(description = it)) },
                     label = { Text(stringResource(R.string.prompt_page_description)) },
@@ -856,7 +856,7 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeSwitchFormRow(
+                MochiSwitchFormRow(
                     checked = book.enabled,
                     onCheckedChange = { onEdit(book.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
@@ -872,7 +872,7 @@ private fun LorebookEditSheet(
                         stringResource(R.string.prompt_page_entries_format, book.entries.size),
                         style = KedgeTextStyles.title()
                     )
-                    KedgeIconButton(onClick = {
+                    MochiIconButton(onClick = {
                         entryEditState.open(PromptInjection.RegexInjection())
                     },
                          shapes = IconButtonDefaults.shapes(),) {
@@ -946,10 +946,10 @@ private fun RegexInjectionEntryCard(
                     }
                 }
             }
-            KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+            MochiIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                 Icon(build, stringResource(R.string.prompt_page_edit))
             }
-            KedgeIconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
+            MochiIconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
                 Icon(delete, stringResource(R.string.prompt_page_delete))
             }
         }
@@ -977,7 +977,7 @@ private fun RegexInjectionEditDialog(
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = entry.name,
                     onValueChange = { onEdit(entry.copy(name = it)) },
                     label = { Text(stringResource(R.string.prompt_page_name)) },
@@ -985,13 +985,13 @@ private fun RegexInjectionEditDialog(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                KedgeSwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.enabled,
                     onCheckedChange = { onEdit(entry.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
                 )
 
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = entry.priority.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(entry.copy(priority = p)) }
@@ -1012,7 +1012,7 @@ private fun RegexInjectionEditDialog(
                 )
 
                 AnimatedVisibility(visible = entry.position == InjectionPosition.AT_DEPTH) {
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = entry.injectDepth.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
@@ -1036,7 +1036,7 @@ private fun RegexInjectionEditDialog(
                             onClick = {},
                             label = { Text(keyword) },
                             trailingIcon = {
-                                KedgeIconButton(
+                                MochiIconButton(
                                     onClick = {
                                         onEdit(entry.copy(keywords = entry.keywords - keyword))
                                     },
@@ -1054,7 +1054,7 @@ private fun RegexInjectionEditDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = newKeyword,
                         onValueChange = { newKeyword = it },
                         label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
@@ -1062,7 +1062,7 @@ private fun RegexInjectionEditDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = {
                             if (newKeyword.isNotBlank()) {
                                 onEdit(entry.copy(keywords = entry.keywords + newKeyword.trim()))
@@ -1075,26 +1075,26 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                KedgeSwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.useRegex,
                     onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
                     label = { Text(stringResource(R.string.prompt_page_use_regex)) },
                 )
 
-                KedgeSwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.caseSensitive,
                     onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
                 )
 
-                KedgeSwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.constantActive,
                     onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_constant_active)) },
                     description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
                 )
 
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = entry.scanDepth.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { d -> onEdit(entry.copy(scanDepth = d)) }
@@ -1118,7 +1118,7 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = entry.content,
                     onValueChange = { onEdit(entry.copy(content = it)) },
                     label = { Text(stringResource(R.string.prompt_page_injection_content)) },
@@ -1132,7 +1132,7 @@ private fun RegexInjectionEditDialog(
         },
         confirmButton = {
             val canSave = entry.keywords.isNotEmpty() || entry.constantActive
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = onConfirm,
                 enabled = canSave,
                 shapes = ButtonDefaults.shapes(),
@@ -1141,7 +1141,7 @@ private fun RegexInjectionEditDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.prompt_page_cancel))
             }
         }

@@ -52,7 +52,7 @@ import heizige.kk.khatkit.app.core.ui.components.webview.WebView
 import heizige.kk.khatkit.app.core.ui.components.webview.applyScriptWebOptions
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -333,7 +333,7 @@ private fun ActionSheet(
             }
             contentActions.forEach { action ->
                 if (action.event.isNotBlank() && action.label.isNotBlank()) {
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = {
                             onAction(
                                 action.event,
@@ -366,7 +366,7 @@ private fun ConfirmSheetContent(message: String, onCancel: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         ) {
-            KedgeTextButton(onClick = onCancel) {
+            MochiTextButton(onClick = onCancel) {
                 Text(stringResource(R.string.khatkit_action_cancel))
             }
         }

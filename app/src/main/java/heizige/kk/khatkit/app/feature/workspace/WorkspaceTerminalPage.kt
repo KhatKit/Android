@@ -31,8 +31,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -128,7 +128,7 @@ fun WorkspaceTerminalPage(id: String) {
                     Text(stringResource(R.string.workspace_terminal_close_confirm_message))
                 },
                 confirmButton = {
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = {
                             root?.let { sessionManager.closeTab(it, pendingCloseTab.id) }
                             pendingCloseTabId = null
@@ -139,7 +139,7 @@ fun WorkspaceTerminalPage(id: String) {
                     }
                 },
                 dismissButton = {
-                    KedgeTextButton(onClick = { pendingCloseTabId = null }, shapes = ButtonDefaults.shapes()) {
+                    MochiTextButton(onClick = { pendingCloseTabId = null }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.common_cancel))
                     }
                 },
@@ -190,7 +190,7 @@ private fun WorkspaceTerminalContent(
                         if (LocalKedgeStyle.current == KedgeStyle.Miuix) {
                             // Miuix 没有「可滚动 TabRow + 关闭按钮」这形态（那是浏览器
                             // 标签页），自己用 LazyRow 画一排卡片：选中项用主色容器，
-                            // 关闭按钮沿用 KedgeIconButton。
+                            // 关闭按钮沿用 MochiIconButton。
                             LazyRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -237,7 +237,7 @@ private fun WorkspaceTerminalContent(
                                                         },
                                                     ),
                                             )
-                                            KedgeIconButton(
+                                            MochiIconButton(
                                                 onClick = { onCloseTab(tab.id) },
                                                 modifier = Modifier
                                                     .size(32.dp)
@@ -306,7 +306,7 @@ private fun WorkspaceTerminalContent(
                                                 R.string.workspace_terminal_close_tab,
                                                 tab.number,
                                             )
-                                            KedgeIconButton(
+                                            MochiIconButton(
                                                 onClick = { onCloseTab(tab.id) },
                                                 modifier = Modifier
                                                     .size(48.dp)
@@ -325,7 +325,7 @@ private fun WorkspaceTerminalContent(
                     }
                 }
                 val newTabDescription = stringResource(R.string.workspace_terminal_new_tab)
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = onCreateTab,
                     enabled = root != null && !state.isCreating,
                     modifier = Modifier

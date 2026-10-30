@@ -44,10 +44,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -266,7 +266,7 @@ fun AvatarEditSheet(
 }
 
 /**
- * 选项列表：**全部用 [CardGroup] 的 option item 行**（内部即 `KedgeOptionItem`，
+ * 选项列表：**全部用 [CardGroup] 的 option item 行**（内部即 `MochiOptionItem`，
  * 按 index/count 给圆角），不手搓 Row，两种风格的行观感与设置页一致。
  */
 @Composable
@@ -325,7 +325,7 @@ private fun ActionListStage(
                 onClick = { onPick(AvatarEditSheetAction.Reset) },
             )
         }
-        KedgeTextButton(
+        MochiTextButton(
             onClick = onCancel,
             modifier = Modifier.fillMaxWidth(),
             shapes = ButtonDefaults.shapes(),
@@ -352,7 +352,7 @@ private fun UrlInputStage(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 4.dp),
         )
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = urlInput,
             onValueChange = onUrlInputChange,
             label = { Text(stringResource(R.string.avatar_url_hint)) },
@@ -361,7 +361,7 @@ private fun UrlInputStage(
             shape = RoundedCornerShape(16.dp),
         )
         // 空串无处可去：按钮自己变灰（旧实现是点了没反应，结果等价、这里更明确）
-        KedgeButton(
+        MochiButton(
             onClick = onConfirm,
             modifier = Modifier.fillMaxWidth(),
             enabled = urlInput.isNotBlank(),
@@ -369,7 +369,7 @@ private fun UrlInputStage(
         ) {
             Text(stringResource(R.string.avatar_url_confirm))
         }
-        KedgeTextButton(
+        MochiTextButton(
             onClick = onCancel,
             modifier = Modifier.fillMaxWidth(),
             shapes = ButtonDefaults.shapes(),
@@ -380,7 +380,7 @@ private fun UrlInputStage(
 }
 
 /**
- * 一条选项行：图标 + 标题，位号圆角与组内间距由 [CardGroup] 给（内部即 `KedgeOptionItem`），
+ * 一条选项行：图标 + 标题，位号圆角与组内间距由 [CardGroup] 给（内部即 `MochiOptionItem`），
  * 这里不手搓 Row —— 两种风格的行的内边距/最小高度/圆角都跟着设置页那套走。
  */
 // 注意：CardGroup 的 DSL 是普通 lambda（收集期），这里不能标 @Composable，

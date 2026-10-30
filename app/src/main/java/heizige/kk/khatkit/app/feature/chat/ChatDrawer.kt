@@ -128,14 +128,14 @@ import heizige.kk.kedge.adaptive.KedgeOverlayBarColor
 import heizige.kk.kedge.adaptive.KedgeBlurredBar
 import heizige.kk.kedge.adaptive.rememberKedgeBlurBackdrop
 import heizige.kk.kedge.adaptive.LocalKedgeEnableBlur
-import heizige.kk.kedge.components.KedgeButtonDefaults
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiButtonDefaults
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextField
 import heizige.kk.kedge.components.KedgeTextTooltipBox
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import androidx.compose.foundation.layout.asPaddingValues
@@ -317,7 +317,7 @@ fun ChatDrawerContent(
                     },
                 navigationIcon = {
                     if (searchVisible) {
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {
                                 drawerVm.updateSearchKeyword("")
                                 showSearch = false
@@ -387,7 +387,7 @@ fun ChatDrawerContent(
                     // searching && hasQuery → close；搜索态但还没输入时留空。
                     val searching = searchProgress.value >= 0.5f
                     val hasQuery = searchProgress.value >= 0.5f && searchKeyword.isNotEmpty()
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = {
                             if (!showSearch) {
                                 showSearch = true
@@ -464,12 +464,12 @@ fun ChatDrawerContent(
                     )
 
                     KedgeTextTooltipBox(stringResource(R.string.chat_drawer_plan)) {
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 navController.navigate(Screen.SettingPackage)
                             },
                             modifier = Modifier.height(32.dp),
-                            variant = KedgeButtonVariant.Secondary,
+                            variant = MochiButtonVariant.Secondary,
                             // Secondary 在两种风格下都偏淡（MD3 是 secondaryContainer、
                             // Miuix 是 secondaryVariant），抽屉底色接近时几乎看不出按钮
                             // 边界，这里各自往上抬到容器色档 secondaryContainer。
@@ -704,7 +704,7 @@ private fun DrawerAction(
     onClick: () -> Unit,
 ) {
     KedgeTextTooltipBox(label) {
-        KedgeIconButton(
+        MochiIconButton(
             onClick = onClick,
             modifier = modifier,
         ) {
@@ -714,7 +714,7 @@ private fun DrawerAction(
 }
 
 
-// 抽屉底栏高度：KedgeIconButton 48.dp + 上下各 8.dp 内边距
+// 抽屉底栏高度：MochiIconButton 48.dp + 上下各 8.dp 内边距
 // 抽屉顶栏高度：MD3 TopAppBar 内容高 64.dp（不含状态栏 inset）
 private val DrawerTopBarHeight = 64.dp
 

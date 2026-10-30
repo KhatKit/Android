@@ -32,15 +32,15 @@ import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.kedge.components.KedgeSlider
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -198,7 +198,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                     ) {
                         OptionsText(stringResource(R.string.setting_theme_page_custom_themes))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            KedgeButton(
+                            MochiButton(
                                 onClick = { showImportDialog = true },
                                 shapes = ButtonDefaults.shapes(),
                             ) {
@@ -206,7 +206,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                                 Spacer(Modifier.width(4.dp))
                                 Text(stringResource(R.string.setting_theme_page_import_theme))
                             }
-                            KedgeButton(
+                            MochiButton(
                                 onClick = {
                                     editingTheme = null
                                     showEditSheet = true
@@ -507,7 +507,7 @@ private fun CustomThemeItem(
     val darkMode = LocalDarkMode.current
     val scheme = theme.generateColorScheme(darkMode)
 
-    KedgeOptionItem(
+    MochiOptionItem(
         modifier = Modifier.padding(horizontal = 8.dp),
         shape = heizige.kk.khatkit.app.core.ui.theme.listCardStyle().indexedShape(0, 1),
         backgroundColor = CustomColors.listItemColors.containerColor,
@@ -549,13 +549,13 @@ private fun CustomThemeItem(
         titleContent = { Text(theme.name.ifEmpty { "Unnamed" }) },
         trailingContent = {
             Row {
-                KedgeIconButton(onClick = onExport, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = onExport, shapes = IconButtonDefaults.shapes()) {
                     Icon(contentCopy, null)
                 }
-                KedgeIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
                     Icon(editSquare, null)
                 }
-                KedgeIconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         deleteForever,
                         null,
@@ -606,7 +606,7 @@ private fun CustomThemeEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = currentTheme.name,
                     onValueChange = { currentTheme = currentTheme.copy(name = it) },
                     label = { Text(stringResource(R.string.setting_theme_page_theme_name)) },
@@ -677,7 +677,7 @@ private fun ImportThemeDialog(
         title = { Text(stringResource(R.string.setting_theme_page_import_theme)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = jsonText,
                     onValueChange = {
                         jsonText = it
@@ -694,7 +694,7 @@ private fun ImportThemeDialog(
             }
         },
         confirmButton = {
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     try {
                         val theme = themeJson.decodeFromString<CustomTheme>(jsonText)
@@ -710,7 +710,7 @@ private fun ImportThemeDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(android.R.string.cancel))
             }
         }
@@ -757,7 +757,7 @@ private fun ColorPickerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("H", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    KedgeSlider(
+                    MochiSlider(
                         value = hue,
                         onValueChange = {
                             updateColor(it, saturation, lightness)
@@ -768,7 +768,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("S", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    KedgeSlider(
+                    MochiSlider(
                         value = saturation,
                         onValueChange = {
                             updateColor(hue, it, lightness)
@@ -779,7 +779,7 @@ private fun ColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("L", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    KedgeSlider(
+                    MochiSlider(
                         value = lightness,
                         onValueChange = {
                             updateColor(hue, saturation, it)
@@ -791,7 +791,7 @@ private fun ColorPickerRow(
             }
         }
 
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = hslCode,
             onValueChange = { value ->
                 hslCode = value

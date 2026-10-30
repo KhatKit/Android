@@ -13,7 +13,7 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -85,7 +85,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(quickMessageIds = newIds))
                                     },
                                 )
-                                KedgeTextButton(
+                                MochiTextButton(
                                     onClick = { navController.navigate(Screen.QuickMessages) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),
@@ -115,7 +115,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(modeInjectionIds = newIds))
                                     },
                                 )
-                                KedgeTextButton(
+                                MochiTextButton(
                                     onClick = { navController.navigate(Screen.Prompts) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),
@@ -145,7 +145,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(lorebookIds = newIds))
                                     },
                                 )
-                                KedgeTextButton(
+                                MochiTextButton(
                                     onClick = { navController.navigate(Screen.Prompts) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),
@@ -175,7 +175,7 @@ fun AssistantExtensionsPage(id: String) {
                                         vm.update(assistant.copy(enabledSkills = newSkills))
                                     },
                                 )
-                                KedgeTextButton(
+                                MochiTextButton(
                                     onClick = { navController.navigate(Screen.Skills) },
                                     modifier = Modifier.fillMaxWidth(),
                                     shapes = ButtonDefaults.shapes(),

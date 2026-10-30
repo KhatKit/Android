@@ -19,9 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.OptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.kedge.overlays.KedgeSwipeToDismissBox
 import heizige.kk.kedge.overlays.rememberKedgeSwipeToDismissState
 import heizige.kk.kedge.theme.KedgeColors
@@ -60,7 +60,7 @@ import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 @Composable
 internal fun ModelCard(
@@ -68,7 +68,7 @@ internal fun ModelCard(
     modifier: Modifier = Modifier,
     // 不给默认值：圆角必须由调用点按 `listCardStyle()` 的 index/count 算好传进来。
     // 留个 20dp 默认就等于留个「假默认」——调用点忘传也能编译，行却退回独立卡片，
-    // 与同页其它组的圆角口径不一致（全仓 KedgeOptionItem 的 shape 一律来自 listCardStyle）。
+    // 与同页其它组的圆角口径不一致（全仓 MochiOptionItem 的 shape 一律来自 listCardStyle）。
     shape: Shape,
     onDelete: () -> Unit,
     onEdit: (Model) -> Unit,
@@ -135,7 +135,7 @@ internal fun ModelCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         scope.launch {
                             swipeToDismissBoxState.reset()
@@ -145,8 +145,8 @@ internal fun ModelCard(
                 ) {
                     Icon(close, null)
                 }
-                KedgeIconButton(
-                    variant = KedgeIconButtonVariant.Filled,
+                MochiIconButton(
+                    variant = MochiIconButtonVariant.Filled,
                     onClick = {
                         scope.launch {
                             onDelete()
@@ -166,13 +166,13 @@ internal fun ModelCard(
         gesturesEnabled = true,
         modifier = modifier
     ) {
-        // 模型行 = 图标 / 名称 / 标签 / 编辑按钮，正好是 `KedgeOptionItem` 的四个槽。
+        // 模型行 = 图标 / 名称 / 标签 / 编辑按钮，正好是 `MochiOptionItem` 的四个槽。
         // 以前是 `MochiCard` + `BorderStroke` 手搓一行（Miuix 的 Card 没有描边变体，
         // MD3 侧才像 OutlinedCard），现在与提供商行、工具开关行走同一套行渲染：
         // 底色/圆角/内边距/字阶与双风格分流全交给组件，调用点只摆槽位。
         // onClick 传 null：整行本来就不响应点击（只有右侧编辑按钮进弹层），
         // 这里不改交互，只换皮。
-        KedgeOptionItem(
+        MochiOptionItem(
             onClick = null,
             modifier = modifier,
             shape = shape,
@@ -215,7 +215,7 @@ internal fun ModelCard(
             },
             // Edit button
             trailingContent = {
-                KedgeIconButton(
+                MochiIconButton(
                     onClick = {
                         dialogState.open(model.copy())
                     },
@@ -258,7 +258,7 @@ internal fun BuiltInToolsSettings(
         )
 
         // 三个「标题 + 开关」行：不再各自一张 MochiCard + 手搓 Row，而是同一组的
-        // `KedgeOptionItem`（圆角按 index/count、项距取 `listCardStyle().gap`，
+        // `MochiOptionItem`（圆角按 index/count、项距取 `listCardStyle().gap`，
         // Miuix 下并成一整块）。整行可点 = 翻转开关，与设置分组里的开关行同款。
         val cards = listCardStyle()
         Column(
@@ -266,7 +266,7 @@ internal fun BuiltInToolsSettings(
             verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             availableTools.forEachIndexed { index, (tool, title) ->
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = {
                         if (tool in tools) onUpdateTools(tools - tool)
                         else onUpdateTools(tools + tool)
@@ -322,8 +322,8 @@ internal fun ProviderOverrideSettings(
 
         if (providerOverride != null) {
             // 单行（组里只有这一项）：圆角按 `indexedShape(0, 1)` 取，四角都是大圆角。
-            // 图标 / 名称 / 编辑 / 移除 四个位置正好对上 KedgeOptionItem 的槽。
-            KedgeOptionItem(
+            // 图标 / 名称 / 编辑 / 移除 四个位置正好对上 MochiOptionItem 的槽。
+            MochiOptionItem(
                 onClick = null,
                 modifier = Modifier.fillMaxWidth(),
                 shape = listCardStyle().indexedShape(0, 1),
@@ -344,7 +344,7 @@ internal fun ProviderOverrideSettings(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {
                                 editingProvider = providerOverride
                                 showProviderConfig = true
@@ -353,7 +353,7 @@ internal fun ProviderOverrideSettings(
                         ) {
                             Icon(build, contentDescription = "Edit override")
                         }
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {
                                 onUpdateProviderOverride(null)
                             },
@@ -365,7 +365,7 @@ internal fun ProviderOverrideSettings(
                 },
             )
         } else {
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     editingProvider = parentProvider?.copyProvider(
                         id = Uuid.random(),

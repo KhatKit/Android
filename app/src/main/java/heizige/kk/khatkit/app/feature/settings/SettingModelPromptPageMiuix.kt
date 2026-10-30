@@ -27,8 +27,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.PreferenceArrow
 import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -42,7 +42,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  *
  * 四项提示词、默认值复位、思考预算**一个不少**，只是在 Miuix 下换了呈现：
  * 条目标题直接用「翻译/标题/OCR/压缩提示词」（MD3 里这个标题是分组标题，条目本身只写「提示词」），
- * 编辑弹窗沿用双风格化的 [PrimaryBottomSheet] + `KedgeOutlinedTextField`。
+ * 编辑弹窗沿用双风格化的 [PrimaryBottomSheet] + `MochiOutlinedTextField`。
  *
  * 本页不改任何共享组件，也不新增字符串资源：用到的键全部来自
  * `SettingModelPromptPage.kt`。
@@ -105,7 +105,7 @@ private fun PromptSettingItemMiuix(
         )
         if (reasoningLevel != null && onUpdateReasoningLevel != null) {
             // 思考预算：复用既有 ReasoningButton（它弹出的 ReasoningPicker 已双风格化，
-            // 滑块走 KedgeSlider），只把外壳换成 Miuix 的表单行。
+            // 滑块走 MochiSlider），只把外壳换成 Miuix 的表单行。
             KedgeFormRow(
                 label = { Text(stringResource(R.string.assistant_page_thinking_budget)) },
                 tail = {
@@ -140,14 +140,14 @@ private fun PromptSettingItemMiuix(
                     style = KedgeTextStyles.body(),
                     color = MiuixTheme.colorScheme.onBackgroundVariant,
                 )
-                KedgeOutlinedTextField(
+                MochiOutlinedTextField(
                     value = promptValue,
                     onValueChange = onPromptChange,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 15,
                     shape = RoundedCornerShape(16.dp)
                 )
-                KedgeTextButton(onClick = onResetPrompt) {
+                MochiTextButton(onClick = onResetPrompt) {
                     Text(stringResource(R.string.setting_model_page_reset_to_default))
                 }
             }

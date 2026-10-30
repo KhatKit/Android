@@ -39,7 +39,7 @@ import top.yukonga.miuix.kmp.basic.NavigationBarItem
  * 语音设置页的 Miuix 风格版（TTS / ASR 双页签）。
  *
  * provider 卡片、拖拽排序（sh.calvin.reorderable）本就与风格无关；配置表单里
- * 67 个输入框已换成 Kedge 的 KedgeTextField，因此这里只换外壳与页签栏。
+ * 67 个输入框已换成 Kedge 的 MochiTextField，因此这里只换外壳与页签栏。
  */
 @Composable
 fun SettingSpeechPageMiuix(vm: SettingViewModel = hiltViewModel()) {

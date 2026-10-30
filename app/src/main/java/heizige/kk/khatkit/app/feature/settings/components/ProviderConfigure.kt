@@ -13,12 +13,12 @@ import androidx.compose.material3.MaterialTheme
 import heizige.kk.khromia.components.SegmentedItem
 import heizige.kk.khromia.components.SingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.MochiSwitchFormRow
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -211,7 +211,7 @@ private val OFFICIAL_PROVIDER_HOSTS = setOf(
  *   空格一敲下就被剥掉，词间空格根本打不进去；apiKey/baseUrl 不含词间空格才无所谓。
  * - **看 `hasFocus` 而不是 `isFocused`**：MD3 分支下调用方的 modifier 挂在输入框自身，
  *   事件节点是焦点目标的祖先，聚焦时会收到 `Active`（`isFocused == true`）；Miuix 分支下
- *   `KedgeOutlinedTextFieldWithSlots` 把 modifier 挂到**外层 Column**，若中间还隔着别的焦点
+ *   `MochiOutlinedTextFieldWithSlots` 把 modifier 挂到**外层 Column**，若中间还隔着别的焦点
  *   目标，Compose 只派发 `ActiveParent`（`isFocused == false`，`hasFocus == true`，
  *   见 `FocusOwnerImpl` / `FocusInvalidationManager.invalidateNodes`）。用 `hasFocus`
  *   两条分支语义一致：为 true 表示「这个编辑面（含输入框）还握着焦点」，失焦才为 false。
@@ -236,7 +236,7 @@ private fun ProviderConfigureOpenAI(
 
     provider.description()
 
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
@@ -247,7 +247,7 @@ private fun ProviderConfigureOpenAI(
     )
 
     var keyVisible by remember { mutableStateOf(false) }
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = provider.apiKey,
         onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
@@ -255,14 +255,14 @@ private fun ProviderConfigureOpenAI(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            KedgeIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
+            MochiIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
         shape = RoundedCornerShape(16.dp)
     )
 
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = provider.baseUrl,
         onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
@@ -271,7 +271,7 @@ private fun ProviderConfigureOpenAI(
         shape = RoundedCornerShape(16.dp)
     )
 
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = if (provider.useResponseApi) provider.responsesPath else provider.chatCompletionsPath,
         onValueChange = {
             onEdit(
@@ -320,7 +320,7 @@ private fun ProviderConfigureClaude(
 ) {
     provider.description()
 
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
@@ -332,7 +332,7 @@ private fun ProviderConfigureClaude(
     )
 
     var keyVisible by remember { mutableStateOf(false) }
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = provider.apiKey,
         onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
@@ -340,14 +340,14 @@ private fun ProviderConfigureClaude(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            KedgeIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
+            MochiIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                 Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
             }
         },
         shape = RoundedCornerShape(16.dp)
     )
 
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = provider.baseUrl,
         onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
@@ -417,7 +417,7 @@ private fun ProviderConfigureGoogle(
 
     provider.description()
 
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         value = provider.name,
         onValueChange = { onEdit(provider.copy(name = it)) },
         label = { Text(stringResource(R.string.setting_provider_page_name)) },
@@ -429,7 +429,7 @@ private fun ProviderConfigureGoogle(
 
     if (!(provider.vertexAI && provider.useServiceAccount)) {
         var keyVisible by remember { mutableStateOf(false) }
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = provider.apiKey,
             onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
@@ -437,7 +437,7 @@ private fun ProviderConfigureGoogle(
             maxLines = 3,
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                KedgeIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },
@@ -446,7 +446,7 @@ private fun ProviderConfigureGoogle(
     }
 
     if (!provider.vertexAI) {
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = provider.baseUrl,
             onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
@@ -460,7 +460,7 @@ private fun ProviderConfigureGoogle(
             shape = RoundedCornerShape(16.dp)
         )
 
-        KedgeSwitchFormRow(
+        MochiSwitchFormRow(
             checked = provider.useInteractionsApi,
             onCheckedChange = { onEdit(provider.copy(useInteractionsApi = it)) },
             label = { Text("Interactions API (Beta)") },
@@ -488,7 +488,7 @@ private fun ProviderConfigureGoogle(
     }
 
     if (provider.vertexAI && provider.useServiceAccount) {
-        KedgeButton(
+        MochiButton(
             onClick = { serviceAccountJsonLauncher.launch(arrayOf("application/json", "*/*")) },
             modifier = Modifier.fillMaxWidth(),
             shapes = ButtonDefaults.shapes(),
@@ -496,7 +496,7 @@ private fun ProviderConfigureGoogle(
             Text(stringResource(R.string.setting_provider_page_import_service_account_json))
         }
 
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = provider.serviceAccountEmail,
             onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_service_account_email)) },
@@ -505,7 +505,7 @@ private fun ProviderConfigureGoogle(
         )
 
         var privateKeyVisible by remember { mutableStateOf(false) }
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = provider.privateKey,
             onValueChange = { onEdit(provider.copy(privateKey = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_private_key)) },
@@ -515,14 +515,14 @@ private fun ProviderConfigureGoogle(
             textStyle = KedgeTextStyles.body().copy(fontFamily = JetbrainsMono),
             visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                KedgeIconButton(onClick = { privateKeyVisible = !privateKeyVisible }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { privateKeyVisible = !privateKeyVisible }, shapes = IconButtonDefaults.shapes()) {
                     Icon(if (privateKeyVisible) visibilityOff else visibility, contentDescription = null)
                 }
             },
             shape = RoundedCornerShape(16.dp)
         )
 
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = provider.location,
             onValueChange = { onEdit(provider.copy(location = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_location)) },
@@ -530,7 +530,7 @@ private fun ProviderConfigureGoogle(
             shape = RoundedCornerShape(16.dp)
         )
 
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = provider.projectId,
             onValueChange = { onEdit(provider.copy(projectId = it.trim())) },
             label = { Text(stringResource(R.string.setting_provider_page_project_id)) },

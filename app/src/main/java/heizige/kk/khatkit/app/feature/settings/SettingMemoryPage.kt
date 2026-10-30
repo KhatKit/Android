@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.Flow
  * 记忆的按角色入口页（设置 → 数据设置 → 记忆）。
  *
  * 记忆本身是按角色存的（[Screen.AssistantMemory] 收 assistantId），所以这里先列角色、
- * 点进去才是该角色的记忆面板。行渲染交给 [CardGroup]（内部即 `KedgeOptionItem`），
+ * 点进去才是该角色的记忆面板。行渲染交给 [CardGroup]（内部即 `MochiOptionItem`），
  * 圆角/行距与设置页其它组同源，不手搓 `Row` + `clickable`。
  */
 @Composable

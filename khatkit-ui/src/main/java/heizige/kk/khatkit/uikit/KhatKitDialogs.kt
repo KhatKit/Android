@@ -25,11 +25,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeRadioButton
-import heizige.kk.kedge.components.KedgeSlider
-import heizige.kk.kedge.components.KedgeSwitch
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khromia.components.PrimaryBottomSheet
 import heizige.kk.kedge.theme.KedgeTextStyles
 
@@ -65,7 +65,7 @@ fun KhatKitSecretsDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(key, style = KedgeTextStyles.body())
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 controller.removeCardSecret(cardName, key)
                                 secrets = controller.listCardSecrets(cardName)
@@ -120,7 +120,7 @@ fun KhatKitSettingsDialog(
         onDismiss = onDismiss,
     ) { _ ->
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            KedgeOutlinedTextField(
+            MochiOutlinedTextField(
                 value = hubUrl,
                 onValueChange = { hubUrl = it },
                 label = stringResource(R.string.khatkit_settings_hub_url),
@@ -129,12 +129,12 @@ fun KhatKitSettingsDialog(
             )
 
             SettingRow(stringResource(R.string.khatkit_settings_enable_root)) {
-                KedgeSwitch(checked = rootEnabled, onCheckedChange = { rootEnabled = it })
+                MochiSwitch(checked = rootEnabled, onCheckedChange = { rootEnabled = it })
             }
 
             Column {
                 Text(stringResource(R.string.khatkit_settings_download_concurrency, concurrency.toInt()))
-                KedgeSlider(
+                MochiSlider(
                     value = concurrency,
                     onValueChange = { concurrency = it },
                     valueRange = 1f..5f,
@@ -155,7 +155,7 @@ fun KhatKitSettingsDialog(
                             ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        KedgeRadioButton(
+                        MochiRadioButton(
                             selected = style == option,
                             onClick = { style = option },
                         )
@@ -178,12 +178,12 @@ fun KhatKitSettingsDialog(
                 }
             ) {
                 if (shizukuAvailable && !shizukuGranted) {
-                    KedgeTextButton(
+                    MochiTextButton(
                         onClick = {
                             val activity = context as? Activity
                             if (activity == null) {
                                 onToast(noActivityError, true)
-                                return@KedgeTextButton
+                                return@MochiTextButton
                             }
                             ShizukuPermission.request(activity, SHIZUKU_REQUEST_CODE) { granted ->
                                 shizukuGranted = granted
@@ -201,12 +201,12 @@ fun KhatKitSettingsDialog(
                 if (allFilesGranted) stringResource(R.string.khatkit_all_files_granted)
                 else stringResource(R.string.khatkit_all_files_not_granted)
             ) {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
                         val activity = context as? Activity
                         if (activity == null) {
                             onToast(noActivityError, true)
-                            return@KedgeTextButton
+                            return@MochiTextButton
                         }
                         AllFilesAccess.request(activity)
                         allFilesGranted = AllFilesAccess.isGranted()

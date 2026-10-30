@@ -55,10 +55,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.theme.KedgeColors
 import heizige.kk.kedge.theme.KedgeTextStyles
@@ -244,8 +244,8 @@ private fun ChatWelcome(
         scrollable = false,
     ) {
         Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
-            // 行照抄欢迎页那批选项行（[KedgeOptionItem] + [listCardStyle] 的整组圆角）：
-            // 24dp 裸图标、title 字阶的标题、body 的说明、尾部一颗 KedgeSwitch。
+            // 行照抄欢迎页那批选项行（[MochiOptionItem] + [listCardStyle] 的整组圆角）：
+            // 24dp 裸图标、title 字阶的标题、body 的说明、尾部一颗 MochiSwitch。
             // 外面不再套 InlineCardGroup —— 圆角要按 index/count 自己算成「一张卡」。
             val cards = listCardStyle()
             Column(
@@ -254,7 +254,7 @@ private fun ChatWelcome(
             ) {
                 state.widgets.forEachIndexed { index, widget ->
                     val strings = remember(widget.card.manifest, locales) { CardStrings(widget.card.manifest, locales) }
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = { manager.setEnabled(widget.card.manifest.name, !widget.enabled) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = cards.indexedShape(index, state.widgets.size),
@@ -282,7 +282,7 @@ private fun ChatWelcome(
                             }
                         },
                         trailingContent = {
-                            KedgeSwitch(
+                            MochiSwitch(
                                 checked = widget.enabled,
                                 onCheckedChange = { manager.setEnabled(widget.card.manifest.name, it) },
                             )
@@ -319,7 +319,7 @@ private fun WelcomeHero(modifier: Modifier = Modifier) {
  * 标题字号刻意抬到 OptionItem 的标题档（`title()` + Medium + onSurface）：
  * 以前用小字号的 footnote + onSurfaceVariant，和下面整组选项行不像同一套东西。
  *
- * 按钮统一走 [KedgeIconButton] 并传 `shapes`（与侧边栏、设置页同一口径）：
+ * 按钮统一走 [MochiIconButton] 并传 `shapes`（与侧边栏、设置页同一口径）：
  * 两级回弹/圆角由组件自己叠，不在这里写死尺寸，免得 Miuix / MD3 两套皮肤
  * 里出现一颗「方角」的按钮。[loading] 时换成转圈，避免「换一换」像没反应。
  *
@@ -360,7 +360,7 @@ private fun WelcomeRefreshButton(
     modifier: Modifier = Modifier,
 ) {
     Tooltip(label) {
-        KedgeIconButton(
+        MochiIconButton(
             onClick = { if (!loading) onClick() },
             modifier = modifier.semantics { contentDescription = label },
             shapes = IconButtonDefaults.shapes(),
@@ -377,14 +377,14 @@ private fun WelcomeRefreshButton(
 /**
  * 小组件全部关掉时的占位入口：一整行「添加小组件」，点开管理 sheet。
  *
- * 不用实心按钮，直接复用下面提示行那套 [KedgeOptionItem]：24dp 裸图标 + title 字阶标题
+ * 不用实心按钮，直接复用下面提示行那套 [MochiOptionItem]：24dp 裸图标 + title 字阶标题
  * + 尾部箭头。整页只有一种行，空态不会突然冒出一颗白胶囊把视觉重量抢走。
  */
 @Composable
 private fun AddWidgetRow(modifier: Modifier = Modifier, onClick: () -> Unit) {
     val label = stringResource(R.string.chat_widgets_add)
     val cards = listCardStyle()
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = cards.indexedShape(0, 1),
@@ -403,7 +403,7 @@ private fun AddWidgetRow(modifier: Modifier = Modifier, onClick: () -> Unit) {
 }
 
 /**
- * AI 提示行：整行一条 [KedgeOptionItem]，与设置页 / 助手列表的选项行同一套皮
+ * AI 提示行：整行一条 [MochiOptionItem]，与设置页 / 助手列表的选项行同一套皮
  * （图标胶囊 + 标题 + 一句说明 + 尾部箭头，圆角与按压回弹都由组件决定）。
  *
  * 以前这里是两列磁贴网格（图标在上、文案在下、min 132dp），标题长短不一会让两张卡
@@ -463,9 +463,9 @@ private fun WelcomeIdeaRow(
     val prompt = idea.prompt
     // 度量照抄市场卡片行（`ExploreMarketPage` 的 `CompactCard` + `RowIcon`）：
     // 24dp 裸图标取 onSurfaceVariant、标题 title()+Medium、摘要 body()、尾部一行箭头。
-    // 两边同一条 [KedgeOptionItem] + 同一套 [listCardStyle] 圆角，所以卡片市场里长什么样，
+    // 两边同一条 [MochiOptionItem] + 同一套 [listCardStyle] 圆角，所以卡片市场里长什么样，
     // 这里就长什么样。
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = { onSuggestionClick(prompt) },
         modifier = Modifier.fillMaxWidth().welcomeReveal(order),
         shape = shape,
@@ -581,7 +581,7 @@ internal fun WelcomeWidgetFrame(
         color = KedgeColors.surfaceContainer,
     ) {
         Column(Modifier.fillMaxWidth().animateContentSize(tween(260))) {
-            KedgeOptionItem(
+            MochiOptionItem(
                 onClick = null,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RectangleShape,

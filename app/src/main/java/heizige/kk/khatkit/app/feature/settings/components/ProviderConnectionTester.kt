@@ -16,8 +16,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,7 +64,7 @@ fun ProviderConnectionTester(
     val settingProviderPageTestToolCalled = stringResource(R.string.setting_provider_page_test_tool_called)
     val settingProviderPageTestToolNotCalled = stringResource(R.string.setting_provider_page_test_tool_not_called)
 
-    KedgeIconButton(onClick = { showTestDialog = true }, shapes = IconButtonDefaults.shapes()) {
+    MochiIconButton(onClick = { showTestDialog = true }, shapes = IconButtonDefaults.shapes()) {
         Icon(link, null)
     }
 
@@ -120,14 +120,14 @@ fun ProviderConnectionTester(
                 }
             },
             dismissButton = {
-                KedgeTextButton(onClick = { showTestDialog = false }, shapes = ButtonDefaults.shapes()) {
+                MochiTextButton(onClick = { showTestDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = {
-                        if (model == null) return@KedgeTextButton
+                        if (model == null) return@MochiTextButton
                         val provider = providerManager.getProviderByType(internalProvider)
                         resetStates()
                         scope.launch {

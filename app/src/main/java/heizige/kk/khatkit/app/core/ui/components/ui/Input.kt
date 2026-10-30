@@ -6,8 +6,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +26,7 @@ fun <T : Number> OutlinedNumberInput(
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
 ) {
     var textFieldValue by remember(value) { mutableStateOf(value.toString()) }
-    KedgeOutlinedTextFieldWithSlots(
+    MochiOutlinedTextFieldWithSlots(
         modifier = modifier,
         value = textFieldValue,
         onValueChange = { newValue ->
@@ -63,7 +63,7 @@ fun <T : Number> NumberInput(
     colors: TextFieldColors = TextFieldDefaults.colors()
 ) {
     var textFieldValue by remember(value) { mutableStateOf(value.toString()) }
-    KedgeTextFieldWithSlots(
+    MochiTextFieldWithSlots(
         modifier = modifier,
         value = textFieldValue,
         onValueChange = { newValue ->

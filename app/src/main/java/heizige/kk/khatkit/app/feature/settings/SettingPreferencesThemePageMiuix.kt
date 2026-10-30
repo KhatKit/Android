@@ -70,12 +70,12 @@ import heizige.kk.khatkit.app.feature.settings.components.ListCardStyleGroupMiui
 import heizige.kk.khatkit.app.feature.settings.components.ThemeColorSettingGroupMiuix
 import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
 import heizige.kk.khatkit.app.feature.settings.components.UiStyleGroupMiuix
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeSlider
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiSlider
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
@@ -120,13 +120,13 @@ fun SettingPreferencesThemePageMiuix(vm: SettingViewModel = hiltViewModel()) {
         // 导入 / 新建自定义主题：MD3 是「自定义主题」小节标题右侧的两个按钮，
         // Miuix 走顶栏 actions（与 SettingMcpPageMiuix 的导入/新建同款）。
         actions = {
-            KedgeIconButton(onClick = { showImportDialog = true }) {
+            MochiIconButton(onClick = { showImportDialog = true }) {
                 Icon(
                     imageVector = uploadFile,
                     contentDescription = stringResource(R.string.setting_theme_page_import_theme),
                 )
             }
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = {
                     editingTheme = null
                     showEditSheet = true
@@ -333,7 +333,7 @@ private fun colorModeLabel(mode: UiColorMode): String = stringResource(
 
 /**
  * 自定义主题行：与 MD3 的 `CustomThemeItem` 同构（四色色轮 + 选中勾 + 复制/编辑/删除），
- * 但底色与圆角交给 [KedgeOptionItem] 的 Miuix 分支（MochiCard 行），不传 MD3 的卡片色。
+ * 但底色与圆角交给 [MochiOptionItem] 的 Miuix 分支（MochiCard 行），不传 MD3 的卡片色。
  */
 @Composable
 private fun MiuixCustomThemeItem(
@@ -348,7 +348,7 @@ private fun MiuixCustomThemeItem(
     val darkMode = LocalDarkMode.current
     val scheme = theme.generateColorScheme(darkMode)
 
-    KedgeOptionItem(
+    MochiOptionItem(
         modifier = modifier,
         onClick = { onSelect() },
         leadingContent = {
@@ -388,13 +388,13 @@ private fun MiuixCustomThemeItem(
         titleContent = { Text(theme.name.ifEmpty { "Unnamed" }) },
         trailingContent = {
             Row {
-                KedgeIconButton(onClick = onExport) {
+                MochiIconButton(onClick = onExport) {
                     Icon(imageVector = contentCopy, contentDescription = null)
                 }
-                KedgeIconButton(onClick = onEdit) {
+                MochiIconButton(onClick = onEdit) {
                     Icon(imageVector = editSquare, contentDescription = null)
                 }
-                KedgeIconButton(onClick = onDelete) {
+                MochiIconButton(onClick = onDelete) {
                     Icon(
                         imageVector = deleteForever,
                         contentDescription = null,
@@ -408,7 +408,7 @@ private fun MiuixCustomThemeItem(
 
 /**
  * 新建/编辑自定义主题的底部弹层（Miuix 版）。弹层本身是双风格 [PrimaryBottomSheet]，
- * 表单用双风格 [KedgeOutlinedTextFieldWithSlots] / [KedgeSlider]。
+ * 表单用双风格 [MochiOutlinedTextFieldWithSlots] / [MochiSlider]。
  */
 @Composable
 private fun MiuixCustomThemeEditSheet(
@@ -448,7 +448,7 @@ private fun MiuixCustomThemeEditSheet(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = currentTheme.name,
                     onValueChange = { currentTheme = currentTheme.copy(name = it) },
                     label = { Text(stringResource(R.string.setting_theme_page_theme_name)) },
@@ -520,7 +520,7 @@ private fun MiuixImportThemeDialog(
         title = { Text(stringResource(R.string.setting_theme_page_import_theme)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = jsonText,
                     onValueChange = {
                         jsonText = it
@@ -537,7 +537,7 @@ private fun MiuixImportThemeDialog(
             }
         },
         confirmButton = {
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     try {
                         val theme = themeMiuixJson.decodeFromString<CustomTheme>(jsonText)
@@ -552,7 +552,7 @@ private fun MiuixImportThemeDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss) {
+            MochiTextButton(onClick = onDismiss) {
                 Text(stringResource(android.R.string.cancel))
             }
         }
@@ -600,7 +600,7 @@ private fun MiuixColorPickerRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("H", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    KedgeSlider(
+                    MochiSlider(
                         value = hue,
                         onValueChange = {
                             updateColor(it, saturation, lightness)
@@ -611,7 +611,7 @@ private fun MiuixColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("S", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    KedgeSlider(
+                    MochiSlider(
                         value = saturation,
                         onValueChange = {
                             updateColor(hue, it, lightness)
@@ -622,7 +622,7 @@ private fun MiuixColorPickerRow(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("L", style = KedgeTextStyles.footnoteSmall(), modifier = Modifier.width(16.dp))
-                    KedgeSlider(
+                    MochiSlider(
                         value = lightness,
                         onValueChange = {
                             updateColor(hue, saturation, it)
@@ -634,7 +634,7 @@ private fun MiuixColorPickerRow(
             }
         }
 
-        KedgeOutlinedTextFieldWithSlots(
+        MochiOutlinedTextFieldWithSlots(
             value = hslCode,
             onValueChange = { value ->
                 hslCode = value

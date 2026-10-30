@@ -19,7 +19,7 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiCard
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -167,25 +167,25 @@ private fun DownloadTaskRow(
 
                 when {
                     task.isActive -> {
-                        KedgeIconButton(onClick = onPause, shapes = IconButtonDefaults.shapes()) {
+                        MochiIconButton(onClick = onPause, shapes = IconButtonDefaults.shapes()) {
                             Icon(pause, contentDescription = "暂停", modifier = Modifier.size(20.dp))
                         }
-                        KedgeIconButton(onClick = onCancel, shapes = IconButtonDefaults.shapes()) {
+                        MochiIconButton(onClick = onCancel, shapes = IconButtonDefaults.shapes()) {
                             Icon(stopCircle, contentDescription = "取消", modifier = Modifier.size(20.dp))
                         }
                     }
 
                     task.state == "paused" || task.state == "failed" -> {
-                        KedgeIconButton(onClick = onResume, shapes = IconButtonDefaults.shapes()) {
+                        MochiIconButton(onClick = onResume, shapes = IconButtonDefaults.shapes()) {
                             Icon(playArrow, contentDescription = "继续", modifier = Modifier.size(20.dp))
                         }
-                        KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+                        MochiIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                             Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
                     }
 
                     else -> {
-                        KedgeIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
+                        MochiIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
                             Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
                         }
                     }

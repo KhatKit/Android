@@ -16,7 +16,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -89,11 +89,11 @@ fun WebViewPage(url: String, contentId: String) {
                     BackButton()
                 },
                 actions = {
-                    KedgeIconButton(onClick = { state.reload() }, shapes = IconButtonDefaults.shapes()) {
+                    MochiIconButton(onClick = { state.reload() }, shapes = IconButtonDefaults.shapes()) {
                         Icon(refresh, contentDescription = "Refresh")
                     }
 
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = { state.goForward() },
                         enabled = state.canGoForward,
                         shapes = IconButtonDefaults.shapes(),
@@ -102,7 +102,7 @@ fun WebViewPage(url: String, contentId: String) {
                     }
 
                     val urlHandler = LocalUriHandler.current
-                    KedgeIconButton(
+                    MochiIconButton(
                         onClick = { showDropdown = true },
                         shapes = IconButtonDefaults.shapes(),
                     ) {

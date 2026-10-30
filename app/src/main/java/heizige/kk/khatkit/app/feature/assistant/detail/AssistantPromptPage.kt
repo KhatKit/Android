@@ -29,13 +29,13 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeCheckbox
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -217,7 +217,7 @@ private fun AssistantPromptContent(
                     Text(stringResource(R.string.assistant_page_allow_conversation_system_prompt_desc))
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = checked,
                         onCheckedChange = onCheckedChange,
                     )
@@ -243,7 +243,7 @@ private fun AssistantPromptContent(
                     Text(stringResource(R.string.assistant_page_allow_conversation_prompt_injection_desc))
                 },
                 trailingContent = {
-                    KedgeSwitch(
+                    MochiSwitch(
                         checked = checked,
                         onCheckedChange = onCheckedChange,
                     )
@@ -259,7 +259,7 @@ private fun AssistantPromptContent(
                     ) {
                         Text(stringResource(R.string.assistant_page_message_template))
                         Spacer(Modifier.weight(1f))
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {
                                 onUpdate(assistant.copy(messageTemplate = "{{ message }}"))
                             },
@@ -307,7 +307,7 @@ private fun AssistantPromptContent(
                         },
                         content = {
                             val missingMessage = "{{ message }}" !in assistant.messageTemplate
-                            KedgeOutlinedTextFieldWithSlots(
+                            MochiOutlinedTextFieldWithSlots(
                                 value = assistant.messageTemplate,
                                 onValueChange = {
                                     onUpdate(
@@ -438,7 +438,7 @@ private fun AssistantPromptContent(
                             modifier = Modifier.width(160.dp)
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {
                                 onUpdate(
                                     assistant.copy(
@@ -453,7 +453,7 @@ private fun AssistantPromptContent(
                             Icon(close, null)
                         }
                     }
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = presetMessage.toText(),
                         onValueChange = { text ->
                             onUpdate(
@@ -474,7 +474,7 @@ private fun AssistantPromptContent(
                     )
                 }
             }
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     val lastRole = assistant.presetMessages.lastOrNull()?.role ?: MessageRole.ASSISTANT
                     val nextRole = when (lastRole) {
@@ -551,7 +551,7 @@ private fun AssistantPromptContent(
                     }
                 }
             }
-            KedgeButton(
+            MochiButton(
                 onClick = {
                     onUpdate(
                         assistant.copy(
@@ -614,7 +614,7 @@ private fun AssistantRegexCard(
                                 .weight(1f)
                                 .widthIn(max = 200.dp)
                         )
-                        KedgeSwitch(
+                        MochiSwitch(
                             checked = regex.enabled,
                             onCheckedChange = { enabled ->
                                 onUpdate(
@@ -631,7 +631,7 @@ private fun AssistantRegexCard(
                             },
                             modifier = Modifier.padding(start = 8.dp)
                         )
-                        KedgeIconButton(
+                        MochiIconButton(
                             onClick = {
                                 expanded = !expanded
                             },
@@ -646,7 +646,7 @@ private fun AssistantRegexCard(
 
                     if (expanded) {
 
-                        KedgeOutlinedTextFieldWithSlots(
+                        MochiOutlinedTextFieldWithSlots(
                             value = regex.name,
                             onValueChange = { name ->
                                 onUpdate(
@@ -666,7 +666,7 @@ private fun AssistantRegexCard(
                             shape = RoundedCornerShape(16.dp)
                         )
 
-                        KedgeOutlinedTextFieldWithSlots(
+                        MochiOutlinedTextFieldWithSlots(
                             value = regex.findRegex,
                             onValueChange = { findRegex ->
                                 onUpdate(
@@ -687,7 +687,7 @@ private fun AssistantRegexCard(
                             shape = RoundedCornerShape(16.dp)
                         )
 
-                        KedgeOutlinedTextFieldWithSlots(
+                        MochiOutlinedTextFieldWithSlots(
                             value = regex.replaceString,
                             onValueChange = { replaceString ->
                                 onUpdate(
@@ -721,7 +721,7 @@ private fun AssistantRegexCard(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        KedgeCheckbox(
+                                        MochiCheckbox(
                                             checked = scope in regex.affectingScope,
                                             onCheckedChange = { checked ->
                                                 val newScopes = if (checked) {
@@ -755,7 +755,7 @@ private fun AssistantRegexCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            KedgeCheckbox(
+                            MochiCheckbox(
                                 checked = regex.visualOnly,
                                 onCheckedChange = { visualOnly ->
                                     onUpdate(
@@ -777,7 +777,7 @@ private fun AssistantRegexCard(
                             )
                         }
 
-                        KedgeTextButton(
+                        MochiTextButton(
                             onClick = {
                                 onUpdate(
                                     assistant.copy(

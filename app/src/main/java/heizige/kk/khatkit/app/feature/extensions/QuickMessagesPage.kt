@@ -23,10 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.kedge.overlays.KedgeDropdownItemSlot
 import heizige.kk.kedge.overlays.KedgeDropdownMenuSlots
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -177,7 +177,7 @@ private fun QuickMessageItem(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    KedgeOptionItem(
+    MochiOptionItem(
         // 整行原本就不可点（编辑/删除都走右侧「更多」菜单），所以传 null：
         // 两种风格下都是纯信息行，没有按压回弹。底色走组件默认，不再自己上 cardColors。
         onClick = null,
@@ -210,7 +210,7 @@ private fun QuickMessageItem(
         },
         trailingContent = {
             Box {
-                KedgeIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = { menuExpanded = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = moreVert,
                         contentDescription = stringResource(R.string.skills_page_more_actions),
@@ -272,7 +272,7 @@ private fun EditQuickMessageDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = quickMessageTitle,
                     onValueChange = { quickMessageTitle = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -280,7 +280,7 @@ private fun EditQuickMessageDialog(
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp)
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = quickMessageContent,
                     onValueChange = { quickMessageContent = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -292,7 +292,7 @@ private fun EditQuickMessageDialog(
             }
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { onConfirm(quickMessageTitle.trim(), quickMessageContent.trim()) },
                 enabled = quickMessageTitle.isNotBlank() && quickMessageContent.isNotBlank(),
                 shapes = ButtonDefaults.shapes(),
@@ -301,7 +301,7 @@ private fun EditQuickMessageDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.cancel))
             }
         },

@@ -33,11 +33,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -283,7 +283,7 @@ private fun RecommendProviderButton(
     var showSheet by remember { mutableStateOf(false) }
     val importSuccessMessage = stringResource(R.string.setting_provider_page_import_success)
 
-    KedgeIconButton(
+    MochiIconButton(
         onClick = { showSheet = true },
         shapes = IconButtonDefaults.shapes(),
     ) {
@@ -330,7 +330,7 @@ private fun RecommendProviderItem(
     shape: Shape,
     onAdd: () -> Unit
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onAdd,
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
@@ -356,7 +356,7 @@ private fun RecommendProviderItem(
             }
         },
         trailingContent = {
-            KedgeIconButton(onClick = onAdd, shapes = IconButtonDefaults.shapes()) {
+            MochiIconButton(onClick = onAdd, shapes = IconButtonDefaults.shapes()) {
                 Icon(add, contentDescription = stringResource(R.string.setting_provider_page_add))
             }
         },
@@ -379,7 +379,7 @@ private fun ImportProviderButton(
         }
     }
 
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {
             showImportDialog = true
         },
@@ -413,7 +413,7 @@ private fun ImportProviderButton(
                     ) {
                         // 从相册选择（扫码导入已随 libbarhopper 一并移除，
                         // 供应商配置仍可从图片或手动填写导入）
-                        KedgeButton(
+                        MochiButton(
                             onClick = {
                                 showImportDialog = false
                                 pickImageLauncher.launch(
@@ -449,7 +449,7 @@ private fun ImportProviderButton(
             },
             confirmButton = {},
             dismissButton = {
-                KedgeTextButton(
+                MochiTextButton(
                     onClick = { showImportDialog = false },
                     shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
                 ) {
@@ -502,7 +502,7 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
         onAdd(it.copyProvider(name = it.name.trim()))
     }
 
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {
             dialogState.open(ProviderSetting.OpenAI())
         },
@@ -556,7 +556,7 @@ private fun ProviderItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = shape,

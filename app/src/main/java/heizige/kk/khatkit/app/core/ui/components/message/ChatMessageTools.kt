@@ -23,11 +23,11 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 KedgePrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
 import heizige.kk.kedge.components.KedgeFilterChip
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -61,15 +61,15 @@ import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.questionAnswer
 import heizige.kk.kedge.theme.KedgeTextStyles
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 internal const val ASK_USER_TOOL_NAME = "ask_user"
 
 @Composable
 fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool) {
     val loading = !tool.isFinished
-    // 选项行（KedgeOptionItem）皮：与设置页那种圆角底块一致，见 ChainOfThoughtScope.OptionItemStep
+    // 选项行（MochiOptionItem）皮：与设置页那种圆角底块一致，见 ChainOfThoughtScope.OptionItemStep
     OptionItemStep(
         icon = {
             if (loading) {
@@ -137,7 +137,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
     // 摘要由注册的渲染器决定; 图片输出与拒绝原因为所有工具通用
     val hasExtraContent = renderer.hasSummary(context) || isDenied || images.isNotEmpty()
 
-    // 「调用工具」这一行用 KedgeOptionItem 的皮（圆角底块 + 左图标），
+    // 「调用工具」这一行用 MochiOptionItem 的皮（圆角底块 + 左图标），
     // 时间线/展开内容/批准按钮全部原样保留。
     ControlledOptionItemStep(
         expanded = expanded,
@@ -171,8 +171,8 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    KedgeIconButton(
-                        variant = KedgeIconButtonVariant.Tonal,
+                    MochiIconButton(
+                        variant = MochiIconButtonVariant.Tonal,
                         onClick = { showDenyDialog = true },
                         modifier = Modifier.size(28.dp),
                         shapes = IconButtonDefaults.shapes(),
@@ -183,8 +183,8 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                             modifier = Modifier.size(14.dp)
                         )
                     }
-                    KedgeIconButton(
-                        variant = KedgeIconButtonVariant.Tonal,
+                    MochiIconButton(
+                        variant = MochiIconButtonVariant.Tonal,
                         onClick = { onToolApproval(tool.toolCallId, true, "") },
                         modifier = Modifier.size(28.dp),
                         shapes = IconButtonDefaults.shapes(),
@@ -375,7 +375,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 }
                             }
 
-                            KedgeOutlinedTextField(
+                            MochiOutlinedTextField(
                                 value = answers[q.id] ?: "",
                                 onValueChange = { answers[q.id] = it },
                                 modifier = Modifier.fillMaxWidth(),
@@ -405,7 +405,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
 
                 // Submit button
                 if (isPending && onToolAnswer != null) {
-                    KedgeButton(
+                    MochiButton(
                         onClick = {
                             val answerPayload = buildJsonObject {
                                 put("answers", buildJsonObject {
@@ -468,7 +468,7 @@ private fun ToolDenyReasonDialog(
             Text(stringResource(R.string.chat_message_tool_deny_dialog_title))
         },
         text = {
-            KedgeOutlinedTextFieldWithSlots(
+            MochiOutlinedTextFieldWithSlots(
                 value = reason,
                 onValueChange = { reason = it },
                 label = { Text(stringResource(R.string.chat_message_tool_deny_dialog_hint)) },
@@ -480,12 +480,12 @@ private fun ToolDenyReasonDialog(
             )
         },
         confirmButton = {
-            KedgeTextButton(onClick = { onConfirm(reason) }, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = { onConfirm(reason) }, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.chat_message_tool_deny))
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(android.R.string.cancel))
             }
         }

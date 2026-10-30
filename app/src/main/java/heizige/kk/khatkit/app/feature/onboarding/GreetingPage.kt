@@ -69,7 +69,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -132,17 +132,17 @@ import heizige.kk.khromia.helper.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeCheckbox
-import heizige.kk.kedge.components.KedgeOptionItem
-import heizige.kk.kedge.components.KedgeRadioButton
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiCheckbox
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiRadioButton
 import heizige.kk.kedge.components.KedgeStatusDefaults
-import heizige.kk.kedge.components.KedgeStatusLevel
-import heizige.kk.kedge.components.KedgeStatusTag
+import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
+import heizige.kk.khatkit.uikit.mochi.MochiStatusTag
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiSwitch
 import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.overlays.KedgeModalBottomSheet
 import heizige.kk.kedge.overlays.KedgeProgressIndicator
 import heizige.kk.kedge.overlays.KedgeProgressIndicatorType
@@ -488,7 +488,7 @@ private fun RowScope.GreetingBottomActions(
         else -> true
     }
 
-    KedgeTextButton(
+    MochiTextButton(
         modifier = Modifier.animateContentSize(),
         onClick = onBack,
         enabled = step != GreetingStep.Welcome,
@@ -502,7 +502,7 @@ private fun RowScope.GreetingBottomActions(
         type = KedgeProgressIndicatorType.Linear,
     )
     Spacer(modifier = Modifier.weight(1f))
-    KedgeButton(
+    MochiButton(
         modifier = Modifier.animateContentSize(),
         onClick = {
             when {
@@ -607,7 +607,7 @@ private fun GreetingAgreementScreen(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            KedgeCheckbox(
+            MochiCheckbox(
                 checked = accepted,
                 onCheckedChange = null,
             )
@@ -693,7 +693,7 @@ private fun GreetingSettingsScreen() {
             contentColor = Color.Transparent,
         ) {
             Column {
-                KedgeOptionItem(
+                MochiOptionItem(
                     onClick = {
                         if (dynamicColorSupported) {
                             scope.launch { settingsStore.update { it.copy(dynamicColor = !settings.dynamicColor) } }
@@ -712,7 +712,7 @@ private fun GreetingSettingsScreen() {
                     titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
                     supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
                     trailingContent = {
-                        KedgeSwitch(
+                        MochiSwitch(
                             checked = dynamicColorSupported && settings.dynamicColor,
                             enabled = dynamicColorSupported,
                             onCheckedChange = { enabled ->
@@ -772,7 +772,7 @@ private fun GreetingSettingsScreen() {
                     KhatKitUiStyle.MATERIAL to "Material 3",
                     KhatKitUiStyle.MIUIX to "Miuix",
                 ).forEach { (style, label) ->
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = {
                             provider.uiStyle = style
                             uiStyle = style
@@ -780,7 +780,7 @@ private fun GreetingSettingsScreen() {
                         shape = RoundedCornerShape(4.dp),
                         titleContent = { Text(label) },
                         trailingContent = {
-                            KedgeRadioButton(
+                            MochiRadioButton(
                                 selected = uiStyle == style,
                                 onClick = {
                                     provider.uiStyle = style
@@ -916,7 +916,7 @@ private fun GreetingAiSetupScreen() {
         }
 
         item(key = "custom_button") {
-            KedgeOptionItem(
+            MochiOptionItem(
                 shape = cards.indexedShape(
                     configuredProviders.size,
                     configuredProviders.size + 1,
@@ -1023,7 +1023,7 @@ private fun GreetingAiSetupScreen() {
                             )
                         },
                     )
-                    KedgeOutlinedTextFieldWithSlots(
+                    MochiOutlinedTextFieldWithSlots(
                         value = draftName,
                         onValueChange = { draftName = it },
                         label = { Text(stringResource(R.string.greeting_ai_custom_name)) },
@@ -1032,7 +1032,7 @@ private fun GreetingAiSetupScreen() {
                         shape = RoundedCornerShape(16.dp)
                     )
                 }
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = draftKey,
                     onValueChange = { draftKey = it },
                     label = { Text(stringResource(R.string.greeting_ai_api_key)) },
@@ -1040,7 +1040,7 @@ private fun GreetingAiSetupScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = draftBaseUrl,
                     onValueChange = { draftBaseUrl = it },
                     label = { Text(stringResource(R.string.greeting_ai_base_url)) },
@@ -1049,7 +1049,7 @@ private fun GreetingAiSetupScreen() {
                     shape = RoundedCornerShape(16.dp)
                 )
                 if (showSaveButton) {
-                    KedgeButton(
+                    MochiButton(
                         onClick = save,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -1092,7 +1092,7 @@ private fun AiProviderItem(
     onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
 ) {
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         shape = shape,
         modifier = modifier,
@@ -1112,7 +1112,7 @@ private fun AiProviderItem(
             )
         },
         trailingContent = {
-            KedgeSwitch(
+            MochiSwitch(
                 checked = configured && provider.enabled,
                 enabled = configured,
                 onCheckedChange = onToggle,

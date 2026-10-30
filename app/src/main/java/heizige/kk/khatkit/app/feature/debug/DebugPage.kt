@@ -26,9 +26,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -113,7 +113,7 @@ private fun RecoveryPage(vm: DebugViewModel) {
     ) {
         Text("聊天记录引用的助手")
         Text("扫描到 ${references?.size ?: 0} 个助手 ID，其中 ${missing.size} 个在当前设置中缺失。")
-        KedgeButton(
+        MochiButton(
             onClick = {
                 scope.launch {
                     val count = vm.recoverAssistantsFromConversations()
@@ -177,7 +177,7 @@ private fun MainPage(vm: DebugViewModel) {
             mutableIntStateOf(0)
         }
         val toaster = LocalToaster.current
-        KedgeButton(
+        MochiButton(
             onClick = {
                 Toast.show("测试 ${counter++}")
                 Toast.show("测试 ${counter++}", isError = false)
@@ -187,7 +187,7 @@ private fun MainPage(vm: DebugViewModel) {
         ) {
             Text("toast")
         }
-        KedgeButton(
+        MochiButton(
             onClick = {
                 vm.updateSettings(
                     settings.copy(
@@ -200,7 +200,7 @@ private fun MainPage(vm: DebugViewModel) {
             Text("重置Chat模型")
         }
 
-        KedgeButton(
+        MochiButton(
             onClick = {
                 error("测试崩溃 ${Random.nextInt(0..1000)}")
             },
@@ -217,12 +217,12 @@ private fun MainPage(vm: DebugViewModel) {
                 text = "Conversation 数量: ${conversationCount?.toString() ?: "..."}",
                 modifier = Modifier.weight(1f),
             )
-            KedgeButton(onClick = { vm.refreshConversationCount() }, shapes = ButtonDefaults.shapes()) {
+            MochiButton(onClick = { vm.refreshConversationCount() }, shapes = ButtonDefaults.shapes()) {
                 Text("刷新")
             }
         }
 
-        KedgeButton(
+        MochiButton(
             onClick = {
                 vm.createOversizedConversation(30)
                 Toast.show("正在创建 30MB 超大对话...")
@@ -232,7 +232,7 @@ private fun MainPage(vm: DebugViewModel) {
             Text("创建超大对话 (30MB)")
         }
 
-        KedgeButton(
+        MochiButton(
             onClick = {
                 vm.createConversationWithMessages(1024)
                 Toast.show("正在创建 1024 条消息对话...")
@@ -253,7 +253,7 @@ private fun MainPage(vm: DebugViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            KedgeOutlinedTextFieldWithSlots(
+            MochiOutlinedTextFieldWithSlots(
                 value = launchCountInput,
                 onValueChange = { launchCountInput = it },
                 label = { Text("launchCount (current: ${settings.launchCount})") },
@@ -261,7 +261,7 @@ private fun MainPage(vm: DebugViewModel) {
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp)
             )
-            KedgeButton(onClick = {
+            MochiButton(onClick = {
                 launchCountInput.toIntOrNull()?.let {
                     vm.updateSettings(settings.copy(launchCount = it))
                 }
@@ -274,7 +274,7 @@ private fun MainPage(vm: DebugViewModel) {
         var markdown by remember { mutableStateOf("") }
         MarkdownBlock(markdown, modifier = Modifier.fillMaxWidth())
         MathBlock(markdown)
-        KedgeOutlinedTextField(
+        MochiOutlinedTextField(
             value = markdown,
             onValueChange = { markdown = it },
             modifier = Modifier.fillMaxWidth(),

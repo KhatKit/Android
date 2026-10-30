@@ -42,7 +42,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.util.plus
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -107,7 +107,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
 import heizige.kk.kedge.theme.KedgeTextStyles
 import heizige.kk.khatkit.uikit.mochi.MochiSurface
-import heizige.kk.kedge.components.KedgeIconButtonVariant
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import heizige.kk.kedge.containers.KedgeFloatingToolbar
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
@@ -623,8 +623,8 @@ private fun ChatListNormal(
                     Tooltip(
                         text = "Clear selection",
                     ) {
-                        KedgeIconButton(
-                            variant = KedgeIconButtonVariant.Filled,
+                        MochiIconButton(
+                            variant = MochiIconButtonVariant.Filled,
                             onClick = {
                                 selecting = false
                                 selectedItems.clear()
@@ -637,8 +637,8 @@ private fun ChatListNormal(
                     Tooltip(
                         text = "Select all",
                     ) {
-                        KedgeIconButton(
-                            variant = KedgeIconButtonVariant.Filled,
+                        MochiIconButton(
+                            variant = MochiIconButtonVariant.Filled,
                             onClick = {
                                 if (selectedItems.isNotEmpty()) {
                                     selectedItems.clear()
@@ -654,8 +654,8 @@ private fun ChatListNormal(
                     Tooltip(
                         text = "Confirm",
                     ) {
-                        KedgeIconButton(
-                            variant = KedgeIconButtonVariant.Filled,
+                        MochiIconButton(
+                            variant = MochiIconButtonVariant.Filled,
                             onClick = {
                                 selecting = false
                                 val messages = conversation.messageNodes.filter { it.id in selectedItems }

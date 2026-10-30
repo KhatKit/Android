@@ -28,10 +28,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.kedge.components.KedgeOutlinedTextField
-import heizige.kk.kedge.components.KedgeOutlinedTextFieldWithSlots
-import heizige.kk.kedge.components.KedgeTextButton
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextField
+import heizige.kk.khatkit.uikit.mochi.MochiOutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -239,7 +239,7 @@ private fun FileItem(
                 style = KedgeTextStyles.body(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            KedgeIconButton(onClick = onEdit, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
+            MochiIconButton(onClick = onEdit, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = editDocument,
                     contentDescription = stringResource(R.string.edit),
@@ -247,7 +247,7 @@ private fun FileItem(
                 )
             }
             if (!readOnly && skillFile.relativePath != "SKILL.md") {
-                KedgeIconButton(onClick = onDelete, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
+                MochiIconButton(onClick = onDelete, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = delete,
                         contentDescription = stringResource(R.string.delete),
@@ -332,7 +332,7 @@ private fun EditFileDialog(
         onDismissRequest = onDismiss,
         title = { Text(skillFile.relativePath, fontFamily = FontFamily.Monospace) },
         text = {
-            KedgeOutlinedTextFieldWithSlots(
+            MochiOutlinedTextFieldWithSlots(
                 value = content,
                 onValueChange = { if (!readOnly) content = it },
                 label = { Text(stringResource(R.string.skill_detail_page_content)) },
@@ -345,14 +345,14 @@ private fun EditFileDialog(
         },
         confirmButton = {
             if (readOnly) {
-                KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.confirm)) }
+                MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.confirm)) }
             } else {
-                KedgeTextButton(onClick = { onConfirm(content) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.skill_detail_page_save)) }
+                MochiTextButton(onClick = { onConfirm(content) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.skill_detail_page_save)) }
             }
         },
         dismissButton = {
             if (!readOnly) {
-                KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+                MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
             }
         },
     )
@@ -372,7 +372,7 @@ private fun AddFileDialog(
         title = { Text(stringResource(R.string.skill_detail_page_new_file)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = fileName,
                     onValueChange = { fileName = it },
                     label = { Text(stringResource(R.string.skill_detail_page_file_name)) },
@@ -390,7 +390,7 @@ private fun AddFileDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                KedgeOutlinedTextFieldWithSlots(
+                MochiOutlinedTextFieldWithSlots(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text(stringResource(R.string.skill_detail_page_content)) },
@@ -403,7 +403,7 @@ private fun AddFileDialog(
             }
         },
         confirmButton = {
-            KedgeTextButton(
+            MochiTextButton(
                 onClick = { onConfirm(fileName.trim(), content) },
                 enabled = fileName.isNotBlank() && !fileNameError,
                 shapes = ButtonDefaults.shapes(),
@@ -412,7 +412,7 @@ private fun AddFileDialog(
             }
         },
         dismissButton = {
-            KedgeTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

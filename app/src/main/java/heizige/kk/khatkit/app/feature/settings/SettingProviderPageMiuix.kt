@@ -63,11 +63,11 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.ImageHelper
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khromia.helper.Toast
-import heizige.kk.kedge.components.KedgeButton
-import heizige.kk.kedge.components.KedgeIconButton
-import heizige.kk.kedge.components.KedgeOptionItem
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiSearchBar
-import heizige.kk.kedge.components.KedgeTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.kedge.theme.KedgeTextStyles
 import kotlin.uuid.Uuid
 import sh.calvin.reorderable.ReorderableCollectionItemScope
@@ -87,21 +87,21 @@ import top.yukonga.miuix.kmp.basic.Text
  * 「import + 函数开头早退块」，不能顺手把可见性放宽 —— 所以**行与三个弹窗的动作层**在这里重建，
  * 但下面这些全部按原样复用，没有第二份实现：
  *
- * - `MochiSearchBar`（自带 MD3/Miuix 分流）、`KedgeOptionItem`、`KedgeIconButton`、`KedgeButton`、
- *   `KedgeTextButton`、`AppAlertDialog`（Miuix 下走 `KedgeAlertDialogSlots`）、
+ * - `MochiSearchBar`（自带 MD3/Miuix 分流）、`MochiOptionItem`、`MochiIconButton`、`MochiButton`、
+ *   `MochiTextButton`、`AppAlertDialog`（Miuix 下走 `KedgeAlertDialogSlots`）、
  *   `PrimaryBottomSheet`（Miuix 下走 `KedgePrimaryBottomSheet`）；
  * - `ProviderConfigure`（表单本身已双风格化：`KedgeSingleChoiceSegmentedRow` +
- *   `KedgeOutlinedTextField` + `KedgeSwitchFormRow`），新增/编辑提供商**不重写表单**；
+ *   `MochiOutlinedTextField` + `MochiSwitchFormRow`），新增/编辑提供商**不重写表单**；
  * - `AutoAIIcon`、`Screen.SettingProviderDetail`、`Toast`、`ImageHelper.decodeQRCodeFromUri`、
  *   `decodeProviderSetting`、`RECOMMENDED_PROVIDERS`、`useEditState`。
  *
  * ## 外壳与列表
  *
- * 外壳用 `MiuixSettingsPage`；每一行走 `KedgeOptionItem`（插槽版），与 MD3 侧的
+ * 外壳用 `MiuixSettingsPage`；每一行走 `MochiOptionItem`（插槽版），与 MD3 侧的
  * `ProviderItem` 同一套 leading/title/supporting/trailing —— 组内圆角按 index/count 算、
  * 项距取 `listCardStyle().gap`，Miuix 下就是一整块。以前是 `MochiCard` + miuix
  * `ArrowPreference`：选它只为拿 `bottomAction` 槽放 `provider.shortDescription()`，
- * 而 `KedgeOptionItem` 的 supporting 槽正好是那个位置。
+ * 而 `MochiOptionItem` 的 supporting 槽正好是那个位置。
  */
 @Composable
 fun SettingProviderPageMiuix(vm: SettingViewModel = hiltViewModel()) {
@@ -297,12 +297,12 @@ private fun ProviderListMiuix(
 /**
  * 单个提供商行。
  *
- * 行的**皮**交给 [KedgeOptionItem]（MD3 走 Khromia `OptionItem`、Miuix 走 `MochiCard` 行），
+ * 行的**皮**交给 [MochiOptionItem]（MD3 走 Khromia `OptionItem`、Miuix 走 `MochiCard` 行），
  * 与 MD3 侧的 `ProviderItem` 同一套插槽：`22/28dp` 图标 → leading、名称 → title、
  * 「启用状态 · 模型数」+ `provider.shortDescription()` → supporting、拖柄 → trailing。
  *
  * 以前这里是 `MochiCard(contentPadding = 0)` + miuix `ArrowPreference` —— 因为
- * `PreferenceArrow` 没有 `bottomAction` 槽放描述。`KedgeOptionItem` 的 supporting 槽
+ * `PreferenceArrow` 没有 `bottomAction` 槽放描述。`MochiOptionItem` 的 supporting 槽
  * 就是那个位置，于是不必再退回 miuix 的原语；分组圆角由调用点按 index/count 传入。
  */
 @Composable
@@ -324,7 +324,7 @@ private fun ProviderRowMiuix(
     // MD3 行里这两条是两个 Tag（启用状态 / 模型数量），Miuix 侧收进 summary 一行。
     val summaryText = "$statusText · $modelCountText"
 
-    KedgeOptionItem(
+    MochiOptionItem(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = shape,
@@ -354,7 +354,7 @@ private fun ProviderRowMiuix(
 @Composable
 private fun ReorderableCollectionItemScope.ProviderDragHandle() {
     val haptic = LocalHapticFeedback.current
-    KedgeIconButton(
+    MochiIconButton(
         onClick = {},
         modifier = Modifier.longPressDraggableHandle(
             onDragStarted = {
@@ -377,7 +377,7 @@ private fun RecommendProviderButtonMiuix(
     var showSheet by remember { mutableStateOf(false) }
     val importSuccessMessage = stringResource(R.string.setting_provider_page_import_success)
 
-    KedgeIconButton(onClick = { showSheet = true }) {
+    MochiIconButton(onClick = { showSheet = true }) {
         Icon(imageVector = autoAwesome, contentDescription = stringResource(R.string.setting_provider_page_recommend))
     }
 
@@ -398,7 +398,7 @@ private fun RecommendProviderButtonMiuix(
             ) {
                 RECOMMENDED_PROVIDERS.forEachIndexed { index, provider ->
                     // 与列表同一个口径：整列并成一张分组卡，组距只在首行留一份。
-                    KedgeOptionItem(
+                    MochiOptionItem(
                         onClick = {
                             onAdd(provider)
                             Toast.show(importSuccessMessage, isError = false)
@@ -416,7 +416,7 @@ private fun RecommendProviderButtonMiuix(
                         titleContent = { Text(text = provider.name) },
                         supportingContent = { provider.description() },
                         trailingContent = {
-                            KedgeIconButton(onClick = {
+                            MochiIconButton(onClick = {
                                 onAdd(provider)
                                 Toast.show(importSuccessMessage, isError = false)
                             }) {
@@ -452,7 +452,7 @@ private fun ImportProviderButtonMiuix(
         uri?.let { importProviderFromImageMiuix(it, context, onAdd) }
     }
 
-    KedgeIconButton(onClick = { showImportDialog = true }) {
+    MochiIconButton(onClick = { showImportDialog = true }) {
         Icon(imageVector = uploadFile, contentDescription = null)
     }
 
@@ -473,7 +473,7 @@ private fun ImportProviderButtonMiuix(
                         color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    KedgeButton(
+                    MochiButton(
                         onClick = {
                             showImportDialog = false
                             pickImageLauncher.launch(
@@ -507,7 +507,7 @@ private fun ImportProviderButtonMiuix(
             },
             confirmButton = {},
             dismissButton = {
-                KedgeTextButton(onClick = { showImportDialog = false }) {
+                MochiTextButton(onClick = { showImportDialog = false }) {
                     Text(
                         text = stringResource(R.string.cancel),
                         style = KedgeTextStyles.footnote()
@@ -557,7 +557,7 @@ private fun AddProviderButtonMiuix(
         onAdd(it.copyProvider(name = it.name.trim()))
     }
 
-    KedgeIconButton(onClick = { dialogState.open(ProviderSetting.OpenAI()) }) {
+    MochiIconButton(onClick = { dialogState.open(ProviderSetting.OpenAI()) }) {
         Icon(imageVector = add, contentDescription = stringResource(R.string.setting_provider_page_add))
     }
 

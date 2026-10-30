@@ -17,7 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.kedge.components.KedgeIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -179,7 +179,7 @@ fun ErrorCard(
                     )
                 }
             }
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = {
                     scope.launch {
                         clipboard.setClipEntry(
@@ -199,7 +199,7 @@ fun ErrorCard(
                     modifier = Modifier.size(18.dp),
                 )
             }
-            KedgeIconButton(
+            MochiIconButton(
                 onClick = onDismiss,
                 modifier = Modifier.size(32.dp),
                 shapes = IconButtonDefaults.shapes(),
