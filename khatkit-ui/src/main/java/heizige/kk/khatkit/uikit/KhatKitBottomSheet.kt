@@ -526,7 +526,7 @@ private fun SheetBottomBar(
     onConfirm: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
-    val actualDismissText = dismissText ?: stringResource(heizige.kk.khromia.R.string.bottom_sheet_dismiss)
+    val actualDismissText = dismissText ?: "关闭"
     Row(
         modifier = Modifier
             .fillMaxWidth()

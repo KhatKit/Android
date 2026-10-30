@@ -207,7 +207,6 @@ class RouteActivity : ComponentActivity() {
                 }
                 appContent()
                 }
-                heizige.kk.khromia.components.GlobalToastHost()
             }
         }
     }

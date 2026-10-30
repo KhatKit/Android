@@ -3221,7 +3221,6 @@ private fun FeaturedCard(
                         containerColor = onPoster,
                         contentColor = poster,
                     ),
-                    miuixColors = posterButtonMiuixColors(onPoster, poster),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 ) {
                     Text(
@@ -3268,17 +3267,6 @@ private fun posterTone(identity: Color, factor: Float = 0.58f): Color = Color(
  * Miuix 分支在 [MochiButton] 里只能靠 `miuixColors` 单独喂 —— 海报卡是满色块，
  * 两种风格必须都是「白底 + 海报色字」，否则 Miuix 下会变成主题色药丸、和卡片撞色。
  */
-@Composable
-private fun posterButtonMiuixColors(
-    container: Color,
-    content: Color,
-): top.yukonga.miuix.kmp.basic.ButtonColors =
-    top.yukonga.miuix.kmp.basic.ButtonDefaults.buttonColors(
-        color = container,
-        disabledColor = container.copy(alpha = 0.55f),
-        contentColor = content,
-        disabledContentColor = content.copy(alpha = 0.75f),
-    )
 
 /**
  * 卡片药丸的三种语义。轮播卡与详情页共用同一套判定，避免「同一张卡在两个地方说两句话」。

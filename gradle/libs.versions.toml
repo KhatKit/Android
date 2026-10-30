@@ -72,8 +72,6 @@ termux = "0.118.0"
 diffutils = "4.17"
 snakeyaml = "2.7"
 shizuku = "13.1.5"
-kedge = "0.1.2"
-khromia = "1.6.5"
 # 本地源码库产物（mavenLocal，由 ../Mochi 源码 publishToMavenLocal 生成；见 docs/mochi-migration-plan.md §13）
 mochi = "0.2.0-khatkit"
 richeditorCompose = "1.0.0"
@@ -208,8 +206,6 @@ termux-terminal-view = { module = "com.termux.termux-app:terminal-view", version
 guava-listenablefuture = { module = "com.google.guava:listenablefuture", version = "9999.0-empty-to-avoid-conflict-with-guava" }
 shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
-kedge = { module = "heizige.kk:kedge", version.ref = "kedge" }
-khromia = { module = "heizige.kk:khromia", version.ref = "khromia" }
 # mochi-compose：UI 外壳/组件目标库（Maven Central，io.github.feice11）
 mochi-compose = { module = "io.github.feice11:mochi-compose", version.ref = "mochi" }
 mochi-ios = { module = "io.github.feice11:mochi-ios", version.ref = "mochi" }

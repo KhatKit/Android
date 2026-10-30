@@ -449,7 +449,6 @@ fun ChatDrawerContent(
                             // 别再往实色 secondary 走——抽屉里已有实心按钮，实色会显得
                             // 过重。
                             colors = KedgeDrawerButtonColors.md3(),
-                            miuixColors = KedgeDrawerButtonColors.miuix(),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                         ) {
                             Text(
@@ -716,13 +715,6 @@ private object KedgeDrawerButtonColors {
         )
     }
 
-    @Composable
-    fun miuix(): top.yukonga.miuix.kmp.basic.ButtonColors {
-        val scheme = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
-        return top.yukonga.miuix.kmp.basic.ButtonDefaults.buttonColors(
-            color = lerp(scheme.secondaryContainer, scheme.secondary, TOWARD_SECONDARY),
-        )
-    }
 }
 
 // ---------------------------------------------------------------------------
