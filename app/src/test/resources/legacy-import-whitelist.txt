@@ -54,7 +54,6 @@ kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/miuix/Prefe
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/permission/PermissionRationaleDialog.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/QrScannerSheet.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/RabbitLoading.kt
-kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/Select.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/StickyHeader.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/Tag.kt
 kedge	app/src/main/java/heizige/kk/khatkit/app/core/ui/components/ui/TagList.kt
