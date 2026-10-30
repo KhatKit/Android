@@ -135,7 +135,7 @@ import heizige.kk.khromia.components.ButtonOption
 import heizige.kk.khromia.components.ExpandableOptionItem
 import heizige.kk.khromia.components.OptionItem
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import heizige.kk.khromia.helper.fadingEdge
+import heizige.kk.khatkit.uikit.mochi.fadingEdge
 import heizige.kk.khromia.text.OptionsText
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar

@@ -58,7 +58,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.save as saveIcon
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import kotlinx.coroutines.launch
 
 @Composable

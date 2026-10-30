@@ -29,7 +29,7 @@ import com.dokar.sonner.ToasterState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon

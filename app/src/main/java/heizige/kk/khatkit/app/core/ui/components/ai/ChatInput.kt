@@ -150,8 +150,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import heizige.kk.khromia.helper.Toast
-import heizige.kk.khromia.layout.FullscreenPopup
+import heizige.kk.khatkit.uikit.mochi.Toast
+import heizige.kk.khatkit.uikit.mochi.KkFullscreenPopup
 import heizige.kk.khatkit.ai.provider.ModelAbility
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.asr.ASRStatus
@@ -1400,7 +1400,7 @@ private fun FullScreenEditor(
     var toolbarHeightPx by remember { mutableIntStateOf(0) }
     // 页内浮层：MATCH_PARENT 的 AbstractComposeView 直接挂 Activity decorView（同一 window、
     // 无独立 dialog window），内容以子组合继承 CompositionLocals。
-    FullscreenPopup(modifier = Modifier.fillMaxSize()) {
+    KkFullscreenPopup(modifier = Modifier.fillMaxSize()) {
         // 浮层 view 在窗口里的原点：FLB 的窗口坐标要减掉它才是浮层内的绘制坐标。
         // 浮层子组合里 LocalView 就是挂在 decorView 上的那个 AbstractComposeView。
         val popupView = LocalView.current

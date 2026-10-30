@@ -23,7 +23,7 @@ import coil3.compose.rememberAsyncImagePainter
 import com.jvziyaoyao.scale.image.pager.ImagePager
 import com.jvziyaoyao.scale.zoomable.pager.rememberZoomablePagerState
 import kotlinx.coroutines.launch
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint

@@ -67,7 +67,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khromia.components.LocalBottomSheetDismiss
-import heizige.kk.khromia.layout.FullscreenPopup
+import heizige.kk.khatkit.uikit.mochi.KkFullscreenPopup
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.ui.UiNode
 import kotlinx.coroutines.CancellationException
@@ -210,7 +210,7 @@ fun KhatKitBottomSheet(
         }
     }
 
-    FullscreenPopup(onDismiss = popupDismiss) {
+    KkFullscreenPopup(onDismiss = popupDismiss) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter,

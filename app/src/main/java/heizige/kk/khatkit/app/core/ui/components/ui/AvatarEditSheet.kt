@@ -55,7 +55,7 @@ import heizige.kk.khatkit.app.core.ui.icons.image
 import heizige.kk.khatkit.app.core.ui.icons.link
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.photoCamera
-import heizige.kk.khromia.layout.FullscreenPopup
+import heizige.kk.khatkit.uikit.mochi.KkFullscreenPopup
 
 /**
  * 头像编辑弹层里可以选的动作。
@@ -172,7 +172,7 @@ fun AvatarEditSheet(
         label = "avatarEditSheetScrim",
     )
 
-    FullscreenPopup(
+    KkFullscreenPopup(
         modifier = Modifier.fillMaxSize(),
         // 返回键：FullscreenPopup 自己的 key 分发（窗口 requestFocus 后收 BACK），
         // 不用再叠一层 BackHandler，否则一次返回会关两次。

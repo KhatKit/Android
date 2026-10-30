@@ -1,6 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import android.content.Context
 import android.media.AudioAttributes

@@ -40,7 +40,7 @@ import heizige.kk.khatkit.app.feature.workflow.encode
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.feature.settings.data.WorkflowDefinition
 import heizige.kk.khatkit.app.feature.settings.data.WorkflowNode
 import heizige.kk.khatkit.app.feature.settings.data.WorkflowPreferencesRepository

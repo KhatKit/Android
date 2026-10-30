@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.theme
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
@@ -107,7 +108,14 @@ fun KhatKitTheme(
             LocalOptionSwitchExpressiveEnabled provides false,
         ) {
             ProvideMaterial3Theme(dark = darkTheme, amoled = amoledDarkMode) {
-                content()
+                // U4f1：全局 Toast 宿主（Mochi 胶囊）。Toast.show() 的跨页面提示都落在这里，
+                // 新的提示替换旧的，不堆叠；host 只吃胶囊区域的触摸。
+                androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+                    content()
+                    heizige.kk.khatkit.uikit.mochi.KkToastHost(
+                        modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
+                    )
+                }
             }
         }
     }

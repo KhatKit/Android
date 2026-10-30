@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.compose.runtime.mutableStateListOf
 import androidx.navigation3.runtime.NavKey
-import heizige.kk.khromia.helper.Toast as KhromiaToast
+import heizige.kk.khatkit.uikit.mochi.Toast as KhromiaToast
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import coil3.compose.AsyncImage

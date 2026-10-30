@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toFile
 import com.yalantis.ucrop.UCrop
 import com.yalantis.ucrop.UCropActivity
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.common.android.appTempFolder
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster

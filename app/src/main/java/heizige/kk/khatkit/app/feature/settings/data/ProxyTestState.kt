@@ -9,7 +9,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.network.toProxyOrNull
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.common.http.okhttp.Request
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

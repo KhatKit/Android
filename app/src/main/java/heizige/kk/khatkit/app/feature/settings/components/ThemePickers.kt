@@ -71,7 +71,7 @@ import androidx.core.graphics.toColorInt
 import heizige.kk.khatkit.uikit.mochi.KkEditDialog
 import heizige.kk.khatkit.uikit.mochi.KkEditField
 import heizige.kk.khromia.components.EditFieldConfig
-import heizige.kk.khromia.helper.fadingEdge
+import heizige.kk.khatkit.uikit.mochi.fadingEdge
 import heizige.kk.khromia.components.SquareColorPicker
 import heizige.kk.khromia.text.OptionsText
 

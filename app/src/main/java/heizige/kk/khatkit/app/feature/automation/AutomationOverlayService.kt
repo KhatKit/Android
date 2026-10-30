@@ -98,7 +98,7 @@ import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
-import heizige.kk.khromia.components.ToastDefaults
+import heizige.kk.khatkit.uikit.mochi.KkToastDefaults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -281,7 +281,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                     .getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom
             } else 0
             y = (minOf(display.widthPixels, display.heightPixels) *
-                ToastDefaults.BottomScreenFraction).toInt() + navigationBottom
+                KkToastDefaults.BottomScreenFraction).toInt() + navigationBottom
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
@@ -615,11 +615,11 @@ internal fun AutomationToast(
 
     val miuix = false
     Surface(
-        color = if (miuix) MaterialTheme.colorScheme.secondaryContainer else ToastDefaults.color,
-        contentColor = if (miuix) MaterialTheme.colorScheme.onSecondaryContainer else ToastDefaults.contentColor,
+        color = if (miuix) MaterialTheme.colorScheme.secondaryContainer else KkToastDefaults.color,
+        contentColor = if (miuix) MaterialTheme.colorScheme.onSecondaryContainer else KkToastDefaults.contentColor,
         shape = RoundedCornerShape(24.dp),
         modifier = modifier
-            .widthIn(max = ToastDefaults.screenSizeMin() * 0.85f)
+            .widthIn(max = heizige.kk.khatkit.uikit.mochi.screenSizeMin * 0.85f)
             .heightIn(min = 48.dp)
             .clickable(onClick = onDismiss),
     ) {
@@ -642,7 +642,7 @@ internal fun AutomationToast(
                         // 纯文本提示，不出现任何图标/按钮
                         Text(
                             text = "任务完成",
-                            style = ToastDefaults.textStyle,
+                            style = KkToastDefaults.textStyle,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -668,7 +668,7 @@ internal fun AutomationToast(
                         ) { title ->
                             Text(
                                 text = "$title（${remainingSeconds}s）",
-                                style = ToastDefaults.textStyle,
+                                style = KkToastDefaults.textStyle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -701,7 +701,7 @@ internal fun AutomationToast(
                         ) { label ->
                             Text(
                                 text = label,
-                                style = ToastDefaults.textStyle,
+                                style = KkToastDefaults.textStyle,
                                 textAlign = TextAlign.Center,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
@@ -789,9 +789,9 @@ private fun ApproveButton(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
-    // 菜单沿用卡片同款反色底与文字规格（同一份 ToastDefaults 来源）。
-    val menuContainerColor = ToastDefaults.color
-    val menuContentColor = ToastDefaults.contentColor
+    // 菜单沿用卡片同款反色底与文字规格（同一份 KkToastDefaults 来源）。
+    val menuContainerColor = KkToastDefaults.color
+    val menuContentColor = KkToastDefaults.contentColor
     val itemColors = MenuDefaults.itemColors(
         textColor = menuContentColor,
         leadingIconColor = menuContentColor,
@@ -837,14 +837,14 @@ private fun ApproveButton(
                 onDismissRequest = { menuExpanded = false },
             ) {
                 MochiMenuRow(
-                    text = { Text(text = "仅本次允许", color = ToastDefaults.contentColor, maxLines = 1) },
+                    text = { Text(text = "仅本次允许", color = KkToastDefaults.contentColor, maxLines = 1) },
                     onClick = {
                         menuExpanded = false
                         onApprove()
                     },
                 )
                 MochiMenuRow(
-                    text = { Text(text = "10 分钟内自动允许", color = ToastDefaults.contentColor, maxLines = 1) },
+                    text = { Text(text = "10 分钟内自动允许", color = KkToastDefaults.contentColor, maxLines = 1) },
                     onClick = {
                         menuExpanded = false
                         onRemember()

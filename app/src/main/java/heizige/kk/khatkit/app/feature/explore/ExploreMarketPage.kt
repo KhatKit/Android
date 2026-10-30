@@ -179,7 +179,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.minus
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
-import heizige.kk.khromia.helper.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khromia.components.pressBounce
 import heizige.kk.khromia.components.shape.AutoCornersShape
 import heizige.kk.khromia.data.harmonizeWithPrimary

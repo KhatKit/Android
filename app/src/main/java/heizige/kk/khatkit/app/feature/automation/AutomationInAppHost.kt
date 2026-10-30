@@ -8,8 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khromia.components.ToastDefaults
-import heizige.kk.khromia.layout.FullscreenPopup
+import heizige.kk.khatkit.uikit.mochi.KkToastDefaults
+import heizige.kk.khatkit.uikit.mochi.KkFullscreenPopup
 import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import kotlinx.coroutines.delay
 
@@ -41,10 +41,10 @@ fun AutomationInAppHost() {
     }
     if (status == null && approval == null) return
 
-    FullscreenPopup(passThroughTouches = true) {
+    KkFullscreenPopup(passThroughTouches = true) {
         // 仅内容可点击，定位用的底部留白触摸穿透到应用。
         Box(Modifier.navigationBarsPadding().padding(
-            bottom = ToastDefaults.screenSizeMin() * ToastDefaults.BottomScreenFraction,
+            bottom = heizige.kk.khatkit.uikit.mochi.screenSizeMin * KkToastDefaults.BottomScreenFraction,
         )) {
             AutomationStatusBoard(
                 status = status,
