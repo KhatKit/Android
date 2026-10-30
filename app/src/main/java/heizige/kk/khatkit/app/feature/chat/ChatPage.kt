@@ -557,9 +557,12 @@ internal fun ChatScaffold(
                 AssistantBackground(assistant = assistant, modifier = Modifier.hazeSource(hazeState))
                 ChatList(
                 // U3b：列表底部补输入栏高度，滚到底时最后一条完整可见。
+                // U3b2：底部留白**恰好等于悬浮输入栏实测高度**（onSizeChanged 量出来的值），
+                // 不再叠加 scaffold 的 innerPadding.bottom，否则会多出一份空隙；
+                // 输入栏本身跟随 navigationBarsPadding，键盘弹出时它的高度变化会重新回灌到这里。
                 innerPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
-                    bottom = innerPadding.calculateBottomPadding() + inputBarHeight,
+                    bottom = inputBarHeight,
                 ),
                 conversation = conversation,
                 state = chatListState,
