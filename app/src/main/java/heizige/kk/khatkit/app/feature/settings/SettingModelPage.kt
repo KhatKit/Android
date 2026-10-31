@@ -20,9 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,8 +34,13 @@ import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderSetting
+import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRecord
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginStore
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
@@ -159,6 +166,10 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentP
             )
         }
         item {
+            // OCR5：插件入口。未安装时给「去市场安装」提示，点击跳探索市场（OCR 扩展条目在市场页里）。
+            OcrPluginSettingItem()
+        }
+        item {
             ModelSettingItem(
                 title = stringResource(R.string.setting_model_page_compress_model),
                 description = stringResource(R.string.setting_model_page_compress_model_desc),
@@ -251,4 +262,64 @@ private fun ModelSettingItem(
     }
 
     ModelListSheet(state = state, onSelect = onSelect)
+}
+
+/**
+ * OCR5：OCR 插件入口。
+ *
+ * 状态只读 [OcrPluginStore]（安装/卸载都在探索市场做，这里不重复写盘），点击用
+ * [LocalKkNavController] 跳探索市场 —— OCR 原生插件是市场里的扩展条目（kind=dependency）。
+ * 文案内联：本阶段只允许改 feature/settings，string 资源不在范围内。
+ */
+@Composable
+private fun OcrPluginSettingItem() {
+    val context = LocalContext.current
+    val kkNav = LocalKkNavController.current
+    // 没有 Mochi 宿主时（预览/测试）退回普通导航，和 SettingPage 的 openMorph 同一套兜底
+    val navController = LocalNavController.current
+    val record by produceState<OcrPluginRecord?>(initialValue = null) {
+        value = runCatching { OcrPluginStore(context).read() }.getOrNull()
+    }
+    val version = record?.version?.takeIf { it.isNotBlank() }
+
+    Column {
+        CardGroup(title = { Text("OCR 插件") }) {
+            item(
+                onClick = {
+                    if (kkNav != null) {
+                        kkNav.navigate(Screen.ExploreMarket, source = "setting-ocr-plugin")
+                    } else {
+                        navController.navigate(Screen.ExploreMarket)
+                    }
+                },
+                headlineContent = {
+                    Text(if (version == null) "OCR 插件：未安装" else "OCR 插件")
+                },
+                supportingContent = {
+                    Text(
+                        if (version == null) "去市场安装后可用本机 OCR 插件" else "已安装，可在市场里更新或卸载"
+                    )
+                },
+                trailingContent = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = version?.let { "v$it" } ?: "去市场安装",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Icon(
+                            arrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                },
+            )
+        }
+    }
 }
