@@ -2,6 +2,7 @@ package heizige.kk.khatkit.ocr.mlkit
 
 import android.graphics.Bitmap
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import heizige.kk.khatkit.ocr.api.OcrBlock
@@ -22,7 +23,7 @@ class MlKitOcrEngine : OcrEngine {
 
     override suspend fun recognize(bitmap: Bitmap): OcrResult {
         val image = InputImage.fromBitmap(bitmap, 0)
-        val result = suspendCancellableCoroutine { cont ->
+        val result: Text = suspendCancellableCoroutine { cont ->
             recognizer.process(image)
                 .addOnSuccessListener { text -> cont.resume(text) }
                 .addOnFailureListener { e -> cont.resumeWithException(e) }
