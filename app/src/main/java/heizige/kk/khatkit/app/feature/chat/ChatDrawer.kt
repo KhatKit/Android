@@ -4,6 +4,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.basic.rememberMochiSheetState
 
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ButtonDefaults
@@ -598,11 +599,15 @@ fun ChatDrawerContent(
         }
     }
 
-    // 移动到助手 Bottom Sheet
-    if (showMoveToAssistantSheet) {
-        PrimaryBottomSheet(
-            visible = true,
-            title = stringResource(R.string.chat_page_move_to_assistant),
+    // 移动到助手 Bottom Sheet：U7b-2b 去掉父级 if 门控，显隐交给 MochiSheetState，
+    // 这样面板有收起动画；内容里对 conversationToMove 只做 null 安全读（:627/:654），退出期间不会 NPE。
+    val moveToAssistantSheet = rememberMochiSheetState()
+    LaunchedEffect(showMoveToAssistantSheet) {
+        if (showMoveToAssistantSheet) moveToAssistantSheet.show() else moveToAssistantSheet.hide()
+    }
+    PrimaryBottomSheet(
+        state = moveToAssistantSheet,
+        title = stringResource(R.string.chat_page_move_to_assistant),
             imageVector = groups,
             onDismiss = {
                 showMoveToAssistantSheet = false
@@ -661,7 +666,6 @@ fun ChatDrawerContent(
                 }
             }
         }
-    }
 }
 
 @Composable
