@@ -20,6 +20,10 @@ import heizige.kk.khatkit.hub.HubResourceEntry
 import heizige.kk.khatkit.hub.HubResourcePackage
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.uikit.CardRunResult
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginInstaller
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginLoader
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRecord
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginStore
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,6 +89,54 @@ class ExploreMarketViewModel @Inject constructor(
 
     private val _busyResource = MutableStateFlow<String?>(null)
     val busyResource: StateFlow<String?> = _busyResource.asStateFlow()
+
+    // OCR2：已安装 OCR 原生插件（市场条目据此显示「已安装/更新/卸载」）。
+    private val _ocrPlugin = MutableStateFlow<OcrPluginRecord?>(null)
+    val ocrPlugin: StateFlow<OcrPluginRecord?> = _ocrPlugin.asStateFlow()
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            OcrPluginLoader.prepare(appContext)
+            _ocrPlugin.value = OcrPluginStore(appContext).read()
+        }
+    }
+
+    /** 市场里 kind=dependency 且 plugin_id=ocr 的条目：下载 zip → sha256 校验 → 安装。 */
+    fun installOcrPlugin(entry: HubResourceEntry, onResult: (String) -> Unit = {}) =
+        viewModelScope.launch {
+            _busyResource.value = entry.slug
+            val message = withContext(Dispatchers.IO) {
+                runCatching {
+                    val base = provider.hubBaseUrl.trim().trimEnd('/')
+                    require(base.isNotEmpty()) { "Hub 未配置" }
+                    val url = java.net.URL(base + "/api/items/" + entry.slug + "/download")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.connectTimeout = 15_000
+                    conn.readTimeout = 60_000
+                    val tmp = java.io.File(appContext.cacheDir, "ocr_plugin_" + System.currentTimeMillis() + ".zip")
+                    try {
+                        conn.inputStream.use { input -> tmp.outputStream().use { output -> input.copyTo(output) } }
+                        val sha = conn.getHeaderField("X-Content-SHA256")
+                        OcrPluginInstaller.install(appContext, tmp, sha, entry.slug).getOrThrow()
+                    } finally {
+                        tmp.delete()
+                    }
+                }.fold(
+                    onSuccess = { "OCR 插件已安装 " + it.version },
+                    onFailure = { "OCR 插件安装失败：" + (it.message ?: it.javaClass.simpleName) },
+                )
+            }
+            _ocrPlugin.value = OcrPluginStore(appContext).read()
+            _busyResource.value = null
+            onResult(message)
+        }
+
+    /** 卸载 OCR 插件（删目录 + 清 DataStore + 清加载器缓存）。 */
+    fun uninstallOcrPlugin(onResult: (String) -> Unit = {}) = viewModelScope.launch {
+        val ok = withContext(Dispatchers.IO) { OcrPluginInstaller.uninstall(appContext) }
+        _ocrPlugin.value = OcrPluginStore(appContext).read()
+        onResult(if (ok) "OCR 插件已卸载" else "OCR 插件卸载失败")
+    }
 
     init {
         refresh("")
@@ -229,6 +281,11 @@ class ExploreMarketViewModel @Inject constructor(
      * 只写盘/写设置、不替用户勾选的话，用户还得自己进设置再点一遍才算装上。
      */
     fun installResource(entry: HubResourceEntry, onResult: (String) -> Unit = {}) = viewModelScope.launch {
+        // OCR2：原生插件包（kind=dependency）走安装器，不再当成技能/MCP 合集解析。
+        if (entry.kind == "dependency") {
+            installOcrPlugin(entry, onResult)
+            return@launch
+        }
         _busyResource.value = entry.slug
         val message = withContext(Dispatchers.IO) {
             val pkg = provider.downloadHubResource(entry.slug)

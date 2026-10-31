@@ -1002,10 +1002,12 @@ fun ExploreMarketPage() {
                             val entry = visibleSkillPacks[index]
                             ResourceRow(
                                 entry = entry,
-                                installed = resourceInstalled(entry),
                                 busy = busyResource == entry.slug,
                                 onInstall = { installResource(entry) },
                                 onClick = { resourceTarget = entry },
+                                onUninstall = if (entry.kind == "dependency") ({ vm.uninstallOcrPlugin() }) else null,
+                                sizeLabel = if (entry.kind == "dependency" && entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
+                                installed = if (entry.kind == "dependency") ocrPlugin != null else resourceInstalled(entry),
                                 shape = shape,
                             )
                         }
@@ -1064,10 +1066,12 @@ fun ExploreMarketPage() {
                             val entry = visibleBundles[index]
                             ResourceRow(
                                 entry = entry,
-                                installed = resourceInstalled(entry),
                                 busy = busyResource == entry.slug,
                                 onInstall = { installResource(entry) },
                                 onClick = { resourceTarget = entry },
+                                onUninstall = if (entry.kind == "dependency") ({ vm.uninstallOcrPlugin() }) else null,
+                                sizeLabel = if (entry.kind == "dependency" && entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
+                                installed = if (entry.kind == "dependency") ocrPlugin != null else resourceInstalled(entry),
                                 shape = shape,
                             )
                         }
@@ -2803,6 +2807,16 @@ private fun ResourceRow(
                         Icon(
                             imageVector = check,
                             contentDescription = stringResource(R.string.explore_market_state_installed),
+                        )
+                    }
+                    // OCR2：已安装的原生插件条目给一个「卸载」入口（其它 kind 传 null，不显示）。
+                    installed && onUninstall != null -> MochiIconButton(
+                        onClick = { onUninstall() },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = heizige.kk.khatkit.app.core.ui.icons.delete,
+                            contentDescription = "卸载",
                         )
                     }
                     else -> MochiIconButton(
