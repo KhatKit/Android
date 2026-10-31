@@ -26,6 +26,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import heizige.kk.khatkit.app.core.data.files.FileFolders
+import heizige.kk.khatkit.app.core.data.remote.ModelsDevUpdater
 import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.feature.chat.helper.ChatNotificationManager
@@ -66,6 +67,9 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var appScope: AppScope
+
+    @Inject
+    lateinit var modelsDevUpdater: ModelsDevUpdater
 
     @Inject
     lateinit var settingsStore: SettingsRepository
@@ -137,6 +141,12 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
 
         // 从 assets 解压内置技能（安装/更新后刷新）
         extractBuiltinSkills()
+
+        // models.dev 数据：先用本地缓存/内置快照装上 catalog，再按需后台刷新（模型能力识别不再休眠）
+        appScope.launch {
+            runCatching { modelsDevUpdater.start() }
+                .onFailure { Log.w(TAG, "modelsDevUpdater.start failed", it) }
+        }
 
         // Start WebServer if enabled in settings
         startWebServerIfEnabled()

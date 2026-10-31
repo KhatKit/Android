@@ -44,6 +44,7 @@ import heizige.kk.khatkit.app.core.util.EmojiHelper
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.util.UpdateChecker
+import heizige.kk.khatkit.app.core.data.remote.ModelsDevUpdater
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.app.core.network.KhatKitMcpToolHost
 import heizige.kk.khatkit.app.core.network.McpToolHost
@@ -80,6 +81,16 @@ object AppHiltModule {
         client = client,
         appScope = appScope,
         controller = controller,
+    )
+
+    @Provides
+    @Singleton
+    fun provideModelsDevUpdater(
+        @ApplicationContext context: Context,
+        client: OkHttpClient,
+    ): ModelsDevUpdater = ModelsDevUpdater(
+        context = context,
+        client = client,
     )
 
     @Provides
