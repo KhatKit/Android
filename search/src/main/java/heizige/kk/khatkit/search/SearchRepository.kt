@@ -171,6 +171,7 @@ sealed class SearchOptions {
             SerperOptions::class to "Serper",
             CustomJsOptions::class to "Custom JS",
             DeepSeekOptions::class to "DeepSeek",
+        )
 
         /** SZ-D：各类型的默认配置工厂表。原来用 primaryConstructor 反射构造，运行期不再打包 kotlin-reflect（约 0.7MB dex），改成显式注册。 */
         val FACTORIES: Map<kotlin.reflect.KClass<out SearchOptions>, () -> SearchOptions> = mapOf(
@@ -194,7 +195,6 @@ sealed class SearchOptions {
             SerperOptions::class to { SerperOptions() },
             CustomJsOptions::class to { CustomJsOptions() },
             DeepSeekOptions::class to { DeepSeekOptions() },
-        )
         )
     }
 
