@@ -169,8 +169,10 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
     }
 
     val windowAdaptiveInfo = currentWindowDpSize()
-    val isBigScreen =
-        windowAdaptiveInfo.width > windowAdaptiveInfo.height && windowAdaptiveInfo.width >= 1100.dp
+    // C1 大屏适配：只要窗口宽度 >= 840dp 就走「列表 + 会话」永久双栏（原来要求横屏且 >=1100dp，
+    // 平板竖屏/折叠屏展开态都被漏掉）。宽度不够时走 MochiSidebarLayout 的抽屉侧栏（<600 与 600-840 同款，
+    // 导航轨在 shell 层，见 t162 说明）。
+    val isBigScreen = windowAdaptiveInfo.width >= 840.dp
 
     // 进入大屏（永久抽屉）模式时重置抽屉状态为关闭，
     // 避免从横屏旋转回竖屏后，模态抽屉残留为打开状态且无法关闭（#1304）
