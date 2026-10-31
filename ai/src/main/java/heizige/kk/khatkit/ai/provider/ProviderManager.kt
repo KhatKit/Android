@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.ai.provider
 
 import android.content.Context
+import heizige.kk.khatkit.ai.provider.providers.chatgpt.ChatGPTProvider
 import heizige.kk.khatkit.ai.provider.providers.claude.ClaudeProvider
 import heizige.kk.khatkit.ai.provider.providers.google.GoogleProvider
 import heizige.kk.khatkit.ai.provider.providers.openai.OpenAIProvider
@@ -26,6 +27,8 @@ class ProviderManager(
         registerProvider("openai", OpenAIProvider(client, context))
         registerProvider("google", GoogleProvider(client, context))
         registerProvider("claude", ClaudeProvider(client, context))
+        // 账号类提供商需要凭据来源；app 层未接线前不注册（getProviderByType 调用会抛 Provider not found）
+        accountCredentials?.let { registerProvider("chatgpt", ChatGPTProvider(client, it)) }
     }
 
     /**
@@ -63,6 +66,10 @@ class ProviderManager(
             // 账号类提供商由 OA-2b/OA-2c 注册；未注册前调用会抛 Provider not found
             is ProviderSetting.ChatGPT -> getProvider("chatgpt")
             is ProviderSetting.Grok -> getProvider("grok")
+            // 中间抽象类未封闭（ApiKey/Account 非 sealed），编译器无法判定穷尽；兜底报错。
+            else -> throw IllegalArgumentException(
+                "Unsupported provider setting: ${setting::class.simpleName}"
+            )
         } as Provider<T>
     }
 }

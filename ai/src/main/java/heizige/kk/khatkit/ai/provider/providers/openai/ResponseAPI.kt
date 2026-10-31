@@ -204,22 +204,37 @@ class ResponseAPI(
             put("stream", stream)
             put("store", false)
 
-            if (isModelAllowTemperature(params.model)) {
+            if (capabilities.supportsSamplingParams && isModelAllowTemperature(params.model)) {
                 if (params.temperature != null) put("temperature", params.temperature)
                 if (params.topP != null) put("top_p", params.topP)
             }
-            if (params.maxTokens != null) put("max_output_tokens", params.maxTokens)
+            if (capabilities.supportsMaxOutputTokens && params.maxTokens != null) {
+                put("max_output_tokens", params.maxTokens)
+            }
+            if (capabilities.supportsPromptCacheKey && params.sessionId != null) {
+                put("prompt_cache_key", params.sessionId)
+            }
 
-            // system instructions
-            if (messages.any { it.role == MessageRole.SYSTEM }) {
-                val parts = messages.first { it.role == MessageRole.SYSTEM }.parts
-                put(
-                    "instructions",
-                    parts.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text })
+            // system 提示：默认走 instructions；Codex 要求作为首条 developer 消息放进 input
+            val systemText = messages.firstOrNull { it.role == MessageRole.SYSTEM }?.parts
+                ?.filterIsInstance<UIMessagePart.Text>()
+                ?.joinToString("\n") { it.text }
+            val systemRole = capabilities.systemMessageRole
+            if (systemText != null && systemRole == null) {
+                put("instructions", systemText)
             }
 
             // messages
-            put("input", buildMessages(messages))
+            put("input", buildJsonArray {
+                if (systemText != null && systemRole != null) {
+                    add(buildJsonObject {
+                        put("role", systemRole)
+                        put("type", "message")
+                        put("content", systemText)
+                    })
+                }
+                addAll(buildMessages(messages))
+            })
 
             // reasoning
             if (params.model.abilities.contains(ModelAbility.REASONING)) {
@@ -237,6 +252,10 @@ class ResponseAPI(
                         add("reasoning.encrypted_content")
                     })
                 }
+            }
+            // Codex 的推理续接要求无条件带上加密推理内容（与模型能力无关）
+            if (capabilities.alwaysIncludeEncryptedContent) {
+                put("include", buildJsonArray { add("reasoning.encrypted_content") })
             }
 
             // tools
@@ -712,7 +731,20 @@ private fun List<UIMessagePart>.isOnlyTextPart(): Boolean {
 
 internal data class ResponseProviderCapabilities(
     val supportsReasoningSummary: Boolean = true,
-    val supportEncryptedContent: Boolean = true
+    val supportEncryptedContent: Boolean = true,
+    /**
+     * system 提示的给法：null 表示用 OpenAI 的 instructions 字段；
+     * 给字符串（如 Codex 的 "developer"）则作为 input 首条消息。
+     */
+    val systemMessageRole: String? = null,
+    /** 是否接受 temperature/top_p（Codex 不接受） */
+    val supportsSamplingParams: Boolean = true,
+    /** 是否无条件带上 reasoning.encrypted_content（Codex 多轮推理靠它续接） */
+    val alwaysIncludeEncryptedContent: Boolean = false,
+    /** 是否把 sessionId 当作 prompt_cache_key 发出去（Codex 的会话粘性） */
+    val supportsPromptCacheKey: Boolean = false,
+    /** 是否接受 max_output_tokens（Codex 不接受） */
+    val supportsMaxOutputTokens: Boolean = true,
 )
 
 internal fun resolveResponseProviderCapabilities(host: String): ResponseProviderCapabilities {
