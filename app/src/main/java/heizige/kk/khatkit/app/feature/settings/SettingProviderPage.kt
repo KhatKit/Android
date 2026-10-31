@@ -284,9 +284,8 @@ private fun RecommendProviderButton(
         Icon(autoAwesome, contentDescription = stringResource(R.string.setting_provider_page_recommend))
     }
 
-    if (showSheet) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showSheet,
             title = stringResource(R.string.setting_provider_page_recommend),
             imageVector = dns,
             onDismiss = { showSheet = false },
@@ -315,7 +314,6 @@ private fun RecommendProviderButton(
                 }
             }
         }
-    }
 }
 
 @Composable

@@ -62,9 +62,8 @@ internal fun ModelPicker(
     onAllModelDeselected: (List<Model>) -> Unit
 ) {
     var showModal by remember { mutableStateOf(false) }
-    if (showModal) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showModal,
             title = stringResource(R.string.setting_provider_page_avaliable_models),
             imageVector = memory,
             onDismiss = { showModal = false },
@@ -208,7 +207,6 @@ internal fun ModelPicker(
                 )
             }
         }
-    }
     MochiBadgedBox(
         badge = {
             if (models.isNotEmpty()) {

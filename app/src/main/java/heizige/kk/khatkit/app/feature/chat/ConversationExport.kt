@@ -135,9 +135,8 @@ fun ChatExportSheet(
     val khatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
     var exportOptions by remember { mutableStateOf(ExportOptions()) }
 
-    if (visible) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = visible,
             title = stringResource(id = R.string.chat_page_export_format),
             imageVector = iosShare,
             onDismiss = onDismissRequest,
@@ -307,7 +306,6 @@ fun ChatExportSheet(
                 }
             }
         }
-    }
 }
 
 private fun exportToMarkdown(

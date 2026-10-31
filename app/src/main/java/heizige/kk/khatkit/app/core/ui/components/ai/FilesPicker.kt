@@ -32,6 +32,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -274,8 +276,11 @@ internal fun FilesPicker(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (showCwdSheet) {
-                WorkspaceCwdPickerSheet(
+            // U7b-6：宿主已改 MochiSheet，state 由这里持有；不再用 if 门控（否则退场动画不播）。
+            val cwdSheet = rememberMochiSheetState()
+            LaunchedEffect(showCwdSheet) { if (showCwdSheet) cwdSheet.show() else cwdSheet.hide() }
+            WorkspaceCwdPickerSheet(
+                    sheetState = cwdSheet,
                     workspaceId = boundWorkspace.id,
                     currentCwd = conversation.workspaceCwd,
                     onSelectCwd = { newCwd ->
@@ -283,7 +288,6 @@ internal fun FilesPicker(
                     },
                     onDismiss = { showCwdSheet = false },
                 )
-            }
         }
     }
 

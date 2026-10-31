@@ -338,9 +338,8 @@ fun S3Tab(
         }
     }
 
-    if (showBackupFiles) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showBackupFiles,
             title = stringResource(R.string.backup_page_s3_backup_files),
             imageVector = settingsBackupRestore,
             onDismiss = {
@@ -429,7 +428,6 @@ fun S3Tab(
                 }
             }
         }
-    }
 }
 
 @Composable

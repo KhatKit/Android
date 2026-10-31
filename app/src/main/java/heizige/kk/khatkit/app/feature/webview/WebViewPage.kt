@@ -142,9 +142,8 @@ fun WebViewPage(url: String, contentId: String) {
         )
     }
 
-    if (showConsoleSheet) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showConsoleSheet,
             title = "Console Logs",
             imageVector = bugReport,
             onDismiss = { showConsoleSheet = false },
@@ -186,5 +185,4 @@ fun WebViewPage(url: String, contentId: String) {
                 }
             }
         }
-    }
 }

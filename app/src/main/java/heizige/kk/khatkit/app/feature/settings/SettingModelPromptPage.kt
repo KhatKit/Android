@@ -135,9 +135,8 @@ private fun PromptSettingItem(
         }
     }
 
-    if (showEditor) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showEditor,
             title = title,
             imageVector = editNote,
             onDismiss = { showEditor = false },
@@ -167,5 +166,4 @@ private fun PromptSettingItem(
                 }
             }
         }
-    }
 }

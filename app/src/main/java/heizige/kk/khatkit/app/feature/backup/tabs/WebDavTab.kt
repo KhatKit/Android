@@ -318,9 +318,8 @@ fun WebDavTab(
         }
     }
 
-    if (showBackupFiles) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showBackupFiles,
             title = stringResource(R.string.backup_page_webdav_backup_files),
             imageVector = settingsBackupRestore,
             onDismiss = {
@@ -409,7 +408,6 @@ fun WebDavTab(
                 }
             }
         }
-    }
 }
 
 @Composable

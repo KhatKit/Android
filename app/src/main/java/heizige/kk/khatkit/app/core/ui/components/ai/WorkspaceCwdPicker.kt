@@ -16,7 +16,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import ui.feice.mochi.basic.MochiBarButton
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
@@ -45,6 +48,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 
 @Composable
 fun WorkspaceCwdPickerSheet(
+    sheetState: MochiSheetState,
     workspaceId: String,
     currentCwd: String?,
     onSelectCwd: (String?) -> Unit,
@@ -72,18 +76,16 @@ fun WorkspaceCwdPickerSheet(
         }
     }
 
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.workspace_cwd_select_directory),
-        imageVector = folder,
-        confirmText = stringResource(R.string.workspace_cwd_set),
-        onConfirm = {
-            onSelectCwd(toAbsolutePath(browsePath))
-            onDismiss()
-        },
-        onDismiss = onDismiss,
-        scrollable = false,
-    ) { dismiss ->
+    // U7b-6：照 Mochi 示例形态直接写 MochiSheet（state 由调用方持有），不再走 visible 兼容层。
+    val confirmSelection = {
+        onSelectCwd(toAbsolutePath(browsePath))
+        onDismiss()
+    }
+    MochiSheet(state = sheetState, onDismiss = onDismiss) {
+        MochiSheetHeader(
+            title = stringResource(R.string.workspace_cwd_select_directory),
+            actions = { MochiBarButton(stringResource(R.string.workspace_cwd_set), onClick = confirmSelection) },
+        )
         val cards = listCardStyle()
         Column(
             modifier = Modifier
