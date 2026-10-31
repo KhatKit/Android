@@ -24,6 +24,7 @@ fun KedgeTabPageScaffold(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = { BackButton() },
     scrollableTab: Boolean = false,
+    rail: (@Composable () -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     pageContent: @Composable (Modifier) -> Unit,
 ) {
@@ -38,6 +39,7 @@ fun KedgeTabPageScaffold(
             )
         },
         md3ScrollBehavior = scrollBehavior,
+        rail = rail,
         containerColor = CustomColors.pageContainerColor,
     ) { innerPadding ->
         Column(

@@ -25,6 +25,7 @@ fun KedgeSettingsPageScaffold(
     navigationIcon: @Composable () -> Unit = { BackButton() },
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
+    rail: (@Composable () -> Unit)? = null,
     floatingActionButton: @Composable () -> Unit = {},
     floatingActionButtonPosition: androidx.compose.material3.FabPosition =
         androidx.compose.material3.FabPosition.End,
@@ -59,6 +60,7 @@ fun KedgeSettingsPageScaffold(
             }
         },
         bottomBar = bottomBar,
+        rail = rail,
         floatingActionButton = floatingActionButton,
         floatingActionButtonPosition = floatingActionButtonPosition,
         md3ScrollBehavior = scrollBehavior,

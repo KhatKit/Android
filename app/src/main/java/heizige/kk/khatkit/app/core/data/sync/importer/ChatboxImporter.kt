@@ -673,6 +673,7 @@ object ChatboxImporter {
         is ProviderSetting.Claude -> "claude|${provider.baseUrl.trimEnd('/')}|${provider.apiKey}"
         is ProviderSetting.ChatGPT -> "chatgpt|${provider.credential?.accountId.orEmpty()}|${provider.credential?.email.orEmpty()}"
         is ProviderSetting.Grok -> "grok|${provider.credential?.accountId.orEmpty()}|${provider.credential?.email.orEmpty()}"
+        else -> "unknown"
     }
 
     private fun ProviderSetting.providerTypeName(): String = when (this) {
@@ -681,6 +682,7 @@ object ChatboxImporter {
         is ProviderSetting.Claude -> "claude"
         is ProviderSetting.ChatGPT -> "chatgpt"
         is ProviderSetting.Grok -> "grok"
+        else -> "unknown"
     }
 
     private fun String.toMessageRole(): MessageRole? = when (this) {

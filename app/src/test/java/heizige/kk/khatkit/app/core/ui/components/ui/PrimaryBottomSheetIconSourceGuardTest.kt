@@ -285,7 +285,8 @@ class PrimaryBottomSheetIconSourceGuardTest {
             // U4f2：3 处 uikit 内部转发（KhatKitDialogs/KhatKitSheet → KkSheetShell）不再计入 PrimaryBottomSheet 调用点，65 → 62。
             // U7b-5：ReasoningPicker:143 与 ChatInput ASR 提示改成 MochiDialog（短提示语义），62 → 60。
             // U7b-6：八处 + LanguageSelectionDialog + AssistantPickerSheet 双实现直连 MochiSheet，60 → 49。
-            49,
+            // C2：删除 KhatKitPermissionSheet/RecordCardSheet（无调用点死代码），调用点 49 → 47。
+            47,
             sites.size,
         )
         assertTrue("群配置面板已移除", sites.none { it.file.endsWith("feature/chat/GroupChatPage.kt") })

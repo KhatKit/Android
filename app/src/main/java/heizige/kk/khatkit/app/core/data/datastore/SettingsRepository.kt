@@ -425,6 +425,7 @@ class SettingsRepository @Inject constructor(
                         is ProviderSetting.Grok -> provider.copy(
                             models = provider.models.distinctBy { model -> model.id }
                         )
+                        else -> provider
                     }
                 },
                 assistants = settings.assistants.distinctBy { it.id }.map { assistant ->
