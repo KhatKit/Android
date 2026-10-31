@@ -30,8 +30,33 @@ object OcrEngineProvider {
     private var resolved = false
     private var engine: OcrEngine? = null
 
-    /** 当前可用的引擎；没有安装插件时为 null。解析结果会被缓存。 */
+    /**
+     * OCR2b：应用启动时注入的动态插件解析器（app 侧传 OcrPluginLoader.engineOrNull）。
+     * 解析器每次 engine() 都会被调用 —— 安装器/卸载时会清加载器缓存，这里不做二次缓存，
+     * 否则卸载后仍会拿到旧引擎。context 在注入时固定为 application context。
+     */
+    private var appContext: android.content.Context? = null
+    private var resolver: ((android.content.Context) -> OcrEngine?)? = null
+
+    /** 注入解析器；传 null 取消注入（回到只用 [IMPL_CLASS] 反射的回退路径）。 */
+    fun installResolver(context: android.content.Context?, resolver: ((android.content.Context) -> OcrEngine?)?) {
+        appContext = context?.applicationContext
+        this.resolver = resolver
+        resolved = false
+        engine = null
+    }
+
+    /**
+     * 当前可用的引擎；没有安装插件时为 null。
+     *
+     * 解析顺序：注入的 resolver（动态插件，每次调用都问）→ 缓存的 classpath 反射结果 → null。
+     */
     fun engine(): OcrEngine? {
+        val ctx = appContext
+        val injected = resolver
+        if (ctx != null && injected != null) {
+            injected(ctx)?.let { return it }
+        }
         if (resolved) return engine
         resolved = true
         engine = runCatching {

@@ -32,6 +32,17 @@ import heizige.kk.khatkit.app.core.network.WebServerManager
 import heizige.kk.khatkit.workspace.WorkspaceManager
 
 /**
+ * OCR2b：把 app 的动态插件加载器注入 common 的 [heizige.kk.khatkit.ocr.api.OcrEngineProvider]。
+ * 必须在主流程使用 OCR 之前调用（RouteActivity.onCreate 里做）；未安装插件时返回 null，
+ * Provider 自动回退到 classpath 反射与「需要安装插件」降级，不抛异常。
+ */
+fun installOcrPluginResolver(context: Context) {
+    heizige.kk.khatkit.ocr.api.OcrEngineProvider.installResolver(context) { ctx ->
+        heizige.kk.khatkit.app.core.data.ocr.OcrPluginLoader.engineOrNull(ctx)
+    }
+}
+
+/**
  * 供无法使用 @AndroidEntryPoint 的组件（ContentProvider）与 Compose 叶子节点读取应用级单例。
  */
 @EntryPoint

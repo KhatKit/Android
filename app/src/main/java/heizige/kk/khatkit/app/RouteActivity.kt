@@ -179,6 +179,8 @@ class RouteActivity : ComponentActivity() {
         enableEdgeToEdge()
         disableNavigationBarContrast()
         super.onCreate(savedInstanceState)
+        // OCR2b：把动态 OCR 插件解析器接到 common 的 OcrEngineProvider 上（未装插件时返回 null，自动降级）。
+        heizige.kk.khatkit.app.core.di.installOcrPluginResolver(this)
         if (CrashHandler.hasCrashed(this)) {
             startActivity(Intent(this, SafeModeActivity::class.java))
             finish()
