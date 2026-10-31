@@ -575,7 +575,7 @@ private fun AssistantCreationSheet(
                     Md3OutlinedTextField(
                         value = assistant.description,
                         onValueChange = { update(assistant.copy(description = it)) },
-                        label = { Text("职责描述") },
+                        label = "职责描述",
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                     )
